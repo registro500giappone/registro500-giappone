@@ -1,0 +1,1 @@
+# registro500-giappone
