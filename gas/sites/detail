@@ -1,1 +1,342 @@
 
+<!-- detail.html - 修正版・全文貼り替え用 -->
+
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro500Giappone - <?= carData.HandleName ?> 詳細</title>
+
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f4f4f4;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: #fff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .back-nav {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 1.1em;
+    }
+
+    .back-nav a {
+      color: #0056b3;
+      text-decoration: none;
+    }
+
+    h1 {
+      color: #0056b3;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+      margin-top: 0;
+    }
+
+    h2 {
+      font-size: 1.4em;
+      color: #333;
+      margin-top: 20px;
+      margin-bottom: 15px;
+      border-left: 5px solid #0056b3;
+      padding-left: 10px;
+    }
+
+    .main-photo {
+      width: 100%;
+      height: auto;
+      /* 写真全体を表示 */
+      object-fit: contain;
+      background-color: #eee;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+
+    /* 基本の2列レイアウト（dt / dd） */
+    .item-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 0;
+      margin-bottom: 20px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      border-collapse: collapse;
+    }
+
+    .item-grid dt,
+    .item-grid dd {
+      box-sizing: border-box;
+      padding: 10px;
+      word-break: break-word;      /* 長い単語・型番対策 */
+    }
+
+    .item-grid dt {
+      font-weight: bold;
+      color: #555;
+      background-color: #f9f9f9;
+      border-right: 1px solid #eee;
+      border-bottom: 1px solid #eee;
+    }
+
+    .item-grid dd {
+      margin: 0;
+      border-bottom: 1px solid #eee;
+      white-space: pre-wrap;       /* 改行（\n）もそのまま表示 */
+    }
+
+    /* 最終行のボーダー調整（見た目用） */
+    .item-grid dt:last-of-type,
+    .item-grid dd:last-of-type {
+      border-bottom-left-radius: 4px;
+      border-bottom-right-radius: 4px;
+    }
+
+    .gallery {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 15px;
+    }
+
+    .gallery-item {
+      width: calc(50% - 5px);
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .gallery-item img {
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+      background-color: #eee;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .gallery-item p {
+      margin-top: 5px;
+      font-size: 0.8em;
+      color: #777;
+    }
+
+    .sns-links a {
+      display: block;
+      margin-bottom: 8px;
+      color: #0056b3;
+      text-decoration: none;
+      word-break: break-all; /* URLが長い場合に改行する */
+    }
+
+    /* SNS リストの見やすい整形 */
+    .sns-list {
+      margin: 0 0 16px;
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      row-gap: 4px;
+      column-gap: 8px;
+      font-size: 0.95em;
+    }
+
+    .sns-list dt {
+      font-weight: bold;
+      color: #555;
+    }
+
+    .sns-list dd {
+      margin: 0;
+      color: #333;
+      word-break: break-all;
+    }
+
+    /* こだわりポイント用（複数行テキスト） */
+    .highlights-text {
+      margin: 0 0 10px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    .highlights-text br {
+      /* 改行だけなので特に指定なしだが、
+         必要ならここで行間の微調整も可能 */
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <? if (carData) { ?>
+
+      <!-- 一覧に戻るリンク（上部） -->
+      <p class="back-nav"><a href="<?= scriptUrl ?>">← 車両一覧に戻る</a></p>
+
+      <? if (carData.PhotoMain) { ?>
+        <img src="<?= carData.PhotoMain ?>" alt="メイン写真" class="main-photo">
+      <? } ?>
+
+      <h1><?= carData.HandleName ?></h1>
+
+      <!-- 基本情報 -->
+      <h2>基本情報</h2>
+      <dl class="item-grid js-auto-hide">
+        <dt>ハンドルネーム</dt><dd><?= carData.HandleName ?></dd>
+        <dt>モデル</dt><dd><?= carData.Model_DisplayC ?></dd>
+        <dt>年式</dt><dd><?= carData.Year ?></dd>
+        <dt>都道府県</dt><dd><?= carData.Prefecture ?></dd>
+      </dl>
+
+      <!-- ボディスペック -->
+      <h2>ボディスペック</h2>
+      <dl class="item-grid js-auto-hide">
+        <dt>ボディカラー</dt><dd><?= carData.BodyColor ?></dd>
+        <dt>全長 (cm)</dt><dd><?= carData.Length_cm ?></dd>
+        <dt>乗車定員</dt><dd><?= carData.Capacity ?></dd>
+        <dt>ハンドル</dt><dd><?= carData.Steering ?></dd>
+      </dl>
+
+      <!-- エンジン関係 -->
+      <h2>エンジン関係</h2>
+      <dl class="item-grid js-auto-hide">
+        <dt>排気量 (cc)</dt><dd><?= carData.EngineCC ?></dd>
+        <dt>エンジン形式</dt><dd><?= carData.Engine_Display ?></dd>
+        <dt>点火形式</dt><dd><?= carData.IgnitionType ?></dd>
+        <dt>デスビ/プラグ</dt><dd><?= carData.DistributionType ?> / <?= carData.PlugName ?></dd>
+        <dt>燃料供給装置</dt><dd><?= carData.FuelInjection ?></dd>
+        <dt>キャブレター</dt><dd><?= carData.CarburetorName ?></dd>
+        <dt>燃料ポンプ</dt><dd><?= carData.FuelPump ?></dd>
+        <dt>電ポン</dt><dd><?= carData.ElectricPumpName ?></dd>
+        <dt>発電機</dt><dd><?= carData.Generator ?></dd>
+        <dt>オイルクーラー</dt><dd><?= carData.OilCooler ?></dd>
+      </dl>
+
+      <!-- 駆動系・足回り -->
+      <h2>駆動系・足回り</h2>
+      <dl class="item-grid js-auto-hide">
+        <dt>トランスミッション</dt><dd><?= carData.Transmission ?></dd>
+        <dt>シンクロ</dt><dd><?= carData.Synchro ?></dd>
+        <dt>ジョイント</dt><dd><?= carData.Joint ?></dd>
+        <dt>ホイール</dt><dd><?= carData.Wheel ?></dd>
+        <dt>リム径 (inch)</dt><dd><?= carData.RimDiameter_in ?></dd>
+        <dt>リム幅 (inch)</dt><dd><?= carData.RimWidth_in ?></dd>
+        <dt>タイヤ形式</dt><dd><?= carData.TireType ?></dd>
+        <dt>タイヤサイズ</dt><dd><?= carData.TireSize ?></dd>
+        <dt>タイヤメーカー</dt><dd><?= carData.TireBrandName ?></dd>
+      </dl>
+
+      <!-- オイル・バッテリー他 -->
+      <h2>オイル・バッテリー他</h2>
+      <dl class="item-grid js-auto-hide">
+        <dt>エンジンオイル</dt><dd><?= carData.EngineOil ?></dd>
+        <dt>交換周期</dt><dd><?= carData.EngineOilInterval ?></dd>
+        <dt>ミッションオイル</dt><dd><?= carData.TransmissionOil ?></dd>
+        <dt>交換周期</dt><dd><?= carData.TransmissionOilInterval ?></dd>
+        <dt>バッテリー</dt><dd><?= carData.Battery ?></dd>
+      </dl>
+
+      <!-- こだわりポイント -->
+      <? if (carData.Highlights) { ?>
+        <h2>こだわりポイント</h2>
+        <p class="highlights-text">
+          <?!= String(carData.Highlights).replace(/\r\n|\r|\n/g, '<br>') ?>
+        </p>
+      <? } ?>
+
+      <!-- SNS -->
+      <h2>SNS</h2>
+      <dl class="sns-list">
+        <? if (carData.X_Twitter) { ?>
+          <dt>X</dt>
+          <dd><?= carData.X_Twitter ?></dd>
+        <? } ?>
+        <? if (carData.Instagram) { ?>
+          <dt>Instagram</dt>
+          <dd><?= carData.Instagram ?></dd>
+        <? } ?>
+        <? if (carData.Minkara) { ?>
+          <dt>みんカラ</dt>
+          <dd><?= carData.Minkara ?></dd>
+        <? } ?>
+      </dl>
+
+      <!-- ギャラリー -->
+      <h2>ギャラリー</h2>
+      <div class="gallery">
+        <? if (carData.PhotoFront) { ?>
+          <div class="gallery-item">
+            <img src="<?= carData.PhotoFront ?>" alt="前方写真">
+            <p>前方写真</p>
+          </div>
+        <? } ?>
+        <? if (carData.PhotoSide) { ?>
+          <div class="gallery-item">
+            <img src="<?= carData.PhotoSide ?>" alt="横写真">
+            <p>横写真</p>
+          </div>
+        <? } ?>
+        <? if (carData.PhotoRear) { ?>
+          <div class="gallery-item">
+            <img src="<?= carData.PhotoRear ?>" alt="後方写真">
+            <p>後方写真</p>
+          </div>
+        <? } ?>
+        <? if (carData.PhotoEngine) { ?>
+          <div class="gallery-item">
+            <img src="<?= carData.PhotoEngine ?>" alt="エンジン">
+            <p>エンジン</p>
+          </div>
+        <? } ?>
+        <? if (carData.PhotoInterior) { ?>
+          <div class="gallery-item">
+            <img src="<?= carData.PhotoInterior ?>" alt="内装">
+            <p>内装</p>
+          </div>
+        <? } ?>
+        <? if (carData.PhotoSteeringCluster) { ?>
+          <div class="gallery-item">
+            <img src="<?= carData.PhotoSteeringCluster ?>" alt="ステアリング・メーター">
+            <p>ステアリング・メーター</p>
+          </div>
+        <? } ?>
+      </div>
+
+      <!-- 一覧に戻るリンク（下部） -->
+      <p class="back-nav" style="margin-top: 30px;">
+        <a href="<?= scriptUrl ?>">↑ 車両一覧に戻る</a>
+      </p>
+
+    <? } else { ?>
+      <p>表示するデータが見つかりませんでした。</p>
+    <? } ?>
+  </div>
+
+  <!-- 空欄 dt/dd を自動で非表示にする -->
+  <script>
+    (function () {
+      var blocks = document.querySelectorAll('.item-grid.js-auto-hide');
+      blocks.forEach(function (dl) {
+        var children = Array.prototype.slice.call(dl.children);
+        for (var i = 0; i < children.length; i += 2) {
+          var dt = children[i];
+          var dd = children[i + 1];
+          if (!dd) continue;
+          var text = (dd.textContent || '').trim();
+          if (!text) {
+            dt.style.display = 'none';
+            dd.style.display = 'none';
+          }
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
