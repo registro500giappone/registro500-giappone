@@ -1,1 +1,452 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Registro500 Giappone - 編集フォーム（雛形）</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 800px;
+      margin: 24px auto;
+      padding: 16px;
+      line-height: 1.5;
+      background: #f9fafb;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+    }
+    h2 {
+      font-size: 1.1rem;
+      border-left: 4px solid #e11d48;
+      padding-left: 8px;
+      margin: 24px 0 8px;
+    }
+    fieldset {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px 12px 4px;
+      margin-bottom: 16px;
+      background: #ffffff;
+    }
+    label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-top: 10px;
+      margin-bottom: 4px;
+    }
+    input[type="text"],
+    input[type="number"],
+    textarea,
+    select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      font-size: 0.9rem;
+    }
+    textarea {
+      min-height: 5em;
+      resize: vertical;
+    }
+    .radio-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    .radio-group label {
+      font-weight: 500;
+    }
+    .radio-group input[type="radio"] {
+      margin-right: 4px;
+    }
+    .hint {
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+    .inline-small {
+      display: flex;
+      gap: 8px;
+    }
+    .inline-small > div {
+      flex: 1;
+    }
+    .photo-hint {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+    button {
+      margin-top: 16px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    button.primary {
+      background: #e11d48;
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Registro500 Giappone　編集フォーム（雛形）</h1>
+
+  <form id="carForm" onsubmit="handleSubmit(event)">
+
+
+    <!-- 1. 基本情報 -->
+    <h2>基本情報</h2>
+    <fieldset>
+      <label for="HandleName">ハンドルネーム</label>
+      <input type="text" id="HandleName" name="HandleName">
+
+      <label for="Prefecture">都道府県</label>
+      <input type="text" id="Prefecture" name="Prefecture" placeholder="例：神奈川県">
+
+      <label for="ModelSelectA">車両</label>
+      <select id="ModelSelectA" name="ModelSelectA">
+        <option value="">選択してください</option>
+        <option value="Nuova500">Nuova500</option>
+        <option value="ABARTH">ABARTH</option>
+        <option value="その他">その他</option>
+      </select>
+
+      <div id="ModelTextAWrapper" style="display:none;">
+        <label for="ModelTextA">車両（その他入力）</label>
+        <input type="text" id="ModelTextA" name="ModelTextA" placeholder="例：Giardiniera 他">
+      </div>
+
+      <label for="ModelSelectB">モデル</label>
+      <select id="ModelSelectB" name="ModelSelectB">
+        <option value="">選択してください</option>
+        <option value="R">R</option>
+        <option value="L">L</option>
+        <option value="F">F</option>
+        <option value="D">D</option>
+        <option value="Giardiniera">Giardiniera</option>
+        <option value="Sport">Sport</option>
+        <option value="N Normale">N Normale</option>
+        <option value="Prima Serie">Prima Serie</option>
+        <option value="595">595</option>
+        <option value="695">695</option>
+        <option value="その他">その他</option>
+      </select>
+
+      <div id="ModelTextBWrapper" style="display:none;">
+        <label for="ModelTextB">モデル（その他入力）</label>
+        <input type="text" id="ModelTextB" name="ModelTextB">
+      </div>
+
+      <div class="inline-small">
+        <div>
+          <label for="Year">年式</label>
+          <input type="number" id="Year" name="Year" placeholder="例：1964">
+        </div>
+        <div>
+          <label for="BodyColor">ボディーカラー</label>
+          <input type="text" id="BodyColor" name="BodyColor" placeholder="例：ネイビー">
+        </div>
+      </div>
+
+      <div class="inline-small">
+        <div>
+          <label for="Length_cm">全長（cm）</label>
+          <input type="number" id="Length_cm" name="Length_cm">
+        </div>
+        <div>
+          <label>乗車定員</label>
+          <div class="radio-group">
+            <label><input type="radio" name="Capacity" value="4">4人</label>
+            <label><input type="radio" name="Capacity" value="5">5人</label>
+          </div>
+        </div>
+      </div>
+
+      <label>ハンドル</label>
+      <div class="radio-group">
+        <label><input type="radio" name="Steering" value="左">左</label>
+        <label><input type="radio" name="Steering" value="右">右</label>
+      </div>
+    </fieldset>
+
+    <!-- 2. エンジン関係 -->
+    <h2>エンジン関係</h2>
+    <fieldset>
+      <label for="EngineCC">排気量（cc）</label>
+      <input type="number" id="EngineCC" name="EngineCC">
+
+      <label for="EngineTypeSelect">エンジン形式・選択</label>
+      <select id="EngineTypeSelect" name="EngineTypeSelect">
+        <option value="">選択してください</option>
+        <option value="110">110</option>
+        <option value="110.004">110.004</option>
+        <option value="110D.000">110D.000</option>
+        <option value="110F.000">110F.000</option>
+        <option value="120">120</option>
+        <option value="126A.000">126A.000</option>
+        <option value="126A1.000">126A1.000</option>
+        <option value="126A1.048">126A1.048</option>
+        <option value="126A5.000">126A5.000</option>
+        <option value="不明">不明</option>
+        <option value="その他">その他</option>
+      </select>
+
+      <div id="EngineTypeTextWrapper" style="display:none;">
+        <label for="EngineTypeText">エンジン形式（その他）</label>
+        <input type="text" id="EngineTypeText" name="EngineTypeText">
+      </div>
+
+      <label>点火制御方式</label>
+      <div class="radio-group">
+        <label><input type="radio" name="IgnitionType" value="ポイント">ポイント</label>
+        <label><input type="radio" name="IgnitionType" value="セミトラ">セミトラ</label>
+        <label><input type="radio" name="IgnitionType" value="フルトラ">フルトラ</label>
+      </div>
+
+      <label for="IgnitionSubType">セミトラ／フルトラ（商品名）</label>
+      <input type="text" id="IgnitionSubType" name="IgnitionSubType" placeholder="例：ウオタニSP2">
+
+      <label>配電方式</label>
+      <div class="radio-group">
+        <label><input type="radio" name="DistributionType" value="独立点火">独立点火</label>
+        <label><input type="radio" name="DistributionType" value="同時点火">同時点火</label>
+      </div>
+
+      <label for="CoilName">コイル（商品名）</label>
+      <input type="text" id="CoilName" name="CoilName">
+
+      <label for="PlugName">プラグ（商品名）</label>
+      <input type="text" id="PlugName" name="PlugName">
+
+      <label>燃料噴射装置</label>
+      <div class="radio-group">
+        <label><input type="radio" name="FuelInjection" value="キャブレター">キャブレター</label>
+        <label><input type="radio" name="FuelInjection" value="インジェクション">インジェクション</label>
+      </div>
+
+      <label for="CarburetorName">キャブレター等（名称）</label>
+      <input type="text" id="CarburetorName" name="CarburetorName">
+
+      <label>燃料ポンプ</label>
+      <div class="radio-group">
+        <label><input type="radio" name="FuelPump" value="機械式">機械式</label>
+        <label><input type="radio" name="FuelPump" value="電気式">電気式</label>
+      </div>
+
+      <label for="ElectricPumpName">電ポン（名称）</label>
+      <input type="text" id="ElectricPumpName" name="ElectricPumpName">
+
+      <label>発電機</label>
+      <div class="radio-group">
+        <label><input type="radio" name="Generator" value="ダイナモ">ダイナモ</label>
+        <label><input type="radio" name="Generator" value="オルタネーター">オルタネーター</label>
+        <label><input type="radio" name="Generator" value="その他">その他</label>
+      </div>
+
+      <label>オイルクーラー</label>
+      <div class="radio-group">
+        <label><input type="radio" name="OilCooler" value="無し">無し</label>
+        <label><input type="radio" name="OilCooler" value="機械式">機械式</label>
+        <label><input type="radio" name="OilCooler" value="電気式">電気式</label>
+      </div>
+    </fieldset>
+
+    <!-- 3. 駆動系・足回り -->
+    <h2>駆動系・足回り</h2>
+    <fieldset>
+      <label>トランスミッション</label>
+      <div class="radio-group">
+        <label><input type="radio" name="Transmission" value="4速">4速</label>
+        <label><input type="radio" name="Transmission" value="5速">5速</label>
+      </div>
+
+      <label>シンクロ</label>
+      <div class="radio-group">
+        <label><input type="radio" name="Synchro" value="ノンシンクロ">ノンシンクロ</label>
+        <label><input type="radio" name="Synchro" value="シンクロ">シンクロ</label>
+      </div>
+
+      <label>ジョイント</label>
+      <div class="radio-group">
+        <label><input type="radio" name="Joint" value="ノーマル">ノーマル</label>
+        <label><input type="radio" name="Joint" value="CVジョイント">CVジョイント</label>
+      </div>
+
+      <label>ホイール</label>
+      <div class="radio-group">
+        <label><input type="radio" name="Wheel" value="純正">純正</label>
+        <label><input type="radio" name="Wheel" value="社外">社外</label>
+      </div>
+
+      <div class="inline-small">
+        <div>
+          <label for="RimDiameter_in">リム径（inch）</label>
+          <input type="number" id="RimDiameter_in" name="RimDiameter_in">
+        </div>
+        <div>
+          <label for="RimWidth_in">リム幅（inch）</label>
+          <input type="number" id="RimWidth_in" name="RimWidth_in" step="0.1">
+        </div>
+      </div>
+
+      <label>タイヤ型式</label>
+      <div class="radio-group">
+        <label><input type="radio" name="TireType" value="チューブ">チューブ</label>
+        <label><input type="radio" name="TireType" value="チューブレス">チューブレス</label>
+      </div>
+
+      <label for="TireSize">タイヤサイズ</label>
+      <input type="text" id="TireSize" name="TireSize" placeholder="例：125R12">
+
+      <label for="TireBrandName">タイヤメーカー／名称</label>
+      <input type="text" id="TireBrandName" name="TireBrandName">
+    </fieldset>
+
+    <!-- 4. オイル・バッテリー他 -->
+    <h2>オイル・バッテリー他</h2>
+    <fieldset>
+      <label for="EngineOil">エンジンオイル</label>
+      <input type="text" id="EngineOil" name="EngineOil">
+
+      <label for="EngineOilInterval">交換期間（月／km）</label>
+      <input type="text" id="EngineOilInterval" name="EngineOilInterval" placeholder="例：6ヶ月 または 5,000km">
+
+      <label for="TransmissionOil">ミッションオイル</label>
+      <input type="text" id="TransmissionOil" name="TransmissionOil">
+
+      <label for="TransmissionOilInterval">交換期間（月／km）</label>
+      <input type="text" id="TransmissionOilInterval" name="TransmissionOilInterval" placeholder="例：1年">
+
+      <label for="Battery">バッテリー</label>
+      <input type="text" id="Battery" name="Battery">
+    </fieldset>
+
+    <!-- 5. こだわりポイント -->
+    <h2>こだわりポイント</h2>
+    <fieldset>
+      <label for="Highlights">チューンナップ／モディファイ／自慢ポイント</label>
+      <textarea id="Highlights" name="Highlights"
+        placeholder="・フルオープンになるトランスフォーマビレ…&#10;・エンジンは499ccのままですが…"></textarea>
+      <p class="hint">※複数行の入力が可能です（改行はサイト側でそのまま反映されます）。</p>
+    </fieldset>
+
+    <!-- 6. SNS・リンク -->
+    <h2>SNS / Web</h2>
+    <fieldset>
+      <label for="X_Twitter">X（Twitter）</label>
+      <input type="text" id="X_Twitter" name="X_Twitter" placeholder="例：pasota500d">
+
+      <label for="Instagram">Instagram</label>
+      <input type="text" id="Instagram" name="Instagram">
+
+      <label for="Minkara">みんカラ</label>
+      <input type="text" id="Minkara" name="Minkara">
+
+      <label for="Facebook">Facebook</label>
+      <input type="text" id="Facebook" name="Facebook">
+
+      <label for="Threads">Threads</label>
+      <input type="text" id="Threads" name="Threads">
+
+      <label for="BlogOrWebsite">ブログ・HP</label>
+      <input type="text" id="BlogOrWebsite" name="BlogOrWebsite">
+    </fieldset>
+
+    <!-- 7. 写真 -->
+    <h2>写真</h2>
+    <fieldset>
+      <p class="photo-hint">※いまはプレースホルダとして URL 入力欄です。将来 Firebase Storage 連携時に差し替え予定。</p>
+
+      <label for="PhotoMain">タイトル写真（メイン）</label>
+      <input type="text" id="PhotoMain" name="PhotoMain" placeholder="画像URL">
+
+      <label for="PhotoFront">正面</label>
+      <input type="text" id="PhotoFront" name="PhotoFront" placeholder="画像URL">
+
+      <label for="PhotoSide">側面</label>
+      <input type="text" id="PhotoSide" name="PhotoSide" placeholder="画像URL">
+
+      <label for="PhotoRear">背面</label>
+      <input type="text" id="PhotoRear" name="PhotoRear" placeholder="画像URL">
+
+      <label for="PhotoEngine">エンジンルーム</label>
+      <input type="text" id="PhotoEngine" name="PhotoEngine" placeholder="画像URL">
+
+      <label for="PhotoSteeringCluster">ハンドル／メーター</label>
+      <input type="text" id="PhotoSteeringCluster" name="PhotoSteeringCluster" placeholder="画像URL">
+
+      <label for="PhotoInterior">内装</label>
+      <input type="text" id="PhotoInterior" name="PhotoInterior" placeholder="画像URL">
+    </fieldset>
+
+        <!-- 送信ボタン -->
+    <button type="submit" class="primary">
+      この内容で登録
+    </button>
+
+  </form>
+
+  <script>
+    // Apps Script 側の URL（一覧に戻る用）
+    const SCRIPT_URL = '<?= scriptUrl ?>';
+
+    function toggleOtherSelect(selectId, wrapperId) {
+      const select = document.getElementById(selectId);
+      const wrapper = document.getElementById(wrapperId);
+      wrapper.style.display = (select.value === 'その他') ? 'block' : 'none';
+    }
+
+    document.getElementById('ModelSelectA').addEventListener('change', function () {
+      toggleOtherSelect('ModelSelectA', 'ModelTextAWrapper');
+    });
+    document.getElementById('ModelSelectB').addEventListener('change', function () {
+      toggleOtherSelect('ModelSelectB', 'ModelTextBWrapper');
+    });
+    document.getElementById('EngineTypeSelect').addEventListener('change', function () {
+      toggleOtherSelect('EngineTypeSelect', 'EngineTypeTextWrapper');
+    });
+
+    // ★ フォーム送信処理
+    function handleSubmit(event) {
+      event.preventDefault(); // ページの標準送信を止める
+
+      const form = document.getElementById('carForm');
+      const formData = new FormData(form);
+      const data = {};
+
+      // FormData → プレーンなオブジェクトに変換
+      formData.forEach((value, key) => {
+        data[key] = value;
+      });
+
+      const submitBtn = form.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '送信中…';
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          alert('登録が完了しました。');
+          // ★ 一覧へジャンプ（modelist 付き）
+          if (SCRIPT_URL) {
+            window.location.href = SCRIPT_URL + '?mode=list';
+          }
+        })
+        .withFailureHandler(function(error) {
+          alert('エラーが発生しました：' + error.message);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'この内容で登録';
+        })
+        .saveCarFromForm(data);
+    }
+  </script>
+</body>
+</html>
+</body>
+</html>
 
