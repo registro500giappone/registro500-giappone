@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
   <meta charset="UTF-8">
   <title>Registro500Giappone - 登録車両一覧</title>
@@ -14,9 +13,12 @@
       --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.10);
       --text-main: #111827;
       --text-sub: #6b7280;
-      --button-bg: #9ca3af;
-      --button-text: #ffffff;
-      --button-hover: #6b7280;
+
+      /* ★ アクセントをネイビー系に変更 */
+      --accent: #1f3b63;        /* ほどよいネイビー */
+      --accent-soft: #e5effa;   /* ネイビー系の淡い背景 */
+      --accent-border: #b3c8eb; /* ネイビー系の淡い枠線 */
+
       --radius-lg: 18px;
     }
 
@@ -24,14 +26,14 @@
       box-sizing: border-box;
     }
 
-    /* ★モバイル基準：まず「大きい文字」をデフォルトにする */
+    /* モバイル基準 */
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       margin: 0;
       padding: 18px 12px 26px;
       background-color: var(--bg-main);
       color: var(--text-main);
-      font-size: 1.5rem; /* モバイルではかなり大きめ */
+      font-size: 1.5rem; /* モバイルでは大きめ */
       line-height: 1.6;
     }
 
@@ -40,19 +42,65 @@
       margin: 0 auto;
     }
 
+    /* ===== ヘッダー周り ===== */
+
     .page-header {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .page-header-main {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .page-header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* ロゴ風タイトル */
+    .brand-title {
+      margin: 0;
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .page-section-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .page-section-title {
+      margin: 0;
+      font-size: 1.9rem;      /* ソートよりはっきり大きく */
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    /* タイトル右の「めざせ！500台 現在 ○台」 */
+    .page-subtitle {
+      margin: 0;
+      font-size: 1.4rem;
+      color: var(--text-sub);
+      white-space: nowrap;
+    }
+
+    .page-header-right {
       display: flex;
       flex-direction: column;
       align-items: flex-start;
       gap: 8px;
-      margin-bottom: 20px;
-    }
-
-    .page-title {
-      margin: 0;
-      font-size: 2.4rem;
-      letter-spacing: 0.08em;
-      line-height: 1.4;
     }
 
     .sort-area {
@@ -72,7 +120,63 @@
       outline: none;
     }
 
-    /* モバイル〜タブレットは 2 列固定 */
+    /* 新規登録ボタン：セレクトと同じ高さ感＋目立ちすぎない */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 14px;              /* ← sort-select と揃え */
+      border-radius: 999px;
+      border: 1px solid var(--accent-border);
+      background-color: var(--accent);
+      color: #ffffff;
+      font-size: 1.1rem;              /* セレクトとほぼ同じ */
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.16); /* 影は控えめに */
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.1s ease;
+      white-space: nowrap;
+    }
+
+    .btn-primary:hover {
+      background-color: #182f4d;
+      box-shadow: 0 4px 8px rgba(15, 23, 42, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.2);
+    }
+
+    .btn-primary-icon {
+      margin-right: 0.4em;
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+
+    /* ヘッダー内ナビ（プライバシー・使い方リンク） */
+    .header-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 1.1rem;
+      color: var(--text-sub);
+    }
+
+    .header-nav a {
+      color: var(--text-sub);
+      text-decoration: none;
+    }
+
+    .header-nav a:hover {
+      text-decoration: underline;
+    }
+
+    /* ===== 一覧カード ===== */
+
+    /* モバイル〜タブレット：2列 */
     .car-list {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -125,100 +229,113 @@
     }
 
     .car-main {
-      padding: 18px 16px 14px;
+      padding: 18px 16px 10px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 6px;          /* 行間を少し詰める */
     }
 
-    /* ★タイトル（車両名＋年式）をかなり大きく */
+    /* タイトル：年式・車両名を縦並びに */
     .car-title {
       margin: 0;
       font-size: 2.4rem;
       font-weight: 700;
       color: var(--text-main);
-      line-height: 1.4;
+      line-height: 1.3;
+      display: flex;
+      flex-direction: column;  /* 年式 → 車両名 の縦並び */
+      align-items: flex-start;
+      gap: 0.15rem;
     }
 
-    /* 年式だけ少し小さくする */
     .car-title-year {
-      font-size: 0.8em;
+      font-size: 0.75em;
+      font-weight: 600;
+      color: var(--text-sub);
     }
 
-    /* オーナー名（ハンドルネーム）も大きく */
+    .car-title-model {
+      font-weight: 800;
+    }
+
+    /* オーナー＋都道府県：1行 */
+    .car-owner-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
     .car-owner {
       margin: 0;
       font-size: 2.0rem;
       color: var(--text-main);
-    }
-
-    .car-owner span {
       font-weight: 600;
-      color: var(--text-main);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    /* 都道府県バッジも大きく */
+    /* 都道府県バッジ：ハンドルネームより一回り小さく */
     .badge-pref {
       display: inline-flex;
       align-items: center;
-      padding: 8px 18px;
+      padding: 2px 10px;
       border-radius: 999px;
-      border: 1px solid #bfdbfe;
-      background-color: #eff6ff;
-      color: #1d4ed8;
-      font-size: 1.8rem;
+      border: 1px solid var(--accent-border);
+      background-color: var(--accent-soft);
+      color: var(--accent);
+      font-size: 1.1rem;
       white-space: nowrap;
     }
 
+    /* フッター（今はほぼ余白だけ） */
     .card-footer {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 12px 16px 14px;
-      border-top: 1px solid var(--border-soft);
+      justify-content: flex-start;
+      padding: 6px 16px 10px;
+      border-top: none;
       font-size: 1.2rem;
-    }
-
-    .badge-updated {
       color: var(--text-sub);
+      min-height: 0;
     }
 
-    /* View Detail は目立たないサイズ（PCと共通） */
-    .btn-detail {
-      padding: 4px 12px;
-      border-radius: 999px;
-      border: none;
-      background-color: var(--button-bg);
-      color: var(--button-text);
-      font-size: 0.8rem;
-      cursor: pointer;
-      text-decoration: none;
-      white-space: nowrap;
-      transition: background-color 0.15s ease, transform 0.05s ease;
-    }
+    .badge-updated { }
 
-    .btn-detail:hover {
-      background-color: var(--button-hover);
-      transform: translateY(-1px);
-    }
+    /* ===== PC 向けレイアウト ===== */
 
-    /* ★ここから PC 向け：フォントとレイアウトを「小さめ・上品」に戻す */
     @media (min-width: 1024px) {
       body {
         padding: 24px;
-        font-size: 1.3rem; /* PC 全体を 1.3 倍 */
+        font-size: 1.3rem;
       }
 
       .page-header {
         flex-direction: row;
-        align-items: center;
         justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 24px;
+        align-items: flex-end;
       }
 
-      .page-title {
+      .page-header-main {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .brand-title {
         font-size: 2.0rem;
+      }
+
+      .page-section-title {
+        font-size: 1.7rem;
+      }
+
+      .page-subtitle {
+        font-size: 1.0rem;
+      }
+
+      .page-header-right {
+        align-items: flex-end;
       }
 
       .sort-area {
@@ -229,19 +346,32 @@
         font-size: 0.95rem;
       }
 
-      /* PC は 3〜4列レイアウト */
+      .header-nav {
+        justify-content: flex-end;
+        font-size: 0.9rem;
+      }
+
+      .btn-primary {
+        font-size: 0.95rem;     /* PC では少しだけ小さめに */
+        padding: 6px 14px;      /* 高さもセレクトとほぼ同等に */
+      }
+
+      .btn-primary-icon {
+        font-size: 1.0rem;
+      }
+
       .car-list {
         grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
         gap: 20px;
       }
 
       .car-main {
-        padding: 16px 18px 12px;
-        gap: 8px;
+        padding: 16px 18px 8px;
+        gap: 6px;
       }
 
       .car-title {
-        font-size: 1.4rem; /* 以前「ちょうどいい」となったサイズに戻す */
+        font-size: 1.4rem;
       }
 
       .car-owner {
@@ -249,17 +379,13 @@
       }
 
       .badge-pref {
-        font-size: 1.0rem; /* 以前の「1.2倍イメージ」に近いサイズ */
-        padding: 4px 10px;
+        font-size: 0.8rem;
+        padding: 2px 8px;
       }
 
       .card-footer {
-        padding: 12px 18px 14px;
+        padding: 6px 18px 10px;
         font-size: 0.9rem;
-      }
-
-      .btn-detail {
-        font-size: 0.8rem;
       }
     }
   </style>
@@ -268,16 +394,42 @@
 <body>
   <div class="page">
     <header class="page-header">
-      <h1 class="page-title">登録車両一覧</h1>
+      <div class="page-header-main">
+        <div class="page-header-left">
+          <h1 class="brand-title">REGISTRO500 GIAPPONE</h1>
 
-      <div class="sort-area">
-        並び替え：
-        <select id="sortSelect" class="sort-select">
-          <option value="newest">新規登録順（新しい順）</option>
-          <option value="oldest">新規登録順（古い順）</option>
-          <option value="year_desc">年式が新しい順</option>
-          <option value="year_asc">年式が古い順</option>
-        </select>
+          <div class="page-section-row">
+            <p class="page-section-title">登録車両一覧</p>
+            <p class="page-subtitle" id="carCountText">
+              めざせ！500台　現在 0台
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="page-header-right">
+        <div class="sort-area">
+          並び替え：
+          <select id="sortSelect" class="sort-select">
+            <option value="newest">新規登録順（新しい順）</option>
+            <option value="oldest">新規登録順（古い順）</option>
+            <option value="year_desc">年式が新しい順</option>
+            <option value="year_asc">年式が古い順</option>
+          </select>
+
+          <!-- ★ 実装前なので href はダミー。あとでフォームURLに差し替え -->
+          <a href="#!" class="btn-primary">
+            <span class="btn-primary-icon">＋</span>
+            新規登録
+          </a>
+        </div>
+
+        <nav class="header-nav">
+          <!-- ここもあとで実ページのURLに差し替え -->
+          <a href="#!">プライバシーポリシー / 利用規約</a>
+          <span>｜</span>
+          <a href="#!">使い方</a>
+        </nav>
       </div>
     </header>
 
@@ -288,126 +440,143 @@
 
   <? var jsonCars = JSON.stringify(allCars); ?>
 
-<script>
-  const scriptUrl = '<?= scriptUrl ?>';
-  const carsData = <?!= jsonCars ?> || [];
+  <script>
+    const scriptUrl = '<?= scriptUrl ?>';
+    const carsData = <?!= jsonCars ?> || [];
 
-  function parseDocNumber(docId) {
-    if (!docId) return 0;
-    const m = /^DOC_(\d+)$/.exec(String(docId));
-    return m ? parseInt(m[1], 10) : 0;
-  }
+    // ★ NO IMAGE 画像のURL（Firebase 等に置いた実際の URL に差し替えてください）
+    const NO_IMAGE_URL = 'https://example.com/path/to/no-image.png';
 
-  function parseYear(yearValue) {
-    const n = Number(yearValue);
-    return Number.isFinite(n) ? n : 0;
-  }
-
-  function renderCars(sortType) {
-    const listEl = document.getElementById('carList');
-    listEl.innerHTML = '';
-
-    const cars = carsData.slice();
-
-    // 並び替え
-    switch (sortType) {
-      case 'oldest':
-        cars.sort((a, b) => parseDocNumber(a.DocumentID) - parseDocNumber(b.DocumentID));
-        break;
-      case 'year_desc':
-        cars.sort((a, b) => parseYear(b.Year) - parseYear(a.Year));
-        break;
-      case 'year_asc':
-        cars.sort((a, b) => parseYear(a.Year) - parseYear(b.Year));
-        break;
-      case 'newest':
-      default:
-        cars.sort((a, b) => parseDocNumber(b.DocumentID) - parseDocNumber(a.DocumentID));
-        break;
+    function parseDocNumber(docId) {
+      if (!docId) return 0;
+      const m = /^DOC_(\d+)$/.exec(String(docId));
+      return m ? parseInt(m[1], 10) : 0;
     }
 
-    cars.forEach(car => {
-      const card = document.createElement('article');
-      card.className = 'car-card';
+    function parseYear(yearValue) {
+      const n = Number(yearValue);
+      return Number.isFinite(n) ? n : 0;
+    }
 
-      const link = document.createElement('a');
-      link.className = 'car-link';
-      link.href = scriptUrl + '?mode=detail&doc=' + encodeURIComponent(car.DocumentID || '');
-      // ★ ここが今回のポイント：必ず新しいタブで開く
-      link.target = '_blank';
-      link.rel = 'noopener';
+    // 登録台数をタイトル横に表示（DocumentID が入っているレコードだけカウント）
+    function updateCarCount() {
+      const countEl = document.getElementById('carCountText');
+      if (!countEl) return;
 
-      // 画像
-      const imgWrap = document.createElement('div');
-      imgWrap.className = 'car-image-wrap';
-      const img = document.createElement('img');
-      img.className = 'car-image';
-      img.src = car.PhotoMain || '';
-      img.alt = (car.Model_DisplayC || '') + 'の写真';
-      imgWrap.appendChild(img);
+      const validCars = carsData.filter(car => car.DocumentID && String(car.DocumentID).trim() !== '');
+      const count = validCars.length;
+      countEl.textContent = `めざせ！500台　現在 ${count}台`;
+    }
 
-      // 本文
-      const main = document.createElement('div');
-      main.className = 'car-main';
+    function renderCars(sortType) {
+      const listEl = document.getElementById('carList');
+      listEl.innerHTML = '';
 
-      // タイトル：Model_DisplayC をそのまま使う（年式はここだけ）
-      const titleEl = document.createElement('h2');
-      titleEl.className = 'car-title';
-      const modelTitle =
-        (car.Model_DisplayC && String(car.Model_DisplayC).trim()) ||
-        (car.Year ? '(' + car.Year + ')' : '');
-      titleEl.textContent = modelTitle;
+      const cars = carsData.slice();
 
-      // オーナー
-      const ownerEl = document.createElement('p');
-      ownerEl.className = 'car-owner';
-      ownerEl.innerHTML = 'オーナー: <span>' + (car.HandleName || '') + '</span>';
-
-      // メタ（都道府県だけ・※今は本文右に表示）
-      const metaRow = document.createElement('div');
-      metaRow.className = 'car-meta-row';
-
-      if (car.Prefecture) {
-        const pref = document.createElement('span');
-        pref.className = 'badge-pref';
-        pref.textContent = car.Prefecture;
-        metaRow.appendChild(pref);
+      // 並び替え
+      switch (sortType) {
+        case 'oldest':
+          cars.sort((a, b) => parseDocNumber(a.DocumentID) - parseDocNumber(b.DocumentID));
+          break;
+        case 'year_desc':
+          cars.sort((a, b) => parseYear(b.Year) - parseYear(a.Year));
+          break;
+        case 'year_asc':
+          cars.sort((a, b) => parseYear(a.Year) - parseYear(b.Year));
+          break;
+        case 'newest':
+        default:
+          cars.sort((a, b) => parseDocNumber(b.DocumentID) - parseDocNumber(a.DocumentID));
+          break;
       }
 
-      main.appendChild(titleEl);
-      main.appendChild(ownerEl);
-      main.appendChild(metaRow);
+      cars.forEach(car => {
+        const card = document.createElement('article');
+        card.className = 'car-card';
 
-      // フッター（更新情報は今は空、ボタンのみ）
-      const footer = document.createElement('div');
-      footer.className = 'card-footer';
+        const link = document.createElement('a');
+        link.className = 'car-link';
+        link.href = scriptUrl + '?mode=detail&doc=' + encodeURIComponent(car.DocumentID || '');
+        link.target = '_blank';
+        link.rel = 'noopener';
 
-      const updated = document.createElement('span');
-      updated.className = 'badge-updated';
-      updated.textContent = ''; // createdAt / updatedAt 連携は後で
-      footer.appendChild(updated);
+        // 画像（なければ NO IMAGE にフォールバック）
+        const imgWrap = document.createElement('div');
+        imgWrap.className = 'car-image-wrap';
+        const img = document.createElement('img');
+        img.className = 'car-image';
+        const photoUrl = (car.PhotoMain && String(car.PhotoMain).trim()) || NO_IMAGE_URL;
+        img.src = photoUrl;
+        img.alt = (car.Model_DisplayC || '') + 'の写真';
+        imgWrap.appendChild(img);
 
-      const btn = document.createElement('span');
-      btn.className = 'btn-detail';
-      btn.textContent = 'View Detail';
-      footer.appendChild(btn);
+        // 本文
+        const main = document.createElement('div');
+        main.className = 'car-main';
 
-      link.appendChild(imgWrap);
-      link.appendChild(main);
-      link.appendChild(footer);
+        // タイトル：年式 + モデル名（Model_DisplayC の末尾 (年式) は削る）
+        const titleEl = document.createElement('h2');
+        titleEl.className = 'car-title';
 
-      card.appendChild(link);
-      listEl.appendChild(card);
+        const yearSpan = document.createElement('span');
+        yearSpan.className = 'car-title-year';
+        yearSpan.textContent = car.Year ? String(car.Year) + '年' : '';
+
+        const modelSpan = document.createElement('span');
+        modelSpan.className = 'car-title-model';
+        const rawModel = (car.Model_DisplayC && String(car.Model_DisplayC).trim()) || '';
+        modelSpan.textContent = rawModel.replace(/\s*\(\d{4}\)\s*$/, '');
+
+        if (yearSpan.textContent) {
+          titleEl.appendChild(yearSpan);
+        }
+        titleEl.appendChild(modelSpan);
+
+        // オーナー＋都道府県（1行）
+        const ownerRow = document.createElement('div');
+        ownerRow.className = 'car-owner-row';
+
+        const ownerName = document.createElement('p');
+        ownerName.className = 'car-owner';
+        ownerName.textContent = car.HandleName || '';
+        ownerRow.appendChild(ownerName);
+
+        if (car.Prefecture) {
+          const pref = document.createElement('span');
+          pref.className = 'badge-pref';
+          pref.textContent = car.Prefecture;
+          ownerRow.appendChild(pref);
+        }
+
+        main.appendChild(titleEl);
+        main.appendChild(ownerRow);
+
+        // フッター（将来 updatedAt を入れる想定。今は空）
+        const footer = document.createElement('div');
+        footer.className = 'card-footer';
+
+        const updated = document.createElement('span');
+        updated.className = 'badge-updated';
+        updated.textContent = '';
+        footer.appendChild(updated);
+
+        link.appendChild(imgWrap);
+        link.appendChild(main);
+        link.appendChild(footer);
+
+        card.appendChild(link);
+        listEl.appendChild(card);
+      });
+    }
+
+    document.getElementById('sortSelect').addEventListener('change', (e) => {
+      renderCars(e.target.value);
     });
-  }
 
-  document.getElementById('sortSelect').addEventListener('change', (e) => {
-    renderCars(e.target.value);
-  });
-
-  // 初期表示：新規登録順（新しい順）
-  renderCars(document.getElementById('sortSelect').value);
-</script>
+    // 初期表示：新規登録順（新しい順）＋ 登録台数表示
+    renderCars(document.getElementById('sortSelect').value);
+    updateCarCount();
+  </script>
 </body>
-
 </html>
