@@ -1,328 +1,624 @@
-
-<!-- detail.html - 修正版・全文貼り替え用 -->
-
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
   <base target="_top">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registro500Giappone - <?= carData.HandleName ?> 詳細</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registro500 Giappone - <?= carData && carData.HandleName ? carData.HandleName : '詳細' ?></title>
 
+  <!-- Bootstrap 5.3（CDN） -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- 自前CSS（small/px禁止。フォントサイズは基本rem。htmlだけpxで土台指定） -->
   <style>
+    /* ========== ベースの文字サイズ ========== */
+    /* スマホ〜タブレット：Glideスクショに合わせて 28px 相当 */
+    html {
+      font-size: 28px !important;
+    }
+    /* PC：18px（見やすさ優先） */
+    @media (min-width: 1025px) {
+      html { font-size: 18px !important; }
+    }
+
+    /* Bootstrap の small / .small を無効化 */
+    small,
+    .small {
+      font-size: 1rem;
+    }
+
+    :root {
+      --rg-surface: #ffffff;
+      --rg-surface-sub: #f8fafc;
+      --rg-bg: #f4f6f8;
+      --rg-border: #e5e7eb;
+      --rg-text: #111827;
+      --rg-muted: #6b7280;
+      --rg-accent: #0f766e; /* 深めのグリーン系 */
+      --rg-radius-card: 1rem;
+    }
+
     body {
-      font-family: 'Arial', sans-serif;
       margin: 0;
-      padding: 20px;
-      background-color: #f4f4f4;
-    }
-
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      background-color: #fff;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .back-nav {
-      text-align: center;
-      margin-bottom: 20px;
-      font-size: 1.1em;
-    }
-
-    .back-nav a {
-      color: #0056b3;
-      text-decoration: none;
-    }
-
-    h1 {
-      color: #0056b3;
-      border-bottom: 2px solid #eee;
-      padding-bottom: 10px;
-      margin-top: 0;
-    }
-
-    h2 {
-      font-size: 1.4em;
-      color: #333;
-      margin-top: 20px;
-      margin-bottom: 15px;
-      border-left: 5px solid #0056b3;
-      padding-left: 10px;
-    }
-
-    .main-photo {
-      width: 100%;
-      height: auto;
-      /* 写真全体を表示 */
-      object-fit: contain;
-      background-color: #eee;
-      border-radius: 4px;
-      margin-bottom: 20px;
-    }
-
-    /* 基本の2列レイアウト（dt / dd） */
-    .item-grid {
-      display: grid;
-      grid-template-columns: 1fr 2fr;
-      gap: 0;
-      margin-bottom: 20px;
-      border: 1px solid #eee;
-      border-radius: 4px;
-      border-collapse: collapse;
-    }
-
-    .item-grid dt,
-    .item-grid dd {
-      box-sizing: border-box;
-      padding: 10px;
-      word-break: break-word;      /* 長い単語・型番対策 */
-    }
-
-    .item-grid dt {
-      font-weight: bold;
-      color: #555;
-      background-color: #f9f9f9;
-      border-right: 1px solid #eee;
-      border-bottom: 1px solid #eee;
-    }
-
-    .item-grid dd {
-      margin: 0;
-      border-bottom: 1px solid #eee;
-      white-space: pre-wrap;       /* 改行（\n）もそのまま表示 */
-    }
-
-    /* 最終行のボーダー調整（見た目用） */
-    .item-grid dt:last-of-type,
-    .item-grid dd:last-of-type {
-      border-bottom-left-radius: 4px;
-      border-bottom-right-radius: 4px;
-    }
-
-    .gallery {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
-      margin-top: 15px;
-    }
-
-    .gallery-item {
-      width: calc(50% - 5px);
-      text-align: center;
-      margin-bottom: 10px;
-    }
-
-    .gallery-item img {
-      width: 100%;
-      height: auto;
-      object-fit: contain;
-      background-color: #eee;
-      border-radius: 4px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-
-    .gallery-item p {
-      margin-top: 5px;
-      font-size: 0.8em;
-      color: #777;
-    }
-
-    .sns-links a {
-      display: block;
-      margin-bottom: 8px;
-      color: #0056b3;
-      text-decoration: none;
-      word-break: break-all; /* URLが長い場合に改行する */
-    }
-
-    /* SNS リストの見やすい整形 */
-    .sns-list {
-      margin: 0 0 16px;
-      display: grid;
-      grid-template-columns: 110px 1fr;
-      row-gap: 4px;
-      column-gap: 8px;
-      font-size: 0.95em;
-    }
-
-    .sns-list dt {
-      font-weight: bold;
-      color: #555;
-    }
-
-    .sns-list dd {
-      margin: 0;
-      color: #333;
-      word-break: break-all;
-    }
-
-    /* こだわりポイント用（複数行テキスト） */
-    .highlights-text {
-      margin: 0 0 10px;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+                   Arial, "Noto Sans JP", sans-serif;
       line-height: 1.6;
+      color: var(--rg-text);
+      background: var(--rg-bg);
+    }
+
+    .rg-main {
+      max-width: 72rem;  /* ≒ 1150px */
+    }
+
+    .rg-back a {
+      text-decoration: none;
+      color: var(--rg-accent);
+    }
+
+    /* ===== カード共通 ===== */
+    .rg-card {
+      background: var(--rg-surface);
+      border-radius: var(--rg-radius-card);
+      border: 1px solid var(--rg-border);
+      padding: 1rem 1.1rem;
+    }
+
+    /* ===== 左側：フォトカード ===== */
+    @media (min-width: 992px) {
+      .rg-photo-col {
+        position: sticky;
+        top: 1rem;
+      }
+    }
+
+    .rg-photo-square {
+      position: relative;
+      width: 100%;
+      padding-top: 100%;            /* 正方形 */
+      border-radius: 0.9rem;
+      border: 1px solid var(--rg-border);
+      overflow: hidden;
+      background: var(--rg-surface-sub);
+    }
+
+    .rg-photo-square > img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;          /* 欠け防止 */
+      display: block;
+      cursor: zoom-in;
+    }
+
+    /* メイン写真下のテキスト（年式＋車両名） */
+/* メイン写真下のテキスト（年式＋車両名） */
+/* メイン写真下のテキスト（年式＋車両名） */
+.rg-photo-title-main {
+  margin-top: 0.75rem;
+  margin-bottom: 0.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: baseline;   /* ★ これを追加 */
+  /* 右見出しより一段上のサイズ＆太さ（主役） */
+  font-size: clamp(1.4rem, 4.6vw, 1.75rem);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  /* 下線はナシ */
+  border-bottom: none;
+  padding-bottom: 0;
+}
+/* 年式は一段小さく・少し控えめな色 */
+.rg-photo-year {
+  font-size: 0.75em;        /* タイトルの 75% */
+  font-weight: 600;
+  color: var(--rg-muted);   /* 右のラベルと同系のグレー */
+}
+
+/* 車両名はそのまま親の大きさ＆太さを継承（特に指定不要だが書いておいてもOK） */
+.rg-photo-model-main {
+  font-weight: inherit;
+}
+
+    .rg-photo-year {
+      /* 例：1964年 */
+    }
+
+    .rg-photo-model-main {
+      /* 車両名を太めに */
+    }
+
+    /* ハンドルネーム + 都道府県 */
+    .rg-photo-owner-row {
+      margin-top: 0.25rem;
+      font-size: 1.05rem;  /* 本文より少し大きめ */
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .rg-photo-handle {
+      font-weight: 500;
+    }
+
+    .rg-photo-pref {
+      margin-left: auto;
+      padding: 0.15rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(15, 118, 110, 0.08);
+      color: var(--rg-accent);
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    /* ===== セクション見出し ===== */
+/* ===== セクション見出し（タブを少しおとなしめに） ===== */
+.rg-section-title {
+  position: relative;
+  margin: 0 0 0.6rem;
+  font-weight: 700;
+  color: var(--rg-text);
+  /* ほんの少しだけ小さく */
+  font-size: clamp(1.05rem, 3.2vw, 1.25rem);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  /* タブの厚みも少し薄く */
+  padding: 0.18rem 0.8rem 0.18rem 1.05rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(15, 118, 110, 0.12),
+    rgba(15, 118, 110, 0.02)
+  );
+}
+
+.rg-section-title::before {
+  content: "";
+  position: absolute;
+  left: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0.18rem;
+  height: 1.1em;
+  border-radius: 999px;
+  background: var(--rg-accent);
+}
+
+    /* ===== スペック表（dt/ddの2列） ===== */
+    .rg-spec-grid {
+      display: grid;
+      grid-template-columns: minmax(8.5rem, 11.25rem) 1fr;  /* ラベル列 ≒ 8.5〜11.25rem */
+      column-gap: 0.6rem;
+      row-gap: 0;
+      margin: 0;
+      font-size: 1.05rem;           /* 28px × 1.05 ≒ 29px */
+      border-top: 1px solid var(--rg-border);
+      border-bottom: 1px solid var(--rg-border);
+    }
+
+    .rg-spec-grid dt,
+    .rg-spec-grid dd {
+      padding: 0.5rem 0.2rem;
+      border-top: 1px solid var(--rg-border);
+      margin: 0;
       word-break: break-word;
     }
 
-    .highlights-text br {
-      /* 改行だけなので特に指定なしだが、
-         必要ならここで行間の微調整も可能 */
+    .rg-spec-grid dt {
+      font-weight: 600;
+      color: var(--rg-muted);
+      background: rgba(148, 163, 184, 0.05);
     }
+
+    .rg-spec-grid dd {
+      white-space: pre-wrap;
+    }
+
+    /* ===== こだわりポイント ===== */
+    .rg-highlights {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+
+    /* ===== SNS ===== */
+    .rg-sns-grid {
+      margin: 0;
+      display: grid;
+      grid-template-columns: minmax(5.5rem, 7.5rem) 1fr;
+      column-gap: 0.6rem;
+      row-gap: 0;
+      border-top: 1px solid var(--rg-border);
+      border-bottom: 1px solid var(--rg-border);
+      font-size: 1.05rem;
+    }
+
+    .rg-sns-grid dt,
+    .rg-sns-grid dd {
+      margin: 0;
+      padding: 0.5rem 0.2rem;
+      border-top: 1px solid var(--rg-border);
+    }
+
+    .rg-sns-grid dt {
+      font-weight: 600;
+      color: var(--rg-muted);
+      background: rgba(148, 163, 184, 0.05);
+    }
+
+    .rg-sns-grid dd a {
+      color: var(--rg-accent);
+      text-decoration: none;
+      word-break: break-all;
+    }
+
+    .rg-sns-grid dd a:hover {
+      text-decoration: underline;
+    }
+
+    /* ===== ギャラリー（メイン写真の下・別カード） ===== */
+    .rg-gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+      gap: 0.7rem;
+      margin: 0;
+    }
+
+    .rg-gallery-item {
+      text-align: center;
+      font-size: 0.95rem;
+    }
+
+    .rg-gallery-thumb {
+      border-radius: 0.6rem;
+      border: 1px solid var(--rg-border);
+      background: var(--rg-surface-sub);
+      overflow: hidden;
+      position: relative;
+      padding-top: 100%;            /* 正方形 */
+    }
+
+    .rg-gallery-thumb > img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      cursor: zoom-in;
+    }
+
+    /* ===== 戻るリンク ===== */
+    .rg-footer-back {
+      text-align: left;
+      font-size: 1rem;
+    }
+
+    /* ===== ライトボックス（拡大表示） ===== */
+    .rg-lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .rg-lightbox.is-open {
+      display: flex;
+    }
+
+    .rg-lightbox-inner {
+      max-width: min(90vw, 900px);
+      max-height: min(90vh, 900px);
+      position: relative;
+    }
+
+    .rg-lightbox-inner img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 0.75rem;
+      background: #000;
+    }
+
+    .rg-lightbox-close {
+      position: absolute;
+      top: 0.4rem;
+      right: 0.4rem;
+      border: none;
+      border-radius: 999px;
+      padding: 0.2rem 0.6rem;
+      font-size: 1.2rem;
+      background: rgba(15, 23, 42, 0.7);
+      color: #fff;
+      cursor: pointer;
+    }
+/* 上部：戻る＋編集ボタンの行 */
+.rg-back {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap; /* スマホでは折り返して縦並びになってもOK */
+}
+
+.rg-back a {
+  text-decoration: none;
+  color: var(--rg-accent);
+}
+
+/* 編集ボタン（右側） */
+.rg-edit-btn {
+  font-size: 0.9rem;
+  padding: 0.18rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--rg-accent);
+  background: #ffffff;
+  color: var(--rg-accent);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.rg-edit-btn:hover {
+  background: var(--rg-accent);
+  color: #ffffff;
+}
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <? if (carData) { ?>
+<main class="container-lg rg-main py-3">
+  <!-- 上部 戻るリンク ＋ 編集ボタン -->
+  <div class="rg-back mb-2">
+    <a href="<?= scriptUrl ?>">← 車両一覧に戻る</a>
 
-      <!-- 一覧に戻るリンク（上部） -->
-      <p class="back-nav"><a href="<?= scriptUrl ?>">← 車両一覧に戻る</a></p>
+    <!-- ★ 将来用の編集ボタン：リンク先は後で実装 -->
+    <a
+      href="#"
+      class="rg-edit-btn"
+      title="この車両情報を編集"
+    >
+      編集
+    </a>
+  </div>
 
-      <? if (carData.PhotoMain) { ?>
-        <img src="<?= carData.PhotoMain ?>" alt="メイン写真" class="main-photo">
-      <? } ?>
+  <? if (carData) { ?>
 
-      <h1><?= carData.HandleName ?></h1>
+      <div class="row g-3 align-items-start">
+        <!-- 左：写真カード＋ギャラリーカード -->
+        <div class="col-12 col-lg-5 rg-photo-col">
+          <!-- メイン写真＋キャプション -->
+          <section class="rg-card mb-3">
+            <? 
+              var mainPhoto = (carData.PhotoMain) ? carData.PhotoMain : 'https://via.placeholder.com/1000x1000.png?text=No+Main+Photo';
+              var modelMain = carData.Model_DisplayC 
+                ? String(carData.Model_DisplayC).replace(/\s*\(\d{4}\)\s*$/, '') 
+                : '';
+            ?>
+            <div class="rg-photo-square">
+              <img src="<?= mainPhoto ?>" alt="メイン写真" data-rg-zoomable>
+            </div>
 
-      <!-- 基本情報 -->
-      <h2>基本情報</h2>
-      <dl class="item-grid js-auto-hide">
-        <dt>ハンドルネーム</dt><dd><?= carData.HandleName ?></dd>
-        <dt>モデル</dt><dd><?= carData.Model_DisplayC ?></dd>
-        <dt>年式</dt><dd><?= carData.Year ?></dd>
-        <dt>都道府県</dt><dd><?= carData.Prefecture ?></dd>
-      </dl>
+            <? if (carData.Year || modelMain) { ?>
+              <div class="rg-photo-title-main">
+                <? if (carData.Year) { ?>
+                  <span class="rg-photo-year"><?= carData.Year ?>年</span>
+                <? } ?>
+                <? if (modelMain) { ?>
+                  <span class="rg-photo-model-main"><?= modelMain ?></span>
+                <? } ?>
+              </div>
+            <? } ?>
 
-      <!-- ボディスペック -->
-      <h2>ボディスペック</h2>
-      <dl class="item-grid js-auto-hide">
-        <dt>ボディカラー</dt><dd><?= carData.BodyColor ?></dd>
-        <dt>全長 (cm)</dt><dd><?= carData.Length_cm ?></dd>
-        <dt>乗車定員</dt><dd><?= carData.Capacity ?></dd>
-        <dt>ハンドル</dt><dd><?= carData.Steering ?></dd>
-      </dl>
+            <? if (carData.HandleName || carData.Prefecture) { ?>
+              <div class="rg-photo-owner-row">
+                <? if (carData.HandleName) { ?>
+                  <span class="rg-photo-handle"><?= carData.HandleName ?></span>
+                <? } ?>
+                <? if (carData.Prefecture) { ?>
+                  <span class="rg-photo-pref"><?= carData.Prefecture ?></span>
+                <? } ?>
+              </div>
+            <? } ?>
+          </section>
 
-      <!-- エンジン関係 -->
-      <h2>エンジン関係</h2>
-      <dl class="item-grid js-auto-hide">
-        <dt>排気量 (cc)</dt><dd><?= carData.EngineCC ?></dd>
-        <dt>エンジン形式</dt><dd><?= carData.Engine_Display ?></dd>
-        <dt>点火形式</dt><dd><?= carData.IgnitionType ?></dd>
-        <dt>デスビ/プラグ</dt><dd><?= carData.DistributionType ?> / <?= carData.PlugName ?></dd>
-        <dt>燃料供給装置</dt><dd><?= carData.FuelInjection ?></dd>
-        <dt>キャブレター</dt><dd><?= carData.CarburetorName ?></dd>
-        <dt>燃料ポンプ</dt><dd><?= carData.FuelPump ?></dd>
-        <dt>電ポン</dt><dd><?= carData.ElectricPumpName ?></dd>
-        <dt>発電機</dt><dd><?= carData.Generator ?></dd>
-        <dt>オイルクーラー</dt><dd><?= carData.OilCooler ?></dd>
-      </dl>
+          <!-- ギャラリー（別カード） -->
+          <? if (
+            carData.PhotoFront || carData.PhotoSide || carData.PhotoRear ||
+            carData.PhotoEngine || carData.PhotoInterior || carData.PhotoSteeringCluster
+          ) { ?>
+            <section class="rg-card">
+              <div class="rg-gallery-grid">
+                <? if (carData.PhotoFront) { ?>
+                  <div class="rg-gallery-item">
+                    <div class="rg-gallery-thumb">
+                      <img src="<?= carData.PhotoFront ?>" alt="前方写真" data-rg-zoomable>
+                    </div>
+                  </div>
+                <? } ?>
+                <? if (carData.PhotoSide) { ?>
+                  <div class="rg-gallery-item">
+                    <div class="rg-gallery-thumb">
+                      <img src="<?= carData.PhotoSide ?>" alt="横写真" data-rg-zoomable>
+                    </div>
+                  </div>
+                <? } ?>
+                <? if (carData.PhotoRear) { ?>
+                  <div class="rg-gallery-item">
+                    <div class="rg-gallery-thumb">
+                      <img src="<?= carData.PhotoRear ?>" alt="後方写真" data-rg-zoomable>
+                    </div>
+                  </div>
+                <? } ?>
+                <? if (carData.PhotoEngine) { ?>
+                  <div class="rg-gallery-item">
+                    <div class="rg-gallery-thumb">
+                      <img src="<?= carData.PhotoEngine ?>" alt="エンジン" data-rg-zoomable>
+                    </div>
+                  </div>
+                <? } ?>
+                <? if (carData.PhotoInterior) { ?>
+                  <div class="rg-gallery-item">
+                    <div class="rg-gallery-thumb">
+                      <img src="<?= carData.PhotoInterior ?>" alt="内装" data-rg-zoomable>
+                    </div>
+                  </div>
+                <? } ?>
+                <? if (carData.PhotoSteeringCluster) { ?>
+                  <div class="rg-gallery-item">
+                    <div class="rg-gallery-thumb">
+                      <img src="<?= carData.PhotoSteeringCluster ?>" alt="ステアリング・メーター" data-rg-zoomable>
+                    </div>
+                  </div>
+                <? } ?>
+              </div>
+            </section>
+          <? } ?>
+        </div>
 
-      <!-- 駆動系・足回り -->
-      <h2>駆動系・足回り</h2>
-      <dl class="item-grid js-auto-hide">
-        <dt>トランスミッション</dt><dd><?= carData.Transmission ?></dd>
-        <dt>シンクロ</dt><dd><?= carData.Synchro ?></dd>
-        <dt>ジョイント</dt><dd><?= carData.Joint ?></dd>
-        <dt>ホイール</dt><dd><?= carData.Wheel ?></dd>
-        <dt>リム径 (inch)</dt><dd><?= carData.RimDiameter_in ?></dd>
-        <dt>リム幅 (inch)</dt><dd><?= carData.RimWidth_in ?></dd>
-        <dt>タイヤ形式</dt><dd><?= carData.TireType ?></dd>
-        <dt>タイヤサイズ</dt><dd><?= carData.TireSize ?></dd>
-        <dt>タイヤメーカー</dt><dd><?= carData.TireBrandName ?></dd>
-      </dl>
+        <!-- 右：スペック等 -->
+        <div class="col-12 col-lg-7">
 
-      <!-- オイル・バッテリー他 -->
-      <h2>オイル・バッテリー他</h2>
-      <dl class="item-grid js-auto-hide">
-        <dt>エンジンオイル</dt><dd><?= carData.EngineOil ?></dd>
-        <dt>交換周期</dt><dd><?= carData.EngineOilInterval ?></dd>
-        <dt>ミッションオイル</dt><dd><?= carData.TransmissionOil ?></dd>
-        <dt>交換周期</dt><dd><?= carData.TransmissionOilInterval ?></dd>
-        <dt>バッテリー</dt><dd><?= carData.Battery ?></dd>
-      </dl>
+          <!-- ボディスペック -->
+          <section class="rg-card mb-3">
+            <h2 class="rg-section-title">ボディスペック</h2>
+            <dl class="rg-spec-grid js-auto-hide">
+              <dt>ボディカラー</dt><dd><?= carData.BodyColor ?></dd>
+              <dt>全長 (cm)</dt><dd><?= carData.Length_cm ?></dd>
+              <dt>乗車定員</dt><dd><?= carData.Capacity ?></dd>
+              <dt>ハンドル</dt><dd><?= carData.Steering ?></dd>
+            </dl>
+          </section>
 
-      <!-- こだわりポイント -->
-      <? if (carData.Highlights) { ?>
-        <h2>こだわりポイント</h2>
-        <p class="highlights-text">
-          <?!= String(carData.Highlights).replace(/\r\n|\r|\n/g, '<br>') ?>
-        </p>
-      <? } ?>
+          <!-- エンジン関係 -->
+          <section class="rg-card mb-3">
+            <h2 class="rg-section-title">エンジン関係</h2>
+            <dl class="rg-spec-grid js-auto-hide">
+              <dt>排気量 (cc)</dt><dd><?= carData.EngineCC ?></dd>
+              <dt>エンジン形式</dt><dd><?= carData.Engine_Display ?></dd>
+              <dt>点火形式</dt><dd><?= carData.IgnitionType ?></dd>
+              <dt>デスビ/プラグ</dt><dd><?= carData.DistributionType ?> / <?= carData.PlugName ?></dd>
+              <dt>燃料供給装置</dt><dd><?= carData.FuelInjection ?></dd>
+              <dt>キャブレター</dt><dd><?= carData.CarburetorName ?></dd>
+              <dt>燃料ポンプ</dt><dd><?= carData.FuelPump ?></dd>
+              <dt>電ポン</dt><dd><?= carData.ElectricPumpName ?></dd>
+              <dt>発電機</dt><dd><?= carData.Generator ?></dd>
+              <dt>オイルクーラー</dt><dd><?= carData.OilCooler ?></dd>
+            </dl>
+          </section>
 
-      <!-- SNS -->
-      <h2>SNS</h2>
-      <dl class="sns-list">
-        <? if (carData.X_Twitter) { ?>
-          <dt>X</dt>
-          <dd><?= carData.X_Twitter ?></dd>
-        <? } ?>
-        <? if (carData.Instagram) { ?>
-          <dt>Instagram</dt>
-          <dd><?= carData.Instagram ?></dd>
-        <? } ?>
-        <? if (carData.Minkara) { ?>
-          <dt>みんカラ</dt>
-          <dd><?= carData.Minkara ?></dd>
-        <? } ?>
-      </dl>
+          <!-- 駆動系・足回り -->
+          <section class="rg-card mb-3">
+            <h2 class="rg-section-title">駆動系・足回り</h2>
+            <dl class="rg-spec-grid js-auto-hide">
+              <dt>トランスミッション</dt><dd><?= carData.Transmission ?></dd>
+              <dt>シンクロ</dt><dd><?= carData.Synchro ?></dd>
+              <dt>ジョイント</dt><dd><?= carData.Joint ?></dd>
+              <dt>ホイール</dt><dd><?= carData.Wheel ?></dd>
+              <dt>リム径 (inch)</dt><dd><?= carData.RimDiameter_in ?></dd>
+              <dt>リム幅 (inch)</dt><dd><?= carData.RimWidth_in ?></dd>
+              <dt>タイヤ形式</dt><dd><?= carData.TireType ?></dd>
+              <dt>タイヤサイズ</dt><dd><?= carData.TireSize ?></dd>
+              <dt>タイヤメーカー</dt><dd><?= carData.TireBrandName ?></dd>
+            </dl>
+          </section>
 
-      <!-- ギャラリー -->
-      <h2>ギャラリー</h2>
-      <div class="gallery">
-        <? if (carData.PhotoFront) { ?>
-          <div class="gallery-item">
-            <img src="<?= carData.PhotoFront ?>" alt="前方写真">
-            <p>前方写真</p>
-          </div>
-        <? } ?>
-        <? if (carData.PhotoSide) { ?>
-          <div class="gallery-item">
-            <img src="<?= carData.PhotoSide ?>" alt="横写真">
-            <p>横写真</p>
-          </div>
-        <? } ?>
-        <? if (carData.PhotoRear) { ?>
-          <div class="gallery-item">
-            <img src="<?= carData.PhotoRear ?>" alt="後方写真">
-            <p>後方写真</p>
-          </div>
-        <? } ?>
-        <? if (carData.PhotoEngine) { ?>
-          <div class="gallery-item">
-            <img src="<?= carData.PhotoEngine ?>" alt="エンジン">
-            <p>エンジン</p>
-          </div>
-        <? } ?>
-        <? if (carData.PhotoInterior) { ?>
-          <div class="gallery-item">
-            <img src="<?= carData.PhotoInterior ?>" alt="内装">
-            <p>内装</p>
-          </div>
-        <? } ?>
-        <? if (carData.PhotoSteeringCluster) { ?>
-          <div class="gallery-item">
-            <img src="<?= carData.PhotoSteeringCluster ?>" alt="ステアリング・メーター">
-            <p>ステアリング・メーター</p>
-          </div>
-        <? } ?>
+          <!-- オイル・バッテリー他 -->
+          <section class="rg-card mb-3">
+            <h2 class="rg-section-title">オイル・バッテリー他</h2>
+            <dl class="rg-spec-grid js-auto-hide">
+              <dt>エンジンオイル</dt><dd><?= carData.EngineOil ?></dd>
+              <dt>交換周期</dt><dd><?= carData.EngineOilInterval ?></dd>
+              <dt>ミッションオイル</dt><dd><?= carData.TransmissionOil ?></dd>
+              <dt>交換周期</dt><dd><?= carData.TransmissionOilInterval ?></dd>
+              <dt>バッテリー</dt><dd><?= carData.Battery ?></dd>
+            </dl>
+          </section>
+
+          <!-- こだわりポイント -->
+          <? if (carData.Highlights) { ?>
+            <section class="rg-card mb-3">
+              <h2 class="rg-section-title">こだわりポイント</h2>
+              <p class="rg-highlights">
+                <?!= String(carData.Highlights).replace(/\r\n|\r|\n/g, '<br>') ?>
+              </p>
+            </section>
+          <? } ?>
+
+          <!-- SNS -->
+          <section class="rg-card mb-3">
+            <h2 class="rg-section-title">SNS</h2>
+            <dl class="rg-sns-grid">
+              <? if (carData.X_Twitter) { 
+                   var xLabel = String(carData.X_Twitter).trim();
+                   var xUrl = xLabel;
+                   if (!/^https?:\/\//i.test(xUrl)) {
+                     xUrl = xLabel.replace(/^@/, '');
+                     xUrl = 'https://x.com/' + xUrl;
+                   }
+              ?>
+                <dt>X</dt>
+                <dd>
+                  <a href="<?= xUrl ?>" target="_blank" rel="noopener noreferrer"><?= xLabel ?></a>
+                </dd>
+              <? } ?>
+
+              <? if (carData.Instagram) { 
+                   var igLabel = String(carData.Instagram).trim();
+                   var igUrl = igLabel;
+                   if (!/^https?:\/\//i.test(igUrl)) {
+                     igUrl = igLabel.replace(/^@/, '');
+                     igUrl = 'https://www.instagram.com/' + igUrl + '/';
+                   }
+              ?>
+                <dt>Instagram</dt>
+                <dd>
+                  <a href="<?= igUrl ?>" target="_blank" rel="noopener noreferrer"><?= igLabel ?></a>
+                </dd>
+              <? } ?>
+
+              <? if (carData.Minkara) { 
+                   var mkLabel = String(carData.Minkara).trim();
+                   var mkUrl = mkLabel;
+                   if (!/^https?:\/\//i.test(mkUrl)) {
+                     mkUrl = mkLabel.replace(/^@/, '');
+                     mkUrl = 'https://minkara.carview.co.jp/userid/' + mkUrl + '/';
+                   }
+              ?>
+                <dt>みんカラ</dt>
+                <dd>
+                  <a href="<?= mkUrl ?>" target="_blank" rel="noopener noreferrer"><?= mkLabel ?></a>
+                </dd>
+              <? } ?>
+            </dl>
+          </section>
+
+        </div><!-- /col-lg-7 -->
+      </div><!-- /row -->
+
+      <!-- 下部 戻るリンク -->
+      <div class="rg-footer-back mt-3 rg-back">
+        <a href="<?= scriptUrl ?>">← 車両一覧に戻る</a>
       </div>
-
-      <!-- 一覧に戻るリンク（下部） -->
-      <p class="back-nav" style="margin-top: 30px;">
-        <a href="<?= scriptUrl ?>">↑ 車両一覧に戻る</a>
-      </p>
 
     <? } else { ?>
       <p>表示するデータが見つかりませんでした。</p>
     <? } ?>
-  </div>
+  </main>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <!-- 空欄 dt/dd を自動で非表示にする -->
   <script>
     (function () {
-      var blocks = document.querySelectorAll('.item-grid.js-auto-hide');
+      var blocks = document.querySelectorAll('.js-auto-hide');
       blocks.forEach(function (dl) {
         var children = Array.prototype.slice.call(dl.children);
         for (var i = 0; i < children.length; i += 2) {
@@ -334,6 +630,39 @@
             dt.style.display = 'none';
             dd.style.display = 'none';
           }
+        }
+      });
+    })();
+  </script>
+
+  <!-- 画像クリックで拡大表示（ライトボックス） -->
+  <script>
+    (function () {
+      var imgs = document.querySelectorAll('[data-rg-zoomable]');
+      if (!imgs.length) return;
+
+      var overlay = document.createElement('div');
+      overlay.className = 'rg-lightbox';
+      overlay.innerHTML =
+        '<div class="rg-lightbox-inner">' +
+          '<img alt="zoomed image">' +
+          '<button type="button" class="rg-lightbox-close" aria-label="閉じる">×</button>' +
+        '</div>';
+      document.body.appendChild(overlay);
+
+      var overlayImg = overlay.querySelector('img');
+
+      imgs.forEach(function (img) {
+        img.addEventListener('click', function () {
+          overlayImg.src = img.src;
+          overlay.classList.add('is-open');
+        });
+      });
+
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay || e.target.classList.contains('rg-lightbox-close')) {
+          overlay.classList.remove('is-open');
+          overlayImg.src = '';
         }
       });
     })();
