@@ -166,6 +166,9 @@ function warmUpCache() {
 // =================================================
 // 詳細ページ生成
 // =================================================
+// =================================================
+// 詳細ページ生成（差し替え版：isOwner 判定を追加）
+// =================================================
 function renderDetail(docId) {
   try {
     const cache = CacheService.getScriptCache();
@@ -187,19 +190,32 @@ function renderDetail(docId) {
 
     const targetCar = JSON.parse(data);
 
-    // 念のため表示用フィールドを再構築
+    // 表示用フィールドを再構築
     buildModelDisplays(targetCar);
     buildEngineDisplay(targetCar);
 
-    // 写真URL変換（全写真）
+    // 写真URL変換
     fixPhotoUrls(targetCar);
 
+    // ログインユーザーとOwnerEmailを比較して本人か判定
+    var currentEmail = '';
+    try {
+      currentEmail = Session.getActiveUser().getEmail() || '';
+    } catch (err) {
+      currentEmail = '';
+    }
+    var ownerEmail = (targetCar.OwnerEmail || '').toString().trim();
+    var isOwner = !!(currentEmail && ownerEmail && currentEmail === ownerEmail);
+
+    // テンプレートへ
     const template = HtmlService.createTemplateFromFile('detail.html');
-    template.carData = targetCar;
+    template.carData   = targetCar;
+    template.isOwner   = isOwner;
     template.scriptUrl = ScriptApp.getService().getUrl();
 
-    return template.evaluate().setTitle('車両詳細: ' + (targetCar.HandleName || ''));
-
+    return template.evaluate()
+      .setTitle('車両詳細: ' + (targetCar.HandleName || ''))
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL); // Google Sites 埋め込み向け（必要なら）
   } catch (error) {
     Logger.log(error);
     return HtmlService.createHtmlOutput('<pre>エラーが発生しました:\n' + error.message + '</pre>');
