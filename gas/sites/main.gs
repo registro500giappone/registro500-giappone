@@ -14,6 +14,11 @@ const CACHE_EXPIRATION_SECONDS = 3600;     // 1時間
 const CACHE_KEY_PREFIX_CAR = 'car_';
 const CACHE_KEY_WARMED_UP = 'cache_warmed_up';
 
+// ★ ここに「正しい exec URL」を固定で書く
+//   ※ デプロイ画面に出ている Web アプリの URL（〜/exec）をコピペ
+const WEB_APP_URL =
+  'https://script.google.com/macros/s/AKfycbxbvZ0SJzIpj9NjtdkwI2UJ3jsOjckGJEVWo6MuHfIT7DbQMG-kWGmgp0DE1MprHqBL/exec';
+
 // Firebase Storage の URL 変換に必要な定数
 const FIREBASE_STORAGE_BASE_URL =
   'https://firebasestorage.googleapis.com/v0/b/registro500giappone-93f98.firebasestorage.app/o/';
@@ -99,9 +104,10 @@ function buildEngineDisplay(record) {
 }
 
 // =================================================
-// Webアプリの入り口
+// Webアプリの入り口（index/detail/edit）
 // =================================================
-function doGet(e) {
+
+function doGetMain_(e) {
   const mode = e && e.parameter && e.parameter.mode;
   const docId = e && e.parameter && e.parameter.doc;
 
@@ -120,9 +126,49 @@ function doGet(e) {
   return renderIndex();
 }
 
+// ★ 新しい入口用 doGet（policy / howto / それ以外は元の処理に回す）
+function doGet(e) {
+  var params = (e && e.parameter) ? e.parameter : {};
+  var mode = params.mode || '';
+  var scriptUrl = WEB_APP_URL;  // ★ 絶対にこの URL だけを使う
+
+  try {
+    // 1) ?mode=policy → policy.html
+    if (mode === 'policy') {
+      var tPolicy = HtmlService.createTemplateFromFile('policy');
+      tPolicy.scriptUrl = scriptUrl;  // ★ 戻り先URLをテンプレに渡す
+      return tPolicy
+        .evaluate()
+        .setTitle('Registro500 Giappone')
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    }
+
+    // 2) ?mode=howto → howto.html
+    if (mode === 'howto') {
+      var tHowto = HtmlService.createTemplateFromFile('howto');
+      tHowto.scriptUrl = scriptUrl;  // ★ 同じく渡す
+      return tHowto
+        .evaluate()
+        .setTitle('Registro500 Giappone')
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    }
+
+    // 3) それ以外（index/detail/edit）は、元の処理に任せる
+    return doGetMain_(e);
+
+  } catch (err) {
+    return HtmlService.createHtmlOutput(
+      'Error in doGet (mode=' + mode + '):<br><pre>' +
+      err.toString() +
+      '</pre>'
+    );
+  }
+}
+
 // =================================================
 // キャッシュ構築（詳細ページ用）
 // =================================================
+
 function warmUpCache() {
   const cache = CacheService.getScriptCache();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -151,7 +197,7 @@ function warmUpCache() {
 
     if (!docId) return;
 
-    // 表示用フィールド再構築（既存の Display 列が空でも埋め直す）
+    // 表示用フィールド再構築
     buildModelDisplays(record);
     buildEngineDisplay(record);
 
@@ -164,11 +210,9 @@ function warmUpCache() {
 }
 
 // =================================================
-// 詳細ページ生成
-// =================================================
-// =================================================
 // 詳細ページ生成（差し替え版：isOwner 判定を追加）
 // =================================================
+
 function renderDetail(docId) {
   try {
     const cache = CacheService.getScriptCache();
@@ -180,7 +224,6 @@ function renderDetail(docId) {
 
     let data = cache.get(cacheKey);
     if (data === null) {
-      // キャッシュに無ければ再構築して再取得
       warmUpCache();
       data = cache.get(cacheKey);
       if (data === null) {
@@ -211,11 +254,11 @@ function renderDetail(docId) {
     const template = HtmlService.createTemplateFromFile('detail.html');
     template.carData   = targetCar;
     template.isOwner   = isOwner;
-    template.scriptUrl = ScriptApp.getService().getUrl();
+    template.scriptUrl = WEB_APP_URL;   // ★ ここも固定 URL
 
     return template.evaluate()
       .setTitle('車両詳細: ' + (targetCar.HandleName || ''))
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL); // Google Sites 埋め込み向け（必要なら）
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   } catch (error) {
     Logger.log(error);
     return HtmlService.createHtmlOutput('<pre>エラーが発生しました:\n' + error.message + '</pre>');
@@ -225,11 +268,23 @@ function renderDetail(docId) {
 // =================================================
 // 編集フォーム表示
 // =================================================
+
+// =================================================
+// 編集フォーム表示
+// =================================================
 function renderEdit() {
   const template = HtmlService.createTemplateFromFile('edit');
   template.scriptUrl = ScriptApp.getService().getUrl();
-  return template.evaluate().setTitle('Registro500Giappone - 編集フォーム');
+
+  return template
+    .evaluate()
+    .setTitle('Registro500Giappone - 編集フォーム')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL); // ★ 追加
 }
+
+// =================================================
+// 一覧ページ生成（シートから直接取得）
+// =================================================
 
 // =================================================
 // 一覧ページ生成（シートから直接取得）
@@ -278,7 +333,10 @@ function renderIndex() {
     template.allCars = allCars;
     template.scriptUrl = ScriptApp.getService().getUrl();
 
-    return template.evaluate().setTitle('車両一覧');
+    return template
+      .evaluate()
+      .setTitle('車両一覧')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL); // ★ ここを追加
 
   } catch (error) {
     Logger.log(error);
@@ -290,9 +348,6 @@ function renderIndex() {
 // Firebase Storage URL変換
 // =================================================
 
-/**
- * 1台分の car オブジェクトに対し、Firebase Storage の URL を .app ドメインに変換
- */
 function fixPhotoUrls(carData) {
   PHOTO_COLUMNS.forEach(function (col) {
     const url = carData[col];
@@ -303,9 +358,6 @@ function fixPhotoUrls(carData) {
   return carData;
 }
 
-/**
- * 単一の URL を .app ドメインに変換
- */
 function fixSinglePhotoUrl(url) {
   if (url && url.includes('appspot.com')) {
     const pathMatch = url.match(/\/o\/(.+)\?alt=media/);
@@ -320,6 +372,7 @@ function fixSinglePhotoUrl(url) {
 // =================================================
 // デバッグ用（任意）
 // =================================================
+
 function debugDetailRequest() {
   const TEST_DOC_ID = 'DOC_1';
   renderDetail(TEST_DOC_ID);
@@ -328,6 +381,7 @@ function debugDetailRequest() {
 // =================================================
 // フォームから受け取ったデータを cars シートに保存（新規登録）
 // =================================================
+
 function saveCarFromForm(formData) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_NAME_MASTER);
@@ -338,13 +392,11 @@ function saveCarFromForm(formData) {
   const lastColumn = sheet.getLastColumn();
   const headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
 
-  // DocumentID 列の位置
   const docIdColIndex = headers.indexOf(DOCUMENT_ID_COLUMN_NAME);
   if (docIdColIndex === -1) {
     throw new Error('DocumentID 列が見つかりません。');
   }
 
-  // 既存 DocumentID から最大番号を探して +1
   const lastRow = sheet.getLastRow();
   let nextNumber = 1;
 
@@ -370,7 +422,6 @@ function saveCarFromForm(formData) {
   const now = new Date();
   const userEmail = (Session.getActiveUser && Session.getActiveUser().getEmail()) || '';
 
-  // まず「オブジェクトとして1行分」を組み立てる
   const record = {};
 
   headers.forEach(function (col) {
@@ -396,30 +447,27 @@ function saveCarFromForm(formData) {
         record[col] = now;
         break;
       default:
-        // フォームの name と同じ列なら、その値を入れる
         record[col] = (formData && formData[col] !== undefined) ? formData[col] : '';
         break;
     }
   });
 
-  // ★★ ここで表示用フィールドを自動生成 ★★
   buildModelDisplays(record);
   buildEngineDisplay(record);
 
-  // シートに書き込む配列（ヘッダー順）
   const row = headers.map(function (col) {
     return record[col] !== undefined ? record[col] : '';
   });
 
   sheet.appendRow(row);
 
-  // 返り値（フロント側の SuccessHandler で使える）
   return { DocumentID: newDocId };
 }
+
 // =================================================
 // 既存データの Model_DisplayA/B/C, Engine_Display を一括で埋めるバックフィル
-// （メニューから一度だけ実行すればOK）
 // =================================================
+
 function backfillDisplayColumnsForAllRows() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_NAME_MASTER);
@@ -434,7 +482,6 @@ function backfillDisplayColumnsForAllRows() {
     return;
   }
 
-  // ヘッダー行
   const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
 
   const idxA  = headers.indexOf('Model_DisplayA');
@@ -446,29 +493,23 @@ function backfillDisplayColumnsForAllRows() {
     throw new Error('Model_DisplayA/B/C または Engine_Display 列が見つかりません。');
   }
 
-  // 2行目以降（データ部）を取得
   const range = sheet.getRange(2, 1, lastRow - 1, lastCol);
   const values = range.getValues();
 
-  // 各行について再計算 → Display 列に書き戻す
   values.forEach((row, r) => {
     const record = {};
 
-    // この行のデータを record にマッピング
     headers.forEach((header, c) => {
       const colName = (header || '').toString().trim();
       if (!colName) return;
       record[colName] = row[c];
     });
 
-    // DocumentID がない行はスキップ（空行など）
     if (!record[DOCUMENT_ID_COLUMN_NAME]) return;
 
-    // 表示用フィールドを再計算
     buildModelDisplays(record);
     buildEngineDisplay(record);
 
-    // 結果を row 配列に反映
     row[idxA]  = record.Model_DisplayA || '';
     row[idxB]  = record.Model_DisplayB || '';
     row[idxC]  = record.Model_DisplayC || '';
@@ -477,7 +518,6 @@ function backfillDisplayColumnsForAllRows() {
     values[r] = row;
   });
 
-  // 一括でシートに書き戻し
   range.setValues(values);
   Logger.log('Model_DisplayA/B/C と Engine_Display を再計算して書き込みました。');
 }
