@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <base target="_top">
   <meta charset="utf-8">
@@ -34,7 +35,12 @@
       --rg-border: #e5e7eb;
       --rg-text: #111827;
       --rg-muted: #6b7280;
-      --rg-accent: #0f766e; /* 深めのグリーン系 */
+
+      /* ★ アクセント（index と同じネイビー系） */
+      --rg-accent: #2856a8;
+      --rg-accent-soft: #e6efff;
+      --rg-accent-border: #c2d4ff;
+
       --rg-radius-card: 1rem;
     }
 
@@ -42,7 +48,7 @@
       margin: 0;
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
                    Arial, "Noto Sans JP", sans-serif;
-      line-height: 1.6;
+      line-height: 1.7;  /* すこしゆったりめ */
       color: var(--rg-text);
       background: var(--rg-bg);
     }
@@ -93,50 +99,41 @@
     }
 
     /* メイン写真下のテキスト（年式＋車両名） */
-/* メイン写真下のテキスト（年式＋車両名） */
-/* メイン写真下のテキスト（年式＋車両名） */
-.rg-photo-title-main {
-  margin-top: 0.75rem;
-  margin-bottom: 0.2rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  align-items: baseline;   /* ★ これを追加 */
-  /* 右見出しより一段上のサイズ＆太さ（主役） */
-  font-size: clamp(1.4rem, 4.6vw, 1.75rem);
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  /* 下線はナシ */
-  border-bottom: none;
-  padding-bottom: 0;
-}
-/* 年式は一段小さく・少し控えめな色 */
-.rg-photo-year {
-  font-size: 0.75em;        /* タイトルの 75% */
-  font-weight: 600;
-  color: var(--rg-muted);   /* 右のラベルと同系のグレー */
-}
+    .rg-photo-title-main {
+      margin-top: 0.75rem;
+      margin-bottom: 0.2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      align-items: baseline;
+      /* 右見出しより一段上のサイズ＆太さ（主役） */
+      font-size: clamp(1.15rem, 4.6vw, 1.4rem);
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      border-bottom: none;
+      padding-bottom: 0;
+      line-height: 1.3;
+    }
 
-/* 車両名はそのまま親の大きさ＆太さを継承（特に指定不要だが書いておいてもOK） */
-.rg-photo-model-main {
-  font-weight: inherit;
-}
-
+    /* 年式は一段小さく・少し控えめな色 */
     .rg-photo-year {
-      /* 例：1964年 */
+      font-size: 0.75em;
+      font-weight: 600;
+      color: var(--rg-muted);
     }
 
+    /* 車両名はそのまま親の大きさ＆太さを継承 */
     .rg-photo-model-main {
-      /* 車両名を太めに */
+      font-weight: inherit;
     }
 
-    /* ハンドルネーム + 都道府県 */
     .rg-photo-owner-row {
       margin-top: 0.25rem;
-      font-size: 1.05rem;  /* 本文より少し大きめ */
+      font-size: 0.95rem;
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      line-height: 1.4;
     }
 
     .rg-photo-handle {
@@ -147,64 +144,65 @@
       margin-left: auto;
       padding: 0.15rem 0.6rem;
       border-radius: 999px;
-      background: rgba(15, 118, 110, 0.08);
+      background: var(--rg-accent-soft);
+      border: 1px solid var(--rg-accent-border);
       color: var(--rg-accent);
       font-size: 0.9rem;
       white-space: nowrap;
     }
 
-    /* ===== セクション見出し ===== */
-/* ===== セクション見出し（タブを少しおとなしめに） ===== */
-.rg-section-title {
-  position: relative;
-  margin: 0 0 0.6rem;
-  font-weight: 700;
-  color: var(--rg-text);
-  /* ほんの少しだけ小さく */
-  font-size: clamp(1.05rem, 3.2vw, 1.25rem);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  /* タブの厚みも少し薄く */
-  padding: 0.18rem 0.8rem 0.18rem 1.05rem;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    rgba(15, 118, 110, 0.12),
-    rgba(15, 118, 110, 0.02)
-  );
-}
+    /* ===== セクション見出し（タブを少しおとなしめに） ===== */
+    .rg-section-title {
+      position: relative;
+      margin: 0 0 0.6rem;
+      font-weight: 700;
+      color: var(--rg-text);
+      /* 本文より一段上・車両タイトルより一段下 */
+      font-size: 0.95rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.18rem 0.8rem 0.18rem 1.05rem;
+      border-radius: 999px;
+      background: linear-gradient(
+        90deg,
+        rgba(40, 86, 168, 0.14),
+        rgba(40, 86, 168, 0.02)
+      );
+      line-height: 1.4;
+    }
 
-.rg-section-title::before {
-  content: "";
-  position: absolute;
-  left: 0.4rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 0.18rem;
-  height: 1.1em;
-  border-radius: 999px;
-  background: var(--rg-accent);
-}
+    .rg-section-title::before {
+      content: "";
+      position: absolute;
+      left: 0.4rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0.18rem;
+      height: 1.1em;
+      border-radius: 999px;
+      background: var(--rg-accent);
+    }
 
     /* ===== スペック表（dt/ddの2列） ===== */
     .rg-spec-grid {
       display: grid;
-      grid-template-columns: minmax(8.5rem, 11.25rem) 1fr;  /* ラベル列 ≒ 8.5〜11.25rem */
+      grid-template-columns: minmax(8.5rem, 11.25rem) 1fr;
       column-gap: 0.6rem;
       row-gap: 0;
       margin: 0;
-      font-size: 1.05rem;           /* 28px × 1.05 ≒ 29px */
+      font-size: 0.95rem;
       border-top: 1px solid var(--rg-border);
       border-bottom: 1px solid var(--rg-border);
     }
 
     .rg-spec-grid dt,
     .rg-spec-grid dd {
-      padding: 0.5rem 0.2rem;
+      padding: 0.45rem 0.2rem;
       border-top: 1px solid var(--rg-border);
       margin: 0;
       word-break: break-word;
+      line-height: 1.5;
     }
 
     .rg-spec-grid dt {
@@ -220,7 +218,8 @@
     /* ===== こだわりポイント ===== */
     .rg-highlights {
       margin: 0;
-      font-size: 1.05rem;
+      font-size: 0.95rem;
+      line-height: 1.7;
     }
 
     /* ===== SNS ===== */
@@ -232,14 +231,15 @@
       row-gap: 0;
       border-top: 1px solid var(--rg-border);
       border-bottom: 1px solid var(--rg-border);
-      font-size: 1.05rem;
+      font-size: 0.95rem;
     }
 
     .rg-sns-grid dt,
     .rg-sns-grid dd {
       margin: 0;
-      padding: 0.5rem 0.2rem;
+      padding: 0.45rem 0.2rem;
       border-top: 1px solid var(--rg-border);
+      line-height: 1.5;
     }
 
     .rg-sns-grid dt {
@@ -268,7 +268,8 @@
 
     .rg-gallery-item {
       text-align: center;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
+      line-height: 1.4;
     }
 
     .rg-gallery-thumb {
@@ -277,7 +278,7 @@
       background: var(--rg-surface-sub);
       overflow: hidden;
       position: relative;
-      padding-top: 100%;            /* 正方形 */
+      padding-top: 100%;
     }
 
     .rg-gallery-thumb > img {
@@ -293,7 +294,7 @@
     /* ===== 戻るリンク ===== */
     .rg-footer-back {
       text-align: left;
-      font-size: 1rem;
+      font-size: 0.9rem;
     }
 
     /* ===== ライトボックス（拡大表示） ===== */
@@ -337,43 +338,61 @@
       color: #fff;
       cursor: pointer;
     }
-/* 上部：戻る＋編集ボタンの行 */
-.rg-back {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap; /* スマホでは折り返して縦並びになってもOK */
-}
 
-.rg-back a {
-  text-decoration: none;
-  color: var(--rg-accent);
-}
+    /* 上部：戻る＋編集ボタンの行 */
+    .rg-back {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
 
-/* 編集ボタン（右側） */
-.rg-edit-btn {
-  font-size: 0.9rem;
-  padding: 0.18rem 0.9rem;
-  border-radius: 999px;
-  border: 1px solid var(--rg-accent);
-  background: #ffffff;
-  color: var(--rg-accent);
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
+    .rg-back a {
+      text-decoration: none;
+      color: var(--rg-accent);
+    }
 
-.rg-edit-btn:hover {
-  background: var(--rg-accent);
-  color: #ffffff;
-}
+    /* 編集ボタン（右側） */
+    .rg-edit-btn {
+      font-size: 0.9rem;
+      padding: 0.25rem 1.0rem;
+      border-radius: 999px;
+      border: 1px solid var(--rg-accent-border);
+      background: var(--rg-accent-soft);
+      color: var(--rg-accent);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-weight: 600;
+      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.16);
+      transition: background-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease, transform 0.08s ease;
+      white-space: nowrap;
+    }
+
+    .rg-edit-btn:hover {
+      background: var(--rg-accent);
+      color: #ffffff;
+      box-shadow: 0 4px 8px rgba(15, 23, 42, 0.22);
+      transform: translateY(-1px);
+    }
+
+    .rg-edit-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.2);
+    }
+
+    .rg-edit-icon {
+      font-size: 1.05em;
+      line-height: 1;
+    }
   </style>
 </head>
 
 <body>
 <main class="container-lg rg-main py-3">
+
   <!-- 上部 戻るリンク ＋ 編集ボタン -->
   <div class="rg-back mb-2">
     <a href="<?= scriptUrl ?>">← 車両一覧に戻る</a>
@@ -384,7 +403,8 @@
       class="rg-edit-btn"
       title="この車両情報を編集"
     >
-      編集
+      <span class="rg-edit-icon">✎</span>
+      <span>この車両を編集</span>
     </a>
   </div>
 
@@ -395,10 +415,12 @@
         <div class="col-12 col-lg-5 rg-photo-col">
           <!-- メイン写真＋キャプション -->
           <section class="rg-card mb-3">
-            <? 
-              var mainPhoto = (carData.PhotoMain) ? carData.PhotoMain : 'https://via.placeholder.com/1000x1000.png?text=No+Main+Photo';
-              var modelMain = carData.Model_DisplayC 
-                ? String(carData.Model_DisplayC).replace(/\s*\(\d{4}\)\s*$/, '') 
+            <?
+              // ★ index.html と同じ NO IMAGE を利用
+              var NO_IMAGE_URL = 'https://firebasestorage.googleapis.com/v0/b/registro500giappone-93f98.firebasestorage.app/o/assets%2Fno_image_500.png?alt=media&token=6b54ce01-d76a-4b59-b815-f7e250f1fb78';
+              var mainPhoto = (carData.PhotoMain) ? carData.PhotoMain : NO_IMAGE_URL;
+              var modelMain = carData.Model_DisplayC
+                ? String(carData.Model_DisplayC).replace(/\s*\(\d{4}\)\s*$/, '')
                 : '';
             ?>
             <div class="rg-photo-square">
@@ -429,10 +451,13 @@
           </section>
 
           <!-- ギャラリー（別カード） -->
-          <? if (
-            carData.PhotoFront || carData.PhotoSide || carData.PhotoRear ||
-            carData.PhotoEngine || carData.PhotoInterior || carData.PhotoSteeringCluster
-          ) { ?>
+          <? 
+            // ★B：ギャラリーは「写真があるものだけ出す」。ない場合は NO IMAGE も出さず、
+            //     このセクションごと非表示（＝枠自体を作らない）方針。
+            if (
+              carData.PhotoFront || carData.PhotoSide || carData.PhotoRear ||
+              carData.PhotoEngine || carData.PhotoInterior || carData.PhotoSteeringCluster
+            ) { ?>
             <section class="rg-card">
               <div class="rg-gallery-grid">
                 <? if (carData.PhotoFront) { ?>
@@ -555,7 +580,7 @@
           <section class="rg-card mb-3">
             <h2 class="rg-section-title">SNS</h2>
             <dl class="rg-sns-grid">
-              <? if (carData.X_Twitter) { 
+              <? if (carData.X_Twitter) {
                    var xLabel = String(carData.X_Twitter).trim();
                    var xUrl = xLabel;
                    if (!/^https?:\/\//i.test(xUrl)) {
@@ -569,7 +594,7 @@
                 </dd>
               <? } ?>
 
-              <? if (carData.Instagram) { 
+              <? if (carData.Instagram) {
                    var igLabel = String(carData.Instagram).trim();
                    var igUrl = igLabel;
                    if (!/^https?:\/\//i.test(igUrl)) {
@@ -583,7 +608,7 @@
                 </dd>
               <? } ?>
 
-              <? if (carData.Minkara) { 
+              <? if (carData.Minkara) {
                    var mkLabel = String(carData.Minkara).trim();
                    var mkUrl = mkLabel;
                    if (!/^https?:\/\//i.test(mkUrl)) {
