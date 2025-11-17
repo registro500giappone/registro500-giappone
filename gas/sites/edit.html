@@ -3,6 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <title>Registro500 Giappone - 編集フォーム（雛形）</title>
+
+  <!-- Firebase SDK（Auth / Storage 用・compat 版） -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+
   <style>
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -91,14 +97,58 @@
       background: #e11d48;
       color: #ffffff;
     }
+
+    /* ===== Firebase Auth 用のログイン枠 ===== */
+    .auth-box {
+      margin: 16px 0;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+    }
+    .auth-box-header {
+      font-weight: 700;
+      margin-bottom: 4px;
+      font-size: 0.95rem;
+    }
+    .auth-status {
+      font-size: 0.9rem;
+      margin: 4px 0 8px;
+    }
+    .auth-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .auth-help {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-top: 4px;
+    }
   </style>
 </head>
 <body>
 
   <h1>Registro500 Giappone　編集フォーム（雛形）</h1>
 
-  <form id="carForm" onsubmit="handleSubmit(event)">
+  <div class="auth-box">
+    <div class="auth-box-header">ログイン</div>
+    <p id="authStatus" class="auth-status">ログインしていません</p>
+    <div class="auth-actions">
+      <button type="button" id="loginButton" class="primary">Googleでログイン</button>
+      <button type="button" id="logoutButton" style="display:none;">ログアウト</button>
+    </div>
+    <p class="auth-help">
+      ※ 新規登録・編集には Google ログインが必要になります（現在はテスト実装中）。
+    </p>
+  </div>
 
+  <form id="carForm" onsubmit="handleSubmit(event)">
+    <!-- ログイン中のメールアドレス -->
+    <input type="hidden" id="AuthEmail" name="AuthEmail">
+    <!-- 既存レコード編集用の DocumentID -->
+    <input type="hidden" id="DocumentID" name="DocumentID">
 
     <!-- 1. 基本情報 -->
     <h2>基本情報</h2>
@@ -385,68 +435,207 @@
       <input type="text" id="PhotoInterior" name="PhotoInterior" placeholder="画像URL">
     </fieldset>
 
-        <!-- 送信ボタン -->
+    <!-- 送信ボタン -->
     <button type="submit" class="primary">
       この内容で登録
     </button>
-
   </form>
 
-  <script>
-    // Apps Script 側の URL（一覧に戻る用）
-    const SCRIPT_URL = '<?= scriptUrl ?>';
+<script>
+(function () {
+  // ===== サーバ側から埋め込まれる値 =====
+  const INITIAL_DOC_ID   = '<?= initialDocId ?>';                        // '' または 'DOC_xx'
+  const INITIAL_CAR_DATA = <?!= JSON.stringify(initialCarData || {}) ?>; // {} または レコード
+  const scriptUrl        = '<?= scriptUrl ?>';
 
-    function toggleOtherSelect(selectId, wrapperId) {
-      const select = document.getElementById(selectId);
-      const wrapper = document.getElementById(wrapperId);
-      wrapper.style.display = (select.value === 'その他') ? 'block' : 'none';
+  // ===== Firebase 設定 =====
+  const firebaseConfig = {
+    apiKey: "AIzaSyCNCNsu61S3DIQ2pcmK2Ic_vqCINlZB9nk",
+    authDomain: "registro500giappone-93f98.firebaseapp.com",
+    projectId: "registro500giappone-93f98",
+    storageBucket: "registro500giappone-93f98.firebasestorage.app",
+    messagingSenderId: "723005462978",
+    appId: "1:723005462978:web:e967a16a278f54b278de5b",
+    measurementId: "G-ZRBFX1V51B"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+
+  // ===== DOM 要素 =====
+  const authStatusEl   = document.getElementById('authStatus');
+  const loginBtn       = document.getElementById('loginButton');
+  const logoutBtn      = document.getElementById('logoutButton');
+  const authEmailInput = document.getElementById('AuthEmail');
+  const docIdInput     = document.getElementById('DocumentID');
+  const form           = document.getElementById('carForm');
+
+  // クライアント側で使う現在の DocumentID
+  let currentDocId = INITIAL_DOC_ID || '';
+  if (currentDocId) {
+    // hidden にセット（submit 時に一緒に送る）
+    docIdInput.value = currentDocId;
+  }
+
+  // ===== Firebase Auth 状態監視 =====
+  auth.onAuthStateChanged(function (user) {
+    if (user) {
+      const email = user.email || '';
+      authStatusEl.textContent = 'ログイン中：' + email;
+      loginBtn.style.display   = 'none';
+      logoutBtn.style.display  = 'inline-block';
+      authEmailInput.value     = email;
+    } else {
+      authStatusEl.textContent = 'ログインしていません';
+      loginBtn.style.display   = 'inline-block';
+      logoutBtn.style.display  = 'none';
+      authEmailInput.value     = '';
+    }
+  });
+
+  // ===== ログインボタン =====
+  loginBtn.addEventListener('click', function () {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(function (err) {
+      console.error('signIn error', err);
+      alert('ログインに失敗しました：\n' + err.message);
+    });
+  });
+
+  // ===== ログアウトボタン =====
+  logoutBtn.addEventListener('click', function () {
+    auth.signOut().catch(function (err) {
+      console.error('signOut error', err);
+      alert('ログアウトに失敗しました：\n' + err.message);
+    });
+  });
+
+  // ===== レコード → フォームへの自動セット =====
+  function fillFormFromRecord(record) {
+    if (!record || !form) return;
+
+    Object.keys(record).forEach(function (key) {
+      const value = record[key];
+      const v = (value !== null && value !== undefined) ? value : '';
+
+      // ラジオボタン（Capacity, Steering …）
+      const radios = form.querySelectorAll(
+        'input[type="radio"][name="' + key + '"]'
+      );
+      if (radios && radios.length) {
+        radios.forEach(function (r) {
+          r.checked = String(r.value) === String(v);
+        });
+        return;
+      }
+
+      const field = form.querySelector('[name="' + key + '"]');
+      if (!field) return;
+
+      if (
+        field.tagName === 'INPUT' ||
+        field.tagName === 'TEXTAREA' ||
+        field.tagName === 'SELECT'
+      ) {
+        field.value = v;
+      }
+    });
+  }
+
+  // ===== 既存レコード編集時：サーバ側で埋め込まれたデータで初期化 =====
+  if (currentDocId) {
+    console.log('INITIAL_CAR_DATA for', currentDocId, INITIAL_CAR_DATA);
+    if (INITIAL_CAR_DATA && Object.keys(INITIAL_CAR_DATA).length > 0) {
+      fillFormFromRecord(INITIAL_CAR_DATA);
+    } else {
+      console.warn('指定された DocumentID のレコードがサーバ側で見つかりません:', currentDocId);
+      alert(
+        '指定された車両データが見つかりませんでした。\n' +
+        'DocumentID: ' + currentDocId
+      );
+    }
+  } else {
+    console.log('DocumentID なし → 新規登録フォームとして表示');
+  }
+
+  // ===== 「その他」選択時の入力欄表示切替 =====
+  document.getElementById('ModelSelectA').addEventListener('change', function () {
+    document.getElementById('ModelTextAWrapper').style.display =
+      (this.value === 'その他') ? 'block' : 'none';
+  });
+  document.getElementById('ModelSelectB').addEventListener('change', function () {
+    document.getElementById('ModelTextBWrapper').style.display =
+      (this.value === 'その他') ? 'block' : 'none';
+  });
+  document.getElementById('EngineTypeSelect').addEventListener('change', function () {
+    document.getElementById('EngineTypeTextWrapper').style.display =
+      (this.value === 'その他') ? 'block' : 'none';
+  });
+
+  // ===== フォーム送信処理（新規 / 更新 共通） =====
+  window.handleSubmit = function (e) {
+    e.preventDefault();
+
+    const formData = {};
+    const fd = new FormData(form);
+
+    fd.forEach(function (value, key) {
+      if (formData[key] === undefined) {
+        formData[key] = value;
+      }
+    });
+
+    const authEmail = formData.AuthEmail || '';
+    if (!authEmail) {
+      alert('送信前に「Googleでログイン」を押してログインしてください。');
+      return false;
     }
 
-    document.getElementById('ModelSelectA').addEventListener('change', function () {
-      toggleOtherSelect('ModelSelectA', 'ModelTextAWrapper');
-    });
-    document.getElementById('ModelSelectB').addEventListener('change', function () {
-      toggleOtherSelect('ModelSelectB', 'ModelTextBWrapper');
-    });
-    document.getElementById('EngineTypeSelect').addEventListener('change', function () {
-      toggleOtherSelect('EngineTypeSelect', 'EngineTypeTextWrapper');
-    });
+    // currentDocId があれば編集モード
+    const isEdit   = !!currentDocId;
+    const serverFn = isEdit ? 'updateCarFromForm' : 'saveCarFromForm';
 
-    // ★ フォーム送信処理
-    function handleSubmit(event) {
-      event.preventDefault(); // ページの標準送信を止める
+  google.script.run
+    .withSuccessHandler(function (result) {
+      console.log('save/update result =', result);
+      if (!result || !result.ok) {
+        alert('保存処理は完了しましたが、結果の取得に失敗しました。');
+        return;
+      }
+      const docId = result.DocumentID || currentDocId || '';
+      alert('保存しました。詳細画面に移動します。');
+      if (docId) {
+        window.location.href =
+          scriptUrl + '?mode=detail&doc=' + encodeURIComponent(docId);
+      } else {
+        window.location.href = scriptUrl + '?mode=index';
+      }
+    })
+    .withFailureHandler(function (err) {
+      console.error('save/update error', err);
+      var msg = (err && err.message) ? String(err.message) : '';
 
-      const form = document.getElementById('carForm');
-      const formData = new FormData(form);
-      const data = {};
+      // ★ オーナー制限エラーだけはメッセージを差し替えてリダイレクト
+      if (msg.indexOf('この車両を編集できるのは') >= 0) {
+        alert(
+          'この車両を編集できるのは、登録したオーナー本人（または管理者）のみです。\n' +
+          '車両詳細画面に戻ります。'
+        );
+        if (currentDocId) {
+          window.location.href =
+            scriptUrl + '?mode=detail&doc=' + encodeURIComponent(currentDocId);
+        } else {
+          window.location.href = scriptUrl + '?mode=index';
+        }
+        return;
+      }
 
-      // FormData → プレーンなオブジェクトに変換
-      formData.forEach((value, key) => {
-        data[key] = value;
-      });
+      // その他のエラーは従来どおり
+      alert('保存に失敗しました：\n' + msg);
+    })[serverFn](formData);
 
-      const submitBtn = form.querySelector('button[type="submit"]');
-      submitBtn.disabled = true;
-      submitBtn.textContent = '送信中…';
+  };
+})();
+</script>
 
-      google.script.run
-        .withSuccessHandler(function(result) {
-          alert('登録が完了しました。');
-          // ★ 一覧へジャンプ（modelist 付き）
-          if (SCRIPT_URL) {
-            window.location.href = SCRIPT_URL + '?mode=list';
-          }
-        })
-        .withFailureHandler(function(error) {
-          alert('エラーが発生しました：' + error.message);
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'この内容で登録';
-        })
-        .saveCarFromForm(data);
-    }
-  </script>
 </body>
 </html>
-</body>
-</html>
-
