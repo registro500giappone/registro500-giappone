@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Registro500 Giappone – オーナーログイン（編集）</title>
+
+  <style>
+    :root {
+      --bg-main: #f4f4f5;
+      --card-bg: #ffffff;
+      --border-soft: #e5e7eb;
+      --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.10);
+      --text-main: #111827;
+      --text-sub: #6b7280;
+
+      --accent: #0f5ea8;
+      --accent-soft: #e6efff;
+      --accent-border: #c2d4ff;
+
+      --radius-lg: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    /* ベース文字サイズ（スマホ > PC） */
+    html {
+      font-size: 28px;
+    }
+    @media (min-width: 1024px) {
+      html {
+        font-size: 18px;
+      }
+    }
+
+    body {
+      margin: 0;
+      padding: 18px 12px 26px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      min-height: calc(100vh - 36px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* カード：幅100%。スマホ側では max-width なし */
+    .owner-card {
+      width: 100%;
+      margin: 0;
+      background-color: var(--card-bg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft);
+      padding: 22px 20px 26px;
+    }
+
+    /* PC のときだけ横幅を絞る */
+    @media (min-width: 1024px) {
+      .owner-card {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 22px 26px 28px;
+      }
+    }
+
+    .owner-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin: 0 0 6px;
+      text-align: center;
+      letter-spacing: 0.04em;
+      color: var(--accent);
+    }
+
+    .owner-subtitle {
+      font-size: 0.9rem;
+      margin: 0 0 18px;
+      text-align: center;
+      color: var(--text-sub);
+    }
+
+    .owner-section p {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+
+    .owner-section ul {
+      margin: 6px 0 10px 1.2em;
+      padding: 0;
+      font-size: 0.9rem;
+    }
+
+    .owner-section li {
+      margin-bottom: 4px;
+    }
+
+    .owner-links {
+      font-size: 0.9rem;
+      margin: 10px 0 14px;
+      color: var(--text-sub);
+    }
+
+    .owner-links a {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+
+    .owner-actions {
+      margin-top: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+      display: block;
+      width: 100%;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      text-align: center;
+      text-decoration: none;
+      box-sizing: border-box;
+      cursor: pointer;
+      transition: transform 0.08s ease,
+                  box-shadow 0.08s ease,
+                  background-color 0.1s ease;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent-border);
+      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.16);
+      font-weight: 600;
+    }
+
+    .btn-primary:hover {
+      background-color: #0b4377;
+      box-shadow: 0 4px 8px rgba(15, 23, 42, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #ffffff;
+      border-color: var(--border-soft);
+      color: #111827;
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--accent-soft);
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.16);
+      transform: translateY(-1px);
+    }
+
+    /* スマホ用の強制改行 */
+    .sp-only {
+      display: none;
+    }
+
+    /* Apps Script のスマホ表示は iframe 幅が広いので 1200px でスイッチ */
+    @media (max-width: 1200px) {
+      .page {
+        align-items: center;
+        justify-content: center;
+      }
+
+      .owner-card {
+        padding: 48px 26px 56px;
+      }
+
+      .owner-title {
+        font-size: 1.8rem;
+        margin-bottom: 12px;
+      }
+
+      .owner-subtitle {
+        font-size: 1.25rem;
+        margin-bottom: 26px;
+      }
+
+      .owner-section p {
+        font-size: 1.15rem;
+        line-height: 1.95;
+        margin-bottom: 12px;
+      }
+
+      .owner-links {
+        font-size: 1.1rem;
+        margin: 16px 0 22px;
+      }
+
+      .btn-primary,
+      .btn-secondary {
+        font-size: 1.15rem;
+        padding: 14px 18px;
+      }
+
+      .sp-only {
+        display: inline;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <article class="owner-card">
+      <h1 class="owner-title">オーナーログイン（この車両の編集）</h1>
+
+      <p class="owner-subtitle">
+        この車両の情報を編集するには、<br class="sp-only">
+        オーナーとして登録されている Google アカウントで<br class="sp-only">
+        ログインする必要があります。
+      </p>
+
+      <section class="owner-section">
+        <p>
+          これから表示される編集画面では、
+          登録済みの車両情報（モデル・年式・色・エンジン仕様など）を
+          変更することができます。
+        </p>
+
+        <p>
+          ログインに使用した Google アカウントのメールアドレスが、
+          この車両のオーナーとして登録されている <br class="sp-only">
+          <strong>OwnerEmail</strong> と一致する場合のみ、
+          編集画面が表示されます。
+        </p>
+
+        <div class="owner-links">
+          <p>
+            ログイン前に必ず
+            <a href="<?= scriptUrl ?>?mode=policy#terms" target="_blank" rel="noopener">
+              利用規約 / プライバシーポリシー
+            </a>
+            をご確認ください。
+          </p>
+          <p>
+            「Googleでログインして編集に進む」ボタンを押すことで、
+            上記の内容に同意したものとみなします。
+          </p>
+        </div>
+
+        <p>
+          編集が終わったあとは、
+          車両の詳細ページ（公開サイト側）に戻って表示を確認してください。
+        </p>
+      </section>
+
+      <div class="owner-actions">
+        <!-- メイン：Google ログイン ＋ 編集に進む -->
+        <button type="button" class="btn-primary" onclick="handleGoogleLogin()">
+          Googleでログインして編集に進む
+        </button>
+
+        <!-- サブ：公開側の詳細ページに戻る -->
+        <a class="btn-secondary"
+           href="<?= scriptUrl ?>?mode=detail&doc=<?= documentId ?>">
+          車両の詳細ページに戻る
+        </a>
+      </div>
+    </article>
+  </div>
+
+  <script>
+    function handleGoogleLogin() {
+      // ★ここで Google ログイン処理を呼び出してください。
+      // 例（Apps Script 側に startOwnerLogin() を用意する場合）:
+      //
+      // google.script.run
+      //   .withSuccessHandler(function () {
+      //     // ログイン完了後に再読み込み
+      //     location.reload();
+      //   })
+      //   .startOwnerLogin();
+      //
+      // すでに Firebase Auth をお使いの場合は、
+      // ここから Firebase の signInWithPopup などを呼び出す形に差し替えてください。
+      console.log('handleGoogleLogin() が呼ばれました。ここにログイン処理を実装してください。');
+    }
+  </script>
+</body>
+</html>
