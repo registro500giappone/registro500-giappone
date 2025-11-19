@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Registro500 Giappone – オーナーページ</title>
+
+  <style>
+    :root {
+      --bg-main: #f4f4f5;
+      --card-bg: #ffffff;
+      --border-soft: #e5e7eb;
+      --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.10);
+      --text-main: #111827;
+      --text-sub: #6b7280;
+
+      --accent: #0f5ea8;
+      --accent-soft: #e6efff;
+      --accent-border: #c2d4ff;
+
+      --radius-lg: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    /* ベース文字サイズ（スマホ > PC） */
+    html {
+      font-size: 28px;
+    }
+    @media (min-width: 1024px) {
+      html {
+        font-size: 18px;
+      }
+    }
+
+    body {
+      margin: 0;
+      padding: 18px 12px 26px; /* 画面端〜カード外枠までの余白 */
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    /* 共通：縦中央寄せ */
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      min-height: calc(100vh - 36px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ベースは幅100%。スマホ側では max-width なし */
+    .owner-card {
+      width: 100%;
+      margin: 0;
+      background-color: var(--card-bg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft);
+      padding: 22px 20px 26px;
+    }
+
+    /* PC のときだけ横幅を絞る */
+    @media (min-width: 1024px) {
+      .owner-card {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 22px 26px 28px;
+      }
+    }
+
+    .owner-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin: 0 0 6px;
+      text-align: center;
+      letter-spacing: 0.04em;
+      color: var(--accent);
+    }
+
+    .owner-subtitle {
+      font-size: 0.9rem;
+      margin: 0 0 18px;
+      text-align: center;
+      color: var(--text-sub);
+    }
+
+    .owner-section p {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .owner-section ul {
+      margin: 6px 0 10px 1.2em;
+      padding: 0;
+      font-size: 0.9rem;
+    }
+
+    .owner-section li {
+      margin-bottom: 4px;
+    }
+
+    .owner-links {
+      font-size: 0.9rem;
+      margin: 10px 0 14px;
+      color: var(--text-sub);
+    }
+
+    .owner-links a {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+
+    .owner-actions {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px; /* ボタン間隔を広げた */
+    }
+
+    .btn-primary,
+    .btn-secondary {
+      display: block;
+      width: 100%;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      text-align: center;
+      text-decoration: none;
+      box-sizing: border-box;
+      cursor: pointer;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.1s ease;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent-border);
+      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.16);
+      font-weight: 600;
+    }
+
+    .btn-primary:hover {
+      background-color: #0b4377;
+      box-shadow: 0 4px 8px rgba(15, 23, 42, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #ffffff;
+      border-color: var(--border-soft);
+      color: #111827;
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--accent-soft);
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.16);
+      transform: translateY(-1px);
+    }
+
+    /* スマホ用の強制改行 */
+    .sp-only {
+      display: none;
+    }
+
+    /* ★ Apps Script のスマホ表示は iframe 幅が広いので 1200px でスイッチ */
+    @media (max-width: 1200px) {
+      .page {
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* 左右に 1文字分弱の余白を追加して、カードを大きく見せる */
+      .owner-card {
+        padding: 48px 26px 56px;
+      }
+
+      .owner-title {
+        font-size: 1.8rem;
+        margin-bottom: 12px;
+      }
+
+      .owner-subtitle {
+        font-size: 1.3rem;
+        margin-bottom: 26px;
+      }
+
+      .owner-section p {
+        font-size: 1.2rem;
+        line-height: 1.95;
+        margin-bottom: 12px;
+      }
+
+      .owner-section ul {
+        font-size: 1.1rem;
+      }
+
+      .owner-links {
+        font-size: 1.15rem;
+        margin: 16px 0 22px;
+      }
+
+      .btn-primary,
+      .btn-secondary {
+        font-size: 1.15rem;
+        padding: 14px 18px;
+      }
+
+      /* スマホ相当の時だけ <br class="sp-only"> を有効にする */
+      .sp-only {
+        display: inline;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <article class="owner-card">
+      <h1 class="owner-title">オーナーの方へ</h1>
+
+      <!-- サブタイトル：スマホでは「…ご自身の車両を」で改行 -->
+      <p class="owner-subtitle">
+        Registro500 Giappone にご自身の車両を<br class="sp-only">
+        登録・管理するための入口です。
+      </p>
+
+      <section class="owner-section">
+        <!-- 説明文：強制改行を削除し、自動改行に任せる -->
+        <p class="owner-section-text">
+          オーナーとして車両を登録・編集するには、Google アカウントでのログインが必要です。
+        </p>
+
+        <div class="owner-links">
+          <p>
+            ログイン前に必ず
+            <a href="<?= scriptUrl ?>?mode=policy#terms" target="_blank" rel="noopener">
+              利用規約 / プライバシーポリシー
+            </a>
+            をご確認ください。
+          </p>
+          <p>
+            「Googleでログインする」ボタンを押すことで、
+            リンク先の内容に同意したものとみなします。
+          </p>
+        </div>
+
+        <p>
+          ブラウザで Google にログイン済みのアカウントがある場合、
+          そのアカウントがこのサイトの登録・編集に利用されます。
+        </p>
+      </section>
+
+      <div class="owner-actions">
+        <a class="btn-primary" href="<?= scriptUrl ?>?mode=owner">
+          Googleでログインする
+        </a>
+
+        <a class="btn-secondary" href="<?= scriptUrl ?>">
+          車両一覧に戻る
+        </a>
+      </div>
+    </article>
+  </div>
+</body>
+</html>
