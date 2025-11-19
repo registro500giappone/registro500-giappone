@@ -2,39 +2,85 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Registro500 Giappone - 編集フォーム（雛形）</title>
+  <title>Registro500 Giappone - 編集フォーム</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Firebase SDK（Auth / Storage 用・compat 版） -->
+  <!-- Firebase SDK（Auth 用・compat 版） -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 
   <style>
+    :root {
+      --bg-main: #f4f4f7;
+      --card-bg: #ffffff;
+      --border-soft: #e5e7eb;
+      --shadow-soft: 0 8px 24px rgba(15, 23, 42, 0.10);
+      --text-main: #111827;
+      --text-sub: #6b7280;
+      --accent: #2856a8;
+      --accent-soft: #e6efff;
+      --accent-border: #c2d4ff;
+      --radius-lg: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      font-size: 28px;
+    }
+    @media (min-width: 1024px) {
+      html {
+        font-size: 18px;
+      }
+    }
+
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      max-width: 800px;
-      margin: 24px auto;
-      padding: 16px;
-      line-height: 1.5;
-      background: #f9fafb;
+      margin: 0;
+      padding: 24px 12px 32px;
+      background: var(--bg-main);
+      color: var(--text-main);
+      line-height: 1.6;
     }
+
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
     h1 {
       font-size: 1.4rem;
-      margin-bottom: 1rem;
+      margin: 0 0 0.25rem;
     }
+    .page-lead {
+      margin: 0 0 0.75rem;
+      font-size: 0.9rem;
+      color: var(--text-sub);
+    }
+
     h2 {
-      font-size: 1.1rem;
+      font-size: 1.0rem;
       border-left: 4px solid #e11d48;
       padding-left: 8px;
       margin: 24px 0 8px;
     }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft);
+      padding: 16px 18px 18px;
+      margin-bottom: 20px;
+    }
+
     fieldset {
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
       padding: 12px 12px 4px;
       margin-bottom: 16px;
       background: #ffffff;
     }
+
     label {
       display: block;
       font-size: 0.9rem;
@@ -42,26 +88,30 @@
       margin-top: 10px;
       margin-bottom: 4px;
     }
+
     input[type="text"],
     input[type="number"],
     textarea,
     select {
       width: 100%;
       box-sizing: border-box;
-      padding: 6px 8px;
-      border-radius: 6px;
+      padding: 8px 10px;
+      border-radius: 8px;
       border: 1px solid #d1d5db;
       font-size: 0.9rem;
     }
+
     textarea {
       min-height: 5em;
       resize: vertical;
     }
+
     .radio-group {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 6px 14px;
       margin-bottom: 4px;
+      font-size: 0.9rem;
     }
     .radio-group label {
       font-weight: 500;
@@ -69,26 +119,30 @@
     .radio-group input[type="radio"] {
       margin-right: 4px;
     }
+
     .hint {
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       color: #6b7280;
     }
+
     .inline-small {
       display: flex;
-      gap: 8px;
+      gap: 10px;
     }
     .inline-small > div {
       flex: 1;
     }
+
     .photo-hint {
       font-size: 0.8rem;
       color: #6b7280;
       margin-bottom: 4px;
     }
+
     button {
       margin-top: 16px;
       padding: 10px 18px;
-      border-radius: 8px;
+      border-radius: 999px;
       border: none;
       font-size: 0.95rem;
       cursor: pointer;
@@ -96,16 +150,21 @@
     button.primary {
       background: #e11d48;
       color: #ffffff;
+      font-weight: 600;
+      box-shadow: 0 4px 10px rgba(225, 29, 72, 0.35);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.08s ease;
+    }
+    button.primary:hover:not(:disabled) {
+      background: #be123c;
+      transform: translateY(-1px);
+      box-shadow: 0 7px 16px rgba(225, 29, 72, 0.45);
+    }
+    button.primary:disabled {
+      opacity: 0.7;
+      cursor: default;
+      box-shadow: 0 2px 6px rgba(148, 163, 184, 0.4);
     }
 
-    /* ===== Firebase Auth 用のログイン枠 ===== */
-    .auth-box {
-      margin: 16px 0;
-      padding: 12px 16px;
-      border-radius: 8px;
-      border: 1px solid #e5e7eb;
-      background: #ffffff;
-    }
     .auth-box-header {
       font-weight: 700;
       margin-bottom: 4px;
@@ -126,516 +185,620 @@
       color: #6b7280;
       margin-top: 4px;
     }
+
+    .btn-login {
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 600;
+      border-radius: 999px;
+      padding: 8px 16px;
+      border: 1px solid var(--accent-border);
+      box-shadow: 0 4px 10px rgba(40, 86, 168, 0.3);
+    }
+    .btn-login:hover:not(:disabled) {
+      background: #183763;
+    }
+    .btn-logout {
+      background: #e5e7eb;
+      color: #111827;
+      border-radius: 999px;
+      padding: 8px 16px;
+      border: 1px solid #d1d5db;
+    }
+
+    @media (max-width: 480px) {
+      .card { padding: 14px 12px 16px; }
+      h1 { font-size: 1.2rem; }
+      h2 { font-size: 0.95rem; }
+      .inline-small { flex-direction: column; }
+    }
   </style>
 </head>
+
 <body>
+  <div class="page">
 
-  <h1>Registro500 Giappone　編集フォーム（雛形）</h1>
+    <!-- ログインカード -->
+    <section class="card">
+      <h1>Registro500 Giappone　編集フォーム</h1>
+      <p class="page-lead">
+        日本の FIAT 500 オーナー向け・登録／編集専用のフォームです。
+      </p>
 
-  <div class="auth-box">
-    <div class="auth-box-header">ログイン</div>
-    <p id="authStatus" class="auth-status">ログインしていません</p>
-    <div class="auth-actions">
-      <button type="button" id="loginButton" class="primary">Googleでログイン</button>
-      <button type="button" id="logoutButton" style="display:none;">ログアウト</button>
-    </div>
-    <p class="auth-help">
-      ※ 新規登録・編集には Google ログインが必要になります（現在はテスト実装中）。
-    </p>
+      <div class="auth-box">
+        <div class="auth-box-header">ログイン</div>
+        <p id="authStatus" class="auth-status">ログインしていません</p>
+        <div class="auth-actions">
+          <button type="button" id="loginButton" class="btn-login">Googleでログイン</button>
+          <button type="button" id="logoutButton" class="btn-logout" style="display:none;">ログアウト</button>
+        </div>
+        <p class="auth-help">
+          ※ 新規登録・編集には Google ログインが必要になります（現在はテスト実装中）。
+        </p>
+      </div>
+    </section>
+
+    <!-- 編集フォームカード -->
+    <section class="card" id="formCard">
+      <form id="carForm" onsubmit="handleSubmit(event)">
+        <input type="hidden" id="AuthEmail" name="AuthEmail">
+        <input type="hidden" id="DocumentID" name="DocumentID">
+
+        <!-- 1. 基本情報 -->
+        <h2>基本情報</h2>
+        <fieldset>
+          <label for="HandleName">ハンドルネーム</label>
+          <input type="text" id="HandleName" name="HandleName">
+
+          <label for="Prefecture">都道府県</label>
+          <input type="text" id="Prefecture" name="Prefecture" placeholder="例：神奈川県">
+
+          <label for="ModelSelectA">車両</label>
+          <select id="ModelSelectA" name="ModelSelectA">
+            <option value="">選択してください</option>
+            <option value="Nuova500">Nuova500</option>
+            <option value="ABARTH">ABARTH</option>
+            <option value="その他">その他</option>
+          </select>
+
+          <div id="ModelTextAWrapper" style="display:none;">
+            <label for="ModelTextA">車両（その他入力）</label>
+            <input type="text" id="ModelTextA" name="ModelTextA" placeholder="例：Giardiniera 他">
+          </div>
+
+          <label for="ModelSelectB">モデル</label>
+          <select id="ModelSelectB" name="ModelSelectB">
+            <option value="">選択してください</option>
+            <option value="R">R</option>
+            <option value="L">L</option>
+            <option value="F">F</option>
+            <option value="D">D</option>
+            <option value="Giardiniera">Giardiniera</option>
+            <option value="Sport">Sport</option>
+            <option value="N Normale">N Normale</option>
+            <option value="Prima Serie">Prima Serie</option>
+            <option value="595">595</option>
+            <option value="695">695</option>
+            <option value="その他">その他</option>
+          </select>
+
+          <div id="ModelTextBWrapper" style="display:none;">
+            <label for="ModelTextB">モデル（その他入力）</label>
+            <input type="text" id="ModelTextB" name="ModelTextB">
+          </div>
+
+          <div class="inline-small">
+            <div>
+              <label for="Year">年式</label>
+              <input type="number" id="Year" name="Year" placeholder="例：1964">
+            </div>
+            <div>
+              <label for="BodyColor">ボディーカラー</label>
+              <input type="text" id="BodyColor" name="BodyColor" placeholder="例：ネイビー">
+            </div>
+          </div>
+
+          <div class="inline-small">
+            <div>
+              <label for="Length_cm">全長（cm）</label>
+              <input type="number" id="Length_cm" name="Length_cm">
+            </div>
+            <div>
+              <label>乗車定員</label>
+              <div class="radio-group">
+                <label><input type="radio" name="Capacity" value="4">4人</label>
+                <label><input type="radio" name="Capacity" value="5">5人</label>
+              </div>
+            </div>
+          </div>
+
+          <label>ハンドル</label>
+          <div class="radio-group">
+            <label><input type="radio" name="Steering" value="左">左</label>
+            <label><input type="radio" name="Steering" value="右">右</label>
+          </div>
+        </fieldset>
+
+        <!-- 2. エンジン関係 -->
+        <h2>エンジン関係</h2>
+        <fieldset>
+          <label for="EngineCC">排気量（cc）</label>
+          <input type="number" id="EngineCC" name="EngineCC">
+
+          <label for="EngineTypeSelect">エンジン形式・選択</label>
+          <select id="EngineTypeSelect" name="EngineTypeSelect">
+            <option value="">選択してください</option>
+            <option value="110">110</option>
+            <option value="110.004">110.004</option>
+            <option value="110D.000">110D.000</option>
+            <option value="110F.000">110F.000</option>
+            <option value="120">120</option>
+            <option value="126A.000">126A.000</option>
+            <option value="126A1.000">126A1.000</option>
+            <option value="126A1.048">126A1.048</option>
+            <option value="126A5.000">126A5.000</option>
+            <option value="不明">不明</option>
+            <option value="その他">その他</option>
+          </select>
+
+          <div id="EngineTypeTextWrapper" style="display:none;">
+            <label for="EngineTypeText">エンジン形式（その他）</label>
+            <input type="text" id="EngineTypeText" name="EngineTypeText">
+          </div>
+
+          <label>点火制御方式</label>
+          <div class="radio-group">
+            <label><input type="radio" name="IgnitionType" value="ポイント">ポイント</label>
+            <label><input type="radio" name="IgnitionType" value="セミトラ">セミトラ</label>
+            <label><input type="radio" name="IgnitionType" value="フルトラ">フルトラ</label>
+          </div>
+
+          <label for="IgnitionSubType">セミトラ／フルトラ（商品名）</label>
+          <input type="text" id="IgnitionSubType" name="IgnitionSubType" placeholder="例：ウオタニSP2">
+
+          <label>配電方式</label>
+          <div class="radio-group">
+            <label><input type="radio" name="DistributionType" value="独立点火">独立点火</label>
+            <label><input type="radio" name="DistributionType" value="同時点火">同時点火</label>
+          </div>
+
+          <label for="CoilName">コイル（商品名）</label>
+          <input type="text" id="CoilName" name="CoilName">
+
+          <label for="PlugName">プラグ（商品名）</label>
+          <input type="text" id="PlugName" name="PlugName">
+
+          <label>燃料噴射装置</label>
+          <div class="radio-group">
+            <label><input type="radio" name="FuelInjection" value="キャブレター">キャブレター</label>
+            <label><input type="radio" name="FuelInjection" value="インジェクション">インジェクション</label>
+          </div>
+
+          <label for="CarburetorName">キャブレター等（名称）</label>
+          <input type="text" id="CarburetorName" name="CarburetorName">
+
+          <label>燃料ポンプ</label>
+          <div class="radio-group">
+            <label><input type="radio" name="FuelPump" value="機械式">機械式</label>
+            <label><input type="radio" name="FuelPump" value="電気式">電気式</label>
+          </div>
+
+          <label for="ElectricPumpName">電ポン（名称）</label>
+          <input type="text" id="ElectricPumpName" name="ElectricPumpName">
+
+          <label>発電機</label>
+          <div class="radio-group">
+            <label><input type="radio" name="Generator" value="ダイナモ">ダイナモ</label>
+            <label><input type="radio" name="Generator" value="オルタネーター">オルタネーター</label>
+            <label><input type="radio" name="Generator" value="その他">その他</label>
+          </div>
+
+          <label>オイルクーラー</label>
+          <div class="radio-group">
+            <label><input type="radio" name="OilCooler" value="無し">無し</label>
+            <label><input type="radio" name="OilCooler" value="機械式">機械式</label>
+            <label><input type="radio" name="OilCooler" value="電気式">電気式</label>
+          </div>
+        </fieldset>
+
+        <!-- 3. 駆動系・足回り -->
+        <h2>駆動系・足回り</h2>
+        <fieldset>
+          <label>トランスミッション</label>
+          <div class="radio-group">
+            <label><input type="radio" name="Transmission" value="4速">4速</label>
+            <label><input type="radio" name="Transmission" value="5速">5速</label>
+          </div>
+
+          <label>シンクロ</label>
+          <div class="radio-group">
+            <label><input type="radio" name="Synchro" value="ノンシンクロ">ノンシンクロ</label>
+            <label><input type="radio" name="Synchro" value="シンクロ">シンクロ</label>
+          </div>
+
+          <label>ジョイント</label>
+          <div class="radio-group">
+            <label><input type="radio" name="Joint" value="ノーマル">ノーマル</label>
+            <label><input type="radio" name="Joint" value="CVジョイント">CVジョイント</label>
+          </div>
+
+          <label>ホイール</label>
+          <div class="radio-group">
+            <label><input type="radio" name="Wheel" value="純正">純正</label>
+            <label><input type="radio" name="Wheel" value="社外">社外</label>
+          </div>
+
+          <div class="inline-small">
+            <div>
+              <label for="RimDiameter_in">リム径（inch）</label>
+              <input type="number" id="RimDiameter_in" name="RimDiameter_in">
+            </div>
+            <div>
+              <label for="RimWidth_in">リム幅（inch）</label>
+              <input type="number" id="RimWidth_in" name="RimWidth_in" step="0.1">
+            </div>
+          </div>
+
+          <label>タイヤ型式</label>
+          <div class="radio-group">
+            <label><input type="radio" name="TireType" value="チューブ">チューブ</label>
+            <label><input type="radio" name="TireType" value="チューブレス">チューブレス</label>
+          </div>
+
+          <label for="TireSize">タイヤサイズ</label>
+          <input type="text" id="TireSize" name="TireSize" placeholder="例：125R12">
+
+          <label for="TireBrandName">タイヤメーカー／名称</label>
+          <input type="text" id="TireBrandName" name="TireBrandName">
+        </fieldset>
+
+        <!-- 4. オイル・バッテリー他 -->
+        <h2>オイル・バッテリー他</h2>
+        <fieldset>
+          <label for="EngineOil">エンジンオイル</label>
+          <input type="text" id="EngineOil" name="EngineOil">
+
+          <label for="EngineOilInterval">交換期間（月／km）</label>
+          <input type="text" id="EngineOilInterval" name="EngineOilInterval" placeholder="例：6ヶ月 または 5,000km">
+
+          <label for="TransmissionOil">ミッションオイル</label>
+          <input type="text" id="TransmissionOil" name="TransmissionOil">
+
+          <label for="TransmissionOilInterval">交換期間（月／km）</label>
+          <input type="text" id="TransmissionOilInterval" name="TransmissionOilInterval" placeholder="例：1年">
+
+          <label for="Battery">バッテリー</label>
+          <input type="text" id="Battery" name="Battery">
+        </fieldset>
+
+        <!-- 5. こだわりポイント -->
+        <h2>こだわりポイント</h2>
+        <fieldset>
+          <label for="Highlights">チューンナップ／モディファイ／自慢ポイント</label>
+          <textarea id="Highlights" name="Highlights"
+            placeholder="・フルオープンになるトランスフォーマビレ…&#10;・エンジンは499ccのままですが…"></textarea>
+          <p class="hint">※複数行の入力が可能です（改行はサイト側でそのまま反映されます）。</p>
+        </fieldset>
+
+        <!-- 6. SNS・リンク -->
+        <h2>SNS / Web</h2>
+        <fieldset>
+          <label for="X_Twitter">X（Twitter）</label>
+          <input type="text" id="X_Twitter" name="X_Twitter" placeholder="例：pasota500d">
+
+          <label for="Instagram">Instagram</label>
+          <input type="text" id="Instagram" name="Instagram">
+
+          <label for="Minkara">みんカラ</label>
+          <input type="text" id="Minkara" name="Minkara">
+
+          <label for="Facebook">Facebook</label>
+          <input type="text" id="Facebook" name="Facebook">
+
+          <label for="Threads">Threads</label>
+          <input type="text" id="Threads" name="Threads">
+
+          <label for="BlogOrWebsite">ブログ・HP</label>
+          <input type="text" id="BlogOrWebsite" name="BlogOrWebsite">
+        </fieldset>
+
+        <!-- 7. 写真 -->
+        <h2>写真</h2>
+        <fieldset>
+          <p class="photo-hint">※いまはプレースホルダとして URL 入力欄です。将来 Firebase Storage 連携時に差し替え予定。</p>
+
+          <label for="PhotoMain">タイトル写真（メイン）</label>
+          <input type="text" id="PhotoMain" name="PhotoMain" placeholder="画像URL">
+
+          <label for="PhotoFront">正面</label>
+          <input type="text" id="PhotoFront" name="PhotoFront" placeholder="画像URL">
+
+          <label for="PhotoSide">側面</label>
+          <input type="text" id="PhotoSide" name="PhotoSide" placeholder="画像URL">
+
+          <label for="PhotoRear">背面</label>
+          <input type="text" id="PhotoRear" name="PhotoRear" placeholder="画像URL">
+
+          <label for="PhotoEngine">エンジンルーム</label>
+          <input type="text" id="PhotoEngine" name="PhotoEngine" placeholder="画像URL">
+
+          <label for="PhotoSteeringCluster">ハンドル／メーター</label>
+          <input type="text" id="PhotoSteeringCluster" name="PhotoSteeringCluster" placeholder="画像URL">
+
+          <label for="PhotoInterior">内装</label>
+          <input type="text" id="PhotoInterior" name="PhotoInterior" placeholder="画像URL">
+        </fieldset>
+
+        <button type="submit" class="primary" id="submitButton">
+          この内容で登録
+        </button>
+      </form>
+    </section>
   </div>
 
-  <form id="carForm" onsubmit="handleSubmit(event)">
-    <!-- ログイン中のメールアドレス -->
-    <input type="hidden" id="AuthEmail" name="AuthEmail">
-    <!-- 既存レコード編集用の DocumentID -->
-    <input type="hidden" id="DocumentID" name="DocumentID">
+  <script>
+  (function () {
+    // テンプレートから渡される値
+    const INITIAL_DOC_ID   = '<?= initialDocId ?>';
+    const INITIAL_CAR_DATA = <?!= JSON.stringify(initialCarData || {}) ?>;
+    const scriptUrlFromServer = '<?= scriptUrl ?>';
 
-    <!-- 1. 基本情報 -->
-    <h2>基本情報</h2>
-    <fieldset>
-      <label for="HandleName">ハンドルネーム</label>
-      <input type="text" id="HandleName" name="HandleName">
+    // Firebase 初期化
+    const firebaseConfig = {
+      apiKey: "AIzaSyCNCNsu61S3DIQ2pcmK2Ic_vqCINlZB9nk",
+      authDomain: "registro500giappone-93f98.firebaseapp.com",
+      projectId: "registro500giappone-93f98",
+      storageBucket: "registro500giappone-93f98.firebasestorage.app",
+      messagingSenderId: "723005462978",
+      appId: "1:723005462978:web:e967a16a278f54b278de5b",
+      measurementId: "G-ZRBFX1V51B"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
 
-      <label for="Prefecture">都道府県</label>
-      <input type="text" id="Prefecture" name="Prefecture" placeholder="例：神奈川県">
+    const authStatusEl   = document.getElementById('authStatus');
+    const loginBtn       = document.getElementById('loginButton');
+    const logoutBtn      = document.getElementById('logoutButton');
+    const authEmailInput = document.getElementById('AuthEmail');
+    const docIdInput     = document.getElementById('DocumentID');
+    const form           = document.getElementById('carForm');
+    const formCard       = document.getElementById('formCard');
+    const submitBtn      = document.getElementById('submitButton');
 
-      <label for="ModelSelectA">車両</label>
-      <select id="ModelSelectA" name="ModelSelectA">
-        <option value="">選択してください</option>
-        <option value="Nuova500">Nuova500</option>
-        <option value="ABARTH">ABARTH</option>
-        <option value="その他">その他</option>
-      </select>
+    // 初期状態：フォーム非表示
+    if (formCard) formCard.style.display = 'none';
 
-      <div id="ModelTextAWrapper" style="display:none;">
-        <label for="ModelTextA">車両（その他入力）</label>
-        <input type="text" id="ModelTextA" name="ModelTextA" placeholder="例：Giardiniera 他">
-      </div>
+    // DocumentID 初期値
+    let currentDocId = INITIAL_DOC_ID || '';
+    if (currentDocId && docIdInput) {
+      docIdInput.value = currentDocId;
+    }
 
-      <label for="ModelSelectB">モデル</label>
-      <select id="ModelSelectB" name="ModelSelectB">
-        <option value="">選択してください</option>
-        <option value="R">R</option>
-        <option value="L">L</option>
-        <option value="F">F</option>
-        <option value="D">D</option>
-        <option value="Giardiniera">Giardiniera</option>
-        <option value="Sport">Sport</option>
-        <option value="N Normale">N Normale</option>
-        <option value="Prima Serie">Prima Serie</option>
-        <option value="595">595</option>
-        <option value="695">695</option>
-        <option value="その他">その他</option>
-      </select>
+    // 送信中ボタン制御
+    function setSubmitting(isSubmitting) {
+      if (!submitBtn) return;
+      if (isSubmitting) {
+        if (!submitBtn.dataset.originalLabel) {
+          submitBtn.dataset.originalLabel = submitBtn.textContent || '';
+        }
+        submitBtn.disabled = true;
+        submitBtn.textContent = '保存中…';
+      } else {
+        submitBtn.disabled = false;
+        if (submitBtn.dataset.originalLabel) {
+          submitBtn.textContent = submitBtn.dataset.originalLabel;
+        }
+      }
+    }
 
-      <div id="ModelTextBWrapper" style="display:none;">
-        <label for="ModelTextB">モデル（その他入力）</label>
-        <input type="text" id="ModelTextB" name="ModelTextB">
-      </div>
+    // ログイン状態監視
+    auth.onAuthStateChanged(function (user) {
+      if (!user) {
+        authStatusEl.textContent = 'ログインしていません';
+        loginBtn.style.display   = 'inline-block';
+        logoutBtn.style.display  = 'none';
+        authEmailInput.value     = '';
+        if (formCard) formCard.style.display = 'none';
+        return;
+      }
 
-      <div class="inline-small">
-        <div>
-          <label for="Year">年式</label>
-          <input type="number" id="Year" name="Year" placeholder="例：1964">
-        </div>
-        <div>
-          <label for="BodyColor">ボディーカラー</label>
-          <input type="text" id="BodyColor" name="BodyColor" placeholder="例：ネイビー">
-        </div>
-      </div>
-
-      <div class="inline-small">
-        <div>
-          <label for="Length_cm">全長（cm）</label>
-          <input type="number" id="Length_cm" name="Length_cm">
-        </div>
-        <div>
-          <label>乗車定員</label>
-          <div class="radio-group">
-            <label><input type="radio" name="Capacity" value="4">4人</label>
-            <label><input type="radio" name="Capacity" value="5">5人</label>
-          </div>
-        </div>
-      </div>
-
-      <label>ハンドル</label>
-      <div class="radio-group">
-        <label><input type="radio" name="Steering" value="左">左</label>
-        <label><input type="radio" name="Steering" value="右">右</label>
-      </div>
-    </fieldset>
-
-    <!-- 2. エンジン関係 -->
-    <h2>エンジン関係</h2>
-    <fieldset>
-      <label for="EngineCC">排気量（cc）</label>
-      <input type="number" id="EngineCC" name="EngineCC">
-
-      <label for="EngineTypeSelect">エンジン形式・選択</label>
-      <select id="EngineTypeSelect" name="EngineTypeSelect">
-        <option value="">選択してください</option>
-        <option value="110">110</option>
-        <option value="110.004">110.004</option>
-        <option value="110D.000">110D.000</option>
-        <option value="110F.000">110F.000</option>
-        <option value="120">120</option>
-        <option value="126A.000">126A.000</option>
-        <option value="126A1.000">126A1.000</option>
-        <option value="126A1.048">126A1.048</option>
-        <option value="126A5.000">126A5.000</option>
-        <option value="不明">不明</option>
-        <option value="その他">その他</option>
-      </select>
-
-      <div id="EngineTypeTextWrapper" style="display:none;">
-        <label for="EngineTypeText">エンジン形式（その他）</label>
-        <input type="text" id="EngineTypeText" name="EngineTypeText">
-      </div>
-
-      <label>点火制御方式</label>
-      <div class="radio-group">
-        <label><input type="radio" name="IgnitionType" value="ポイント">ポイント</label>
-        <label><input type="radio" name="IgnitionType" value="セミトラ">セミトラ</label>
-        <label><input type="radio" name="IgnitionType" value="フルトラ">フルトラ</label>
-      </div>
-
-      <label for="IgnitionSubType">セミトラ／フルトラ（商品名）</label>
-      <input type="text" id="IgnitionSubType" name="IgnitionSubType" placeholder="例：ウオタニSP2">
-
-      <label>配電方式</label>
-      <div class="radio-group">
-        <label><input type="radio" name="DistributionType" value="独立点火">独立点火</label>
-        <label><input type="radio" name="DistributionType" value="同時点火">同時点火</label>
-      </div>
-
-      <label for="CoilName">コイル（商品名）</label>
-      <input type="text" id="CoilName" name="CoilName">
-
-      <label for="PlugName">プラグ（商品名）</label>
-      <input type="text" id="PlugName" name="PlugName">
-
-      <label>燃料噴射装置</label>
-      <div class="radio-group">
-        <label><input type="radio" name="FuelInjection" value="キャブレター">キャブレター</label>
-        <label><input type="radio" name="FuelInjection" value="インジェクション">インジェクション</label>
-      </div>
-
-      <label for="CarburetorName">キャブレター等（名称）</label>
-      <input type="text" id="CarburetorName" name="CarburetorName">
-
-      <label>燃料ポンプ</label>
-      <div class="radio-group">
-        <label><input type="radio" name="FuelPump" value="機械式">機械式</label>
-        <label><input type="radio" name="FuelPump" value="電気式">電気式</label>
-      </div>
-
-      <label for="ElectricPumpName">電ポン（名称）</label>
-      <input type="text" id="ElectricPumpName" name="ElectricPumpName">
-
-      <label>発電機</label>
-      <div class="radio-group">
-        <label><input type="radio" name="Generator" value="ダイナモ">ダイナモ</label>
-        <label><input type="radio" name="Generator" value="オルタネーター">オルタネーター</label>
-        <label><input type="radio" name="Generator" value="その他">その他</label>
-      </div>
-
-      <label>オイルクーラー</label>
-      <div class="radio-group">
-        <label><input type="radio" name="OilCooler" value="無し">無し</label>
-        <label><input type="radio" name="OilCooler" value="機械式">機械式</label>
-        <label><input type="radio" name="OilCooler" value="電気式">電気式</label>
-      </div>
-    </fieldset>
-
-    <!-- 3. 駆動系・足回り -->
-    <h2>駆動系・足回り</h2>
-    <fieldset>
-      <label>トランスミッション</label>
-      <div class="radio-group">
-        <label><input type="radio" name="Transmission" value="4速">4速</label>
-        <label><input type="radio" name="Transmission" value="5速">5速</label>
-      </div>
-
-      <label>シンクロ</label>
-      <div class="radio-group">
-        <label><input type="radio" name="Synchro" value="ノンシンクロ">ノンシンクロ</label>
-        <label><input type="radio" name="Synchro" value="シンクロ">シンクロ</label>
-      </div>
-
-      <label>ジョイント</label>
-      <div class="radio-group">
-        <label><input type="radio" name="Joint" value="ノーマル">ノーマル</label>
-        <label><input type="radio" name="Joint" value="CVジョイント">CVジョイント</label>
-      </div>
-
-      <label>ホイール</label>
-      <div class="radio-group">
-        <label><input type="radio" name="Wheel" value="純正">純正</label>
-        <label><input type="radio" name="Wheel" value="社外">社外</label>
-      </div>
-
-      <div class="inline-small">
-        <div>
-          <label for="RimDiameter_in">リム径（inch）</label>
-          <input type="number" id="RimDiameter_in" name="RimDiameter_in">
-        </div>
-        <div>
-          <label for="RimWidth_in">リム幅（inch）</label>
-          <input type="number" id="RimWidth_in" name="RimWidth_in" step="0.1">
-        </div>
-      </div>
-
-      <label>タイヤ型式</label>
-      <div class="radio-group">
-        <label><input type="radio" name="TireType" value="チューブ">チューブ</label>
-        <label><input type="radio" name="TireType" value="チューブレス">チューブレス</label>
-      </div>
-
-      <label for="TireSize">タイヤサイズ</label>
-      <input type="text" id="TireSize" name="TireSize" placeholder="例：125R12">
-
-      <label for="TireBrandName">タイヤメーカー／名称</label>
-      <input type="text" id="TireBrandName" name="TireBrandName">
-    </fieldset>
-
-    <!-- 4. オイル・バッテリー他 -->
-    <h2>オイル・バッテリー他</h2>
-    <fieldset>
-      <label for="EngineOil">エンジンオイル</label>
-      <input type="text" id="EngineOil" name="EngineOil">
-
-      <label for="EngineOilInterval">交換期間（月／km）</label>
-      <input type="text" id="EngineOilInterval" name="EngineOilInterval" placeholder="例：6ヶ月 または 5,000km">
-
-      <label for="TransmissionOil">ミッションオイル</label>
-      <input type="text" id="TransmissionOil" name="TransmissionOil">
-
-      <label for="TransmissionOilInterval">交換期間（月／km）</label>
-      <input type="text" id="TransmissionOilInterval" name="TransmissionOilInterval" placeholder="例：1年">
-
-      <label for="Battery">バッテリー</label>
-      <input type="text" id="Battery" name="Battery">
-    </fieldset>
-
-    <!-- 5. こだわりポイント -->
-    <h2>こだわりポイント</h2>
-    <fieldset>
-      <label for="Highlights">チューンナップ／モディファイ／自慢ポイント</label>
-      <textarea id="Highlights" name="Highlights"
-        placeholder="・フルオープンになるトランスフォーマビレ…&#10;・エンジンは499ccのままですが…"></textarea>
-      <p class="hint">※複数行の入力が可能です（改行はサイト側でそのまま反映されます）。</p>
-    </fieldset>
-
-    <!-- 6. SNS・リンク -->
-    <h2>SNS / Web</h2>
-    <fieldset>
-      <label for="X_Twitter">X（Twitter）</label>
-      <input type="text" id="X_Twitter" name="X_Twitter" placeholder="例：pasota500d">
-
-      <label for="Instagram">Instagram</label>
-      <input type="text" id="Instagram" name="Instagram">
-
-      <label for="Minkara">みんカラ</label>
-      <input type="text" id="Minkara" name="Minkara">
-
-      <label for="Facebook">Facebook</label>
-      <input type="text" id="Facebook" name="Facebook">
-
-      <label for="Threads">Threads</label>
-      <input type="text" id="Threads" name="Threads">
-
-      <label for="BlogOrWebsite">ブログ・HP</label>
-      <input type="text" id="BlogOrWebsite" name="BlogOrWebsite">
-    </fieldset>
-
-    <!-- 7. 写真 -->
-    <h2>写真</h2>
-    <fieldset>
-      <p class="photo-hint">※いまはプレースホルダとして URL 入力欄です。将来 Firebase Storage 連携時に差し替え予定。</p>
-
-      <label for="PhotoMain">タイトル写真（メイン）</label>
-      <input type="text" id="PhotoMain" name="PhotoMain" placeholder="画像URL">
-
-      <label for="PhotoFront">正面</label>
-      <input type="text" id="PhotoFront" name="PhotoFront" placeholder="画像URL">
-
-      <label for="PhotoSide">側面</label>
-      <input type="text" id="PhotoSide" name="PhotoSide" placeholder="画像URL">
-
-      <label for="PhotoRear">背面</label>
-      <input type="text" id="PhotoRear" name="PhotoRear" placeholder="画像URL">
-
-      <label for="PhotoEngine">エンジンルーム</label>
-      <input type="text" id="PhotoEngine" name="PhotoEngine" placeholder="画像URL">
-
-      <label for="PhotoSteeringCluster">ハンドル／メーター</label>
-      <input type="text" id="PhotoSteeringCluster" name="PhotoSteeringCluster" placeholder="画像URL">
-
-      <label for="PhotoInterior">内装</label>
-      <input type="text" id="PhotoInterior" name="PhotoInterior" placeholder="画像URL">
-    </fieldset>
-
-    <!-- 送信ボタン -->
-    <button type="submit" class="primary">
-      この内容で登録
-    </button>
-  </form>
-
-<script>
-(function () {
-  // ===== サーバ側から埋め込まれる値 =====
-  const INITIAL_DOC_ID   = '<?= initialDocId ?>';                        // '' または 'DOC_xx'
-  const INITIAL_CAR_DATA = <?!= JSON.stringify(initialCarData || {}) ?>; // {} または レコード
-  const scriptUrl        = '<?= scriptUrl ?>';
-
-  // ===== Firebase 設定 =====
-  const firebaseConfig = {
-    apiKey: "AIzaSyCNCNsu61S3DIQ2pcmK2Ic_vqCINlZB9nk",
-    authDomain: "registro500giappone-93f98.firebaseapp.com",
-    projectId: "registro500giappone-93f98",
-    storageBucket: "registro500giappone-93f98.firebasestorage.app",
-    messagingSenderId: "723005462978",
-    appId: "1:723005462978:web:e967a16a278f54b278de5b",
-    measurementId: "G-ZRBFX1V51B"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-
-  // ===== DOM 要素 =====
-  const authStatusEl   = document.getElementById('authStatus');
-  const loginBtn       = document.getElementById('loginButton');
-  const logoutBtn      = document.getElementById('logoutButton');
-  const authEmailInput = document.getElementById('AuthEmail');
-  const docIdInput     = document.getElementById('DocumentID');
-  const form           = document.getElementById('carForm');
-
-  // クライアント側で使う現在の DocumentID
-  let currentDocId = INITIAL_DOC_ID || '';
-  if (currentDocId) {
-    // hidden にセット（submit 時に一緒に送る）
-    docIdInput.value = currentDocId;
-  }
-
-  // ===== Firebase Auth 状態監視 =====
-  auth.onAuthStateChanged(function (user) {
-    if (user) {
       const email = user.email || '';
       authStatusEl.textContent = 'ログイン中：' + email;
       loginBtn.style.display   = 'none';
       logoutBtn.style.display  = 'inline-block';
       authEmailInput.value     = email;
-    } else {
-      authStatusEl.textContent = 'ログインしていません';
-      loginBtn.style.display   = 'inline-block';
-      logoutBtn.style.display  = 'none';
-      authEmailInput.value     = '';
-    }
-  });
 
-  // ===== ログインボタン =====
-  loginBtn.addEventListener('click', function () {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(function (err) {
-      console.error('signIn error', err);
-      alert('ログインに失敗しました：\n' + err.message);
-    });
-  });
+      const ownerEmail = (INITIAL_CAR_DATA && INITIAL_CAR_DATA.OwnerEmail)
+        ? String(INITIAL_CAR_DATA.OwnerEmail).trim().toLowerCase()
+        : '';
+      const userEmail = String(email).trim().toLowerCase();
 
-  // ===== ログアウトボタン =====
-  logoutBtn.addEventListener('click', function () {
-    auth.signOut().catch(function (err) {
-      console.error('signOut error', err);
-      alert('ログアウトに失敗しました：\n' + err.message);
-    });
-  });
-
-  // ===== レコード → フォームへの自動セット =====
-  function fillFormFromRecord(record) {
-    if (!record || !form) return;
-
-    Object.keys(record).forEach(function (key) {
-      const value = record[key];
-      const v = (value !== null && value !== undefined) ? value : '';
-
-      // ラジオボタン（Capacity, Steering …）
-      const radios = form.querySelectorAll(
-        'input[type="radio"][name="' + key + '"]'
-      );
-      if (radios && radios.length) {
-        radios.forEach(function (r) {
-          r.checked = String(r.value) === String(v);
-        });
+      // 新規登録なら誰でも OK
+      if (!currentDocId) {
+        if (formCard) formCard.style.display = 'block';
         return;
       }
 
-      const field = form.querySelector('[name="' + key + '"]');
-      if (!field) return;
-
-      if (
-        field.tagName === 'INPUT' ||
-        field.tagName === 'TEXTAREA' ||
-        field.tagName === 'SELECT'
-      ) {
-        field.value = v;
-      }
-    });
-  }
-
-  // ===== 既存レコード編集時：サーバ側で埋め込まれたデータで初期化 =====
-  if (currentDocId) {
-    console.log('INITIAL_CAR_DATA for', currentDocId, INITIAL_CAR_DATA);
-    if (INITIAL_CAR_DATA && Object.keys(INITIAL_CAR_DATA).length > 0) {
-      fillFormFromRecord(INITIAL_CAR_DATA);
-    } else {
-      console.warn('指定された DocumentID のレコードがサーバ側で見つかりません:', currentDocId);
-      alert(
-        '指定された車両データが見つかりませんでした。\n' +
-        'DocumentID: ' + currentDocId
-      );
-    }
-  } else {
-    console.log('DocumentID なし → 新規登録フォームとして表示');
-  }
-
-  // ===== 「その他」選択時の入力欄表示切替 =====
-  document.getElementById('ModelSelectA').addEventListener('change', function () {
-    document.getElementById('ModelTextAWrapper').style.display =
-      (this.value === 'その他') ? 'block' : 'none';
-  });
-  document.getElementById('ModelSelectB').addEventListener('change', function () {
-    document.getElementById('ModelTextBWrapper').style.display =
-      (this.value === 'その他') ? 'block' : 'none';
-  });
-  document.getElementById('EngineTypeSelect').addEventListener('change', function () {
-    document.getElementById('EngineTypeTextWrapper').style.display =
-      (this.value === 'その他') ? 'block' : 'none';
-  });
-
-  // ===== フォーム送信処理（新規 / 更新 共通） =====
-  window.handleSubmit = function (e) {
-    e.preventDefault();
-
-    const formData = {};
-    const fd = new FormData(form);
-
-    fd.forEach(function (value, key) {
-      if (formData[key] === undefined) {
-        formData[key] = value;
-      }
-    });
-
-    const authEmail = formData.AuthEmail || '';
-    if (!authEmail) {
-      alert('送信前に「Googleでログイン」を押してログインしてください。');
-      return false;
-    }
-
-    // currentDocId があれば編集モード
-    const isEdit   = !!currentDocId;
-    const serverFn = isEdit ? 'updateCarFromForm' : 'saveCarFromForm';
-
-  google.script.run
-    .withSuccessHandler(function (result) {
-      console.log('save/update result =', result);
-      if (!result || !result.ok) {
-        alert('保存処理は完了しましたが、結果の取得に失敗しました。');
-        return;
-      }
-      const docId = result.DocumentID || currentDocId || '';
-      alert('保存しました。詳細画面に移動します。');
-      if (docId) {
-        window.location.href =
-          scriptUrl + '?mode=detail&doc=' + encodeURIComponent(docId);
+      // 既存編集は OwnerEmail 一致のみ許可
+      if (ownerEmail && ownerEmail === userEmail) {
+        if (formCard) formCard.style.display = 'block';
       } else {
-        window.location.href = scriptUrl + '?mode=index';
+        alert('この車両を編集できるのは、登録したオーナー本人のみです。');
+        window.location.href = scriptUrlFromServer + '?mode=index';
       }
-    })
-    .withFailureHandler(function (err) {
-      console.error('save/update error', err);
-      var msg = (err && err.message) ? String(err.message) : '';
+    });
 
-      // ★ オーナー制限エラーだけはメッセージを差し替えてリダイレクト
-      if (msg.indexOf('この車両を編集できるのは') >= 0) {
-        alert(
-          'この車両を編集できるのは、登録したオーナー本人（または管理者）のみです。\n' +
-          '車両詳細画面に戻ります。'
+    // Google ログイン
+    loginBtn.addEventListener("click", () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+
+      loginBtn.disabled = true;
+      const originalLabel = loginBtn.textContent;
+      loginBtn.textContent = "ログイン処理中…";
+
+      auth.signInWithPopup(provider)
+        .catch(err => {
+          alert("ログインに失敗しました: " + err.message);
+          loginBtn.disabled = false;
+          loginBtn.textContent = originalLabel;
+        });
+    });
+
+    // ログアウト
+    logoutBtn.addEventListener('click', function () {
+      auth.signOut().catch(function (err) {
+        console.error('signOut error', err);
+        alert('ログアウトに失敗しました：\n' + err.message);
+      });
+    });
+
+    // 1行分のレコードをフォームに流し込む
+    function fillFormFromRecord(record) {
+      if (!record || !form) return;
+
+      Object.keys(record).forEach(function (key) {
+        const value = record[key];
+        const v = (value !== null && value !== undefined) ? value : '';
+
+        // ラジオボタン
+        const radios = form.querySelectorAll(
+          'input[type="radio"][name="' + key + '"]'
         );
-        if (currentDocId) {
-          window.location.href =
-            scriptUrl + '?mode=detail&doc=' + encodeURIComponent(currentDocId);
-        } else {
-          window.location.href = scriptUrl + '?mode=index';
+        if (radios && radios.length) {
+          radios.forEach(function (r) {
+            r.checked = String(r.value) === String(v);
+          });
+          return;
         }
-        return;
+
+        // 通常フィールド
+        const field = form.querySelector('[name="' + key + '"]');
+        if (!field) return;
+
+        if (
+          field.tagName === 'INPUT' ||
+          field.tagName === 'TEXTAREA' ||
+          field.tagName === 'SELECT'
+        ) {
+          field.value = v;
+        }
+      });
+
+      // 「その他」選択時の補助欄表示
+      const modelA = document.getElementById('ModelSelectA');
+      const modelB = document.getElementById('ModelSelectB');
+      const engSel = document.getElementById('EngineTypeSelect');
+      if (modelA && modelA.value === 'その他') {
+        document.getElementById('ModelTextAWrapper').style.display = 'block';
+      }
+      if (modelB && modelB.value === 'その他') {
+        document.getElementById('ModelTextBWrapper').style.display = 'block';
+      }
+      if (engSel && engSel.value === 'その他') {
+        document.getElementById('EngineTypeTextWrapper').style.display = 'block';
+      }
+    }
+
+    // 初期データがあればフォームに入れる
+    if (currentDocId) {
+      if (INITIAL_CAR_DATA && Object.keys(INITIAL_CAR_DATA).length > 0) {
+        fillFormFromRecord(INITIAL_CAR_DATA);
+      } else {
+        console.warn('指定された DocumentID のレコードがサーバ側で見つかりません:', currentDocId);
+        alert(
+          '指定された車両データが見つかりませんでした。\n' +
+          'DocumentID: ' + currentDocId
+        );
+      }
+    }
+
+    // 「その他」選択時に入力欄を表示
+    document.getElementById('ModelSelectA').addEventListener('change', function () {
+      document.getElementById('ModelTextAWrapper').style.display =
+        (this.value === 'その他') ? 'block' : 'none';
+    });
+    document.getElementById('ModelSelectB').addEventListener('change', function () {
+      document.getElementById('ModelTextBWrapper').style.display =
+        (this.value === 'その他') ? 'block' : 'none';
+    });
+    document.getElementById('EngineTypeSelect').addEventListener('change', function () {
+      document.getElementById('EngineTypeTextWrapper').style.display =
+        (this.value === 'その他') ? 'block' : 'none';
+    });
+
+    // ===== フォーム送信処理 =====
+    window.handleSubmit = function (e) {
+      e.preventDefault();
+
+      setSubmitting(true);
+
+      const formData = {};
+      const fd = new FormData(form);
+
+      fd.forEach(function (value, key) {
+        if (formData[key] === undefined) {
+          formData[key] = value;
+        }
+      });
+
+      const authEmail = formData.AuthEmail || '';
+      if (!authEmail) {
+        setSubmitting(false);
+        alert('送信前に「Googleでログイン」を押してログインしてください。');
+        return false;
       }
 
-      // その他のエラーは従来どおり
-      alert('保存に失敗しました：\n' + msg);
-    })[serverFn](formData);
+      const isEdit   = !!currentDocId;
+      const serverFn = isEdit ? 'updateCarFromForm' : 'saveCarFromForm';
 
-  };
-})();
-</script>
+      google.script.run
+        .withSuccessHandler(function (result) {
+          console.log('save/update result =', result);
+          setSubmitting(false);
 
+          if (!result || !result.ok) {
+            alert('保存処理は完了しましたが、結果の取得に失敗しました。');
+            return;
+          }
+
+          const docId = result.DocumentID || currentDocId || '';
+          if (!docId) {
+            alert('保存は完了しましたが、DocumentID が取得できませんでした。');
+            window.location.href = scriptUrlFromServer + '?mode=index';
+            return;
+          }
+
+          const detailUrl = scriptUrlFromServer
+            + '?mode=detail&doc=' + encodeURIComponent(docId);
+
+          alert('保存しました。詳細画面に移動します。');
+          window.location.href = detailUrl;
+        })
+        .withFailureHandler(function (err) {
+          console.error('save/update error', err);
+          setSubmitting(false);
+
+          var msg = (err && err.message) ? String(err.message) : '';
+
+          if (msg.indexOf('この車両を編集できるのは') >= 0) {
+            alert(
+              'この車両を編集できるのは、登録したオーナー本人（または管理者）のみです。\n' +
+              '車両詳細画面に戻ります。'
+            );
+            if (currentDocId) {
+              const detailUrl = scriptUrlFromServer
+                + '?mode=detail&doc=' + encodeURIComponent(currentDocId);
+              window.location.href = detailUrl;
+            } else {
+              window.location.href = scriptUrlFromServer + '?mode=index';
+            }
+            return;
+          }
+
+          alert('保存に失敗しました：\n' + msg);
+        })[serverFn](formData);
+    };
+  })();
+  </script>
 </body>
 </html>
