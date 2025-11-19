@@ -1,315 +1,324 @@
-# Registro500 Giappone
+# 引継ぎメモ｜Registro500 Giappone（GAS × Google Sites）
 
-**プロジェクト概要・アーキテクチャ・スマホUIレギュレーション・作業ルール**
-**v2025-11-19**
-
----
-
-## 1. プロジェクト目的
-
-クラシック Fiat 500（特に 110D / 110F / 126 系）オーナー向けに、
-**完全無料で運用可能な車両登録・閲覧サイト**を構築する。
-
-* 全国の個体情報を一元管理
-* 登録項目は約 60 項目（モデル・年式・色・エンジン仕様・写真など）
-* 一般ユーザー：一覧・詳細を閲覧可能
-* オーナー：ログインして自身の車両のみ編集可能
-* 使用サービスは **Firebase（Firestore/Storage）＋Google Sheets＋GAS＋Google Sites** のみ（完全無料）
+**2025-11-20 版**
 
 ---
 
-## 2. システムアーキテクチャ
+## 🎯 プロジェクト目的（再確認）
 
-2025-11-19 時点の最新構成
+* クラシック FIAT 500（特に 110D / 110F / 126 系）オーナー向けの
+  **登録・閲覧サイト**を、Google の無料サービスだけで構築する。
+* 一般ユーザー：
 
----
+  * 車両一覧（index）／詳細（detail）を自由に閲覧できる。
+* オーナー本人：
 
-### 2.1 Firestore（cars コレクション）
+  * Google ログインのうえで **新規登録・編集ができるのは本人のみ**。
+* 技術スタック：
 
-* 1 ドキュメント = 1 台の車両データ
-* 主なフィールド
-
-  * DocumentID
-  * OwnerEmail（ログインアカウント）
-  * HandleName
-  * Prefecture
-  * ModelSelect*, ModelText*, Model_DisplayA/B/C
-  * Engine*, Engine_Display
-  * PhotoMain〜PhotoSteeringCluster
-  * createdAt / updatedAt
-* 位置づけ
-
-  * 将来的にはマスター
-  * 現状は **Sheets の同期先**
+  * **Google Sheets + Apps Script（GAS） + Firebase（Auth / Storage） + Google Sites**
+  * できる限り「完全無料」で長期運用を目指す。
 
 ---
 
-### 2.2 Firebase Storage（画像ストレージ）
+## 🏗 現在の技術構成
 
-* パス例
+### データ
 
-  * `cars/row_003/PhotoMain.jpg`
-  * `assets/logo_horizontal.png`
-* GAS 側で `.appspot.com` → `.firebasestorage.app` に自動変換
-* UI は Storage の公開 URL を参照
+* Google Sheets
 
----
+  * シート名：`cars`（マスター）
+  * 主キー：`DocumentID`（DOC_1, DOC_2 …）
+  * 補助表示カラム：`Model_DisplayA/B/C`, `Engine_Display`
+  * オーナー判定用：`OwnerEmail`
+  * 写真 URL：`PhotoMain` ほか 7 カラム（Firebase Storage の URL）
 
-### 2.3 Google Sheets（cars シート）
+* Firebase
 
-* **現状 UI の実質的マスター**（index / detail / edit の表示元）
-* Firestore と同期前提のデータミラー
-* GAS 側で加工済フィールドを生成
+  * Storage：`cars/row_xxx/PhotoMain.jpg` 等
+  * Auth：Google ログイン用（Firebase Auth）
 
-  * Model_DisplayA/B/C
-  * Engine_Display
-* メタ項目
+### Apps Script プロジェクト
 
-  * DocumentID
-  * OwnerEmail
-  * createdAt / updatedAt
+* `main.gs`
 
----
+  * `WEB_APP_URL`：公開用 WebApp の exec URL（固定）
+  * `OWNER_WEB_APP_URL`：オーナー用 WebApp URL（現在は `WEB_APP_URL` と同じ）
+  * `doGet(e)`：`mode` によるルーティング
 
-## 3. Apps Script（GAS）
+    * `policy` → `policy.html`
+    * `howto` → `howto.html`
+    * `owner` → `renderOwnerPage_()`（オーナートップ）
+    * それ以外 → `doGetMain_(e)`
+  * `doGetMain_(e)`：
 
----
+    * `mode=index` or 未指定 → `renderIndex()`
+    * `mode=detail&doc=DOC_xxx` → `renderDetail(doc)`
+    * `mode=edit&doc=DOC_xxx` → `renderEdit(doc)`（オーナー用編集フォーム）
+  * `renderIndex()`：`cars` シートから一覧用データを作成
+  * `renderDetail(docId)`：
 
-### 3.1 doGet(e) によるルーティング
+    * Cache から車両データ取得 → 表示用フィールド組み立て
+    * `Session.getActiveUser().getEmail()` と `OwnerEmail` を比較し `isOwner` 判定
+    * `detail.html` に `carData / isOwner / scriptUrl / ownerAppUrl` を渡す
+  * `renderEdit(docId)`：
 
-* `mode=policy` → policy.html
-* `mode=howto` → howto.html
-* `mode=owner` → owner.html
-* `mode=detail&doc=xxx` → renderDetail()
-* `mode=edit&doc=xxx` → renderEdit()
-* 未指定 → renderIndex()
+    * `getCarForEdit(docId)` で 1 行取得（`cars` シートのみ）
+    * `initialDocId`, `initialCarData`, `scriptUrl` を `edit.html` に渡す
+  * `saveCarFromForm(formData)`：
 
----
+    * 新規登録用。`AuthEmail` を `OwnerEmail` に保存し、`DocumentID` を採番
+  * `updateCarFromForm(formData)`：
 
-### 3.2 主な処理内容
+    * 既存編集用。
+    * `AuthEmail` と `OwnerEmail` / `ADMIN_EMAIL` を比較して本人 or 管理者のみ更新
+  * `renderOwnerPage_()`：
 
-#### 一覧
+    * `owner.html` テンプレートに `isLoggedIn` だけを渡す（メールアドレス文字列は渡さない）
 
-* `renderIndex()`
+### HTML テンプレート
 
-  * cars シートを読み込み
-  * 必要列だけ抽出
-  * index.html に渡す
+* `index.html`：一覧（PC 3列 / スマホ 2列, 大きめフォント）
+* `detail.html`：詳細画面
 
-#### 詳細
+  * ギャラリー写真：メイン＋サムネ（PC/スマホ対応済）
+  * ラベルは `dt` を `white-space: nowrap;` 指定で折り返し防止
+  * 右上ボタン：
 
-* `renderDetail(documentId)`
-
-  * CacheService 利用
-  * isOwner 判定
-  * detail.html に carData / isOwner / scriptUrl / ownerAppUrl を渡す
-
-#### 編集
-
-* `renderEdit(documentId)`
-* `getCarForEdit(documentId)`
-
-#### 保存
-
-* `saveCarFromForm()`（新規）
-* `updateCarFromForm()`（既存）
-
-  * OwnerEmail の一致チェック
-  * updatedAt 更新
-
-#### 表示用加工
-
-* resolveSelectAndText()
-* buildModelDisplays()
-* buildEngineDisplay()
-* fixSinglePhotoUrl()
+    * 未ログイン or 他人：
+      「この車両のオーナーの方はログインして編集」→ `owner_edit_gate?doc=DOC_xxx`
+    * オーナー本人：
+      「この車両の情報を編集」→ 直接 `?mode=edit&doc=DOC_xxx`
+* `policy.html`：利用規約＋プライバシーポリシー
+* `howto.html`：使い方
+* `owner.html`：オーナートップ（ログイン状態に応じた案内／ボタン）
+* `owner_edit_gate.html`：**オーナーログイン（この車両の編集）** 説明ページ
+* `edit.html`：新規／編集フォーム（Firebase Auth 付き）
 
 ---
 
-### 3.3 Firestore ⇄ Sheets 同期
+## 🔁 画面遷移とログイン／編集の考え方
 
-* 別ファイル `sync_firestore.gs`（構想）
-* 方向
+### 公開側（誰でも閲覧）
 
-  * Firestore → Sheets：Webhook またはトリガー
-  * Sheets → Firestore：編集時に反映
-* **現状：未完成（UI は Sheets のみ参照）**
+1. `scriptUrl?mode=index`
 
----
+   * 一覧表示（カード型）
+2. 任意の車両をクリック
 
-## 4. HTML テンプレート仕様
+   * `scriptUrl?mode=detail&doc=DOC_xxx` で詳細表示
+3. 詳細右上のボタン
 
----
+   * **オーナー本人のとき**
 
-### 4.1 index.html（一覧）
+     * 「この車両の情報を編集」
+     * → `scriptUrl?mode=edit&doc=DOC_xxx`
+   * **それ以外（未ログイン or 他人）**
 
-* スマホ：2列カード
-* PC：auto-fill
-* object-fit: contain
-* ソート機能
-* 「めざせ500台！」カウンター
-* 利用規約 / プライバシーポリシー
-* 「はじめての方へ」リンク
-* ログインボタン・新規登録ボタン（今後整理）
+     * 「この車両のオーナーの方はログインして編集」
+     * → `OWNER_WEB_APP_URL?mode=editGate&doc=DOC_xxx`
+       （`owner_edit_gate.html` を表示）
 
----
+### オーナー用フロー
 
-### 4.2 detail.html（詳細）
+#### A. すでにログイン済みのオーナーが自分の車両を編集
 
-* メイン写真＋ギャラリー
-* スペック / エンジン / SNS
-* 空欄フィールド自動非表示
-* SNSは URL 形式を判定して自動リンク
-* 上下に「← 車両一覧に戻る」
-* isOwner のとき編集ボタン表示
+1. 一般ユーザーと同じく一覧 → 詳細を開く。
+2. `detail.html` 内で
 
----
+   * `Session.getActiveUser().getEmail()` と `OwnerEmail` が一致 → `isOwner = true`
+3. 右上ボタンが **直接 edit** になる：
 
-### 4.3 edit.html（新規 / 編集）
+   * `scriptUrl?mode=edit&doc=DOC_xxx`
+4. `edit.html`
 
-* Firebase Auth で Google ログイン
-* AuthEmail を hidden に格納
-* 保存後は detail ページへ遷移
-* 60項目入力フォーム
+   * Firebase Auth でもログイン確認
+   * `INITIAL_CAR_DATA` からフォーム初期値を自動セット
+   * 送信すると `updateCarFromForm()` が呼ばれ、保存後 `detail?doc=` に戻る。
 
----
+#### B. 詳細画面からオーナーでログインして編集（editGate 経由）
 
-### 4.4 policy.html / howto.html
+1. 詳細右上ボタン → `mode=editGate&doc=DOC_xxx`
+2. `owner_edit_gate.html`
 
-* 戻るリンク：`<?= scriptUrl ?>`
-* policy：運営者名なし / Google アカウントのみ / 東京地裁管轄 / Cookie は現時点で未使用
-* howto：登録方法・写真の推奨サイズなど
+   * 「オーナーログイン（この車両の編集）」の説明
+   * 「Googleでログインして編集に進む」ボタン（今はダミー実装）
+3. 将来の理想仕様
 
----
+   * このボタンで Google ログイン（Firebase Auth or Apps Script）を実行
+   * ログイン後、自動で `mode=edit&doc=DOC_xxx` に遷移してフォーム表示
+   * 現時点では、直接 `edit?doc=` を開けば動作するところまで完了。
 
-### 4.5 owner.html（ログイン前オーナーページ / 最新版）
+#### C. 新規登録
 
-* **2025-11-19 修正版でスマホ表示を完全最適化済**
-* フォント
+* 将来的には
 
-  * スマホ 28px
-  * PC 18px
-* スマホ幅は 100%（max-width 禁止）
-* 左右 12px 余白
-* 自然な位置での改行を追加（sp-only 利用）
-
-正しい改行：
-
-```
-オーナーとして車両を登録・編集するには、Google アカウントでの
-ログインが必要です。
-```
+  * owner.html（オーナートップ）から「新しい車両を登録」
+  * `scriptUrl?mode=edit`（DocumentID なし）で `edit.html` を新規モードとして使用
+  * `saveCarFromForm()` を呼び出して `DOC_xxx` を採番
+* ここは **まだ実装途中**。現状は既存車両の編集が優先。
 
 ---
 
-## 5. URL 設計ルール
+## ✅ 今日やったこと（2025-11-20）
 
-```
-scriptUrl = ScriptApp.getService().getUrl();
-```
+### 1. detail.html レイアウト調整
 
-### モード別 URL
+* ギャラリー写真
 
-* 一覧：`scriptUrl`
-* 詳細：`scriptUrl?mode=detail&doc=DOC_xxx`
-* 編集：`scriptUrl?mode=edit&doc=DOC_xxx`
-* はじめての方へ：`scriptUrl?mode=howto`
-* ポリシー：`scriptUrl?mode=policy`
-* オーナーページ：`scriptUrl?mode=owner`
+  * PC／スマホ共通でサムネイルを **縦横 1/2 に縮小**。
+    メイン写真は現状サイズを維持。
+* スマホの見出し
 
-### 戻るリンクの原則
+  * メイン写真下の **年式・車両名・ハンドルネーム** のフォントを一回り拡大。
+* ラベル折り返し対策
 
-必ず「クエリなしの scriptUrl」
+  * `dt` に `white-space: nowrap;` を追加し、
+    「トランスミッション」などのラベルが途中で改行されないようにした。
+* 「駆動系・足回り」だけ幅が広くなる問題を避けるため、
+  他のセクションと同じ幅になるようにレイアウトを揃えた。
 
-```
-<a href="<?= scriptUrl ?>">← 車両一覧に戻る</a>
-```
+### 2. owner_edit_gate.html（オーナーログイン案内ページ）の確定
 
----
+* デザインを統一しつつ、スマホでも読みやすいように調整。
+* 内容：
 
-## 6. スマホ UI レギュレーション
+  * このページが **「この車両を編集する前のログイン案内ページ」** であることを明示。
+  * OwnerEmail と Google アカウントのメールアドレスが一致した場合のみ編集可能であると説明。
+  * 利用規約・プライバシーポリシーへのリンクを掲載。
+  * 「車両の詳細ページに戻る」ボタン配置。
+* 「Googleでログインして編集に進む」ボタンは **まだダミー処理**
+  （`console.log` のみ。将来ここにログイン処理をつなぐ想定）。
 
-**2025-11-19 時点の最新・確定版**
+### 3. main.gs のログイン／編集関連を整理
 
----
+* `WEB_APP_URL` / `OWNER_WEB_APP_URL` を定数化。
+* `doGet(e)` で `mode=policy/howto/owner` を振り分け、それ以外は `doGetMain_` に統一。
+* `renderDetail(docId)`：
 
-### 6.1 横幅（絶対条件）
+  * `Session.getActiveUser().getEmail()` と `OwnerEmail` の小文字比較で `isOwner` 判定。
+  * `detail.html` に `isOwner`, `scriptUrl`, `ownerAppUrl` を渡す。
+* `getCarForEdit(documentId)`：
 
-* `body { padding: 0 12px; }`
-* スマホは常に **width: 100%**
-* **スマホでは max-width を禁止**
-* max-width を使ってよいのは PC (`@media (min-width:1024px)`) のみ
-* 親コンテナに勝手に width / max-width を付けない
-* Google Sites の iframe 幅をそのまま使う
+  * `cars` シートから `DocumentID` 一致レコードを取得する専用関数に整理。
+* `renderEdit(docId)`：
 
----
+  * `initialDocId`, `initialCarData`, `scriptUrl` をテンプレートに渡す。
+  * 事前に `getCarForEdit()` で 1レコードを取得して `edit.html` 初期化に使う。
+* `renderOwnerPage_()`：
 
-### 6.2 フォント
+  * `owner.html` 用に `isLoggedIn` を渡す（メールアドレス文字列は非公開）。
 
-```
-@media (max-width:1023px){
-  html{ font-size:28px; }
-}
-@media (min-width:1024px){
-  html{ font-size:18px; }
-}
-```
+### 4. edit.html の「完全差し替え」
 
-* 子要素は rem 指定を基本とする
+* 目的：
 
----
+  * PC／スマホ共通で安定して動く編集フォーム。
+  * Firebase Auth での Google ログイン必須。
+  * サーバ側 `saveCarFromForm / updateCarFromForm` との連携。
+* 主な内容：
 
-### 6.3 スマホ専用改行（sp-only）
+  * ページ上部に「ログインカード」を配置（状態表示＋ログイン／ログアウトボタン）。
+  * `AuthEmail` hidden フィールドに **Firebase Auth のログインメール** をセット。
+  * `INITIAL_CAR_DATA` からフォームへの自動反映 (`fillFormFromRecord`)。
+  * `ModelSelectA/B`, `EngineTypeSelect` の「その他」選択時に追加入力欄表示。
+  * `handleSubmit()`：
 
-```
-<br class="sp-only">
-```
+    * `FormData` → plain object に変換。
+    * `AuthEmail` がない場合は送信せずアラート。
+    * `currentDocId` の有無で `updateCarFromForm` / `saveCarFromForm` を切り替え。
+    * `google.script.run.withSuccessHandler/withFailureHandler` で結果受信。
+    * 正常時：`detail?doc=...` に同タブで遷移。
+    * エラー時：メッセージ表示＋場合によって `index` or `detail` に戻す。
+* PC でのテスト：
 
-```
-@media (min-width:1024px){
-  .sp-only{ display:none; }
-}
-```
-
----
-
-## 7. 作業ルール（開発フローの明文化）
-
-1. 一気にコードを書かない
-2. 常に「確認 → 設計 → コード」
-3. 類推で進めない
-4. スクショを精読して変更点を正確に把握
-5. 小手先の修正ではなく「固まり単位」または「全文差し替え」
-6. スマホ表示は index.html と owner.html を基準に統一
-7. max-width を勝手に入れない（再発防止）
+  * 既存車両（DOC_1 等）の編集 → 保存 → Google Sheets 反映を確認。
 
 ---
 
-## 8. 現在の進捗（2025-11-19）
+## ⚠ 現在の問題点・次回の宿題
 
-### 完了
+1. **スマホ（iPhone Safari）で編集後「白紙のまま止まる」**
 
-* owner.html：スマホ UI 完成
-* 改行位置の調整
-* フォント修正
-* 横幅レギュレーション確立
-* デザイン FIX（スマホ・PC）
+   * 事象：
 
-### 残作業
+     * 編集フォームで送信すると、データ自体は Google Sheets に保存されるが、
+       スマホ画面が白いまま遷移しない（alert 等も見えない）。
+   * 推測：
 
-* edit.html のスマホ最適化
-* detail / index の微調整
-* policy / howto の文面調整
-* owner（ログイン後）の追加
-* Firestore ⇄ Sheets 同期の仕上げ
+     * `google.script.run` のコールバック動作とスマホ版 Apps Script UI の相性？
+     * iframe 内でのリダイレクト処理がブロックされている可能性。
+   * 次回やりたいこと：
+
+     * スマホ実機で alert が出ているかどうか確認用の簡易テスト。
+     * `window.location.href` ではなく `top.location.href` など、遷移方法を切り替えて検証。
+     * それでもダメなら、スマホ用だけ「保存完了メッセージ＋手動でリンクタップ」に変更も検討。
+
+2. **「Google ドライブ ファイルへのリクエストが集中」の警告**
+
+   * Apps Script エディタや WebApp 実行中に
+     「Google ドライブ ファイルへのリクエストが集中しています。混雑が解消されるまでお待ちください。」
+     というメッセージが頻発。
+   * 懸念：
+
+     * シートの `getDataRange()` の呼び出しが多い？
+     * デプロイ直後のテストで連続アクセスしている影響？
+   * 次回：
+
+     * シートアクセス回数の洗い出し。
+     * 可能なら `CacheService` の活用範囲を広げて負荷軽減を検討。
+
+3. **owner_edit_gate.html のログインボタンはまだダミー**
+
+   * 現状：
+
+     * ボタン押下で `console.log` だけ。実際のログイン処理は未接続。
+   * 将来：
+
+     * Firebase Auth の `signInWithRedirect` or Apps Script でのログインフローを接続し、
+       ログイン後に `mode=edit&doc=DOC_xxx` へ自動遷移させる。
+
+4. **新規登録フロー（DocumentID なしの edit.html 利用）**
+
+   * まだ設計途中。
+   * owner.html から「新規登録」ボタン → `mode=edit`（doc なし）で開き、
+     `saveCarFromForm()` を使う形で確定させる予定。
 
 ---
 
-## 必要であれば作成可能な追加資料
+## 🔧 作業ルール（AI へのお願い・再掲）
 
-* UI 仕様書（index / detail / edit / owner）
-* アーキテクチャ図（PNG / SVG）
-* GAS コーディング規約
-* ディレクトリ構成案
-* GitHub README 用テンプレート
+次チャットでも守ってほしいルール：
 
+1. **作業は一歩一歩**
+
+   * いきなり大量のコードを書かず、「方針 → 小さな変更 → テスト」の順で進める。
+2. **事実確認を優先**
+
+   * 不具合時に「こうだろう」と類推で決めない。
+     画面のスクショや実際のコードを必ず確認してから判断。
+3. **コード修正は原則「まとまり単位」**
+
+   * 1行だけの修正指示はミスが増えるため、
+     可能な限り **ファイル全体差し替え** かセクション単位で提示してほしい。
+4. **小手先での応急処置をしない**
+
+   * 目の前のバグだけ直すのではなく、
+     「このプロジェクトの目的・構造」と整合しているかを常に俯瞰して考える。
+5. **チャット履歴とスクショをよく読む**
+
+   * 既に説明した経緯や設計がある場合、そこを踏まえて回答する。
+   * スクショをアップしたときは、内容を隅々まで確認した上で回答する。
+6. **スマホ表示を特に重視**
+
+   * フォントサイズ・レイアウトなど、必ずスマホ（想定）を意識して提案する。
+
+---
+
+次のチャットでは、
+
+* 「スマホで編集実行後に白画面で止まる問題」の再現条件整理
+* 遷移方法の変更（`window.location` / `top.location` など）を小さく試す
+* 必要ならテスト用の極小フォームを作って挙動確認
+
+あたりから始める想定です。
