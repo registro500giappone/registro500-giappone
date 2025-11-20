@@ -392,8 +392,6 @@ function renderEdit(docId) {
       const record = getCarForEdit(docId);
       if (record && Object.keys(record).length > 0) {
         initialCarData = record;
-      } else {
-        Logger.log('renderEdit: getCarForEdit でレコードが見つからず: ' + docId);
       }
     } catch (err) {
       Logger.log('renderEdit: getCarForEdit エラー: ' + err);
@@ -403,9 +401,11 @@ function renderEdit(docId) {
   // テンプレート変数として渡す
   template.initialCarData = initialCarData;  // null またはレコードオブジェクト
 
+  // ★ここがポイント：viewpoint をサーバ側から付与
   return template
     .evaluate()
     .setTitle('Registro500Giappone - 編集フォーム')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
@@ -610,6 +610,11 @@ function saveCarFromForm(formData) {
 // ・AuthEmail と OwnerEmail を比較し、本人 or 管理者のみ更新許可
 // =================================================
 
+// =================================================
+// フォームから受け取ったデータで既存行を更新（編集）
+// ・AuthEmail と OwnerEmail を比較し、本人 or 管理者のみ更新許可
+// =================================================
+
 function updateCarFromForm(formData) {
 
   // --- AuthEmail / DocumentID の取得とチェック ---
@@ -631,8 +636,8 @@ function updateCarFromForm(formData) {
 
   const lastRow = sheet.getLastRow();
   const lastCol = sheet.getLastColumn();
-  if (lastRow <= 1) {
-    throw new Error('データ行がありません。');
+  if (lastRow < 2) {
+    throw new Error('データ行が存在しません。');
   }
 
   const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
@@ -678,7 +683,8 @@ function updateCarFromForm(formData) {
   }
 
   // --- 既存の行データを取得 ---
-  const currentRowValues = sheet.getRange(targetRow, 1, lastCol).getValues()[0];
+  // 1行・lastCol列を取得（DocumentID を含め既存値を正しく保持）
+  const currentRowValues = sheet.getRange(targetRow, 1, 1, lastCol).getValues()[0];
   const record = {};
   const now = new Date();
 
@@ -703,16 +709,16 @@ function updateCarFromForm(formData) {
         break;
 
       case 'createdAt':
-        // 作成日時はそのまま
+        // 既存値を維持（なければ now）
+        value = value || now;
         break;
 
       case 'updatedAt':
-        // 更新日時だけ現在時刻に更新
+        // 更新時刻を常に now で上書き
         value = now;
         break;
 
       default:
-        // フォームから値が来ていれば上書き、なければ既存値
         if (formData && Object.prototype.hasOwnProperty.call(formData, colName)) {
           value = formData[colName];
         }
@@ -722,15 +728,14 @@ function updateCarFromForm(formData) {
     record[colName] = value;
   });
 
-  // 表示用フィールドを再計算
-  buildModelDisplays(record);
-  buildEngineDisplay(record);
-
-  // シートに書き戻し
-  const newRowValues = headers.map(function (col) {
-    return record[col] !== undefined ? record[col] : '';
+  // --- 新しい行データ配列を作成 ---
+  const newRowValues = headers.map(function (colName) {
+    return Object.prototype.hasOwnProperty.call(record, colName)
+      ? record[colName]
+      : '';
   });
 
+  // --- シートに書き戻す ---
   sheet.getRange(targetRow, 1, 1, lastCol).setValues([newRowValues]);
 
   // キャッシュを軽く無効化（次回アクセスで再構築させる）
