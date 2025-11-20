@@ -98,12 +98,17 @@
       padding: 8px 10px;
       border-radius: 8px;
       border: 1px solid #d1d5db;
-      font-size: 0.9rem;
+      font-size: 16px;
     }
 
     textarea {
       min-height: 5em;
       resize: vertical;
+    }
+
+    /* こだわりポイントは大きめ */
+    #Highlights {
+      min-height: 12em;
     }
 
     .radio-group {
@@ -121,7 +126,7 @@
     }
 
     .hint {
-      font-size: 0.8rem;
+      font-size: 0.8em;   /* body 基準で 12px 前後 */
       color: #6b7280;
     }
 
@@ -134,7 +139,7 @@
     }
 
     .photo-hint {
-      font-size: 0.8rem;
+      font-size: 0.8em;   /* body 基準で 12px 前後 */
       color: #6b7280;
       margin-bottom: 4px;
     }
@@ -181,7 +186,7 @@
       margin-bottom: 4px;
     }
     .auth-help {
-      font-size: 0.8rem;
+      font-size: 0.8em;   /* body 基準 */
       color: #6b7280;
       margin-top: 4px;
     }
@@ -206,11 +211,88 @@
       border: 1px solid #d1d5db;
     }
 
+    /* 保存完了カード用 */
+    .after-save-title {
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+    .after-save-body {
+      margin-top: 0;
+      margin-bottom: 12px;
+    }
+    .after-save-links a {
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+
     @media (max-width: 480px) {
       .card { padding: 14px 12px 16px; }
       h1 { font-size: 1.2rem; }
       h2 { font-size: 0.95rem; }
       .inline-small { flex-direction: column; }
+    }
+
+    /* ===== スマホ用フォント調整（edit） ===== */
+    @media (max-width: 600px) {
+
+      body {
+        font-size: 15px;   /* ベース */
+      }
+
+      h1 {
+        font-size: 18px;   /* タイトル */
+      }
+
+      .page-lead {
+        font-size: 14px;   /* 説明文 */
+      }
+
+      h2 {
+        font-size: 16px;   /* セクション見出し */
+      }
+
+      label {
+        font-size: 14px;   /* 項目ラベル */
+      }
+
+      .auth-status {
+        font-size: 14px;
+      }
+
+      .auth-help {
+        font-size: 12px;
+      }
+
+      .hint {
+        font-size: 12px;
+      }
+
+      #Highlights {
+        min-height: 14em;  /* こだわりポイント入力欄をさらに大きく */
+      }
+
+      .after-save-title {
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .after-save-body {
+        font-size: 14px;
+      }
+
+      .after-save-links a {
+        font-size: 15px;
+        font-weight: 600;
+        text-decoration: underline;
+      }
+
+      /* 入力欄は16px固定（ズーム防止） */
+      input[type="text"],
+      input[type="number"],
+      textarea,
+      select {
+        font-size: 16px;
+      }
     }
   </style>
 </head>
@@ -764,15 +846,31 @@
           const docId = result.DocumentID || currentDocId || '';
           if (!docId) {
             alert('保存は完了しましたが、DocumentID が取得できませんでした。');
-            window.location.href = scriptUrlFromServer + '?mode=index';
             return;
           }
 
           const detailUrl = scriptUrlFromServer
             + '?mode=detail&doc=' + encodeURIComponent(docId);
+          const indexUrl = scriptUrlFromServer + '?mode=index';
 
-          alert('保存しました。詳細画面に移動します。');
-          window.location.href = detailUrl;
+          // スマホでの白画面回避のため、自動遷移は行わず
+          // このカード内のメッセージとリンクで戻ってもらう
+          try {
+            if (formCard) {
+              formCard.innerHTML =
+                '<div class="after-save">'
+                +   '<h2 class="after-save-title">保存が完了しました</h2>'
+                +   '<p class="after-save-body">内容はシートに反映されました。</p>'
+                +   '<p class="after-save-links"><a href="' + detailUrl + '">この車両の詳細ページに戻る</a></p>'
+                +   '<p class="after-save-links"><a href="' + indexUrl + '">車両一覧に戻る</a></p>'
+                + '</div>';
+            } else {
+              alert('保存が完了しました。\n詳細ページや一覧ページに戻って内容を確認してください。');
+            }
+          } catch (e) {
+            console.error('after-save UI error', e);
+            alert('保存は完了しました。\n詳細ページや一覧ページに戻って内容を確認してください。');
+          }
         })
         .withFailureHandler(function (err) {
           console.error('save/update error', err);
