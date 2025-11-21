@@ -1,9 +1,14 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+  <base target="_top">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Registro500 Giappone – オーナーページ</title>
+
+  <!-- Firebase SDK（Auth 用・compat 版） -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 
   <style>
     :root {
@@ -13,23 +18,18 @@
       --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.10);
       --text-main: #111827;
       --text-sub: #6b7280;
-
-      --accent: #0f5ea8;
+      --accent: #2856a8;
       --accent-soft: #e6efff;
-      --accent-border: #c2d4ff;
-
-      --radius-lg: 18px;
     }
 
     * {
       box-sizing: border-box;
     }
 
-    /* ベース文字サイズ（スマホ > PC） */
     html {
       font-size: 28px;
     }
-    @media (min-width: 1024px) {
+    @media (min-width: 1200px) {
       html {
         font-size: 18px;
       }
@@ -37,174 +37,237 @@
 
     body {
       margin: 0;
-      padding: 18px 12px 26px; /* 画面端〜カード外枠までの余白 */
+      padding: 16px 12px 20px;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background-color: var(--bg-main);
+      background: radial-gradient(circle at top, #e5edff 0, #f4f4f5 42%, #f4f4f5 100%);
       color: var(--text-main);
-      font-size: 1rem;
-      line-height: 1.6;
+      min-height: 100vh;
+      display: block;
     }
 
-    /* 共通：縦中央寄せ */
-    .page {
-      max-width: 1200px;
-      margin: 0 auto;
-      min-height: calc(100vh - 36px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* ベースは幅100%。スマホ側では max-width なし */
-    .owner-card {
-      width: 100%;
-      margin: 0;
-      background-color: var(--card-bg);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-soft);
-      padding: 22px 20px 26px;
-    }
-
-    /* PC のときだけ横幅を絞る */
-    @media (min-width: 1024px) {
-      .owner-card {
-        max-width: 720px;
-        margin: 0 auto;
-        padding: 22px 26px 28px;
+    @media (min-width: 1200px) {
+      body {
+        padding: 32px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
     }
 
-    .owner-title {
-      font-size: 1.2rem;
-      font-weight: 700;
-      margin: 0 0 6px;
+    .owner-wrapper {
+      width: 100%;
+      margin: 0;
+    }
+    @media (min-width: 1200px) {
+      .owner-wrapper {
+        max-width: 520px;
+        margin: 0 auto;
+      }
+    }
+
+    .owner-card {
+      background: var(--card-bg);
+      border-radius: 18px;
+      box-shadow: var(--shadow-soft);
+      padding: 20px 16px 22px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+    }
+    @media (min-width: 768px) {
+      .owner-card {
+        padding: 24px 22px 26px;
+      }
+    }
+
+    .owner-header {
       text-align: center;
-      letter-spacing: 0.04em;
+      margin-bottom: 10px;
+    }
+
+    .owner-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: var(--accent-soft);
       color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    .owner-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin: 0 0 8px;
+      letter-spacing: 0.02em;
+      color: var(--text-main);
     }
 
     .owner-subtitle {
       font-size: 0.9rem;
-      margin: 0 0 18px;
-      text-align: center;
+      margin: 0;
       color: var(--text-sub);
+      line-height: 1.7;
     }
 
-    .owner-section p {
-      margin: 0 0 8px;
-      font-size: 0.95rem;
-      line-height: 1.6;
+    .owner-section {
+      padding-top: 16px;
+      border-top: 1px solid rgba(148, 163, 184, 0.35);
+      margin-top: 14px;
     }
 
-    .owner-section ul {
-      margin: 6px 0 10px 1.2em;
-      padding: 0;
+    .owner-section-title {
       font-size: 0.9rem;
+      font-weight: 600;
+      margin: 0 0 6px;
+      color: var(--text-main);
     }
 
-    .owner-section li {
-      margin-bottom: 4px;
+    .owner-note {
+      font-size: 0.86rem;
+      color: var(--text-sub);
+      line-height: 1.7;
+      margin: 0 0 4px;
+    }
+
+    .owner-note-strong {
+      font-weight: 600;
+      color: var(--text-main);
     }
 
     .owner-links {
-      font-size: 0.9rem;
-      margin: 10px 0 14px;
-      color: var(--text-sub);
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.86rem;
     }
 
     .owner-links a {
       color: var(--accent);
+      text-decoration: none;
+    }
+
+    .owner-links a:hover {
       text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .owner-small {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      margin-top: 8px;
+      line-height: 1.6;
     }
 
     .owner-actions {
       margin-top: 20px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(148, 163, 184, 0.35);
       display: flex;
       flex-direction: column;
-      gap: 20px; /* ボタン間隔を広げた */
+      gap: 12px;
     }
 
     .btn-primary,
     .btn-secondary {
-      display: block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       width: 100%;
       border-radius: 999px;
-      border: 1px solid transparent;
-      padding: 10px 14px;
-      font-size: 0.95rem;
-      text-align: center;
+      padding: 12px 18px;
+      font-size: 1rem;
+      font-weight: 600;
       text-decoration: none;
-      box-sizing: border-box;
       cursor: pointer;
-      transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.1s ease;
+      border: 1px solid transparent;
+      transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+      touch-action: manipulation;
     }
 
     .btn-primary {
       background: var(--accent);
-      color: #ffffff;
-      border-color: var(--accent-border);
-      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.16);
-      font-weight: 600;
+      color: #fff;
+      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.35);
     }
-
-    .btn-primary:hover {
-      background-color: #0b4377;
-      box-shadow: 0 4px 8px rgba(15, 23, 42, 0.25);
-      transform: translateY(-1px);
+    .btn-primary:active {
+      transform: translateY(1px);
+      box-shadow: 0 6px 14px rgba(37, 99, 235, 0.3);
     }
 
     .btn-secondary {
       background: #ffffff;
+      color: var(--text-main);
       border-color: var(--border-soft);
-      color: #111827;
+    }
+    .btn-secondary:active {
+      transform: translateY(1px);
     }
 
-    .btn-secondary:hover {
-      background-color: var(--accent-soft);
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.16);
-      transform: translateY(-1px);
+    .btn-secondary span {
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      font-weight: 500;
     }
 
-    /* スマホ用の強制改行 */
-    .sp-only {
-      display: none;
-    }
-
-    /* ★ Apps Script のスマホ表示は iframe 幅が広いので 1200px でスイッチ */
     @media (max-width: 1200px) {
-      .page {
-        align-items: center;
-        justify-content: center;
+      .owner-card {
+        min-height: 70vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 32px 20px 28px;
       }
 
-      /* 左右に 1文字分弱の余白を追加して、カードを大きく見せる */
-      .owner-card {
-        padding: 48px 26px 56px;
+      .owner-label {
+        font-size: 0.9rem;
+        padding: 4px 14px;
+        margin-bottom: 14px;
       }
 
       .owner-title {
         font-size: 1.8rem;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
       }
 
       .owner-subtitle {
-        font-size: 1.3rem;
-        margin-bottom: 26px;
-      }
-
-      .owner-section p {
         font-size: 1.2rem;
-        line-height: 1.95;
-        margin-bottom: 12px;
+        line-height: 1.9;
       }
 
-      .owner-section ul {
+      .owner-section {
+        padding-top: 18px;
+        margin-top: 18px;
+      }
+
+      .owner-section-title {
         font-size: 1.1rem;
+        margin-bottom: 10px;
+      }
+
+      .owner-note {
+        font-size: 1.1rem;
+        line-height: 2.0;
+        margin-bottom: 4px;
       }
 
       .owner-links {
-        font-size: 1.15rem;
-        margin: 16px 0 22px;
+        font-size: 1.05rem;
+        gap: 6px;
+      }
+
+      .owner-small {
+        font-size: 0.95rem;
+        line-height: 1.8;
+        margin-top: 10px;
+      }
+
+      .owner-actions {
+        margin-top: 26px;
+        padding-top: 16px;
+        gap: 14px;
       }
 
       .btn-primary,
@@ -212,61 +275,124 @@
         font-size: 1.15rem;
         padding: 14px 18px;
       }
-
-      /* スマホ相当の時だけ <br class="sp-only"> を有効にする */
-      .sp-only {
-        display: inline;
-      }
     }
   </style>
 </head>
 <body>
-  <div class="page">
+  <div class="owner-wrapper">
     <article class="owner-card">
-      <h1 class="owner-title">オーナーの方へ</h1>
-
-      <!-- サブタイトル：スマホでは「…ご自身の車両を」で改行 -->
-      <p class="owner-subtitle">
-        Registro500 Giappone にご自身の車両を<br class="sp-only">
-        登録・管理するための入口です。
-      </p>
+      <header class="owner-header">
+        <p class="owner-label">オーナー向け</p>
+        <h1 class="owner-title">オーナーページ</h1>
+        <p class="owner-subtitle">
+          ご自身の車両の登録・編集はこちらから。
+        </p>
+      </header>
 
       <section class="owner-section">
-        <!-- 説明文：強制改行を削除し、自動改行に任せる -->
-        <p class="owner-section-text">
-          オーナーとして車両を登録・編集するには、Google アカウントでのログインが必要です。
+        <h2 class="owner-section-title">ご利用前に</h2>
+        <p class="owner-note">
+          このサービスは、登録されたクラシック FIAT 500 の情報を
+          一般公開するオンラインガレージです。
+        </p>
+        <p class="owner-note">
+          登録・編集の前に、必ず次の内容をご確認ください。
         </p>
 
         <div class="owner-links">
-          <p>
-            ログイン前に必ず
-            <a href="<?= scriptUrl ?>?mode=policy#terms" target="_blank" rel="noopener">
-              利用規約 / プライバシーポリシー
-            </a>
-            をご確認ください。
-          </p>
-          <p>
-            「Googleでログインする」ボタンを押すことで、
-            リンク先の内容に同意したものとみなします。
-          </p>
+          <a href="<?= scriptUrl ?>?mode=policy" target="_blank" rel="noopener">
+            ・利用規約・プライバシーポリシーを読む
+          </a>
+          <a href="<?= scriptUrl ?>?mode=howto" target="_blank" rel="noopener">
+            ・はじめての方へ（登録の流れ）
+          </a>
         </div>
 
-        <p>
-          ブラウザで Google にログイン済みのアカウントがある場合、
-          そのアカウントがこのサイトの登録・編集に利用されます。
+        <p class="owner-small" id="rgOwnerStatus">
+          まだログインしていません。Google アカウントでログインしてから、
+          車両の登録・編集に進みます。
         </p>
       </section>
 
       <div class="owner-actions">
-        <a class="btn-primary" href="<?= scriptUrl ?>?mode=owner">
-          Googleでログインする
-        </a>
+        <!-- メイン：ログイン or 新規登録へ進む -->
+        <button
+          type="button"
+          class="btn-primary"
+          id="rgOwnerPrimaryBtn"
+          onclick="rgOwnerPrimaryAction()">
+          Googleでログインして進む
+        </button>
 
         <a class="btn-secondary" href="<?= scriptUrl ?>">
-          車両一覧に戻る
+          <span>車両一覧に戻る</span>
         </a>
       </div>
     </article>
   </div>
+
+  <script>
+    // ★重要：edit.html / editGate と同じ firebaseConfig をここに貼ってください
+const firebaseConfig = {
+  apiKey: "AIzaSyCNCNsu61S3DIQ2pcmK2Ic_vqCINlZB9nk",
+  authDomain: "registro500giappone-93f98.firebaseapp.com",
+  projectId: "registro500giappone-93f98",
+  storageBucket: "registro500giappone-93f98.firebasestorage.app",
+  messagingSenderId: "723005462978",
+  appId: "1:723005462978:web:e967a16a278f54b278de5b",
+  measurementId: "G-ZRBFX1V51B"
+};
+
+    let auth = null;
+
+    function rgInitFirebaseOwner() {
+      if (typeof firebase === 'undefined') {
+        console.warn('Firebase SDK が読み込まれていません。');
+        return;
+      }
+      if (firebase.apps.length === 0) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      auth = firebase.auth();
+
+      const statusEl = document.getElementById('rgOwnerStatus');
+      const primaryBtn = document.getElementById('rgOwnerPrimaryBtn');
+
+      auth.onAuthStateChanged(function(user) {
+        if (!statusEl || !primaryBtn) return;
+
+        if (user) {
+          const email = user.email || '';
+          statusEl.textContent =
+            'Google アカウント ' + email + ' でログイン中です。このまま車両の登録・編集に進めます。';
+          primaryBtn.textContent = '新しく登録を始める';
+        } else {
+          statusEl.textContent =
+            'まだログインしていません。Google アカウントでログインしてから、車両の登録・編集に進みます。';
+          primaryBtn.textContent = 'Googleでログインして進む';
+        }
+      });
+    }
+
+    // ページ読み込み完了後に初期化
+    window.addEventListener('load', rgInitFirebaseOwner);
+
+    function rgOwnerPrimaryAction() {
+      if (!auth) {
+        console.warn('Firebase Auth がまだ初期化されていません。');
+        return;
+      }
+      const user = auth.currentUser;
+      if (user) {
+        // ログイン済み → 新規登録へ
+        const newEditUrl = "<?= scriptUrl ?>?mode=edit";
+        window.location.href = newEditUrl;
+      } else {
+        // 未ログイン → Googleでログイン
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithRedirect(provider);
+      }
+    }
+  </script>
 </body>
 </html>
