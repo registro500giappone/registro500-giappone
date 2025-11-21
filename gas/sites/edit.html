@@ -5,10 +5,6 @@
   <title>Registro500 Giappone - 編集フォーム</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Firebase SDK（Auth 用・compat 版） -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-
   <style>
     :root {
       --bg-main: #f4f4f7;
@@ -98,17 +94,12 @@
       padding: 8px 10px;
       border-radius: 8px;
       border: 1px solid #d1d5db;
-      font-size: 16px;
+      font-size: 0.9rem;
     }
 
     textarea {
       min-height: 5em;
       resize: vertical;
-    }
-
-    /* こだわりポイントは大きめ */
-    #Highlights {
-      min-height: 12em;
     }
 
     .radio-group {
@@ -126,7 +117,7 @@
     }
 
     .hint {
-      font-size: 0.8em;   /* body 基準で 12px 前後 */
+      font-size: 0.8rem;
       color: #6b7280;
     }
 
@@ -139,7 +130,7 @@
     }
 
     .photo-hint {
-      font-size: 0.8em;   /* body 基準で 12px 前後 */
+      font-size: 0.8rem;
       color: #6b7280;
       margin-bottom: 4px;
     }
@@ -179,50 +170,10 @@
       font-size: 0.9rem;
       margin: 4px 0 8px;
     }
-    .auth-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 4px;
-    }
     .auth-help {
-      font-size: 0.8em;   /* body 基準 */
+      font-size: 0.8rem;
       color: #6b7280;
       margin-top: 4px;
-    }
-
-    .btn-login {
-      background: var(--accent);
-      color: #ffffff;
-      font-weight: 600;
-      border-radius: 999px;
-      padding: 8px 16px;
-      border: 1px solid var(--accent-border);
-      box-shadow: 0 4px 10px rgba(40, 86, 168, 0.3);
-    }
-    .btn-login:hover:not(:disabled) {
-      background: #183763;
-    }
-    .btn-logout {
-      background: #e5e7eb;
-      color: #111827;
-      border-radius: 999px;
-      padding: 8px 16px;
-      border: 1px solid #d1d5db;
-    }
-
-    /* 保存完了カード用 */
-    .after-save-title {
-      margin-top: 0;
-      margin-bottom: 8px;
-    }
-    .after-save-body {
-      margin-top: 0;
-      margin-bottom: 12px;
-    }
-    .after-save-links a {
-      display: inline-block;
-      margin-bottom: 6px;
     }
 
     @media (max-width: 480px) {
@@ -232,66 +183,15 @@
       .inline-small { flex-direction: column; }
     }
 
-    /* ===== スマホ用フォント調整（edit） ===== */
-    @media (max-width: 600px) {
+    /* スマホで画面下のバーに保存ボタンが隠れないように、下側に余白を追加 */
+    body {
+      padding-bottom: 96px;
+    }
 
+    @media (min-width: 768px) {
+      /* PC では少しだけ余白を減らす */
       body {
-        font-size: 15px;   /* ベース */
-      }
-
-      h1 {
-        font-size: 18px;   /* タイトル */
-      }
-
-      .page-lead {
-        font-size: 14px;   /* 説明文 */
-      }
-
-      h2 {
-        font-size: 16px;   /* セクション見出し */
-      }
-
-      label {
-        font-size: 14px;   /* 項目ラベル */
-      }
-
-      .auth-status {
-        font-size: 14px;
-      }
-
-      .auth-help {
-        font-size: 12px;
-      }
-
-      .hint {
-        font-size: 12px;
-      }
-
-      #Highlights {
-        min-height: 14em;  /* こだわりポイント入力欄をさらに大きく */
-      }
-
-      .after-save-title {
-        font-size: 16px;
-        font-weight: 700;
-      }
-
-      .after-save-body {
-        font-size: 14px;
-      }
-
-      .after-save-links a {
-        font-size: 15px;
-        font-weight: 600;
-        text-decoration: underline;
-      }
-
-      /* 入力欄は16px固定（ズーム防止） */
-      input[type="text"],
-      input[type="number"],
-      textarea,
-      select {
-        font-size: 16px;
+        padding-bottom: 48px;
       }
     }
   </style>
@@ -300,22 +200,17 @@
 <body>
   <div class="page">
 
-    <!-- ログインカード -->
+    <!-- 説明カード（ログインボタンなし） -->
     <section class="card">
       <h1>Registro500 Giappone　編集フォーム</h1>
       <p class="page-lead">
-        日本の FIAT 500 オーナー向け・登録／編集専用のフォームです。
+        日本の FIAT 500 オーナー向け・登録／編集専用のフォームです。<br>
+        Google アカウントでログイン済みのオーナーのみが利用できます。
       </p>
-
       <div class="auth-box">
-        <div class="auth-box-header">ログイン</div>
-        <p id="authStatus" class="auth-status">ログインしていません</p>
-        <div class="auth-actions">
-          <button type="button" id="loginButton" class="btn-login">Googleでログイン</button>
-          <button type="button" id="logoutButton" class="btn-logout" style="display:none;">ログアウト</button>
-        </div>
         <p class="auth-help">
-          ※ 新規登録・編集には Google ログインが必要になります（現在はテスト実装中）。
+          ※ ブラウザのログイン状態に応じて、必要に応じて Google が自動的にログイン画面を表示します。<br>
+          ※ ログインしていない場合や権限がない場合は、サーバ側（Apps Script）が編集を拒否します。
         </p>
       </div>
     </section>
@@ -323,7 +218,6 @@
     <!-- 編集フォームカード -->
     <section class="card" id="formCard">
       <form id="carForm" onsubmit="handleSubmit(event)">
-        <input type="hidden" id="AuthEmail" name="AuthEmail">
         <input type="hidden" id="DocumentID" name="DocumentID">
 
         <!-- 1. 基本情報 -->
@@ -625,30 +519,9 @@
     const INITIAL_CAR_DATA = <?!= JSON.stringify(initialCarData || {}) ?>;
     const scriptUrlFromServer = '<?= scriptUrl ?>';
 
-    // Firebase 初期化
-    const firebaseConfig = {
-      apiKey: "AIzaSyCNCNsu61S3DIQ2pcmK2Ic_vqCINlZB9nk",
-      authDomain: "registro500giappone-93f98.firebaseapp.com",
-      projectId: "registro500giappone-93f98",
-      storageBucket: "registro500giappone-93f98.firebasestorage.app",
-      messagingSenderId: "723005462978",
-      appId: "1:723005462978:web:e967a16a278f54b278de5b",
-      measurementId: "G-ZRBFX1V51B"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-
-    const authStatusEl   = document.getElementById('authStatus');
-    const loginBtn       = document.getElementById('loginButton');
-    const logoutBtn      = document.getElementById('logoutButton');
-    const authEmailInput = document.getElementById('AuthEmail');
-    const docIdInput     = document.getElementById('DocumentID');
-    const form           = document.getElementById('carForm');
-    const formCard       = document.getElementById('formCard');
-    const submitBtn      = document.getElementById('submitButton');
-
-    // 初期状態：フォーム非表示
-    if (formCard) formCard.style.display = 'none';
+    const docIdInput = document.getElementById('DocumentID');
+    const form       = document.getElementById('carForm');
+    const submitBtn  = document.getElementById('submitButton');
 
     // DocumentID 初期値
     let currentDocId = INITIAL_DOC_ID || '';
@@ -673,66 +546,59 @@
       }
     }
 
-    // ログイン状態監視
-    auth.onAuthStateChanged(function (user) {
-      if (!user) {
-        authStatusEl.textContent = 'ログインしていません';
-        loginBtn.style.display   = 'inline-block';
-        logoutBtn.style.display  = 'none';
-        authEmailInput.value     = '';
-        if (formCard) formCard.style.display = 'none';
-        return;
+    // 保存完了画面を表示する（自動リダイレクトしない）
+    function showSaveResult(result) {
+      // 現在の DocumentID を基準にする
+      let docId = (typeof currentDocId !== 'undefined' && currentDocId) ? currentDocId : '';
+
+      // サーバーから返ってきた情報を優先
+      if (result) {
+        if (result.DocumentID) {
+          docId = result.DocumentID;
+        } else if (result.documentId) {
+          docId = result.documentId;
+        }
       }
 
-      const email = user.email || '';
-      authStatusEl.textContent = 'ログイン中：' + email;
-      loginBtn.style.display   = 'none';
-      logoutBtn.style.display  = 'inline-block';
-      authEmailInput.value     = email;
+      // 遷移先URL
+      const detailUrl = docId
+        ? scriptUrlFromServer + '?mode=detail&doc=' + encodeURIComponent(docId)
+        : scriptUrlFromServer + '?mode=index';
 
-      const ownerEmail = (INITIAL_CAR_DATA && INITIAL_CAR_DATA.OwnerEmail)
-        ? String(INITIAL_CAR_DATA.OwnerEmail).trim().toLowerCase()
-        : '';
-      const userEmail = String(email).trim().toLowerCase();
+      const indexUrl = scriptUrlFromServer + '?mode=index';
 
-      // 新規登録なら誰でも OK
-      if (!currentDocId) {
-        if (formCard) formCard.style.display = 'block';
-        return;
-      }
+      // 画面全体を「保存完了カード」で置き換え
+      document.body.innerHTML = `
+        <main style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f4f4f7;font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;">
+          <div style="max-width:480px;width:100%;background:#ffffff;border-radius:16px;padding:24px 20px;box-shadow:0 12px 30px rgba(15,23,42,0.18);text-align:center;">
+            <h1 style="font-size:1.2rem;margin-bottom:0.75rem;">保存が完了しました</h1>
+            <p style="font-size:0.9rem;margin:0.25rem 0 0.75rem;">
+              ${
+                docId
+                  ? 'DocumentID <code style="font-family:monospace;">' + docId + '</code> の車両情報が保存されました。'
+                  : '車両情報が保存されました。'
+              }
+            </p>
+            <p style="font-size:0.8rem;color:#6b7280;margin-bottom:1.25rem;">
+              次の操作を選んでください。
+            </p>
 
-      // 既存編集は OwnerEmail 一致のみ許可
-      if (ownerEmail && ownerEmail === userEmail) {
-        if (formCard) formCard.style.display = 'block';
-      } else {
-        alert('この車両を編集できるのは、登録したオーナー本人のみです。');
-        window.location.href = scriptUrlFromServer + '?mode=index';
-      }
-    });
+            <a href="${detailUrl}"
+               style="display:block;width:100%;margin:0 auto 8px auto;padding:10px 14px;border-radius:999px;background:#1f2937;color:#ffffff;text-decoration:none;font-size:0.95rem;">
+              この車両の詳細ページに戻る
+            </a>
 
-    // Google ログイン
-    loginBtn.addEventListener("click", () => {
-      const provider = new firebase.auth.GoogleAuthProvider();
+            <a href="${indexUrl}"
+               style="display:block;width:100%;margin:0 auto;padding:10px 14px;border-radius:999px;border:1px solid #cbd5e1;background:#ffffff;color:#111827;text-decoration:none;font-size:0.9rem;">
+              車両一覧にもどる
+            </a>
+          </div>
+        </main>
+      `;
 
-      loginBtn.disabled = true;
-      const originalLabel = loginBtn.textContent;
-      loginBtn.textContent = "ログイン処理中…";
-
-      auth.signInWithPopup(provider)
-        .catch(err => {
-          alert("ログインに失敗しました: " + err.message);
-          loginBtn.disabled = false;
-          loginBtn.textContent = originalLabel;
-        });
-    });
-
-    // ログアウト
-    logoutBtn.addEventListener('click', function () {
-      auth.signOut().catch(function (err) {
-        console.error('signOut error', err);
-        alert('ログアウトに失敗しました：\n' + err.message);
-      });
-    });
+      // 完了カードが画面の途中にならないよう、一番上までスクロール
+      window.scrollTo(0, 0);
+    }
 
     // 1行分のレコードをフォームに流し込む
     function fillFormFromRecord(record) {
@@ -823,13 +689,6 @@
         }
       });
 
-      const authEmail = formData.AuthEmail || '';
-      if (!authEmail) {
-        setSubmitting(false);
-        alert('送信前に「Googleでログイン」を押してログインしてください。');
-        return false;
-      }
-
       const isEdit   = !!currentDocId;
       const serverFn = isEdit ? 'updateCarFromForm' : 'saveCarFromForm';
 
@@ -840,37 +699,13 @@
 
           if (!result || !result.ok) {
             alert('保存処理は完了しましたが、結果の取得に失敗しました。');
+            // 自動遷移は行わず、完了画面＋リンクを表示
+            showSaveResult(null);
             return;
           }
 
-          const docId = result.DocumentID || currentDocId || '';
-          if (!docId) {
-            alert('保存は完了しましたが、DocumentID が取得できませんでした。');
-            return;
-          }
-
-          const detailUrl = scriptUrlFromServer
-            + '?mode=detail&doc=' + encodeURIComponent(docId);
-          const indexUrl = scriptUrlFromServer + '?mode=index';
-
-          // スマホでの白画面回避のため、自動遷移は行わず
-          // このカード内のメッセージとリンクで戻ってもらう
-          try {
-            if (formCard) {
-              formCard.innerHTML =
-                '<div class="after-save">'
-                +   '<h2 class="after-save-title">保存が完了しました</h2>'
-                +   '<p class="after-save-body">内容はシートに反映されました。</p>'
-                +   '<p class="after-save-links"><a href="' + detailUrl + '">この車両の詳細ページに戻る</a></p>'
-                +   '<p class="after-save-links"><a href="' + indexUrl + '">車両一覧に戻る</a></p>'
-                + '</div>';
-            } else {
-              alert('保存が完了しました。\n詳細ページや一覧ページに戻って内容を確認してください。');
-            }
-          } catch (e) {
-            console.error('after-save UI error', e);
-            alert('保存は完了しました。\n詳細ページや一覧ページに戻って内容を確認してください。');
-          }
+          // 自動遷移せず、完了画面＋リンクを表示
+          showSaveResult(result);
         })
         .withFailureHandler(function (err) {
           console.error('save/update error', err);
