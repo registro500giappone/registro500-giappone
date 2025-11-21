@@ -25,10 +25,10 @@ Registro500 Giappone は、
 
 ### 公開側（誰でも閲覧）
 
-| 機能     | URL                                 |
-|----------|-------------------------------------|
-| 車両一覧 | `/exec`                            |
-| 車両詳細 | `/exec?mode=detail&doc=DOC_xxx`    |
+| 機能     | URL                              |
+|----------|----------------------------------|
+| 車両一覧 | `/exec`                          |
+| 車両詳細 | `/exec?mode=detail&doc=DOC_xxx` |
 
 - Google Sites に `/exec?...` を iframe 埋め込みして公開。
 - `XFrameOptionsMode.ALLOWALL` で iframe 埋め込み許可済み。
@@ -52,25 +52,31 @@ Registro500 Giappone は、
   - 認証・オーナー判定ロジックは **Firebase Auth + OwnerEmail** に一本化し、
     ActiveUser 依存は段階的に縮小する方針。
 
+### サイト公開（全体の流れ）
+
+1. Web アプリ（/exec）を「自分として実行」「アクセスできるユーザー：全員」でデプロイ。
+2. その URL を Google Sites に iframe として埋め込む。
+3. 一般閲覧者はログイン不要で index/detail を閲覧。
+4. 編集は editGate → edit.html → Firebase Auth → Sheets 書き込みの流れで実行。
+
 ---
 
 ## 🗂 データ構成（2025-11-21 時点の事実ベース）
 
 ### 1. Google Sheets：`cars`（**唯一のマスターデータ**）
 
-列構成（主要カラム）：
+主要カラム：
 
 - `_id`：`row_002`〜`row_010` など  
   - Firestore や Softr 時代の内部ID。  
-  - Firestore のドキュメントIDにも使用されている（`row_00X`）。
+  - Firestore のドキュメントIDにも使用（`row_00X`）。
 - `DocumentID`：`DOC_1`〜`DOC_12` など  
   - アプリ内での **主キー**。  
   - URL パラメータ `doc` として利用（例：`?doc=DOC_3`）。
 - `OwnerEmail`：オーナーのメールアドレス  
   - Firebase Auth のログインメールと照合する前提の列。
 - `HandleName`：ハンドルネーム
-- `Model_DisplayA`, `Model_DisplayB`, `Model_DisplayC`：  
-  表示用に加工されたモデル名。
+- `Model_DisplayA`, `Model_DisplayB`, `Model_DisplayC`：表示用に加工されたモデル名。
 - `Year`, `BodyColor`, `Capacity` などスペック系
 - 画像 URL 系：
   - `PhotoMain`, `PhotoFront`, `PhotoSide`, `PhotoRear`,  
@@ -97,26 +103,24 @@ Registro500 Giappone は、
 > - `sync_firestore.gs` は「Firestore → Sheets の片方向同期スクリプト（復旧用・特殊用途）」として保持し、  
 >   日常運用では常用しない。
 
-今後検討：
+将来案：
 
 - Sheets → Firestore の定期ミラー（GAS バッチ）を追加し、
   Firestore 側を読み取り用のサブデータとして更新していく。
 
 ### 3. Firebase Storage（画像）
 
-- 現状の主な保存パス例：
+- 主な保存パス例：
   - `cars/row_002/PhotoMain.jpg`
   - `cars/row_002/PhotoRear.jpg`
-- Sheets の `PhotoMain` などの列には **storage のダウンロードURL** が保存される。
-- 表示側（index / detail）は、あくまで **URL ベースで画像表示**しているため、  
-  物理パス（`row_00X` か `DOC_xxx` か）は直接は参照しない。
+- Sheets の `PhotoMain` などの列には **Storage のダウンロードURL** が保存される。
+- 表示側（index / detail）は、あくまで **URL ベースで画像表示**。
 
-> 将来のアイデア（現時点では“案”であり、まだ採用していない）：  
+> 将来のアイデア（現時点では“案”）：  
 > - `cars/DOC_001/PhotoMain/...` のように DocumentID ベースの階層に統一すると、  
 >   データ移行や Firestore 連携がわかりやすくなる。  
-> - ただし現在は `row_00X` ベースで問題なく動いているため、  
->   **当面は既存パスをそのまま使い続ける。**  
-> - 新規設計・移行が必要になったタイミングで改めて検討する。
+> - 現在は `row_00X` ベースで問題なく動いているため、  
+>   **当面は既存パスを継続利用する。**
 
 ---
 
@@ -127,10 +131,10 @@ Apps Script WebApp 特有の強いキャッシュにより、
 
 **確認手順（確実性が高い順）**
 
-1. **既存タブを閉じる → 新しいタブで URL を開き直す**
-2. `?v=xxx` を付けても効かない場合がある（過信しない）
-3. 反映まで数秒〜数分遅れることがある
-4. PC／スマホ両方で確認する（特に iPhone Safari）
+1. **既存タブを閉じる → 新しいタブで URL を開き直す。**
+2. `?v=xxx` を付けても効かない場合がある（過信しない）。
+3. 反映まで数秒〜数分遅れることがある。
+4. PC／スマホ両方で確認する（特に iPhone Safari）。
 
 ---
 
@@ -161,151 +165,158 @@ Apps Script WebApp 特有の強いキャッシュにより、
      まず「シートのスクショ／CSV／コード全文を見せてください」と依頼する。  
    - それでも情報が無い場合に限り、  
      「◯◯ という前提で仮に進めます」と明示した上で類推する。
-8. **最新の状態（前チャット・GitHub）を踏まえて判断する**  
+8. **最新の状態（前チャット・GitHub・デプロイ）を踏まえて判断する**  
    - 古い方針やコード片を参照し続けない。  
    - 直近の README / GitHub / デプロイ状態を常に優先する。
+9. **過去に似た不具合がある場合は、過去の“痕跡”（古いURL・古いデプロイ）を優先して洗い出す**。
+
+---
+
+## 🌐 URL・デプロイ関連ルール（重要）
+
+10. **WebApp URL は 1 箇所で管理（`WEB_APP_URL` / `OWNER_WEB_APP_URL`）**  
+    - HTML 内に生の `https://script.google.com/...` を直書きしない。
+11. **HTML のリンクは必ずテンプレート変数経由で記述**  
+    - 例：  
+      `href="<?= scriptUrl ?>"`  
+      `href="<?= scriptUrl ?>?mode=detail&doc=<?= documentId ?>"`  
+      `href="<?= ownerAppUrl ?>?mode=edit&doc=<?= documentId ?>"` など。
+12. **URLまわりの不具合は、推測で修正せず、まず“URL全棚卸し”を行う**  
+    - main.gs の `WEB_APP_URL` / `OWNER_WEB_APP_URL`  
+    - 各 HTML テンプレ内の `scriptUrl` / `ownerAppUrl`  
+    - ハードコードされた URL が紛れていないか確認する。
+13. **Webアプリのデプロイ時は毎回、次を確認する**  
+    - 実行するユーザー：**自分**  
+    - アクセスできるユーザー：**全員**
+14. **白画面などが出た場合、まず返ってきた HTML（view-source）を確認する**  
+    - Apps Script システムメッセージか、テンプレ側の不備かを切り分ける。
+15. **URLを変更した場合、README の該当箇所も同時に更新する**  
+    - READMEと実際の構成が乖離しないようにする。
+
+---
+
+## 📱 スマホ最優先 UI ルール（固定）
+
+16. **スマホでは横幅 100%。白い箱（狭い枠）を作らない**  
+    - Sites の iframe の内側であっても、body / wrapper は `width:100%` を基本とする。
+17. **重要テキストは大きめ、補足テキストは小さめでメリハリを付ける**
+18. **ボタンは大きめ＆余白広めで、押し間違えを避ける**
+19. **PC の見え方は壊さないが、優先順位は常に“スマホ > PC”**
+20. **CSS 変更の確認は「タブを閉じる → 新タブで開く」で行う**  
+    - `?v=xxx` だけに頼らない。
 
 ---
 
 ## ⚠ 補足①｜認証方式の最終方針（edit.html に一本化）
 
-### 現状（2025-11-21 時点）
+### 現状
 
-- 認証の本体は **edit.html** に置く方針で設計されている。
+- 認証の本体は **edit.html** に置く方針で設計・実装済み。
 - edit.html では：
   - Firebase SDK（`firebase-app-compat.js` / `firebase-auth-compat.js`）を読み込み。
   - `firebaseConfig` を用いて `firebase.initializeApp(...)`。
-  - `auth.onAuthStateChanged(user)` でログイン状態を監視し、
+  - `auth.onAuthStateChanged(user)` でログイン状態を監視し、  
     ログイン済みユーザーのメールアドレス（`user.email`）を取得。
-  - `OwnerEmail` と `user.email` を比較し、一致しない場合は編集を許可しない
-    （index に戻すなど）。
+  - `OwnerEmail` と `user.email` を比較し、一致しない場合は編集を許可しない。
 
-- `saveCarFromForm(formData)`（GAS 側）では：
-  - `AuthEmail`（Firebase Auth で取得したメール）を必須パラメータとして受け取る前提。
-  - **新規登録時**：`OwnerEmail` に `AuthEmail` を保存してオーナーを紐付ける。
+- `saveCarFromForm(formData)`（GAS 側）：
+  - `AuthEmail`（Firebase Auth のメール）を必須として受け取る前提。
+  - **新規登録時**：`OwnerEmail` に `AuthEmail` を保存してオーナー紐付け。
 
-### 方針（合意事項）
+### 方針（確定）
 
-- **認証・オーナー判定ロジックは edit.html に一本化する。**
-- editGate はあくまで「説明＋edit.html への導線ページ」に留め、  
-  Firebase Auth の処理を二重に持たせない。
-- 中長期的には：
+- **認証・オーナー判定ロジックは edit.html に一本化**する。
+- editGate はあくまで「説明＋edit.html への導線ページ」とする。
+- 将来的に：
   - detail 側のオーナー判定（ActiveUser ベース）も  
-    Firebase Auth + OwnerEmail に統一していく方向で整理する。
+    Firebase Auth + OwnerEmail に統一していく。
 
 ---
 
-## ⚠ 補足②｜editGate（オーナーログイン画面）の役割
+## ⚠ 補足②｜editGate（owner_edit_gate.html）の役割
 
 ### 現状
 
 - テンプレート：`owner_edit_gate.html`
-- 画面の役割：
-  - 「この車両の編集には OwnerEmail と同じ Google アカウントでログインが必要です」  
-    といった説明文。
+- 役割：
+  - 「この車両の編集には OwnerEmail と同じ Google アカウントでログインが必要です」と説明する。
   - ボタン：
-    - 「Googleでログインして編集に進む」  
-      → 現状は **`?mode=edit&doc=DOC_xxx` に遷移するだけ**（Firebase Authはここでは実行しない）。
+    - 「編集画面へ進む」  
+      → `?mode=edit&doc=DOC_xxx` へ遷移（認証は edit.html 側で実行）。
     - 「車両の詳細ページに戻る」
 
-### 重要な整理（ここまでの経緯を踏まえた方針）
+### 方針（確定）
 
-- 過去のチャットで一度、  
-  「editGate に Firebase Auth（signInWithRedirect）を組み込み、  
-  認証の入口を editGate にまとめる案」が出たが、  
-  **最終的にこれは採用しない方針に戻した。**
-- 理由：
-  - 過去に合意した「認証は edit.html で完結させる」という設計と、  
-    現行コード（edit.html に Firebase Auth 実装）を優先するため。
-  - 認証ロジックを editGate と edit.html の二箇所に分散させると、  
-    将来の保守が難しくなるため。
-
-### 今後の扱い
-
-- **editGate は「説明 + edit.html への導線ページ」に限定する。**
-- Firebase Auth 関連の処理は **edit.html 側のみで行う**。  
-  （editGate に Firebase を入れない）
-- README の補足②は上記方針と現行実装に合わせた記述とし、  
-  「editGate に Firebase Auth を入れる予定」という文言は使わない。
+- **editGate は「説明 + edit.html への導線ページ」に限定**する。
+- Firebase Auth 処理は **edit.html 側のみ** で行う。  
+  （editGate に Firebase SDK を二重実装しない）
+- README の記述もこの方針に揃える  
+  （「editGate に Firebase Auth を入れる予定」という記述は使用しない）。
 
 ---
 
 ## 📝 最新作業メモ（2025-11-21 時点）
 
-※ここだけ毎回更新。それ以外の章は基本固定。
+※この枠だけ毎回更新。それ以外の章は基本固定。
 
 ### ✅ 本日までに合意・整理できたこと
 
-1. **edit 保存後の「白紙問題」の方針を確定（再確認）**
-   - `edit.html` の保存成功時は **自動リダイレクトを行わず**、
+1. **edit 保存後の「白紙問題」の方針を確定**
+   - `edit.html` の保存成功時は **自動リダイレクトを行わない**。
+   - 代わりに：
      - フォームを「保存完了カード」に差し替え、
-     - 「この車両の詳細ページに戻る」「車両一覧に戻る」のリンクを表示する方式で統一。
-   - iPhone Safari + Sites + iframe + `window.location.href` の組み合わせによる
-     白画面リスクを避ける設計として採用。
-   - この方針に基づくコードはすでに適用済みで、  
-     「成功パスにおける白紙問題」は設計上は解決済と判断。
+     - 「この車両の詳細ページに戻る」「車両一覧に戻る」のリンクを表示。
+   - iPhone Safari + Sites + iframe + `window.location` の組み合わせによる白画面リスクを回避するため。
 
-2. **Google Sheets `cars` シートの実データ構造を確認**
-   - `_id`（`row_00X`）、`DocumentID`（`DOC_xxx`）、`OwnerEmail`、`PhotoMain` などのカラム構成を  
-     CSV ベースで確認し、  
-     これを前提に設計・提案を行う方針に修正。
-   - DocumentID ベースの Storage パス案は「将来のアイデア」として残しつつ、  
-     現行運用は `row_00X` ベースのまま維持することを明示。
+2. **Google Sheets `cars` シートの実データ構造をCSVで確認**
+   - `_id`, `DocumentID`, `OwnerEmail`, `PhotoMain` などのカラム構成を事実ベースで把握。
+   - DocumentID ベース Storage パス案は将来案として保留し、現状は `row_00X` ベースを継続。
 
 3. **「情報不足のまま類推で進めない」ルールを追加**
-   - AI協業ルールに「必要な情報が不足している場合は必ず確認する」を追加。
-   - 例：  
-     - Sheets の列構成  
-     - Firestore の実データ  
-     - HTML / GAS の最新版  
-     が不明な場合は、まずスクショ／CSV／コード全文の提示を依頼する。
+   - AI協業ルールに情報要求の優先を正式追加。
+   - Sheets / Firestore / コードが不明な状態での推測実装を禁止。
 
-4. **認証の主戦場を再確認：editGate ではなく edit.html**
-   - 過去の設計のとおり、**認証とオーナー判定は edit.html で完結させる**ことで合意。  
-   - 一時的に浮上した「editGate に Firebase Auth を移す案」は採用しない方針に整理。
-   - README の補足②を修正し、  
-     「editGate は説明と導線」「edit.html が認証本体」という現実に揃えた。
+4. **認証の主戦場を再確認：edit.html**
+   - 過去に浮上した「editGateにFirebase Authをまとめる案」は不採用。
+   - 認証・オーナー判定は **edit.html に一本化**する方針を再確認。
 
-5. **Sheets / Firestore / Storage の役割分担を再確認**
-   - Sheets `cars` シートを **唯一のマスター**として扱うことを確定。
-   - Firestore `cars` コレクションは **ミラー・サブデータ**として位置づけ、  
-     日常運用では直接書き込まない前提にする。
-   - Storage は `row_00X` ベースの既存構成を当面維持し、  
-     DocumentID ベース移行は将来の検討事項とする。
+5. **Sheets / Firestore / Storage の役割分担を明文化**
+   - Sheets：唯一のマスター
+   - Firestore：ミラー／外部連携用サブデータ
+   - Storage：`row_00X` ベース既存パスを継続利用
 
 ---
 
 ## 🧩 現在の未解決課題（変動する部分）
 
-1. **edit.html 内の Firebase Auth 実装の微調整・整理**
-   - 現行コードの再確認（ログイン状態の扱い、OwnerEmail との照合、未ログイン時の挙動）。
+1. **edit.html 内の Firebase Auth 実装の微調整**
+   - ログイン状態の扱い、OwnerEmail との照合、未ログイン時の UI などを整理。
    - iPhone Safari / PC 両方での UX（ログイン→編集）を安定させる。
 
-2. **detail 側のオーナー判定の統一**
-   - 現在は ActiveUser ベースの暫定ロジックが残っている可能性があるため、  
-     将来的に Firebase Auth + OwnerEmail に一本化するリファクタリング。
+2. **detail 側のオーナー判定ロジックの統一**
+   - 現在残っている ActiveUser ベース部分を、  
+     中長期的に Firebase Auth + OwnerEmail へ統一。
 
-3. **新規登録フローの完成（`doc` なし `mode=edit`）**
-   - `owner.html` から「新しい車両を登録する」導線をどうするか。
-   - 新規作成時の `DocumentID` 採番ルールの確定。  
-   - Storage との紐付け方（`row_00X` / `DocumentID`）の扱い。
+3. **新規登録フロー（`doc` なし `mode=edit`）の完成**
+   - `owner.html` から「新しい車両を登録する」導線。
+   - `DocumentID` 採番ルールの確定。
+   - Storage との紐付けルール（`row_00X` / `DocumentID`）の整理。
 
-4. **Sheets → Firestore のミラー処理（GAS バッチ）**
-   - `cars` シートの内容を Firestore `cars` コレクションに上書き同期する処理の設計。  
-   - 実行タイミング（手動／定期トリガー）を含めた運用設計。
+4. **Sheets → Firestore ミラー処理（GAS バッチ）の設計**
+   - `cars` シート内容を Firestore `cars` に同期する処理。
+   - 手動 or 定期トリガーの運用設計。
 
-5. **Storage 直接アップロード UI（edit.html）**
-   - オーナーがブラウザから画像をアップロード → Storage → downloadURL を取得 →  
-     `PhotoMain` などのフォーム項目に自動セットする流れの実装。
-   - 既存の「URL を手入力」運用からの移行計画。
+5. **Storage 直接アップロード UI（edit.html）の実装**
+   - オーナーがブラウザから画像アップロード → Storage → downloadURL を取得 →  
+     `PhotoMain` などのフォーム項目に自動セットするフロー。
 
 6. **GAS「Driveリクエスト集中」警告の原因調査**
-   - Sheets の読み取り回数・範囲を最適化し、  
-     キャッシュ利用や範囲指定読み (`getRange().getValues()`) の見直し。
+   - Sheets 読み取り頻度・範囲の見直し。  
+   - CacheService 活用などの最適化。
 
 7. **iPhone Safari 実機での総合テスト**
    - detail → edit → 保存 → 完了カード → detail / index への復帰まで、  
-     一連の流れが白画面なく動くかを再確認する。
+     白画面なく動作するかの実機確認。
 
 ---
 
@@ -320,3 +331,5 @@ Apps Script WebApp 特有の強いキャッシュにより、
   - cars シートの実データ構造（_id, DocumentID, OwnerEmail, PhotoXXX など）を CSV ベースで確認。  
   - 「情報不足のまま類推で進めない」ルールを AI協業ルールに追加。  
   - 認証の主戦場を edit.html に一本化し、editGate は説明 & 導線ページに限定する方針で整理。
+
+---
