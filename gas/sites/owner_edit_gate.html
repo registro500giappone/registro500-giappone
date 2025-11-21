@@ -74,6 +74,7 @@
       }
     }
 
+    /* タイトルだけ中央寄せ */
     .owner-title {
       font-size: 1.2rem;
       font-weight: 700;
@@ -83,10 +84,11 @@
       color: var(--accent);
     }
 
+    /* サブタイトルは左寄せ */
     .owner-subtitle {
       font-size: 0.9rem;
       margin: 0 0 18px;
-      text-align: center;
+      text-align: left;
       color: var(--text-sub);
     }
 
@@ -94,6 +96,7 @@
       margin: 0 0 8px;
       font-size: 0.95rem;
       line-height: 1.7;
+      text-align: left;
     }
 
     .owner-section ul {
@@ -110,6 +113,7 @@
       font-size: 0.9rem;
       margin: 10px 0 14px;
       color: var(--text-sub);
+      text-align: left;
     }
 
     .owner-links a {
@@ -277,21 +281,21 @@
   </div>
 
   <script>
-    function handleGoogleLogin() {
-      // ★ここで Google ログイン処理を呼び出してください。
-      // 例（Apps Script 側に startOwnerLogin() を用意する場合）:
-      //
-      // google.script.run
-      //   .withSuccessHandler(function () {
-      //     // ログイン完了後に再読み込み
-      //     location.reload();
-      //   })
-      //   .startOwnerLogin();
-      //
-      // すでに Firebase Auth をお使いの場合は、
-      // ここから Firebase の signInWithPopup などを呼び出す形に差し替えてください。
-      console.log('handleGoogleLogin() が呼ばれました。ここにログイン処理を実装してください。');
-    }
+    (function () {
+      // GAS から渡されるテンプレート変数
+      var docId       = '<?= documentId ?>';
+      var ownerAppUrl = '<?= ownerAppUrl ?>' || '<?= scriptUrl ?>';
+
+      // ひとまず「ログイン」ではなく編集フォームへのジャンプだけ実装
+      window.handleGoogleLogin = function () {
+        if (!docId) {
+          alert('車両IDが取得できませんでした。');
+          return;
+        }
+        var url = ownerAppUrl + '?mode=edit&doc=' + encodeURIComponent(docId);
+        window.location.href = url;
+      };
+    })();
   </script>
 </body>
 </html>
