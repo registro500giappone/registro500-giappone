@@ -4,7 +4,10 @@
   <base target="_top">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Registro500 Giappone – オーナーログイン（編集）</title>
+  <!-- Firebase SDK（Auth 用・compat 版） -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <title>Registro500 Giappone – 車両編集のご案内</title>
 
   <style>
     :root {
@@ -14,287 +17,263 @@
       --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.10);
       --text-main: #111827;
       --text-sub: #6b7280;
-
-      --accent: #0f5ea8;
+      --accent: #2856a8;
       --accent-soft: #e6efff;
-      --accent-border: #c2d4ff;
-
-      --radius-lg: 18px;
     }
 
     * {
       box-sizing: border-box;
     }
 
-    /* ベース文字サイズ（スマホ > PC） */
     html {
-      font-size: 28px;
+      font-size: 17px;
     }
-    @media (min-width: 1024px) {
+
+    @media (min-width: 768px) {
       html {
-        font-size: 18px;
+        font-size: 16px;
       }
     }
 
     body {
       margin: 0;
-      padding: 18px 12px 26px;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background-color: var(--bg-main);
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background: radial-gradient(circle at top, #f9fafb 0, #e5e7eb 40%, #d1d5db 100%);
       color: var(--text-main);
-      font-size: 1rem;
-      line-height: 1.6;
-    }
-
-    .page {
-      max-width: 1200px;
-      margin: 0 auto;
-      min-height: calc(100vh - 36px);
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 16px;
     }
 
-    /* カード：幅100%。スマホ側では max-width なし */
-    .owner-card {
+    .gate-wrapper {
       width: 100%;
-      margin: 0;
-      background-color: var(--card-bg);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-soft);
-      padding: 22px 20px 26px;
+      max-width: 720px;
     }
 
-    /* PC のときだけ横幅を絞る */
-    @media (min-width: 1024px) {
-      .owner-card {
-        max-width: 720px;
-        margin: 0 auto;
-        padding: 22px 26px 28px;
+    .gate-card {
+      background: var(--card-bg);
+      border-radius: 18px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+      padding: 20px 18px 20px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+    }
+
+    @media (min-width: 768px) {
+      .gate-card {
+        padding: 24px 24px 22px;
       }
     }
 
-    /* タイトルだけ中央寄せ */
-    .owner-title {
-      font-size: 1.2rem;
+    .gate-title {
+      font-size: 1.4rem;
       font-weight: 700;
-      margin: 0 0 6px;
-      text-align: center;
-      letter-spacing: 0.04em;
-      color: var(--accent);
-    }
-
-    /* サブタイトルは左寄せ */
-    .owner-subtitle {
-      font-size: 0.9rem;
-      margin: 0 0 18px;
-      text-align: left;
-      color: var(--text-sub);
-    }
-
-    .owner-section p {
       margin: 0 0 8px;
-      font-size: 0.95rem;
-      line-height: 1.7;
       text-align: left;
+      letter-spacing: 0.02em;
+      color: var(--text-main);
     }
 
-    .owner-section ul {
-      margin: 6px 0 10px 1.2em;
-      padding: 0;
+    .gate-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: var(--accent-soft);
+      color: var(--accent);
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    .gate-subtitle {
+      margin: 0;
       font-size: 0.9rem;
+      color: var(--text-sub);
+      line-height: 1.6;
     }
 
-    .owner-section li {
+    .gate-section {
+      padding-top: 10px;
+      border-top: 1px solid rgba(148, 163, 184, 0.35);
+      margin-top: 4px;
+    }
+
+    .gate-section-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin: 0 0 6px;
+      color: var(--text-main);
+    }
+
+    .gate-list {
+      margin: 4px 0 14px;
+      padding-left: 1.1rem;
+      font-size: 0.86rem;
+      color: var(--text-sub);
+      line-height: 1.7;
+    }
+
+    .gate-list li {
       margin-bottom: 4px;
     }
 
-    .owner-links {
-      font-size: 0.9rem;
-      margin: 10px 0 14px;
-      color: var(--text-sub);
-      text-align: left;
+    .gate-list strong {
+      color: var(--text-main);
+      font-weight: 600;
     }
 
-    .owner-links a {
-      color: var(--accent);
-      text-decoration: underline;
+    .gate-note {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin: 0 0 6px;
     }
 
-    .owner-actions {
-      margin-top: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+    .gate-note code {
+      font-size: 0.8rem;
+    }
+
+    .gate-buttons {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    @media (min-width: 640px) {
+      .gate-buttons {
+        grid-template-columns: 2.2fr 1.8fr;
+        gap: 10px;
+      }
     }
 
     .btn-primary,
     .btn-secondary {
-      display: block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       width: 100%;
       border-radius: 999px;
-      border: 1px solid transparent;
-      padding: 10px 14px;
-      font-size: 0.95rem;
-      text-align: center;
+      padding: 12px 18px;
+      font-size: 1rem;
+      font-weight: 600;
       text-decoration: none;
-      box-sizing: border-box;
       cursor: pointer;
-      transition: transform 0.08s ease,
-                  box-shadow 0.08s ease,
-                  background-color 0.1s ease;
+      border: 1px solid transparent;
+      transition: background-color 0.15s ease,
+        box-shadow 0.15s ease, transform 0.05s ease;
+      touch-action: manipulation;
     }
 
     .btn-primary {
       background: var(--accent);
-      color: #ffffff;
-      border-color: var(--accent-border);
-      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.16);
-      font-weight: 600;
+      color: #fff;
+      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.35);
     }
 
-    .btn-primary:hover {
-      background-color: #0b4377;
-      box-shadow: 0 4px 8px rgba(15, 23, 42, 0.25);
-      transform: translateY(-1px);
+    .btn-primary:active {
+      transform: translateY(1px);
+      box-shadow: 0 6px 14px rgba(37, 99, 235, 0.3);
     }
 
     .btn-secondary {
       background: #ffffff;
-      border-color: var(--border-soft);
-      color: #111827;
+      color: var(--text-main);
+      border-color: rgba(148, 163, 184, 0.7);
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.10);
     }
 
-    .btn-secondary:hover {
-      background-color: var(--accent-soft);
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.16);
-      transform: translateY(-1px);
-    }
-
-    /* スマホ用の強制改行 */
-    .sp-only {
-      display: none;
-    }
-
-    /* Apps Script のスマホ表示は iframe 幅が広いので 1200px でスイッチ */
-    @media (max-width: 1200px) {
-      .page {
-        align-items: center;
-        justify-content: center;
-      }
-
-      .owner-card {
-        padding: 48px 26px 56px;
-      }
-
-      .owner-title {
-        font-size: 1.8rem;
-        margin-bottom: 12px;
-      }
-
-      .owner-subtitle {
-        font-size: 1.25rem;
-        margin-bottom: 26px;
-      }
-
-      .owner-section p {
-        font-size: 1.15rem;
-        line-height: 1.95;
-        margin-bottom: 12px;
-      }
-
-      .owner-links {
-        font-size: 1.1rem;
-        margin: 16px 0 22px;
-      }
-
-      .btn-primary,
-      .btn-secondary {
-        font-size: 1.15rem;
-        padding: 14px 18px;
-      }
-
-      .sp-only {
-        display: inline;
-      }
+    .btn-secondary span {
+      font-size: 0.92rem;
+      font-weight: 500;
     }
   </style>
 </head>
 <body>
-  <div class="page">
-    <article class="owner-card">
-      <h1 class="owner-title">オーナーログイン（この車両の編集）</h1>
+  <div class="gate-wrapper">
+    <article class="gate-card">
+      <header>
+        <h1 class="gate-title">
+          この車両の編集について
+          <span class="gate-badge">オーナー専用</span>
+        </h1>
+        <p class="gate-subtitle">
+          このページは、特定の車両の編集に進む前のご案内です。<br>
+          ここで<strong>Google ログインとオーナー確認</strong>を行い、完了後に編集画面（edit）へ進みます。
+        </p>
+      </header>
 
-      <p class="owner-subtitle">
-        この車両の情報を編集するには、<br class="sp-only">
-        オーナーとして登録されている Google アカウントで<br class="sp-only">
-        ログインする必要があります。
-      </p>
+      <section class="gate-section">
+        <h2 class="gate-section-title">編集の前にご確認ください</h2>
+        <ul class="gate-list">
+          <li><strong>編集できるのは登録済みオーナー本人のみ</strong>です。</li>
+          <li>編集画面でログインした Google アカウントのメールアドレスが、登録済みの <code>OwnerEmail</code> と一致した場合のみ保存が反映されます。</li>
+          <li>オーナー以外の方は、編集せず閲覧のみでお楽しみください。</li>
+        </ul>
 
-      <section class="owner-section">
-        <p>
-          これから表示される編集画面では、
-          登録済みの車両情報（モデル・年式・色・エンジン仕様など）を
-          変更することができます。
+        <p class="gate-note">
+          ※ このページで Google ログインとオーナー確認を行います。<br>
+          ※ ログイン完了後、自動的に編集画面に移動します。
         </p>
 
-        <p>
-          ログインに使用した Google アカウントのメールアドレスが、
-          この車両のオーナーとして登録されている <br class="sp-only">
-          <strong>OwnerEmail</strong> と一致する場合のみ、
-          編集画面が表示されます。
-        </p>
+        <div class="gate-buttons">
+          <!-- メイン：Google ログインして編集画面へ -->
+          <button
+            type="button"
+            class="btn-primary"
+            onclick="rgHandleEditLogin()">
+            Googleでログインして編集画面へ進む
+          </button>
 
-        <div class="owner-links">
-          <p>
-            ログイン前に必ず
-            <a href="<?= scriptUrl ?>?mode=policy#terms" target="_blank" rel="noopener">
-              利用規約 / プライバシーポリシー
-            </a>
-            をご確認ください。
-          </p>
-          <p>
-            「Googleでログインして編集に進む」ボタンを押すことで、
-            上記の内容に同意したものとみなします。
-          </p>
+          <!-- サブ：公開側の詳細ページに戻る -->
+          <a class="btn-secondary" href="<?= scriptUrl ?>?mode=detail&doc=<?= documentId ?>">
+            <span>車両の詳細ページに戻る</span>
+          </a>
         </div>
-
-        <p>
-          編集が終わったあとは、
-          車両の詳細ページ（公開サイト側）に戻って表示を確認してください。
-        </p>
       </section>
-
-      <div class="owner-actions">
-        <!-- メイン：Google ログイン ＋ 編集に進む -->
-        <button type="button" class="btn-primary" onclick="handleGoogleLogin()">
-          Googleでログインして編集に進む
-        </button>
-
-        <!-- サブ：公開側の詳細ページに戻る -->
-        <a class="btn-secondary"
-           href="<?= scriptUrl ?>?mode=detail&doc=<?= documentId ?>">
-          車両の詳細ページに戻る
-        </a>
-      </div>
     </article>
   </div>
 
   <script>
-    (function () {
-      // GAS から渡されるテンプレート変数
-      var docId       = '<?= documentId ?>';
-      var ownerAppUrl = '<?= ownerAppUrl ?>' || '<?= scriptUrl ?>';
+    // TODO: edit.html と同じ firebaseConfig をここに貼り付けてください
+const firebaseConfig = {
+  apiKey: "AIzaSyCNCNsu61S3DIQ2pcmK2Ic_vqCINlZB9nk",
+  authDomain: "registro500giappone-93f98.firebaseapp.com",
+  projectId: "registro500giappone-93f98",
+  storageBucket: "registro500giappone-93f98.firebasestorage.app",
+  messagingSenderId: "723005462978",
+  appId: "1:723005462978:web:e967a16a278f54b278de5b",
+  measurementId: "G-ZRBFX1V51B"
+};
 
-      // ひとまず「ログイン」ではなく編集フォームへのジャンプだけ実装
-      window.handleGoogleLogin = function () {
-        if (!docId) {
-          alert('車両IDが取得できませんでした。');
-          return;
+    if (typeof firebase !== 'undefined') {
+      firebase.initializeApp(firebaseConfig);
+    }
+
+    function rgHandleEditLogin() {
+      if (typeof firebase === 'undefined') {
+        alert('Firebase の読み込みに失敗しました。時間をおいて再度お試しください。');
+        return;
+      }
+      const auth = firebase.auth();
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithRedirect(provider);
+    }
+
+    // ログイン済みなら自動で編集画面へリダイレクト
+    (function () {
+      if (typeof firebase === 'undefined') return;
+      const auth = firebase.auth();
+      auth.onAuthStateChanged(function (user) {
+        if (user) {
+          const redirectUrl = "<?= scriptUrl ?>?mode=edit&doc=<?= documentId ?>";
+          window.location.href = redirectUrl;
         }
-        var url = ownerAppUrl + '?mode=edit&doc=' + encodeURIComponent(docId);
-        window.location.href = url;
-      };
+      });
     })();
   </script>
 </body>
