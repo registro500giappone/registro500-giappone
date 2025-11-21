@@ -1,7 +1,9 @@
+
 /***** =========================================================
  *  Registro500 Giappone — main.gs
  *  - cars シートをマスターにした一覧／詳細表示
  *  - Model_DisplayA/B/C, Engine_Display 自動生成
+ *  - 2025-11-20: ログイン＆権限チェックを Session.getActiveUser ベースに統一
  * ========================================================= ****/
 
 // =================================================
@@ -24,8 +26,10 @@ const WEB_APP_URL =
 //   その exec URL に差し替えます。
 const OWNER_WEB_APP_URL = WEB_APP_URL;
 
-// 管理者（運営者）メールアドレス
-const ADMIN_EMAIL = 'registro500giappone@gmail.com';  // 必要なら変更可
+// 管理者（運営者）メールアドレス（複数想定）
+const ADMIN_EMAILS = [
+  'registro500giappone@gmail.com', // 必要なら追加・変更可
+];
 
 // Firebase Storage の URL 変換に必要な定数
 const FIREBASE_STORAGE_BASE_URL =
@@ -51,6 +55,80 @@ const INDEX_VIEW_COLUMNS = [
   'HandleName',
   'DocumentID',
 ];
+
+// =================================================
+// ログイン＆権限まわりの共通関数
+// =================================================
+
+/**
+ * 現在ログイン中のユーザーのメールアドレスを取得（小文字・前後空白カット）
+ * ログインしていない場合は空文字を返す
+ */
+function getActiveEmail() {
+  var email = '';
+  try {
+    email = Session.getActiveUser().getEmail() || '';
+  } catch (err) {
+    email = '';
+  }
+  return email.toString().trim().toLowerCase();
+}
+
+/**
+ * 管理者メールかどうか判定
+ */
+function isAdminEmail(email) {
+  if (!email) return false;
+  var norm = email.toString().trim().toLowerCase();
+  return ADMIN_EMAILS.some(function (admin) {
+    return admin && admin.toString().trim().toLowerCase() === norm;
+  });
+}
+
+/**
+ * 指定の DocumentID を「編集してよいか」を判定
+ * - ログインしていない → false
+ * - 管理者メール → true
+ * - cars シートの OwnerEmail と一致 → true
+ */
+function hasEditPermission(docId) {
+  var activeEmail = getActiveEmail();
+  if (!activeEmail) return false;
+  if (isAdminEmail(activeEmail)) return true;
+  if (!docId) return false;
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET_NAME_MASTER);
+  if (!sheet) {
+    throw new Error('hasEditPermission: シートが見つかりません: ' + SHEET_NAME_MASTER);
+  }
+
+  var values = sheet.getDataRange().getValues();
+  if (!values || values.length < 2) {
+    return false;
+  }
+
+  var header = values[0];
+  var idxDoc = header.indexOf(DOCUMENT_ID_COLUMN_NAME);
+  var idxOwner = header.indexOf('OwnerEmail');
+
+  if (idxDoc === -1 || idxOwner === -1) {
+    throw new Error('hasEditPermission: DocumentID または OwnerEmail 列が見つかりません。');
+  }
+
+  var targetId = String(docId).trim();
+
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+    var idInRow = String(row[idxDoc]).trim();
+    if (idInRow === targetId) {
+      var ownerEmail = (row[idxOwner] || '').toString().trim().toLowerCase();
+      return !!(ownerEmail && ownerEmail === activeEmail);
+    }
+  }
+
+  return false;
+}
 
 // =================================================
 // 表示用ロジック（Model_Display*, Engine_Display）
@@ -102,10 +180,6 @@ function buildEngineDisplay(record) {
   record.Engine_Display = engine || '';
   return record;
 }
-
-// =================================================
-// Webアプリの入り口（index/detail/edit）
-// =================================================
 
 // =================================================
 // Webアプリの入り口（index/detail/edit）
@@ -299,7 +373,7 @@ function getMasterSheetForCars_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME_MASTER);
   if (!sheet) {
-    throw new Error('マスターシート "' + SHEET_NAME_MASTER + '" が見つかりません。');
+    throw new Error('マスターシート \"' + SHEET_NAME_MASTER + '\" が見つかりません。');
   }
   return sheet;
 }
@@ -377,21 +451,28 @@ function getCarForEdit(documentId) {
 // 編集フォーム表示（新規 / 既存編集 両対応）
 // =================================================
 function renderEdit(docId) {
+  // ★重要★
+  // ここではサーバー側でログイン判定・オーナー判定を行わない。
+  // 認証および OwnerEmail との照合は edit.html 内の Firebase Auth ロジックに一本化する。
+  // （ログインしていない場合のメッセージも edit.html 側で制御する）
+
   const template = HtmlService.createTemplateFromFile('edit');
 
   // 他の画面と同じく scriptUrl を渡す
-  template.scriptUrl    = WEB_APP_URL;
+  template.scriptUrl = WEB_APP_URL;
 
   // URL から来た DocumentID（空のこともある）
   template.initialDocId = docId || '';
 
-  // サーバ側で事前にレコードを取得しておく
+  // サーバ側で事前にレコードを取得しておく（ログイン有無に関係なく）
   let initialCarData = null;
   if (docId) {
     try {
       const record = getCarForEdit(docId);
       if (record && Object.keys(record).length > 0) {
         initialCarData = record;
+      } else {
+        Logger.log('renderEdit: getCarForEdit でレコードが見つからず: ' + docId);
       }
     } catch (err) {
       Logger.log('renderEdit: getCarForEdit エラー: ' + err);
@@ -401,11 +482,9 @@ function renderEdit(docId) {
   // テンプレート変数として渡す
   template.initialCarData = initialCarData;  // null またはレコードオブジェクト
 
-  // ★ここがポイント：viewpoint をサーバ側から付与
   return template
     .evaluate()
     .setTitle('Registro500Giappone - 編集フォーム')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
@@ -504,16 +583,15 @@ function debugDetailRequest() {
 
 // =================================================
 // フォームから受け取ったデータを cars シートに保存（新規登録）
+//  - AuthEmail には依存せず、サーバ側のログインユーザーを OwnerEmail に保存
 // =================================================
 
 function saveCarFromForm(formData) {
 
-  // AuthEmail をフォームから取得
-  const authEmail = (formData && formData.AuthEmail) ? String(formData.AuthEmail) : '';
-
-  // ログインしていない / AuthEmail が来ていない場合はエラーにする
-  if (!authEmail) {
-    throw new Error('AuthEmail が空です。Google ログイン後にもう一度お試しください。');
+  // サーバ側で現在のログインユーザーを取得（未ログインならエラー）
+  var activeEmail = getActiveEmail();
+  if (!activeEmail) {
+    throw new Error('Google アカウントでログインしてから保存してください。');
   }
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -568,8 +646,8 @@ function saveCarFromForm(formData) {
         record[col] = '';
         break;
       case 'OwnerEmail':
-        // AuthEmail を OwnerEmail に保存
-        record[col] = authEmail;
+        // 現在ログイン中のユーザーをオーナーとして保存
+        record[col] = activeEmail;
         break;
       case 'record_id':
       case '🔐 Softr Record ID':
@@ -607,25 +685,27 @@ function saveCarFromForm(formData) {
 
 // =================================================
 // フォームから受け取ったデータで既存行を更新（編集）
-// ・AuthEmail と OwnerEmail を比較し、本人 or 管理者のみ更新許可
-// =================================================
-
-// =================================================
-// フォームから受け取ったデータで既存行を更新（編集）
-// ・AuthEmail と OwnerEmail を比較し、本人 or 管理者のみ更新許可
+// ・AuthEmail には依存せず、サーバ側のログインユーザー＆シートの OwnerEmail / 管理者で判定
 // =================================================
 
 function updateCarFromForm(formData) {
 
-  // --- AuthEmail / DocumentID の取得とチェック ---
-  const authEmail = (formData && formData.AuthEmail) ? String(formData.AuthEmail) : '';
-  const docId     = (formData && formData.DocumentID) ? String(formData.DocumentID) : '';
+  // --- DocumentID の取得とチェック ---
+  const docId = (formData && formData.DocumentID) ? String(formData.DocumentID) : '';
 
-  if (!authEmail) {
-    throw new Error('AuthEmail が空です。Google ログイン後にもう一度お試しください。');
-  }
   if (!docId) {
     throw new Error('DocumentID が指定されていません。');
+  }
+
+  // 現在ログイン中のユーザー確認（未ログインならエラー）
+  var activeEmail = getActiveEmail();
+  if (!activeEmail) {
+    throw new Error('Google アカウントでログインしてから保存してください。');
+  }
+
+  // オーナー or 管理者かをサーバ側で確認
+  if (!hasEditPermission(docId)) {
+    throw new Error('この車両を編集できるのは、登録したオーナー本人（または管理者）のみです。');
   }
 
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
@@ -636,8 +716,8 @@ function updateCarFromForm(formData) {
 
   const lastRow = sheet.getLastRow();
   const lastCol = sheet.getLastColumn();
-  if (lastRow < 2) {
-    throw new Error('データ行が存在しません。');
+  if (lastRow <= 1) {
+    throw new Error('データ行がありません。');
   }
 
   const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
@@ -669,21 +749,11 @@ function updateCarFromForm(formData) {
     throw new Error('指定された車両IDの行が見つかりません: ' + docId);
   }
 
-  // --- OwnerEmail と AuthEmail を比較 ---
+  // --- 既存のオーナー情報を取得（値はそのまま維持する） ---
   const ownerEmailCell = sheet.getRange(targetRow, ownerEmailColIndex + 1).getValue();
   const ownerEmail     = (ownerEmailCell || '').toString().trim();
-  const authEmailNorm  = authEmail.toString().trim().toLowerCase();
-  const ownerEmailNorm = ownerEmail.toString().trim().toLowerCase();
-
-  const isOwner = !!(ownerEmailNorm && authEmailNorm && ownerEmailNorm === authEmailNorm);
-  const isAdmin = !!(ADMIN_EMAIL && authEmailNorm && ADMIN_EMAIL.toLowerCase() === authEmailNorm);
-
-  if (!isOwner && !isAdmin) {
-    throw new Error('この車両を編集できるのは、登録したオーナー本人（または管理者）のみです。');
-  }
 
   // --- 既存の行データを取得 ---
-  // 1行・lastCol列を取得（DocumentID を含め既存値を正しく保持）
   const currentRowValues = sheet.getRange(targetRow, 1, 1, lastCol).getValues()[0];
   const record = {};
   const now = new Date();
@@ -709,16 +779,16 @@ function updateCarFromForm(formData) {
         break;
 
       case 'createdAt':
-        // 既存値を維持（なければ now）
-        value = value || now;
+        // 作成日時はそのまま
         break;
 
       case 'updatedAt':
-        // 更新時刻を常に now で上書き
+        // 更新日時だけ現在時刻に更新
         value = now;
         break;
 
       default:
+        // フォームから値が来ていれば上書き、なければ既存値
         if (formData && Object.prototype.hasOwnProperty.call(formData, colName)) {
           value = formData[colName];
         }
@@ -728,14 +798,15 @@ function updateCarFromForm(formData) {
     record[colName] = value;
   });
 
-  // --- 新しい行データ配列を作成 ---
-  const newRowValues = headers.map(function (colName) {
-    return Object.prototype.hasOwnProperty.call(record, colName)
-      ? record[colName]
-      : '';
+  // 表示用フィールドを再計算
+  buildModelDisplays(record);
+  buildEngineDisplay(record);
+
+  // シートに書き戻し
+  const newRowValues = headers.map(function (col) {
+    return record[col] !== undefined ? record[col] : '';
   });
 
-  // --- シートに書き戻す ---
   sheet.getRange(targetRow, 1, 1, lastCol).setValues([newRowValues]);
 
   // キャッシュを軽く無効化（次回アクセスで再構築させる）
@@ -824,6 +895,7 @@ function debugGetCar_DOC_15() {
   const r = getCarForEdit('DOC_15');
   Logger.log('DOC_15 = ' + JSON.stringify(r, null, 2));
 }
+
 /**
  * 特定車両のオーナー向け「編集ログインゲート」
  * - ?mode=editGate&doc=DOC_xxx で呼び出し
