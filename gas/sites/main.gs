@@ -75,6 +75,18 @@ function getActiveEmail() {
 }
 
 /**
+ * Firebase Auth 側から渡されたメールアドレスを優先して取得するヘルパー
+ * - formData.AuthEmail があればそれを使う
+ * - 無ければ従来どおり Session.getActiveUser() を使う
+ */
+function getAuthEmailFromFormData_(formData) {
+  if (formData && formData.AuthEmail) {
+    return String(formData.AuthEmail).trim().toLowerCase();
+  }
+  return getActiveEmail();
+}
+
+/**
  * 管理者メールかどうか判定
  */
 function isAdminEmail(email) {
@@ -91,8 +103,9 @@ function isAdminEmail(email) {
  * - 管理者メール → true
  * - cars シートの OwnerEmail と一致 → true
  */
-function hasEditPermission(docId) {
-  var activeEmail = getActiveEmail();
+function hasEditPermission(docId, activeEmailOverride) {
+  var activeEmail = activeEmailOverride || getActiveEmail();
+
   if (!activeEmail) return false;
   if (isAdminEmail(activeEmail)) return true;
   if (!docId) return false;
@@ -229,7 +242,7 @@ function doGet(e) {
       return tPolicy
         .evaluate()
         .setTitle('Registro500 Giappone')
-        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+        ;
     }
 
     // 2) ?mode=howto → howto.html
@@ -239,7 +252,7 @@ function doGet(e) {
       return tHowto
         .evaluate()
         .setTitle('Registro500 Giappone')
-        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+        ;
     }
 
     // 3) ?mode=owner → オーナーページ
@@ -355,7 +368,7 @@ function renderDetail(docId) {
 
     return template.evaluate()
       .setTitle('車両詳細: ' + (targetCar.HandleName || ''))
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+      ;
   } catch (error) {
     Logger.log(error);
     return HtmlService.createHtmlOutput('<pre>エラーが発生しました:\n' + error.message + '</pre>');
@@ -485,7 +498,7 @@ function renderEdit(docId) {
   return template
     .evaluate()
     .setTitle('Registro500Giappone - 編集フォーム')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    ;
 }
 
 // =================================================
@@ -539,7 +552,7 @@ function renderIndex() {
     return template
       .evaluate()
       .setTitle('車両一覧')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+      ;
 
   } catch (error) {
     Logger.log(error);
@@ -589,7 +602,7 @@ function debugDetailRequest() {
 function saveCarFromForm(formData) {
 
   // サーバ側で現在のログインユーザーを取得（未ログインならエラー）
-  var activeEmail = getActiveEmail();
+  var activeEmail = getAuthEmailFromFormData_(formData);
   if (!activeEmail) {
     throw new Error('Google アカウントでログインしてから保存してください。');
   }
@@ -698,13 +711,13 @@ function updateCarFromForm(formData) {
   }
 
   // 現在ログイン中のユーザー確認（未ログインならエラー）
-  var activeEmail = getActiveEmail();
+  var activeEmail = getAuthEmailFromFormData_(formData);
   if (!activeEmail) {
     throw new Error('Google アカウントでログインしてから保存してください。');
   }
 
   // オーナー or 管理者かをサーバ側で確認
-  if (!hasEditPermission(docId)) {
+  if (!hasEditPermission(docId, activeEmail)) {
     throw new Error('この車両を編集できるのは、登録したオーナー本人（または管理者）のみです。');
   }
 
@@ -913,7 +926,7 @@ function renderOwnerEditGate_(docId) {
   return t
     .evaluate()
     .setTitle('Registro500 Giappone - オーナーログイン（編集）')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    ;
 }
 
 /**
@@ -944,5 +957,5 @@ function renderOwnerPage_() {
   return t
     .evaluate()
     .setTitle('Registro500 Giappone - オーナーページ')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    ;
 }
