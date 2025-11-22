@@ -3,86 +3,155 @@
 <head>
   <meta charset="UTF-8">
   <title>Registro500 Giappone - 編集フォーム</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+
+  <!-- Firebase SDK（Auth 用・compat 版） -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 
   <style>
+    /* ======================================================
+       ベース：detail.html と同等のタイポグラフィ＆色
+       ====================================================== */
+    html {
+      font-size: 28px;
+    }
+    @media (min-width: 1025px) {
+      html { font-size: 18px; }
+    }
+
     :root {
-      --bg-main: #f4f4f7;
-      --card-bg: #ffffff;
-      --border-soft: #e5e7eb;
-      --shadow-soft: 0 8px 24px rgba(15, 23, 42, 0.10);
-      --text-main: #111827;
-      --text-sub: #6b7280;
-      --accent: #2856a8;
-      --accent-soft: #e6efff;
-      --accent-border: #c2d4ff;
-      --radius-lg: 18px;
+      --rg-surface: #ffffff;
+      --rg-surface-sub: #f8fafc;
+      --rg-bg: #f4f6f8;
+      --rg-border: #e5e7eb;
+      --rg-text: #111827;
+      --rg-muted: #6b7280;
+
+      --rg-accent: #2856a8;
+      --rg-accent-soft: #e6efff;
+      --rg-accent-border: #c2d4ff;
+
+      --rg-radius-card: 1rem;
+
+      --rg-primary-red: #e11d48;
+      --rg-primary-red-dark: #be123c;
     }
 
     * { box-sizing: border-box; }
 
-    html {
-      font-size: 28px;
-    }
-    @media (min-width: 1024px) {
-      html {
-        font-size: 18px;
-      }
+    html,
+    body {
+      max-width: 100%;
+      overflow-x: hidden;
     }
 
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       margin: 0;
-      padding: 24px 12px 32px;
-      background: var(--bg-main);
-      color: var(--text-main);
-      line-height: 1.6;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+                   Arial, "Noto Sans JP", sans-serif;
+      line-height: 1.7;
+      color: var(--rg-text);
+      background: var(--rg-bg);
+      padding: 24px 12px calc(96px + env(safe-area-inset-bottom));
+      -webkit-text-size-adjust: 100%;
     }
 
     .page {
-      max-width: 960px;
+      max-width: 72rem; /* detail と同じ幅感 */
       margin: 0 auto;
     }
 
-    h1 {
-      font-size: 1.4rem;
-      margin: 0 0 0.25rem;
+    /* ===== タイトル（2行センタリング） ===== */
+    .page-title {
+      font-size: 1.6rem;
+      text-align: center;
+      margin: 0 0 0.6rem;
+      line-height: 1.5;
     }
-    .page-lead {
-      margin: 0 0 0.75rem;
-      font-size: 0.9rem;
-      color: var(--text-sub);
-    }
-
-    h2 {
-      font-size: 1.0rem;
-      border-left: 4px solid #e11d48;
-      padding-left: 8px;
-      margin: 24px 0 8px;
+    @media (max-width: 1024px) {
+      .page-title {
+        font-size: 2.0rem;
+      }
     }
 
-    .card {
-      background: var(--card-bg);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-soft);
-      padding: 16px 18px 18px;
-      margin-bottom: 20px;
+    /* ===== 上部説明カード ===== */
+    .intro-card {
+      background: var(--rg-surface);
+      border-radius: var(--rg-radius-card);
+      border: 1px solid var(--rg-border);
+      padding: 1rem 1.1rem;
+      margin-bottom: 0.75rem;
     }
 
+    /* ===== ※注意文（auth-help） ===== */
+    .auth-help {
+      font-size: 0.95rem;
+      color: var(--rg-muted);
+      line-height: 1.8;
+      margin: 0;
+    }
+    @media (max-width: 1024px) {
+      .auth-help {
+        font-size: 1.4rem;
+      }
+    }
+
+    /* ===== セクションカード（detail の rg-card 相当） ===== */
+    .form-card {
+      background: var(--rg-surface);
+      border-radius: var(--rg-radius-card);
+      border: 1px solid var(--rg-border);
+      padding: 1rem 1.1rem 1.6rem;
+      margin-bottom: 1rem;
+    }
+
+    /* ===== セクション見出し（detail の rg-section-title コピー） ===== */
+    .rg-section-title {
+      position: relative;
+      margin: 0 0 0.6rem;
+      font-weight: 700;
+      color: var(--rg-text);
+      font-size: 0.95rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.18rem 0.8rem 0.18rem 1.05rem;
+      border-radius: 999px;
+      background: linear-gradient(
+        90deg,
+        rgba(40, 86, 168, 0.14),
+        rgba(40, 86, 168, 0.02)
+      );
+      line-height: 1.4;
+    }
+    .rg-section-title::before {
+      content: "";
+      position: absolute;
+      left: 0.4rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0.18rem;
+      height: 1.1em;
+      border-radius: 999px;
+      background: var(--rg-accent);
+    }
+
+    /* ===== フォーム部品 ===== */
     fieldset {
-      border: 1px solid var(--border-soft);
-      border-radius: 12px;
-      padding: 12px 12px 4px;
-      margin-bottom: 16px;
+      border: 1px solid var(--rg-border);
+      border-radius: 0.75rem;
+      padding: 0.3rem 0.8rem 0.6rem;
+      margin: 0;
       background: #ffffff;
     }
 
     label {
       display: block;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       font-weight: 600;
-      margin-top: 10px;
-      margin-bottom: 4px;
+      margin-top: 0.7rem;
+      margin-bottom: 0.25rem;
     }
 
     input[type="text"],
@@ -90,11 +159,12 @@
     textarea,
     select {
       width: 100%;
-      box-sizing: border-box;
-      padding: 8px 10px;
-      border-radius: 8px;
+      padding: 0.45rem 0.55rem;
+      border-radius: 0.5rem;
       border: 1px solid #d1d5db;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      background: #ffffff;
     }
 
     textarea {
@@ -102,96 +172,108 @@
       resize: vertical;
     }
 
-    .radio-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px 14px;
-      margin-bottom: 4px;
-      font-size: 0.9rem;
-    }
-    .radio-group label {
-      font-weight: 500;
-    }
-    .radio-group input[type="radio"] {
-      margin-right: 4px;
-    }
-
-    .hint {
-      font-size: 0.8rem;
-      color: #6b7280;
-    }
-
     .inline-small {
       display: flex;
-      gap: 10px;
+      gap: 0.6rem;
     }
     .inline-small > div {
       flex: 1;
     }
 
-    .photo-hint {
-      font-size: 0.8rem;
-      color: #6b7280;
-      margin-bottom: 4px;
+    .radio-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.2rem 0.9rem;
+      margin-bottom: 0.2rem;
+      font-size: 0.95rem;
+    }
+    .radio-group label {
+      font-weight: 500;
+      margin-top: 0.25rem;
+      margin-bottom: 0.15rem;
+    }
+    .radio-group input[type="radio"] {
+      margin-right: 0.25rem;
     }
 
-    button {
-      margin-top: 16px;
-      padding: 10px 18px;
+    .hint,
+    .photo-hint {
+      font-size: 0.8rem;
+      color: var(--rg-muted);
+      margin-top: 0.2rem;
+    }
+
+    /* ===== 送信ボタン（画面下固定） ===== */
+    .submit-bar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 0.4rem 0.75rem calc(0.4rem + env(safe-area-inset-bottom));
+      background: rgba(248, 250, 252, 0.9);
+      border-top: 1px solid rgba(15, 23, 42, 0.12);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 999;
+    }
+
+    .submit-inner {
+      max-width: 72rem;
+      margin: 0 auto;
+    }
+
+    #submitButton {
+      width: 100%;
       border-radius: 999px;
       border: none;
+      padding: 0.6rem 0.8rem;
       font-size: 0.95rem;
-      cursor: pointer;
-    }
-    button.primary {
-      background: #e11d48;
+      font-weight: 700;
+      background: var(--rg-primary-red);
       color: #ffffff;
-      font-weight: 600;
+      cursor: pointer;
       box-shadow: 0 4px 10px rgba(225, 29, 72, 0.35);
-      transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.08s ease;
+      transition: background-color 0.08s ease, box-shadow 0.08s ease, transform 0.06s ease;
     }
-    button.primary:hover:not(:disabled) {
-      background: #be123c;
+    #submitButton:hover:not(:disabled) {
+      background: var(--rg-primary-red-dark);
       transform: translateY(-1px);
       box-shadow: 0 7px 16px rgba(225, 29, 72, 0.45);
     }
-    button.primary:disabled {
+    #submitButton:disabled {
       opacity: 0.7;
       cursor: default;
       box-shadow: 0 2px 6px rgba(148, 163, 184, 0.4);
     }
 
-    .auth-box-header {
-      font-weight: 700;
-      margin-bottom: 4px;
-      font-size: 0.95rem;
-    }
-    .auth-status {
-      font-size: 0.9rem;
-      margin: 4px 0 8px;
-    }
-    .auth-help {
-      font-size: 0.8rem;
-      color: #6b7280;
-      margin-top: 4px;
-    }
-
-    @media (max-width: 480px) {
-      .card { padding: 14px 12px 16px; }
-      h1 { font-size: 1.2rem; }
-      h2 { font-size: 0.95rem; }
-      .inline-small { flex-direction: column; }
-    }
-
-    /* スマホで画面下のバーに保存ボタンが隠れないように、下側に余白を追加 */
-    body {
-      padding-bottom: 96px;
+    /* ===== スマホ用フォント拡大（detail に揃える） ===== */
+    @media (max-width: 1024px) {
+      .rg-section-title {
+        font-size: 1.6rem;
+      }
+      label,
+      .radio-group,
+      input[type="text"],
+      input[type="number"],
+      textarea,
+      select {
+        font-size: 1.4rem;
+      }
+      .hint,
+      .photo-hint {
+        font-size: 1.1rem;
+      }
+      #submitButton {
+        font-size: 1.4rem;
+      }
     }
 
     @media (min-width: 768px) {
-      /* PC では少しだけ余白を減らす */
       body {
-        padding-bottom: 48px;
+        padding-bottom: 56px;
+      }
+      .form-card {
+        padding-bottom: 1.2rem;
       }
     }
   </style>
@@ -200,28 +282,26 @@
 <body>
   <div class="page">
 
-    <!-- 説明カード（ログインボタンなし） -->
-    <section class="card">
-      <h1>Registro500 Giappone　編集フォーム</h1>
-      <p class="page-lead">
-        日本の FIAT 500 オーナー向け・登録／編集専用のフォームです。<br>
-        Google アカウントでログイン済みのオーナーのみが利用できます。
+    <!-- 上部：説明カード -->
+    <section class="intro-card">
+      <h1 class="page-title">
+        Registro500 Giappone<br>
+        編集フォーム
+      </h1>
+
+      <p class="auth-help">
+        ※ ブラウザのログイン状態に応じて、必要に応じて Google が自動的にログイン画面を表示します。<br>
+        ※ ログインしていない場合や権限がない場合は、サーバ側（Apps Script）が編集を拒否します。
       </p>
-      <div class="auth-box">
-        <p class="auth-help">
-          ※ ブラウザのログイン状態に応じて、必要に応じて Google が自動的にログイン画面を表示します。<br>
-          ※ ログインしていない場合や権限がない場合は、サーバ側（Apps Script）が編集を拒否します。
-        </p>
-      </div>
     </section>
 
-    <!-- 編集フォームカード -->
-    <section class="card" id="formCard">
+    <!-- 編集フォーム本体 -->
+    <section class="form-card" id="formCard">
       <form id="carForm" onsubmit="handleSubmit(event)">
         <input type="hidden" id="DocumentID" name="DocumentID">
 
         <!-- 1. 基本情報 -->
-        <h2>基本情報</h2>
+        <h2 class="rg-section-title">基本情報</h2>
         <fieldset>
           <label for="HandleName">ハンドルネーム</label>
           <input type="text" id="HandleName" name="HandleName">
@@ -296,7 +376,7 @@
         </fieldset>
 
         <!-- 2. エンジン関係 -->
-        <h2>エンジン関係</h2>
+        <h2 class="rg-section-title">エンジン関係</h2>
         <fieldset>
           <label for="EngineCC">排気量（cc）</label>
           <input type="number" id="EngineCC" name="EngineCC">
@@ -378,7 +458,7 @@
         </fieldset>
 
         <!-- 3. 駆動系・足回り -->
-        <h2>駆動系・足回り</h2>
+        <h2 class="rg-section-title">駆動系・足回り</h2>
         <fieldset>
           <label>トランスミッション</label>
           <div class="radio-group">
@@ -429,7 +509,7 @@
         </fieldset>
 
         <!-- 4. オイル・バッテリー他 -->
-        <h2>オイル・バッテリー他</h2>
+        <h2 class="rg-section-title">オイル・バッテリー他</h2>
         <fieldset>
           <label for="EngineOil">エンジンオイル</label>
           <input type="text" id="EngineOil" name="EngineOil">
@@ -448,7 +528,7 @@
         </fieldset>
 
         <!-- 5. こだわりポイント -->
-        <h2>こだわりポイント</h2>
+        <h2 class="rg-section-title">こだわりポイント</h2>
         <fieldset>
           <label for="Highlights">チューンナップ／モディファイ／自慢ポイント</label>
           <textarea id="Highlights" name="Highlights"
@@ -457,7 +537,7 @@
         </fieldset>
 
         <!-- 6. SNS・リンク -->
-        <h2>SNS / Web</h2>
+        <h2 class="rg-section-title">SNS / Web</h2>
         <fieldset>
           <label for="X_Twitter">X（Twitter）</label>
           <input type="text" id="X_Twitter" name="X_Twitter" placeholder="例：pasota500d">
@@ -479,7 +559,7 @@
         </fieldset>
 
         <!-- 7. 写真 -->
-        <h2>写真</h2>
+        <h2 class="rg-section-title">写真</h2>
         <fieldset>
           <p class="photo-hint">※いまはプレースホルダとして URL 入力欄です。将来 Firebase Storage 連携時に差し替え予定。</p>
 
@@ -504,234 +584,266 @@
           <label for="PhotoInterior">内装</label>
           <input type="text" id="PhotoInterior" name="PhotoInterior" placeholder="画像URL">
         </fieldset>
-
-        <button type="submit" class="primary" id="submitButton">
-          この内容で登録
-        </button>
       </form>
     </section>
   </div>
 
+  <!-- 画面下固定の送信ボタンバー -->
+  <div class="submit-bar">
+    <div class="submit-inner">
+      <button type="submit" form="carForm" id="submitButton">この内容で登録</button>
+    </div>
+  </div>
+
   <script>
-  (function () {
-    // テンプレートから渡される値
-    const INITIAL_DOC_ID   = '<?= initialDocId ?>';
-    const INITIAL_CAR_DATA = <?!= JSON.stringify(initialCarData || {}) ?>;
-    const scriptUrlFromServer = '<?= scriptUrl ?>';
+    const firebaseConfig = {
+      apiKey: "AIzaSyCNCNsu61S3DIQ2pcmK2Ic_vqCINlZB9nk",
+      authDomain: "registro500giappone-93f98.firebaseapp.com",
+      projectId: "registro500giappone-93f98",
+      storageBucket: "registro500giappone-93f98.firebasestorage.app",
+      messagingSenderId: "723005462978",
+      appId: "1:723005462978:web:e967a16a278f54b278de5b",
+      measurementId: "G-ZRBFX1V51B"
+    };
 
-    const docIdInput = document.getElementById('DocumentID');
-    const form       = document.getElementById('carForm');
-    const submitBtn  = document.getElementById('submitButton');
+    (function () {
+      const INITIAL_DOC_ID   = '<?= initialDocId ?>';
+      const INITIAL_CAR_DATA = <?!= JSON.stringify(initialCarData || {}) ?>;
+      const scriptUrlFromServer = '<?= scriptUrl ?>';
 
-    // DocumentID 初期値
-    let currentDocId = INITIAL_DOC_ID || '';
-    if (currentDocId && docIdInput) {
-      docIdInput.value = currentDocId;
-    }
+      const docIdInput = document.getElementById('DocumentID');
+      const form       = document.getElementById('carForm');
+      const submitBtn  = document.getElementById('submitButton');
 
-    // 送信中ボタン制御
-    function setSubmitting(isSubmitting) {
-      if (!submitBtn) return;
-      if (isSubmitting) {
-        if (!submitBtn.dataset.originalLabel) {
-          submitBtn.dataset.originalLabel = submitBtn.textContent || '';
+      // Firebase Auth 関連
+      let auth = null;
+      let currentUserEmail = '';
+
+      function initFirebaseAuthForEdit() {
+        if (typeof firebase === 'undefined') {
+          console.warn('Firebase SDK が読み込まれていません。ログイン状態を取得できません。');
+          return;
         }
-        submitBtn.disabled = true;
-        submitBtn.textContent = '保存中…';
-      } else {
-        submitBtn.disabled = false;
-        if (submitBtn.dataset.originalLabel) {
-          submitBtn.textContent = submitBtn.dataset.originalLabel;
-        }
-      }
-    }
-
-    // 保存完了画面を表示する（自動リダイレクトしない）
-    function showSaveResult(result) {
-      // 現在の DocumentID を基準にする
-      let docId = (typeof currentDocId !== 'undefined' && currentDocId) ? currentDocId : '';
-
-      // サーバーから返ってきた情報を優先
-      if (result) {
-        if (result.DocumentID) {
-          docId = result.DocumentID;
-        } else if (result.documentId) {
-          docId = result.documentId;
-        }
-      }
-
-      // 遷移先URL
-      const detailUrl = docId
-        ? scriptUrlFromServer + '?mode=detail&doc=' + encodeURIComponent(docId)
-        : scriptUrlFromServer + '?mode=index';
-
-      const indexUrl = scriptUrlFromServer + '?mode=index';
-
-      // 画面全体を「保存完了カード」で置き換え
-      document.body.innerHTML = `
-        <main style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f4f4f7;font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;">
-          <div style="max-width:480px;width:100%;background:#ffffff;border-radius:16px;padding:24px 20px;box-shadow:0 12px 30px rgba(15,23,42,0.18);text-align:center;">
-            <h1 style="font-size:1.2rem;margin-bottom:0.75rem;">保存が完了しました</h1>
-            <p style="font-size:0.9rem;margin:0.25rem 0 0.75rem;">
-              ${
-                docId
-                  ? 'DocumentID <code style="font-family:monospace;">' + docId + '</code> の車両情報が保存されました。'
-                  : '車両情報が保存されました。'
-              }
-            </p>
-            <p style="font-size:0.8rem;color:#6b7280;margin-bottom:1.25rem;">
-              次の操作を選んでください。
-            </p>
-
-            <a href="${detailUrl}"
-               style="display:block;width:100%;margin:0 auto 8px auto;padding:10px 14px;border-radius:999px;background:#1f2937;color:#ffffff;text-decoration:none;font-size:0.95rem;">
-              この車両の詳細ページに戻る
-            </a>
-
-            <a href="${indexUrl}"
-               style="display:block;width:100%;margin:0 auto;padding:10px 14px;border-radius:999px;border:1px solid #cbd5e1;background:#ffffff;color:#111827;text-decoration:none;font-size:0.9rem;">
-              車両一覧にもどる
-            </a>
-          </div>
-        </main>
-      `;
-
-      // 完了カードが画面の途中にならないよう、一番上までスクロール
-      window.scrollTo(0, 0);
-    }
-
-    // 1行分のレコードをフォームに流し込む
-    function fillFormFromRecord(record) {
-      if (!record || !form) return;
-
-      Object.keys(record).forEach(function (key) {
-        const value = record[key];
-        const v = (value !== null && value !== undefined) ? value : '';
-
-        // ラジオボタン
-        const radios = form.querySelectorAll(
-          'input[type="radio"][name="' + key + '"]'
-        );
-        if (radios && radios.length) {
-          radios.forEach(function (r) {
-            r.checked = String(r.value) === String(v);
+        try {
+          if (firebase.apps.length === 0) {
+            firebase.initializeApp(firebaseConfig);
+          }
+          auth = firebase.auth();
+          auth.onAuthStateChanged(function (user) {
+            if (user && user.email) {
+              currentUserEmail = String(user.email).trim().toLowerCase();
+            } else {
+              currentUserEmail = '';
+            }
           });
+        } catch (e) {
+          console.warn('Firebase Auth 初期化時にエラーが発生しました:', e);
+        }
+      }
+
+      // DocumentID 初期値
+      let currentDocId = INITIAL_DOC_ID || '';
+      if (currentDocId && docIdInput) {
+        docIdInput.value = currentDocId;
+      }
+
+      // 送信中ボタン制御
+      function setSubmitting(isSubmitting) {
+        if (!submitBtn) return;
+        if (isSubmitting) {
+          if (!submitBtn.dataset.originalLabel) {
+            submitBtn.dataset.originalLabel = submitBtn.textContent || '';
+          }
+          submitBtn.disabled = true;
+          submitBtn.textContent = '保存中…';
+        } else {
+          submitBtn.disabled = false;
+          if (submitBtn.dataset.originalLabel) {
+            submitBtn.textContent = submitBtn.dataset.originalLabel;
+          }
+        }
+      }
+
+      // 保存完了画面を表示（自動リダイレクトしない）
+      function showSaveResult(result) {
+        let baseUrl = scriptUrlFromServer;
+        if (!baseUrl) {
+          const loc = window.location;
+          baseUrl = loc.origin + loc.pathname;
+        }
+
+        let docId = (typeof currentDocId !== 'undefined' && currentDocId) ? currentDocId : '';
+
+        if (result) {
+          if (result.DocumentID) {
+            docId = String(result.DocumentID);
+          } else if (result.documentId) {
+            docId = String(result.documentId);
+          }
+        }
+
+        const detailUrl = docId
+          ? baseUrl + '?mode=detail&doc=' + encodeURIComponent(docId)
+          : baseUrl + '?mode=index';
+
+        const indexUrl = baseUrl + '?mode=index';
+
+        document.body.innerHTML = `
+          <main style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:#e5e7eb;font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;">
+            <div style="max-width:480px;width:100%;background:#ffffff;border-radius:16px;padding:24px 20px;box-shadow:0 12px 30px rgba(15,23,42,0.18);text-align:center;">
+              <h1 style="font-size:1.2rem;margin-bottom:0.75rem;">保存が完了しました</h1>
+              <p style="font-size:0.9rem;margin:0.25rem 0 0.75rem;">
+                ${
+                  docId
+                    ? 'DocumentID <code style="font-family:monospace;">' + docId + '</code> の車両情報が保存されました。'
+                    : '車両情報が保存されました。'
+                }
+              </p>
+              <p style="font-size:0.8rem;color:#6b7280;margin-bottom:1.25rem;">
+                次の操作を選んでください。
+              </p>
+
+              <a href="${detailUrl}"
+                 target="_top"
+                 style="display:block;width:100%;margin:0 auto 8px;padding:10px 12px;border-radius:999px;background:#1f2937;color:#ffffff;text-decoration:none;font-size:0.95rem;">
+                この車両の詳細ページに戻る
+              </a>
+
+              <a href="${indexUrl}"
+                 target="_top"
+                 style="display:block;width:100%;margin:0 auto;padding:9px 12px;border-radius:999px;border:1px solid #d1d5db;background:#ffffff;color:#111827;text-decoration:none;font-size:0.9rem;">
+                車両一覧にもどる
+              </a>
+
+              <p style="margin-top:1.25rem;font-size:0.75rem;color:#9ca3af;line-height:1.5;">
+                もし画面が正しく表示されない場合は、上記ボタンが効かない可能性があります。<br>
+                その場合は、ブラウザの「戻る」ボタンで一覧画面に戻ってください。
+              </p>
+            </div>
+          </main>
+        `;
+
+        window.scrollTo(0, 0);
+      }
+
+      // 1行分のレコードをフォームに流し込む
+      function fillFormFromRecord(record) {
+        if (!record || !form) return;
+
+        Object.keys(record).forEach(function (key) {
+          const value = record[key];
+          const v = (value !== null && value !== undefined) ? value : '';
+
+          const radios = form.querySelectorAll(
+            'input[type="radio"][name="' + key + '"]'
+          );
+          if (radios && radios.length) {
+            radios.forEach(function (r) {
+              r.checked = String(r.value) === String(v);
+            });
+            return;
+          }
+
+          const field = form.querySelector('[name="' + key + '"]');
+          if (!field) return;
+
+          if (
+            field.tagName === 'INPUT' ||
+            field.tagName === 'TEXTAREA' ||
+            field.tagName === 'SELECT'
+          ) {
+            field.value = v;
+          }
+        });
+
+        const modelA = document.getElementById('ModelSelectA');
+        const modelB = document.getElementById('ModelSelectB');
+        const engSel = document.getElementById('EngineTypeSelect');
+        if (modelA && modelA.value === 'その他') {
+          document.getElementById('ModelTextAWrapper').style.display = 'block';
+        }
+        if (modelB && modelB.value === 'その他') {
+          document.getElementById('ModelTextBWrapper').style.display = 'block';
+        }
+        if (engSel && engSel.value === 'その他') {
+          document.getElementById('EngineTypeTextWrapper').style.display = 'block';
+        }
+      }
+
+      if (currentDocId) {
+        if (INITIAL_CAR_DATA && Object.keys(INITIAL_CAR_DATA).length > 0) {
+          fillFormFromRecord(INITIAL_CAR_DATA);
+        } else {
+          console.warn('指定された DocumentID のレコードがサーバ側で見つかりません:', currentDocId);
+          alert(
+            '指定された車両データが見つかりませんでした。\n' +
+            'DocumentID: ' + currentDocId
+          );
+        }
+      }
+
+      document.getElementById('ModelSelectA').addEventListener('change', function () {
+        document.getElementById('ModelTextAWrapper').style.display =
+          (this.value === 'その他') ? 'block' : 'none';
+      });
+      document.getElementById('ModelSelectB').addEventListener('change', function () {
+        document.getElementById('ModelTextBWrapper').style.display =
+          (this.value === 'その他') ? 'block' : 'none';
+      });
+      document.getElementById('EngineTypeSelect').addEventListener('change', function () {
+        document.getElementById('EngineTypeTextWrapper').style.display =
+          (this.value === 'その他') ? 'block' : 'none';
+      });
+
+      initFirebaseAuthForEdit();
+
+      window.handleSubmit = function (e) {
+        e.preventDefault();
+
+        setSubmitting(true);
+
+        const formData = {};
+        const fd = new FormData(form);
+
+        if (!currentUserEmail) {
+          alert('Google アカウントでログインしてから保存してください。');
+          setSubmitting(false);
           return;
         }
 
-        // 通常フィールド
-        const field = form.querySelector('[name="' + key + '"]');
-        if (!field) return;
+        formData.AuthEmail = currentUserEmail;
 
-        if (
-          field.tagName === 'INPUT' ||
-          field.tagName === 'TEXTAREA' ||
-          field.tagName === 'SELECT'
-        ) {
-          field.value = v;
-        }
-      });
-
-      // 「その他」選択時の補助欄表示
-      const modelA = document.getElementById('ModelSelectA');
-      const modelB = document.getElementById('ModelSelectB');
-      const engSel = document.getElementById('EngineTypeSelect');
-      if (modelA && modelA.value === 'その他') {
-        document.getElementById('ModelTextAWrapper').style.display = 'block';
-      }
-      if (modelB && modelB.value === 'その他') {
-        document.getElementById('ModelTextBWrapper').style.display = 'block';
-      }
-      if (engSel && engSel.value === 'その他') {
-        document.getElementById('EngineTypeTextWrapper').style.display = 'block';
-      }
-    }
-
-    // 初期データがあればフォームに入れる
-    if (currentDocId) {
-      if (INITIAL_CAR_DATA && Object.keys(INITIAL_CAR_DATA).length > 0) {
-        fillFormFromRecord(INITIAL_CAR_DATA);
-      } else {
-        console.warn('指定された DocumentID のレコードがサーバ側で見つかりません:', currentDocId);
-        alert(
-          '指定された車両データが見つかりませんでした。\n' +
-          'DocumentID: ' + currentDocId
-        );
-      }
-    }
-
-    // 「その他」選択時に入力欄を表示
-    document.getElementById('ModelSelectA').addEventListener('change', function () {
-      document.getElementById('ModelTextAWrapper').style.display =
-        (this.value === 'その他') ? 'block' : 'none';
-    });
-    document.getElementById('ModelSelectB').addEventListener('change', function () {
-      document.getElementById('ModelTextBWrapper').style.display =
-        (this.value === 'その他') ? 'block' : 'none';
-    });
-    document.getElementById('EngineTypeSelect').addEventListener('change', function () {
-      document.getElementById('EngineTypeTextWrapper').style.display =
-        (this.value === 'その他') ? 'block' : 'none';
-    });
-
-    // ===== フォーム送信処理 =====
-    window.handleSubmit = function (e) {
-      e.preventDefault();
-
-      setSubmitting(true);
-
-      const formData = {};
-      const fd = new FormData(form);
-
-      fd.forEach(function (value, key) {
-        if (formData[key] === undefined) {
-          formData[key] = value;
-        }
-      });
-
-      const isEdit   = !!currentDocId;
-      const serverFn = isEdit ? 'updateCarFromForm' : 'saveCarFromForm';
-
-      google.script.run
-        .withSuccessHandler(function (result) {
-          console.log('save/update result =', result);
-          setSubmitting(false);
-
-          if (!result || !result.ok) {
-            alert('保存処理は完了しましたが、結果の取得に失敗しました。');
-            // 自動遷移は行わず、完了画面＋リンクを表示
-            showSaveResult(null);
-            return;
+        fd.forEach(function (value, key) {
+          if (formData[key] === undefined) {
+            formData[key] = value;
           }
+        });
 
-          // 自動遷移せず、完了画面＋リンクを表示
-          showSaveResult(result);
-        })
-        .withFailureHandler(function (err) {
-          console.error('save/update error', err);
-          setSubmitting(false);
+        const isEdit   = !!currentDocId;
+        const serverFn = isEdit ? 'updateCarFromForm' : 'saveCarFromForm';
 
-          var msg = (err && err.message) ? String(err.message) : '';
+        google.script.run
+          .withSuccessHandler(function (result) {
+            console.log('save/update result =', result);
+            setSubmitting(false);
 
-          if (msg.indexOf('この車両を編集できるのは') >= 0) {
-            alert(
-              'この車両を編集できるのは、登録したオーナー本人（または管理者）のみです。\n' +
-              '車両詳細画面に戻ります。'
-            );
-            if (currentDocId) {
-              const detailUrl = scriptUrlFromServer
-                + '?mode=detail&doc=' + encodeURIComponent(currentDocId);
-              window.location.href = detailUrl;
-            } else {
-              window.location.href = scriptUrlFromServer + '?mode=index';
+            if (!result || !result.ok) {
+              alert('保存処理は完了しましたが、結果の取得に失敗しました。');
+              showSaveResult(null);
+              return;
             }
-            return;
-          }
 
-          alert('保存に失敗しました：\n' + msg);
-        })[serverFn](formData);
-    };
-  })();
+            showSaveResult(result);
+          })
+          .withFailureHandler(function (err) {
+            console.error('save/update error', err);
+            setSubmitting(false);
+
+            var msg = (err && err.message) ? String(err.message) : '';
+            alert('保存に失敗しました：\n' + msg);
+          })[serverFn](formData);
+      };
+    })();
   </script>
 </body>
 </html>
