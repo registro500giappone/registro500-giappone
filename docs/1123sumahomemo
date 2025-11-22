@@ -1,0 +1,149 @@
+## ① スマホ表示レギュレーションメモ（次回以降の共通ルール）
+
+**Registro500Giappone 用 “スマホ寄りレイアウト” の共通ルール**
+
+1. **viewport 設定**
+
+   ```html
+   <meta name="viewport"
+         content="width=device-width, initial-scale=1">
+   ```
+
+   * ズーム禁止まではしない（`maximum-scale=1.0` は付けない）
+   * iOS の変な拡大を止めたいときは CSS 側で
+     `body { -webkit-text-size-adjust: 100%; }` を付ける
+
+2. **ベースの文字サイズ**
+
+   ```css
+   html {
+     font-size: 28px;          /* スマホ基準（Glide っぽく大きめ） */
+   }
+   @media (min-width: 1025px) {
+     html { font-size: 18px; }  /* PC 向け */
+   }
+   ```
+
+   * 「スマホ前提で大きめ → PC で落とす」思想を統一
+
+3. **カード & 背景の共通トーン**
+
+   ```css
+   :root {
+     --rg-surface: #ffffff;
+     --rg-bg: #f4f6f8;
+     --rg-border: #e5e7eb;
+     --rg-text: #111827;
+     --rg-muted: #6b7280;
+
+     --rg-accent: #2856a8;
+     --rg-accent-soft: #e6efff;
+     --rg-accent-border: #c2d4ff;
+     --rg-radius-card: 1rem;
+   }
+
+   body {
+     background: var(--rg-bg);
+     color: var(--rg-text);
+     font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans JP", sans-serif;
+   }
+
+   .rg-card {
+     background: var(--rg-surface);
+     border-radius: var(--rg-radius-card);
+     border: 1px solid var(--rg-border);
+     padding: 1rem 1.1rem;
+   }
+   ```
+
+4. **セクション見出し（青ピル＋縦棒）**
+
+   ```css
+   .rg-section-title {
+     position: relative;
+     margin: 0 0 0.6rem;
+     font-weight: 700;
+     color: var(--rg-text);
+     font-size: 0.95rem;
+     display: inline-flex;
+     align-items: center;
+     gap: 0.35rem;
+     padding: 0.18rem 0.8rem 0.18rem 1.05rem;
+     border-radius: 999px;
+     background: linear-gradient(
+       90deg,
+       rgba(40, 86, 168, 0.14),
+       rgba(40, 86, 168, 0.02)
+     );
+   }
+
+   .rg-section-title::before {
+     content: "";
+     position: absolute;
+     left: 0.4rem;
+     top: 50%;
+     transform: translateY(-50%);
+     width: 0.18rem;
+     height: 1.1em;
+     border-radius: 999px;
+     background: var(--rg-accent);
+   }
+
+   @media (max-width: 1024px) {
+     .rg-section-title {
+       font-size: 1.6rem;   /* スマホでは大きめに */
+     }
+   }
+   ```
+
+5. **項目名・値のフォントサイズ**
+
+   * detail & edit 共通イメージ：
+
+   ```css
+   .rg-spec-grid,
+   .rg-sns-grid,
+   .rg-highlights {
+     font-size: 0.95rem;
+   }
+
+   @media (max-width: 1024px) {
+     .rg-spec-grid,
+     .rg-sns-grid,
+     .rg-highlights {
+       font-size: 1.4rem;
+     }
+   }
+   ```
+
+   * label / input / select / textarea も **同じ 0.95rem / 1.4rem ライン**に合わせる
+
+6. **入力フォームでボタンが隠れない対策**
+
+   * 画面下の赤ボタンを確実に見せる：
+
+   ```css
+   body {
+     padding-bottom: 96px;                   /* スマホ用に多めの下余白 */
+   }
+   @media (min-width: 768px) {
+     body { padding-bottom: 48px; }          /* PC は少し減らす */
+   }
+   ```
+
+   * `position: fixed` ボタンを使う場合は
+     `bottom: env(safe-area-inset-bottom);` などを組み合わせる
+
+7. **ズーム時の「横欠け防止」**
+
+   ```css
+   html, body {
+     max-width: 100%;
+     overflow-x: hidden;
+   }
+   ```
+
+このセットを **「スマホ優先レギュレーション」**として
+次の owner / edit / 将来のフォームにもそのまま再利用で OK、という整理です。
+
+---
