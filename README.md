@@ -1,139 +1,92 @@
-# Registro500 Giappone  
-クラシック Fiat 500 オーナー向け「完全無料」登録・公開プラットフォーム  
-（Google Sheets × Apps Script × Firebase Storage × Firebase Auth）
+# Registro500 Giappone – 開発状況＆引継ぎメモ (2025-11-24)
+
+> **⚠️ 重要：アーキテクチャ変更 (2025-11-24)**
+> 以前の「GAS WebApp 単体構成」は廃止されました。
+> 現在は **「Vercel (Frontend) + GAS (Backend API)」の分離構成** で稼働しています。
 
 ---
 
-# 🎯 プロジェクト概要
+## 🏗 新アーキテクチャ概要
 
-Registro500 Giappone は、  
-クラシック FIAT 500（110D / 110F / 126 系）の **オーナー自身が登録／編集でき**、  
-一般ユーザーは自由に閲覧できる **完全無料の Web プラットフォーム** です。
+「完全無料・永続運用・Google Sheets 管理」という要件を維持しつつ、GAS 特有の不具合（403エラー等）を回避するための構成。
 
-**技術スタック（完全無料・長期安定運用）**
-- Google Sheets（マスターデータ）
-- Apps Script WebApp（index / detail / edit / owner / policy / howto）
-- Firebase Storage（画像保存）
-- Firebase Auth（Googleログイン）
-- Google Sites（必要時のみ利用）
-
----
-
-# 🏗 アーキテクチャ概要（最適解｜2025-11-20）
-
-## 公開側（誰でも閲覧）
-| 機能 | URL |
-|------|-----|
-| 車両一覧 | `/exec` |
-| 車両詳細 | `/exec?mode=detail&doc=DOC_xxx` |
-
-## 編集側（オーナー本人のみ）
-| 状態 | 表示されるボタン |
-|------|-------------------|
-| オーナー本人 | `/exec?mode=edit&doc=DOC_xxx` |
-| 未ログイン／他人 | `/exec?mode=editGate&doc=DOC_xxx` |
-
-## データ構成
-- Google Sheets：`cars`
-- 主キー：DocumentID
-- オーナー判定：OwnerEmail
-- 画像：Firebase Storage（`cars/row_xxx/*`）
-- 表示補助：Model_DisplayA/B/C, Engine_Display
+| レイヤー | 技術スタック | 役割 | 備考 |
+| :--- | :--- | :--- | :--- |
+| **Frontend** | **Vercel** | HTML / CSS / JS のホスティング | GitHub 連携で自動デプロイ |
+| **Backend** | **GAS (API化)** | データ処理、権限チェック | `doGet`, `doPost` で JSON を返す |
+| **Database** | **Google Sheets** | データ保存 (`cars` シート) | GAS からのみアクセス |
+| **Auth** | **Firebase Auth** | ユーザー認証 (Google ログイン) | **Identity Toolkit API** で検証 |
+| **Storage** | **Firebase Storage** | 画像保存 | (次回以降実装予定) |
 
 ---
 
-# ⚠ スマホ表示とデプロイキャッシュについて（重要）
+## 🕒 経緯と変更理由 (History)
 
-Apps Script WebApp 特有の強いキャッシュにより、  
-**CSS 更新が反映されない／v=xxx が効かない** ことがある。
+### ❌ 旧構成：GAS WebApp (Monolithic)
+* **構成:** GAS の `HtmlService` で HTML を出力し、`google.script.run` で通信。
+* **直面した課題:**
+    1.  **403 Forbidden の頻発:** ユーザーが複数の Google アカウントにログインしていると、GAS の仕様によりアクセス権限エラーが発生（回避不能）。
+    2.  **デプロイ地獄:** コード修正のたびに「デプロイを管理 → 新しいバージョン作成」が必要で、反映ラグやキャッシュにより開発効率が著しく低下。
+    3.  **認証の不安定さ:** リダイレクト時のセッション切れや、`tokeninfo` エンドポイントの相性問題（Invalid Value）が発生。
 
-### 対策（確実性が最も高い順）
-1. **既存タブを閉じる → 新規タブで URL を開き直す**  
-2. `?v=xxx` は効かない場合がある  
-3. 反映まで数秒〜数分かかる  
-4. PC／スマホ両方で確認する
-
----
-
-# 🔧 AI協業ルール（固定）
-
-1. **作業は必ず一歩ずつ**
-2. **不具合は類推せず、事実を必ず確認**
-3. **修正は原則「ファイル丸ごと」**
-4. **小手先対応は絶対にしない**
-5. **スマホ最優先**
-6. **スクショは細部まで確認**
-7. **最新の状態を踏まえて判断する**
+### ✅ 現構成：Headless (Separated)
+* **解決策:** 表示層（HTML）を GAS から切り離し、Vercel に委譲。GAS は純粋な API サーバーとして稼働。
+* **成果:**
+    * 403 エラーの完全根絶（サイト自体は Google サーバー外にあるため）。
+    * GitHub に Push するだけで即時反映される高速な開発サイクル。
+    * Firebase Identity Toolkit を用いた堅牢なトークン検証により、保存処理が安定。
 
 ---
 
-# ⚠ 補足①｜ログイン方式の最終方針
+## 📂 リポジトリ構造とデプロイ手順
 
-現在は **Apps Script ActiveUser** をオーナー判定に使用（暫定）。  
-しかし **最終形は Firebase Auth に一本化** する。
+### 1. Frontend (GitHub / Vercel)
+* **場所:** リポジトリのルート (`/`)
+* **ファイル:** `index.html`, `detail.html`, `edit.html`, `policy.html`, `howto.html` 等
+* **デプロイ:**
+    * GitHub の `main` ブランチに Push (またはファイル作成/編集) すると、Vercel が自動検知してデプロイ。
+    * **注意:** `gas/sites/` 以下のファイルは現在使用していない（Vercel 設定はルートを参照）。
 
-- edit.html はすでに Firebase Auth 前提  
-- AuthEmail hidden も Firebase 方式  
-- 将来：Firebase Auth の E-mail と OwnerEmail を照合し完全統一の予定  
-
----
-
-# ⚠ 補足②｜editGate のログインボタン
-
-現在：ダミー実装（console.log）  
-最終形：  
-- Firebase Auth → signInWithRedirect  
-- ログイン成功後 → `/exec?mode=edit&doc=DOC_xxx` へ自動遷移  
-
-＝ **未来仕様を先に作ってあり、接続がこれからの段階**
+### 2. Backend (Google Apps Script)
+* **場所:** `main.gs` (GAS エディタ上)
+* **デプロイ:**
+    * コード修正後は必ず **「デプロイ」→「デプロイを管理」→「バージョン：新しく作成」** が必要。
+    * API URL: `https://script.google.com/macros/s/AKfycb.../exec`
 
 ---
 
-# 📝 最新作業メモ（2025-11-20 時点）  
-※この枠だけ毎回更新する。それ以外の章は固定。
+## ✅ 現状のステータス (Current Status)
 
-<details>
-<summary>▼ クリックして全文を表示（あなたの引継ぎメモそのまま）</summary>
-
-```
-<<< ここにあなたがチャットで投稿した「全文引継ぎメモ」を一字一句そのまま貼ってください >>>  
-（非常に長いため、この README では省略。GitHub への貼り付け時にこの部分を置き換えてください）
-
-※ ChatGPT は巨大テキストを 100% 正確に再現するため、  
-　あなた自身が貼ったオリジナル全文をそのままコピペする方が確実です。
-```
-
-</details>
+* [x] **一覧表示:** Vercel から GAS API を叩き、JSON データを取得して表示成功。
+* [x] **詳細表示:** クエリパラメータ (`?doc=DOC_xxx`) で遷移し、個別データを表示成功。
+* [x] **ログイン:** Firebase Auth (Popup) による Google ログイン実装完了。
+* [x] **編集/保存:**
+    * フロントから ID Token を POST 送信。
+    * GAS 側で `identitytoolkit.googleapis.com` を使用してトークン検証（Invalid Value 問題解決済み）。
+    * スプレッドシートへの書き込み・更新成功。
 
 ---
 
-# 🧩 現在の未解決課題（変動する部分）
+## 🚀 次回の作業 (Next Steps)
 
-※今日解決した内容は除外済み  
-（detail スマホ表示、CSS反映問題、ギャラリー、nowrap… → 完全解決）
+新しいチャットで再開する際は、以下のタスクから着手する。
 
-### 🔴 1. iPhone Safari：edit 保存後に白画面で止まる  
-- PC 正常  
-- iPhone Safari の iframe / google.script.run の相性の可能性  
-- 次回：`top.location.href` などの遷移方式テスト
-
-### 🟠 2. editGate のログイン処理（未接続）  
-- Firebase Auth の login → redirect → edit の実装が必要
-
-### 🟠 3. 新規登録フロー（docなし edit）の未完成  
-- saveCarFromForm は動く  
-- owner.html → 新規登録導線が未実装
-
-### 🟡 4. GAS「Driveリクエスト集中」警告の原因調査  
-- シートアクセス過多の可能性  
-- CacheService 再評価が必要
+1.  **画像アップロード機能の実装**
+    * 現在、画像欄は URL 直打ちのみ。
+    * Firebase Storage へのアップロード UI を `edit.html` に追加する。
+2.  **コードの整理**
+    * `index.html` や `edit.html` 内の JavaScript が長くなっているため、必要に応じて `js/app.js` 等に切り出す検討。
+3.  **UI/UX の微調整**
+    * 読み込み中のローディング表示の改善など。
 
 ---
 
-# 🗂 進行ログ（任意）
+### 🔑 認証ロジックの重要メモ（開発者向け）
 
-- 2025-11-20：detail elder layout 完成  
-- 2025-11-20：スマホ CSS 反映の仕組みを確定  
-- 2025-11-20：README 全体構造（固定 vs 可変）を設計完了
+GAS 側の `verifyIdToken_` 関数は、過去の `tokeninfo` (v1/v2) ではなく、**Firebase Identity Toolkit API** を使用しています。
+安易に古いメソッド（`UrlFetchApp.fetch(oauth2...)`）に戻さないこと。
 
----
+```javascript
+// 成功パターン（現在の実装）
+const endpoint = '[https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=](https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=)' + FIREBASE_API_KEY;
+// ... payload は JSON で送信
