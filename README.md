@@ -1,92 +1,108 @@
-# Registro500 Giappone – 開発状況＆引継ぎメモ (2025-11-24)
+大変申し訳ありません。その通りです。
+「今日の変更点」に集中するあまり、このプロジェクトの根幹である **「目的」** や **「あなたとの作業ルール（小手先禁止など）」** を削除してしまっていました。これらがなくなると、次のチャットでまた同じ失敗を繰り返すことになります。
 
-> **⚠️ 重要：アーキテクチャ変更 (2025-11-24)**
+**元々の `readme.md` の内容をベースに、今日の「アーキテクチャ変更」と「最新の仕様」を統合した、完全版の `README.md`** を作成しました。
+
+これを GitHub の `README.md` に上書きしてください。
+次のチャットでは、最初にこれを読ませることで、**「Vercel構成であること」** と **「作業の流儀」** を即座に理解させることができます。
+
+---
+
+# 📌 Registro500 Giappone – プロジェクト概要・アーキテクチャ・作業ルール（2025-11-24 最新版）
+
+> **⚠️ 開発者・AI への重要なお知らせ**
+> 本プロジェクトは 2025-11-24 に **アーキテクチャを抜本的に変更** しました。
 > 以前の「GAS WebApp 単体構成」は廃止されました。
 > 現在は **「Vercel (Frontend) + GAS (Backend API)」の分離構成** で稼働しています。
+> **絶対に旧構成（GASでHTMLを返す方式）に戻さないでください。**
 
 ---
 
-## 🏗 新アーキテクチャ概要
+# 1. 🎯 プロジェクト目的
 
-「完全無料・永続運用・Google Sheets 管理」という要件を維持しつつ、GAS 特有の不具合（403エラー等）を回避するための構成。
+* 日本国内のクラシック Fiat 500（110D / 110F / 126 系）個体を登録・蓄積し、オーナー／オーナー候補が情報共有できるオンラインガレージを作る。
+* 一般ユーザーは **一覧・詳細** を自由閲覧。
+* 登録・編集は **オーナー本人のみ**（Google アカウント認証に基づく）。
+* **完全無料の運用** を前提とし、長期安定性を最優先とする。
 
-| レイヤー | 技術スタック | 役割 | 備考 |
+---
+
+# 2. 📝 作業ルール（厳守）
+
+> **新しいチャットを開始するときは、必ずこのセクションを AI に読ませること。**
+
+1.  **一歩ずつ進める:** 複雑な実装は一気にやらず、ステップごとに確認する。
+2.  **小手先の修正禁止:**
+    * 目の前のエラーを消すだけの対症療法（try-catchで握りつぶす、安易なリダイレクト回避など）は禁止。
+    * 「なぜ起きたか」の根本原因を特定してから修正する。
+3.  **全体整合性を重視:** コードの一部だけを見て修正しない。全体（Frontend/Backend）の整合性を見る。
+4.  **コード修正は「全体差し替え」:** 部分的な修正はミスの温床となるため、可能な限りファイル単位での全書き換えコードを提示する。
+5.  **スクショ確認:** ユーザーからスクリーンショットが提示されたら、隅々まで（URL、行数、エラー内容）確認してから回答する。
+
+---
+
+# 3. 🏗 アーキテクチャ（Headless構成｜2025-11-24 確定）
+
+「GAS WebApp の 403 エラー」や「デプロイ反映ラグ」を解決するため、フロントエンドを分離しました。
+
+| レイヤー | 技術スタック | 役割 | デプロイ/更新方法 |
 | :--- | :--- | :--- | :--- |
-| **Frontend** | **Vercel** | HTML / CSS / JS のホスティング | GitHub 連携で自動デプロイ |
-| **Backend** | **GAS (API化)** | データ処理、権限チェック | `doGet`, `doPost` で JSON を返す |
-| **Database** | **Google Sheets** | データ保存 (`cars` シート) | GAS からのみアクセス |
-| **Auth** | **Firebase Auth** | ユーザー認証 (Google ログイン) | **Identity Toolkit API** で検証 |
-| **Storage** | **Firebase Storage** | 画像保存 | (次回以降実装予定) |
+| **Frontend** | **Vercel** | HTML / CSS / JS のホスティング | GitHub の `main` ブランチに Push すると自動反映 |
+| **Backend** | **GAS (API)** | データ処理、権限チェック | `main.gs` を修正後、「デプロイを管理」→「新しく作成」 |
+| **Database** | **Google Sheets** | データ保存 (`cars` シート) | GAS からのみアクセス（直接編集不可） |
+| **Auth** | **Firebase Auth** | Google ログイン (Popup) | `edit.html` でトークン取得 → GAS へ送信 |
+| **Images** | **Firebase Storage** | 車両画像の保存 | (次回実装予定) |
+
+### 📂 ファイル構成と役割
+
+* **GitHub (Frontend)**
+    * `index.html`: 車両一覧。GAS API から JSON を取得してレンダリング。
+    * `detail.html`: 車両詳細。URL パラメータ `?doc=DOC_xxx` でデータを取得。
+    * `edit.html`: 登録・編集・ログイン。Firebase Auth で認証し、ID トークンを GAS に POST する。
+* **GAS (Backend)**
+    * `main.gs`:
+        * `doGet`: データの取得リクエスト (JSON 返却)。
+        * `doPost`: データの保存・更新リクエスト (JSON 返却)。
+        * `verifyIdToken_`: Firebase Identity Toolkit を使用した厳格なトークン検証。
 
 ---
 
-## 🕒 経緯と変更理由 (History)
+# 4. 🔐 認証・権限仕様（最新）
 
-### ❌ 旧構成：GAS WebApp (Monolithic)
-* **構成:** GAS の `HtmlService` で HTML を出力し、`google.script.run` で通信。
-* **直面した課題:**
-    1.  **403 Forbidden の頻発:** ユーザーが複数の Google アカウントにログインしていると、GAS の仕様によりアクセス権限エラーが発生（回避不能）。
-    2.  **デプロイ地獄:** コード修正のたびに「デプロイを管理 → 新しいバージョン作成」が必要で、反映ラグやキャッシュにより開発効率が著しく低下。
-    3.  **認証の不安定さ:** リダイレクト時のセッション切れや、`tokeninfo` エンドポイントの相性問題（Invalid Value）が発生。
+### 認証フロー
+1.  **Client (`edit.html`):** Firebase Auth (Popup) で Google ログイン。ID トークンを取得。
+2.  **Request:** `formData` と一緒に `idToken` を GAS API へ POST 送信。
+3.  **Server (`main.gs`):**
+    * `verifyIdToken_` 関数で **Firebase Identity Toolkit API** を叩き、トークンの正当性とメールアドレスを確認。
+    * GAS の `Session.getActiveUser()` は使用しない（API モードでは取得できないため）。
+4.  **Permission:**
+    * **新規登録:** トークンが有効なら許可。
+    * **編集:** トークンのメールアドレスと、DB (`cars` シート) の `OwnerEmail` が一致する場合のみ許可。
 
-### ✅ 現構成：Headless (Separated)
-* **解決策:** 表示層（HTML）を GAS から切り離し、Vercel に委譲。GAS は純粋な API サーバーとして稼働。
-* **成果:**
-    * 403 エラーの完全根絶（サイト自体は Google サーバー外にあるため）。
-    * GitHub に Push するだけで即時反映される高速な開発サイクル。
-    * Firebase Identity Toolkit を用いた堅牢なトークン検証により、保存処理が安定。
+> **⚠️ 重要:** GAS 側の検証ロジックには、古い `oauth2.googleapis.com/tokeninfo` を使わないこと（POST 時の Invalid Value エラーの原因）。必ず `identitytoolkit` を使用する。
 
 ---
 
-## 📂 リポジトリ構造とデプロイ手順
+# 5. ✅ 現状のステータス (2025-11-24 終了時点)
 
-### 1. Frontend (GitHub / Vercel)
-* **場所:** リポジトリのルート (`/`)
-* **ファイル:** `index.html`, `detail.html`, `edit.html`, `policy.html`, `howto.html` 等
-* **デプロイ:**
-    * GitHub の `main` ブランチに Push (またはファイル作成/編集) すると、Vercel が自動検知してデプロイ。
-    * **注意:** `gas/sites/` 以下のファイルは現在使用していない（Vercel 設定はルートを参照）。
-
-### 2. Backend (Google Apps Script)
-* **場所:** `main.gs` (GAS エディタ上)
-* **デプロイ:**
-    * コード修正後は必ず **「デプロイ」→「デプロイを管理」→「バージョン：新しく作成」** が必要。
-    * API URL: `https://script.google.com/macros/s/AKfycb.../exec`
+* **稼働中:** Vercel 上で一覧・詳細・編集・保存の全機能が動作確認済み。
+* **解決済み:**
+    * GAS の 403 エラー（Vercel 移行により解決）。
+    * デプロイ反映されない問題（GitHub 連携により解決）。
+    * 認証エラー "Invalid Value"（検証 API の変更により解決）。
+    * ローカルでの CORS / Protocol エラー（Vercel 上での動作確認により解決）。
 
 ---
 
-## ✅ 現状のステータス (Current Status)
-
-* [x] **一覧表示:** Vercel から GAS API を叩き、JSON データを取得して表示成功。
-* [x] **詳細表示:** クエリパラメータ (`?doc=DOC_xxx`) で遷移し、個別データを表示成功。
-* [x] **ログイン:** Firebase Auth (Popup) による Google ログイン実装完了。
-* [x] **編集/保存:**
-    * フロントから ID Token を POST 送信。
-    * GAS 側で `identitytoolkit.googleapis.com` を使用してトークン検証（Invalid Value 問題解決済み）。
-    * スプレッドシートへの書き込み・更新成功。
-
----
-
-## 🚀 次回の作業 (Next Steps)
-
-新しいチャットで再開する際は、以下のタスクから着手する。
+# 6. 🚀 次回の作業タスク
 
 1.  **画像アップロード機能の実装**
     * 現在、画像欄は URL 直打ちのみ。
-    * Firebase Storage へのアップロード UI を `edit.html` に追加する。
-2.  **コードの整理**
-    * `index.html` や `edit.html` 内の JavaScript が長くなっているため、必要に応じて `js/app.js` 等に切り出す検討。
+    * `edit.html` に Firebase Storage へのアップロード UI を追加し、取得した URL をフォームに入れる処理を作る。
+2.  **コードの整理（リファクタリング）**
+    * `index.html`, `detail.html`, `edit.html` 内の共通設定（`API_URL` や `firebaseConfig`）を `config.js` 等に切り出す。
 3.  **UI/UX の微調整**
-    * 読み込み中のローディング表示の改善など。
+    * ローディング表示のデザイン改善。
+    * 「保存しました」後の遷移フローの整備。
 
 ---
-
-### 🔑 認証ロジックの重要メモ（開発者向け）
-
-GAS 側の `verifyIdToken_` 関数は、過去の `tokeninfo` (v1/v2) ではなく、**Firebase Identity Toolkit API** を使用しています。
-安易に古いメソッド（`UrlFetchApp.fetch(oauth2...)`）に戻さないこと。
-
-```javascript
-// 成功パターン（現在の実装）
-const endpoint = '[https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=](https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=)' + FIREBASE_API_KEY;
-// ... payload は JSON で送信
