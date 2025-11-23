@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>車両詳細 - Registro500 Giappone</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    /* ========== ベースの文字サイズ ========== */
+    html {
+      font-size: 28px !important;            /* モバイル基準 */
+    }
+    @media (min-width: 1025px) {
+      html { font-size: 18px !important; }   /* PC */
+    }
+
+    /* Bootstrap の small / .small を無効化 */
+    small, .small { font-size: 1rem; }
+
+    :root {
+      --rg-surface: #ffffff; --rg-surface-sub: #f8fafc; --rg-bg: #f4f6f8;
+      --rg-border: #e5e7eb; --rg-text: #111827; --rg-muted: #6b7280;
+      --rg-accent: #2856a8; --rg-accent-soft: #e6efff; --rg-accent-border: #c2d4ff;
+      --rg-radius-card: 1rem;
+    }
+
+    body {
+      margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", sans-serif;
+      line-height: 1.7; color: var(--rg-text); background: var(--rg-bg);
+    }
+
+    .rg-main { max-width: 72rem; }
+    .rg-back a { text-decoration: none; color: var(--rg-accent); }
+
+    /* ===== カード共通 ===== */
+    .rg-card {
+      background: var(--rg-surface); border-radius: var(--rg-radius-card);
+      border: 1px solid var(--rg-border); padding: 1rem 1.1rem;
+    }
+
+    /* ===== 左側：フォトカード ===== */
+    @media (min-width: 992px) {
+      .rg-photo-col { position: sticky; top: 1rem; }
+    }
+
+    .rg-photo-square {
+      position: relative; width: 100%; padding-top: 100%; /* 正方形 */
+      border-radius: 0.9rem; border: 1px solid var(--rg-border);
+      overflow: hidden; background: var(--rg-surface-sub);
+    }
+
+    .rg-photo-square > img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: contain; display: block; cursor: zoom-in;
+    }
+
+    .rg-photo-title-main {
+      margin-top: 0.75rem; margin-bottom: 0.2rem; display: flex; flex-wrap: wrap;
+      gap: 0.35rem; align-items: baseline; font-size: clamp(1.15rem, 4.6vw, 1.4rem);
+      font-weight: 800; letter-spacing: 0.01em; line-height: 1.3;
+    }
+
+    .rg-photo-year { font-size: 0.75em; font-weight: 600; color: var(--rg-muted); }
+    .rg-photo-model-main { font-weight: inherit; }
+
+    .rg-photo-owner-row {
+      margin-top: 0.25rem; font-size: 0.95rem; display: flex; align-items: center;
+      gap: 0.5rem; line-height: 1.4;
+    }
+
+    .rg-photo-handle { font-weight: 500; }
+
+    .rg-photo-pref {
+      margin-left: auto; padding: 0.15rem 0.6rem; border-radius: 999px;
+      background: var(--rg-accent-soft); border: 1px solid var(--rg-accent-border);
+      color: var(--rg-accent); font-size: 0.9rem; white-space: nowrap;
+    }
+
+    /* ===== セクション見出し ===== */
+    .rg-section-title {
+      position: relative; margin: 0 0 0.6rem; font-weight: 700; color: var(--rg-text);
+      font-size: 0.95rem; display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.18rem 0.8rem 0.18rem 1.05rem; border-radius: 999px;
+      background: linear-gradient(90deg, rgba(40, 86, 168, 0.14), rgba(40, 86, 168, 0.02));
+      line-height: 1.4;
+    }
+    .rg-section-title::before {
+      content: ""; position: absolute; left: 0.4rem; top: 50%; transform: translateY(-50%);
+      width: 0.18rem; height: 1.1em; border-radius: 999px; background: var(--rg-accent);
+    }
+
+    /* ===== スペック表 ===== */
+    .rg-spec-grid {
+      display: grid; grid-template-columns: minmax(10rem, 12rem) 1fr;
+      column-gap: 0.6rem; row-gap: 0; margin: 0; font-size: 0.95rem;
+      border-top: 1px solid var(--rg-border); border-bottom: 1px solid var(--rg-border);
+    }
+    .rg-spec-grid dt, .rg-spec-grid dd {
+      padding: 0.45rem 0.2rem; border-top: 1px solid var(--rg-border); margin: 0;
+      word-break: break-word; line-height: 1.5;
+    }
+    .rg-spec-grid dt {
+      font-weight: 600; color: var(--rg-muted); background: rgba(148, 163, 184, 0.05); white-space: nowrap;
+    }
+    .rg-spec-grid dd { white-space: pre-wrap; }
+
+    .rg-highlights { margin: 0; font-size: 0.95rem; line-height: 1.7; }
+
+    /* ===== SNS ===== */
+    .rg-sns-grid {
+      margin: 0; display: grid; grid-template-columns: minmax(5.5rem, 7.5rem) 1fr;
+      column-gap: 0.6rem; row-gap: 0; border-top: 1px solid var(--rg-border);
+      border-bottom: 1px solid var(--rg-border); font-size: 0.95rem;
+    }
+    .rg-sns-grid dt, .rg-sns-grid dd {
+      margin: 0; padding: 0.45rem 0.2rem; border-top: 1px solid var(--rg-border); line-height: 1.5;
+    }
+    .rg-sns-grid dt {
+      font-weight: 600; color: var(--rg-muted); background: rgba(148, 163, 184, 0.05);
+    }
+    .rg-sns-grid dd a { color: var(--rg-accent); text-decoration: none; word-break: break-all; }
+    .rg-sns-grid dd a:hover { text-decoration: underline; }
+
+    /* ===== ギャラリー ===== */
+    .rg-gallery-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+      gap: 0.8rem; margin: 0;
+    }
+    .rg-gallery-item { text-align: center; font-size: 0.9rem; line-height: 1.4; }
+    .rg-gallery-thumb {
+      border-radius: 0.6rem; border: none; background: transparent;
+      overflow: hidden; position: relative; padding-top: 100%;
+    }
+    .rg-gallery-thumb > img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: contain; display: block; cursor: zoom-in;
+    }
+
+    .rg-footer-back { text-align: left; font-size: 0.9rem; }
+
+    /* ===== ライトボックス ===== */
+    .rg-lightbox {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75);
+      display: none; align-items: center; justify-content: center; z-index: 9999;
+    }
+    .rg-lightbox.is-open { display: flex; }
+    .rg-lightbox-inner {
+      max-width: min(90vw, 900px); max-height: min(90vh, 900px); position: relative;
+    }
+    .rg-lightbox-inner img {
+      width: 100%; height: 100%; object-fit: contain; border-radius: 0.75rem; background: #000;
+    }
+    .rg-lightbox-close {
+      position: absolute; top: 0.4rem; right: 0.4rem; border: none; border-radius: 999px;
+      padding: 0.2rem 0.6rem; font-size: 1.2rem; background: rgba(15, 23, 42, 0.7);
+      color: #fff; cursor: pointer;
+    }
+
+    /* 上部：戻る＋編集ボタン */
+    .rg-back {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.75rem; flex-wrap: wrap;
+    }
+    .rg-edit-btn {
+      font-size: 0.9rem; padding: 0.25rem 1.0rem; border-radius: 999px;
+      border: 1px solid var(--rg-accent-border); background: var(--rg-accent-soft);
+      color: var(--rg-accent); text-decoration: none; display: inline-flex;
+      align-items: center; gap: 0.35rem; font-weight: 600;
+      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.16);
+      transition: background-color 0.12s ease, color 0.12s ease, transform 0.08s ease;
+      white-space: nowrap;
+    }
+    .rg-edit-btn:hover {
+      background: var(--rg-accent); color: #ffffff; transform: translateY(-1px);
+    }
+    .rg-edit-btn:active { transform: translateY(0); }
+    .rg-edit-icon { font-size: 1.05em; line-height: 1; }
+
+    /* スマホ用フォント拡大 */
+    @media (max-width: 1024px) {
+      .rg-section-title { font-size: 1.6rem; }
+      .rg-spec-grid, .rg-highlights, .rg-sns-grid { font-size: 1.4rem; }
+      .rg-photo-title-main { font-size: 1.8rem; }
+      .rg-photo-handle { font-size: 1.4rem; }
+    }
+
+    /* ローディング・非表示制御 */
+    #loading { text-align:center; padding:50px; font-size:1.2rem; color:#666; }
+    #content { display:none; }
+  </style>
+</head>
+
+<body>
+  <main class="container-lg rg-main py-3">
+
+   <div class="rg-back mb-2">
+     <a href="index.html">← 車両一覧に戻る</a>
+
+     <a id="editBtn" class="rg-edit-btn" href="#" style="display:none;">
+       <span class="rg-edit-icon">✏️</span>
+       この車両のオーナーの方はログインして編集
+     </a>
+   </div>
+
+   <div id="loading">詳細データを読み込んでいます...</div>
+
+   <div id="content">
+      <div class="row g-3 align-items-start">
+        
+        <div class="col-12 col-lg-5 rg-photo-col">
+          <section class="rg-card mb-3">
+            <div class="rg-photo-square">
+              <img id="photoMain" src="" alt="メイン写真" data-rg-zoomable>
+            </div>
+            <div class="rg-photo-title-main">
+              <span id="year" class="rg-photo-year"></span>
+              <span id="modelMain" class="rg-photo-model-main"></span>
+            </div>
+            <div class="rg-photo-owner-row">
+              <span id="handleName" class="rg-photo-handle"></span>
+              <span id="prefecture" class="rg-photo-pref"></span>
+            </div>
+          </section>
+
+          <section class="rg-card" id="gallerySection" style="display:none;">
+            <div class="rg-gallery-grid" id="galleryGrid">
+              </div>
+          </section>
+        </div>
+
+        <div class="col-12 col-lg-7">
+
+          <section class="rg-card mb-3">
+            <h2 class="rg-section-title">ボディスペック</h2>
+            <dl class="rg-spec-grid js-auto-hide">
+              <dt>ボディカラー</dt><dd id="val_BodyColor"></dd>
+              <dt>全長 (cm)</dt><dd id="val_Length_cm"></dd>
+              <dt>乗車定員</dt><dd id="val_Capacity"></dd>
+              <dt>ハンドル</dt><dd id="val_Steering"></dd>
+            </dl>
+          </section>
+
+          <section class="rg-card mb-3">
+            <h2 class="rg-section-title">エンジン関係</h2>
+            <dl class="rg-spec-grid js-auto-hide">
+              <dt>排気量 (cc)</dt><dd id="val_EngineCC"></dd>
+              <dt>エンジン形式</dt><dd id="val_Engine_Display"></dd>
+              <dt>点火形式</dt><dd id="val_IgnitionType"></dd>
+              <dt>デスビ/プラグ</dt><dd id="val_DistPlug"></dd> <dt>燃料供給装置</dt><dd id="val_FuelInjection"></dd>
+              <dt>キャブレター</dt><dd id="val_CarburetorName"></dd>
+              <dt>燃料ポンプ</dt><dd id="val_FuelPump"></dd>
+              <dt>電ポン</dt><dd id="val_ElectricPumpName"></dd>
+              <dt>発電機</dt><dd id="val_Generator"></dd>
+              <dt>オイルクーラー</dt><dd id="val_OilCooler"></dd>
+            </dl>
+          </section>
+
+          <section class="rg-card mb-3">
+            <h2 class="rg-section-title">駆動系・足回り</h2>
+            <dl class="rg-spec-grid js-auto-hide">
+              <dt>トランスミッション</dt><dd id="val_Transmission"></dd>
+              <dt>シンクロ</dt><dd id="val_Synchro"></dd>
+              <dt>ジョイント</dt><dd id="val_Joint"></dd>
+              <dt>ホイール</dt><dd id="val_Wheel"></dd>
+              <dt>リム径 (inch)</dt><dd id="val_RimDiameter_in"></dd>
+              <dt>リム幅 (inch)</dt><dd id="val_RimWidth_in"></dd>
+              <dt>タイヤ形式</dt><dd id="val_TireType"></dd>
+              <dt>タイヤサイズ</dt><dd id="val_TireSize"></dd>
+              <dt>タイヤメーカー</dt><dd id="val_TireBrandName"></dd>
+            </dl>
+          </section>
+
+          <section class="rg-card mb-3">
+            <h2 class="rg-section-title">オイル・バッテリー他</h2>
+            <dl class="rg-spec-grid js-auto-hide">
+              <dt>エンジンオイル</dt><dd id="val_EngineOil"></dd>
+              <dt>交換周期</dt><dd id="val_EngineOilInterval"></dd>
+              <dt>ミッションオイル</dt><dd id="val_TransmissionOil"></dd>
+              <dt>交換周期</dt><dd id="val_TransmissionOilInterval"></dd>
+              <dt>バッテリー</dt><dd id="val_Battery"></dd>
+            </dl>
+          </section>
+
+          <section class="rg-card mb-3" id="highlightsSection" style="display:none;">
+            <h2 class="rg-section-title">こだわりポイント</h2>
+            <p class="rg-highlights" id="val_Highlights"></p>
+          </section>
+
+          <section class="rg-card mb-3" id="snsSection" style="display:none;">
+            <h2 class="rg-section-title">SNS</h2>
+            <dl class="rg-sns-grid" id="snsGrid">
+              </dl>
+          </section>
+
+        </div></div><div class="rg-footer-back mt-3">
+        <a href="index.html">← 車両一覧に戻る</a>
+      </div>
+   </div></main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbz0BJpaG-AcK3T6YYtav-nfd3gqGlkEWu3AvpW5uRT52N9jW8pBKLrpLSqvXqyD2ghwCA/exec";
+    const NO_IMAGE_URL = 'https://firebasestorage.googleapis.com/v0/b/registro500giappone-93f98.firebasestorage.app/o/assets%2Fno_image_500.png?alt=media&token=6b54ce01-d76a-4b59-b815-f7e250f1fb78';
+
+    const params = new URLSearchParams(window.location.search);
+    const docId = params.get('doc');
+
+    async function fetchDetail() {
+      if (!docId) {
+        document.getElementById('loading').textContent = 'エラー: 車両IDが指定されていません';
+        return;
+      }
+      try {
+        const res = await fetch(`${API_URL}?mode=detail&doc=${docId}`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          renderDetail(json.data);
+        } else {
+          document.getElementById('loading').textContent = 'データの取得に失敗しました';
+        }
+      } catch (e) {
+        document.getElementById('loading').textContent = '通信エラーが発生しました';
+      }
+    }
+
+    function renderDetail(car) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+
+      // 1. 基本情報
+      setText('year', car.Year ? car.Year + '年' : '');
+      setText('modelMain', (car.Model_DisplayC || '').replace(/\s*\(\d{4}\)\s*$/, ''));
+      setText('handleName', car.HandleName);
+      setText('prefecture', car.Prefecture);
+
+      // 写真
+      const mainImg = document.getElementById('photoMain');
+      mainImg.src = car.PhotoMain || NO_IMAGE_URL;
+
+      // 2. 編集ボタン
+      const editBtn = document.getElementById('editBtn');
+      editBtn.href = `edit.html?doc=${encodeURIComponent(car.DocumentID)}`;
+      editBtn.style.display = 'inline-flex';
+
+      // 3. スペックの紐付け (IDとデータキーの対応)
+      const map = {
+        'val_BodyColor': car.BodyColor,
+        'val_Length_cm': car.Length_cm,
+        'val_Capacity': car.Capacity,
+        'val_Steering': car.Steering,
+        'val_EngineCC': car.EngineCC,
+        'val_Engine_Display': car.Engine_Display,
+        'val_IgnitionType': car.IgnitionType,
+        'val_FuelInjection': car.FuelInjection,
+        'val_CarburetorName': car.CarburetorName,
+        'val_FuelPump': car.FuelPump,
+        'val_ElectricPumpName': car.ElectricPumpName,
+        'val_Generator': car.Generator,
+        'val_OilCooler': car.OilCooler,
+        'val_Transmission': car.Transmission,
+        'val_Synchro': car.Synchro,
+        'val_Joint': car.Joint,
+        'val_Wheel': car.Wheel,
+        'val_RimDiameter_in': car.RimDiameter_in,
+        'val_RimWidth_in': car.RimWidth_in,
+        'val_TireType': car.TireType,
+        'val_TireSize': car.TireSize,
+        'val_TireBrandName': car.TireBrandName,
+        'val_EngineOil': car.EngineOil,
+        'val_EngineOilInterval': car.EngineOilInterval,
+        'val_TransmissionOil': car.TransmissionOil,
+        'val_TransmissionOilInterval': car.TransmissionOilInterval,
+        'val_Battery': car.Battery
+      };
+
+      for (const [id, val] of Object.entries(map)) {
+        setText(id, val);
+      }
+
+      // 複合項目
+      const dist = car.DistributionType || '';
+      const plug = car.PlugName || '';
+      setText('val_DistPlug', (dist && plug) ? `${dist} / ${plug}` : (dist || plug));
+
+      // 4. 空欄隠し (dl.js-auto-hide 内の空 dd を隠す)
+      document.querySelectorAll('.js-auto-hide').forEach(dl => {
+        const dts = dl.querySelectorAll('dt');
+        const dds = dl.querySelectorAll('dd');
+        dts.forEach((dt, i) => {
+          const dd = dds[i];
+          if (!dd.textContent.trim()) {
+            dt.style.display = 'none';
+            dd.style.display = 'none';
+          }
+        });
+      });
+
+      // 5. こだわりポイント
+      if (car.Highlights) {
+        document.getElementById('highlightsSection').style.display = 'block';
+        document.getElementById('val_Highlights').innerHTML = String(car.Highlights).replace(/\r\n|\r|\n/g, '<br>');
+      }
+
+      // 6. ギャラリー
+      const galleryGrid = document.getElementById('galleryGrid');
+      const photos = [
+        { key: 'PhotoFront', label: '前方' },
+        { key: 'PhotoSide', label: '側面' },
+        { key: 'PhotoRear', label: '後方' },
+        { key: 'PhotoEngine', label: 'エンジン' },
+        { key: 'PhotoInterior', label: '内装' },
+        { key: 'PhotoSteeringCluster', label: 'ハンドル/メーター' }
+      ];
+      let hasGallery = false;
+      photos.forEach(p => {
+        if (car[p.key]) {
+          hasGallery = true;
+          const div = document.createElement('div');
+          div.className = 'rg-gallery-item';
+          div.innerHTML = `
+            <div class="rg-gallery-thumb">
+              <img src="${car[p.key]}" alt="${p.label}" data-rg-zoomable>
+            </div>
+          `;
+          galleryGrid.appendChild(div);
+        }
+      });
+      if (hasGallery) document.getElementById('gallerySection').style.display = 'block';
+
+      // 7. SNS
+      const snsGrid = document.getElementById('snsGrid');
+      const sns = [
+        { key: 'X_Twitter', label: 'X', base: 'https://x.com/' },
+        { key: 'Instagram', label: 'Instagram', base: 'https://www.instagram.com/', suffix: '/' },
+        { key: 'Minkara', label: 'みんカラ', base: 'https://minkara.carview.co.jp/userid/', suffix: '/' },
+        { key: 'Facebook', label: 'Facebook' },
+        { key: 'Threads', label: 'Threads' },
+        { key: 'BlogOrWebsite', label: 'Blog/HP' }
+      ];
+      let hasSns = false;
+      sns.forEach(s => {
+        let val = String(car[s.key] || '').trim();
+        if (val) {
+          hasSns = true;
+          let url = val;
+          // IDだけ入力された場合の補完
+          if (s.base && !/^https?:\/\//i.test(val)) {
+            url = s.base + val.replace(/^@/, '') + (s.suffix || '');
+          }
+          snsGrid.innerHTML += `
+            <dt>${s.label}</dt>
+            <dd><a href="${url}" target="_blank" rel="noopener noreferrer">${val}</a></dd>
+          `;
+        }
+      });
+      if (hasSns) document.getElementById('snsSection').style.display = 'block';
+    }
+
+    function setText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text || '';
+    }
+
+    // ライトボックス処理 (Event Delegation)
+    document.body.addEventListener('click', function(e) {
+      if (e.target.matches('[data-rg-zoomable]')) {
+        const overlay = document.querySelector('.rg-lightbox');
+        if (!overlay) {
+          // オーバーレイ生成
+          const div = document.createElement('div');
+          div.className = 'rg-lightbox is-open';
+          div.innerHTML = '<div class="rg-lightbox-inner"><img src="' + e.target.src + '"><button class="rg-lightbox-close">×</button></div>';
+          document.body.appendChild(div);
+          div.addEventListener('click', function(ev) {
+            if (ev.target === div || ev.target.className === 'rg-lightbox-close') {
+              div.remove();
+            }
+          });
+        } else {
+          overlay.querySelector('img').src = e.target.src;
+          overlay.classList.add('is-open');
+        }
+      }
+    });
+
+    fetchDetail();
+  </script>
+</body>
+</html>
