@@ -439,40 +439,34 @@
     // ページ読み込み完了後に初期化
     window.addEventListener('load', rgInitFirebaseOwner);
 
-    function rgOwnerPrimaryAction() {
-      if (!auth) {
-        console.warn('Firebase Auth がまだ初期化されていません。');
-        return;
-      }
+function rgOwnerPrimaryAction() {
+  if (!auth) {
+    console.warn('Firebase Auth がまだ初期化されていません。');
+    return;
+  }
 
-      const user = auth.currentUser;
+  const user = auth.currentUser;
 
-      if (user) {
-        // ログイン済み → 新規登録へ
-        const newEditUrl = "<?= scriptUrl ?>?mode=edit";
-        window.location.href = newEditUrl;
-        return;
-      }
+  // すでにログイン済みなら、そのまま新規登録へ
+  if (user) {
+    const newEditUrl = "<?= scriptUrl ?>?mode=edit";
+    window.location.href = newEditUrl;
+    return;
+  }
 
-      const provider = new firebase.auth.GoogleAuthProvider();
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const provider = new firebase.auth.GoogleAuthProvider();
 
-      if (isMobile) {
-        // 📱 スマホ：popup（成功してもリロードしない）
-        auth.signInWithPopup(provider)
-          .then(result => {
-            console.log('Popup login success:', result.user && result.user.email);
-            // → onAuthStateChanged 側で UI が「ログイン済み」表示に変わる想定
-          })
-          .catch(error => {
-            console.error('Popup login error:', error);
-            alert('ログインに失敗しました：' + (error && error.message ? error.message : error));
-          });
-      } else {
-        // 🖥 PC：これまで通り redirect
-        auth.signInWithRedirect(provider);
-      }
-    }
+  // ★ PC / スマホともに popup に統一
+  auth.signInWithPopup(provider)
+    .then(result => {
+      console.log('Popup login success (owner):', result.user && result.user.email);
+      // onAuthStateChanged 側で文言＆ボタンラベルが「ログイン済み」表示に切り替わる想定
+    })
+    .catch(error => {
+      console.error('Popup login error (owner):', error);
+      alert('ログインに失敗しました：' + (error && error.message ? error.message : error));
+    });
+}
   </script>
 </body>
 </html>
