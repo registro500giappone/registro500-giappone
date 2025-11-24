@@ -5,13 +5,19 @@
   <title>編集フォーム - Registro500 Giappone</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 
+  <!-- Firebase App / Auth / Storage (Compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+  
+  <!-- 共通設定の読み込み -->
+  <script src="config.js"></script>
 
   <style>
-    /* 共通CSS + フォーム用スタイル */
-    html { font-size: 28px; }
+    /* ========== 共通CSS + スマホ対応 ========== */
+    html { 
+      font-size: 16px; /* 28pxから修正 */
+    }
     @media (min-width: 1025px) { html { font-size: 18px; } }
 
     :root {
@@ -31,23 +37,23 @@
       background: var(--rg-surface); border-radius: var(--rg-radius-card);
       border: 1px solid var(--rg-border); padding: 1rem 1.1rem; margin-bottom: 1rem;
     }
-    .page-title { font-size: 1.6rem; text-align: center; margin: 0 0 0.6rem; }
+    .page-title { font-size: 1.4rem; text-align: center; margin: 0 0 0.6rem; }
 
     /* 見出し */
     .rg-section-title {
-      position: relative; margin: 0 0 0.6rem; font-weight: 700; font-size: 0.95rem;
-      display: inline-flex; align-items: center; padding: 0.18rem 0.8rem 0.18rem 1.05rem;
+      position: relative; margin: 0 0 0.6rem; font-weight: 700; font-size: 1rem;
+      display: inline-flex; align-items: center; padding: 0.2rem 0.8rem 0.2rem 1.1rem;
       border-radius: 999px; background: linear-gradient(90deg, rgba(40, 86, 168, 0.14), rgba(40, 86, 168, 0.02));
     }
     .rg-section-title::before {
       content: ""; position: absolute; left: 0.4rem; top: 50%; transform: translateY(-50%);
-      width: 0.18rem; height: 1.1em; border-radius: 999px; background: var(--rg-accent);
+      width: 0.2rem; height: 1.1em; border-radius: 999px; background: var(--rg-accent);
     }
 
     /* 入力部品 */
-    label { display: block; font-size: 0.95rem; font-weight: 600; margin-top: 0.8rem; margin-bottom: 0.3rem; }
+    label { display: block; font-size: 0.9rem; font-weight: 600; margin-top: 0.8rem; margin-bottom: 0.3rem; }
     input[type="text"], input[type="number"], textarea, select {
-      width: 100%; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid #d1d5db;
+      width: 100%; padding: 0.6rem; border-radius: 0.5rem; border: 1px solid #d1d5db;
       font-size: 1rem; margin-bottom: 0.5rem; box-sizing: border-box;
     }
     textarea { min-height: 6em; resize: vertical; }
@@ -89,13 +95,13 @@
       margin-top: 4px; font-size: 0.75rem; color: var(--rg-primary-red);
       background: none; border: 1px solid var(--rg-primary-red);
       border-radius: 4px; padding: 2px 8px; cursor: pointer;
-      display: none; /* 画像があるときだけ表示 */
+      display: none; 
     }
 
     /* 送信バー */
     .submit-bar {
       position: fixed; left: 0; right: 0; bottom: 0; padding: 1rem;
-      background: rgba(255,255,255,0.9); border-top: 1px solid #ccc;
+      background: rgba(255,255,255,0.95); border-top: 1px solid #ccc;
       text-align: center; backdrop-filter: blur(5px); z-index: 100;
     }
     #submitButton {
@@ -371,6 +377,7 @@
         <p class="hint">枠をクリックして写真を選択してください。</p>
         
         <div class="photo-grid">
+          <!-- メイン -->
           <div class="photo-upload-box js-photo-upload" data-target="PhotoMain">
             <span class="photo-label">★メイン写真</span>
             <div class="preview-area">
@@ -382,6 +389,7 @@
             <input type="hidden" name="PhotoMain">
           </div>
 
+          <!-- 正面 -->
           <div class="photo-upload-box js-photo-upload" data-target="PhotoFront">
             <span class="photo-label">正面</span>
             <div class="preview-area">
@@ -393,6 +401,7 @@
             <input type="hidden" name="PhotoFront">
           </div>
 
+          <!-- 側面 -->
           <div class="photo-upload-box js-photo-upload" data-target="PhotoSide">
             <span class="photo-label">側面</span>
             <div class="preview-area">
@@ -404,6 +413,7 @@
             <input type="hidden" name="PhotoSide">
           </div>
 
+          <!-- 背面 -->
           <div class="photo-upload-box js-photo-upload" data-target="PhotoRear">
             <span class="photo-label">背面</span>
             <div class="preview-area">
@@ -415,6 +425,7 @@
             <input type="hidden" name="PhotoRear">
           </div>
 
+          <!-- エンジン -->
           <div class="photo-upload-box js-photo-upload" data-target="PhotoEngine">
             <span class="photo-label">エンジン</span>
             <div class="preview-area">
@@ -426,7 +437,8 @@
             <input type="hidden" name="PhotoEngine">
           </div>
 
-           <div class="photo-upload-box js-photo-upload" data-target="PhotoSteeringCluster">
+           <!-- ハンドル -->
+          <div class="photo-upload-box js-photo-upload" data-target="PhotoSteeringCluster">
             <span class="photo-label">ハンドル</span>
             <div class="preview-area">
               <span class="placeholder-icon">＋</span>
@@ -437,7 +449,8 @@
             <input type="hidden" name="PhotoSteeringCluster">
           </div>
 
-           <div class="photo-upload-box js-photo-upload" data-target="PhotoInterior">
+           <!-- 内装 -->
+          <div class="photo-upload-box js-photo-upload" data-target="PhotoInterior">
             <span class="photo-label">内装</span>
             <div class="preview-area">
               <span class="placeholder-icon">＋</span>
@@ -449,6 +462,7 @@
           </div>
         </div>
 
+        <!-- ファイル選択用の隠しinput -->
         <input type="file" id="globalFileInput" accept="image/*" style="display:none;">
 
       </form>
@@ -460,28 +474,19 @@
   </div>
 
   <script>
-    /* ========== 設定エリア ========== */
-    // ★ あなたのGAS API URLを入れてください
-    const API_URL = "https://script.google.com/macros/s/AKfycbz0BJpaG-AcK3T6YYtav-nfd3gqGlkEWu3AvpW5uRT52N9jW8pBKLrpLSqvXqyD2ghwCA/exec";
-    
-    const firebaseConfig = {
-      apiKey: "AIzaSyCNCNsu61S3DIQ2pcmK2Ic_vqCINlZB9nk",
-      authDomain: "registro500giappone-93f98.firebaseapp.com",
-      projectId: "registro500giappone-93f98",
-      storageBucket: "registro500giappone-93f98.firebasestorage.app",
-      messagingSenderId: "723005462978",
-      appId: "1:723005462978:web:e967a16a278f54b278de5b",
-      measurementId: "G-ZRBFX1V51B"
-    };
-
     // URLパラメータ取得
     const params = new URLSearchParams(window.location.search);
     const targetDocId = params.get('doc') || ''; // 空なら新規登録
 
-    /* ========== Firebase初期化 ========== */
-    if (firebase.apps.length === 0) {
-      firebase.initializeApp(firebaseConfig);
+    /* ========== Firebase初期化 (config.js使用) ========== */
+    if (typeof FIREBASE_CONFIG === 'undefined') {
+      alert("config.js が読み込まれていません");
+    } else {
+      if (firebase.apps.length === 0) {
+        firebase.initializeApp(FIREBASE_CONFIG);
+      }
     }
+    
     const auth = firebase.auth();
     const storage = firebase.storage();
 
@@ -494,22 +499,17 @@
     const content = document.getElementById('formContent');
     const fileInput = document.getElementById('globalFileInput');
 
-    // アップロード中の管理変数
-    let activeUploadTarget = null; // 現在アップロードしようとしている name属性 (例: PhotoMain)
+    let activeUploadTarget = null; 
 
     /* ========== 認証ロジック ========== */
     auth.onAuthStateChanged(async (user) => {
       if (user) {
-        // ログイン済み
         document.getElementById('userEmailDisplay').textContent = user.email;
-        overlay.classList.add('hidden'); // オーバーレイを消す
-        
-        // データ読み込み開始
+        overlay.classList.add('hidden');
         await loadInitialData();
       } else {
-        // 未ログイン
         document.getElementById('userEmailDisplay').textContent = '未ログイン';
-        overlay.classList.remove('hidden'); // オーバーレイを表示
+        overlay.classList.remove('hidden');
       }
     });
 
@@ -520,7 +520,6 @@
 
     /* ========== データ取得と表示 ========== */
     async function loadInitialData() {
-      // 新規登録なら読み込み不要
       if (!targetDocId) {
         loading.style.display = 'none';
         content.style.display = 'block';
@@ -529,9 +528,9 @@
         return;
       }
 
-      // 編集モード：APIからデータ取得
       try {
         loading.textContent = "データを取得中...";
+        // API_URL は config.js から
         const res = await fetch(`${API_URL}?mode=edit_init&doc=${targetDocId}`);
         const json = await res.json();
 
@@ -552,18 +551,14 @@
     }
 
     function fillForm(data) {
-      // IDをセット
       document.getElementById('DocumentID').value = data.DocumentID || '';
 
       Object.keys(data).forEach(key => {
         const val = data[key];
-
-        // 画像フィールドの特別処理
         if (key.startsWith('Photo')) {
           setPhotoPreview(key, val);
           return;
         }
-
         const el = form.querySelector(`[name="${key}"]`);
         if (!el) return;
 
@@ -577,13 +572,11 @@
         }
       });
 
-      // 「その他」の表示制御
       updateOthers('ModelSelectA', 'ModelTextAWrapper');
       updateOthers('ModelSelectB', 'ModelTextBWrapper');
       updateOthers('EngineTypeSelect', 'EngineTypeTextWrapper');
     }
 
-    // その他入力欄の表示切り替え
     function updateOthers(selId, wrapId) {
       const sel = document.getElementById(selId);
       const wrap = document.getElementById(wrapId);
@@ -607,8 +600,6 @@
     });
 
     /* ========== 画像処理・アップロード (圧縮版) ========== */
-
-    // 圧縮関数: ファイルを受け取り、リサイズ圧縮したBlobを返す
     function compressImage(file, maxWidth = 1600, quality = 0.8) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -619,20 +610,15 @@
           img.onload = () => {
             let width = img.width;
             let height = img.height;
-
-            // サイズ調整
             if (width > maxWidth) {
               height = Math.round(height * (maxWidth / width));
               width = maxWidth;
             }
-
             const canvas = document.createElement('canvas');
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
-
-            // JPEG圧縮 (Quality 0.8)
             canvas.toBlob((blob) => {
               if (blob) resolve(blob);
               else reject(new Error('Canvas to Blob failed'));
@@ -644,7 +630,6 @@
       });
     }
     
-    // 1. 各ボックスをクリックしたらファイル選択を開く
     document.querySelectorAll('.js-photo-upload').forEach(box => {
       box.addEventListener('click', (e) => {
         if (e.target.classList.contains('delete-photo-btn')) return;
@@ -662,7 +647,6 @@
       });
     });
 
-    // 2. ファイル選択変更時 (圧縮 -> アップロード)
     fileInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file || !activeUploadTarget) return;
@@ -676,19 +660,14 @@
         const user = auth.currentUser;
         if (!user) throw new Error("認証切れです");
 
-        // ★ここで圧縮を実行
         const compressedBlob = await compressImage(file, 1600, 0.8);
-
         statusEl.textContent = "アップロード中...";
 
-        // フォルダ分け: images/UID/Timestamp_Random_Filename
         const timestamp = Date.now();
         const random = Math.floor(Math.random() * 1000);
-        // 元の拡張子に関わらずJPEGとして保存
         const path = `images/${user.uid}/${timestamp}_${random}_compressed.jpg`;
         
         const storageRef = storage.ref().child(path);
-        
         await storageRef.put(compressedBlob);
         const url = await storageRef.getDownloadURL();
         
@@ -702,7 +681,6 @@
       }
     });
 
-    // 3. プレビュー表示
     function setPhotoPreview(targetName, url) {
       const box = document.querySelector(`.js-photo-upload[data-target="${targetName}"]`);
       if (!box) return;
@@ -743,7 +721,6 @@
 
       try {
         const idToken = await user.getIdToken(true);
-
         const fd = new FormData(form);
         const formData = {};
         fd.forEach((val, key) => { formData[key] = val; });
