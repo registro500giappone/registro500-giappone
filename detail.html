@@ -38,7 +38,7 @@
 
     .rg-main { max-width: 72rem; }
     
-    /* ★修正1: オーナー編集ボタンを右寄せにする */
+    /* オーナー編集ボタン */
     .rg-back {
       display: flex; 
       justify-content: space-between; /* 左右に配置 */
@@ -105,40 +105,46 @@
       width: 0.2rem; height: 1.1em; border-radius: 999px; background: var(--rg-accent);
     }
 
-    /* ===== スペック表 ===== */
+    /* ===== スペック表 (スマホ最適化) ===== */
     .rg-spec-grid {
       display: grid; 
-      /* ★修正3: スマホでは左カラムを「トランスミッション」が収まるギリギリまで縮小 */
-      grid-template-columns: 7.5rem 1fr; 
-      column-gap: 0.6rem; row-gap: 0; margin: 0; 
+      /* ★修正: 左カラムを極限まで狭くし(6.5rem)、右側のデータ領域を最大化 */
+      grid-template-columns: 6.5rem 1fr; 
+      column-gap: 0.5rem; row-gap: 0; margin: 0; 
       font-size: 0.95rem;
       border-top: 1px solid var(--rg-border); border-bottom: 1px solid var(--rg-border);
     }
     
     .rg-spec-grid dt, .rg-spec-grid dd {
       padding: 0.6rem 0.4rem; border-top: 1px solid var(--rg-border); margin: 0;
-      word-break: break-word; line-height: 1.5;
+      line-height: 1.5;
     }
     
     .rg-spec-grid dt {
-      font-weight: 600; color: var(--rg-muted); background: rgba(148, 163, 184, 0.05); 
-      white-space: normal; /* 必要なら折り返し許可 */
+      font-weight: 700; /* 細かくても読みやすいよう太字 */
+      color: var(--rg-muted); 
+      background: rgba(148, 163, 184, 0.05); 
       
-      /* ★修正4: スマホの小見出しフォントをひと回り大きく */
-      font-size: 1.05rem;
+      /* ★修正: 絶対に改行させない & フォントサイズ縮小 */
+      white-space: nowrap; 
+      overflow: hidden;
+      text-overflow: ellipsis; /* 万が一はみ出たら...にする */
+      font-size: 0.8rem; 
     }
-    .rg-spec-grid dd { white-space: pre-wrap; }
+    
+    .rg-spec-grid dd { 
+      white-space: pre-wrap; 
+      word-break: break-word; /* データ側はよしなに改行 */
+    }
 
-    /* PC用調整 */
+    /* PC用調整 (1025px以上) */
     @media (min-width: 1025px) {
       .rg-spec-grid {
-        /* PCは元の幅を維持 */
+        /* PCはゆったり元の幅 */
         grid-template-columns: minmax(8rem, 10rem) 1fr;
       }
       .rg-spec-grid dt {
-        /* PCのフォントサイズは元に戻す */
         font-size: 0.95rem;
-        white-space: nowrap;
       }
     }
 
@@ -147,7 +153,6 @@
     /* ===== ギャラリー ===== */
     .rg-gallery-grid {
       display: grid; 
-      /* スマホ: 今のまま */
       grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
       gap: 0.8rem; margin: 0;
     }
@@ -160,10 +165,9 @@
       object-fit: cover; display: block; cursor: zoom-in;
     }
 
-    /* ★修正2: PCでは写真を倍の大きさに */
+    /* PCでは写真を大きく */
     @media (min-width: 1025px) {
       .rg-gallery-grid {
-        /* minmaxを倍程度に拡大 */
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       }
     }
@@ -205,7 +209,6 @@
 <body>
   <main class="container-lg rg-main py-3">
 
-   <!-- ★修正1: 右寄せ適用 -->
    <div class="rg-back">
      <a href="index.html">← 車両一覧に戻る</a>
 
@@ -321,7 +324,6 @@
         return;
       }
       try {
-        // config.js の API_URL を使用
         const res = await fetch(`${API_URL}?mode=detail&doc=${docId}`);
         const json = await res.json();
         if (json.success && json.data) {
@@ -344,7 +346,7 @@
       setText('handleName', car.HandleName);
       setText('prefecture', car.Prefecture);
 
-      // 写真 (config.js の NO_IMAGE_URL 使用)
+      // 写真
       const mainImg = document.getElementById('photoMain');
       mainImg.src = car.PhotoMain || NO_IMAGE_URL;
 
@@ -427,7 +429,6 @@
         if (car[p.key]) {
           hasGallery = true;
           const div = document.createElement('div');
-          // ★修正2: キャプション削除
           div.innerHTML = `
             <div class="rg-gallery-thumb">
               <img src="${car[p.key]}" alt="${p.label}" data-rg-zoomable onerror="this.src=NO_IMAGE_URL">
