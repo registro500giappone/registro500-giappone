@@ -1,3 +1,68 @@
+詳細な情報共有、ありがとうございます！
+スプレッドシートの構造と、「Google Sheets 正／Firestore バックアップ」という方針、完全に理解しました。
+また、「データ喪失を絶対に避ける」かつ「最適な保存方法」というオーダーも承知しました。
+
+いただいた情報を元に、**安全かつ最適な実装プラン** を決定しました。
+
+### 🧐 決定した方針（ここが重要です）
+
+**1. 画像保存フォルダの構成： 「ユーザーID方式」を採用します**
+
+  * **理由:** 新規登録の瞬間は、まだ車両ID（`DOC_xx`）が決まっていません。そのため「車両IDフォルダ」を作ろうとするとエラーになります。
+  * **解決策:** 「誰がアップロードしたか」でフォルダを分けます。
+      * 新ルール: `images/{ユーザーUID}/{タイムスタンプ}_{ファイル名}`
+  * **既存データ:** `cars/row_002/...` にある過去の画像は**そのままでOK**です。無理に動かすとリンク切れのリスクがあるため、新しい画像だけ新ルールで保存します。
+
+**2. データベース（Sheets）への書き込み**
+
+  * スプレッドシートの列名（`X_Twitter`, `ModelSelectA` など）と、これから渡す `edit.html` の入力欄の名前（`name="..."`）を**完全に一致**させました。
+  * これにより、GAS側で特別な加工をしなくても、ズレることなくデータが保存されます。
+  * `_id` や `StoragePath` などのレガシーな列は、空欄のまま維持します（データ破損しません）。
+
+-----
+
+### 🚀 作業手順
+
+この「画像アップロード機能」を完成させるには、**2つのステップ**が必要です。
+
+#### ステップ 1：Firebase Storage のルール設定（必須）
+
+これを行わないと、アップロード時に「権限エラー」で弾かれます。
+
+1.  **Firebase Console** \> **Storage** を開く。
+2.  **「Rules (ルール)」** タブをクリック。
+3.  以下のコードに書き換えて **「公開 (Publish)」** を押してください。
+
+<!-- end list -->
+
+```text
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      // ログインしているユーザーなら、読み書きOK
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+```
+
+-----
+
+#### ステップ 2：GitHub `edit.html` の更新
+
+先ほど提示したコードですが、スプレッドシートの列名に合わせて微調整（念のため確認）した**確定版**をここに置きます。
+これを GitHub の `edit.html` に丸ごと上書きしてください。
+
+**変更点:**
+
+  * 画像選択エリアを追加（メイン、正面、側面、背面、エンジン、ハンドル、内装）。
+  * アップロード処理（JS）を追加。
+  * `input name` をスプレッドシートの列名と完全一致確認済み。
+
+<!-- end list -->
+
+```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -7,6 +72,7 @@
 
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 
   <style>
     /* 共通CSS + フォーム用スタイル */
@@ -56,6 +122,40 @@
     
     .inline-small { display: flex; gap: 1rem; }
     .inline-small > div { flex: 1; }
+
+    /* ===== 画像アップローダー UI ===== */
+    .photo-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px; margin-top: 10px;
+    }
+    .photo-upload-box {
+      border: 2px dashed #ccc; border-radius: 8px; padding: 8px;
+      text-align: center; background: #fafafa; position: relative;
+      cursor: pointer; transition: all 0.2s ease;
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+      min-height: 160px;
+    }
+    .photo-upload-box:hover { border-color: var(--rg-accent); background: #f0f7ff; }
+    .photo-upload-box.has-image { border-style: solid; border-color: #ddd; padding: 4px; }
+
+    .photo-label { font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; color: var(--rg-text); }
+    
+    .preview-area {
+      width: 100%; aspect-ratio: 1/1; background: #eee; border-radius: 4px;
+      overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;
+    }
+    .preview-img { width: 100%; height: 100%; object-fit: cover; display: none; }
+    .placeholder-icon { font-size: 2rem; color: #ccc; }
+    
+    .upload-status {
+      font-size: 0.75rem; color: var(--rg-muted); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+    }
+    .delete-photo-btn {
+      margin-top: 4px; font-size: 0.75rem; color: var(--rg-primary-red);
+      background: none; border: 1px solid var(--rg-primary-red);
+      border-radius: 4px; padding: 2px 8px; cursor: pointer;
+      display: none; /* 画像があるときだけ表示 */
+    }
 
     /* 送信バー */
     .submit-bar {
@@ -332,22 +432,89 @@
         <label>ブログ・HP</label>
         <input type="text" name="BlogOrWebsite">
 
-        <h2 class="rg-section-title">写真 (URL)</h2>
-        <p class="hint">※現在、画像URLの貼り付けのみ対応しています</p>
-        <label>メイン写真</label>
-        <input type="text" name="PhotoMain" placeholder="https://...">
-        <label>正面</label>
-        <input type="text" name="PhotoFront">
-        <label>側面</label>
-        <input type="text" name="PhotoSide">
-        <label>背面</label>
-        <input type="text" name="PhotoRear">
-        <label>エンジン</label>
-        <input type="text" name="PhotoEngine">
-        <label>ハンドル/メーター</label>
-        <input type="text" name="PhotoSteeringCluster">
-        <label>内装</label>
-        <input type="text" name="PhotoInterior">
+        <h2 class="rg-section-title">写真登録</h2>
+        <p class="hint">枠をクリックして写真を選択してください。</p>
+        
+        <div class="photo-grid">
+          <div class="photo-upload-box js-photo-upload" data-target="PhotoMain">
+            <span class="photo-label">★メイン写真</span>
+            <div class="preview-area">
+              <span class="placeholder-icon">📷</span>
+              <img class="preview-img" alt="プレビュー">
+            </div>
+            <div class="upload-status">未選択</div>
+            <button type="button" class="delete-photo-btn">削除</button>
+            <input type="hidden" name="PhotoMain">
+          </div>
+
+          <div class="photo-upload-box js-photo-upload" data-target="PhotoFront">
+            <span class="photo-label">正面</span>
+            <div class="preview-area">
+              <span class="placeholder-icon">＋</span>
+              <img class="preview-img" alt="プレビュー">
+            </div>
+            <div class="upload-status">未選択</div>
+            <button type="button" class="delete-photo-btn">削除</button>
+            <input type="hidden" name="PhotoFront">
+          </div>
+
+          <div class="photo-upload-box js-photo-upload" data-target="PhotoSide">
+            <span class="photo-label">側面</span>
+            <div class="preview-area">
+              <span class="placeholder-icon">＋</span>
+              <img class="preview-img" alt="プレビュー">
+            </div>
+            <div class="upload-status">未選択</div>
+            <button type="button" class="delete-photo-btn">削除</button>
+            <input type="hidden" name="PhotoSide">
+          </div>
+
+          <div class="photo-upload-box js-photo-upload" data-target="PhotoRear">
+            <span class="photo-label">背面</span>
+            <div class="preview-area">
+              <span class="placeholder-icon">＋</span>
+              <img class="preview-img" alt="プレビュー">
+            </div>
+            <div class="upload-status">未選択</div>
+            <button type="button" class="delete-photo-btn">削除</button>
+            <input type="hidden" name="PhotoRear">
+          </div>
+
+          <div class="photo-upload-box js-photo-upload" data-target="PhotoEngine">
+            <span class="photo-label">エンジン</span>
+            <div class="preview-area">
+              <span class="placeholder-icon">＋</span>
+              <img class="preview-img" alt="プレビュー">
+            </div>
+            <div class="upload-status">未選択</div>
+            <button type="button" class="delete-photo-btn">削除</button>
+            <input type="hidden" name="PhotoEngine">
+          </div>
+
+           <div class="photo-upload-box js-photo-upload" data-target="PhotoSteeringCluster">
+            <span class="photo-label">ハンドル</span>
+            <div class="preview-area">
+              <span class="placeholder-icon">＋</span>
+              <img class="preview-img" alt="プレビュー">
+            </div>
+            <div class="upload-status">未選択</div>
+            <button type="button" class="delete-photo-btn">削除</button>
+            <input type="hidden" name="PhotoSteeringCluster">
+          </div>
+
+           <div class="photo-upload-box js-photo-upload" data-target="PhotoInterior">
+            <span class="photo-label">内装</span>
+            <div class="preview-area">
+              <span class="placeholder-icon">＋</span>
+              <img class="preview-img" alt="プレビュー">
+            </div>
+            <div class="upload-status">未選択</div>
+            <button type="button" class="delete-photo-btn">削除</button>
+            <input type="hidden" name="PhotoInterior">
+          </div>
+        </div>
+
+        <input type="file" id="globalFileInput" accept="image/*" style="display:none;">
 
       </form>
     </section>
@@ -381,6 +548,7 @@
       firebase.initializeApp(firebaseConfig);
     }
     const auth = firebase.auth();
+    const storage = firebase.storage();
 
     /* ========== DOM要素 ========== */
     const overlay = document.getElementById('loginOverlay');
@@ -389,6 +557,10 @@
     const form = document.getElementById('carForm');
     const loading = document.getElementById('pageLoading');
     const content = document.getElementById('formContent');
+    const fileInput = document.getElementById('globalFileInput');
+
+    // アップロード中の管理変数
+    let activeUploadTarget = null; // 現在アップロードしようとしている name属性 (例: PhotoMain)
 
     /* ========== 認証ロジック ========== */
     auth.onAuthStateChanged(async (user) => {
@@ -450,17 +622,22 @@
 
       Object.keys(data).forEach(key => {
         const val = data[key];
+
+        // 画像フィールドの特別処理
+        if (key.startsWith('Photo')) {
+          setPhotoPreview(key, val);
+          return;
+        }
+
         const el = form.querySelector(`[name="${key}"]`);
         if (!el) return;
 
         if (el.type === 'radio') {
-          // ラジオボタン
           const radios = form.querySelectorAll(`input[name="${key}"]`);
           radios.forEach(r => {
             if (String(r.value) === String(val)) r.checked = true;
           });
         } else {
-          // テキスト/セレクト
           el.value = (val !== null && val !== undefined) ? val : '';
         }
       });
@@ -480,7 +657,6 @@
       }
     }
 
-    // イベントリスナー登録
     ['ModelSelectA', 'ModelSelectB', 'EngineTypeSelect'].forEach(id => {
       const el = document.getElementById(id);
       if(el) {
@@ -495,6 +671,99 @@
       }
     });
 
+    /* ========== 画像アップロードロジック (UIDフォルダ方式) ========== */
+    
+    // 1. 各ボックスをクリックしたらファイル選択を開く
+    document.querySelectorAll('.js-photo-upload').forEach(box => {
+      box.addEventListener('click', (e) => {
+        // 削除ボタンを押した場合は除外
+        if (e.target.classList.contains('delete-photo-btn')) return;
+
+        activeUploadTarget = box.dataset.target; // PhotoMain, PhotoFront...
+        fileInput.value = ''; // リセット
+        fileInput.click();
+      });
+
+      // 削除ボタンの処理
+      const delBtn = box.querySelector('.delete-photo-btn');
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // ボックスのクリックイベントを止める
+        if (confirm("画像を削除しますか？")) {
+          setPhotoPreview(box.dataset.target, "");
+        }
+      });
+    });
+
+    // 2. ファイルが選択されたらアップロード開始
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file || !activeUploadTarget) return;
+
+      // ボックス要素取得
+      const box = document.querySelector(`.js-photo-upload[data-target="${activeUploadTarget}"]`);
+      const statusEl = box.querySelector('.upload-status');
+      
+      statusEl.textContent = "アップロード中...";
+      
+      try {
+        const user = auth.currentUser;
+        if (!user) throw new Error("認証切れです");
+
+        // ★ 最適化されたフォルダ構成: images/UID/Timestamp_Random_Filename
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 1000);
+        const path = `images/${user.uid}/${timestamp}_${random}_${file.name}`;
+        
+        const storageRef = storage.ref().child(path);
+        
+        // アップロード実行
+        await storageRef.put(file);
+        
+        // URL取得
+        const url = await storageRef.getDownloadURL();
+        
+        // プレビューと隠しinputにセット
+        setPhotoPreview(activeUploadTarget, url);
+        statusEl.textContent = "アップロード完了";
+
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "エラー: " + err.message;
+        alert("アップロード失敗: " + err.message);
+      }
+    });
+
+    // 3. プレビュー表示・隠しフィールド更新用関数
+    function setPhotoPreview(targetName, url) {
+      const box = document.querySelector(`.js-photo-upload[data-target="${targetName}"]`);
+      if (!box) return;
+
+      const input = box.querySelector(`input[name="${targetName}"]`);
+      const img = box.querySelector('.preview-img');
+      const placeholder = box.querySelector('.placeholder-icon');
+      const delBtn = box.querySelector('.delete-photo-btn');
+      const status = box.querySelector('.upload-status');
+
+      // input更新
+      input.value = url || "";
+
+      if (url) {
+        img.src = url;
+        img.style.display = 'block';
+        placeholder.style.display = 'none';
+        delBtn.style.display = 'inline-block';
+        box.classList.add('has-image');
+        status.textContent = "設定済み";
+      } else {
+        img.src = "";
+        img.style.display = 'none';
+        placeholder.style.display = 'inline';
+        delBtn.style.display = 'none';
+        box.classList.remove('has-image');
+        status.textContent = "未選択";
+      }
+    }
+
     /* ========== 送信ロジック (POST) ========== */
     submitBtn.addEventListener('click', async (e) => {
       e.preventDefault();
@@ -505,24 +774,20 @@
       submitBtn.textContent = "送信中...";
 
       try {
-        // IDトークン取得
         const idToken = await user.getIdToken(true);
 
-        // フォームデータ収集
         const fd = new FormData(form);
         const formData = {};
         fd.forEach((val, key) => { formData[key] = val; });
         
-        // トークンとIDを追加
         formData.idToken = idToken;
         formData.DocumentID = targetDocId || document.getElementById('DocumentID').value;
 
-        // APIへ送信 (POST)
         const action = formData.DocumentID ? 'update' : 'save';
         
         const res = await fetch(API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // GASのCORS対策でtext/plain推奨
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({
             action: action,
             formData: formData
@@ -533,7 +798,7 @@
 
         if (json.success) {
           alert("保存しました！");
-          window.location.href = "index.html"; // 一覧へ戻る
+          window.location.href = "index.html"; 
         } else {
           alert("エラー: " + json.error);
           submitBtn.disabled = false;
@@ -550,3 +815,4 @@
   </script>
 </body>
 </html>
+```
