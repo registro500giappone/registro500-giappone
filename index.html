@@ -11,7 +11,7 @@
       --bg-main: #f4f4f7;
       --card-bg: #ffffff;
       --border-soft: #e5e7eb;
-      --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.08); /* 影を少し上品に */
+      --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.08);
       --text-main: #111827;
       --text-sub: #6b7280;
 
@@ -21,7 +21,6 @@
 
       --radius-lg: 12px;
       
-      /* フォント定義: ロゴに合わせたセリフ体 */
       --font-serif: "Times New Roman", "YuMincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
       --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
@@ -45,7 +44,7 @@
 
     .page { max-width: 1200px; margin: 0 auto; }
 
-    /* ===== ヘッダーエリア (PC: 横並び一体化 / SP: 縦積み) ===== */
+    /* ===== ヘッダーエリア ===== */
     .page-header {
       display: flex; flex-direction: column; gap: 24px; margin-bottom: 32px;
     }
@@ -55,40 +54,38 @@
       display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px;
     }
 
-    /* ロゴ画像 (1.5倍サイズ) */
+    /* ★修正: アイコンを強調（1.5倍サイズ） */
     .brand-logo-img {
-      height: 120px; /* 元80px -> 120px */
+      height: 100px; /* 以前の60px程度から大幅アップ */
       width: auto; object-fit: contain;
     }
 
     /* テキスト3行セット */
     .brand-text-group {
-      display: flex; flex-direction: column; gap: 6px;
+      display: flex; flex-direction: column; gap: 4px;
     }
 
-    /* 1行目: タイトル (1.5倍サイズ) */
+    /* ★修正: 文字サイズは「以前の適正サイズ」に戻す */
     .brand-title {
       margin: 0; 
       font-family: var(--font-serif);
-      font-size: 3rem; /* 元2rem -> 3rem */
+      font-size: 1.5rem; /* スマホで大きすぎない、締まったサイズ */
       font-weight: 700; 
       color: var(--accent);
-      line-height: 1.1;
+      line-height: 1.2;
       letter-spacing: 0.02em;
     }
 
-    /* 2行目: サブタイトル (1.5倍サイズ) */
     .page-subtitle {
       margin: 0; 
-      font-size: 1.35rem; /* 元0.9rem -> 1.35rem */
+      font-size: 0.9rem; /* 控えめに */
       font-weight: 500; 
       color: var(--text-main);
     }
 
-    /* 3行目: 目標 (1.5倍サイズ) */
     .page-meta {
       margin: 0; 
-      font-size: 1.3rem; /* 元0.85rem -> 1.3rem */
+      font-size: 0.85rem; /* 控えめに */
       color: var(--accent); 
       font-weight: 600;
     }
@@ -139,17 +136,17 @@
         margin-top: 30px;
       }
 
-      /* ロゴとテキストを横並びに一体化 */
+      /* ロゴとテキストを横並びに */
       .header-brand-block {
-        flex-direction: row; align-items: center; text-align: left; gap: 30px;
+        flex-direction: row; align-items: center; text-align: left; gap: 24px;
       }
       
-      /* PCでのサイズ (1.5倍) */
-      .brand-logo-img { height: 135px; } /* 元90px -> 135px */
+      /* ★修正: PCでもアイコンを大きく、文字は適正サイズに */
+      .brand-logo-img { height: 130px; } /* 存在感アップ */
       
-      .brand-title { font-size: 3.6rem; margin-bottom: 4px; } /* 元2.4rem -> 3.6rem */
-      .page-subtitle { font-size: 1.65rem; margin-bottom: 4px; } /* 元1.1rem -> 1.65rem */
-      .page-meta { font-size: 1.5rem; } /* 元1rem -> 1.5rem */
+      .brand-title { font-size: 2.2rem; margin-bottom: 4px; } /* 巨大化させず維持 */
+      .page-subtitle { font-size: 1.0rem; margin-bottom: 2px; }
+      .page-meta { font-size: 0.95rem; }
 
       .page-header-right { align-items: flex-end; }
       .header-nav { justify-content: flex-end; }
@@ -236,12 +233,11 @@
       
       <!-- ロゴ＋テキストブロック (PCは横並び、SPは縦積み) -->
       <div class="header-brand-block">
-        <!-- アイコン画像 -->
-        <img src="https://firebasestorage.googleapis.com/v0/b/registro500giappone-93f98.firebasestorage.app/o/assets%2Flogo_square.png?alt=media&token=YOUR_TOKEN_HERE" 
+        <!-- アイコン画像 (FirebaseのURLがあれば差し替えてください) -->
+        <img src="https://firebasestorage.googleapis.com/v0/b/registro500giappone-93f98.firebasestorage.app/o/assets%2Flogo_horizontal.png?alt=media&token=efab9298-5cbb-4dff-b6b8-aa4ab5863bbf" 
              class="brand-logo-img" 
              alt="Logo"
-             onerror="this.style.display='none'"> <!-- エラー時は非表示 -->
-             <!-- ※注意: 正方形のアイコン画像URLがあればここに差し替えてください。なければ後述のダミー等がでます -->
+             onerror="this.style.display='none'">
 
         <div class="brand-text-group">
           <h1 class="brand-title">Registro500 Giappone</h1>
@@ -291,14 +287,6 @@
     // プレースホルダー画像
     const NO_IMAGE_URL = 'https://placehold.co/600x600/f3f4f6/9ca3af?text=No+Image';
     
-    // ロゴ画像URL (Firebaseにある正方形ロゴ推奨。ここでは以前のロゴを使用)
-    // もし「アイコン単体」の画像があればそれに差し替えてください
-    const LOGO_URL = "https://firebasestorage.googleapis.com/v0/b/registro500giappone-93f98.firebasestorage.app/o/assets%2Flogo_horizontal.png?alt=media&token=efab9298-5cbb-4dff-b6b8-aa4ab5863bbf";
-    
-    // JSで画像ソースをセット（HTML直書きでも良いが、管理しやすくするため）
-    document.querySelector('.brand-logo-img').src = LOGO_URL;
-
-
     let carsData = [];
 
     async function fetchCars() {
