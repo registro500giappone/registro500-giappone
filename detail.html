@@ -7,17 +7,20 @@
   <title>車両詳細 - Registro500 Giappone</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- 共通設定 -->
+  <script src="config.js"></script>
 
   <style>
-    /* ========== ベースの文字サイズ ========== */
+    /* ========== ベース修正 ========== */
     html {
-      font-size: 28px !important;            /* モバイル基準 */
+      font-size: 16px !important; /* 28pxから修正 */
     }
     @media (min-width: 1025px) {
-      html { font-size: 18px !important; }   /* PC */
+      html { font-size: 18px !important; }
     }
 
-    /* Bootstrap の small / .small を無効化 */
+    /* Bootstrap の small 対策 */
     small, .small { font-size: 1rem; }
 
     :root {
@@ -28,8 +31,9 @@
     }
 
     body {
-      margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", sans-serif;
+      margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       line-height: 1.7; color: var(--rg-text); background: var(--rg-bg);
+      padding-bottom: 96px; /* スマホ下部余白確保 */
     }
 
     .rg-main { max-width: 72rem; }
@@ -38,10 +42,10 @@
     /* ===== カード共通 ===== */
     .rg-card {
       background: var(--rg-surface); border-radius: var(--rg-radius-card);
-      border: 1px solid var(--rg-border); padding: 1rem 1.1rem;
+      border: 1px solid var(--rg-border); padding: 1.2rem;
     }
 
-    /* ===== 左側：フォトカード ===== */
+    /* ===== フォトカード ===== */
     @media (min-width: 992px) {
       .rg-photo-col { position: sticky; top: 1rem; }
     }
@@ -58,48 +62,49 @@
     }
 
     .rg-photo-title-main {
-      margin-top: 0.75rem; margin-bottom: 0.2rem; display: flex; flex-wrap: wrap;
-      gap: 0.35rem; align-items: baseline; font-size: clamp(1.15rem, 4.6vw, 1.4rem);
+      margin-top: 1rem; margin-bottom: 0.2rem; display: flex; flex-wrap: wrap;
+      gap: 0.35rem; align-items: baseline; 
+      font-size: 1.4rem; /* スマホで見やすいサイズに */
       font-weight: 800; letter-spacing: 0.01em; line-height: 1.3;
     }
 
-    .rg-photo-year { font-size: 0.75em; font-weight: 600; color: var(--rg-muted); }
+    .rg-photo-year { font-size: 0.8em; font-weight: 600; color: var(--rg-muted); }
     .rg-photo-model-main { font-weight: inherit; }
 
     .rg-photo-owner-row {
-      margin-top: 0.25rem; font-size: 0.95rem; display: flex; align-items: center;
+      margin-top: 0.5rem; font-size: 1rem; display: flex; align-items: center;
       gap: 0.5rem; line-height: 1.4;
     }
 
-    .rg-photo-handle { font-weight: 500; }
+    .rg-photo-handle { font-weight: 600; }
 
     .rg-photo-pref {
-      margin-left: auto; padding: 0.15rem 0.6rem; border-radius: 999px;
+      margin-left: auto; padding: 0.15rem 0.8rem; border-radius: 999px;
       background: var(--rg-accent-soft); border: 1px solid var(--rg-accent-border);
-      color: var(--rg-accent); font-size: 0.9rem; white-space: nowrap;
+      color: var(--rg-accent); font-size: 0.85rem; white-space: nowrap;
     }
 
     /* ===== セクション見出し ===== */
     .rg-section-title {
-      position: relative; margin: 0 0 0.6rem; font-weight: 700; color: var(--rg-text);
-      font-size: 0.95rem; display: inline-flex; align-items: center; gap: 0.35rem;
-      padding: 0.18rem 0.8rem 0.18rem 1.05rem; border-radius: 999px;
+      position: relative; margin: 0 0 0.8rem; font-weight: 700; color: var(--rg-text);
+      font-size: 1rem; display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.2rem 1rem 0.2rem 1.2rem; border-radius: 999px;
       background: linear-gradient(90deg, rgba(40, 86, 168, 0.14), rgba(40, 86, 168, 0.02));
       line-height: 1.4;
     }
     .rg-section-title::before {
-      content: ""; position: absolute; left: 0.4rem; top: 50%; transform: translateY(-50%);
-      width: 0.18rem; height: 1.1em; border-radius: 999px; background: var(--rg-accent);
+      content: ""; position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%);
+      width: 0.2rem; height: 1.1em; border-radius: 999px; background: var(--rg-accent);
     }
 
     /* ===== スペック表 ===== */
     .rg-spec-grid {
-      display: grid; grid-template-columns: minmax(10rem, 12rem) 1fr;
+      display: grid; grid-template-columns: minmax(8rem, 10rem) 1fr;
       column-gap: 0.6rem; row-gap: 0; margin: 0; font-size: 0.95rem;
       border-top: 1px solid var(--rg-border); border-bottom: 1px solid var(--rg-border);
     }
     .rg-spec-grid dt, .rg-spec-grid dd {
-      padding: 0.45rem 0.2rem; border-top: 1px solid var(--rg-border); margin: 0;
+      padding: 0.6rem 0.4rem; border-top: 1px solid var(--rg-border); margin: 0;
       word-break: break-word; line-height: 1.5;
     }
     .rg-spec-grid dt {
@@ -109,86 +114,51 @@
 
     .rg-highlights { margin: 0; font-size: 0.95rem; line-height: 1.7; }
 
-    /* ===== SNS ===== */
-    .rg-sns-grid {
-      margin: 0; display: grid; grid-template-columns: minmax(5.5rem, 7.5rem) 1fr;
-      column-gap: 0.6rem; row-gap: 0; border-top: 1px solid var(--rg-border);
-      border-bottom: 1px solid var(--rg-border); font-size: 0.95rem;
-    }
-    .rg-sns-grid dt, .rg-sns-grid dd {
-      margin: 0; padding: 0.45rem 0.2rem; border-top: 1px solid var(--rg-border); line-height: 1.5;
-    }
-    .rg-sns-grid dt {
-      font-weight: 600; color: var(--rg-muted); background: rgba(148, 163, 184, 0.05);
-    }
-    .rg-sns-grid dd a { color: var(--rg-accent); text-decoration: none; word-break: break-all; }
-    .rg-sns-grid dd a:hover { text-decoration: underline; }
-
     /* ===== ギャラリー ===== */
     .rg-gallery-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
       gap: 0.8rem; margin: 0;
     }
-    .rg-gallery-item { text-align: center; font-size: 0.9rem; line-height: 1.4; }
+    .rg-gallery-item { text-align: center; font-size: 0.85rem; line-height: 1.4; }
     .rg-gallery-thumb {
       border-radius: 0.6rem; border: none; background: transparent;
       overflow: hidden; position: relative; padding-top: 100%;
     }
     .rg-gallery-thumb > img {
       position: absolute; inset: 0; width: 100%; height: 100%;
-      object-fit: contain; display: block; cursor: zoom-in;
+      object-fit: cover; display: block; cursor: zoom-in;
     }
-
-    .rg-footer-back { text-align: left; font-size: 0.9rem; }
 
     /* ===== ライトボックス ===== */
     .rg-lightbox {
-      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75);
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85);
       display: none; align-items: center; justify-content: center; z-index: 9999;
     }
     .rg-lightbox.is-open { display: flex; }
     .rg-lightbox-inner {
-      max-width: min(90vw, 900px); max-height: min(90vh, 900px); position: relative;
+      max-width: 95vw; max-height: 95vh; position: relative;
     }
     .rg-lightbox-inner img {
-      width: 100%; height: 100%; object-fit: contain; border-radius: 0.75rem; background: #000;
+      max-width: 100%; max-height: 95vh; object-fit: contain; border-radius: 0.5rem;
     }
     .rg-lightbox-close {
-      position: absolute; top: 0.4rem; right: 0.4rem; border: none; border-radius: 999px;
-      padding: 0.2rem 0.6rem; font-size: 1.2rem; background: rgba(15, 23, 42, 0.7);
-      color: #fff; cursor: pointer;
+      position: absolute; top: -2rem; right: 0; border: none; 
+      font-size: 2rem; color: #fff; background: transparent; cursor: pointer;
     }
 
-    /* 上部：戻る＋編集ボタン */
-    .rg-back {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 0.75rem; flex-wrap: wrap;
-    }
+    /* 編集ボタン */
     .rg-edit-btn {
-      font-size: 0.9rem; padding: 0.25rem 1.0rem; border-radius: 999px;
+      font-size: 0.9rem; padding: 0.3rem 1.0rem; border-radius: 999px;
       border: 1px solid var(--rg-accent-border); background: var(--rg-accent-soft);
       color: var(--rg-accent); text-decoration: none; display: inline-flex;
       align-items: center; gap: 0.35rem; font-weight: 600;
       box-shadow: 0 2px 4px rgba(15, 23, 42, 0.16);
-      transition: background-color 0.12s ease, color 0.12s ease, transform 0.08s ease;
-      white-space: nowrap;
     }
     .rg-edit-btn:hover {
-      background: var(--rg-accent); color: #ffffff; transform: translateY(-1px);
-    }
-    .rg-edit-btn:active { transform: translateY(0); }
-    .rg-edit-icon { font-size: 1.05em; line-height: 1; }
-
-    /* スマホ用フォント拡大 */
-    @media (max-width: 1024px) {
-      .rg-section-title { font-size: 1.6rem; }
-      .rg-spec-grid, .rg-highlights, .rg-sns-grid { font-size: 1.4rem; }
-      .rg-photo-title-main { font-size: 1.8rem; }
-      .rg-photo-handle { font-size: 1.4rem; }
+      background: var(--rg-accent); color: #ffffff;
     }
 
-    /* ローディング・非表示制御 */
-    #loading { text-align:center; padding:50px; font-size:1.2rem; color:#666; }
+    #loading { text-align:center; padding:50px; font-size:1rem; color:#666; }
     #content { display:none; }
   </style>
 </head>
@@ -196,24 +166,24 @@
 <body>
   <main class="container-lg rg-main py-3">
 
-   <div class="rg-back mb-2">
+   <div class="rg-back mb-3">
      <a href="index.html">← 車両一覧に戻る</a>
 
      <a id="editBtn" class="rg-edit-btn" href="#" style="display:none;">
        <span class="rg-edit-icon">✏️</span>
-       この車両のオーナーの方はログインして編集
+       オーナー編集
      </a>
    </div>
 
    <div id="loading">詳細データを読み込んでいます...</div>
 
    <div id="content">
-      <div class="row g-3 align-items-start">
+      <div class="row g-4 align-items-start">
         
         <div class="col-12 col-lg-5 rg-photo-col">
           <section class="rg-card mb-3">
             <div class="rg-photo-square">
-              <img id="photoMain" src="" alt="メイン写真" data-rg-zoomable>
+              <img id="photoMain" src="" alt="メイン写真" data-rg-zoomable onerror="this.src=NO_IMAGE_URL">
             </div>
             <div class="rg-photo-title-main">
               <span id="year" class="rg-photo-year"></span>
@@ -226,8 +196,7 @@
           </section>
 
           <section class="rg-card" id="gallerySection" style="display:none;">
-            <div class="rg-gallery-grid" id="galleryGrid">
-              </div>
+            <div class="rg-gallery-grid" id="galleryGrid"></div>
           </section>
         </div>
 
@@ -249,7 +218,8 @@
               <dt>排気量 (cc)</dt><dd id="val_EngineCC"></dd>
               <dt>エンジン形式</dt><dd id="val_Engine_Display"></dd>
               <dt>点火形式</dt><dd id="val_IgnitionType"></dd>
-              <dt>デスビ/プラグ</dt><dd id="val_DistPlug"></dd> <dt>燃料供給装置</dt><dd id="val_FuelInjection"></dd>
+              <dt>デスビ/プラグ</dt><dd id="val_DistPlug"></dd>
+              <dt>燃料供給装置</dt><dd id="val_FuelInjection"></dd>
               <dt>キャブレター</dt><dd id="val_CarburetorName"></dd>
               <dt>燃料ポンプ</dt><dd id="val_FuelPump"></dd>
               <dt>電ポン</dt><dd id="val_ElectricPumpName"></dd>
@@ -291,8 +261,7 @@
 
           <section class="rg-card mb-3" id="snsSection" style="display:none;">
             <h2 class="rg-section-title">SNS</h2>
-            <dl class="rg-sns-grid" id="snsGrid">
-              </dl>
+            <dl class="rg-spec-grid" id="snsGrid"></dl> <!-- レイアウト統一のためclass変更 -->
           </section>
 
         </div></div><div class="rg-footer-back mt-3">
@@ -303,9 +272,6 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbz0BJpaG-AcK3T6YYtav-nfd3gqGlkEWu3AvpW5uRT52N9jW8pBKLrpLSqvXqyD2ghwCA/exec";
-    const NO_IMAGE_URL = 'https://firebasestorage.googleapis.com/v0/b/registro500giappone-93f98.firebasestorage.app/o/assets%2Fno_image_500.png?alt=media&token=6b54ce01-d76a-4b59-b815-f7e250f1fb78';
-
     const params = new URLSearchParams(window.location.search);
     const docId = params.get('doc');
 
@@ -315,6 +281,7 @@
         return;
       }
       try {
+        // config.js の API_URL を使用
         const res = await fetch(`${API_URL}?mode=detail&doc=${docId}`);
         const json = await res.json();
         if (json.success && json.data) {
@@ -337,7 +304,7 @@
       setText('handleName', car.HandleName);
       setText('prefecture', car.Prefecture);
 
-      // 写真
+      // 写真 (config.js の NO_IMAGE_URL 使用)
       const mainImg = document.getElementById('photoMain');
       mainImg.src = car.PhotoMain || NO_IMAGE_URL;
 
@@ -346,7 +313,7 @@
       editBtn.href = `edit.html?doc=${encodeURIComponent(car.DocumentID)}`;
       editBtn.style.display = 'inline-flex';
 
-      // 3. スペックの紐付け (IDとデータキーの対応)
+      // 3. スペックの紐付け
       const map = {
         'val_BodyColor': car.BodyColor,
         'val_Length_cm': car.Length_cm,
@@ -386,7 +353,7 @@
       const plug = car.PlugName || '';
       setText('val_DistPlug', (dist && plug) ? `${dist} / ${plug}` : (dist || plug));
 
-      // 4. 空欄隠し (dl.js-auto-hide 内の空 dd を隠す)
+      // 4. 空欄隠し
       document.querySelectorAll('.js-auto-hide').forEach(dl => {
         const dts = dl.querySelectorAll('dt');
         const dds = dl.querySelectorAll('dd');
@@ -423,8 +390,9 @@
           div.className = 'rg-gallery-item';
           div.innerHTML = `
             <div class="rg-gallery-thumb">
-              <img src="${car[p.key]}" alt="${p.label}" data-rg-zoomable>
+              <img src="${car[p.key]}" alt="${p.label}" data-rg-zoomable onerror="this.src=NO_IMAGE_URL">
             </div>
+            <div>${p.label}</div>
           `;
           galleryGrid.appendChild(div);
         }
@@ -447,7 +415,6 @@
         if (val) {
           hasSns = true;
           let url = val;
-          // IDだけ入力された場合の補完
           if (s.base && !/^https?:\/\//i.test(val)) {
             url = s.base + val.replace(/^@/, '') + (s.suffix || '');
           }
@@ -465,15 +432,14 @@
       if (el) el.textContent = text || '';
     }
 
-    // ライトボックス処理 (Event Delegation)
+    // ライトボックス
     document.body.addEventListener('click', function(e) {
       if (e.target.matches('[data-rg-zoomable]')) {
         const overlay = document.querySelector('.rg-lightbox');
         if (!overlay) {
-          // オーバーレイ生成
           const div = document.createElement('div');
           div.className = 'rg-lightbox is-open';
-          div.innerHTML = '<div class="rg-lightbox-inner"><img src="' + e.target.src + '"><button class="rg-lightbox-close">×</button></div>';
+          div.innerHTML = `<div class="rg-lightbox-inner"><img src="${e.target.src}"><button class="rg-lightbox-close">×</button></div>`;
           document.body.appendChild(div);
           div.addEventListener('click', function(ev) {
             if (ev.target === div || ev.target.className === 'rg-lightbox-close') {
