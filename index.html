@@ -54,10 +54,12 @@
       display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px;
     }
 
-    /* ★修正: アイコンを強調（1.5倍サイズ） */
+    /* ★修正: アイコンの白地を消す(乗算合成) & 1.2倍サイズ */
     .brand-logo-img {
-      height: 100px; /* 以前の60px程度から大幅アップ */
-      width: auto; object-fit: contain;
+      height: 120px; 
+      width: auto; 
+      object-fit: contain;
+      mix-blend-mode: multiply; /* 白背景を透過させる魔法のCSS */
     }
 
     /* テキスト3行セット */
@@ -65,11 +67,10 @@
       display: flex; flex-direction: column; gap: 4px;
     }
 
-    /* ★修正: 文字サイズは「以前の適正サイズ」に戻す */
     .brand-title {
       margin: 0; 
       font-family: var(--font-serif);
-      font-size: 1.5rem; /* スマホで大きすぎない、締まったサイズ */
+      font-size: 1.5rem; 
       font-weight: 700; 
       color: var(--accent);
       line-height: 1.2;
@@ -77,17 +78,11 @@
     }
 
     .page-subtitle {
-      margin: 0; 
-      font-size: 0.9rem; /* 控えめに */
-      font-weight: 500; 
-      color: var(--text-main);
+      margin: 0; font-size: 0.9rem; font-weight: 500; color: var(--text-main);
     }
 
     .page-meta {
-      margin: 0; 
-      font-size: 0.85rem; /* 控えめに */
-      color: var(--accent); 
-      font-weight: 600;
+      margin: 0; font-size: 0.85rem; color: var(--accent); font-weight: 600;
     }
     .goal-pill { margin-right: 6px; }
 
@@ -108,7 +103,6 @@
       background-color: #ffffff; font-size: 0.9rem; outline: none;
     }
 
-    /* ボタン */
     .btn-secondary {
       display: inline-flex; align-items: center; justify-content: center;
       padding: 8px 20px; border-radius: 999px; 
@@ -135,16 +129,12 @@
         flex-direction: row; justify-content: space-between; align-items: flex-end;
         margin-top: 30px;
       }
-
-      /* ロゴとテキストを横並びに */
       .header-brand-block {
         flex-direction: row; align-items: center; text-align: left; gap: 24px;
       }
-      
-      /* ★修正: PCでもアイコンを大きく、文字は適正サイズに */
-      .brand-logo-img { height: 130px; } /* 存在感アップ */
-      
-      .brand-title { font-size: 2.2rem; margin-bottom: 4px; } /* 巨大化させず維持 */
+      /* PCサイズ調整 */
+      .brand-logo-img { height: 156px; }
+      .brand-title { font-size: 2.2rem; margin-bottom: 4px; }
       .page-subtitle { font-size: 1.0rem; margin-bottom: 2px; }
       .page-meta { font-size: 0.95rem; }
 
@@ -175,7 +165,7 @@
 
     /* 写真 */
     .car-image-wrap {
-      position: relative; width: 100%; padding-top: 100%; /* 正方形 */
+      position: relative; width: 100%; padding-top: 100%;
       background: #f3f4f6; overflow: hidden;
     }
     .car-image {
@@ -184,42 +174,45 @@
     }
     .car-card:hover .car-image { transform: scale(1.05); }
 
-    /* カード本文 */
+    /* カード本文 (構成変更) */
     .car-main {
       padding: 12px 14px;
-      display: flex; flex-direction: column; gap: 8px;
+      display: flex; flex-direction: column;
+      gap: 0; /* ★修正: 隙間をCSSマージンで制御するためゼロに */
       flex-grow: 1;
+      justify-content: flex-start; /* 上に詰める */
     }
 
-    /* 車両情報 */
-    .car-info-group { display: flex; flex-direction: column; gap: 2px; }
-    
-    .car-title-year { font-size: 0.75rem; color: var(--text-sub); font-weight: 600; }
-    
-    .car-title-model {
-      font-size: 1.05rem; font-weight: 700; color: var(--text-main); line-height: 1.3;
+    /* 1行目: 年式 + 都道府県 */
+    .car-meta-row {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 4px; /* 次の行との間隔 */
+    }
+    .car-year {
+      font-size: 0.75rem; color: var(--text-sub); font-weight: 600;
+    }
+    .car-pref {
+      font-size: 0.7rem; font-weight: 600;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-border);
+      padding: 1px 8px;
+      border-radius: 999px;
     }
 
-    /* オーナー情報 (名前左、県名右寄せ) */
-    .car-owner-row {
-      margin-top: auto; /* 下部に寄せる */
-      display: flex; flex-direction: column; gap: 6px;
-      padding-top: 8px; border-top: 1px solid #f9fafb;
+    /* 2行目: 車種名 */
+    .car-model {
+      margin: 0 0 2px 0; /* ★修正: ハンドルネームとの隙間を極小に */
+      font-size: 1.05rem; font-weight: 700; 
+      color: var(--text-main); line-height: 1.3;
     }
 
+    /* 3行目: オーナー名 (車種名のすぐ下) */
     .car-owner {
-      font-size: 0.9rem; color: var(--text-main); font-weight: 600;
+      margin: 0;
+      font-size: 0.85rem; color: var(--text-main); font-weight: 600;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-
-    /* 都道府県ラベル (右寄せ) */
-    .badge-pref {
-      align-self: flex-end; /* 親がcolumnなので、これで右に寄る */
-      display: inline-block;
-      padding: 2px 10px; border-radius: 999px;
-      background-color: var(--accent-soft); border: 1px solid var(--accent-border);
-      color: var(--accent); font-size: 0.75rem; font-weight: 600;
-      white-space: nowrap;
+      opacity: 0.8; /* 少し薄くして階層をつける */
     }
 
     #loading { text-align:center; padding: 60px; color: var(--text-sub); }
@@ -231,9 +224,8 @@
   <div class="page">
     <header class="page-header">
       
-      <!-- ロゴ＋テキストブロック (PCは横並び、SPは縦積み) -->
       <div class="header-brand-block">
-        <!-- アイコン画像 (FirebaseのURLがあれば差し替えてください) -->
+        <!-- ロゴ画像 (白地透過) -->
         <img src="https://firebasestorage.googleapis.com/v0/b/registro500giappone-93f98.firebasestorage.app/o/assets%2Flogo_horizontal.png?alt=media&token=efab9298-5cbb-4dff-b6b8-aa4ab5863bbf" 
              class="brand-logo-img" 
              alt="Logo"
@@ -249,7 +241,6 @@
         </div>
       </div>
 
-      <!-- コントロールエリア -->
       <div class="page-header-right">
         <div class="sort-area">
           <div class="sort-left">
@@ -261,8 +252,6 @@
               <option value="year_asc">年式 (古い順)</option>
             </select>
           </div>
-
-          <!-- ボタンは自動幅で右寄せ（またはなりゆき） -->
           <a href="edit.html" class="btn-secondary btn-owner">
             オーナーページへ
           </a>
@@ -281,12 +270,12 @@
   </div>
 
   <script>
-    /* ========== 設定 ========== */
     const API_URL = "https://script.google.com/macros/s/AKfycbz0BJpaG-AcK3T6YYtav-nfd3gqGlkEWu3AvpW5uRT52N9jW8pBKLrpLSqvXqyD2ghwCA/exec";
-    
-    // プレースホルダー画像
     const NO_IMAGE_URL = 'https://placehold.co/600x600/f3f4f6/9ca3af?text=No+Image';
+    const LOGO_URL = "https://firebasestorage.googleapis.com/v0/b/registro500giappone-93f98.firebasestorage.app/o/assets%2Flogo_horizontal.png?alt=media&token=efab9298-5cbb-4dff-b6b8-aa4ab5863bbf";
     
+    document.querySelector('.brand-logo-img').src = LOGO_URL;
+
     let carsData = [];
 
     async function fetchCars() {
@@ -328,7 +317,6 @@
       listEl.innerHTML = '';
       const cars = carsData.slice();
 
-      // ソート処理
       if (sortType === 'oldest') {
         cars.sort((a, b) => parseDocNumber(a.DocumentID) - parseDocNumber(b.DocumentID));
       } else if (sortType === 'year_desc') {
@@ -336,7 +324,6 @@
       } else if (sortType === 'year_asc') {
         cars.sort((a, b) => parseYear(a.Year) - parseYear(b.Year));
       } else {
-        // newest
         cars.sort((a, b) => parseDocNumber(b.DocumentID) - parseDocNumber(a.DocumentID));
       }
 
@@ -348,7 +335,6 @@
         link.className = 'car-link';
         link.href = 'detail.html?doc=' + encodeURIComponent(car.DocumentID || '');
 
-        // 写真
         const imgWrap = document.createElement('div');
         imgWrap.className = 'car-image-wrap';
         const img = document.createElement('img');
@@ -364,40 +350,37 @@
         const main = document.createElement('div');
         main.className = 'car-main';
 
-        // 車両情報
-        const infoGroup = document.createElement('div');
-        infoGroup.className = 'car-info-group';
+        // 1行目: 年式 + 都道府県
+        const metaRow = document.createElement('div');
+        metaRow.className = 'car-meta-row';
 
         const yearSpan = document.createElement('span');
-        yearSpan.className = 'car-title-year';
+        yearSpan.className = 'car-year';
         yearSpan.textContent = car.Year ? String(car.Year) + '年' : '';
-
-        const modelSpan = document.createElement('span');
-        modelSpan.className = 'car-title-model';
-        const rawModel = (car.Model_DisplayC && String(car.Model_DisplayC).trim()) || '';
-        modelSpan.textContent = rawModel.replace(/\s*\(\d{4}\)\s*$/, ''); // 末尾の(yyyy)があれば消す
-
-        infoGroup.appendChild(yearSpan);
-        infoGroup.appendChild(modelSpan);
-
-        // オーナー情報
-        const ownerRow = document.createElement('div');
-        ownerRow.className = 'car-owner-row';
-
-        const ownerName = document.createElement('span');
-        ownerName.className = 'car-owner';
-        ownerName.textContent = car.HandleName || '';
-        ownerRow.appendChild(ownerName);
+        
+        metaRow.appendChild(yearSpan);
 
         if (car.Prefecture) {
-          const pref = document.createElement('span');
-          pref.className = 'badge-pref';
-          pref.textContent = car.Prefecture;
-          ownerRow.appendChild(pref);
+          const prefSpan = document.createElement('span');
+          prefSpan.className = 'car-pref';
+          prefSpan.textContent = car.Prefecture;
+          metaRow.appendChild(prefSpan);
         }
 
-        main.appendChild(infoGroup);
-        main.appendChild(ownerRow);
+        // 2行目: 車種名
+        const modelEl = document.createElement('h3');
+        modelEl.className = 'car-model';
+        const rawModel = (car.Model_DisplayC && String(car.Model_DisplayC).trim()) || '';
+        modelEl.textContent = rawModel.replace(/\s*\(\d{4}\)\s*$/, '');
+
+        // 3行目: オーナー名
+        const ownerEl = document.createElement('p');
+        ownerEl.className = 'car-owner';
+        ownerEl.textContent = car.HandleName || '';
+
+        main.appendChild(metaRow);
+        main.appendChild(modelEl);
+        main.appendChild(ownerEl);
 
         link.appendChild(imgWrap);
         link.appendChild(main);
