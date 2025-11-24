@@ -18,28 +18,26 @@
       --accent-soft: #e6efff;
       --accent-border: #c2d4ff;
 
-      --radius-lg: 18px;
+      --radius-lg: 12px;
     }
 
     * { box-sizing: border-box; }
 
-    /* ★修正: モバイル基準フォントを 28px -> 16px に変更 (レギュレーション準拠) */
+    /* レギュレーション準拠: 16px基準 */
     html {
       font-size: 16px;
-      /* 横欠け防止 */
       max-width: 100%;
       overflow-x: hidden;
     }
-    /* PC向け調整 */
     @media (min-width: 1025px) {
       html { font-size: 18px; }
     }
 
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      margin: 0; padding: 18px 12px 96px; /* 下部余白をレギュレーションに合わせて確保 */
+      margin: 0; padding: 16px 12px 96px;
       background-color: var(--bg-main); color: var(--text-main);
-      font-size: 1rem; line-height: 1.6;
+      font-size: 1rem; line-height: 1.5;
       max-width: 100%;
       overflow-x: hidden;
     }
@@ -49,152 +47,155 @@
     /* ===== ヘッダー周り ===== */
     .page-header {
       display: flex; flex-direction: column; align-items: stretch;
-      gap: 12px; margin-bottom: 20px;
+      gap: 16px; margin-bottom: 20px;
     }
-    .page-header-main { display: flex; flex-direction: column; gap: 12px; }
-    .page-header-left { display: flex; flex-direction: column; gap: 6px; }
-
+    
+    /* タイトル周りの引き締め */
     .brand-title {
-      margin: 0; font-size: 2rem; font-weight: 800; letter-spacing: 0.14em;
-      text-transform: uppercase; color: var(--accent);
+      margin: 0 0 8px 0; 
+      font-size: 1.5rem; /* スマホで大きすぎないサイズ */
+      font-weight: 800; 
+      letter-spacing: 0.02em; 
+      line-height: 1.2;
+      text-transform: uppercase; 
+      color: var(--accent);
     }
 
-    .page-section-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
-    .page-section-title { margin: 0; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.05em; }
+    .page-section-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+    .page-section-title { 
+      margin: 0; 
+      font-size: 0.95rem; 
+      font-weight: 700; 
+      color: var(--text-main); 
+      line-height: 1.4;
+    }
 
     .page-meta {
       display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center;
-      font-size: 0.95rem; color: var(--accent);
+      font-size: 0.9rem; color: var(--accent); margin-top: 4px;
     }
     .goal-pill {
-      padding: 0; border: none; background: transparent; color: var(--accent);
-      font-size: 1em; font-weight: 600; letter-spacing: 0.03em; margin-right: 4px;
+      font-weight: 700; margin-right: 6px;
     }
-    .page-meta-current { font-size: 1em; color: var(--accent); font-weight: 600; }
 
-    .page-header-right { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+    /* ===== コントロールエリア (並び替え・ボタン) ===== */
+    .page-header-right { 
+      display: flex; flex-direction: column; gap: 12px; 
+      background: #fff; padding: 12px; border-radius: 12px; border: 1px solid var(--border-soft);
+    }
 
     .sort-area {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 10px; font-size: 0.9rem; color: var(--text-sub); width: 100%;
+      display: flex; flex-direction: column; /* スマホは縦積み */
+      gap: 12px; font-size: 0.9rem; color: var(--text-sub); width: 100%;
     }
-    .sort-left { display: flex; align-items: center; gap: 8px; }
-    .sort-label { white-space: nowrap; }
-
-    .sort-right {
-      display: flex; align-items: center; gap: 8px; padding: 4px 10px;
-      border-radius: 999px; background-color: var(--accent-soft);
+    
+    .sort-left { 
+      display: flex; align-items: center; justify-content: space-between; width: 100%;
     }
     .sort-select {
-      padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border-soft);
-      background-color: #ffffff; font-size: 0.9rem; outline: none;
+      padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-soft);
+      background-color: #f9fafb; font-size: 0.9rem; outline: none; flex-grow: 1; margin-left: 8px;
     }
 
+    .sort-right { width: 100%; }
+    
     .btn-secondary {
-      display: inline-flex; align-items: center; justify-content: center;
-      padding: 8px 14px; border-radius: 999px; border: 1px solid var(--accent-border);
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; /* スマホでは幅いっぱい */
+      padding: 10px 16px; border-radius: 999px; border: 1px solid var(--accent-border);
       background-color: #ffffff; color: var(--accent);
-      font-size: 0.9rem; font-weight: 600; text-decoration: none;
-      cursor: pointer; white-space: nowrap;
-      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.16);
-      transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.1s ease;
+      font-size: 0.95rem; font-weight: 700; text-decoration: none;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     .btn-owner { background-color: var(--accent); color: #ffffff; border-color: var(--accent-border); }
-    .btn-owner:hover { background-color: #182f4d; color: #ffffff; }
-    .btn-secondary:hover {
-      background-color: var(--accent-soft); box-shadow: 0 4px 8px rgba(15, 23, 42, 0.25);
-      transform: translateY(-1px);
-    }
-    .btn-secondary:active { transform: translateY(0); box-shadow: 0 2px 4px rgba(15, 23, 42, 0.2); }
+    .btn-owner:hover { opacity: 0.9; }
 
     .header-nav {
-      display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.85rem;
-      color: var(--text-sub); justify-content: flex-end; width: 100%;
+      display: flex; flex-wrap: wrap; gap: 8px 12px; font-size: 0.8rem;
+      color: var(--text-sub); justify-content: center; width: 100%;
+      margin-top: 4px;
     }
     .header-nav a { color: var(--text-sub); text-decoration: none; }
-    .header-nav a:hover { text-decoration: underline; }
 
     /* ===== 一覧カード ===== */
     .car-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    
     .car-card {
       background-color: var(--card-bg); border-radius: var(--radius-lg);
       box-shadow: var(--shadow-soft); overflow: hidden; display: flex; flex-direction: column;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      height: 100%;
     }
-    .car-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18); }
-    .car-link { display: block; color: inherit; text-decoration: none; height: 100%; }
+    .car-link { display: flex; flex-direction: column; color: inherit; text-decoration: none; height: 100%; }
 
     .car-image-wrap {
-      position: relative; width: 100%; padding-top: 100%; background: #e5e7eb; overflow: hidden;
+      position: relative; width: 100%; padding-top: 75%; /* 4:3比率 */
+      background: #e5e7eb; overflow: hidden;
     }
     .car-image {
       position: absolute; inset: 0; width: 100%; height: 100%;
-      object-fit: contain; background-color: #f9fafb; transition: transform 0.3s ease;
+      object-fit: cover; background-color: #f3f4f6;
     }
-    .car-card:hover .car-image { transform: scale(1.03); }
 
-    .car-main { padding: 12px 12px 10px; display: flex; flex-direction: column; gap: 4px; }
+    .car-main { 
+      padding: 10px 10px 12px; 
+      display: flex; flex-direction: column; 
+      flex-grow: 1; justify-content: space-between;
+    }
+    
+    .car-info-top { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+
     .car-title {
-      margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main);
-      line-height: 1.3; display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem;
+      margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-main);
+      line-height: 1.3;
     }
-    .car-title-year { font-size: 0.75em; font-weight: 600; color: var(--text-sub); }
-    .car-title-model { font-weight: 800; }
+    .car-title-year { 
+      font-size: 0.75rem; font-weight: 600; color: var(--text-sub); 
+      display: block; margin-bottom: 2px;
+    }
 
-    .car-owner-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+    /* オーナー情報（縦積み・左寄せ） */
+    .car-owner-block { 
+      display: flex; flex-direction: column; align-items: flex-start; gap: 4px; 
+      border-top: 1px solid #f3f4f6; padding-top: 8px;
+    }
     .car-owner {
-      margin: 0; font-size: 0.9rem; color: var(--text-main); font-weight: 600;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      margin: 0; font-size: 0.85rem; color: var(--text-main); font-weight: 600;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
     }
     .badge-pref {
-      display: inline-flex; align-items: center; padding: 2px 8px;
-      border-radius: 999px; border: 1px solid var(--accent-border);
-      background-color: var(--accent-soft); color: var(--accent);
-      font-size: 0.75rem; white-space: nowrap;
-    }
-
-    .card-footer {
-      display: flex; align-items: center; justify-content: flex-start;
-      padding: 6px 16px 10px; border-top: none; font-size: 1.2rem; color: var(--text-sub); min-height: 0;
+      display: inline-block; padding: 2px 8px;
+      border-radius: 4px; background-color: var(--accent-soft); 
+      color: var(--accent); font-size: 0.7rem; font-weight: 600;
     }
 
     /* ロゴまわり */
     .brand-header {
-      max-width: 1200px; margin: 0 auto 24px; padding: 16px 24px;
-      text-align: left; background-color: #F8F5F0; border-radius: 18px;
+      max-width: 1200px; margin: 0 auto 16px; padding: 12px;
+      text-align: center; background-color: #F8F5F0; border-radius: 12px;
     }
-    .brand-logo { display: block; }
-    .brand-logo-pc { height: 80px; }
-    .brand-logo-sp { display: none; height: 100px; margin: 0 auto; }
+    .brand-logo { display: block; margin: 0 auto; height: 60px; width: auto; }
 
-    /* PC向け調整 */
+    /* PC向け調整 (1025px以上) */
     @media (min-width: 1025px) {
-      body { padding: 24px 24px 48px; font-size: 1rem; }
+      body { padding: 24px 24px 48px; }
+      .brand-header { text-align: left; padding: 16px 24px; margin-bottom: 32px; }
+      .brand-logo { margin: 0; height: 70px; }
+      
       .page-header { flex-direction: row; justify-content: space-between; align-items: flex-end; }
-      .page-header-main { flex-direction: column; gap: 10px; }
-      .brand-title { font-size: 2.2rem; }
-      .page-section-title { font-size: 1.4rem; }
-      .page-meta { font-size: 1.05rem; }
-      .page-header-right { align-items: flex-end; }
-      .sort-area { font-size: 1.0rem; }
-      .sort-select { font-size: 0.95rem; }
-      .header-nav { justify-content: flex-end; font-size: 0.9rem; }
-      .btn-secondary { font-size: 0.95rem; padding: 6px 14px; }
-      .car-list { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
-      .car-main { padding: 16px 18px 8px; gap: 6px; }
-      .car-title { font-size: 1.4rem; }
-      .car-owner { font-size: 1.1rem; }
-      .badge-pref { font-size: 0.8rem; padding: 2px 8px; }
-      .card-footer { padding: 6px 18px 10px; font-size: 0.9rem; }
-    }
-
-    @media (max-width: 768px) {
-      .brand-header { text-align: center; }
-      .brand-logo-pc { display: none; }
-      .brand-logo-sp { display: block; }
+      .page-header-right { background: none; border: none; padding: 0; width: auto; align-items: flex-end; }
+      
+      .brand-title { font-size: 2rem; margin-bottom: 4px; }
+      .page-section-title { font-size: 1.2rem; }
+      
+      .sort-area { flex-direction: row; width: auto; }
+      .sort-left { width: auto; }
+      .sort-right { width: auto; }
+      .btn-secondary { width: auto; }
+      .header-nav { justify-content: flex-end; }
+      
+      .car-list { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 24px; }
     }
     
-    /* ローディング用 */
     #loading { text-align:center; padding: 40px; color: var(--text-sub); font-weight: bold; }
   </style>
 </head>
@@ -204,12 +205,7 @@
     <img
       src="https://firebasestorage.googleapis.com/v0/b/registro500giappone-93f98.firebasestorage.app/o/assets%2Flogo_horizontal.png?alt=media&token=efab9298-5cbb-4dff-b6b8-aa4ab5863bbf"
       alt="Registro500 Giappone ロゴ"
-      class="brand-logo brand-logo-pc">
-
-    <img
-      src="https://firebasestorage.googleapis.com/v0/b/registro500giappone-93f98.firebasestorage.app/o/assets%2Flogo_vertical.png?alt=media&token=8abb93db-0025-4916-a711-f25d66cedc73"
-      alt="Registro500 Giappone ロゴ"
-      class="brand-logo brand-logo-sp">
+      class="brand-logo">
   </div>
 
   <div class="page">
@@ -217,7 +213,6 @@
       <div class="page-header-main">
         <div class="page-header-left">
           <h1 class="brand-title">REGISTRO500 GIAPPONE</h1>
-
           <div class="page-section-row">
             <p class="page-section-title">日本のクラシック FIAT 500 のオンラインガレージ</p>
             <div class="page-meta">
@@ -233,26 +228,24 @@
       <div class="page-header-right">
         <div class="sort-area">
           <div class="sort-left">
-            <span class="sort-label">並び替え：</span>
+            <span class="sort-label">並び替え</span>
             <select id="sortSelect" class="sort-select">
-              <option value="newest">新規登録順（新しい順）</option>
-              <option value="oldest">新規登録順（古い順）</option>
-              <option value="year_desc">年式が新しい順</option>
-              <option value="year_asc">年式が古い順</option>
+              <option value="newest">新着順</option>
+              <option value="oldest">登録順</option>
+              <option value="year_desc">年式 (新しい順)</option>
+              <option value="year_asc">年式 (古い順)</option>
             </select>
           </div>
 
           <div class="sort-right">
-            <a href="edit.html"
-               class="btn-secondary btn-owner"
-               id="ownerPageButton">
+            <a href="edit.html" class="btn-secondary btn-owner" id="ownerPageButton">
               オーナーページへ
             </a>
           </div>
         </div>
 
         <nav class="header-nav">
-          <a href="policy.html">プライバシーポリシー / 利用規約</a>
+          <a href="policy.html">プライバシーポリシー</a>
           <span>｜</span>
           <a href="howto.html">はじめての方へ</a>
         </nav>
@@ -268,13 +261,11 @@
     // ★ GAS API URL (あなたの環境のもの)
     const API_URL = "https://script.google.com/macros/s/AKfycbz0BJpaG-AcK3T6YYtav-nfd3gqGlkEWu3AvpW5uRT52N9jW8pBKLrpLSqvXqyD2ghwCA/exec";
     
-    const NO_IMAGE_URL =
-      'https://firebasestorage.googleapis.com/v0/b/registro500giappone-93f98.firebasestorage.app/o/assets%2Fno_image_500.png?alt=media&token=6b54ce01-d76a-4b59-b815-f7e250f1fb78';
+    // ★画像URL変更: 安定したプレースホルダー画像を使用 (Placehold.co)
+    const NO_IMAGE_URL = 'https://placehold.co/600x450/f3f4f6/9ca3af?text=No+Image';
 
-    // グローバル変数として保持（ソート用）
     let carsData = [];
 
-    // データ取得処理 (API)
     async function fetchCars() {
       try {
         const res = await fetch(API_URL + '?mode=index');
@@ -317,7 +308,6 @@
       const listEl = document.getElementById('carList');
       listEl.innerHTML = '';
 
-      // 配列のコピーを作ってソート
       const cars = carsData.slice();
 
       switch (sortType) {
@@ -340,26 +330,31 @@
         const card = document.createElement('article');
         card.className = 'car-card';
 
-        // ★修正: リンク先を detail.html?doc=... に変更
         const link = document.createElement('a');
         link.className = 'car-link';
         link.href = 'detail.html?doc=' + encodeURIComponent(car.DocumentID || '');
-        // target="_blank" は外すのが一般的（SPA的挙動のため）ですが、お好みで。
-        // link.target = '_blank'; 
-        // link.rel = 'noopener';
 
+        // 画像エリア
         const imgWrap = document.createElement('div');
         imgWrap.className = 'car-image-wrap';
         const img = document.createElement('img');
         img.className = 'car-image';
-        const photoUrl = (car.PhotoMain && String(car.PhotoMain).trim()) || NO_IMAGE_URL;
+        
+        let photoUrl = (car.PhotoMain && String(car.PhotoMain).trim()) || NO_IMAGE_URL;
+        // 読み込みエラー時はプレースホルダーへ差し替え
+        img.onerror = function() { this.src = NO_IMAGE_URL; };
+        
         img.src = photoUrl;
         img.alt = (car.Model_DisplayC || '') + 'の写真';
-        img.loading = "lazy"; // 遅延読み込み
+        img.loading = "lazy";
         imgWrap.appendChild(img);
 
+        // コンテンツエリア
         const main = document.createElement('div');
         main.className = 'car-main';
+
+        const infoTop = document.createElement('div');
+        infoTop.className = 'car-info-top';
 
         const titleEl = document.createElement('h2');
         titleEl.className = 'car-title';
@@ -373,39 +368,31 @@
         const rawModel = (car.Model_DisplayC && String(car.Model_DisplayC).trim()) || '';
         modelSpan.textContent = rawModel.replace(/\s*\(\d{4}\)\s*$/, '');
 
-        if (yearSpan.textContent) {
-          titleEl.appendChild(yearSpan);
-        }
         titleEl.appendChild(modelSpan);
+        infoTop.appendChild(yearSpan);
+        infoTop.appendChild(titleEl);
 
-        const ownerRow = document.createElement('div');
-        ownerRow.className = 'car-owner-row';
+        // オーナー情報（縦積み）
+        const ownerBlock = document.createElement('div');
+        ownerBlock.className = 'car-owner-block';
 
         const ownerName = document.createElement('p');
         ownerName.className = 'car-owner';
         ownerName.textContent = car.HandleName || '';
-        ownerRow.appendChild(ownerName);
+        ownerBlock.appendChild(ownerName);
 
         if (car.Prefecture) {
           const pref = document.createElement('span');
           pref.className = 'badge-pref';
           pref.textContent = car.Prefecture;
-          ownerRow.appendChild(pref);
+          ownerBlock.appendChild(pref);
         }
 
-        main.appendChild(titleEl);
-        main.appendChild(ownerRow);
-
-        const footer = document.createElement('div');
-        footer.className = 'card-footer';
-        const updated = document.createElement('span');
-        updated.className = 'badge-updated';
-        updated.textContent = ''; // 更新日を入れるならここ
-        footer.appendChild(updated);
+        main.appendChild(infoTop);
+        main.appendChild(ownerBlock);
 
         link.appendChild(imgWrap);
         link.appendChild(main);
-        link.appendChild(footer);
 
         card.appendChild(link);
         listEl.appendChild(card);
@@ -416,7 +403,6 @@
       renderCars(e.target.value);
     });
 
-    // 初回データ取得
     fetchCars();
   </script>
 </body>
