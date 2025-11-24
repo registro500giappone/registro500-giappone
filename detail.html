@@ -105,11 +105,11 @@
       width: 0.2rem; height: 1.1em; border-radius: 999px; background: var(--rg-accent);
     }
 
-    /* ===== スペック表 (スマホ最適化) ===== */
+    /* ===== スペック表 (スマホ最適化・厳密調整) ===== */
     .rg-spec-grid {
       display: grid; 
-      /* ★修正: 左カラムを極限まで狭くし(6.5rem)、右側のデータ領域を最大化 */
-      grid-template-columns: 6.5rem 1fr; 
+      /* ★修正: "トランスミッション"が入る最小限の幅(8.2rem)を確保 */
+      grid-template-columns: 8.2rem 1fr; 
       column-gap: 0.5rem; row-gap: 0; margin: 0; 
       font-size: 0.95rem;
       border-top: 1px solid var(--rg-border); border-bottom: 1px solid var(--rg-border);
@@ -121,20 +121,20 @@
     }
     
     .rg-spec-grid dt {
-      font-weight: 700; /* 細かくても読みやすいよう太字 */
+      font-weight: 700; 
       color: var(--rg-muted); 
       background: rgba(148, 163, 184, 0.05); 
       
-      /* ★修正: 絶対に改行させない & フォントサイズ縮小 */
+      /* ★修正: 全文字表示(改行禁止) & フォントサイズ復元 */
       white-space: nowrap; 
-      overflow: hidden;
-      text-overflow: ellipsis; /* 万が一はみ出たら...にする */
-      font-size: 0.8rem; 
+      font-size: 0.9rem; /* 0.8remから大きく戻す */
+      
+      /* はみ出し対策はせず、枠を広げるアプローチに変更 */
     }
     
     .rg-spec-grid dd { 
       white-space: pre-wrap; 
-      word-break: break-word; /* データ側はよしなに改行 */
+      word-break: break-word; 
     }
 
     /* PC用調整 (1025px以上) */
@@ -324,6 +324,7 @@
         return;
       }
       try {
+        // config.js の API_URL を使用
         const res = await fetch(`${API_URL}?mode=detail&doc=${docId}`);
         const json = await res.json();
         if (json.success && json.data) {
@@ -346,7 +347,7 @@
       setText('handleName', car.HandleName);
       setText('prefecture', car.Prefecture);
 
-      // 写真
+      // 写真 (config.js の NO_IMAGE_URL 使用)
       const mainImg = document.getElementById('photoMain');
       mainImg.src = car.PhotoMain || NO_IMAGE_URL;
 
@@ -429,6 +430,7 @@
         if (car[p.key]) {
           hasGallery = true;
           const div = document.createElement('div');
+          // キャプション削除
           div.innerHTML = `
             <div class="rg-gallery-thumb">
               <img src="${car[p.key]}" alt="${p.label}" data-rg-zoomable onerror="this.src=NO_IMAGE_URL">
