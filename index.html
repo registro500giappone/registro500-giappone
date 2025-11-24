@@ -36,7 +36,7 @@
 
     body {
       font-family: var(--font-sans);
-      margin: 0; padding: 20px 16px 96px;
+      margin: 0; padding: 20px 12px 96px; /* スマホの左右余白を少し狭めてヘッダーを入りやすく */
       background-color: var(--bg-main); color: var(--text-main);
       font-size: 1rem; line-height: 1.5;
       overflow-x: hidden;
@@ -49,40 +49,55 @@
       display: flex; flex-direction: column; gap: 24px; margin-bottom: 32px;
     }
 
-    /* 左側：ロゴ＋テキストブロック */
+    /* 左側：ロゴ＋テキストブロック (スマホも横並び！) */
     .header-brand-block {
-      display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px;
+      display: flex; 
+      flex-direction: row; /* スマホでも横並び */
+      align-items: center; 
+      text-align: left;    /* 左寄せ */
+      gap: 12px;           /* アイコンと文字の間隔 */
     }
 
-    /* ★修正: アイコンの白地を消す(乗算合成) & 1.2倍サイズ */
+    /* アイコン (透過・スマホサイズ) */
     .brand-logo-img {
-      height: 120px; 
-      width: auto; 
+      height: 80px;       /* スマホでは80pxくらいが限界 */
+      width: 80px;        /* 正方形比率を維持 */
       object-fit: contain;
-      mix-blend-mode: multiply; /* 白背景を透過させる魔法のCSS */
+      mix-blend-mode: multiply;
+      flex-shrink: 0;     /* 縮小させない */
     }
 
     /* テキスト3行セット */
     .brand-text-group {
-      display: flex; flex-direction: column; gap: 4px;
+      display: flex; flex-direction: column; gap: 2px;
     }
 
+    /* タイトル */
     .brand-title {
       margin: 0; 
       font-family: var(--font-serif);
-      font-size: 1.5rem; 
+      font-size: 1.3rem;  /* 横並びに入るサイズに調整 */
       font-weight: 700; 
       color: var(--accent);
-      line-height: 1.2;
-      letter-spacing: 0.02em;
+      line-height: 1.1;
+      letter-spacing: 0.01em;
     }
 
+    /* サブタイトル */
     .page-subtitle {
-      margin: 0; font-size: 0.9rem; font-weight: 500; color: var(--text-main);
+      margin: 0; 
+      font-size: 0.8rem; 
+      font-weight: 500; 
+      color: var(--text-main);
+      line-height: 1.2;
     }
 
+    /* 目標 */
     .page-meta {
-      margin: 0; font-size: 0.85rem; color: var(--accent); font-weight: 600;
+      margin: 0; 
+      font-size: 0.75rem; 
+      color: var(--accent); 
+      font-weight: 600;
     }
     .goal-pill { margin-right: 6px; }
 
@@ -103,12 +118,13 @@
       background-color: #ffffff; font-size: 0.9rem; outline: none;
     }
 
+    /* ボタン */
     .btn-secondary {
       display: inline-flex; align-items: center; justify-content: center;
-      padding: 8px 20px; border-radius: 999px; 
+      padding: 8px 16px; border-radius: 999px; 
       border: 1px solid var(--accent-border);
       background-color: #ffffff; color: var(--accent);
-      font-size: 0.9rem; font-weight: 600; text-decoration: none;
+      font-size: 0.85rem; font-weight: 600; text-decoration: none;
       cursor: pointer; transition: all 0.2s ease;
       box-shadow: 0 2px 4px rgba(0,0,0,0.05);
       width: auto; 
@@ -117,7 +133,7 @@
     .btn-owner:hover { opacity: 0.9; transform: translateY(-1px); }
 
     .header-nav {
-      display: flex; justify-content: center; gap: 12px; font-size: 0.8rem; color: var(--text-sub);
+      display: flex; justify-content: center; gap: 12px; font-size: 0.75rem; color: var(--text-sub);
     }
     .header-nav a { color: var(--text-sub); text-decoration: none; }
     .header-nav a:hover { text-decoration: underline; }
@@ -125,21 +141,29 @@
 
     /* ===== PC向けレイアウト (1025px以上) ===== */
     @media (min-width: 1025px) {
+      body { padding: 24px 24px 48px; } /* PCの余白 */
+
       .page-header {
         flex-direction: row; justify-content: space-between; align-items: flex-end;
         margin-top: 30px;
       }
+
+      /* PCでのヘッダーブロック */
       .header-brand-block {
-        flex-direction: row; align-items: center; text-align: left; gap: 24px;
+        gap: 24px; /* アイコンとの間隔広げる */
       }
+      
       /* PCサイズ調整 */
-      .brand-logo-img { height: 156px; }
+      .brand-logo-img { height: 120px; width: 120px; } /* 元100px -> 120px */
+      
+      .brand-text-group { gap: 4px; }
       .brand-title { font-size: 2.2rem; margin-bottom: 4px; }
       .page-subtitle { font-size: 1.0rem; margin-bottom: 2px; }
       .page-meta { font-size: 0.95rem; }
 
       .page-header-right { align-items: flex-end; }
-      .header-nav { justify-content: flex-end; }
+      .header-nav { justify-content: flex-end; font-size: 0.9rem; }
+      .btn-secondary { font-size: 0.95rem; padding: 8px 20px; }
     }
 
 
@@ -147,7 +171,7 @@
     .car-list {
       display: grid; 
       grid-template-columns: repeat(2, minmax(0, 1fr)); 
-      gap: 16px;
+      gap: 12px; /* スマホでは間隔狭めに */
     }
     @media (min-width: 768px) {
       .car-list { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px; }
@@ -176,43 +200,46 @@
 
     /* カード本文 (構成変更) */
     .car-main {
-      padding: 12px 14px;
+      padding: 10px; /* スマホ用に少し詰める */
       display: flex; flex-direction: column;
-      gap: 0; /* ★修正: 隙間をCSSマージンで制御するためゼロに */
+      gap: 0;
       flex-grow: 1;
-      justify-content: flex-start; /* 上に詰める */
+      justify-content: flex-start;
+    }
+    @media (min-width: 1025px) {
+      .car-main { padding: 12px 14px; }
     }
 
     /* 1行目: 年式 + 都道府県 */
     .car-meta-row {
       display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 4px; /* 次の行との間隔 */
+      margin-bottom: 4px;
     }
     .car-year {
       font-size: 0.75rem; color: var(--text-sub); font-weight: 600;
     }
     .car-pref {
-      font-size: 0.7rem; font-weight: 600;
+      font-size: 0.65rem; font-weight: 600;
       color: var(--accent);
       background: var(--accent-soft);
       border: 1px solid var(--accent-border);
-      padding: 1px 8px;
+      padding: 1px 6px;
       border-radius: 999px;
     }
 
     /* 2行目: 車種名 */
     .car-model {
-      margin: 0 0 2px 0; /* ★修正: ハンドルネームとの隙間を極小に */
-      font-size: 1.05rem; font-weight: 700; 
+      margin: 0 0 2px 0;
+      font-size: 1rem; font-weight: 700; 
       color: var(--text-main); line-height: 1.3;
     }
 
     /* 3行目: オーナー名 (車種名のすぐ下) */
     .car-owner {
       margin: 0;
-      font-size: 0.85rem; color: var(--text-main); font-weight: 600;
+      font-size: 0.8rem; color: var(--text-main); font-weight: 600;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      opacity: 0.8; /* 少し薄くして階層をつける */
+      opacity: 0.8;
     }
 
     #loading { text-align:center; padding: 60px; color: var(--text-sub); }
