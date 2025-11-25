@@ -2,10 +2,9 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Registro500 Giappone - 日本のクラシック FIAT 500 のオンラインガレージ</title>
+  <title>Registro500 Giappone - 縦組みレイアウト</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <!-- 共通設定の読み込み -->
   <script src="config.js"></script>
 
   <style>
@@ -57,9 +56,9 @@
       display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px;
     }
 
-    /* アイコン: 白地透過 & 1.2倍サイズ */
+    /* アイコン: 縦組み用に少し大きめに設定 */
     .brand-logo-img {
-      height: 120px; 
+      height: 140px; 
       width: auto; 
       object-fit: contain;
       mix-blend-mode: multiply;
@@ -134,12 +133,17 @@
         flex-direction: row; justify-content: space-between; align-items: flex-end;
         margin-top: 30px;
       }
+      
+      /* ▼▼▼ 変更箇所：PCでも縦並びを維持・強調 ▼▼▼ */
       .header-brand-block {
-        flex-direction: row; align-items: center; text-align: left; gap: 24px;
+        flex-direction: column; /* 常に縦並び */
+        align-items: center;    /* 中央揃え */
+        text-align: center;
+        gap: 24px;
       }
       
       /* PCサイズ調整 */
-      .brand-logo-img { height: 156px; }
+      .brand-logo-img { height: 180px; } /* ロゴを大きく */
       
       .brand-title { 
           font-size: 2.8rem; 
@@ -173,14 +177,16 @@
     
     .car-link { text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%; }
 
-    /* 写真 */
+    /* 写真：クリア表示の設定 */
     .car-image-wrap {
       position: relative; width: 100%; padding-top: 100%;
       background: #f3f4f6; overflow: hidden;
     }
     .car-image {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      object-fit: cover; transition: transform 0.3s ease;
+      /* ▼▼▼ 変更箇所：画像をトリミングせず全体表示 ▼▼▼ */
+      object-fit: contain; 
+      transition: transform 0.3s ease;
     }
     .car-card:hover .car-image { transform: scale(1.05); }
 
@@ -235,8 +241,7 @@
     <header class="page-header">
       
       <div class="header-brand-block">
-        <!-- ロゴ画像 (config.jsから設定) -->
-        <img src="" class="brand-logo-img" alt="Logo" onerror="this.style.display='none'">
+        <img src="registro500ロゴ縦組.png" class="brand-logo-img" alt="Logo" onerror="this.style.display='none'">
 
         <div class="brand-text-group">
           <h1 class="brand-title">Registro500 Giappone</h1>
@@ -277,16 +282,15 @@
   </div>
 
   <script>
-    // ロゴ設定
-    if (typeof LOGO_URL !== 'undefined') {
-      document.querySelector('.brand-logo-img').src = LOGO_URL;
-    }
+    // ※JavaScript部分は元のindex.htmlと同様です
+    // ロゴ設定の上書き（必要に応じて）
+    // if (typeof LOGO_URL !== 'undefined') { ... } 
+    // ここではHTML内のimgタグで直接指定しているためスクリプトによる上書きは注意が必要です
 
     let carsData = [];
 
     async function fetchCars() {
       try {
-        // config.js の API_URL を使用
         const res = await fetch(API_URL + '?mode=index');
         const json = await res.json();
 
@@ -347,18 +351,15 @@
         const img = document.createElement('img');
         img.className = 'car-image';
         
-        // config.js の NO_IMAGE_URL を使用
         let photoUrl = (car.PhotoMain && String(car.PhotoMain).trim()) || NO_IMAGE_URL;
         img.onerror = function() { this.src = NO_IMAGE_URL; };
         img.src = photoUrl;
         img.loading = "lazy";
         imgWrap.appendChild(img);
 
-        // カード本文
         const main = document.createElement('div');
         main.className = 'car-main';
 
-        // 1行目
         const metaRow = document.createElement('div');
         metaRow.className = 'car-meta-row';
         const yearSpan = document.createElement('span');
@@ -372,13 +373,11 @@
           metaRow.appendChild(prefSpan);
         }
 
-        // 2行目
         const modelEl = document.createElement('h3');
         modelEl.className = 'car-model';
         const rawModel = (car.Model_DisplayC && String(car.Model_DisplayC).trim()) || '';
         modelEl.textContent = rawModel.replace(/\s*\(\d{4}\)\s*$/, '');
 
-        // 3行目
         const ownerEl = document.createElement('p');
         ownerEl.className = 'car-owner';
         ownerEl.textContent = car.HandleName || '';
