@@ -37,30 +37,31 @@
     }
     .page-title { font-size: 1.4rem; text-align: center; margin: 0 0 0.6rem; }
 
-    /* ▼▼▼ 見出しデザインの強化 ▼▼▼ */
+    /* 見出しデザイン */
     .rg-section-title {
-      display: block; /* 横幅いっぱいにする */
-      margin: 1.5rem 0 1rem; /* 余白を広げる */
+      display: block; 
+      margin: 1.5rem 0 1rem; 
       font-weight: 700; 
-      font-size: 1.15rem; /* 文字サイズアップ */
+      font-size: 1.15rem; 
       padding: 0.5rem 1rem;
-      background: #eff6ff; /* 薄い青背景 */
-      border-left: 6px solid var(--rg-accent); /* 左側に太いアクセント線 */
-      border-bottom: 1px solid var(--rg-border); /* 下線 */
+      background: #eff6ff; 
+      border-left: 6px solid var(--rg-accent); 
+      border-bottom: 1px solid var(--rg-border); 
       border-radius: 4px;
       color: var(--rg-accent);
     }
-    /* 以前の丸い飾り(::before)は削除 */
     
     /* 入力部品 */
     label { display: block; font-size: 0.9rem; font-weight: 600; margin-top: 0.8rem; margin-bottom: 0.3rem; }
     
-    /* 必須マーク */
+    /* 必須マーク（修正：改行禁止を追加） */
     .badge-required {
       background: var(--rg-primary-red); color: white;
       font-size: 0.7rem; padding: 2px 6px; border-radius: 4px;
-      margin-left: 6px; vertical-align: middle;
+      margin-left: 4px; /* 余白を少し詰める */
+      vertical-align: middle;
       font-weight: normal;
+      white-space: nowrap; /* ここを追加：文字の途中で改行させない */
     }
 
     input[type="text"], input[type="number"], textarea, select {
@@ -721,24 +722,23 @@
       const formData = {};
       fd.forEach((val, key) => { formData[key] = val; });
 
-      /* ▼▼▼ 変更点：必須チェックロジックの追加 ▼▼▼ */
+      /* 必須チェックロジック */
       const reqFields = [
         { name: 'HandleName', label: 'ハンドルネーム' },
         { name: 'Prefecture', label: '都道府県' },
         { name: 'ModelSelectA', label: '車両モデル' },
         { name: 'ModelSelectB', label: 'モデル詳細' },
         { name: 'Year', label: '年式' },
-        { name: 'PhotoMain', label: 'メイン写真' } // hidden inputの値(URL)をチェック
+        { name: 'PhotoMain', label: 'メイン写真' } 
       ];
 
       for (let item of reqFields) {
         const val = formData[item.name];
         if (!val || val.trim() === '') {
           alert(`「${item.label}」は必須項目です。入力してください。`);
-          return; // 送信中断
+          return; 
         }
       }
-      /* ▲▲▲ 必須チェックここまで ▲▲▲ */
 
       submitBtn.disabled = true;
       submitBtn.textContent = "送信中...";
