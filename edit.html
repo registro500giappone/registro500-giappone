@@ -37,17 +37,32 @@
     }
     .page-title { font-size: 1.4rem; text-align: center; margin: 0 0 0.6rem; }
 
+    /* ▼▼▼ 見出しデザインの強化 ▼▼▼ */
     .rg-section-title {
-      position: relative; margin: 0 0 0.6rem; font-weight: 700; font-size: 1rem;
-      display: inline-flex; align-items: center; padding: 0.2rem 0.8rem 0.2rem 1.1rem;
-      border-radius: 999px; background: linear-gradient(90deg, rgba(40, 86, 168, 0.14), rgba(40, 86, 168, 0.02));
+      display: block; /* 横幅いっぱいにする */
+      margin: 1.5rem 0 1rem; /* 余白を広げる */
+      font-weight: 700; 
+      font-size: 1.15rem; /* 文字サイズアップ */
+      padding: 0.5rem 1rem;
+      background: #eff6ff; /* 薄い青背景 */
+      border-left: 6px solid var(--rg-accent); /* 左側に太いアクセント線 */
+      border-bottom: 1px solid var(--rg-border); /* 下線 */
+      border-radius: 4px;
+      color: var(--rg-accent);
     }
-    .rg-section-title::before {
-      content: ""; position: absolute; left: 0.4rem; top: 50%; transform: translateY(-50%);
-      width: 0.2rem; height: 1.1em; border-radius: 999px; background: var(--rg-accent);
+    /* 以前の丸い飾り(::before)は削除 */
+    
+    /* 入力部品 */
+    label { display: block; font-size: 0.9rem; font-weight: 600; margin-top: 0.8rem; margin-bottom: 0.3rem; }
+    
+    /* 必須マーク */
+    .badge-required {
+      background: var(--rg-primary-red); color: white;
+      font-size: 0.7rem; padding: 2px 6px; border-radius: 4px;
+      margin-left: 6px; vertical-align: middle;
+      font-weight: normal;
     }
 
-    label { display: block; font-size: 0.9rem; font-weight: 600; margin-top: 0.8rem; margin-bottom: 0.3rem; }
     input[type="text"], input[type="number"], textarea, select {
       width: 100%; padding: 0.6rem; border-radius: 0.5rem; border: 1px solid #d1d5db;
       font-size: 1rem; margin-bottom: 0.5rem; box-sizing: border-box;
@@ -55,7 +70,7 @@
     textarea { min-height: 6em; resize: vertical; }
     .radio-group { display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.95rem; margin-bottom: 0.5rem; }
     .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; }
-    .hint { font-size: 0.8rem; color: var(--rg-muted); margin-top: 0.2rem; }
+    .hint { font-size: 0.85rem; color: var(--rg-muted); margin-top: 0.2rem; line-height: 1.5; }
     
     .inline-small { display: flex; gap: 1rem; }
     .inline-small > div { flex: 1; }
@@ -155,13 +170,14 @@
         <input type="hidden" id="DocumentID" name="DocumentID">
 
         <h2 class="rg-section-title">基本情報</h2>
-        <label>ハンドルネーム</label>
+        
+        <label>ハンドルネーム <span class="badge-required">必須</span></label>
         <input type="text" name="HandleName">
 
-        <label>都道府県</label>
+        <label>都道府県 <span class="badge-required">必須</span></label>
         <input type="text" name="Prefecture" placeholder="例：神奈川県">
 
-        <label>車両モデル</label>
+        <label>車両モデル <span class="badge-required">必須</span></label>
         <select name="ModelSelectA" id="ModelSelectA">
           <option value="">選択してください</option>
           <option value="Nuova500">Nuova500</option>
@@ -172,7 +188,7 @@
           <input type="text" name="ModelTextA" placeholder="その他の車両名">
         </div>
 
-        <label>モデル詳細</label>
+        <label>モデル詳細 <span class="badge-required">必須</span></label>
         <select name="ModelSelectB" id="ModelSelectB">
           <option value="">選択してください</option>
           <option value="F">F</option>
@@ -193,8 +209,8 @@
 
         <div class="inline-small">
           <div>
-            <label>年式</label>
-            <input type="number" name="Year" placeholder="1964">
+            <label>年式 <span class="badge-required">必須</span></label>
+            <input type="text" name="Year" placeholder="例：1970、不明など">
           </div>
           <div>
             <label>ボディカラー</label>
@@ -367,11 +383,15 @@
         <input type="text" name="BlogOrWebsite">
 
         <h2 class="rg-section-title">写真登録</h2>
-        <p class="hint">枠をクリックして写真を選択してください。</p>
+        
+        <p class="hint">
+          枠をクリックして写真を選択してください。<br>
+          ※縦・横どちらの写真も登録可能ですが、<strong>一覧画面では正方形にトリミングされて表示されます</strong>（上下または左右の一部がカットされます）。
+        </p>
         
         <div class="photo-grid">
           <div class="photo-upload-box js-photo-upload" data-target="PhotoMain">
-            <span class="photo-label">★メイン写真</span>
+            <span class="photo-label">★メイン写真 <span class="badge-required">必須</span></span>
             <div class="preview-area">
               <span class="placeholder-icon">📷</span>
               <img class="preview-img" alt="プレビュー">
@@ -577,7 +597,6 @@
     });
 
     /* ========== 画像処理・アップロード (高画質版) ========== */
-    // ▼▼▼ 画質向上のための変更点: maxWidth=1920, quality=0.95 ▼▼▼
     function compressImage(file, maxWidth = 1920, quality = 0.95) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -597,7 +616,6 @@
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             
-            // ▼▼▼ 変更点: 滑らかな縮小のための設定追加 ▼▼▼
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
 
@@ -644,13 +662,11 @@
         const user = auth.currentUser;
         if (!user) throw new Error("認証切れです");
 
-        // 高画質設定で呼び出し
         const compressedBlob = await compressImage(file, 1920, 0.95);
         statusEl.textContent = "アップロード中...";
 
         const timestamp = Date.now();
         const random = Math.floor(Math.random() * 1000);
-        // ファイル名を少し変更（キャッシュ対策）
         const path = `images/${user.uid}/${timestamp}_${random}_hd.jpg`;
         
         const storageRef = storage.ref().child(path);
@@ -701,15 +717,34 @@
       const user = auth.currentUser;
       if (!user) { alert("ログインしてください"); return; }
 
+      const fd = new FormData(form);
+      const formData = {};
+      fd.forEach((val, key) => { formData[key] = val; });
+
+      /* ▼▼▼ 変更点：必須チェックロジックの追加 ▼▼▼ */
+      const reqFields = [
+        { name: 'HandleName', label: 'ハンドルネーム' },
+        { name: 'Prefecture', label: '都道府県' },
+        { name: 'ModelSelectA', label: '車両モデル' },
+        { name: 'ModelSelectB', label: 'モデル詳細' },
+        { name: 'Year', label: '年式' },
+        { name: 'PhotoMain', label: 'メイン写真' } // hidden inputの値(URL)をチェック
+      ];
+
+      for (let item of reqFields) {
+        const val = formData[item.name];
+        if (!val || val.trim() === '') {
+          alert(`「${item.label}」は必須項目です。入力してください。`);
+          return; // 送信中断
+        }
+      }
+      /* ▲▲▲ 必須チェックここまで ▲▲▲ */
+
       submitBtn.disabled = true;
       submitBtn.textContent = "送信中...";
 
       try {
         const idToken = await user.getIdToken(true);
-        const fd = new FormData(form);
-        const formData = {};
-        fd.forEach((val, key) => { formData[key] = val; });
-        
         formData.idToken = idToken;
         formData.DocumentID = targetDocId || document.getElementById('DocumentID').value;
 
