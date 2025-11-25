@@ -49,28 +49,32 @@
     }
 
     .header-brand-block {
-      display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px;
+      display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px;
     }
 
-    /* 縦長ロゴ用スタイル */
-    .brand-logo-img {
-      height: 140px; 
+    /* ▼▼▼ ロゴ画像の切り替え設定 ▼▼▼ */
+    
+    /* 基本設定（スマホ用：縦組みを表示、横組みを隠す） */
+    .logo-mobile {
+      display: block;
+      height: 140px; /* 縦組み用の高さ */
       width: auto; 
       object-fit: contain;
       mix-blend-mode: multiply;
     }
+    .logo-pc {
+      display: none; /* スマホでは隠す */
+    }
+
+    /* ▲▲▲ ロゴ設定ここまで ▲▲▲ */
 
     .brand-text-group { display: flex; flex-direction: column; gap: 6px; }
 
+    /* ▼▼▼ タイトルテキストを非表示にする設定 ▼▼▼ */
     .brand-title {
-      margin: 0; 
-      font-family: var(--font-serif);
-      font-size: 1.8rem;
-      font-weight: 800;
-      color: var(--accent);
-      line-height: 1.1;
-      letter-spacing: 0.03em;
+      display: none; 
     }
+    /* ▲▲▲ タイトル非表示設定ここまで ▲▲▲ */
 
     .page-subtitle {
       margin: 0; font-size: 0.85rem; font-weight: 500; color: var(--text-main);
@@ -122,20 +126,27 @@
         margin-top: 30px;
       }
       
-      /* PCでも縦並びを維持 */
       .header-brand-block {
         flex-direction: column;
         align-items: center;
         text-align: center;
-        gap: 24px;
+        gap: 16px;
       }
-      
-      .brand-logo-img { height: 180px; }
-      
-      .brand-title { 
-          font-size: 2.8rem; 
-          margin-bottom: 4px; 
+
+      /* ▼▼▼ PCでのロゴ切り替え ▼▼▼ */
+      .logo-mobile {
+        display: none; /* PCでは縦組みを隠す */
       }
+      .logo-pc {
+        display: block; /* PCでは横組みを表示 */
+        height: 90px;   /* 横組み用の高さ（少し控えめに） */
+        width: auto;
+        object-fit: contain;
+        mix-blend-mode: multiply;
+        margin-bottom: 4px;
+      }
+      /* ▲▲▲ 切り替えここまで ▲▲▲ */
+      
       .page-subtitle { font-size: 1.0rem; margin-bottom: 2px; }
       .page-meta { font-size: 0.95rem; }
 
@@ -223,10 +234,12 @@
     <header class="page-header">
       
       <div class="header-brand-block">
-        <img src="logo_vertical.png" class="brand-logo-img" alt="Logo" onerror="this.style.display='none'">
+        <img src="logo_vertical.png" class="logo-mobile" alt="Logo Vertical" onerror="this.style.display='none'">
+        <img src="logo_horizontal.png" class="logo-pc" alt="Logo Horizontal" onerror="this.style.display='none'">
 
         <div class="brand-text-group">
           <h1 class="brand-title">Registro500 Giappone</h1>
+          
           <p class="page-subtitle">日本のクラシック FIAT 500 のオンラインガレージ</p>
           <p class="page-meta">
             <span class="goal-pill">めざせ500台！</span>
@@ -264,8 +277,6 @@
   </div>
 
   <script>
-    // ▼▼▼ 修正点：ここにあった「ロゴ上書き処理」を削除しました ▼▼▼
-    
     let carsData = [];
 
     async function fetchCars() {
