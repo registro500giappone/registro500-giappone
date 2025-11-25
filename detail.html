@@ -2,10 +2,11 @@
 <html lang="ja">
 
 <head>
-  <link rel="manifest" href="manifest.json">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>車両詳細 - Registro500 Giappone</title>
+  
+  <link rel="manifest" href="manifest.json">
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   
@@ -13,14 +14,8 @@
 
   <style>
     /* ========== ベース設定 ========== */
-    html {
-      font-size: 16px !important;
-    }
-    @media (min-width: 1025px) {
-      html { font-size: 18px !important; }
-    }
-
-    /* Bootstrap の small 対策 */
+    html { font-size: 16px !important; }
+    @media (min-width: 1025px) { html { font-size: 18px !important; } }
     small, .small { font-size: 1rem; }
 
     :root {
@@ -33,107 +28,61 @@
     body {
       margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       line-height: 1.7; color: var(--rg-text); background: var(--rg-bg);
-      padding-bottom: 96px; /* スマホ下部余白確保 */
-      
-      /* ▼▼▼ 変更点：固定ヘッダーの分だけコンテンツを下にずらす ▼▼▼ */
+      padding-bottom: 96px; 
       padding-top: 70px; 
     }
-    @media (min-width: 1025px) {
-      body { padding-top: 90px; }
-    }
+    @media (min-width: 1025px) { body { padding-top: 90px; } }
 
     .rg-main { max-width: 72rem; }
     
-    /* ▼▼▼ ヘッダーエリア (固定表示) ▼▼▼ */
+    /* ヘッダーエリア (固定) */
     .rg-header-bar {
-      position: fixed;        /* 画面に固定 */
-      top: 0; left: 0; right: 0;
-      z-index: 1000;          /* 最前面に表示 */
-      
-      /* デザイン：すりガラス風の背景 */
-      background: rgba(244, 246, 248, 0.9); 
-      backdrop-filter: blur(8px);
-      box-shadow: 0 1px 5px rgba(0,0,0,0.05); /* うっすら影を落とす */
-      
-      /* レイアウト */
-      height: 60px;
-      display: grid;
-      grid-template-columns: 1fr auto 1fr; /* 左・中央・右 */
-      align-items: center;
-      padding: 0 1rem;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: rgba(244, 246, 248, 0.9); backdrop-filter: blur(8px);
+      box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+      height: 60px; display: grid; grid-template-columns: 1fr auto 1fr; 
+      align-items: center; padding: 0 1rem;
     }
+    @media (min-width: 1025px) { .rg-header-bar { height: 80px; padding: 0 2rem; } }
 
-    /* PCサイズ調整 */
-    @media (min-width: 1025px) {
-      .rg-header-bar {
-        height: 80px;
-        padding: 0 2rem; /* 横の余白を少し広く */
-      }
-    }
-
-    /* 戻るリンク */
     .rg-back-link a {
       text-decoration: none; color: var(--rg-accent); font-weight: 600;
-      white-space: nowrap; font-size: 0.95rem;
-      transition: opacity 0.2s;
+      white-space: nowrap; font-size: 0.95rem; transition: opacity 0.2s;
     }
     .rg-back-link a:hover { opacity: 0.7; }
 
-    /* ロゴ画像 */
     .rg-header-logo img {
-      height: 32px; /* スマホは控えめに */
-      width: auto;
-      object-fit: contain;
-      mix-blend-mode: multiply;
-      display: block;
+      height: 32px; width: auto; object-fit: contain; mix-blend-mode: multiply; display: block;
     }
+    @media (min-width: 1025px) { .rg-header-logo img { height: 54px; } }
 
-    @media (min-width: 1025px) {
-      .rg-header-logo img {
-        height: 54px; /* PCは少し大きく */
-      }
-    }
+    .rg-header-right { text-align: right; }
 
-    /* 右側の編集ボタンエリア */
-    .rg-header-right {
-      text-align: right;
-    }
-
-    /* ===== カード共通 ===== */
+    /* カード共通 */
     .rg-card {
       background: var(--rg-surface); border-radius: var(--rg-radius-card);
       border: 1px solid var(--rg-border); padding: 1.2rem;
     }
 
-    /* ===== フォトカード ===== */
-    /* PCのみ、左側の写真はスクロール追従させる */
     @media (min-width: 992px) {
-      .rg-photo-col { 
-        position: sticky; 
-        /* ヘッダーの高さ(90px) + 余白(1rem) 分あける */
-        top: calc(90px + 1rem); 
-      }
+      .rg-photo-col { position: sticky; top: calc(90px + 1rem); }
     }
 
     .rg-photo-square {
-      position: relative; width: 100%; padding-top: 100%; /* 正方形 */
+      position: relative; width: 100%; padding-top: 100%; 
       border-radius: 0.9rem; border: 1px solid var(--rg-border);
       overflow: hidden; background: var(--rg-surface-sub);
     }
-
     .rg-photo-square > img {
       position: absolute; inset: 0; width: 100%; height: 100%;
-      object-fit: cover; /* 枠いっぱいに表示 */
-      display: block; cursor: zoom-in;
+      object-fit: cover; display: block; cursor: zoom-in;
     }
 
     .rg-photo-title-main {
       margin-top: 1rem; margin-bottom: 0.2rem; display: flex; flex-wrap: wrap;
       gap: 0.35rem; align-items: baseline; 
-      font-size: 1.4rem; 
-      font-weight: 800; letter-spacing: 0.01em; line-height: 1.3;
+      font-size: 1.4rem; font-weight: 800; letter-spacing: 0.01em; line-height: 1.3;
     }
-
     .rg-photo-year { font-size: 0.8em; font-weight: 600; color: var(--rg-muted); }
     .rg-photo-model-main { font-weight: inherit; }
 
@@ -141,74 +90,61 @@
       margin-top: 0.5rem; font-size: 1rem; display: flex; align-items: center;
       gap: 0.5rem; line-height: 1.4;
     }
-
     .rg-photo-handle { font-weight: 600; }
-
     .rg-photo-pref {
       margin-left: auto; padding: 0.15rem 0.8rem; border-radius: 999px;
       background: var(--rg-accent-soft); border: 1px solid var(--rg-accent-border);
       color: var(--rg-accent); font-size: 0.85rem; white-space: nowrap;
     }
 
-    /* ===== セクション見出し ===== */
+    /* ▼▼▼ シェア＆QRアクションバー ▼▼▼ */
+    .rg-action-bar {
+      display: flex; gap: 8px; margin-top: 1rem;
+    }
+    .rg-btn-action {
+      flex: 1; display: inline-flex; align-items: center; justify-content: center;
+      padding: 10px; border-radius: 8px; font-size: 0.9rem; font-weight: 600;
+      text-decoration: none; color: #fff; border: none; cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .rg-btn-action:hover { opacity: 0.9; color: #fff; }
+    .btn-qr { background-color: #374151; } /* グレー */
+    .btn-x { background-color: #000000; }  /* X黒 */
+    .btn-fb { background-color: #1877F2; } /* FB青 */
+
+    /* セクション見出し */
     .rg-section-title {
-      display: block; 
-      margin: 0 0 1rem; 
-      font-weight: 700; 
-      font-size: 1.15rem; 
-      padding: 0.5rem 1rem;
-      background: #eff6ff; 
-      border-left: 6px solid var(--rg-accent); 
-      border-bottom: 1px solid var(--rg-border); 
-      border-radius: 4px;
-      color: var(--rg-accent);
-      line-height: 1.4;
+      display: block; margin: 0 0 1rem; font-weight: 700; font-size: 1.15rem; 
+      padding: 0.5rem 1rem; background: #eff6ff; 
+      border-left: 6px solid var(--rg-accent); border-bottom: 1px solid var(--rg-border); 
+      border-radius: 4px; color: var(--rg-accent); line-height: 1.4;
     }
     .rg-section-title::before { content: none; }
 
-
-    /* ===== スペック表 ===== */
+    /* スペック表 */
     .rg-spec-grid {
-      display: grid; 
-      grid-template-columns: 8.2rem 1fr; 
-      column-gap: 0.5rem; row-gap: 0; margin: 0; 
-      font-size: 0.95rem;
+      display: grid; grid-template-columns: 8.2rem 1fr; 
+      column-gap: 0.5rem; row-gap: 0; margin: 0; font-size: 0.95rem;
       border-top: 1px solid var(--rg-border); border-bottom: 1px solid var(--rg-border);
     }
-    
     .rg-spec-grid dt, .rg-spec-grid dd {
-      padding: 0.6rem 0.4rem; border-top: 1px solid var(--rg-border); margin: 0;
-      line-height: 1.5;
+      padding: 0.6rem 0.4rem; border-top: 1px solid var(--rg-border); margin: 0; line-height: 1.5;
     }
-    
     .rg-spec-grid dt {
-      font-weight: 700; 
-      color: var(--rg-muted); 
-      background: rgba(148, 163, 184, 0.05); 
-      white-space: nowrap; 
-      font-size: 0.9rem;
+      font-weight: 700; color: var(--rg-muted); background: rgba(148, 163, 184, 0.05); 
+      white-space: nowrap; font-size: 0.9rem;
     }
-    
-    .rg-spec-grid dd { 
-      white-space: pre-wrap; 
-      word-break: break-word; 
-    }
-
+    .rg-spec-grid dd { white-space: pre-wrap; word-break: break-word; }
     @media (min-width: 1025px) {
-      .rg-spec-grid {
-        grid-template-columns: minmax(8rem, 10rem) 1fr;
-      }
-      .rg-spec-grid dt {
-        font-size: 0.95rem;
-      }
+      .rg-spec-grid { grid-template-columns: minmax(8rem, 10rem) 1fr; }
+      .rg-spec-grid dt { font-size: 0.95rem; }
     }
 
     .rg-highlights { margin: 0; font-size: 0.95rem; line-height: 1.7; }
 
-    /* ===== ギャラリー ===== */
+    /* ギャラリー */
     .rg-gallery-grid {
-      display: grid; 
-      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
       gap: 0.8rem; margin: 0;
     }
     .rg-gallery-thumb {
@@ -219,27 +155,32 @@
       position: absolute; inset: 0; width: 100%; height: 100%;
       object-fit: cover; display: block; cursor: zoom-in;
     }
-
     @media (min-width: 1025px) {
-      .rg-gallery-grid {
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      }
+      .rg-gallery-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
     }
 
-    /* ===== ライトボックス ===== */
-    .rg-lightbox {
-      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85);
+    /* ライトボックス & QRモーダル */
+    .rg-modal {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9);
       display: none; align-items: center; justify-content: center; z-index: 9999;
     }
-    .rg-lightbox.is-open { display: flex; }
-    .rg-lightbox-inner {
+    .rg-modal.is-open { display: flex; }
+    .rg-modal-inner {
       max-width: 95vw; max-height: 95vh; position: relative;
+      text-align: center; /* QR用 */
     }
-    .rg-lightbox-inner img {
+    .rg-modal-inner img {
       max-width: 100%; max-height: 95vh; object-fit: contain; border-radius: 0.5rem;
     }
-    .rg-lightbox-close {
-      position: absolute; top: -2rem; right: 0; border: none; 
+    /* QRカード風デザイン */
+    .rg-qr-card {
+      background: white; padding: 30px; border-radius: 16px; text-align: center;
+    }
+    .rg-qr-title { font-weight: bold; color: var(--rg-accent); margin-bottom: 10px; font-size: 1.2rem; }
+    .rg-qr-desc { font-size: 0.9rem; color: #666; margin-bottom: 20px; }
+    
+    .rg-modal-close {
+      position: absolute; top: -2.5rem; right: 0; border: none; 
       font-size: 2rem; color: #fff; background: transparent; cursor: pointer;
     }
 
@@ -249,12 +190,9 @@
       border: 1px solid var(--rg-accent-border); background: var(--rg-accent-soft);
       color: var(--rg-accent); text-decoration: none; display: inline-flex;
       align-items: center; gap: 0.35rem; font-weight: 600;
-      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.16);
-      white-space: nowrap;
+      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.16); white-space: nowrap;
     }
-    .rg-edit-btn:hover {
-      background: var(--rg-accent); color: #ffffff;
-    }
+    .rg-edit-btn:hover { background: var(--rg-accent); color: #ffffff; }
 
     #loading { text-align:center; padding:50px; font-size:1rem; color:#666; }
     #content { display:none; }
@@ -267,11 +205,9 @@
      <div class="rg-back-link">
        <a href="index.html">← 車両一覧</a>
      </div>
-     
      <div class="rg-header-logo">
        <img src="logo_horizontal.png" alt="Registro500 Giappone">
      </div>
-
      <div class="rg-header-right">
        <a id="editBtn" class="rg-edit-btn" href="#" style="display:none;">
          <span class="rg-edit-icon">✏️</span>
@@ -299,7 +235,19 @@
               <span id="handleName" class="rg-photo-handle"></span>
               <span id="prefecture" class="rg-photo-pref"></span>
             </div>
-          </section>
+
+            <div class="rg-action-bar">
+              <button class="rg-btn-action btn-qr" onclick="showQRCode()">
+                QR表示
+              </button>
+              <a id="shareX" class="rg-btn-action btn-x" href="#" target="_blank">
+                Xでシェア
+              </a>
+              <a id="shareFb" class="rg-btn-action btn-fb" href="#" target="_blank">
+                Facebook
+              </a>
+            </div>
+            </section>
 
           <section class="rg-card" id="gallerySection" style="display:none;">
             <div class="rg-gallery-grid" id="galleryGrid"></div>
@@ -307,7 +255,6 @@
         </div>
 
         <div class="col-12 col-lg-7">
-
           <section class="rg-card mb-3">
             <h2 class="rg-section-title">ボディスペック</h2>
             <dl class="rg-spec-grid js-auto-hide">
@@ -372,7 +319,7 @@
 
         </div>
       </div>
-      </div>
+   </div>
    </main>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -409,16 +356,27 @@
       setText('handleName', car.HandleName);
       setText('prefecture', car.Prefecture);
 
-      // 写真
       const mainImg = document.getElementById('photoMain');
       mainImg.src = car.PhotoMain || NO_IMAGE_URL;
 
-      // 2. 編集ボタン
       const editBtn = document.getElementById('editBtn');
       editBtn.href = `edit.html?doc=${encodeURIComponent(car.DocumentID)}`;
       editBtn.style.display = 'inline-flex';
 
-      // 3. スペックの紐付け
+      // ▼▼▼ シェアボタンのURL設定 ▼▼▼
+      const pageUrl = window.location.href;
+      const shareText = `Registro500 Giapponeに登録しました！ ${car.Year || ''}年式 ${car.Model_DisplayC || ''} (${car.HandleName}さん/ ${car.Prefecture || ''}) #Registro500 #Fiat500`;
+      
+      // X (Twitter)
+      const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(pageUrl)}`;
+      document.getElementById('shareX').href = xUrl;
+
+      // Facebook
+      const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}`;
+      document.getElementById('shareFb').href = fbUrl;
+      // ▲▲▲ 設定ここまで ▲▲▲
+
+      // 3. スペック紐付け (中略: 元のコードと同じ)
       const map = {
         'val_BodyColor': car.BodyColor,
         'val_Length_cm': car.Length_cm,
@@ -448,17 +406,13 @@
         'val_TransmissionOilInterval': car.TransmissionOilInterval,
         'val_Battery': car.Battery
       };
+      for (const [id, val] of Object.entries(map)) setText(id, val);
 
-      for (const [id, val] of Object.entries(map)) {
-        setText(id, val);
-      }
-
-      // 複合項目
       const dist = car.DistributionType || '';
       const plug = car.PlugName || '';
       setText('val_DistPlug', (dist && plug) ? `${dist} / ${plug}` : (dist || plug));
 
-      // 4. 空欄隠し
+      // 空欄隠し
       document.querySelectorAll('.js-auto-hide').forEach(dl => {
         const dts = dl.querySelectorAll('dt');
         const dds = dl.querySelectorAll('dd');
@@ -471,13 +425,13 @@
         });
       });
 
-      // 5. こだわりポイント
+      // こだわり
       if (car.Highlights) {
         document.getElementById('highlightsSection').style.display = 'block';
         document.getElementById('val_Highlights').innerHTML = String(car.Highlights).replace(/\r\n|\r|\n/g, '<br>');
       }
 
-      // 6. ギャラリー
+      // ギャラリー (中略: 元のコードと同じ)
       const galleryGrid = document.getElementById('galleryGrid');
       const photos = [
         { key: 'PhotoFront', label: '前方' },
@@ -502,7 +456,7 @@
       });
       if (hasGallery) document.getElementById('gallerySection').style.display = 'block';
 
-      // 7. SNS
+      // SNS (中略: 元のコードと同じ)
       const snsGrid = document.getElementById('snsGrid');
       const sns = [
         { key: 'X_Twitter', label: 'X', base: 'https://x.com/' },
@@ -535,26 +489,44 @@
       if (el) el.textContent = text || '';
     }
 
-    // ライトボックス
+    // ライトボックス & QR表示
     document.body.addEventListener('click', function(e) {
       if (e.target.matches('[data-rg-zoomable]')) {
-        const overlay = document.querySelector('.rg-lightbox');
-        if (!overlay) {
-          const div = document.createElement('div');
-          div.className = 'rg-lightbox is-open';
-          div.innerHTML = `<div class="rg-lightbox-inner"><img src="${e.target.src}"><button class="rg-lightbox-close">×</button></div>`;
-          document.body.appendChild(div);
-          div.addEventListener('click', function(ev) {
-            if (ev.target === div || ev.target.className === 'rg-lightbox-close') {
-              div.remove();
-            }
-          });
-        } else {
-          overlay.querySelector('img').src = e.target.src;
-          overlay.classList.add('is-open');
-        }
+        openModal(`<img src="${e.target.src}">`);
       }
     });
+
+    function openModal(contentHtml) {
+      const modal = document.createElement('div');
+      modal.className = 'rg-modal is-open';
+      modal.innerHTML = `
+        <div class="rg-modal-inner">
+          <button class="rg-modal-close">×</button>
+          ${contentHtml}
+        </div>
+      `;
+      document.body.appendChild(modal);
+      modal.addEventListener('click', function(ev) {
+        if (ev.target === modal || ev.target.className === 'rg-modal-close') {
+          modal.remove();
+        }
+      });
+    }
+
+    // QRコード表示ロジック (API使用)
+    window.showQRCode = function() {
+      const url = window.location.href;
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+      
+      const html = `
+        <div class="rg-qr-card">
+          <div class="rg-qr-title">このページをシェア</div>
+          <img src="${qrApiUrl}" alt="QR Code" style="width:200px; height:200px; margin-bottom:10px;">
+          <div class="rg-qr-desc">スマホのカメラで読み取ってください</div>
+        </div>
+      `;
+      openModal(html);
+    }
 
     fetchDetail();
   </script>
