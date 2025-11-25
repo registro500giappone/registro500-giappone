@@ -99,11 +99,12 @@
 
     /* ▼▼▼ シェア＆QRアクションバー ▼▼▼ */
     .rg-action-bar {
-      display: flex; gap: 8px; margin-top: 1rem;
+      display: flex; gap: 8px; 
+      margin-top: 0; /* セクション内に置くのでマージン調整 */
     }
     .rg-btn-action {
       flex: 1; display: inline-flex; align-items: center; justify-content: center;
-      padding: 10px; border-radius: 8px; font-size: 0.9rem; font-weight: 600;
+      padding: 12px; border-radius: 8px; font-size: 0.9rem; font-weight: 600;
       text-decoration: none; color: #fff; border: none; cursor: pointer;
       transition: opacity 0.2s;
     }
@@ -167,12 +168,11 @@
     .rg-modal.is-open { display: flex; }
     .rg-modal-inner {
       max-width: 95vw; max-height: 95vh; position: relative;
-      text-align: center; /* QR用 */
+      text-align: center;
     }
     .rg-modal-inner img {
       max-width: 100%; max-height: 95vh; object-fit: contain; border-radius: 0.5rem;
     }
-    /* QRカード風デザイン */
     .rg-qr-card {
       background: white; padding: 30px; border-radius: 16px; text-align: center;
     }
@@ -235,19 +235,7 @@
               <span id="handleName" class="rg-photo-handle"></span>
               <span id="prefecture" class="rg-photo-pref"></span>
             </div>
-
-            <div class="rg-action-bar">
-              <button class="rg-btn-action btn-qr" onclick="showQRCode()">
-                QR表示
-              </button>
-              <a id="shareX" class="rg-btn-action btn-x" href="#" target="_blank">
-                Xでシェア
-              </a>
-              <a id="shareFb" class="rg-btn-action btn-fb" href="#" target="_blank">
-                Facebook
-              </a>
-            </div>
-            </section>
+          </section>
 
           <section class="rg-card" id="gallerySection" style="display:none;">
             <div class="rg-gallery-grid" id="galleryGrid"></div>
@@ -317,7 +305,21 @@
             <dl class="rg-spec-grid" id="snsGrid"></dl>
           </section>
 
-        </div>
+          <section class="rg-card mb-3">
+            <h2 class="rg-section-title">ページを共有</h2>
+            <div class="rg-action-bar">
+              <button class="rg-btn-action btn-qr" onclick="showQRCode()">
+                QR表示
+              </button>
+              <a id="shareX" class="rg-btn-action btn-x" href="#" target="_blank">
+                Xでシェア
+              </a>
+              <a id="shareFb" class="rg-btn-action btn-fb" href="#" target="_blank">
+                Facebook
+              </a>
+            </div>
+          </section>
+          </div>
       </div>
    </div>
    </main>
@@ -363,20 +365,17 @@
       editBtn.href = `edit.html?doc=${encodeURIComponent(car.DocumentID)}`;
       editBtn.style.display = 'inline-flex';
 
-      // ▼▼▼ シェアボタンのURL設定 ▼▼▼
+      // シェアボタン設定
       const pageUrl = window.location.href;
       const shareText = `Registro500 Giapponeに登録しました！ ${car.Year || ''}年式 ${car.Model_DisplayC || ''} (${car.HandleName}さん/ ${car.Prefecture || ''}) #Registro500 #Fiat500`;
       
-      // X (Twitter)
       const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(pageUrl)}`;
       document.getElementById('shareX').href = xUrl;
 
-      // Facebook
       const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}`;
       document.getElementById('shareFb').href = fbUrl;
-      // ▲▲▲ 設定ここまで ▲▲▲
 
-      // 3. スペック紐付け (中略: 元のコードと同じ)
+      // 3. スペック紐付け
       const map = {
         'val_BodyColor': car.BodyColor,
         'val_Length_cm': car.Length_cm,
@@ -431,7 +430,7 @@
         document.getElementById('val_Highlights').innerHTML = String(car.Highlights).replace(/\r\n|\r|\n/g, '<br>');
       }
 
-      // ギャラリー (中略: 元のコードと同じ)
+      // ギャラリー
       const galleryGrid = document.getElementById('galleryGrid');
       const photos = [
         { key: 'PhotoFront', label: '前方' },
@@ -456,7 +455,7 @@
       });
       if (hasGallery) document.getElementById('gallerySection').style.display = 'block';
 
-      // SNS (中略: 元のコードと同じ)
+      // SNS
       const snsGrid = document.getElementById('snsGrid');
       const sns = [
         { key: 'X_Twitter', label: 'X', base: 'https://x.com/' },
@@ -489,7 +488,7 @@
       if (el) el.textContent = text || '';
     }
 
-    // ライトボックス & QR表示
+    // ライトボックス & QR
     document.body.addEventListener('click', function(e) {
       if (e.target.matches('[data-rg-zoomable]')) {
         openModal(`<img src="${e.target.src}">`);
@@ -513,7 +512,6 @@
       });
     }
 
-    // QRコード表示ロジック (API使用)
     window.showQRCode = function() {
       const url = window.location.href;
       const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
