@@ -20,6 +20,8 @@
       --rg-card-bg: #ffffff;
       --rg-text: #111827;
       --rg-border: #e5e7eb;
+      /* 追加: 薄いアクセントカラー */
+      --rg-accent-soft: #eff6ff; 
     }
 
     body {
@@ -82,36 +84,47 @@
       font-size: 1rem;
     }
 
-    /* メインメッセージ（リード文）のデザイン */
+    /* ▼▼▼ デザイン変更：メインメッセージを情緒的に強調 ▼▼▼ */
     .rg-lead {
-      background-color: #f3f4f6; /* 薄いグレーの背景 */
-      border-left: 6px solid var(--rg-accent); /* 左にアクセントライン */
-      padding: 24px;
-      border-radius: 8px;
-      margin-bottom: 48px; /* 下のコンテンツと距離を離す */
+      /* 背景をグレーから「薄い青」に変更してブランド感を出す */
+      background-color: var(--rg-accent-soft); 
+      border-left: 6px solid var(--rg-accent);
       
-      font-size: 1.15rem; /* 大きく */
-      font-weight: 700;   /* 太く */
-      line-height: 1.9;   /* ゆったり */
-      color: #1f2937;
+      /* 影をつけて浮かせる */
+      box-shadow: 0 4px 12px rgba(40, 86, 168, 0.08);
+
+      padding: 28px;
+      border-radius: 8px;
+      margin-bottom: 48px;
+      
+      /* フォントを「明朝体」にして、クラシックな雰囲気を演出 */
+      font-family: "Times New Roman", "YuMincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+      
+      font-size: 1.15rem; 
+      font-weight: 500;   /* 明朝なので太すぎない方が上品 */
+      line-height: 2.0;   /* 行間を広げて読みやすく */
+      color: #1e3a8a;     /* 真っ黒ではなく、深い青みがかったグレーで上品に */
     }
     
-    /* ボックス内の最後のpタグの余白を消す */
     .rg-lead p:last-child {
       margin-bottom: 0;
     }
 
-    /* PCではさらに大きく */
     @media (min-width: 768px) {
       .rg-lead { 
         font-size: 1.25rem; 
-        padding: 32px;
+        padding: 40px; /* 余白をたっぷりとる */
       }
     }
+    /* ▲▲▲ 変更ここまで ▲▲▲ */
 
     strong {
       color: #111827;
       font-weight: 700;
+    }
+    
+    .text-danger {
+      color: #e11d48;
     }
 
     /* リスト */
@@ -131,7 +144,7 @@
     @media (max-width: 600px) {
       .rg-card { padding: 20px 16px; }
       h1 { font-size: 1.4rem; }
-      .rg-lead { padding: 20px; font-size: 1.1rem; }
+      .rg-lead { padding: 24px; font-size: 1.1rem; }
     }
   </style>
 </head>
@@ -139,7 +152,6 @@
 <body>
   <div class="rg-page">
 
-    <!-- 戻るリンク -->
     <div class="rg-back">
       <a href="index.html">← 車両一覧に戻る</a>
     </div>
@@ -147,7 +159,6 @@
     <article class="rg-card">
       <h1>はじめての方へ</h1>
 
-      <!-- リード文エリア -->
       <div class="rg-lead">
         <p>
           還暦を迎える個体も多くなった FIAT 500。オリジナルの魅力を残しつつも、
@@ -188,9 +199,8 @@
           ログインに成功すると、そのまま<strong>登録フォーム</strong>が表示されます。
         </li>
         <li>
-          必須項目（ハンドルネーム・都道府県・モデル・年式・メイン写真 など）を入力し、
-          任意項目は書ける範囲で記入してください。
-          <br><small>※写真は「枠」をクリックして選択するだけで、自動的に圧縮・アップロードされます。</small>
+          <strong>必須項目</strong>（ハンドルネーム・都道府県・車両モデル・モデル詳細・年式・メイン写真）を入力し、
+          その他の任意項目も書ける範囲で記入してください。
         </li>
         <li>
           最後に「この内容で登録する」ボタンを押すと完了です。
@@ -200,7 +210,7 @@
 
       <p>
         登録後の情報の<strong>編集</strong>は、登録したご本人のみが行えます。
-        ご自身の車両の詳細ページを開き、上部に表示される<strong>「オーナー編集」</strong>ボタンから編集画面へ進んでください。
+        ご自身の車両の詳細ページを開き、画面上部のヘッダーバー右側にある<strong>「編集（✏️）」</strong>ボタンから編集画面へ進んでください。
       </p>
 
       <p>
@@ -208,7 +218,7 @@
         お手数ですが <strong>registro500giappone@gmail.com</strong> までご連絡ください。
       </p>
 
-      <h2>写真アップロードとサイズについて</h2>
+      <h2>写真アップロードと表示について</h2>
       <p>
         ナンバープレートを自動で隠す機能はありません。
         公開しても問題のない写真を、あらかじめご自身でマスク・加工したうえでアップロードしてください。
@@ -216,11 +226,16 @@
 
       <p>
         当サイトには<strong>「画像自動圧縮機能」</strong>が搭載されています。
-        スマホで撮影した大きな写真（数MB）も、選択時に自動的にリサイズ（長辺1600px程度）されてからアップロードされますので、事前の加工は不要です。
-        そのまま選択してアップロードしてください。
+        スマホで撮影した大きな写真も、選択時に<strong>高画質モード（長辺1920px程度）</strong>で最適化されてからアップロードされますので、事前のリサイズは不要です。
+      </p>
+      
+      <p class="text-danger">
+        <strong>【重要】写真の表示範囲について</strong><br>
+        一覧画面および詳細ページのメイン写真は、デザイン統一のため<strong>「正方形」にトリミング（切り抜き）されて表示</strong>されます。
+        縦長・横長の写真も登録可能ですが、上下または左右の一部がカットされて表示される点をご了承ください。
+        <br><small>※タップして拡大表示した際は、元の比率で全体が表示されます。</small>
       </p>
 
-      <!-- ★追加: 利用規約への同意メッセージ -->
       <h2>利用規約とポリシーへの同意について</h2>
       <p>
         オーナー情報の登録および車両情報の公開にあたっては、
@@ -243,7 +258,6 @@
 
     </article>
 
-    <!-- 下部戻るリンク -->
     <div class="rg-back" style="margin-top:24px;">
       <a href="index.html">← 車両一覧に戻る</a>
     </div>
