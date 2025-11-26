@@ -85,9 +85,35 @@
 
     .page-header-right { display: flex; flex-direction: column; gap: 16px; }
 
+    /* 操作エリア：検索窓＋並び替え＋ボタン */
     .sort-area {
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex; align-items: center; justify-content: flex-end;
       gap: 12px; flex-wrap: wrap;
+    }
+
+    /* 検索ボックス (New) */
+    .search-box {
+      position: relative;
+    }
+    .search-input {
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      background-color: #ffffff;
+      font-size: 0.9rem;
+      width: 200px; /* PC幅 */
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-soft);
+    }
+    /* スマホでの検索ボックス調整 */
+    @media (max-width: 767px) {
+      .sort-area { justify-content: space-between; }
+      .search-box { width: 100%; order: -1; /* 一番上に */ }
+      .search-input { width: 100%; }
     }
 
     .sort-left { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text-sub); }
@@ -192,7 +218,6 @@
     }
     .car-image {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      /* ▼▼▼ 変更：全体を埋めるように拡大し、はみ出しをカット ▼▼▼ */
       object-fit: cover; 
       transition: transform 0.3s ease;
     }
@@ -261,6 +286,10 @@
 
       <div class="page-header-right">
         <div class="sort-area">
+          <div class="search-box">
+            <input type="text" id="searchInput" class="search-input" placeholder="名前や車種で検索...">
+          </div>
+
           <div class="sort-left">
             <span>並び替え</span>
             <select id="sortSelect" class="sort-select">
@@ -329,6 +358,7 @@
       listEl.innerHTML = '';
       const cars = carsData.slice();
 
+      // ソート処理
       if (sortType === 'oldest') {
         cars.sort((a, b) => parseDocNumber(a.DocumentID) - parseDocNumber(b.DocumentID));
       } else if (sortType === 'year_desc') {
@@ -392,7 +422,29 @@
         card.appendChild(link);
         listEl.appendChild(card);
       });
+
+      // 描画後に検索フィルターを再適用（ソートしても検索が維持されるようにする）
+      applySearchFilter();
     }
+
+    // 検索機能のロジック
+    const searchInput = document.getElementById('searchInput');
+
+    function applySearchFilter() {
+      const term = searchInput.value.toLowerCase().trim();
+      const cards = document.querySelectorAll('.car-card');
+      
+      cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        if (text.includes(term)) {
+          card.style.display = '';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    searchInput.addEventListener('input', applySearchFilter);
 
     document.getElementById('sortSelect').addEventListener('change', (e) => {
       renderCars(e.target.value);
