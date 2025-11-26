@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-  <link rel="manifest" href="manifest.json">
   <meta charset="UTF-8">
-  <title>Registro500 Giappone</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro500 Giappone</title>
+  
+  <!-- マニフェスト読み込み -->
+  <link rel="manifest" href="manifest.json">
   
   <script src="config.js"></script>
 
@@ -85,13 +88,12 @@
 
     .page-header-right { display: flex; flex-direction: column; gap: 16px; }
 
-    /* 操作エリア：検索窓＋並び替え＋ボタン */
     .sort-area {
       display: flex; align-items: center; justify-content: flex-end;
       gap: 12px; flex-wrap: wrap;
     }
 
-    /* 検索ボックス (New) */
+    /* 検索ボックス */
     .search-box {
       position: relative;
     }
@@ -112,7 +114,7 @@
     /* スマホでの検索ボックス調整 */
     @media (max-width: 767px) {
       .sort-area { justify-content: space-between; }
-      .search-box { width: 100%; order: -1; /* 一番上に */ }
+      .search-box { width: 100%; order: -1; }
       .search-input { width: 100%; }
     }
 
@@ -294,6 +296,7 @@
             <span>並び替え</span>
             <select id="sortSelect" class="sort-select">
               <option value="newest">新着順</option>
+              <option value="updated_desc">更新順</option>
               <option value="oldest">登録順</option>
               <option value="year_desc">年式 (新しい順)</option>
               <option value="year_asc">年式 (古い順)</option>
@@ -358,14 +361,21 @@
       listEl.innerHTML = '';
       const cars = carsData.slice();
 
-      // ソート処理
       if (sortType === 'oldest') {
         cars.sort((a, b) => parseDocNumber(a.DocumentID) - parseDocNumber(b.DocumentID));
+      } else if (sortType === 'updated_desc') {
+        // 更新順 (日付データがない場合は最後尾へ)
+        cars.sort((a, b) => {
+          const dateA = new Date(a.updatedAt || 0);
+          const dateB = new Date(b.updatedAt || 0);
+          return dateB - dateA;
+        });
       } else if (sortType === 'year_desc') {
         cars.sort((a, b) => parseYear(b.Year) - parseYear(a.Year));
       } else if (sortType === 'year_asc') {
         cars.sort((a, b) => parseYear(a.Year) - parseYear(b.Year));
       } else {
+        // 新着順
         cars.sort((a, b) => parseDocNumber(b.DocumentID) - parseDocNumber(a.DocumentID));
       }
 
@@ -423,11 +433,10 @@
         listEl.appendChild(card);
       });
 
-      // 描画後に検索フィルターを再適用（ソートしても検索が維持されるようにする）
       applySearchFilter();
     }
 
-    // 検索機能のロジック
+    // 検索機能
     const searchInput = document.getElementById('searchInput');
 
     function applySearchFilter() {
