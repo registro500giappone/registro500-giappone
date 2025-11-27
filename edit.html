@@ -546,11 +546,17 @@
       }
     });
 
-    window.startPopupLogin = function() {
+      window.startPopupLogin = function() {
       const provider = new firebase.auth.GoogleAuthProvider();
+      
+      // ▼▼▼ 追加: 毎回アカウント選択画面を出す設定 ▼▼▼
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      // ▲▲▲ 追加ここまで ▲▲▲
+
       auth.signInWithPopup(provider).catch(err => alert("ログインエラー: " + err.message));
     };
-
     // ログアウト処理の追加
     logoutBtn.addEventListener('click', () => {
       auth.signOut().then(() => {
