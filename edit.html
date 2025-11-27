@@ -147,6 +147,13 @@
       padding: 12px 24px; font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%;
       margin-top: 1rem;
     }
+
+    /* ログアウトボタン用 */
+    .btn-logout {
+      font-size: 0.75rem; padding: 4px 8px; border-radius: 4px;
+      border: 1px solid #ccc; background: #fff; color: #666; cursor: pointer;
+      margin-left: 10px;
+    }
     
     #pageLoading { text-align: center; padding: 2rem; font-size: 1.2rem; color: #666; }
     #formContent { display: none; }
@@ -180,6 +187,7 @@
       <h1 class="page-title">編集フォーム</h1>
       <p style="text-align:center; font-size:0.9rem; margin:0;">
         ログイン中: <span id="userEmailDisplay">確認中...</span>
+        <button id="logoutBtn" class="btn-logout" style="display:none;">ログアウト</button>
       </p>
     </section>
 
@@ -521,16 +529,19 @@
     const loading = document.getElementById('pageLoading');
     const content = document.getElementById('formContent');
     const fileInput = document.getElementById('globalFileInput');
+    const logoutBtn = document.getElementById('logoutBtn'); // 追加
 
     let activeUploadTarget = null; 
 
     auth.onAuthStateChanged(async (user) => {
       if (user) {
         document.getElementById('userEmailDisplay').textContent = user.email;
+        logoutBtn.style.display = 'inline-block'; // ログアウトボタン表示
         overlay.classList.add('hidden');
         await loadInitialData();
       } else {
         document.getElementById('userEmailDisplay').textContent = '未ログイン';
+        logoutBtn.style.display = 'none';
         overlay.classList.remove('hidden');
       }
     });
@@ -539,6 +550,16 @@
       const provider = new firebase.auth.GoogleAuthProvider();
       auth.signInWithPopup(provider).catch(err => alert("ログインエラー: " + err.message));
     };
+
+    // ログアウト処理の追加
+    logoutBtn.addEventListener('click', () => {
+      auth.signOut().then(() => {
+        alert("ログアウトしました");
+        window.location.reload(); // 画面をリロードしてログイン画面に戻す
+      }).catch(err => {
+        alert("ログアウトエラー: " + err.message);
+      });
+    });
 
     async function loadInitialData() {
       if (!targetDocId) {
@@ -582,25 +603,20 @@
         const el = form.querySelector(`[name="${key}"]`);
         if (!el) return;
 
-        // ラジオボタンの処理（不具合対策含む）
+        // ラジオボタンの処理
         if (el.type === 'radio') {
           const radios = form.querySelectorAll(`input[name="${key}"]`);
-          
-          // 値のクリーニング（空白除去）
           const strVal = String(val || '').trim();
 
           let matched = false;
           radios.forEach(r => {
-             // 厳密一致 または 前後空白無視の一致
              if (String(r.value) === strVal) {
                r.checked = true;
                matched = true;
              }
           });
           
-          // マッチしなかった場合の救済措置（表記揺れ対策）
           if (!matched && strVal) {
-            // 例: データが「CV」のみの場合 -> 「CVジョイント」を選択
             if (key === 'Joint' && strVal.toUpperCase() === 'CV') {
                const cvRadio = [...radios].find(r => r.value === 'CVジョイント');
                if(cvRadio) cvRadio.checked = true;
@@ -608,7 +624,6 @@
           }
 
         } else {
-          // テキスト等の処理
           el.value = (val !== null && val !== undefined) ? val : '';
         }
       });
@@ -640,7 +655,6 @@
       }
     });
 
-    /* ========== 画像処理・アップロード (高画質版) ========== */
     function compressImage(file, maxWidth = 1920, quality = 0.95) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
