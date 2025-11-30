@@ -128,8 +128,16 @@
       width: 100%; max-width: 600px; padding: 0.8rem; border-radius: 999px; border: none;
       background: var(--rg-primary-red); color: white; font-weight: bold; font-size: 1rem;
       cursor: pointer; box-shadow: 0 4px 10px rgba(225, 29, 72, 0.3);
+      transition: all 0.2s;
     }
-    #submitButton:disabled { opacity: 0.5; cursor: not-allowed; }
+    /* ボタン無効時のスタイル（視覚的にも押せないことを伝える） */
+    #submitButton:disabled { 
+      opacity: 0.7; 
+      cursor: not-allowed; 
+      background-color: #9ca3af; 
+      box-shadow: none;
+      transform: none;
+    }
 
     #loginOverlay {
       position: fixed; inset: 0; background: rgba(244, 246, 248, 0.98); z-index: 9999;
@@ -529,14 +537,14 @@
     const loading = document.getElementById('pageLoading');
     const content = document.getElementById('formContent');
     const fileInput = document.getElementById('globalFileInput');
-    const logoutBtn = document.getElementById('logoutBtn'); // 追加
+    const logoutBtn = document.getElementById('logoutBtn');
 
     let activeUploadTarget = null; 
 
     auth.onAuthStateChanged(async (user) => {
       if (user) {
         document.getElementById('userEmailDisplay').textContent = user.email;
-        logoutBtn.style.display = 'inline-block'; // ログアウトボタン表示
+        logoutBtn.style.display = 'inline-block';
         overlay.classList.add('hidden');
         await loadInitialData();
       } else {
@@ -546,22 +554,18 @@
       }
     });
 
-      window.startPopupLogin = function() {
+    window.startPopupLogin = function() {
       const provider = new firebase.auth.GoogleAuthProvider();
-      
-      // ▼▼▼ 追加: 毎回アカウント選択画面を出す設定 ▼▼▼
       provider.setCustomParameters({
         prompt: 'select_account'
       });
-      // ▲▲▲ 追加ここまで ▲▲▲
-
       auth.signInWithPopup(provider).catch(err => alert("ログインエラー: " + err.message));
     };
-    // ログアウト処理の追加
+
     logoutBtn.addEventListener('click', () => {
       auth.signOut().then(() => {
         alert("ログアウトしました");
-        window.location.reload(); // 画面をリロードしてログイン画面に戻す
+        window.location.reload(); 
       }).catch(err => {
         alert("ログアウトエラー: " + err.message);
       });
@@ -776,6 +780,9 @@
       }
     }
 
+    // ===========================================
+    // ★ 修正：送信処理（二重押し防止・メッセージ変更）
+    // ===========================================
     submitBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       const user = auth.currentUser;
@@ -803,8 +810,9 @@
         }
       }
 
+      // ▼▼▼ 二重押し防止：ボタンを無効化して文言を変更 ▼▼▼
       submitBtn.disabled = true;
-      submitBtn.textContent = "送信中...";
+      submitBtn.textContent = "処理中...（そのままお待ちください）";
 
       try {
         const idToken = await user.getIdToken(true);
@@ -827,15 +835,17 @@
         if (json.success) {
           alert("保存しました！");
           window.location.href = "index.html"; 
+          // 成功後も遷移するまでボタンは無効のまま（連打防止）
         } else {
-          alert("エラー: " + json.error);
-          submitBtn.disabled = false;
-          submitBtn.textContent = "再送信";
+          // エラーが返ってきた場合のみ復帰させる
+          throw new Error(json.error);
         }
 
       } catch (e) {
         console.error(e);
         alert("送信エラー: " + e.message);
+        
+        // エラー時はボタンを元に戻して再操作可能にする
         submitBtn.disabled = false;
         submitBtn.textContent = "再送信";
       }
