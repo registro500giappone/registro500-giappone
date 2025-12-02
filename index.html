@@ -4,6 +4,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- キャッシュ対策（アプリ版で更新されない問題への対処） -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
   <title>Registro500 Giappone</title>
   
   <!-- マニフェスト読み込み -->
@@ -263,6 +269,29 @@
     }
 
     #loading { text-align:center; padding: 60px; color: var(--text-sub); }
+
+    /* ===== 更新ボタンのスタイル (PWA対策) ===== */
+    .refresh-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: #333;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 10px 20px;
+      font-size: 14px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      cursor: pointer;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+    .refresh-button:hover { opacity: 1; }
+    .refresh-button:active { transform: scale(0.95); }
   </style>
 </head>
 
@@ -318,6 +347,11 @@
     <div id="loading">読み込んでいます...</div>
     <div id="carList" class="car-list"></div>
   </div>
+
+  <!-- PWA対策：手動更新ボタン -->
+  <button id="refresh-btn" class="refresh-button" onclick="forceReload()">
+    ↻ 更新
+  </button>
 
   <script>
     let carsData = [];
@@ -460,6 +494,31 @@
     });
 
     fetchCars();
+
+    // ==========================================
+    // PWA用 更新ロジック (追加部分)
+    // ==========================================
+    function forceReload() {
+      // キャッシュを無視してサーバーから再読み込み
+      window.location.reload(true);
+    }
+
+    // アプリがアクティブになったときに、長時間(10分)経っていたら自動更新
+    (function() {
+      const RELOAD_THRESHOLD = 10 * 60 * 1000; // 10分
+      let lastVisibilityChange = new Date().getTime();
+
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+          const now = new Date().getTime();
+          if (now - lastVisibilityChange > RELOAD_THRESHOLD) {
+            console.log('一定時間経過のため自動更新します');
+            window.location.reload(true);
+          }
+          lastVisibilityChange = now;
+        }
+      });
+    })();
   </script>
 </body>
 </html>
