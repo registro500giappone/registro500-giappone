@@ -130,7 +130,6 @@
       cursor: pointer; box-shadow: 0 4px 10px rgba(225, 29, 72, 0.3);
       transition: all 0.2s;
     }
-    /* ボタン無効時のスタイル（視覚的にも押せないことを伝える） */
     #submitButton:disabled { 
       opacity: 0.7; 
       cursor: not-allowed; 
@@ -155,8 +154,6 @@
       padding: 12px 24px; font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%;
       margin-top: 1rem;
     }
-
-    /* ログアウトボタン用 */
     .btn-logout {
       font-size: 0.75rem; padding: 4px 8px; border-radius: 4px;
       border: 1px solid #ccc; background: #fff; color: #666; cursor: pointer;
@@ -217,7 +214,7 @@
         <select name="ModelSelectA" id="ModelSelectA">
           <option value="">選択してください</option>
           <option value="Nuova500">Nuova500</option>
-          <option value="ABARTH">ABARTH</option>
+          <option value="FIAT ABARTH">FIAT ABARTH</option> <!-- 修正 -->
           <option value="その他">その他</option>
         </select>
         <div id="ModelTextAWrapper" style="display:none;">
@@ -235,8 +232,15 @@
           <option value="Sport">Sport</option>
           <option value="N Normale">N Normale</option>
           <option value="Prima Serie">Prima Serie</option>
+          
+          <!-- ABARTH系 (修正・追加) -->
           <option value="595">595</option>
+          <option value="595SS">595SS</option>
+          <option value="595 CORSA">595 CORSA</option>
           <option value="695">695</option>
+          <option value="695SS">695SS</option>
+          <option value="695SS ASSETTO CORSA">695SS ASSETTO CORSA</option>
+          
           <option value="その他">その他</option>
         </select>
         <div id="ModelTextBWrapper" style="display:none;">
@@ -285,6 +289,10 @@
           <option value="110.004">110.004</option>
           <option value="110D.000">110D.000</option>
           <option value="110F.000">110F.000</option>
+          <!-- 追加 -->
+          <option value="110F.000 （ABA205）">110F.000 （ABA205）</option>
+          <option value="110F.000 （ABA206）">110F.000 （ABA206）</option>
+          <!-- /追加 -->
           <option value="120">120</option>
           <option value="126A.000">126A.000</option>
           <option value="126A1.000">126A1.000</option>
@@ -414,7 +422,6 @@
         <label>Instagram</label>
         <input type="text" name="Instagram">
 
-        <!-- ★YouTube追加 -->
         <label>YouTube</label>
         <input type="text" name="YouTube" placeholder="チャンネルURL または @ハンドルネーム">
         
@@ -618,6 +625,11 @@
         }
         const el = form.querySelector(`[name="${key}"]`);
         if (!el) return;
+
+        // ★ 互換性パッチ: 古いABARTHをFIAT ABARTHとして読み込む
+        if (key === 'ModelSelectA' && val === 'ABARTH') {
+          val = 'FIAT ABARTH';
+        }
 
         // ラジオボタンの処理
         if (el.type === 'radio') {
