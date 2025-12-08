@@ -7,8 +7,11 @@
   <title>車両詳細 - Registro500 Giappone</title>
   
   <link rel="manifest" href="manifest.json">
-
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   
   <script src="config.js"></script>
 
@@ -35,7 +38,6 @@
 
     .rg-main { max-width: 72rem; }
     
-    /* ヘッダーエリア (固定) */
     .rg-header-bar {
       position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
       background: rgba(244, 246, 248, 0.9); backdrop-filter: blur(8px);
@@ -58,7 +60,6 @@
 
     .rg-header-right { text-align: right; }
 
-    /* カード共通 */
     .rg-card {
       background: var(--rg-surface); border-radius: var(--rg-radius-card);
       border: 1px solid var(--rg-border); padding: 1.2rem;
@@ -97,7 +98,6 @@
       color: var(--rg-accent); font-size: 0.85rem; white-space: nowrap;
     }
 
-    /* ▼▼▼ シェア＆QRアクションバー ▼▼▼ */
     .rg-action-bar {
       display: flex; gap: 8px; 
       margin-top: 0;
@@ -112,8 +112,15 @@
     .btn-qr { background-color: #374151; }
     .btn-x { background-color: #000000; }
     .btn-fb { background-color: #1877F2; }
+    
+    /* 問い合わせボタン */
+    .btn-contact { 
+      background-color: var(--rg-accent); color: white; width: 100%; 
+      border-radius: 8px; font-weight: bold; padding: 12px; border:none; 
+      margin-top:10px; cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn-contact:hover { opacity: 0.9; }
 
-    /* セクション見出し */
     .rg-section-title {
       display: block; margin: 0 0 1rem; font-weight: 700; font-size: 1.15rem; 
       padding: 0.5rem 1rem; background: #eff6ff; 
@@ -122,7 +129,6 @@
     }
     .rg-section-title::before { content: none; }
 
-    /* スペック表 */
     .rg-spec-grid {
       display: grid; grid-template-columns: 8.2rem 1fr; 
       column-gap: 0.5rem; row-gap: 0; margin: 0; font-size: 0.95rem;
@@ -143,7 +149,6 @@
 
     .rg-highlights { margin: 0; font-size: 0.95rem; line-height: 1.7; }
 
-    /* ギャラリー */
     .rg-gallery-grid {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
       gap: 0.8rem; margin: 0;
@@ -160,7 +165,7 @@
       .rg-gallery-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
     }
 
-    /* ライトボックス & QRモーダル */
+    /* ライトボックス & QRモーダル & 問い合わせフォーム */
     .rg-modal {
       position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9);
       display: none; align-items: center; justify-content: center; z-index: 9999;
@@ -173,18 +178,18 @@
     .rg-modal-inner img {
       max-width: 100%; max-height: 95vh; object-fit: contain; border-radius: 0.5rem;
     }
-    .rg-qr-card {
-      background: white; padding: 30px; border-radius: 16px; text-align: center;
+    .rg-qr-card, .rg-form-card {
+      background: white; padding: 25px; border-radius: 16px; text-align: center;
+      max-width: 90%; width: 450px;
     }
     .rg-qr-title { font-weight: bold; color: var(--rg-accent); margin-bottom: 10px; font-size: 1.2rem; }
-    .rg-qr-desc { font-size: 0.9rem; color: #666; margin-bottom: 20px; }
+    .rg-qr-desc { font-size: 0.85rem; color: #666; margin-bottom: 15px; line-height: 1.5; text-align: left; background: #f9f9f9; padding:10px; border-radius:6px; }
     
     .rg-modal-close {
       position: absolute; top: -2.5rem; right: 0; border: none; 
       font-size: 2rem; color: #fff; background: transparent; cursor: pointer;
     }
 
-    /* 編集ボタン */
     .rg-edit-btn {
       font-size: 0.9rem; padding: 0.3rem 1.0rem; border-radius: 999px;
       border: 1px solid var(--rg-accent-border); background: var(--rg-accent-soft);
@@ -196,6 +201,16 @@
 
     #loading { text-align:center; padding:50px; font-size:1rem; color:#666; }
     #content { display:none; }
+
+    /* 問い合わせフォーム用CSS */
+    .inquiry-input { 
+      width: 100%; margin-bottom: 10px; padding: 10px; 
+      border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; box-sizing: border-box;
+    }
+    .inquiry-textarea { 
+      width: 100%; height: 120px; margin-bottom: 10px; padding: 10px; 
+      border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; resize: vertical; box-sizing: border-box;
+    }
   </style>
 </head>
 
@@ -234,6 +249,14 @@
             <div class="rg-photo-owner-row">
               <span id="handleName" class="rg-photo-handle"></span>
               <span id="prefecture" class="rg-photo-pref"></span>
+            </div>
+            
+            <!-- ★ 問い合わせボタンエリア (ログイン時のみ表示) -->
+            <div id="contactArea" style="display:none; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
+              <button class="btn-contact" onclick="openContactForm()">オーナーへ連絡する</button>
+              <p style="font-size:0.8rem; color:#666; margin-top:5px; text-align:center;">
+                ※オーナーにメールが転送されます
+              </p>
             </div>
           </section>
 
@@ -331,6 +354,21 @@
   <script>
     const params = new URLSearchParams(window.location.search);
     const docId = params.get('doc');
+    
+    // ログイン状態と車両データを保持する変数
+    let currentUser = null;
+    let currentCarData = null;
+
+    // Firebaseの初期化とログイン状態監視
+    if (typeof firebase !== 'undefined') {
+      if (firebase.apps.length === 0) {
+        firebase.initializeApp(FIREBASE_CONFIG);
+      }
+      firebase.auth().onAuthStateChanged(user => {
+        currentUser = user;
+        updateContactButton(); // ログイン状態が変わったらボタン表示を更新
+      });
+    }
 
     async function fetchDetail() {
       if (!docId) {
@@ -341,6 +379,7 @@
         const res = await fetch(`${API_URL}?mode=detail&doc=${docId}`);
         const json = await res.json();
         if (json.success && json.data) {
+          currentCarData = json.data;
           renderDetail(json.data);
         } else {
           document.getElementById('loading').textContent = 'データの取得に失敗しました';
@@ -365,7 +404,8 @@
 
       const editBtn = document.getElementById('editBtn');
       editBtn.href = `edit.html?doc=${encodeURIComponent(car.DocumentID)}`;
-      editBtn.style.display = 'inline-flex';
+      
+      updateContactButton();
 
       // シェアボタン設定
       const pageUrl = window.location.href;
@@ -386,7 +426,6 @@
         'val_EngineCC': car.EngineCC,
         'val_Engine_Display': car.Engine_Display,
         'val_IgnitionType': car.IgnitionType,
-        // 追加: 点火製品名
         'val_IgnitionSubType': car.IgnitionSubType,
         'val_FuelInjection': car.FuelInjection,
         'val_CarburetorName': car.CarburetorName,
@@ -394,7 +433,6 @@
         'val_ElectricPumpName': car.ElectricPumpName,
         'val_Generator': car.Generator,
         'val_OilCooler': car.OilCooler,
-        // 追加: コイル
         'val_CoilName': car.CoilName,
         'val_Transmission': car.Transmission,
         'val_Synchro': car.Synchro,
@@ -466,7 +504,6 @@
       const sns = [
         { key: 'X_Twitter', label: 'X', base: 'https://x.com/' },
         { key: 'Instagram', label: 'Instagram', base: 'https://www.instagram.com/', suffix: '/' },
-        // ★YouTube追加
         { key: 'YouTube', label: 'YouTube', base: 'https://www.youtube.com/' },
         { key: 'Minkara', label: 'みんカラ', base: 'https://minkara.carview.co.jp/userid/', suffix: '/' },
         { key: 'Facebook', label: 'Facebook' },
@@ -494,6 +531,102 @@
     function setText(id, text) {
       const el = document.getElementById(id);
       if (el) el.textContent = text || '';
+    }
+
+    // ★ ボタンの出し分けロジック
+    function updateContactButton() {
+      if (!currentCarData) return;
+      const btnArea = document.getElementById('contactArea');
+      const editBtn = document.getElementById('editBtn');
+      
+      const isOwner = currentUser && currentUser.email === (currentCarData.OwnerEmail || '').toLowerCase();
+
+      // 編集ボタンの表示（オーナーのみ）
+      if (isOwner) {
+        editBtn.style.display = 'inline-flex';
+      } else {
+        editBtn.style.display = 'none';
+      }
+
+      // 問い合わせボタンの表示
+      const accept = String(currentCarData.AcceptInquiry || 'TRUE').toUpperCase();
+      if (accept !== 'FALSE' && currentUser && !isOwner) {
+        btnArea.style.display = 'block';
+      } else {
+        btnArea.style.display = 'none';
+      }
+    }
+
+    // ★ 問い合わせフォームを表示（法的注意書き入り）
+    window.openContactForm = function() {
+      if (!currentUser) return;
+      
+      const html = `
+        <div class="rg-form-card" style="text-align:left;">
+          <div class="rg-qr-title" style="text-align:center;">オーナーへ連絡</div>
+          <p class="rg-qr-desc">
+            あなたのメールアドレスは非公開のまま転送されますが、<strong>オーナーが返信すると、あなたのアドレスが相手に公開されます。</strong><br>
+            <br>
+            <small>※当サイトは仲介のみを行います。送信後のトラブル（金銭、誹謗中傷等）について、運営者は一切の責任を負いません。公序良俗に反する内容はご遠慮ください。</small>
+          </p>
+          <label style="font-weight:bold;display:block;margin-top:10px;">お名前</label>
+          <input type="text" id="inqName" class="inquiry-input" placeholder="あなたのハンドルネーム">
+          
+          <label style="font-weight:bold;display:block;">メールアドレス (返信先)</label>
+          <input type="text" id="inqEmail" class="inquiry-input" value="${currentUser.email}" readonly style="background:#eee; color:#666;">
+          
+          <label style="font-weight:bold;display:block;">メッセージ</label>
+          <textarea id="inqMsg" class="inquiry-textarea" placeholder="はじめまして..."></textarea>
+          
+          <button class="btn-contact" onclick="submitInquiry()">上記に同意して送信する</button>
+        </div>
+      `;
+      openModal(html);
+    }
+
+    // ★ 送信処理
+    window.submitInquiry = async function() {
+      const name = document.getElementById('inqName').value;
+      const msg = document.getElementById('inqMsg').value;
+      
+      if(!name || !msg) { alert("お名前とメッセージを入力してください"); return; }
+      
+      const btn = document.querySelector('.rg-form-card .btn-contact');
+      btn.disabled = true;
+      btn.textContent = "送信中...";
+
+      try {
+        const payload = {
+          action: 'inquiry', 
+          formData: {
+            targetDocId: currentCarData.DocumentID,
+            senderName: name,
+            senderEmail: currentUser.email,
+            message: msg
+          }
+        };
+
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        
+        const json = await res.json();
+        
+        if (json.success) {
+          alert("メッセージを送信しました！");
+          document.querySelector('.rg-modal').remove();
+        } else {
+          alert("エラー: " + json.error);
+          btn.disabled = false;
+          btn.textContent = "送信する";
+        }
+      } catch(e) {
+        alert("通信エラーが発生しました: " + e.message);
+        btn.disabled = false;
+        btn.textContent = "送信する";
+      }
     }
 
     // ライトボックス & QR
