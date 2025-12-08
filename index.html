@@ -357,24 +357,70 @@
     ↻ 更新
   </button>
 
-  <script>
+<script>
     let carsData = [];
+    const CACHE_KEY = 'registro500_local_data'; // ブラウザ保存用の名前
+
+    // ★ 修正：起動時にまずブラウザ保存データがあれば表示する
+    function initApp() {
+      // 1. ローカルに保存されたデータがあれば即座に表示
+      const localData = localStorage.getItem(CACHE_KEY);
+      if (localData) {
+        try {
+          console.log("スマホ内のデータで表示します");
+          carsData = JSON.parse(localData);
+          renderCars(document.getElementById('sortSelect').value);
+          updateCarCount();
+          // ローカルデータがある場合はローディングを消す
+          document.getElementById('loading').style.display = 'none';
+        } catch (e) {
+          console.error("ローカルデータの読み込み失敗", e);
+        }
+      }
+
+      // 2. その後、裏側で最新データをサーバーに取りに行く
+      fetchCars();
+    }
 
     async function fetchCars() {
       try {
+        // ローカルデータがない場合のみ「読み込んでいます」を表示
+        if (carsData.length === 0) {
+          document.getElementById('loading').style.display = 'block';
+        }
+
         const res = await fetch(API_URL + '?mode=index');
         const json = await res.json();
 
         if (json.success && json.data) {
-          carsData = json.data;
-          renderCars(document.getElementById('sortSelect').value);
-          updateCarCount();
+          // データに変更があった場合のみ更新処理をする（画面のチラつき防止）
+          const newDataStr = JSON.stringify(json.data);
+          const oldDataStr = localStorage.getItem(CACHE_KEY);
+
+          if (newDataStr !== oldDataStr) {
+            console.log("サーバーから最新データを取得しました");
+            carsData = json.data;
+            
+            // ★ スマホ（ブラウザ）に最新データを保存
+            localStorage.setItem(CACHE_KEY, newDataStr);
+            
+            renderCars(document.getElementById('sortSelect').value);
+            updateCarCount();
+          } else {
+            console.log("データに変更はありませんでした");
+          }
+          
           document.getElementById('loading').style.display = 'none';
         } else {
-          document.getElementById('loading').textContent = 'データの取得に失敗しました。';
+          if (carsData.length === 0) {
+            document.getElementById('loading').textContent = 'データの取得に失敗しました。';
+          }
         }
       } catch (e) {
-        document.getElementById('loading').textContent = '通信エラーが発生しました。';
+        console.error(e);
+        if (carsData.length === 0) {
+          document.getElementById('loading').textContent = '通信エラーが発生しました。';
+        }
       }
     }
 
@@ -497,7 +543,9 @@
       renderCars(e.target.value);
     });
 
-    fetchCars();
+    // ★ 最後に呼び出す関数を fetchCars() から initApp() に変更
+    // fetchCars();  <-- 削除
+    initApp();    // <-- 追加
 
     // ==========================================
     // PWA用 更新ロジック (追加部分)
