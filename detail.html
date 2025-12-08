@@ -7,6 +7,7 @@
   <title>車両詳細 - Registro500 Giappone</title>
   
   <link rel="manifest" href="manifest.json">
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   
   <!-- Firebase SDK -->
@@ -237,6 +238,7 @@
    <div id="content">
       <div class="row g-4 align-items-start">
         
+        <!-- 左カラム：写真・基本情報・ギャラリー -->
         <div class="col-12 col-lg-5 rg-photo-col">
           <section class="rg-card mb-3">
             <div class="rg-photo-square">
@@ -250,14 +252,6 @@
               <span id="handleName" class="rg-photo-handle"></span>
               <span id="prefecture" class="rg-photo-pref"></span>
             </div>
-            
-            <!-- ★ 問い合わせボタンエリア (ログイン時のみ表示) -->
-            <div id="contactArea" style="display:none; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-              <button class="btn-contact" onclick="openContactForm()">オーナーへ連絡する</button>
-              <p style="font-size:0.8rem; color:#666; margin-top:5px; text-align:center;">
-                ※オーナーにメールが転送されます
-              </p>
-            </div>
           </section>
 
           <section class="rg-card" id="gallerySection" style="display:none;">
@@ -265,6 +259,7 @@
           </section>
         </div>
 
+        <!-- 右カラム：スペック・SNS・シェア・問い合わせ -->
         <div class="col-12 col-lg-7">
           <section class="rg-card mb-3">
             <h2 class="rg-section-title">ボディスペック</h2>
@@ -344,7 +339,20 @@
               </a>
             </div>
           </section>
-          </div>
+
+          <!-- ★ 問い合わせエリア (独立したカードとして配置) -->
+          <section class="rg-card mb-3" id="contactArea" style="display:none;">
+            <h2 class="rg-section-title">オーナーへ連絡</h2>
+            <div style="text-align:left;">
+              <p style="font-size:0.9rem; color:#333; margin-bottom:15px; line-height:1.6;">
+                この車両について、オーナー様へメッセージを送ることができます。<br>
+                <small style="color:#666;">※あなたのメールアドレスは非公開のまま転送されます。</small>
+              </p>
+              <button class="btn-contact" onclick="openContactForm()">問い合わせフォームを開く</button>
+            </div>
+          </section>
+
+        </div>
       </div>
    </div>
    </main>
@@ -405,6 +413,7 @@
       const editBtn = document.getElementById('editBtn');
       editBtn.href = `edit.html?doc=${encodeURIComponent(car.DocumentID)}`;
       
+      // 問い合わせボタンの表示判定を実行
       updateContactButton();
 
       // シェアボタン設定
@@ -550,6 +559,7 @@
 
       // 問い合わせボタンの表示
       const accept = String(currentCarData.AcceptInquiry || 'TRUE').toUpperCase();
+      
       if (accept !== 'FALSE' && currentUser && !isOwner) {
         btnArea.style.display = 'block';
       } else {
@@ -557,7 +567,7 @@
       }
     }
 
-// ★ 問い合わせフォームを表示（法的注意書き・不達リスク追記版）
+    // ★ 問い合わせフォームを表示（法的注意書き・不達リスク追記版）
     window.openContactForm = function() {
       if (!currentUser) return;
       
@@ -586,6 +596,7 @@
       `;
       openModal(html);
     }
+
     // ★ 送信処理
     window.submitInquiry = async function() {
       const name = document.getElementById('inqName').value;
