@@ -9,7 +9,7 @@
             font-family: "Helvetica Neue", Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f4;
+            background-color: #f4f4f7;
             color: #333;
         }
         /* ヘッダー */
@@ -21,70 +21,99 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        h1 { margin: 0; font-size: 1.2rem; }
+        h1 { margin: 0; font-size: 1.2rem; letter-spacing: 1px; }
         
-        /* 戻るボタン */
         .back-link {
             display: inline-block;
             margin-top: 10px;
             color: #ccc;
             text-decoration: none;
-            font-size: 0.9rem;
-            border: 1px solid #ccc;
-            padding: 5px 15px;
+            font-size: 0.85rem;
+            border: 1px solid #666;
+            padding: 4px 15px;
             border-radius: 20px;
+            transition: 0.3s;
         }
+        .back-link:hover { background: #555; color: #fff; }
 
         /* メインコンテナ */
         .container {
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 0 15px;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px 10px;
             text-align: center;
         }
+        
+        p.desc { font-size: 0.9rem; color: #666; margin-bottom: 20px; }
 
         /* 日本地図SVG */
+        #map-container {
+            width: 100%;
+            height: auto;
+            max-width: 800px; /* PCでの最大幅 */
+            margin: 0 auto;
+            position: relative;
+        }
         .japan-map-svg {
             width: 100%;
             height: auto;
-            max-height: 60vh; /* 画面の高さの60%までに制限 */
-            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.1));
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.05));
         }
+        
+        /* 都道府県のスタイル */
         .pref-path {
-            fill: #e0e0e0;
-            stroke: #ffffff;
-            stroke-width: 1;
+            fill: #e8e8e8;     /* 未登録の色：薄いグレー */
+            stroke: #ffffff;   /* 県境の線：白 */
+            stroke-width: 1px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
         }
-        .pref-path:hover { opacity: 0.8; }
-        /* 登録がある県の色（トリコローレ緑） */
-        .pref-active { fill: #008f39 !important; }
-        .pref-active:active { fill: #cf2e2e !important; } /* タップで赤 */
+        .pref-path:hover {
+            opacity: 0.7;
+            stroke: #999;
+        }
+        /* 登録がある県の色（イタリアン・グリーン） */
+        .pref-active { 
+            fill: #009688 !important; 
+        }
+        /* 選択中の色（赤） */
+        .pref-selected {
+            fill: #cf2e2e !important;
+            filter: drop-shadow(0 0 5px rgba(207, 46, 46, 0.5));
+        }
 
         /* エリア別リスト表示エリア */
         #garage-area {
-            display: none; /* 最初は隠す */
-            margin-top: 30px;
+            display: none;
+            margin-top: 20px;
             background: white;
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+            padding: 30px 20px;
+            border-radius: 16px;
+            box-shadow: 0 -5px 25px rgba(0,0,0,0.1);
             position: relative;
+            animation: slideUp 0.3s ease-out;
         }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
         .area-header {
-            border-bottom: 2px solid #008f39;
+            border-bottom: 2px solid #009688;
             margin-bottom: 20px;
             padding-bottom: 10px;
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             font-weight: bold;
+            color: #333;
         }
+        
         .garage-list {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 15px;
+            gap: 20px;
         }
         
         /* アイコン（撃墜マーク風） */
@@ -92,32 +121,51 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: 70px;
+            width: 80px;
+            cursor: pointer;
         }
         .garage-icon {
-            width: 60px;
-            height: 60px;
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
             object-fit: cover;
-            border: 3px solid #eee;
-            transition: transform 0.2s;
+            border: 3px solid #f0f0f0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.2s, border-color 0.2s;
+            background-color: #eee;
         }
-        .garage-icon:hover {
+        .garage-item:hover .garage-icon {
             transform: scale(1.1);
-            border-color: #cf2e2e; /* イタリアンレッド */
+            border-color: #009688;
         }
         .garage-name {
-            font-size: 0.7rem;
-            margin-top: 5px;
+            font-size: 0.75rem;
+            margin-top: 8px;
+            line-height: 1.2;
             text-overflow: ellipsis;
             white-space: nowrap;
             overflow: hidden;
             width: 100%;
             text-align: center;
+            color: #555;
+            font-weight: 500;
         }
 
-        /* 読み込み中表示 */
-        #loading { margin: 50px 0; color: #666; }
+        /* 閉じるボタン */
+        .close-btn {
+            margin-top: 30px;
+            padding: 10px 40px;
+            background: #eee;
+            border: none;
+            border-radius: 30px;
+            font-weight: bold;
+            color: #555;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .close-btn:hover { background: #ddd; }
+
+        #loading { margin: 60px 0; color: #888; letter-spacing: 2px;}
     </style>
 </head>
 <body>
@@ -128,10 +176,9 @@
 </header>
 
 <div class="container">
-    <p style="font-size:0.9rem;">都道府県をタップして仲間を探そう</p>
+    <p class="desc">地図上の色がついているエリアをタップしてください</p>
     
-    <!-- ローディング表示 -->
-    <div id="loading">Map Loading...</div>
+    <div id="loading">LOADING MAP...</div>
 
     <!-- 地図表示エリア -->
     <div id="map-container" style="display:none;"></div>
@@ -139,10 +186,8 @@
     <!-- 選択したエリアのリスト -->
     <div id="garage-area">
         <div id="area-title" class="area-header">AREA</div>
-        <div id="garage-list" class="garage-list">
-            <!-- ここにアイコンが並びます -->
-        </div>
-        <button onclick="document.getElementById('garage-area').style.display='none'" style="margin-top:20px; padding:10px 30px; background:#ddd; border:none; border-radius:20px;">閉じる</button>
+        <div id="garage-list" class="garage-list"></div>
+        <button onclick="closeGarage()" class="close-btn">CLOSE</button>
     </div>
 </div>
 
@@ -157,13 +202,12 @@
     // ==========================================
     async function fetchData() {
         if(GAS_API_URL.includes("★")) {
-            alert("エラー：mappa.htmlのコードを開いて、GASのURLを設定してください！");
+            alert("エラー：mappa.htmlのコード内のGASのURLを設定してください！");
             return;
         }
         try {
             const response = await fetch(GAS_API_URL);
             const data = await response.json();
-            // データ構造の補正（dataというプロパティに入っている場合などに対応）
             const cars = Array.isArray(data) ? data : (data.data || []);
             initMap(cars);
         } catch (e) {
@@ -173,58 +217,77 @@
     }
 
     // ==========================================
-    // 3. 地図ロジック
+    // 3. リアルな日本地図SVGデータ
     // ==========================================
     const mapSVG = `
-    <svg viewBox="0 0 500 500" class="japan-map-svg">
-      <path id="Hokkaido" d="M380,10 L450,50 L420,100 L350,80 Z" class="pref-path" data-name="北海道" />
-      <path id="Aomori" d="M350,85 L380,85 L380,110 L350,110 Z" class="pref-path" data-name="青森県" />
-      <path id="Iwate" d="M380,110 L400,110 L390,150 L370,140 Z" class="pref-path" data-name="岩手県" />
-      <path id="Miyagi" d="M370,140 L390,150 L380,170 L360,160 Z" class="pref-path" data-name="宮城県" />
-      <path id="Akita" d="M350,110 L370,110 L360,150 L340,140 Z" class="pref-path" data-name="秋田県" />
-      <path id="Yamagata" d="M340,140 L360,150 L350,170 L330,160 Z" class="pref-path" data-name="山形県" />
-      <path id="Fukushima" d="M350,170 L380,170 L370,200 L340,200 Z" class="pref-path" data-name="福島県" />
-      <path id="Ibaraki" d="M360,200 L380,200 L370,230 L350,220 Z" class="pref-path" data-name="茨城県" />
-      <path id="Tochigi" d="M340,200 L360,200 L350,220 L330,210 Z" class="pref-path" data-name="栃木県" />
-      <path id="Gunma" d="M310,200 L340,200 L330,220 L300,210 Z" class="pref-path" data-name="群馬県" />
-      <path id="Saitama" d="M330,220 L350,220 L340,230 L320,230 Z" class="pref-path" data-name="埼玉県" />
-      <path id="Chiba" d="M350,220 L370,230 L360,250 L340,240 Z" class="pref-path" data-name="千葉県" />
-      <path id="Tokyo" d="M320,230 L340,230 L330,240 L310,240 Z" class="pref-path" data-name="東京都" />
-      <path id="Kanagawa" d="M320,240 L340,240 L330,250 L310,250 Z" class="pref-path" data-name="神奈川県" />
-      <path id="Niigata" d="M310,180 L340,180 L330,210 L300,200 Z" class="pref-path" data-name="新潟県" />
-      <path id="Toyama" d="M280,200 L300,200 L290,220 L270,210 Z" class="pref-path" data-name="富山県" />
-      <path id="Ishikawa" d="M260,190 L280,200 L270,220 L250,210 Z" class="pref-path" data-name="石川県" />
-      <path id="Fukui" d="M250,210 L270,220 L260,240 L240,230 Z" class="pref-path" data-name="福井県" />
-      <path id="Yamanashi" d="M300,230 L320,230 L310,240 L290,240 Z" class="pref-path" data-name="山梨県" />
-      <path id="Nagano" d="M290,210 L320,210 L300,240 L270,230 Z" class="pref-path" data-name="長野県" />
-      <path id="Gifu" d="M270,220 L290,220 L280,250 L260,240 Z" class="pref-path" data-name="岐阜県" />
-      <path id="Shizuoka" d="M300,240 L330,240 L310,260 L280,250 Z" class="pref-path" data-name="静岡県" />
-      <path id="Aichi" d="M270,250 L300,250 L290,270 L260,260 Z" class="pref-path" data-name="愛知県" />
-      <path id="Mie" d="M260,250 L280,250 L270,280 L250,270 Z" class="pref-path" data-name="三重県" />
-      <path id="Shiga" d="M250,240 L270,240 L260,260 L240,250 Z" class="pref-path" data-name="滋賀県" />
-      <path id="Kyoto" d="M240,230 L260,230 L250,250 L230,240 Z" class="pref-path" data-name="京都府" />
-      <path id="Osaka" d="M230,250 L250,250 L240,260 L220,260 Z" class="pref-path" data-name="大阪府" />
-      <path id="Hyogo" d="M210,230 L240,230 L230,260 L200,250 Z" class="pref-path" data-name="兵庫県" />
-      <path id="Nara" d="M240,260 L260,260 L250,280 L230,270 Z" class="pref-path" data-name="奈良県" />
-      <path id="Wakayama" d="M220,270 L250,270 L240,290 L210,280 Z" class="pref-path" data-name="和歌山県" />
-      <path id="Tottori" d="M180,230 L210,230 L200,240 L170,240 Z" class="pref-path" data-name="鳥取県" />
-      <path id="Shimane" d="M150,230 L180,230 L170,250 L140,240 Z" class="pref-path" data-name="島根県" />
-      <path id="Okayama" d="M180,240 L210,240 L200,260 L170,250 Z" class="pref-path" data-name="岡山県" />
-      <path id="Hiroshima" d="M150,240 L180,240 L170,260 L140,250 Z" class="pref-path" data-name="広島県" />
-      <path id="Yamaguchi" d="M120,240 L150,240 L140,260 L110,250 Z" class="pref-path" data-name="山口県" />
-      <path id="Tokushima" d="M200,270 L220,270 L210,290 L190,280 Z" class="pref-path" data-name="徳島県" />
-      <path id="Kagawa" d="M190,260 L210,260 L200,270 L180,270 Z" class="pref-path" data-name="香川県" />
-      <path id="Ehime" d="M160,270 L190,270 L180,290 L150,280 Z" class="pref-path" data-name="愛媛県" />
-      <path id="Kochi" d="M160,290 L200,290 L190,310 L150,300 Z" class="pref-path" data-name="高知県" />
-      <path id="Fukuoka" d="M100,250 L130,250 L120,270 L90,260 Z" class="pref-path" data-name="福岡県" />
-      <path id="Saga" d="M80,260 L100,260 L90,270 L70,270 Z" class="pref-path" data-name="佐賀県" />
-      <path id="Nagasaki" d="M60,260 L80,260 L70,280 L50,270 Z" class="pref-path" data-name="長崎県" />
-      <path id="Kumamoto" d="M80,270 L110,270 L100,290 L70,290 Z" class="pref-path" data-name="熊本県" />
-      <path id="Oita" d="M110,260 L130,260 L120,280 L100,280 Z" class="pref-path" data-name="大分県" />
-      <path id="Miyazaki" d="M90,290 L120,290 L110,320 L80,310 Z" class="pref-path" data-name="宮崎県" />
-      <path id="Kagoshima" d="M60,290 L90,290 L80,330 L50,310 Z" class="pref-path" data-name="鹿児島県" />
-      <path id="Okinawa" d="M20,350 L50,350 L40,380 L10,360 Z" class="pref-path" data-name="沖縄県" />
-    </svg>`;
+    <svg viewBox="0 0 540 500" class="japan-map-svg">
+      <defs><style>.cls-1{stroke:#fff;stroke-width:1px;}</style></defs>
+      <!-- 北海道・東北 -->
+      <path id="Hokkaido" class="pref-path" data-name="北海道" d="M410.5,60.8l5.2-4.1l11.4,1.4l15.9,13.8l-1.4,4.5l-9.3,2.4l-4.5,13.1l6.6,6.9l-2.4,5.9l-11.4,2.8l-11.7-4.1l-10,3.8l-8.6-4.5l-2.8-6.6l5.2-6.2l-3.8-6.9l8.6-8.3L410.5,60.8z"/>
+      <path id="Aomori" class="pref-path" data-name="青森県" d="M386.3,103.2l7.2-2.1l10,3.8l2.1,8.6l-2.1,4.8l-12.8-1L386.3,103.2z"/>
+      <path id="Akita" class="pref-path" data-name="秋田県" d="M380.1,118.4l10.7-1l1.4,11.4l-2.1,10.7l-9.3-3.1L380.1,118.4z"/>
+      <path id="Iwate" class="pref-path" data-name="岩手県" d="M403.6,113.5l2.4,11l-3.8,11.4l-6.6,5.9l-2.8-3.4l-0.7-11.4L403.6,113.5z"/>
+      <path id="Yamagata" class="pref-path" data-name="山形県" d="M380.8,136.3l9.3,3.1l2.8,3.4l-4.1,11l-9-0.3L380.8,136.3z"/>
+      <path id="Miyagi" class="pref-path" data-name="宮城県" d="M392.9,142.8l6.6-5.9l4.5,5.5l-2.4,8.3l-5.9-0.7L392.9,142.8z"/>
+      <path id="Fukushima" class="pref-path" data-name="福島県" d="M379.7,153.5l15.9,0.3l5.9,0.7l-0.7,12.1l-6.9,4.5l-13.8-3.8L379.7,153.5z"/>
+      
+      <!-- 関東 -->
+      <path id="Ibaraki" class="pref-path" data-name="茨城県" d="M386.3,180.1l10,4.8l2.1,10.7l-7.6,4.5l-6.6-3.8l-1-7.2L386.3,180.1z"/>
+      <path id="Tochigi" class="pref-path" data-name="栃木県" d="M373.9,171.1l9.3-3.1l7.6,6.2l-7.6,14.8l-6.6-1L373.9,171.1z"/>
+      <path id="Gunma" class="pref-path" data-name="群馬県" d="M363.5,175.9l13.1,2.1l6.6,1l-4.1,10l-7.9-1.4l-3.8-8.6L363.5,175.9z"/>
+      <path id="Saitama" class="pref-path" data-name="埼玉県" d="M365.9,189l12.4,1.4l4.8,5.9l-7.2,3.1l-7.6-3.8L365.9,189z"/>
+      <path id="Chiba" class="pref-path" data-name="千葉県" d="M383.2,196.3l6.6-1.7l6.6,3.8l-2.4,10.7l-8.6,3.1l-3.8-7.9L383.2,196.3z"/>
+      <path id="Tokyo" class="pref-path" data-name="東京都" d="M368.3,195.6l13.1,2.4l0.3,7.9l-6.9-0.7l-3.8-3.1l-2.8-2.8L368.3,195.6z"/>
+      <path id="Kanagawa" class="pref-path" data-name="神奈川県" d="M367.3,199.4l4.8,2.8l2.8,3.1l-2.4,7.2l-6.2-2.1L367.3,199.4z"/>
+
+      <!-- 中部 -->
+      <path id="Niigata" class="pref-path" data-name="新潟県" d="M356.6,155.9l23.1,11.4l-5.9,3.8l-10.3,19.3l-8.6-2.1l-14.8-14.8L356.6,155.9z"/>
+      <path id="Toyama" class="pref-path" data-name="富山県" d="M336.6,177.3l12.1,8.3l-3.1,7.9l-7.6-1L336.6,177.3z"/>
+      <path id="Ishikawa" class="pref-path" data-name="石川県" d="M325.2,166.3l8.6,8.6l4.1,8.6l-5.9,8.3l-7.2-6.9l3.1-9.3L325.2,166.3z"/>
+      <path id="Fukui" class="pref-path" data-name="福井県" d="M315.6,189l13.4,7.9l-0.7,8.6l-9.3,2.4l-6.9-6.9L315.6,189z"/>
+      <path id="Yamanashi" class="pref-path" data-name="山梨県" d="M358.3,192.8l9,1.7l-1,10.3l-7.2,3.1l-6.2-7.2L358.3,192.8z"/>
+      <path id="Nagano" class="pref-path" data-name="長野県" d="M344.9,181.1l11.7,3.1l8.6,14.8l-12.4,12.8l-8.3-4.8l-1.4-11.7L344.9,181.1z"/>
+      <path id="Gifu" class="pref-path" data-name="岐阜県" d="M328.3,192.5l14.5-0.3l1.4,11.7l-8.3,10.7l-9.3-1.4l-4.5-12.1L328.3,192.5z"/>
+      <path id="Shizuoka" class="pref-path" data-name="静岡県" d="M344.2,211.8l8.6,4.8l7.2-3.1l4.8,6.2l-3.1,6.6l-14.1-3.1l-4.5-6.9L344.2,211.8z"/>
+      <path id="Aichi" class="pref-path" data-name="愛知県" d="M326.6,214.6l9.3,1.4l7.2,11l-3.1,5.2l-7.9-2.1l-2.4-7.6L326.6,214.6z"/>
+
+      <!-- 近畿 -->
+      <path id="Mie" class="pref-path" data-name="三重県" d="M319.7,219.4l4.5,2.8l2.4,7.6l-6.6,15.5l-6.6-4.5l-1-9L319.7,219.4z"/>
+      <path id="Shiga" class="pref-path" data-name="滋賀県" d="M312.1,207.7l10,6.9l-2.4,4.8l-6.2,3.4l-5.9-4.8L312.1,207.7z"/>
+      <path id="Kyoto" class="pref-path" data-name="京都府" d="M303.8,198.4l8.3,9.3l-4.5,10.3l-5.2-1l-2.4-6.9l2.8-7.2L303.8,198.4z"/>
+      <path id="Osaka" class="pref-path" data-name="大阪府" d="M302.4,218.1l5.2,1l1.4,7.9l-5.5,2.4l-2.8-5.9L302.4,218.1z"/>
+      <path id="Hyogo" class="pref-path" data-name="兵庫県" d="M284.1,204.6l16.9,6.2l-0.3,10.3l-8.6,3.8l-4.1-8.3l-9.3-1L284.1,204.6z"/>
+      <path id="Nara" class="pref-path" data-name="奈良県" d="M309.0,219.1l3.1,9.3l-4.1,8.3l-5.9-1l-1.4-7.9l1.4-8.6L309.0,219.1z"/>
+      <path id="Wakayama" class="pref-path" data-name="和歌山県" d="M300.7,229.4l5.9,1l4.1-8.3l6.6,4.5l-2.8,10.7l-9.3,2.4L300.7,229.4z"/>
+
+      <!-- 中国 -->
+      <path id="Tottori" class="pref-path" data-name="鳥取県" d="M266.9,206.0l17.2-1.4l4.8,8.3l-7.2,3.8l-12.1-3.4L266.9,206.0z"/>
+      <path id="Okayama" class="pref-path" data-name="岡山県" d="M261.4,213.2l8.3,3.4l10.3,2.4l-3.8,7.9l-11.7-2.4L261.4,213.2z"/>
+      <path id="Shimane" class="pref-path" data-name="島根県" d="M242.4,208.7l24.5-2.8l2.8,7.2l-14.8,9.6l-11.7-5.9L242.4,208.7z"/>
+      <path id="Hiroshima" class="pref-path" data-name="広島県" d="M253.5,222.9l14.8-9.6l7.9,13.8l-9.7,5.5l-11.7-4.1L253.5,222.9z"/>
+      <path id="Yamaguchi" class="pref-path" data-name="山口県" d="M232.1,215.6l10.3-6.9l12.4,14.1l-6.9,3.8l-14.8-4.5L232.1,215.6z"/>
+
+      <!-- 四国 -->
+      <path id="Kagawa" class="pref-path" data-name="香川県" d="M275.9,232.5l12.1,1.7l-1.0,5.2l-12.8-1.4L275.9,232.5z"/>
+      <path id="Tokushima" class="pref-path" data-name="徳島県" d="M287.0,234.2l-1.0,11.7l-8.3,2.8l-3.4-6.2l1.0-5.2L287.0,234.2z"/>
+      <path id="Ehime" class="pref-path" data-name="愛媛県" d="M259.0,232.5l16.9,0l1.7,5.5l-5.5,10.3l-13.4-4.5L259.0,232.5z"/>
+      <path id="Kochi" class="pref-path" data-name="高知県" d="M258.7,243.9l13.4,4.5l5.5-10.3l3.4,6.2l8.3-2.8l-3.4,8.6l-25.5-1.4L258.7,243.9z"/>
+
+      <!-- 九州・沖縄 -->
+      <path id="Fukuoka" class="pref-path" data-name="福岡県" d="M221.7,222.2l12.1,1.4l5.5,10l-4.5,6.2l-9.3-3.4L221.7,222.2z"/>
+      <path id="Saga" class="pref-path" data-name="佐賀県" d="M211.4,226.3l10.3-4.1l3.8,14.1l-6.2,1.7l-4.1-6.9L211.4,226.3z"/>
+      <path id="Nagasaki" class="pref-path" data-name="長崎県" d="M204.2,226.3l7.2,0l4.1,6.9l-2.4,8.6l-5.5,1.7l-5.2-10L204.2,226.3z"/>
+      <path id="Kumamoto" class="pref-path" data-name="熊本県" d="M219.3,238.0l10-6.2l8.6,10.7l-4.5,10.7l-10-3.8l-3.8-9.6L219.3,238.0z"/>
+      <path id="Oita" class="pref-path" data-name="大分県" d="M239.3,233.5l-5.5-10l-12.1-1.4l-2.4,15.9l8.3,6.2L239.3,233.5z"/>
+      <path id="Miyazaki" class="pref-path" data-name="宮崎県" d="M227.6,244.2l11.7-4.1l-3.1,16.2l-8.6,2.4l-4.1-6.6L227.6,244.2z"/>
+      <path id="Kagoshima" class="pref-path" data-name="鹿児島県" d="M215.2,240.1l4.1,9.6l4.1,6.6l8.6-2.4l-2.4,12.8l-15.9-4.8L215.2,240.1z"/>
+      
+      <!-- 沖縄（位置調整済） -->
+      <rect x="180" y="70" width="80" height="60" fill="none" stroke="#ddd" />
+      <path id="Okinawa" class="pref-path" data-name="沖縄県" d="M190,90 l10,-5 l5,5 l15,-2 l5,5 l-5,5 l-15,0 l-10,-5 z" transform="translate(10, 10) scale(1.2)" />
+      <text x="190" y="85" font-size="10" fill="#aaa">OKINAWA</text>
+    </svg>
+    `;
 
     // 地図描画
     const mapContainer = document.getElementById('map-container');
@@ -258,18 +321,29 @@
         });
 
         // 色付けとイベント設定
+        let activePaths = [];
+        
         document.querySelectorAll('.pref-path').forEach(path => {
             const pName = path.getAttribute('data-name');
+            
+            // 登録がある場合
             if (prefData[pName]) {
                 path.classList.add('pref-active');
-                path.addEventListener('click', () => {
+                
+                // クリックイベント
+                path.addEventListener('click', function() {
+                    // 選択状態の見た目をリセット
+                    activePaths.forEach(p => p.classList.remove('pref-selected'));
+                    // 今回選択したものを赤くする
+                    this.classList.add('pref-selected');
+                    activePaths.push(this);
+                    
                     showGarageList(pName, prefData[pName]);
                 });
             }
         });
     }
 
-    // リスト表示
     function showGarageList(prefName, cars) {
         const area = document.getElementById('garage-area');
         const title = document.getElementById('area-title');
@@ -290,20 +364,34 @@
             const img = document.createElement('img');
             img.src = imgUrl;
             img.className = 'garage-icon';
-            img.loading = "lazy"; // 遅延読み込みで軽量化
+            img.loading = "lazy";
             
             // 名前
             const nameDiv = document.createElement('div');
             nameDiv.className = 'garage-name';
             nameDiv.innerText = name;
+            
+            // 詳細ページへ飛ぶ（オプション）
+            if(car.DocumentID) {
+                item.onclick = () => {
+                   window.location.href = `detail.html?doc=${car.DocumentID}`;
+                };
+            }
 
             item.appendChild(img);
             item.appendChild(nameDiv);
             list.appendChild(item);
         });
-
-        // 該当エリアまで少しスクロール
-        area.scrollIntoView({behavior: "smooth", block: "center"});
+        
+        // エリア表示時にスクロール
+        setTimeout(() => {
+            area.scrollIntoView({behavior: "smooth", block: "start"});
+        }, 100);
+    }
+    
+    function closeGarage() {
+        document.getElementById('garage-area').style.display = 'none';
+        document.querySelectorAll('.pref-selected').forEach(p => p.classList.remove('pref-selected'));
     }
 
     // 実行
