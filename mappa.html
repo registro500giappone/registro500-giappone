@@ -26,15 +26,15 @@
             max-width: 800px; margin: 0 auto; padding: 20px 10px; text-align: center;
         }
         
-        /* ▼▼▼ 地図エリアの設定 ▼▼▼ */
+        /* 地図エリア */
         #map-wrapper {
             position: relative;
             width: 100%;
-            max-width: 500px; /* 縦長地図なので幅を少し抑える */
+            max-width: 600px; /* 縦長なので少し幅広に許容 */
             margin: 0 auto;
+            line-height: 0; /* 画像の下に隙間ができないように */
         }
 
-        /* 背景の地図画像 */
         #japan-map-img {
             width: 100%;
             height: auto;
@@ -42,10 +42,10 @@
             opacity: 0.9;
         }
 
-        /* ピン（アイコン） */
+        /* ピン設定 */
         .map-pin {
             position: absolute;
-            transform: translate(-50%, -50%); /* 中心合わせ */
+            transform: translate(-50%, -50%);
             cursor: pointer;
             z-index: 10;
             display: flex;
@@ -54,9 +54,8 @@
             transition: transform 0.2s;
         }
         
-        /* ピンのデザイン（赤い丸） */
         .pin-badge {
-            background-color: #cf2e2e; /* イタリアンレッド */
+            background-color: #cf2e2e;
             color: white;
             font-size: 10px;
             font-weight: bold;
@@ -75,7 +74,6 @@
             z-index: 20;
         }
 
-        /* ツールチップ（県名） */
         .pin-tooltip {
             position: absolute;
             bottom: 25px;
@@ -89,14 +87,15 @@
             white-space: nowrap;
             display: none;
             pointer-events: none;
+            line-height: 1.2;
         }
         .map-pin:hover .pin-tooltip { display: block; }
 
-
-        /* 下部のリストエリア */
+        /* リストエリア */
         #garage-area {
             display: none; margin-top: 20px; background: white; padding: 25px;
             border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: left;
+            line-height: 1.5;
         }
         .area-header {
             display: flex; justify-content: space-between; align-items: center;
@@ -127,15 +126,11 @@
     
     <div id="loading">Loading Map...</div>
 
-    <!-- 地図表示エリア -->
     <div id="map-wrapper" style="display:none;">
-        <!-- GitHubにアップロードした画像を表示 -->
+        <!-- GitHubの画像 -->
         <img id="japan-map-img" src="map.png" alt="Japan Map">
-        
-        <!-- JSでここにピンが追加されます -->
     </div>
 
-    <!-- 選択したエリアのリスト -->
     <div id="garage-area">
         <div class="area-header">
             <span id="area-title" style="font-weight:bold;">AREA</span>
@@ -146,46 +141,48 @@
 </div>
 
 <script>
-    // ==========================================
-    // 1. 設定：GASのURL
-    // ==========================================
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz0BJpaG-AcK3T6YYtav-nfd3gqGlkEWu3AvpW5uRT52N9jW8pBKLrpLSqvXqyD2ghwCA/exec";
 
     // ==========================================
-    // 2. 座標データ（この縦長地図用に調整済み）
+    // 座標調整 (国土地理院 白地図用)
+    // t = 上からの% (Top), l = 左からの% (Left)
     // ==========================================
-    // アップロードされた白地図（map.png）に合わせた位置設定です
-    // t=上からの位置(%), l=左からの位置(%)
     const PREF_POS = {
-        "北海道": {t: 13, l: 80},
-        "青森県": {t: 24, l: 76}, "岩手県": {t: 29, l: 78}, "宮城県": {t: 33, l: 77},
-        "秋田県": {t: 28, l: 73}, "山形県": {t: 32, l: 73}, "福島県": {t: 37, l: 76},
-        "茨城県": {t: 43, l: 77}, "栃木県": {t: 40, l: 75}, "群馬県": {t: 40, l: 71},
-        "埼玉県": {t: 43, l: 74}, "千葉県": {t: 46, l: 76}, "東京都": {t: 45, l: 73},
-        "神奈川県":{t: 46, l: 72},
-        "新潟県": {t: 36, l: 68}, "富山県": {t: 38, l: 64}, "石川県": {t: 36, l: 61},
-        "福井県": {t: 41, l: 60}, "山梨県": {t: 44, l: 69}, "長野県": {t: 41, l: 67},
-        "岐阜県": {t: 44, l: 64}, "静岡県": {t: 48, l: 69}, "愛知県": {t: 48, l: 64},
-        "三重県": {t: 51, l: 62}, "滋賀県": {t: 47, l: 60}, "京都府": {t: 46, l: 58},
-        "大阪府": {t: 49, l: 58}, "兵庫県": {t: 47, l: 55}, "奈良県": {t: 50, l: 60},
-        "和歌山県":{t: 54, l: 58},
-        "鳥取県": {t: 45, l: 50}, "島根県": {t: 46, l: 45}, "岡山県": {t: 48, l: 50},
-        "広島県": {t: 48, l: 46}, "山口県": {t: 49, l: 40},
-        "徳島県": {t: 53, l: 52}, "香川県": {t: 51, l: 51}, "愛媛県": {t: 53, l: 47}, "高知県": {t: 55, l: 49},
-        "福岡県": {t: 50, l: 36}, "佐賀県": {t: 51, l: 34}, "長崎県": {t: 53, l: 32},
-        "熊本県": {t: 55, l: 35}, "大分県": {t: 53, l: 38}, "宮崎県": {t: 58, l: 37},
-        "鹿児島県":{t: 61, l: 34},
-        "沖縄県": {t: 85, l: 70} // 右下の枠内に配置
+        "北海道": {t: 15, l: 83},
+        "青森県": {t: 26, l: 75}, "岩手県": {t: 30, l: 77}, "宮城県": {t: 34, l: 76},
+        "秋田県": {t: 30, l: 72}, "山形県": {t: 34, l: 72}, "福島県": {t: 38, l: 74},
+        "茨城県": {t: 44, l: 75}, "栃木県": {t: 41, l: 73}, "群馬県": {t: 41, l: 69},
+        "埼玉県": {t: 44, l: 71}, "千葉県": {t: 47, l: 74}, "東京都": {t: 46, l: 71},
+        "神奈川県":{t: 47, l: 70},
+        "新潟県": {t: 38, l: 66}, "富山県": {t: 40, l: 62}, "石川県": {t: 38, l: 59},
+        "福井県": {t: 43, l: 58}, "山梨県": {t: 45, l: 67}, "長野県": {t: 42, l: 65},
+        "岐阜県": {t: 45, l: 61}, "静岡県": {t: 49, l: 67}, "愛知県": {t: 49, l: 62},
+        "三重県": {t: 52, l: 59}, "滋賀県": {t: 48, l: 58}, "京都府": {t: 47, l: 55},
+        "大阪府": {t: 50, l: 55}, "兵庫県": {t: 48, l: 52}, "奈良県": {t: 51, l: 57},
+        "和歌山県":{t: 55, l: 55},
+        "鳥取県": {t: 46, l: 47}, "島根県": {t: 47, l: 42}, "岡山県": {t: 49, l: 47},
+        "広島県": {t: 49, l: 43}, "山口県": {t: 50, l: 37},
+        "徳島県": {t: 54, l: 49}, "香川県": {t: 52, l: 48}, "愛媛県": {t: 54, l: 44}, "高知県": {t: 56, l: 46},
+        "福岡県": {t: 51, l: 32}, "佐賀県": {t: 52, l: 30}, "長崎県": {t: 54, l: 28},
+        "熊本県": {t: 56, l: 31}, "大分県": {t: 54, l: 35}, "宮崎県": {t: 59, l: 33},
+        "鹿児島県":{t: 62, l: 30},
+        "沖縄県": {t: 85, l: 75} // 右下の枠内
     };
 
-    // ==========================================
-    // 3. ロジック
-    // ==========================================
     async function init() {
-        if(GAS_API_URL.includes("★")) {
-            alert("GASのURLを設定してください");
-            return;
-        }
+        if(GAS_API_URL.includes("★")) { alert("GASのURLを設定してください"); return; }
+        
+        // 開発用：地図をクリックすると座標をコンソールに表示する機能
+        // (ズレている県があれば、F12キーでコンソールを開いて地図をクリックし、表示された数字を上のPREF_POSに書き写せば直せます)
+        document.getElementById('map-wrapper').addEventListener('click', function(e) {
+            const rect = this.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const t = Math.round((y / rect.height) * 100);
+            const l = Math.round((x / rect.width) * 100);
+            console.log(`クリック位置: {t: ${t}, l: ${l}}`);
+        });
+
         try {
             const response = await fetch(GAS_API_URL);
             const data = await response.json();
@@ -207,14 +204,12 @@
         cars.forEach(car => {
             let pName = car.Prefecture || car.prefecture || "";
             if(enMap[pName.toUpperCase()]) pName = enMap[pName.toUpperCase()];
-            // 部分一致で正規化
             for(const key in PREF_POS) {
                 if(pName.includes(key) || pName.includes(key.slice(0,-1))) {
                     pName = key;
                     break;
                 }
             }
-
             if (PREF_POS[pName]) {
                 if (!prefData[pName]) prefData[pName] = [];
                 prefData[pName].push(car);
@@ -222,22 +217,14 @@
         });
 
         const mapWrapper = document.getElementById('map-wrapper');
-        
         for (const [pName, carList] of Object.entries(prefData)) {
             const pos = PREF_POS[pName];
             const pin = document.createElement('div');
             pin.className = 'map-pin';
-            // 位置指定
             pin.style.top = pos.t + "%";
             pin.style.left = pos.l + "%";
-
-            // ピンの中身（数字）
-            pin.innerHTML = `
-                <div class="pin-badge">${carList.length}</div>
-                <div class="pin-tooltip">${pName}</div>
-            `;
-            
-            pin.onclick = () => showGarage(pName, carList);
+            pin.innerHTML = `<div class="pin-badge">${carList.length}</div><div class="pin-tooltip">${pName}</div>`;
+            pin.onclick = (e) => { e.stopPropagation(); showGarage(pName, carList); };
             mapWrapper.appendChild(pin);
         }
     }
@@ -246,45 +233,25 @@
         const area = document.getElementById('garage-area');
         const list = document.getElementById('garage-list');
         document.getElementById('area-title').innerText = `${name} (${cars.length}台)`;
-        
         area.style.display = 'block';
         list.innerHTML = '';
-
         cars.forEach(car => {
             const imgUrl = car.PhotoMain || car.car_image || 'https://placehold.co/100x100?text=No+Img';
             const handleName = car.HandleName || "No Name";
-            
             const item = document.createElement('div');
             item.className = 'garage-item';
-            
             const img = document.createElement('img');
-            img.src = imgUrl;
-            img.className = 'garage-icon-lg';
-            img.loading = "lazy";
-            
+            img.src = imgUrl; img.className = 'garage-icon-lg'; img.loading = "lazy";
             const nameDiv = document.createElement('div');
-            nameDiv.className = 'garage-name';
-            nameDiv.innerText = handleName;
-            
-            if(car.DocumentID) {
-                item.onclick = () => window.location.href = `detail.html?doc=${car.DocumentID}`;
-            }
-
-            item.appendChild(img);
-            item.appendChild(nameDiv);
+            nameDiv.className = 'garage-name'; nameDiv.innerText = handleName;
+            if(car.DocumentID) { item.onclick = () => window.location.href = `detail.html?doc=${car.DocumentID}`; }
+            item.appendChild(img); item.appendChild(nameDiv);
             list.appendChild(item);
         });
-        
-        // スマホで見やすいよう少し上にスクロール
-        setTimeout(() => {
-            area.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 100);
+        setTimeout(() => { area.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
     }
 
-    function closeGarage() {
-        document.getElementById('garage-area').style.display = 'none';
-    }
-
+    function closeGarage() { document.getElementById('garage-area').style.display = 'none'; }
     init();
 </script>
 
