@@ -194,41 +194,82 @@
         }
     }
 
+// ▼▼▼ この関数を上書きしてください ▼▼▼
     function renderPins(cars) {
         document.getElementById('loading').style.display = 'none';
         document.getElementById('map-wrapper').style.display = 'block';
 
         const prefData = {};
-        const enMap = {'TOKYO':'東京都', 'OSAKA':'大阪府', 'AICHI':'愛知県', 'KANAGAWA':'神奈川県', 'CHIBA':'千葉県', 'SAITAMA':'埼玉県'};
+        
+        // 英語表記対応リスト（ここを強化しました）
+        const enMap = {
+            'TOKYO':'東京都', 'OSAKA':'大阪府', 'AICHI':'愛知県', 'KANAGAWA':'神奈川県', 
+            'CHIBA':'千葉県', 'SAITAMA':'埼玉県', 'TOYAMA':'富山県', 'HYOGO':'兵庫県',
+            'KYOTO':'京都府', 'FUKUOKA':'福岡県', 'SHIZUOKA':'静岡県', 'IBARAKI':'茨城県',
+            'GUNMA':'群馬県', 'TOCHIGI':'栃木県', 'MIE':'三重県', 'GIFU':'岐阜県',
+            'HOKKAIDO':'北海道', 'MIYAGI':'宮城県', 'FUKUSHIMA':'福島県', 'NAGANO':'長野県',
+            'HIROSHIMA':'広島県', 'OKAYAMA':'岡山県', 'NARA':'奈良県', 'SHIGA':'滋賀県'
+        };
         
         cars.forEach(car => {
             let pName = car.Prefecture || car.prefecture || "";
-            if(enMap[pName.toUpperCase()]) pName = enMap[pName.toUpperCase()];
+            
+            // 1. まず全角・半角スペースを削除
+            pName = pName.trim();
+
+            // 2. 英語表記なら日本語に変換
+            if(enMap[pName.toUpperCase()]) {
+                pName = enMap[pName.toUpperCase()];
+            }
+
+            // 3. 地図のキー（PREF_POSの県名）と照合
+            // 「神奈川」→「神奈川県」のように部分一致でもヒットさせる
             for(const key in PREF_POS) {
-                if(pName.includes(key) || pName.includes(key.slice(0,-1))) {
+                if(pName.includes(key) || (key.includes(pName) && pName.length > 1)) {
                     pName = key;
                     break;
                 }
             }
+
+            // 4. マッチしたらデータを格納
             if (PREF_POS[pName]) {
                 if (!prefData[pName]) prefData[pName] = [];
                 prefData[pName].push(car);
+            } else {
+                // デバッグ用: マッチしなかったデータをコンソールに出す
+                console.warn("Unmapped Prefecture:", car.Prefecture);
             }
         });
 
         const mapWrapper = document.getElementById('map-wrapper');
+        // 一度ピンをクリア（重複防止）
+        mapWrapper.querySelectorAll('.map-pin').forEach(e => e.remove());
+        
+        // ピンを生成して配置
         for (const [pName, carList] of Object.entries(prefData)) {
             const pos = PREF_POS[pName];
+            // 座標データがない場合はスキップ
+            if(!pos) continue;
+
             const pin = document.createElement('div');
             pin.className = 'map-pin';
             pin.style.top = pos.t + "%";
             pin.style.left = pos.l + "%";
-            pin.innerHTML = `<div class="pin-badge">${carList.length}</div><div class="pin-tooltip">${pName}</div>`;
-            pin.onclick = (e) => { e.stopPropagation(); showGarage(pName, carList); };
+
+            pin.innerHTML = `
+                <div class="pin-badge">${carList.length}</div>
+                <div class="pin-tooltip">${pName}</div>
+            `;
+            
+            // クリック時の動作
+            pin.onclick = (e) => { 
+                e.stopPropagation(); // 背景クリックをキャンセル
+                showGarage(pName, carList); 
+            };
+            
             mapWrapper.appendChild(pin);
         }
     }
-
     function showGarage(name, cars) {
         const area = document.getElementById('garage-area');
         const list = document.getElementById('garage-list');
