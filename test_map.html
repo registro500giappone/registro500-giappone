@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro 500 - Mappa (Complete)</title>
+    <title>Registro 500 - Mappa</title>
     
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/topojson@3"></script>
@@ -60,11 +60,26 @@
 
         .inset-box { fill: #fff; stroke: #ddd; stroke-width: 2; }
 
-        #tooltip {
-            position: absolute; top: 0; left: 0;
-            padding: 6px 10px; background: rgba(0,0,0,0.9); color: #fff;
-            border-radius: 4px; font-size: 12px; pointer-events: none;
-            opacity: 0; transition: opacity 0.2s; white-space: nowrap; z-index: 20;
+        /* ▼▼▼ ポップアップ（情報パネル）のスタイル ▼▼▼ */
+        /* 右下に固定表示 */
+        #info-panel {
+            position: absolute; 
+            bottom: 20px; 
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            font-weight: bold;
+            font-size: 14px;
+            border-left: 5px solid #2856a8; /* アクセントライン */
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 20;
+            min-width: 120px;
+            text-align: center;
         }
 
         #garage-area { display: none; margin-top: 20px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: left; }
@@ -88,8 +103,9 @@
 <div class="container">
     <div id="loading">地図データを取得中...</div>
 
-    <div id="map-container"></div>
-    <div id="tooltip"></div>
+    <div id="map-container">
+        <div id="info-panel"></div> <!-- ツールチップの代わり -->
+    </div>
 
     <div id="garage-area">
         <div class="area-header">
@@ -154,14 +170,19 @@
             prefData[pName].push(car);
         });
 
+        // D3設定
         const width = 800;
         const height = 800;
         const container = d3.select("#map-container");
-        container.html(""); 
+        // ※svgは再生成するが、info-panelは残すため .html("") は使わない
+        container.select("svg").remove();
 
         const svg = container.append("svg")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("preserveAspectRatio", "xMidYMid meet");
+        
+        // パネルを最前面にするため再取得
+        const panel = document.getElementById('info-panel');
 
         let objKey = "japan";
         if(!mapData.objects[objKey] && mapData.objects.prefectures) objKey = "prefectures";
@@ -178,7 +199,7 @@
             .scale(2300) 
             .translate([width / 2, height / 2 + 50]);
         const mainPath = d3.geoPath().projection(mainProjection);
-        renderFeatures(svg, mainFeatures, mainPath, prefData);
+        renderFeatures(svg, mainFeatures, mainPath, prefData, panel);
 
         // B. 沖縄エリア
         if (okinawaFeatures.length > 0) {
@@ -194,11 +215,12 @@
                 .attr("width", boxW).attr("height", boxH)
                 .attr("class", "inset-box");
 
-            renderFeatures(svg, okinawaFeatures, insetPath, prefData);
+            renderFeatures(svg, okinawaFeatures, insetPath, prefData, panel);
         }
     }
 
-    function renderFeatures(svg, features, path, prefData) {
+    function renderFeatures(svg, features, path, prefData, panel) {
+        // パス描画
         svg.append("g")
             .selectAll("path")
             .data(features)
@@ -231,17 +253,13 @@
                 }
             })
             .on("mouseover", function(event, d) {
-                const tooltip = document.getElementById('tooltip');
-                tooltip.style.opacity = 1;
-                tooltip.innerText = d.dispName + (d.carList ? ` (${d.carList.length}台)` : "");
-                const rect = event.target.getBoundingClientRect();
-                const cRect = document.getElementById('map-container').getBoundingClientRect();
-                tooltip.style.top = (rect.top - cRect.top - 30) + "px";
-                tooltip.style.left = (rect.left - cRect.left + rect.width/2) + "px";
-                tooltip.style.transform = "translateX(-50%)";
+                // パネル表示
+                panel.style.opacity = 1;
+                panel.innerText = d.dispName + (d.carList ? ` (${d.carList.length}台)` : "");
+                // 色付け（ボーダー色を変えるなどの演出も可能）
             })
             .on("mouseout", function() {
-                document.getElementById('tooltip').style.opacity = 0;
+                panel.style.opacity = 0;
             });
 
         // 数字ラベル
@@ -258,8 +276,7 @@
                 let x = centroid[0];
                 let y = centroid[1];
 
-                // ★位置調整（ここを修正）
-                // 東京(13): 上に26px, 左に5px
+                // ★位置調整 (Tokyo: y-26, x-5)
                 if (d.id == 13 || (d.properties && d.properties.id == 13) || (d.dispName && d.dispName.includes("東京"))) {
                     y -= 26; x -= 5; 
                 }
