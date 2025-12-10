@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro 500 - Mappa (Perfect)</title>
+    <title>Registro 500 - Mappa (Complete)</title>
     
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/topojson@3"></script>
@@ -39,11 +39,9 @@
         }
         .prefecture:hover { fill: #eee; }
 
-        /* 色定義 */
         .active-pref { fill: #2856a8 !important; stroke: #1e4285 !important; }
         .selected-pref { fill: #e11d48 !important; stroke: #9f1239 !important; }
 
-        /* 数値ラベル */
         .pref-label {
             fill: #fff;
             font-size: 11px;
@@ -174,7 +172,7 @@
         const okinawaFeatures = allFeatures.filter(d => d.id == 47 || d.properties.id == 47);
         const mainFeatures = allFeatures.filter(d => d.id != 47 && d.properties.id != 47);
 
-        // A. 本州エリア (OK: 2300, y+50)
+        // A. 本州エリア
         const mainProjection = d3.geoMercator()
             .center([137.5, 37.5]) 
             .scale(2300) 
@@ -182,7 +180,7 @@
         const mainPath = d3.geoPath().projection(mainProjection);
         renderFeatures(svg, mainFeatures, mainPath, prefData);
 
-        // B. 沖縄エリア (OK: 左上)
+        // B. 沖縄エリア
         if (okinawaFeatures.length > 0) {
             const boxX = 20, boxY = 20, boxW = 160, boxH = 120;
             const insetProjection = d3.geoMercator()
@@ -209,7 +207,6 @@
             .attr("class", "prefecture")
             .attr("d", path)
             .each(function(d) {
-                // ★総当たりマッチング（ここを強化して復活）
                 const p = d.properties;
                 const candidates = Object.values(p).map(v => String(v));
                 if(d.id) candidates.push(String(d.id)); 
@@ -261,9 +258,10 @@
                 let x = centroid[0];
                 let y = centroid[1];
 
-                // 位置調整
+                // ★位置調整（ここを修正）
+                // 東京(13): 上に24px, 左に5px
                 if (d.id == 13 || (d.properties && d.properties.id == 13) || (d.dispName && d.dispName.includes("東京"))) {
-                    y -= 15; x -= 10; 
+                    y -= 24; x -= 5; 
                 }
                 if (d.dispName && d.dispName.includes("長崎")) x += 5;
                 if (d.dispName && d.dispName.includes("鹿児島")) y -= 10;
