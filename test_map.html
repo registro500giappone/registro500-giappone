@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro 500 - Mappa (Local Data)</title>
+    <title>Registro 500 - Mappa (Pro Layout)</title>
     
     <!-- D3.js -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <!-- TopoJSON -->
     <script src="https://unpkg.com/topojson@3"></script>
+    <!-- 日本地図レイアウト調整用プラグイン -->
+    <script src="https://unpkg.com/d3-composite-projections@1.4.0/d3-composite-projections.min.js"></script>
     
     <style>
         body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f7; color: #333; }
@@ -17,11 +19,10 @@
         .back-link { display: inline-block; margin-top: 8px; color: #007aff; text-decoration: none; font-size: 0.85rem; padding: 4px 12px; border: 1px solid #ddd; border-radius: 20px; }
         .container { max-width: 1000px; margin: 0 auto; padding: 20px 10px; text-align: center; }
 
-        /* 地図エリア */
         #map-container {
             width: 100%;
             height: auto;
-            max-width: 800px;
+            max-width: 800px; /* 地図の最大幅 */
             margin: 0 auto;
             background: #fff;
             position: relative;
@@ -32,7 +33,7 @@
             width: 100%;
             height: auto;
             display: block;
-            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.1));
+            filter: drop-shadow(0 3px 6px rgba(0,0,0,0.1)); /* 影を少し強調 */
         }
 
         .prefecture {
@@ -46,18 +47,6 @@
 
         .active-pref { fill: #009688 !important; stroke: #00695c !important; }
         .selected-pref { fill: #e53935 !important; stroke: #b71c1c !important; }
-
-        /* ステータス表示 */
-        #status-log {
-            margin: 10px auto;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 0.9rem;
-            max-width: 600px;
-        }
-        .status-loading { background: #e0f7fa; color: #006064; }
-        .status-error { background: #ffebee; color: #c62828; text-align: left; }
-        .status-ok { background: #e8f5e9; color: #2e7d32; display: none; }
 
         /* ツールチップ */
         #tooltip {
@@ -74,6 +63,8 @@
         .garage-icon-lg { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid #f0f0f0; background: #eee; }
         .garage-name { font-size: 0.7rem; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .close-btn { border: none; background: #eee; padding: 5px 15px; border-radius: 15px; cursor: pointer; }
+        
+        #loading { margin: 50px 0; color: #777; }
     </style>
 </head>
 <body>
@@ -84,9 +75,7 @@
 </header>
 
 <div class="container">
-    <div id="status-log" class="status-loading">
-        初期化中...
-    </div>
+    <div id="loading">地図データを取得中...</div>
 
     <div id="map-container"></div>
     <div id="tooltip"></div>
@@ -101,11 +90,8 @@
 </div>
 
 <script>
-    // ★重要★ GASのURLを設定してください
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz0BJpaG-AcK3T6YYtav-nfd3gqGlkEWu3AvpW5uRT52N9jW8pBKLrpLSqvXqyD2ghwCA/exec";
-
-    // 地図データファイル名 (GitHubに上げたファイル名に合わせてください)
-    const MAP_FILE_URL = "prefectures.json";
+    const MAP_FILE_URL = "prefectures.json"; // アップロードした地図データ
 
     const EN_MAP = {
         'TOKYO':'東京都', 'OSAKA':'大阪府', 'AICHI':'愛知県', 'KANAGAWA':'神奈川県', 'CHIBA':'千葉県', 'SAITAMA':'埼玉県', 'TOYAMA':'富山県',
@@ -114,48 +100,29 @@
         'HIROSHIMA':'広島県', 'OKAYAMA':'岡山県', 'NARA':'奈良県', 'SHIGA':'滋賀県'
     };
 
-    function log(msg, type = 'loading') {
-        const el = document.getElementById('status-log');
-        el.className = `status-${type}`;
-        el.innerText = msg;
-        console.log(`[System] ${msg}`);
-    }
-
     async function init() {
-        if(GAS_API_URL.includes("★")) { 
-            log("エラー: GASのURLが設定されていません。コードを修正してください。", "error");
-            return; 
-        }
+        if(GAS_API_URL.includes("★")) { alert("GASのURLを設定してください"); return; }
         
         try {
-            // 1. 地図データを読み込む
-            log("地図データ(prefectures.json)を読み込んでいます...");
             const mapRes = await fetch(MAP_FILE_URL);
-            if(!mapRes.ok) throw new Error(`地図データの読み込みに失敗 (${mapRes.status})`);
+            if(!mapRes.ok) throw new Error("Map load failed");
             const mapData = await mapRes.json();
 
-            // 2. 車両データを読み込む
-            log("車両データをGASから取得しています...");
             const carsRes = await fetch(GAS_API_URL);
-            if(!carsRes.ok) throw new Error(`GASデータの取得に失敗 (${carsRes.status})`);
             const carsData = await carsRes.json();
             const cars = Array.isArray(carsData) ? carsData : (carsData.data || []);
 
-            // 3. 描画
-            log("地図を描画中...", "loading");
             drawMap(mapData, cars);
-            
-            // 完了
-            document.getElementById('status-log').style.display = 'none';
 
         } catch (e) {
             console.error(e);
-            log(`エラーが発生しました:\n${e.message}\n\n・prefectures.jsonはアップロードされていますか？\n・GASのURLは正しいですか？`, "error");
+            document.getElementById('loading').innerText = "エラーが発生しました。コンソールを確認してください。";
         }
     }
 
     function drawMap(mapData, cars) {
-        // データ集計
+        document.getElementById('loading').style.display = 'none';
+
         const prefData = {};
         cars.forEach(car => {
             let pName = (car.Prefecture || car.prefecture || "").trim();
@@ -164,27 +131,25 @@
             prefData[pName].push(car);
         });
 
-        // D3描画設定
         const width = 800;
         const height = 800;
         const container = d3.select("#map-container");
-        container.html(""); // クリア
+        container.html(""); 
 
         const svg = container.append("svg")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("preserveAspectRatio", "xMidYMid meet");
 
-        // 日本全体を表示する設定
-        const projection = d3.geoMercator()
-            .center([137, 38]) // 中部地方あたりを中心に
-            .scale(1500)
+        // ★ここがポイント：日本地図専用の投影法を使用
+        // 沖縄や北海道をいい感じの位置に配置してくれます
+        const projection = d3.geoConicConformalJapan()
+            .scale(1500) // 拡大率
             .translate([width / 2, height / 2]);
 
         const path = d3.geoPath().projection(projection);
 
-        // TopoJSONデータの解析
-        // ※データによってオブジェクト名が "japan" だったり "prefectures" だったりするので自動判別
-        const objKey = Object.keys(mapData.objects)[0]; 
+        // データ読み込み（prefectures または japan オブジェクトに対応）
+        const objKey = mapData.objects.prefectures ? "prefectures" : Object.keys(mapData.objects)[0];
         const features = topojson.feature(mapData, mapData.objects[objKey]).features;
 
         svg.selectAll(".prefecture")
@@ -193,12 +158,9 @@
             .append("path")
             .attr("class", "prefecture")
             .attr("d", path)
-            .attr("fill", d => { return null; }) // CSSで制御
             .each(function(d) {
-                const pNameMap = d.properties.name || d.properties.nam_ja; // データによってプロパティ名が違う場合に対応
+                const pNameMap = d.properties.name || d.properties.nam_ja; 
                 if(!pNameMap) return;
-
-                // 県名マッチング（"神奈川"と"神奈川県"などの揺らぎ吸収）
                 const matchKey = Object.keys(prefData).find(key => pNameMap.includes(key) || key.includes(pNameMap));
                 
                 if(matchKey) {
@@ -220,8 +182,11 @@
                 const name = d.properties.name || d.properties.nam_ja;
                 tooltip.innerText = name + (d.carList ? ` (${d.carList.length}台)` : "");
                 
+                // ツールチップの位置合わせ
                 const rect = event.target.getBoundingClientRect();
                 const cRect = document.getElementById('map-container').getBoundingClientRect();
+                
+                // 要素の中心上に表示
                 tooltip.style.top = (rect.top - cRect.top - 30) + "px";
                 tooltip.style.left = (rect.left - cRect.left + rect.width/2) + "px";
                 tooltip.style.transform = "translateX(-50%)";
