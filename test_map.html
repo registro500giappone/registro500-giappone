@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro 500 - Mappa</title>
+    
+    <!-- D3.js (描画エンジン) -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- TopoJSON (地図データ取扱用) -->
+    <script src="https://unpkg.com/topojson-client@3"></script>
+    <!-- D3 Composite Projections (日本地図用に沖縄などを移動してくれるライブラリ) -->
+    <script src="https://unpkg.com/d3-composite-projections@1.4.0/d3-composite-projections.min.js"></script>
+    
+    <style>
+        body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f7; color: #333; }
+        header { background: #fff; padding: 15px; text-align: center; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 100; }
+        h1 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; }
+        .back-link { display: inline-block; margin-top: 8px; color: #007aff; text-decoration: none; font-size: 0.85rem; padding: 4px 12px; border: 1px solid #ddd; border-radius: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px 10px; text-align: center; }
+
+        /* 地図エリア */
+        #map-container {
+            width: 100%;
+            height: auto;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            position: relative;
+        }
+
+        /* SVGスタイル */
+        svg {
+            width: 100%;
+            height: auto;
+            display: block;
+            /* リアルな影 */
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.1));
+        }
+
+        /* 都道府県パス */
+        .prefecture {
+            fill: #ffffff;      /* 白地図の色 */
+            stroke: #999;       /* 境界線の色 */
+            stroke-width: 0.5px;
+            cursor: pointer;
+            transition: fill 0.2s;
+        }
+        .prefecture:hover { fill: #eeeeee; }
+
+        /* 登録あり（イタリアングリーン） */
+        .active-pref { fill: #009688 !important; stroke: #00695c !important; }
+        /* 選択中（赤） */
+        .selected-pref { fill: #e53935 !important; stroke: #b71c1c !important; }
+
+        /* ツールチップ（県名表示） */
+        #tooltip {
+            position: absolute;
+            top: 0; left: 0;
+            padding: 6px 10px;
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            transform: translate(-50%, -120%);
+            white-space: nowrap;
+            z-index: 20;
+        }
+
+        /* リストエリア */
+        #garage-area { display: none; margin-top: 20px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: left; }
+        .area-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .garage-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 15px; justify-items: center; }
+        .garage-item { width: 100%; cursor: pointer; text-align: center; }
+        .garage-icon-lg { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid #f0f0f0; background: #eee; }
+        .garage-name { font-size: 0.7rem; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .close-btn { border: none; background: #eee; padding: 5px 15px; border-radius: 15px; cursor: pointer; }
+        
+        #loading { margin: 50px 0; color: #888; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>REGISTRO MAPPA</h1>
+    <a href="index.html" class="back-link">一覧に戻る</a>
+</header>
+
+<div class="container">
+    <p style="font-size:0.8rem; color:#666;">登録がある都道府県が色付きで表示されます</p>
+    
+    <div id="loading">地図データを取得中...</div>
+
+    <div id="map-container">
+        <!-- ここにD3.jsがSVGを描画します -->
+    </div>
+    <div id="tooltip"></div>
+
+    <div id="garage-area">
+        <div class="area-header">
+            <span id="area-title" style="font-weight:bold;">AREA</span>
+            <button onclick="closeGarage()" class="close-btn">閉じる</button>
+        </div>
+        <div id="garage-list" class="garage-list"></div>
+    </div>
+</div>
+
+<script>
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz0BJpaG-AcK3T6YYtav-nfd3gqGlkEWu3AvpW5uRT52N9jW8pBKLrpLSqvXqyD2ghwCA/exec";
+
+    // 英語変換マップ
+    const EN_MAP = {
+        'TOKYO':'東京都', 'OSAKA':'大阪府', 'AICHI':'愛知県', 'KANAGAWA':'神奈川県', 'CHIBA':'千葉県', 'SAITAMA':'埼玉県', 'TOYAMA':'富山県',
+        'KYOTO':'京都府', 'FUKUOKA':'福岡県', 'HYOGO':'兵庫県', 'HOKKAIDO':'北海道', 'NAGANO':'長野県', 'SHIZUOKA':'静岡県',
+        'IBARAKI':'茨城県', 'GUNMA':'群馬県', 'TOCHIGI':'栃木県', 'MIE':'三重県', 'GIFU':'岐阜県', 'FUKUSHIMA':'福島県',
+        'HIROSHIMA':'広島県', 'OKAYAMA':'岡山県', 'NARA':'奈良県', 'SHIGA':'滋賀県'
+    };
+
+    async function init() {
+        if(GAS_API_URL.includes("★")) { alert("GASのURLを設定してください"); return; }
+        
+        try {
+            // 1. 高品質な日本地図データ(TopoJSON)を取得
+            // Mike Bostock氏(D3作者)が提供する標準的な日本地図データを使用
+            const mapRes = await fetch('https://unpkg.com/japan-atlas@1/japan/prefectures.json');
+            if(!mapRes.ok) throw new Error("Map data load failed");
+            const mapData = await mapRes.json();
+
+            // 2. 登録車両データを取得
+            const carsRes = await fetch(GAS_API_URL);
+            const carsData = await carsRes.json();
+            const cars = Array.isArray(carsData) ? carsData : (carsData.data || []);
+
+            // 3. 地図を描画
+            drawMap(mapData, cars);
+
+        } catch (e) {
+            console.error(e);
+            document.getElementById('loading').innerText = "エラーが発生しました。リロードしてください。";
+        }
+    }
+
+    function drawMap(mapData, cars) {
+        document.getElementById('loading').style.display = 'none';
+
+        // データの集計
+        const prefData = {};
+        cars.forEach(car => {
+            let pName = (car.Prefecture || car.prefecture || "").trim();
+            if(EN_MAP[pName.toUpperCase()]) pName = EN_MAP[pName.toUpperCase()];
+            // 簡易的な名前寄せ（"神奈川" -> "神奈川県"）
+            // 地図データは "神奈川県" のようなフルネームを持っています
+            if(!prefData[pName]) prefData[pName] = [];
+            prefData[pName].push(car);
+        });
+
+        // D3.js 設定
+        const width = 800;
+        const height = 800;
+        const container = d3.select("#map-container");
+
+        const svg = container.append("svg")
+            .attr("viewBox", `0 0 ${width} ${height}`)
+            .attr("preserveAspectRatio", "xMidYMid meet");
+
+        // 投影法の設定（沖縄・北海道をいい感じに配置する）
+        // d3-composite-projectionsを使用
+        const projection = d3.geoConicConformalJapan()
+            .scale(1500) // ズーム率
+            .translate([width / 2, height / 2]);
+
+        const path = d3.geoPath().projection(projection);
+
+        // TopoJSONをGeoJSONに変換
+        const prefectures = topojson.feature(mapData, mapData.objects.prefectures).features;
+
+        // パスの描画
+        svg.selectAll(".prefecture")
+            .data(prefectures)
+            .enter()
+            .append("path")
+            .attr("class", "prefecture")
+            .attr("d", path)
+            .attr("fill", d => {
+                // 名前の一致確認（前方一致で判定）
+                const pNameMap = d.properties.name; // 地図データの県名
+                // prefDataのキーの中に、地図の県名を含むものがあるか探す
+                const matchKey = Object.keys(prefData).find(key => pNameMap.includes(key) || key.includes(pNameMap));
+                
+                if(matchKey) {
+                    // データがあればクラスを付与するためのマーカー
+                    return null; 
+                }
+                return null;
+            })
+            .each(function(d) {
+                // クラス付与ロジック
+                const pNameMap = d.properties.name;
+                const matchKey = Object.keys(prefData).find(key => pNameMap.includes(key) || key.includes(pNameMap));
+                if(matchKey) {
+                    d3.select(this).classed("active-pref", true);
+                    // データをバインドしておく
+                    d.carList = prefData[matchKey];
+                    d.displayName = matchKey;
+                }
+            })
+            .on("click", function(event, d) {
+                if(d.carList) {
+                    // 選択状態の切り替え
+                    d3.selectAll(".selected-pref").classed("selected-pref", false);
+                    d3.select(this).classed("selected-pref", true);
+                    showGarage(d.displayName, d.carList);
+                }
+            })
+            .on("mouseover", function(event, d) {
+                // ツールチップ表示
+                const tooltip = document.getElementById('tooltip');
+                tooltip.style.opacity = 1;
+                tooltip.innerText = d.properties.name + (d.carList ? ` (${d.carList.length}台)` : "");
+                
+                // 位置合わせ
+                const rect = event.target.getBoundingClientRect();
+                const containerRect = document.getElementById('map-container').getBoundingClientRect();
+                tooltip.style.top = (rect.top - containerRect.top) + "px";
+                tooltip.style.left = (rect.left - containerRect.left + rect.width/2) + "px";
+            })
+            .on("mouseout", function() {
+                document.getElementById('tooltip').style.opacity = 0;
+            });
+    }
+
+    function showGarage(name, cars) {
+        const area = document.getElementById('garage-area');
+        const list = document.getElementById('garage-list');
+        document.getElementById('area-title').innerText = `${name} (${cars.length}台)`;
+        area.style.display = 'block';
+        list.innerHTML = '';
+        cars.forEach(car => {
+            const imgUrl = car.PhotoMain || car.car_image || 'https://placehold.co/100x100?text=No+Img';
+            const handleName = car.HandleName || "No Name";
+            const item = document.createElement('div');
+            item.className = 'garage-item';
+            const img = document.createElement('img');
+            img.src = imgUrl; img.className = 'garage-icon-lg'; img.loading = "lazy";
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'garage-name'; nameDiv.innerText = handleName;
+            if(car.DocumentID) { item.onclick = () => window.location.href = `detail.html?doc=${car.DocumentID}`; }
+            item.appendChild(img); item.appendChild(nameDiv);
+            list.appendChild(item);
+        });
+        setTimeout(() => { area.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
+    }
+
+    function closeGarage() { document.getElementById('garage-area').style.display = 'none'; }
+    init();
+</script>
+
+</body>
+</html>
