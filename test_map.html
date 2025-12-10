@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro 500 - Mappa (Safe Mode)</title>
+    <title>Registro 500 - Mappa (Local Data)</title>
     
-    <!-- D3.js (標準ライブラリのみ) -->
+    <!-- D3.js -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <!-- TopoJSON (フルバージョン) -->
+    <!-- TopoJSON -->
     <script src="https://unpkg.com/topojson@3"></script>
     
     <style>
@@ -25,7 +25,7 @@
             margin: 0 auto;
             background: #fff;
             position: relative;
-            min-height: 400px; /* エラー時も高さ確保 */
+            min-height: 400px;
         }
 
         svg {
@@ -47,18 +47,17 @@
         .active-pref { fill: #009688 !important; stroke: #00695c !important; }
         .selected-pref { fill: #e53935 !important; stroke: #b71c1c !important; }
 
-        /* エラー表示エリア */
-        #error-log {
-            color: red;
-            background: #ffe6e6;
+        /* ステータス表示 */
+        #status-log {
+            margin: 10px auto;
             padding: 10px;
-            margin: 10px;
             border-radius: 5px;
-            text-align: left;
-            font-family: monospace;
-            display: none;
-            white-space: pre-wrap;
+            font-size: 0.9rem;
+            max-width: 600px;
         }
+        .status-loading { background: #e0f7fa; color: #006064; }
+        .status-error { background: #ffebee; color: #c62828; text-align: left; }
+        .status-ok { background: #e8f5e9; color: #2e7d32; display: none; }
 
         /* ツールチップ */
         #tooltip {
@@ -75,8 +74,6 @@
         .garage-icon-lg { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid #f0f0f0; background: #eee; }
         .garage-name { font-size: 0.7rem; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .close-btn { border: none; background: #eee; padding: 5px 15px; border-radius: 15px; cursor: pointer; }
-        
-        #loading { margin: 50px 0; color: #777; }
     </style>
 </head>
 <body>
@@ -87,8 +84,9 @@
 </header>
 
 <div class="container">
-    <div id="loading">地図データを取得中...</div>
-    <div id="error-log"></div>
+    <div id="status-log" class="status-loading">
+        初期化中...
+    </div>
 
     <div id="map-container"></div>
     <div id="tooltip"></div>
@@ -103,7 +101,11 @@
 </div>
 
 <script>
+    // ★重要★ GASのURLを設定してください
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz0BJpaG-AcK3T6YYtav-nfd3gqGlkEWu3AvpW5uRT52N9jW8pBKLrpLSqvXqyD2ghwCA/exec";
+
+    // 地図データファイル名 (GitHubに上げたファイル名に合わせてください)
+    const MAP_FILE_URL = "prefectures.json";
 
     const EN_MAP = {
         'TOKYO':'東京都', 'OSAKA':'大阪府', 'AICHI':'愛知県', 'KANAGAWA':'神奈川県', 'CHIBA':'千葉県', 'SAITAMA':'埼玉県', 'TOYAMA':'富山県',
@@ -112,43 +114,47 @@
         'HIROSHIMA':'広島県', 'OKAYAMA':'岡山県', 'NARA':'奈良県', 'SHIGA':'滋賀県'
     };
 
+    function log(msg, type = 'loading') {
+        const el = document.getElementById('status-log');
+        el.className = `status-${type}`;
+        el.innerText = msg;
+        console.log(`[System] ${msg}`);
+    }
+
     async function init() {
         if(GAS_API_URL.includes("★")) { 
-            showError("GASのURLが設定されていません。コードを修正してください。");
+            log("エラー: GASのURLが設定されていません。コードを修正してください。", "error");
             return; 
         }
         
         try {
-            // 1. 地図データ取得 (標準的なTopoJSON)
-            const mapRes = await fetch('https://unpkg.com/japan-atlas@1/japan/prefectures.json');
-            if(!mapRes.ok) throw new Error(`Map fetch failed: ${mapRes.status}`);
+            // 1. 地図データを読み込む
+            log("地図データ(prefectures.json)を読み込んでいます...");
+            const mapRes = await fetch(MAP_FILE_URL);
+            if(!mapRes.ok) throw new Error(`地図データの読み込みに失敗 (${mapRes.status})`);
             const mapData = await mapRes.json();
 
-            // 2. 車両データ取得
+            // 2. 車両データを読み込む
+            log("車両データをGASから取得しています...");
             const carsRes = await fetch(GAS_API_URL);
-            if(!carsRes.ok) throw new Error(`GAS fetch failed: ${carsRes.status}`);
+            if(!carsRes.ok) throw new Error(`GASデータの取得に失敗 (${carsRes.status})`);
             const carsData = await carsRes.json();
             const cars = Array.isArray(carsData) ? carsData : (carsData.data || []);
 
             // 3. 描画
+            log("地図を描画中...", "loading");
             drawMap(mapData, cars);
+            
+            // 完了
+            document.getElementById('status-log').style.display = 'none';
 
         } catch (e) {
             console.error(e);
-            showError("エラー詳細:\n" + e.message + "\n\n(コンソールログも確認してください)");
+            log(`エラーが発生しました:\n${e.message}\n\n・prefectures.jsonはアップロードされていますか？\n・GASのURLは正しいですか？`, "error");
         }
     }
 
-    function showError(msg) {
-        document.getElementById('loading').style.display = 'none';
-        const errDiv = document.getElementById('error-log');
-        errDiv.style.display = 'block';
-        errDiv.innerText = msg;
-    }
-
     function drawMap(mapData, cars) {
-        document.getElementById('loading').style.display = 'none';
-
         // データ集計
         const prefData = {};
         cars.forEach(car => {
@@ -168,35 +174,33 @@
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("preserveAspectRatio", "xMidYMid meet");
 
-        // 標準的なメルカトル図法で日本を中心に表示
-        // (沖縄は遠くになりますが、まずは表示優先)
+        // 日本全体を表示する設定
         const projection = d3.geoMercator()
-            .center([137, 38]) // 日本の中心付近
+            .center([137, 38]) // 中部地方あたりを中心に
             .scale(1500)
             .translate([width / 2, height / 2]);
 
         const path = d3.geoPath().projection(projection);
 
-        // TopoJSON -> GeoJSON
-        if(!topojson) {
-            throw new Error("TopoJSON library not loaded.");
-        }
-        const prefectures = topojson.feature(mapData, mapData.objects.prefectures).features;
+        // TopoJSONデータの解析
+        // ※データによってオブジェクト名が "japan" だったり "prefectures" だったりするので自動判別
+        const objKey = Object.keys(mapData.objects)[0]; 
+        const features = topojson.feature(mapData, mapData.objects[objKey]).features;
 
         svg.selectAll(".prefecture")
-            .data(prefectures)
+            .data(features)
             .enter()
             .append("path")
             .attr("class", "prefecture")
             .attr("d", path)
-            .attr("fill", d => {
-                const pNameMap = d.properties.name;
-                const matchKey = Object.keys(prefData).find(key => pNameMap.includes(key) || key.includes(pNameMap));
-                return null; // CSSクラスで色付けするためここはnull
-            })
+            .attr("fill", d => { return null; }) // CSSで制御
             .each(function(d) {
-                const pNameMap = d.properties.name;
+                const pNameMap = d.properties.name || d.properties.nam_ja; // データによってプロパティ名が違う場合に対応
+                if(!pNameMap) return;
+
+                // 県名マッチング（"神奈川"と"神奈川県"などの揺らぎ吸収）
                 const matchKey = Object.keys(prefData).find(key => pNameMap.includes(key) || key.includes(pNameMap));
+                
                 if(matchKey) {
                     d3.select(this).classed("active-pref", true);
                     d.carList = prefData[matchKey];
@@ -213,12 +217,9 @@
             .on("mouseover", function(event, d) {
                 const tooltip = document.getElementById('tooltip');
                 tooltip.style.opacity = 1;
-                tooltip.innerText = d.properties.name + (d.carList ? ` (${d.carList.length}台)` : "");
+                const name = d.properties.name || d.properties.nam_ja;
+                tooltip.innerText = name + (d.carList ? ` (${d.carList.length}台)` : "");
                 
-                // 位置調整（シンプルにマウス位置追従でも良いが、ここでは要素基準）
-                // 簡易的にコンテナ内の相対位置計算
-                // const [x, y] = d3.pointer(event, container.node()); 
-                // ↑d3.pointerはv6以降。安全のためgetBoundingClientRectで
                 const rect = event.target.getBoundingClientRect();
                 const cRect = document.getElementById('map-container').getBoundingClientRect();
                 tooltip.style.top = (rect.top - cRect.top - 30) + "px";
