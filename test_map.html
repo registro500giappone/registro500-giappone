@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro 500 - Mappa (Matching Test)</title>
+    <title>Registro 500 - Mappa (Numbers)</title>
     
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/topojson@3"></script>
@@ -12,7 +12,7 @@
         body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f7; color: #333; }
         header { background: #fff; padding: 15px; text-align: center; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 100; }
         h1 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; }
-        .back-link { display: inline-block; margin-top: 8px; color: #007aff; text-decoration: none; font-size: 0.85rem; padding: 4px 12px; border: 1px solid #ddd; border-radius: 20px; }
+        .back-link { display: inline-block; margin-top: 8px; color: #2856a8; text-decoration: none; font-size: 0.85rem; padding: 4px 12px; border: 1px solid #ddd; border-radius: 20px; }
         .container { max-width: 1000px; margin: 0 auto; padding: 20px 10px; text-align: center; }
 
         #map-container {
@@ -33,38 +33,35 @@
             display: block;
         }
 
-        /* 地図のスタイル */
         .prefecture {
-            fill: #f9f9f9; /* デフォルトの色（薄いグレー） */
-            stroke: #999;
+            fill: #f9f9f9;
+            stroke: #bbb;
             stroke-width: 0.5px;
             cursor: pointer;
             transition: fill 0.2s;
         }
-        .prefecture:hover { fill: #ddd; }
+        .prefecture:hover { fill: #eee; }
 
-        /* 重要：色が塗られるクラス */
+        /* ▼ 変更点1：サイト共通のブルーに変更 */
         .active-pref { 
-            fill: #009688 !important; 
-            stroke: #00695c !important; 
+            fill: #2856a8 !important; 
+            stroke: #1e4285 !important; 
         }
         .selected-pref { 
-            fill: #e53935 !important; 
-            stroke: #b71c1c !important; 
+            fill: #e11d48 !important; /* 選択中は赤系で目立たせる */
+            stroke: #9f1239 !important; 
         }
 
-        /* 診断ログ */
-        #debug-log {
-            font-family: monospace;
-            font-size: 11px;
-            text-align: left;
-            background: #333;
-            color: #0f0;
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 4px;
-            height: 100px;
-            overflow-y: scroll;
+        /* ▼ 変更点2：台数ラベルのスタイル */
+        .pref-label {
+            fill: #fff;
+            font-size: 10px;
+            font-weight: bold;
+            font-family: sans-serif;
+            text-anchor: middle;     /* 中心揃え */
+            dominant-baseline: central; /* 上下中央揃え */
+            pointer-events: none;    /* 文字をクリックしても下の地図が反応するように */
+            text-shadow: 0px 0px 2px rgba(0,0,0,0.5); /* 読みやすく影をつける */
         }
 
         #tooltip {
@@ -81,17 +78,19 @@
         .garage-icon-lg { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid #f0f0f0; background: #eee; }
         .garage-name { font-size: 0.7rem; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .close-btn { border: none; background: #eee; padding: 5px 15px; border-radius: 15px; cursor: pointer; }
+        
+        #loading { margin: 50px 0; color: #777; }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>REGISTRO MAPPA (Color Fix)</h1>
+    <h1>REGISTRO MAPPA (Test)</h1>
     <a href="index.html" class="back-link">一覧に戻る</a>
 </header>
 
 <div class="container">
-    <div id="debug-log">システムログ: 待機中...</div>
+    <div id="loading">地図データを取得中...</div>
 
     <div id="map-container"></div>
     <div id="tooltip"></div>
@@ -109,14 +108,6 @@
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz0BJpaG-AcK3T6YYtav-nfd3gqGlkEWu3AvpW5uRT52N9jW8pBKLrpLSqvXqyD2ghwCA/exec";
     const MAP_FILE_URL = "prefectures.json"; 
 
-    function log(msg) {
-        const el = document.getElementById('debug-log');
-        const line = document.createElement('div');
-        line.innerText = "> " + msg;
-        el.prepend(line);
-        console.log(msg);
-    }
-
     const EN_MAP = {
         'TOKYO':'東京都', 'OSAKA':'大阪府', 'AICHI':'愛知県', 'KANAGAWA':'神奈川県', 'CHIBA':'千葉県', 'SAITAMA':'埼玉県', 'TOYAMA':'富山県',
         'KYOTO':'京都府', 'FUKUOKA':'福岡県', 'HYOGO':'兵庫県', 'HOKKAIDO':'北海道', 'NAGANO':'長野県', 'SHIZUOKA':'静岡県',
@@ -125,32 +116,29 @@
     };
 
     async function init() {
-        if(GAS_API_URL.includes("★")) { log("エラー: GASのURLを設定してください"); return; }
+        if(GAS_API_URL.includes("★")) { alert("GASのURLを設定してください"); return; }
         
         try {
-            log("1. 地図データを読み込み中...");
             const mapRes = await fetch(MAP_FILE_URL);
-            if(!mapRes.ok) throw new Error("地図読込失敗:" + mapRes.status);
+            if(!mapRes.ok) throw new Error("Map load failed");
             const mapData = await mapRes.json();
-            log("地図データ取得完了");
 
-            log("2. GASデータを読み込み中...");
             const carsRes = await fetch(GAS_API_URL);
             const carsData = await carsRes.json();
             const cars = Array.isArray(carsData) ? carsData : (carsData.data || []);
-            log(`GASデータ取得完了: ${cars.length}件`);
 
             drawMap(mapData, cars);
 
         } catch (e) {
-            log("致命的エラー: " + e.message);
+            console.error(e);
+            document.getElementById('loading').innerText = "エラーが発生しました";
         }
     }
 
     function drawMap(mapData, cars) {
-        log("3. 描画処理開始");
+        document.getElementById('loading').style.display = 'none';
 
-        // GASデータを集計
+        // データ集計
         const prefData = {};
         cars.forEach(car => {
             let pName = (car.Prefecture || car.prefecture || "").trim();
@@ -175,17 +163,12 @@
         if(!mapData.objects[objKey]) objKey = Object.keys(mapData.objects)[0];
         
         const features = topojson.feature(mapData, mapData.objects[objKey]).features;
-        
-        // ★診断: 地図データのプロパティを確認してログに出す
-        if(features.length > 0) {
-            const firstProps = JSON.stringify(features[0].properties);
-            log(`地図データの形式確認: ${firstProps}`);
-        }
 
         // 自動フィット
         const projection = d3.geoMercator().fitSize([width, height], {type: "FeatureCollection", features: features});
         const path = d3.geoPath().projection(projection);
 
+        // 1. パス（地図の形）を描画
         svg.selectAll(".prefecture")
             .data(features)
             .enter()
@@ -193,16 +176,10 @@
             .attr("class", "prefecture")
             .attr("d", path)
             .each(function(d) {
-                // 名前マッチング強化ロジック
+                // 名前マッチング
                 const props = d.properties;
-                // 地図データが持っているすべての値を文字列としてチェックする
-                // 例: {id:13, nam:"東京都", nam_ja:"東京都"} -> "13", "東京都"
                 const propValues = Object.values(props).map(v => String(v));
-
-                // prefDataのキー（登録がある県名）と照合
                 const matchKey = Object.keys(prefData).find(key => {
-                    // key="東京都" が、地図データのどれかの値に含まれているか？
-                    // または、地図データの値が key に含まれているか？
                     return propValues.some(val => val.includes(key) || key.includes(val));
                 });
                 
@@ -222,9 +199,8 @@
             .on("mouseover", function(event, d) {
                 const tooltip = document.getElementById('tooltip');
                 tooltip.style.opacity = 1;
-                // 表示名を探す（nam, name, nam_jaのどれか）
                 const p = d.properties;
-                const name = p.nam || p.name || p.nam_ja || "名称不明";
+                const name = p.nam || p.name || p.nam_ja || "Unknown";
                 tooltip.innerText = name + (d.carList ? ` (${d.carList.length}台)` : "");
                 
                 const rect = event.target.getBoundingClientRect();
@@ -236,8 +212,24 @@
             .on("mouseout", function() {
                 document.getElementById('tooltip').style.opacity = 0;
             });
-            
-        log("✅ 描画完了しました");
+
+        // 2. 数値ラベルを描画（ここが追加機能）
+        svg.selectAll(".pref-label")
+            .data(features)
+            .enter()
+            .append("text")
+            .attr("class", "pref-label")
+            .attr("transform", function(d) {
+                // 都道府県の重心（中心点）を計算して配置
+                return "translate(" + path.centroid(d) + ")";
+            })
+            .text(function(d) {
+                // 同じマッチングロジックで台数を取得
+                if (d.carList && d.carList.length > 0) {
+                    return d.carList.length;
+                }
+                return "";
+            });
     }
 
     function showGarage(name, cars) {
