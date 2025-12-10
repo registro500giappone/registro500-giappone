@@ -3,14 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro 500 - Mappa</title>
+    <title>Registro 500 - Mappa (Safe Mode)</title>
     
-    <!-- D3.js (描画エンジン) -->
+    <!-- D3.js (標準ライブラリのみ) -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <!-- TopoJSON (地図データ取扱用) -->
-    <script src="https://unpkg.com/topojson-client@3"></script>
-    <!-- D3 Composite Projections (日本地図用に沖縄などを移動してくれるライブラリ) -->
-    <script src="https://unpkg.com/d3-composite-projections@1.4.0/d3-composite-projections.min.js"></script>
+    <!-- TopoJSON (フルバージョン) -->
+    <script src="https://unpkg.com/topojson@3"></script>
     
     <style>
         body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f7; color: #333; }
@@ -27,50 +25,49 @@
             margin: 0 auto;
             background: #fff;
             position: relative;
+            min-height: 400px; /* エラー時も高さ確保 */
         }
 
-        /* SVGスタイル */
         svg {
             width: 100%;
             height: auto;
             display: block;
-            /* リアルな影 */
-            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.1));
+            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.1));
         }
 
-        /* 都道府県パス */
         .prefecture {
-            fill: #ffffff;      /* 白地図の色 */
-            stroke: #999;       /* 境界線の色 */
+            fill: #ffffff;
+            stroke: #999;
             stroke-width: 0.5px;
             cursor: pointer;
             transition: fill 0.2s;
         }
-        .prefecture:hover { fill: #eeeeee; }
+        .prefecture:hover { fill: #eee; }
 
-        /* 登録あり（イタリアングリーン） */
         .active-pref { fill: #009688 !important; stroke: #00695c !important; }
-        /* 選択中（赤） */
         .selected-pref { fill: #e53935 !important; stroke: #b71c1c !important; }
 
-        /* ツールチップ（県名表示） */
-        #tooltip {
-            position: absolute;
-            top: 0; left: 0;
-            padding: 6px 10px;
-            background: rgba(0,0,0,0.8);
-            color: #fff;
-            border-radius: 4px;
-            font-size: 12px;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s;
-            transform: translate(-50%, -120%);
-            white-space: nowrap;
-            z-index: 20;
+        /* エラー表示エリア */
+        #error-log {
+            color: red;
+            background: #ffe6e6;
+            padding: 10px;
+            margin: 10px;
+            border-radius: 5px;
+            text-align: left;
+            font-family: monospace;
+            display: none;
+            white-space: pre-wrap;
         }
 
-        /* リストエリア */
+        /* ツールチップ */
+        #tooltip {
+            position: absolute; top: 0; left: 0;
+            padding: 6px 10px; background: rgba(0,0,0,0.8); color: #fff;
+            border-radius: 4px; font-size: 12px; pointer-events: none;
+            opacity: 0; transition: opacity 0.2s; white-space: nowrap; z-index: 20;
+        }
+
         #garage-area { display: none; margin-top: 20px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: left; }
         .area-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
         .garage-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 15px; justify-items: center; }
@@ -79,24 +76,21 @@
         .garage-name { font-size: 0.7rem; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .close-btn { border: none; background: #eee; padding: 5px 15px; border-radius: 15px; cursor: pointer; }
         
-        #loading { margin: 50px 0; color: #888; }
+        #loading { margin: 50px 0; color: #777; }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>REGISTRO MAPPA</h1>
+    <h1>REGISTRO MAPPA (Test)</h1>
     <a href="index.html" class="back-link">一覧に戻る</a>
 </header>
 
 <div class="container">
-    <p style="font-size:0.8rem; color:#666;">登録がある都道府県が色付きで表示されます</p>
-    
     <div id="loading">地図データを取得中...</div>
+    <div id="error-log"></div>
 
-    <div id="map-container">
-        <!-- ここにD3.jsがSVGを描画します -->
-    </div>
+    <div id="map-container"></div>
     <div id="tooltip"></div>
 
     <div id="garage-area">
@@ -111,7 +105,6 @@
 <script>
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz0BJpaG-AcK3T6YYtav-nfd3gqGlkEWu3AvpW5uRT52N9jW8pBKLrpLSqvXqyD2ghwCA/exec";
 
-    // 英語変換マップ
     const EN_MAP = {
         'TOKYO':'東京都', 'OSAKA':'大阪府', 'AICHI':'愛知県', 'KANAGAWA':'神奈川県', 'CHIBA':'千葉県', 'SAITAMA':'埼玉県', 'TOYAMA':'富山県',
         'KYOTO':'京都府', 'FUKUOKA':'福岡県', 'HYOGO':'兵庫県', 'HOKKAIDO':'北海道', 'NAGANO':'長野県', 'SHIZUOKA':'静岡県',
@@ -120,64 +113,76 @@
     };
 
     async function init() {
-        if(GAS_API_URL.includes("★")) { alert("GASのURLを設定してください"); return; }
+        if(GAS_API_URL.includes("★")) { 
+            showError("GASのURLが設定されていません。コードを修正してください。");
+            return; 
+        }
         
         try {
-            // 1. 高品質な日本地図データ(TopoJSON)を取得
-            // Mike Bostock氏(D3作者)が提供する標準的な日本地図データを使用
+            // 1. 地図データ取得 (標準的なTopoJSON)
             const mapRes = await fetch('https://unpkg.com/japan-atlas@1/japan/prefectures.json');
-            if(!mapRes.ok) throw new Error("Map data load failed");
+            if(!mapRes.ok) throw new Error(`Map fetch failed: ${mapRes.status}`);
             const mapData = await mapRes.json();
 
-            // 2. 登録車両データを取得
+            // 2. 車両データ取得
             const carsRes = await fetch(GAS_API_URL);
+            if(!carsRes.ok) throw new Error(`GAS fetch failed: ${carsRes.status}`);
             const carsData = await carsRes.json();
             const cars = Array.isArray(carsData) ? carsData : (carsData.data || []);
 
-            // 3. 地図を描画
+            // 3. 描画
             drawMap(mapData, cars);
 
         } catch (e) {
             console.error(e);
-            document.getElementById('loading').innerText = "エラーが発生しました。リロードしてください。";
+            showError("エラー詳細:\n" + e.message + "\n\n(コンソールログも確認してください)");
         }
+    }
+
+    function showError(msg) {
+        document.getElementById('loading').style.display = 'none';
+        const errDiv = document.getElementById('error-log');
+        errDiv.style.display = 'block';
+        errDiv.innerText = msg;
     }
 
     function drawMap(mapData, cars) {
         document.getElementById('loading').style.display = 'none';
 
-        // データの集計
+        // データ集計
         const prefData = {};
         cars.forEach(car => {
             let pName = (car.Prefecture || car.prefecture || "").trim();
             if(EN_MAP[pName.toUpperCase()]) pName = EN_MAP[pName.toUpperCase()];
-            // 簡易的な名前寄せ（"神奈川" -> "神奈川県"）
-            // 地図データは "神奈川県" のようなフルネームを持っています
             if(!prefData[pName]) prefData[pName] = [];
             prefData[pName].push(car);
         });
 
-        // D3.js 設定
+        // D3描画設定
         const width = 800;
         const height = 800;
         const container = d3.select("#map-container");
+        container.html(""); // クリア
 
         const svg = container.append("svg")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("preserveAspectRatio", "xMidYMid meet");
 
-        // 投影法の設定（沖縄・北海道をいい感じに配置する）
-        // d3-composite-projectionsを使用
-        const projection = d3.geoConicConformalJapan()
-            .scale(1500) // ズーム率
+        // 標準的なメルカトル図法で日本を中心に表示
+        // (沖縄は遠くになりますが、まずは表示優先)
+        const projection = d3.geoMercator()
+            .center([137, 38]) // 日本の中心付近
+            .scale(1500)
             .translate([width / 2, height / 2]);
 
         const path = d3.geoPath().projection(projection);
 
-        // TopoJSONをGeoJSONに変換
+        // TopoJSON -> GeoJSON
+        if(!topojson) {
+            throw new Error("TopoJSON library not loaded.");
+        }
         const prefectures = topojson.feature(mapData, mapData.objects.prefectures).features;
 
-        // パスの描画
         svg.selectAll(".prefecture")
             .data(prefectures)
             .enter()
@@ -185,47 +190,40 @@
             .attr("class", "prefecture")
             .attr("d", path)
             .attr("fill", d => {
-                // 名前の一致確認（前方一致で判定）
-                const pNameMap = d.properties.name; // 地図データの県名
-                // prefDataのキーの中に、地図の県名を含むものがあるか探す
+                const pNameMap = d.properties.name;
                 const matchKey = Object.keys(prefData).find(key => pNameMap.includes(key) || key.includes(pNameMap));
-                
-                if(matchKey) {
-                    // データがあればクラスを付与するためのマーカー
-                    return null; 
-                }
-                return null;
+                return null; // CSSクラスで色付けするためここはnull
             })
             .each(function(d) {
-                // クラス付与ロジック
                 const pNameMap = d.properties.name;
                 const matchKey = Object.keys(prefData).find(key => pNameMap.includes(key) || key.includes(pNameMap));
                 if(matchKey) {
                     d3.select(this).classed("active-pref", true);
-                    // データをバインドしておく
                     d.carList = prefData[matchKey];
                     d.displayName = matchKey;
                 }
             })
             .on("click", function(event, d) {
                 if(d.carList) {
-                    // 選択状態の切り替え
                     d3.selectAll(".selected-pref").classed("selected-pref", false);
                     d3.select(this).classed("selected-pref", true);
                     showGarage(d.displayName, d.carList);
                 }
             })
             .on("mouseover", function(event, d) {
-                // ツールチップ表示
                 const tooltip = document.getElementById('tooltip');
                 tooltip.style.opacity = 1;
                 tooltip.innerText = d.properties.name + (d.carList ? ` (${d.carList.length}台)` : "");
                 
-                // 位置合わせ
+                // 位置調整（シンプルにマウス位置追従でも良いが、ここでは要素基準）
+                // 簡易的にコンテナ内の相対位置計算
+                // const [x, y] = d3.pointer(event, container.node()); 
+                // ↑d3.pointerはv6以降。安全のためgetBoundingClientRectで
                 const rect = event.target.getBoundingClientRect();
-                const containerRect = document.getElementById('map-container').getBoundingClientRect();
-                tooltip.style.top = (rect.top - containerRect.top) + "px";
-                tooltip.style.left = (rect.left - containerRect.left + rect.width/2) + "px";
+                const cRect = document.getElementById('map-container').getBoundingClientRect();
+                tooltip.style.top = (rect.top - cRect.top - 30) + "px";
+                tooltip.style.left = (rect.left - cRect.left + rect.width/2) + "px";
+                tooltip.style.transform = "translateX(-50%)";
             })
             .on("mouseout", function() {
                 document.getElementById('tooltip').style.opacity = 0;
