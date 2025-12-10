@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro 500 - Mappa (Complete)</title>
+    <title>Registro 500 - Mappa (Perfect)</title>
     
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/topojson@3"></script>
@@ -39,9 +39,11 @@
         }
         .prefecture:hover { fill: #eee; }
 
+        /* 色定義 */
         .active-pref { fill: #2856a8 !important; stroke: #1e4285 !important; }
         .selected-pref { fill: #e11d48 !important; stroke: #9f1239 !important; }
 
+        /* 数値ラベル */
         .pref-label {
             fill: #fff;
             font-size: 11px;
@@ -81,7 +83,7 @@
 <body>
 
 <header>
-    <h1>REGISTRO MAPPA (Complete)</h1>
+    <h1>REGISTRO MAPPA</h1>
     <a href="index.html" class="back-link">一覧に戻る</a>
 </header>
 
@@ -154,7 +156,6 @@
             prefData[pName].push(car);
         });
 
-        // D3設定
         const width = 800;
         const height = 800;
         const container = d3.select("#map-container");
@@ -170,26 +171,18 @@
         
         const allFeatures = topojson.feature(mapData, mapData.objects[objKey]).features;
 
-        // 沖縄と本土分離
         const okinawaFeatures = allFeatures.filter(d => d.id == 47 || d.properties.id == 47);
         const mainFeatures = allFeatures.filter(d => d.id != 47 && d.properties.id != 47);
 
-        // ----------------------------------------------------
-        // A. 本州エリア（位置調整）
-        // ----------------------------------------------------
-        // 拡大率を 2400 -> 2300 に少し下げ、
-        // 表示位置（translateのY軸）を +50px して全体を下にずらす
+        // A. 本州エリア (OK: 2300, y+50)
         const mainProjection = d3.geoMercator()
             .center([137.5, 37.5]) 
             .scale(2300) 
             .translate([width / 2, height / 2 + 50]);
-        
         const mainPath = d3.geoPath().projection(mainProjection);
         renderFeatures(svg, mainFeatures, mainPath, prefData);
 
-        // ----------------------------------------------------
-        // B. 沖縄エリア（枠付き）
-        // ----------------------------------------------------
+        // B. 沖縄エリア (OK: 左上)
         if (okinawaFeatures.length > 0) {
             const boxX = 20, boxY = 20, boxW = 160, boxH = 120;
             const insetProjection = d3.geoMercator()
@@ -208,7 +201,6 @@
     }
 
     function renderFeatures(svg, features, path, prefData) {
-        // パス描画
         svg.append("g")
             .selectAll("path")
             .data(features)
@@ -217,12 +209,14 @@
             .attr("class", "prefecture")
             .attr("d", path)
             .each(function(d) {
+                // ★総当たりマッチング（ここを強化して復活）
                 const p = d.properties;
-                let mapName = p.nam || p.name || p.nam_ja || "";
-                if(d.id && ID_MAP[d.id]) mapName = ID_MAP[d.id];
+                const candidates = Object.values(p).map(v => String(v));
+                if(d.id) candidates.push(String(d.id)); 
+                if(d.id && ID_MAP[d.id]) candidates.push(ID_MAP[d.id]);
 
                 const matchKey = Object.keys(prefData).find(key => {
-                    return mapName.includes(key) || key.includes(mapName);
+                    return candidates.some(val => val.includes(key) || key.includes(val));
                 });
 
                 if(matchKey) {
@@ -230,7 +224,7 @@
                     d.carList = prefData[matchKey];
                     d.displayName = matchKey;
                 }
-                d.dispName = mapName || "Unknown";
+                d.dispName = (p.nam_ja || p.name || p.nam || (d.id ? ID_MAP[d.id] : "Unknown"));
             })
             .on("click", function(event, d) {
                 if(d.carList) {
@@ -253,7 +247,7 @@
                 document.getElementById('tooltip').style.opacity = 0;
             });
 
-        // 数値ラベル描画
+        // 数字ラベル
         svg.append("g")
             .selectAll("text")
             .data(features)
@@ -267,27 +261,13 @@
                 let x = centroid[0];
                 let y = centroid[1];
 
-                // ★位置補正（東京・大阪・長崎・鹿児島・兵庫）
-                // ID:13(東京) -> 大きく左(x-10)へ、少し上(y-15)へ
-                if (d.id == 13 || d.properties.id == 13 || (d.dispName && d.dispName.includes("東京"))) {
+                // 位置調整
+                if (d.id == 13 || (d.properties && d.properties.id == 13) || (d.dispName && d.dispName.includes("東京"))) {
                     y -= 15; x -= 10; 
                 }
-                // 大阪
-                if (d.id == 27 || d.properties.id == 27 || (d.dispName && d.dispName.includes("大阪"))) {
-                    // 大阪は面積が狭いので少し調整
-                }
-                // 長崎（五島列島重心対策）-> 右へ
-                if (d.id == 42 || d.properties.id == 42 || (d.dispName && d.dispName.includes("長崎"))) {
-                    x += 10;
-                }
-                // 鹿児島（離島重心対策）-> 北へ
-                if (d.id == 46 || d.properties.id == 46 || (d.dispName && d.dispName.includes("鹿児島"))) {
-                    y -= 15;
-                }
-                // 兵庫（淡路島対策）-> 北へ
-                if (d.id == 28 || d.properties.id == 28 || (d.dispName && d.dispName.includes("兵庫"))) {
-                    y -= 5;
-                }
+                if (d.dispName && d.dispName.includes("長崎")) x += 5;
+                if (d.dispName && d.dispName.includes("鹿児島")) y -= 10;
+                if (d.dispName && d.dispName.includes("兵庫")) y -= 5;
 
                 return `translate(${x},${y})`;
             })
