@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro 500 - Mappa (Auto Fit)</title>
+    <title>Registro 500 - Mappa (Manual Fixed)</title>
     
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/topojson@3"></script>
@@ -22,8 +22,7 @@
             margin: 0 auto;
             background: #fff;
             position: relative;
-            /* 日本列島の形に合わせて縦長比率に設定 */
-            aspect-ratio: 6 / 7; 
+            aspect-ratio: 1 / 1; 
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
             overflow: hidden;
@@ -33,18 +32,16 @@
 
         .prefecture {
             fill: #f9f9f9;
-            stroke: #bbb;
+            stroke: #ccc;
             stroke-width: 0.5px;
             cursor: pointer;
             transition: fill 0.2s;
         }
         .prefecture:hover { fill: #eee; }
 
-        /* 色定義 */
         .active-pref { fill: #2856a8 !important; stroke: #1e4285 !important; }
         .selected-pref { fill: #e11d48 !important; stroke: #9f1239 !important; }
 
-        /* 数値ラベル */
         .pref-label {
             fill: #fff;
             font-size: 11px;
@@ -61,8 +58,13 @@
         }
         .selected-pref + .pref-label { stroke: #e11d48; }
 
-        /* 沖縄枠 */
         .inset-box { fill: #fff; stroke: #ddd; stroke-width: 2; }
+
+        /* 状況確認用ログ */
+        #status-bar {
+            background: #333; color: #fff; padding: 5px; font-size: 10px;
+            text-align: center; display: none;
+        }
 
         #tooltip {
             position: absolute; top: 0; left: 0;
@@ -85,12 +87,13 @@
 <body>
 
 <header>
-    <h1>REGISTRO MAPPA (Auto Fit)</h1>
+    <h1>REGISTRO MAPPA</h1>
     <a href="index.html" class="back-link">一覧に戻る</a>
 </header>
 
 <div class="container">
     <div id="loading">地図データを取得中...</div>
+    <div id="status-bar"></div>
 
     <div id="map-container"></div>
     <div id="tooltip"></div>
@@ -108,17 +111,7 @@
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz0BJpaG-AcK3T6YYtav-nfd3gqGlkEWu3AvpW5uRT52N9jW8pBKLrpLSqvXqyD2ghwCA/exec";
     const MAP_FILE_URL = "prefectures.json"; 
 
-    // IDマップ（これが色塗りの命綱です）
-    const ID_MAP = {
-        1:"北海道",2:"青森県",3:"岩手県",4:"宮城県",5:"秋田県",6:"山形県",7:"福島県",
-        8:"茨城県",9:"栃木県",10:"群馬県",11:"埼玉県",12:"千葉県",13:"東京都",14:"神奈川県",
-        15:"新潟県",16:"富山県",17:"石川県",18:"福井県",19:"山梨県",20:"長野県",21:"岐阜県",
-        22:"静岡県",23:"愛知県",24:"三重県",25:"滋賀県",26:"京都府",27:"大阪府",28:"兵庫県",
-        29:"奈良県",30:"和歌山県",31:"鳥取県",32:"島根県",33:"岡山県",34:"広島県",35:"山口県",
-        36:"徳島県",37:"香川県",38:"愛媛県",39:"高知県",40:"福岡県",41:"佐賀県",42:"長崎県",
-        43:"熊本県",44:"大分県",45:"宮崎県",46:"鹿児島県",47:"沖縄県"
-    };
-
+    // 英語変換辞書
     const EN_MAP = {
         'TOKYO':'東京都', 'OSAKA':'大阪府', 'AICHI':'愛知県', 'KANAGAWA':'神奈川県', 'CHIBA':'千葉県', 'SAITAMA':'埼玉県', 'TOYAMA':'富山県',
         'KYOTO':'京都府', 'FUKUOKA':'福岡県', 'HYOGO':'兵庫県', 'HOKKAIDO':'北海道', 'NAGANO':'長野県', 'SHIZUOKA':'静岡県',
@@ -126,14 +119,23 @@
         'HIROSHIMA':'広島県', 'OKAYAMA':'岡山県', 'NARA':'奈良県', 'SHIGA':'滋賀県'
     };
 
+    function log(msg) {
+        console.log(msg);
+        const bar = document.getElementById('status-bar');
+        bar.style.display = 'block';
+        bar.innerText = msg;
+    }
+
     async function init() {
         if(GAS_API_URL.includes("★")) { alert("GASのURLを設定してください"); return; }
         
         try {
+            // 1. 地図データ読込
             const mapRes = await fetch(MAP_FILE_URL);
             if(!mapRes.ok) throw new Error("Map load failed");
             const mapData = await mapRes.json();
 
+            // 2. データ読込
             const carsRes = await fetch(GAS_API_URL);
             const carsData = await carsRes.json();
             const cars = Array.isArray(carsData) ? carsData : (carsData.data || []);
@@ -142,14 +144,14 @@
 
         } catch (e) {
             console.error(e);
-            document.getElementById('loading').innerText = "エラーが発生しました";
+            document.getElementById('loading').innerText = "エラー: " + e.message;
         }
     }
 
     function drawMap(mapData, cars) {
         document.getElementById('loading').style.display = 'none';
 
-        // 集計
+        // データの集計
         const prefData = {};
         cars.forEach(car => {
             let pName = (car.Prefecture || car.prefecture || "").trim();
@@ -157,11 +159,11 @@
             if(!prefData[pName]) prefData[pName] = [];
             prefData[pName].push(car);
         });
+        log(`データ読込完了: ${Object.keys(prefData).length}エリア`);
 
         // D3設定
-        // 縦横比を地図に合わせて少し縦長に(600x700)
-        const width = 600;
-        const height = 700;
+        const width = 800;
+        const height = 800;
         const container = d3.select("#map-container");
         container.html(""); 
 
@@ -169,41 +171,38 @@
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("preserveAspectRatio", "xMidYMid meet");
 
+        // TopoJSONデータ抽出
         let objKey = "japan";
         if(!mapData.objects[objKey] && mapData.objects.prefectures) objKey = "prefectures";
         if(!mapData.objects[objKey]) objKey = Object.keys(mapData.objects)[0];
-        
-        const allFeatures = topojson.feature(mapData, mapData.objects[objKey]).features;
+        const features = topojson.feature(mapData, mapData.objects[objKey]).features;
 
-        // 沖縄と本土を分離
-        const okinawaFeatures = allFeatures.filter(d => 
-            d.id == 47 || d.properties.id == 47 || (d.properties.name && d.properties.name.includes("Okinawa"))
-        );
-        const mainFeatures = allFeatures.filter(d => 
-            !okinawaFeatures.includes(d)
-        );
+        // ★沖縄分離 (ID:47, またはプロパティID:47)
+        const okinawaFeatures = features.filter(d => d.id == 47 || d.properties.id == 47);
+        const mainFeatures = features.filter(d => d.id != 47 && d.properties.id != 47);
 
         // ----------------------------------------------------
-        // A. 本州エリア（自動フィット！）
+        // A. 本州エリア（手動設定で確実に配置）
         // ----------------------------------------------------
-        // .fitExtent で「SVGの枠内」に「本州データ」を最大サイズで収める計算を自動でやらせる
-        // 余白を上下左右20pxとる
+        // 前回3200ではみ出た -> 2400程度に下げる
+        // 中心座標は固定
         const mainProjection = d3.geoMercator()
-            .fitExtent([[20, 20], [width - 20, height - 20]], {type: "FeatureCollection", features: mainFeatures});
+            .center([137.5, 37.5]) 
+            .scale(2400) 
+            .translate([width / 2, height / 2]);
         
         const mainPath = d3.geoPath().projection(mainProjection);
         renderFeatures(svg, mainFeatures, mainPath, prefData);
 
         // ----------------------------------------------------
-        // B. 沖縄エリア（左上へ）
+        // B. 沖縄エリア（左上インセット）
         // ----------------------------------------------------
         if (okinawaFeatures.length > 0) {
-            const boxX = 20, boxY = 20, boxW = 120, boxH = 100;
-            
-            // 枠内に沖縄をフィットさせる
+            const boxX = 20, boxY = 20, boxW = 160, boxH = 120;
             const insetProjection = d3.geoMercator()
-                .fitExtent([[boxX + 10, boxY + 10], [boxX + boxW - 10, boxY + boxH - 10]], {type: "FeatureCollection", features: okinawaFeatures});
-            
+                .center([127.8, 26.5]) 
+                .scale(6000)
+                .translate([boxX + boxW/2, boxY + boxH/2]);
             const insetPath = d3.geoPath().projection(insetProjection);
 
             svg.append("rect")
@@ -225,12 +224,12 @@
             .attr("class", "prefecture")
             .attr("d", path)
             .each(function(d) {
-                // 名前解決ロジック（ここをColorFix版と同じ強力なものに戻しました）
                 const p = d.properties;
-                let mapName = p.nam || p.name || p.nam_ja || "";
-                if(d.id && ID_MAP[d.id]) mapName = ID_MAP[d.id]; // IDから日本語名を取得
-
-                // prefDataのキーと照合
+                // ★成功していた時のマッチングロジックを使用
+                // nam_ja(日本語名)を優先利用
+                const mapName = p.nam_ja || p.name || p.nam || "";
+                
+                // データとの照合
                 const matchKey = Object.keys(prefData).find(key => {
                     return mapName.includes(key) || key.includes(mapName);
                 });
@@ -264,7 +263,7 @@
                 document.getElementById('tooltip').style.opacity = 0;
             });
 
-        // 数字ラベル描画（東京などの位置補正付き）
+        // 数字ラベル描画
         svg.append("g")
             .selectAll("text")
             .data(features)
@@ -278,21 +277,17 @@
                 let x = centroid[0];
                 let y = centroid[1];
 
-                // 位置補正（自動フィット座標系に合わせて調整）
-                // ※自動フィットだと縮尺が変わるため、ピクセル単位の補正は控えめに
-                if (d.id == 13 || d.properties.id == 13 || d.dispName.includes("東京")) {
-                    y -= 10; x += 5; // 東京
+                // 位置調整（東京・長崎・鹿児島など）
+                if (d.properties.id == 13 || (d.properties.nam_ja && d.properties.nam_ja.includes("東京"))) {
+                    y -= 10; x += 5; 
                 }
-                if (d.id == 42 || d.properties.id == 42 || d.dispName.includes("長崎")) {
-                    x += 5; // 長崎
+                if (d.properties.id == 42 || (d.properties.nam_ja && d.properties.nam_ja.includes("長崎"))) {
+                    x += 5;
                 }
-                if (d.id == 46 || d.properties.id == 46 || d.dispName.includes("鹿児島")) {
-                    y -= 10; // 鹿児島
+                if (d.properties.id == 46 || (d.properties.nam_ja && d.properties.nam_ja.includes("鹿児島"))) {
+                    y -= 10;
                 }
-                if (d.id == 28 || d.properties.id == 28 || d.dispName.includes("兵庫")) {
-                    y += 5; // 兵庫
-                }
-
+                
                 return `translate(${x},${y})`;
             })
             .text(function(d) {
