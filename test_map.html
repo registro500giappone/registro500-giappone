@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro 500 - Mappa (Split View)</title>
+    <title>Registro 500 - Mappa (Fixed Layout)</title>
     
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/topojson@3"></script>
@@ -15,6 +15,7 @@
         .back-link { display: inline-block; margin-top: 8px; color: #2856a8; text-decoration: none; font-size: 0.85rem; padding: 4px 12px; border: 1px solid #ddd; border-radius: 20px; }
         .container { max-width: 1000px; margin: 0 auto; padding: 20px 10px; text-align: center; }
 
+        /* 地図コンテナ */
         #map-container {
             width: 100%;
             height: auto;
@@ -22,10 +23,11 @@
             margin: 0 auto;
             background: #fff;
             position: relative;
-            /* 少し縦長にして余裕を持たせる */
+            /* 正方形に近い比率で表示エリアを確保 */
             aspect-ratio: 1 / 1; 
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            overflow: hidden; /* はみ出し防止 */
         }
 
         svg {
@@ -43,29 +45,29 @@
         }
         .prefecture:hover { fill: #eee; }
 
-        /* 登録あり */
+        /* 色塗り */
         .active-pref { 
             fill: #2856a8 !important; 
             stroke: #1e4285 !important; 
         }
-        /* 選択中 */
         .selected-pref { 
             fill: #e11d48 !important; 
             stroke: #9f1239 !important; 
         }
 
-        /* 数字ラベル */
+        /* 数値ラベル */
         .pref-label {
             fill: #fff;
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 800;
             font-family: sans-serif;
             text-anchor: middle;
             dominant-baseline: central;
             pointer-events: none;
+            /* 視認性を高める縁取り */
             paint-order: stroke;
             stroke: #2856a8; 
-            stroke-width: 2px;
+            stroke-width: 2.5px;
             stroke-linecap: round;
             stroke-linejoin: round;
         }
@@ -73,9 +75,9 @@
 
         /* 沖縄の枠線 */
         .inset-box {
-            fill: #fff;
+            fill: #fff; /* 背景を白にして下の地図を隠す */
             stroke: #ddd;
-            stroke-width: 1;
+            stroke-width: 2;
         }
 
         #tooltip {
@@ -94,17 +96,21 @@
         .close-btn { border: none; background: #eee; padding: 5px 15px; border-radius: 15px; cursor: pointer; }
         
         #loading { margin: 50px 0; color: #777; }
+        
+        /* 診断ログ */
+        #debug-log { font-size:10px; color:#aaa; display:none; }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>REGISTRO MAPPA (Test)</h1>
+    <h1>REGISTRO MAPPA (Final Layout)</h1>
     <a href="index.html" class="back-link">一覧に戻る</a>
 </header>
 
 <div class="container">
     <div id="loading">地図データを取得中...</div>
+    <div id="debug-log"></div>
 
     <div id="map-container"></div>
     <div id="tooltip"></div>
@@ -122,7 +128,7 @@
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz0BJpaG-AcK3T6YYtav-nfd3gqGlkEWu3AvpW5uRT52N9jW8pBKLrpLSqvXqyD2ghwCA/exec";
     const MAP_FILE_URL = "prefectures.json"; 
 
-    // IDと県名のマッピング (地図データがIDしか持っていない場合への保険)
+    // IDから県名を引くためのマップ（データ照合用）
     const ID_MAP = {
         1:"北海道",2:"青森県",3:"岩手県",4:"宮城県",5:"秋田県",6:"山形県",7:"福島県",
         8:"茨城県",9:"栃木県",10:"群馬県",11:"埼玉県",12:"千葉県",13:"東京都",14:"神奈川県",
@@ -156,25 +162,28 @@
 
         } catch (e) {
             console.error(e);
-            document.getElementById('loading').innerText = "エラーが発生しました";
+            document.getElementById('loading').innerText = "エラーが発生しました: " + e.message;
         }
     }
 
     function drawMap(mapData, cars) {
         document.getElementById('loading').style.display = 'none';
 
-        // データの集計
+        // 1. GASデータの集計
         const prefData = {};
         cars.forEach(car => {
             let pName = (car.Prefecture || car.prefecture || "").trim();
+            // 英語・ローマ字対応
             if(EN_MAP[pName.toUpperCase()]) pName = EN_MAP[pName.toUpperCase()];
+            
+            // "県"などの揺らぎ吸収は後述のマッチングで行うため、ここではキーとして保存
             if(!prefData[pName]) prefData[pName] = [];
             prefData[pName].push(car);
         });
 
-        // D3設定
+        // 2. D3設定
         const width = 800;
-        const height = 800;
+        const height = 800; // 正方形キャンバス
         const container = d3.select("#map-container");
         container.html(""); 
 
@@ -182,52 +191,59 @@
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("preserveAspectRatio", "xMidYMid meet");
 
-        // TopoJSONデータ抽出
+        // 3. 地図データ展開
         let objKey = "japan";
         if(!mapData.objects[objKey] && mapData.objects.prefectures) objKey = "prefectures";
         if(!mapData.objects[objKey]) objKey = Object.keys(mapData.objects)[0];
         
         const allFeatures = topojson.feature(mapData, mapData.objects[objKey]).features;
 
-        // ★IDを使って確実に分離する (47=沖縄)
+        // 4. 沖縄と本土を分離 (ID:47 を沖縄とする)
         const okinawaFeatures = allFeatures.filter(d => d.id == 47 || d.properties.id == 47);
         const mainFeatures = allFeatures.filter(d => d.id != 47 && d.properties.id != 47);
 
-        // 1. 本州（沖縄以外）を画面いっぱいに描画
-        // .fitExtent で、余白(padding)を20pxとって画面全体にフィットさせる
+        // ----------------------------------------------------
+        // A. 本州エリア描画（小笠原諸島を避けるため手動設定）
+        // ----------------------------------------------------
+        // center: [経度, 緯度] -> 日本の中心あたり(長野/岐阜)
+        // scale: 拡大率 -> 800px幅なら1800-2000くらいが適正
         const mainProjection = d3.geoMercator()
-            .fitExtent([[20, 20], [width - 20, height - 20]], {type: "FeatureCollection", features: mainFeatures});
+            .center([137.5, 38.0]) 
+            .scale(1900)
+            .translate([width / 2, height / 2]);
+        
         const mainPath = d3.geoPath().projection(mainProjection);
-
-        // 本州描画
         renderFeatures(svg, mainFeatures, mainPath, prefData);
 
-
-        // 2. 沖縄を左上に描画（インセット）
-        // 左上(x=20, y=20) 幅150, 高さ100 のエリア
-        const insetX = 20, insetY = 20, insetW = 150, insetH = 100;
-        
-        // 枠線
-        svg.append("rect")
-            .attr("x", insetX).attr("y", insetY)
-            .attr("width", insetW).attr("height", insetH)
-            .attr("class", "inset-box");
-
-        // 沖縄データがある場合のみ描画
+        // ----------------------------------------------------
+        // B. 沖縄エリア描画（左上インセット）
+        // ----------------------------------------------------
         if (okinawaFeatures.length > 0) {
-            // 枠内にフィットさせる
+            // インセット枠の設定 (左上)
+            const boxX = 20, boxY = 20, boxW = 160, boxH = 120;
+            
+            // 沖縄本島を中心にズーム
             const insetProjection = d3.geoMercator()
-                .fitExtent([[insetX + 10, insetY + 10], [insetX + insetW - 10, insetY + insetH - 10]], {type: "FeatureCollection", features: okinawaFeatures});
+                .center([127.8, 26.5]) // 沖縄本島付近
+                .scale(6000)           // かなり拡大
+                .translate([boxX + boxW/2, boxY + boxH/2]);
+
             const insetPath = d3.geoPath().projection(insetProjection);
 
-            // 沖縄描画
+            // 枠を描画（背景白）
+            svg.append("rect")
+                .attr("x", boxX).attr("y", boxY)
+                .attr("width", boxW).attr("height", boxH)
+                .attr("class", "inset-box");
+
+            // 沖縄県を描画
             renderFeatures(svg, okinawaFeatures, insetPath, prefData);
         }
     }
 
-    // 共通描画関数
+    // 描画共通関数
     function renderFeatures(svg, features, path, prefData) {
-        // ポリゴン描画
+        // パス（地図）を描画
         svg.append("g")
             .selectAll("path")
             .data(features)
@@ -236,23 +252,26 @@
             .attr("class", "prefecture")
             .attr("d", path)
             .each(function(d) {
-                // 名前解決 (IDマップも併用して確実にする)
+                // 名前解決ロジック（ここを強固にする）
                 const p = d.properties;
-                let name = p.nam || p.name || p.nam_ja;
-                if(!name && d.id && ID_MAP[d.id]) name = ID_MAP[d.id];
-                
-                // データマッチング
-                // 県名が含まれているかチェック
-                if(name) {
-                    const matchKey = Object.keys(prefData).find(key => name.includes(key) || key.includes(name));
-                    if(matchKey) {
-                        d3.select(this).classed("active-pref", true);
-                        d.carList = prefData[matchKey];
-                        d.displayName = matchKey;
-                    }
-                    // ツールチップ用に名前を保存
-                    d.dispName = name;
+                // 地図データ内の名前候補
+                let mapName = p.nam || p.name || p.nam_ja || "";
+                // IDから名前を補完
+                if(d.id && ID_MAP[d.id]) mapName = ID_MAP[d.id];
+
+                // マッチング：prefDataのキー（"東京都"など）と照合
+                const matchKey = Object.keys(prefData).find(key => {
+                    // "東京" in "東京都" OK, "東京都" in "東京" OK
+                    return mapName.includes(key) || key.includes(mapName);
+                });
+
+                if(matchKey) {
+                    d3.select(this).classed("active-pref", true);
+                    d.carList = prefData[matchKey];
+                    d.displayName = matchKey;
                 }
+                // ツールチップ用
+                d.dispName = mapName || "Unknown";
             })
             .on("click", function(event, d) {
                 if(d.carList) {
@@ -264,7 +283,7 @@
             .on("mouseover", function(event, d) {
                 const tooltip = document.getElementById('tooltip');
                 tooltip.style.opacity = 1;
-                tooltip.innerText = (d.dispName || "Unknown") + (d.carList ? ` (${d.carList.length}台)` : "");
+                tooltip.innerText = d.dispName + (d.carList ? ` (${d.carList.length}台)` : "");
                 
                 const rect = event.target.getBoundingClientRect();
                 const cRect = document.getElementById('map-container').getBoundingClientRect();
@@ -276,7 +295,7 @@
                 document.getElementById('tooltip').style.opacity = 0;
             });
 
-        // 数字ラベル描画
+        // 数値ラベルを描画
         svg.append("g")
             .selectAll("text")
             .data(features)
@@ -284,7 +303,11 @@
             .append("text")
             .attr("class", "pref-label")
             .attr("transform", function(d) {
-                return "translate(" + path.centroid(d) + ")";
+                // 重心に配置
+                const centroid = path.centroid(d);
+                // 重心が計算できない場合（小さな島など）は表示しない
+                if (isNaN(centroid[0])) return "translate(-999,-999)";
+                return "translate(" + centroid + ")";
             })
             .text(function(d) {
                 if (d.carList && d.carList.length > 0) {
