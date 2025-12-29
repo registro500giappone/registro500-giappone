@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>統計データ | Registro500 Giappone</title>
+  
+  <!-- 設定ファイル読み込み -->
+  <script src="config.js"></script>
+  <!-- Chart.js 読み込み -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* index.html から基本スタイルを流用 */
+    :root {
+      --bg-main: #f4f4f7;
+      --card-bg: #ffffff;
+      --text-main: #111827;
+      --accent: #2856a8;
+      --radius-lg: 12px;
+      --font-sans: system-ui, -apple-system, sans-serif;
+    }
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      margin: 0; padding: 20px;
+    }
+    .page { max-width: 1000px; margin: 0 auto; padding-bottom: 60px; }
+    
+    /* ヘッダー */
+    .header { margin-bottom: 40px; text-align: center; }
+    .header h1 { margin: 0; color: var(--accent); font-size: 1.8rem; }
+    .header p { color: #666; margin-top: 10px; }
+    .back-link { display: inline-block; margin-top: 10px; color: var(--accent); text-decoration: none; }
+
+    /* グリッドレイアウト */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    @media (min-width: 768px) {
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .full-width { grid-column: span 2; }
+    }
+
+    /* カードスタイル */
+    .chart-card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .chart-title {
+      margin: 0 0 20px 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-align: center;
+      border-bottom: 2px solid #f0f0f0;
+      padding-bottom: 10px;
+    }
+    
+    /* グラフの高さ調整 */
+    .chart-container {
+      position: relative;
+      height: 300px;
+      width: 100%;
+    }
+    .chart-container.tall { height: 400px; }
+  </style>
+</head>
+<body>
+
+<div class="page">
+  <div class="header">
+    <h1>Registro500 Statistics</h1>
+    <p>現在の登録車両データ (<span id="totalCount">-</span>台)</p>
+    <a href="index.html" class="back-link">← ガレージに戻る</a>
+  </div>
+
+  <div id="loading" style="text-align:center;">データを集計中...</div>
+
+  <div class="stats-grid" id="statsContent" style="display:none;">
+    
+    <!-- ① 車種モデル (ドーナツグラフ) -->
+    <div class="chart-card">
+      <h3 class="chart-title">🚗 モデル別分布</h3>
+      <div class="chart-container">
+        <canvas id="modelChart"></canvas>
+      </div>
+    </div>
+
+    <!-- ② ボディーカラー (円グラフ) -->
+    <div class="chart-card">
+      <h3 class="chart-title">🎨 ボディーカラー</h3>
+      <div class="chart-container">
+        <canvas id="colorChart"></canvas>
+      </div>
+    </div>
+
+    <!-- ③ 排気量 (横棒グラフ) -->
+    <div class="chart-card full-width">
+      <h3 class="chart-title">⚙️ エンジン排気量</h3>
+      <div class="chart-container">
+        <canvas id="engineChart"></canvas>
+      </div>
+    </div>
+
+    <!-- ④ 年式 (縦棒グラフ) -->
+    <div class="chart-card full-width">
+      <h3 class="chart-title">📅 年式別 (Production Year)</h3>
+      <div class="chart-container tall">
+        <canvas id="yearChart"></canvas>
+      </div>
+    </div>
+
+    <!-- ⑤ 生息地トップ10 (横棒グラフ) -->
+    <div class="chart-card full-width">
+      <h3 class="chart-title">📍 生息地 (都道府県 TOP10)</h3>
+      <div class="chart-container">
+        <canvas id="prefChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // 色の定義 (Fiat 500っぽいパレット)
+  const COLOR_PALETTE = {
+    red:    '#D32F2F', // 赤
+    white:  '#f5f5f5', // 白 (枠線ありにする)
+    yellow: '#FBC02D', // 黄
+    blue:   '#1976D2', // 青
+    lightBlue: '#81D4FA', // 水色
+    green:  '#388E3C', // 緑
+    grey:   '#757575', // グレー
+    beige:  '#D7CCC8', // ベージュ
+    black:  '#212121', // 黒
+    orange: '#F57C00', // オレンジ
+    other:  '#CFD8DC'  // その他
+  };
+
+  async function initStats() {
+    try {
+      // index.html と同じAPIからデータを取得
+      const res = await fetch(API_URL + '?mode=index');
+      const json = await res.json();
+      
+      if (!json.success) throw new Error("データ取得失敗");
+      
+      const cars = json.data;
+      document.getElementById('totalCount').innerText = cars.length;
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('statsContent').style.display = 'grid';
+
+      // グラフ描画実行
+      renderModelChart(cars);
+      renderColorChart(cars);
+      renderEngineChart(cars);
+      renderYearChart(cars);
+      renderPrefChart(cars);
+
+    } catch (e) {
+      console.error(e);
+      document.getElementById('loading').innerText = "データの読み込みに失敗しました";
+    }
+  }
+
+  // --- ヘルパー関数: 集計 ---
+  function aggregate(data, keyExtractor) {
+    const counts = {};
+    data.forEach(item => {
+      let key = keyExtractor(item);
+      if (!key) key = "不明/未記入";
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    // 多い順にソート
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }
+
+  // ① モデル別グラフ
+  function renderModelChart(cars) {
+    const data = aggregate(cars, c => {
+      // 表示名から余計なものを消してシンプルにする
+      let name = c.Model_DisplayC || 'その他';
+      // 例: "Nuova 500 (1957)" -> "Nuova 500"
+      name = name.split('(')[0].trim();
+      return name;
+    });
+
+    new Chart(document.getElementById('modelChart'), {
+      type: 'doughnut',
+      data: {
+        labels: data.map(d => d[0]),
+        datasets: [{
+          data: data.map(d => d[1]),
+          backgroundColor: ['#2856a8', '#4caf50', '#ff9800', '#e91e63', '#9c27b0', '#795548', '#607d8b'],
+          borderWidth: 1
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+  }
+
+  // ② カラーグラフ (表記ゆれ吸収ロジック付き)
+  function renderColorChart(cars) {
+    const colorGroups = {
+      '白系': { count: 0, color: COLOR_PALETTE.white, border: '#999' },
+      '赤系': { count: 0, color: COLOR_PALETTE.red },
+      '黄系': { count: 0, color: COLOR_PALETTE.yellow },
+      '青/紺系': { count: 0, color: COLOR_PALETTE.blue },
+      '水色系': { count: 0, color: COLOR_PALETTE.lightBlue },
+      '緑系': { count: 0, color: COLOR_PALETTE.green },
+      '灰系': { count: 0, color: COLOR_PALETTE.grey },
+      'ベージュ/茶': { count: 0, color: COLOR_PALETTE.beige },
+      '黒系': { count: 0, color: COLOR_PALETTE.black },
+      'その他': { count: 0, color: COLOR_PALETTE.other }
+    };
+
+    cars.forEach(c => {
+      // ColorSelect か ColorText のどちらかを見る
+      const txt = ((c.ColorSelect || '') + (c.ColorText || '')).toLowerCase();
+      
+      if (txt.match(/白|white|bianco|ホワイト/)) colorGroups['白系'].count++;
+      else if (txt.match(/赤|red|rosso|レッド/)) colorGroups['赤系'].count++;
+      else if (txt.match(/黄|yellow|giallo|イエロー/)) colorGroups['黄系'].count++;
+      else if (txt.match(/水色|light blue|azur|アズール|パステルブルー/)) colorGroups['水色系'].count++;
+      else if (txt.match(/青|blue|blu|ブルー|ネイビー/)) colorGroups['青/紺系'].count++;
+      else if (txt.match(/緑|green|verde|グリーン/)) colorGroups['緑系'].count++;
+      else if (txt.match(/灰|grey|grigio|グレー|ガンメタ/)) colorGroups['灰系'].count++;
+      else if (txt.match(/ベージュ|beige|茶|brown|アイボリー/)) colorGroups['ベージュ/茶'].count++;
+      else if (txt.match(/黒|black|nero|ブラック/)) colorGroups['黒系'].count++;
+      else colorGroups['その他'].count++;
+    });
+
+    // 0件のものは除外
+    const labels = [];
+    const counts = [];
+    const bgColors = [];
+    const borderColors = [];
+
+    for (const [key, val] of Object.entries(colorGroups)) {
+      if (val.count > 0) {
+        labels.push(key);
+        counts.push(val.count);
+        bgColors.push(val.color);
+        borderColors.push(val.border || val.color);
+      }
+    }
+
+    new Chart(document.getElementById('colorChart'), {
+      type: 'pie',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: counts,
+          backgroundColor: bgColors,
+          borderColor: borderColors,
+          borderWidth: 1
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+  }
+
+  // ③ 排気量グラフ
+  function renderEngineChart(cars) {
+    const data = aggregate(cars, c => {
+        let txt = c.Engine_Display || '';
+        // 数字だけ抽出 (例: "499cc" -> "499")
+        const match = txt.match(/\d+/);
+        if (match) {
+            // 代表的な排気量に丸める処理（必要に応じて）
+            return match[0] + 'cc';
+        }
+        return '不明/その他';
+    });
+
+    // 排気量順にソート (数値として比較)
+    data.sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+
+    new Chart(document.getElementById('engineChart'), {
+      type: 'bar',
+      data: {
+        labels: data.map(d => d[0]),
+        datasets: [{
+          label: '台数',
+          data: data.map(d => d[1]),
+          backgroundColor: '#5c6bc0'
+        }]
+      },
+      options: {
+        indexAxis: 'y', // 横棒グラフ
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+  }
+
+  // ④ 年式グラフ (ヒストグラム的)
+  function renderYearChart(cars) {
+    const counts = {};
+    const startYear = 1950;
+    const endYear = new Date().getFullYear();
+    
+    // 初期化
+    for(let y = 1957; y <= 1977; y++) counts[y] = 0; // クラシックの主要年
+    
+    cars.forEach(c => {
+      const y = parseInt(c.Year);
+      if (y && y > 1900 && y < endYear + 1) {
+        counts[y] = (counts[y] || 0) + 1;
+      }
+    });
+
+    // オブジェクトを配列に (キーでソート)
+    const sortedYears = Object.keys(counts).sort();
+    
+    new Chart(document.getElementById('yearChart'), {
+      type: 'bar',
+      data: {
+        labels: sortedYears,
+        datasets: [{
+          label: '登録台数',
+          data: sortedYears.map(y => counts[y]),
+          backgroundColor: '#ffa726'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: { title: { display: true, text: '年式 (西暦)' } }
+        }
+      }
+    });
+  }
+
+  // ⑤ 生息地 (TOP10)
+  function renderPrefChart(cars) {
+    const data = aggregate(cars, c => c.Prefecture || '未登録');
+    const top10 = data.slice(0, 10); // 上位10件
+
+    new Chart(document.getElementById('prefChart'), {
+      type: 'bar',
+      data: {
+        labels: top10.map(d => d[0]),
+        datasets: [{
+          label: '台数',
+          data: top10.map(d => d[1]),
+          backgroundColor: '#26a69a'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+  }
+
+  // 実行
+  initStats();
+
+</script>
+</body>
+</html>
