@@ -6,12 +6,13 @@
   <title>統計データ | Registro500 Giappone</title>
   
   <!-- 設定ファイル読み込み -->
-  <script src="config_test.js"></script>
+  <!-- ★テスト中はここを src="config_test.js" に書き換えて使ってください -->
+  <script src="config.js"></script>
+  
   <!-- Chart.js 読み込み -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    /* index.html から基本スタイルを流用 */
     :root {
       --bg-main: #f4f4f7;
       --card-bg: #ffffff;
@@ -28,13 +29,11 @@
     }
     .page { max-width: 1000px; margin: 0 auto; padding-bottom: 60px; }
     
-    /* ヘッダー */
     .header { margin-bottom: 40px; text-align: center; }
     .header h1 { margin: 0; color: var(--accent); font-size: 1.8rem; }
     .header p { color: #666; margin-top: 10px; }
     .back-link { display: inline-block; margin-top: 10px; color: var(--accent); text-decoration: none; }
 
-    /* グリッドレイアウト */
     .stats-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -45,7 +44,6 @@
       .full-width { grid-column: span 2; }
     }
 
-    /* カードスタイル */
     .chart-card {
       background: var(--card-bg);
       border-radius: var(--radius-lg);
@@ -61,13 +59,15 @@
       padding-bottom: 10px;
     }
     
-    /* グラフの高さ調整 */
     .chart-container {
       position: relative;
       height: 300px;
       width: 100%;
     }
     .chart-container.tall { height: 400px; }
+    
+    /* ローディング表示 */
+    #loading { text-align:center; padding: 40px; font-weight:bold; color: #666; }
   </style>
 </head>
 <body>
@@ -79,11 +79,11 @@
     <a href="index.html" class="back-link">← ガレージに戻る</a>
   </div>
 
-  <div id="loading" style="text-align:center;">データを集計中...</div>
+  <div id="loading">データを集計中...</div>
 
   <div class="stats-grid" id="statsContent" style="display:none;">
     
-    <!-- ① 車種モデル (ドーナツグラフ) -->
+    <!-- ① 車種モデル -->
     <div class="chart-card">
       <h3 class="chart-title">🚗 モデル別分布</h3>
       <div class="chart-container">
@@ -91,7 +91,7 @@
       </div>
     </div>
 
-    <!-- ② ボディーカラー (円グラフ) -->
+    <!-- ② ボディーカラー -->
     <div class="chart-card">
       <h3 class="chart-title">🎨 ボディーカラー</h3>
       <div class="chart-container">
@@ -99,7 +99,7 @@
       </div>
     </div>
 
-    <!-- ③ 排気量 (横棒グラフ) -->
+    <!-- ③ 排気量 -->
     <div class="chart-card full-width">
       <h3 class="chart-title">⚙️ エンジン排気量</h3>
       <div class="chart-container">
@@ -107,7 +107,7 @@
       </div>
     </div>
 
-    <!-- ④ 年式 (縦棒グラフ) -->
+    <!-- ④ 年式 -->
     <div class="chart-card full-width">
       <h3 class="chart-title">📅 年式別 (Production Year)</h3>
       <div class="chart-container tall">
@@ -115,7 +115,7 @@
       </div>
     </div>
 
-    <!-- ⑤ 生息地トップ10 (横棒グラフ) -->
+    <!-- ⑤ 生息地 -->
     <div class="chart-card full-width">
       <h3 class="chart-title">📍 生息地 (都道府県 TOP10)</h3>
       <div class="chart-container">
@@ -127,24 +127,24 @@
 </div>
 
 <script>
-  // 色の定義 (Fiat 500っぽいパレット)
+  // 色定義
   const COLOR_PALETTE = {
-    red:    '#D32F2F', // 赤
-    white:  '#f5f5f5', // 白 (枠線ありにする)
-    yellow: '#FBC02D', // 黄
-    blue:   '#1976D2', // 青
-    lightBlue: '#81D4FA', // 水色
-    green:  '#388E3C', // 緑
-    grey:   '#757575', // グレー
-    beige:  '#D7CCC8', // ベージュ
-    black:  '#212121', // 黒
-    orange: '#F57C00', // オレンジ
-    other:  '#CFD8DC'  // その他
+    red:    '#D32F2F', 
+    white:  '#f5f5f5', 
+    yellow: '#FBC02D', 
+    blue:   '#1976D2', 
+    lightBlue: '#81D4FA', 
+    green:  '#388E3C', 
+    grey:   '#757575', 
+    beige:  '#D7CCC8', 
+    black:  '#212121', 
+    orange: '#F57C00', 
+    other:  '#CFD8DC'  
   };
 
   async function initStats() {
     try {
-      // index.html と同じAPIからデータを取得
+      // APIからデータを取得
       const res = await fetch(API_URL + '?mode=index');
       const json = await res.json();
       
@@ -155,7 +155,6 @@
       document.getElementById('loading').style.display = 'none';
       document.getElementById('statsContent').style.display = 'grid';
 
-      // グラフ描画実行
       renderModelChart(cars);
       renderColorChart(cars);
       renderEngineChart(cars);
@@ -168,7 +167,7 @@
     }
   }
 
-  // --- ヘルパー関数: 集計 ---
+  // --- 集計ヘルパー ---
   function aggregate(data, keyExtractor) {
     const counts = {};
     data.forEach(item => {
@@ -176,17 +175,14 @@
       if (!key) key = "不明/未記入";
       counts[key] = (counts[key] || 0) + 1;
     });
-    // 多い順にソート
     return Object.entries(counts).sort((a, b) => b[1] - a[1]);
   }
 
-  // ① モデル別グラフ
+  // ① モデル別
   function renderModelChart(cars) {
     const data = aggregate(cars, c => {
-      // 表示名から余計なものを消してシンプルにする
       let name = c.Model_DisplayC || 'その他';
-      // 例: "Nuova 500 (1957)" -> "Nuova 500"
-      name = name.split('(')[0].trim();
+      name = name.split('(')[0].trim(); // 年式などを除去
       return name;
     });
 
@@ -204,7 +200,7 @@
     });
   }
 
-  // ② カラーグラフ (表記ゆれ吸収ロジック付き)
+  // ② カラー (★ここをBodyColorに対応させました)
   function renderColorChart(cars) {
     const colorGroups = {
       '白系': { count: 0, color: COLOR_PALETTE.white, border: '#999' },
@@ -216,26 +212,27 @@
       '灰系': { count: 0, color: COLOR_PALETTE.grey },
       'ベージュ/茶': { count: 0, color: COLOR_PALETTE.beige },
       '黒系': { count: 0, color: COLOR_PALETTE.black },
+      'オレンジ系': { count: 0, color: COLOR_PALETTE.orange },
       'その他': { count: 0, color: COLOR_PALETTE.other }
     };
 
     cars.forEach(c => {
-      //
+      // ★ここが重要な修正点：BodyColorを見るように変更
       const txt = (c.BodyColor || '').toLowerCase();
       
-      if (txt.match(/白|white|bianco|ホワイト/)) colorGroups['白系'].count++;
+      if (txt.match(/白|white|bianco|ホワイト|アイボリー|ivory/)) colorGroups['白系'].count++;
       else if (txt.match(/赤|red|rosso|レッド/)) colorGroups['赤系'].count++;
       else if (txt.match(/黄|yellow|giallo|イエロー/)) colorGroups['黄系'].count++;
-      else if (txt.match(/水色|light blue|azur|アズール|パステルブルー/)) colorGroups['水色系'].count++;
-      else if (txt.match(/青|blue|blu|ブルー|ネイビー/)) colorGroups['青/紺系'].count++;
+      else if (txt.match(/水色|light blue|azur|アズール|パステルブルー|アクア/)) colorGroups['水色系'].count++;
+      else if (txt.match(/青|blue|blu|ブルー|ネイビー|紺|midnite/)) colorGroups['青/紺系'].count++;
       else if (txt.match(/緑|green|verde|グリーン/)) colorGroups['緑系'].count++;
       else if (txt.match(/灰|grey|grigio|グレー|ガンメタ/)) colorGroups['灰系'].count++;
-      else if (txt.match(/ベージュ|beige|茶|brown|アイボリー/)) colorGroups['ベージュ/茶'].count++;
+      else if (txt.match(/ベージュ|beige|茶|brown/)) colorGroups['ベージュ/茶'].count++;
       else if (txt.match(/黒|black|nero|ブラック/)) colorGroups['黒系'].count++;
+      else if (txt.match(/オレンジ|orange|arancia/)) colorGroups['オレンジ系'].count++;
       else colorGroups['その他'].count++;
     });
 
-    // 0件のものは除外
     const labels = [];
     const counts = [];
     const bgColors = [];
@@ -265,20 +262,19 @@
     });
   }
 
-  // ③ 排気量グラフ
+  // ③ 排気量
   function renderEngineChart(cars) {
     const data = aggregate(cars, c => {
         let txt = c.Engine_Display || '';
-        // 数字だけ抽出 (例: "499cc" -> "499")
         const match = txt.match(/\d+/);
         if (match) {
-            // 代表的な排気量に丸める処理（必要に応じて）
-            return match[0] + 'cc';
+            // "110F"などの型式は除外して、数字(cc)っぽいものだけ拾う簡易ロジック
+            const num = parseInt(match[0]);
+            if(num > 400 && num < 1000) return num + 'cc'; 
         }
         return '不明/その他';
     });
-
-    // 排気量順にソート (数値として比較)
+    // cc順にソート
     data.sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
 
     new Chart(document.getElementById('engineChart'), {
@@ -291,31 +287,19 @@
           backgroundColor: '#5c6bc0'
         }]
       },
-      options: {
-        indexAxis: 'y', // 横棒グラフ
-        responsive: true,
-        maintainAspectRatio: false
-      }
+      options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false }
     });
   }
 
-  // ④ 年式グラフ (ヒストグラム的)
+  // ④ 年式
   function renderYearChart(cars) {
     const counts = {};
-    const startYear = 1950;
-    const endYear = new Date().getFullYear();
-    
-    // 初期化
-    for(let y = 1957; y <= 1977; y++) counts[y] = 0; // クラシックの主要年
+    for(let y = 1957; y <= 1977; y++) counts[y] = 0; 
     
     cars.forEach(c => {
       const y = parseInt(c.Year);
-      if (y && y > 1900 && y < endYear + 1) {
-        counts[y] = (counts[y] || 0) + 1;
-      }
+      if (y && y > 1900 && y < 2026) counts[y] = (counts[y] || 0) + 1;
     });
-
-    // オブジェクトを配列に (キーでソート)
     const sortedYears = Object.keys(counts).sort();
     
     new Chart(document.getElementById('yearChart'), {
@@ -328,20 +312,14 @@
           backgroundColor: '#ffa726'
         }]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-            x: { title: { display: true, text: '年式 (西暦)' } }
-        }
-      }
+      options: { responsive: true, maintainAspectRatio: false }
     });
   }
 
-  // ⑤ 生息地 (TOP10)
+  // ⑤ 生息地
   function renderPrefChart(cars) {
     const data = aggregate(cars, c => c.Prefecture || '未登録');
-    const top10 = data.slice(0, 10); // 上位10件
+    const top10 = data.slice(0, 10);
 
     new Chart(document.getElementById('prefChart'), {
       type: 'bar',
@@ -353,16 +331,12 @@
           backgroundColor: '#26a69a'
         }]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false
-      }
+      options: { responsive: true, maintainAspectRatio: false }
     });
   }
 
   // 実行
   initStats();
-
 </script>
 </body>
 </html>
