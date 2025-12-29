@@ -6,7 +6,10 @@
   <title>統計データ | Registro500 Giappone</title>
   
   <script src="config.js"></script>
+  <!-- Chart.js 本体 -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- 数値をグラフ上に表示するためのプラグイン -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 
   <style>
     :root {
@@ -30,7 +33,6 @@
     .header p { color: #666; margin-top: 10px; }
     .back-link { display: inline-block; margin-top: 10px; color: var(--accent); text-decoration: none; }
 
-    /* レイアウト調整 */
     .stats-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -90,7 +92,7 @@
 
     <!-- ② ボディーカラー (円グラフ) -->
     <div class="chart-card">
-      <h3 class="chart-title">🎨 ボディーカラー</h3>
+      <h3 class="chart-title">🎨 ボディーカラー (多い順)</h3>
       <div class="chart-container">
         <canvas id="colorChart"></canvas>
       </div>
@@ -108,7 +110,9 @@
 </div>
 
 <script>
-  // 色定義
+  // DataLabelsプラグインを登録
+  Chart.register(ChartDataLabels);
+
   const COLOR_PALETTE = {
     white:  '#f5f5f5', 
     red:    '#D32F2F', 
@@ -146,7 +150,6 @@
     }
   }
 
-  // --- 集計ヘルパー ---
   function aggregate(data, keyExtractor) {
     const counts = {};
     data.forEach(item => {
@@ -154,11 +157,10 @@
       if (!key) key = "不明/未記入";
       counts[key] = (counts[key] || 0) + 1;
     });
-    // 台数が多い順にソートして返す
     return Object.entries(counts).sort((a, b) => b[1] - a[1]);
   }
 
-  // ① モデル別 (横棒)
+  // ① モデル別
   function renderModelChart(cars) {
     const data = aggregate(cars, c => {
       let name = c.Model_DisplayC || 'その他';
@@ -181,13 +183,23 @@
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        layout: { padding: { right: 30 } }, // 右側に数字が出るスペースを確保
+        plugins: { 
+          legend: { display: false },
+          datalabels: {
+            anchor: 'end', // 棒の端っこを基準に
+            align: 'end',  // 外側に表示
+            color: '#333',
+            font: { weight: 'bold' },
+            formatter: (value) => value + '台'
+          }
+        },
         scales: { x: { beginAtZero: true } }
       }
     });
   }
 
-  // ② カラー
+  // ② カラー (多い順ソート + 数値表示)
   function renderColorChart(cars) {
     const colorGroups = {
       '白系': { count: 0, color: COLOR_PALETTE.white, border: '#ccc' }, 
@@ -222,56 +234,64 @@
       else { colorGroups['その他'].count++; }
     });
 
-    const labels = [];
-    const counts = [];
-    const bgColors = [];
-    const borderColors = [];
-
+    let sortedData = [];
     for (const [key, val] of Object.entries(colorGroups)) {
       if (val.count > 0) {
-        labels.push(key);
-        counts.push(val.count);
-        bgColors.push(val.color);
-        borderColors.push(val.border || val.color);
+        sortedData.push({
+          label: key,
+          count: val.count,
+          color: val.color,
+          border: val.border || val.color
+        });
       }
     }
+    sortedData.sort((a, b) => b.count - a.count);
 
     new Chart(document.getElementById('colorChart'), {
       type: 'pie',
       data: {
-        labels: labels,
+        labels: sortedData.map(d => d.label),
         datasets: [{
-          data: counts,
-          backgroundColor: bgColors,
-          borderColor: borderColors,
+          data: sortedData.map(d => d.count),
+          backgroundColor: sortedData.map(d => d.color),
+          borderColor: sortedData.map(d => d.border),
           borderWidth: 1
         }]
       },
       options: { 
         responsive: true, 
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'right' } }
+        plugins: { 
+          legend: { position: 'right' },
+          datalabels: {
+            color: '#fff', // 文字色を白に
+            font: { weight: 'bold', size: 14 },
+            textShadowColor: '#000', // 白背景の時用に影をつける（見やすくするため）
+            textShadowBlur: 3,
+            formatter: (value) => value // 単に数値を表示
+          }
+        }
       }
     });
   }
 
-  // ③ エンジン (EngineCC列の数値を使う)
+  // ③ エンジン (未記入は最後 + 数値表示)
   function renderEngineChart(cars) {
     const data = aggregate(cars, c => {
-        // GASでEngineCCを追加したので、これを使う
         let txt = String(c.EngineCC || '').trim();
-        
-        // "650cc", "499" などの文字列から数字だけ抜き出す
         let num = txt.replace(/[^\d]/g, '');
-        
-        if (num) {
-          return num + 'cc';
-        }
+        if (num) return num + 'cc';
         return '未記入/不明';
     });
 
-    // ここは「数値が小さい順（排気量順）」に並び替える
-    data.sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+    // 並び替えロジック変更
+    data.sort((a, b) => {
+      // "未記入/不明" は強制的に後ろへ
+      if (a[0] === '未記入/不明') return 1;
+      if (b[0] === '未記入/不明') return -1;
+      // それ以外は数値順 (昇順)
+      return parseInt(a[0]) - parseInt(b[0]);
+    });
 
     new Chart(document.getElementById('engineChart'), {
       type: 'bar',
@@ -288,7 +308,17 @@
         indexAxis: 'y', 
         responsive: true, 
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } }
+        layout: { padding: { right: 30 } },
+        plugins: { 
+          legend: { display: false },
+          datalabels: {
+            anchor: 'end',
+            align: 'end',
+            color: '#333',
+            font: { weight: 'bold' },
+            formatter: (value) => value + '台'
+          }
+        }
       }
     });
   }
