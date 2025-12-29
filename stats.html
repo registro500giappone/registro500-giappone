@@ -5,11 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>統計データ | Registro500 Giappone</title>
   
-  <!-- 設定ファイル読み込み -->
-  <!-- ★テスト中はここを src="config_test.js" に書き換えて使ってください -->
   <script src="config.js"></script>
-  
-  <!-- Chart.js 読み込み -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
@@ -34,6 +30,7 @@
     .header p { color: #666; margin-top: 10px; }
     .back-link { display: inline-block; margin-top: 10px; color: var(--accent); text-decoration: none; }
 
+    /* レイアウト調整 */
     .stats-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -49,6 +46,8 @@
       border-radius: var(--radius-lg);
       padding: 24px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
     }
     .chart-title {
       margin: 0 0 20px 0;
@@ -61,12 +60,10 @@
     
     .chart-container {
       position: relative;
-      height: 300px;
+      height: 350px;
       width: 100%;
     }
-    .chart-container.tall { height: 400px; }
     
-    /* ローディング表示 */
     #loading { text-align:center; padding: 40px; font-weight:bold; color: #666; }
   </style>
 </head>
@@ -83,15 +80,15 @@
 
   <div class="stats-grid" id="statsContent" style="display:none;">
     
-    <!-- ① 車種モデル -->
-    <div class="chart-card">
-      <h3 class="chart-title">🚗 モデル別分布</h3>
+    <!-- ① 車種モデル (横棒グラフ) -->
+    <div class="chart-card full-width">
+      <h3 class="chart-title">🚗 モデル別分布 (台数順)</h3>
       <div class="chart-container">
         <canvas id="modelChart"></canvas>
       </div>
     </div>
 
-    <!-- ② ボディーカラー -->
+    <!-- ② ボディーカラー (円グラフ) -->
     <div class="chart-card">
       <h3 class="chart-title">🎨 ボディーカラー</h3>
       <div class="chart-container">
@@ -99,27 +96,11 @@
       </div>
     </div>
 
-    <!-- ③ 排気量 -->
-    <div class="chart-card full-width">
-      <h3 class="chart-title">⚙️ エンジン排気量</h3>
+    <!-- ③ 排気量 (横棒グラフ) -->
+    <div class="chart-card">
+      <h3 class="chart-title">⚙️ エンジン排気量 (cc)</h3>
       <div class="chart-container">
         <canvas id="engineChart"></canvas>
-      </div>
-    </div>
-
-    <!-- ④ 年式 -->
-    <div class="chart-card full-width">
-      <h3 class="chart-title">📅 年式別 (Production Year)</h3>
-      <div class="chart-container tall">
-        <canvas id="yearChart"></canvas>
-      </div>
-    </div>
-
-    <!-- ⑤ 生息地 -->
-    <div class="chart-card full-width">
-      <h3 class="chart-title">📍 生息地 (都道府県 TOP10)</h3>
-      <div class="chart-container">
-        <canvas id="prefChart"></canvas>
       </div>
     </div>
 
@@ -129,8 +110,8 @@
 <script>
   // 色定義
   const COLOR_PALETTE = {
-    red:    '#D32F2F', 
     white:  '#f5f5f5', 
+    red:    '#D32F2F', 
     yellow: '#FBC02D', 
     blue:   '#1976D2', 
     lightBlue: '#81D4FA', 
@@ -138,13 +119,13 @@
     grey:   '#757575', 
     beige:  '#D7CCC8', 
     black:  '#212121', 
-    orange: '#F57C00', 
+    orange: '#F57C00',
+    purple: '#7B1FA2',
     other:  '#CFD8DC'  
   };
 
   async function initStats() {
     try {
-      // APIからデータを取得
       const res = await fetch(API_URL + '?mode=index');
       const json = await res.json();
       
@@ -158,8 +139,6 @@
       renderModelChart(cars);
       renderColorChart(cars);
       renderEngineChart(cars);
-      renderYearChart(cars);
-      renderPrefChart(cars);
 
     } catch (e) {
       console.error(e);
@@ -175,62 +154,72 @@
       if (!key) key = "不明/未記入";
       counts[key] = (counts[key] || 0) + 1;
     });
+    // 台数が多い順にソートして返す
     return Object.entries(counts).sort((a, b) => b[1] - a[1]);
   }
 
-  // ① モデル別
+  // ① モデル別 (横棒)
   function renderModelChart(cars) {
     const data = aggregate(cars, c => {
       let name = c.Model_DisplayC || 'その他';
-      name = name.split('(')[0].trim(); // 年式などを除去
+      name = name.split('(')[0].trim();
       return name;
     });
 
     new Chart(document.getElementById('modelChart'), {
-      type: 'doughnut',
+      type: 'bar',
       data: {
         labels: data.map(d => d[0]),
         datasets: [{
+          label: '台数',
           data: data.map(d => d[1]),
-          backgroundColor: ['#2856a8', '#4caf50', '#ff9800', '#e91e63', '#9c27b0', '#795548', '#607d8b'],
-          borderWidth: 1
+          backgroundColor: '#2856a8',
+          borderRadius: 4
         }]
       },
-      options: { responsive: true, maintainAspectRatio: false }
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true } }
+      }
     });
   }
 
-  // ② カラー (★ここをBodyColorに対応させました)
+  // ② カラー
   function renderColorChart(cars) {
     const colorGroups = {
-      '白系': { count: 0, color: COLOR_PALETTE.white, border: '#999' },
+      '白系': { count: 0, color: COLOR_PALETTE.white, border: '#ccc' }, 
       '赤系': { count: 0, color: COLOR_PALETTE.red },
       '黄系': { count: 0, color: COLOR_PALETTE.yellow },
-      '青/紺系': { count: 0, color: COLOR_PALETTE.blue },
       '水色系': { count: 0, color: COLOR_PALETTE.lightBlue },
+      '青/紺系': { count: 0, color: COLOR_PALETTE.blue },
       '緑系': { count: 0, color: COLOR_PALETTE.green },
       '灰系': { count: 0, color: COLOR_PALETTE.grey },
-      'ベージュ/茶': { count: 0, color: COLOR_PALETTE.beige },
+      'ベージュ/茶/アイボリー': { count: 0, color: COLOR_PALETTE.beige },
       '黒系': { count: 0, color: COLOR_PALETTE.black },
       'オレンジ系': { count: 0, color: COLOR_PALETTE.orange },
+      '紫/ピンク系': { count: 0, color: COLOR_PALETTE.purple },
       'その他': { count: 0, color: COLOR_PALETTE.other }
     };
 
     cars.forEach(c => {
-      // ★ここが重要な修正点：BodyColorを見るように変更
       const txt = (c.BodyColor || '').toLowerCase();
       
-      if (txt.match(/白|white|bianco|ホワイト|アイボリー|ivory/)) colorGroups['白系'].count++;
-      else if (txt.match(/赤|red|rosso|レッド/)) colorGroups['赤系'].count++;
-      else if (txt.match(/黄|yellow|giallo|イエロー/)) colorGroups['黄系'].count++;
-      else if (txt.match(/水色|light blue|azur|アズール|パステルブルー|アクア/)) colorGroups['水色系'].count++;
-      else if (txt.match(/青|blue|blu|ブルー|ネイビー|紺|midnite/)) colorGroups['青/紺系'].count++;
-      else if (txt.match(/緑|green|verde|グリーン/)) colorGroups['緑系'].count++;
-      else if (txt.match(/灰|grey|grigio|グレー|ガンメタ/)) colorGroups['灰系'].count++;
-      else if (txt.match(/ベージュ|beige|茶|brown/)) colorGroups['ベージュ/茶'].count++;
-      else if (txt.match(/黒|black|nero|ブラック/)) colorGroups['黒系'].count++;
-      else if (txt.match(/オレンジ|orange|arancia/)) colorGroups['オレンジ系'].count++;
-      else colorGroups['その他'].count++;
+      if (!txt) {} 
+      else if (txt.match(/白|white|bianco|ホワイト|アイボリー|ivory|avorio|パール/)) { colorGroups['白系'].count++; }
+      else if (txt.match(/赤|red|rosso|レッド|ワイン|ボルドー|corallo/)) { colorGroups['赤系'].count++; }
+      else if (txt.match(/黄|yellow|giallo|イエロー|クリーム|マスタード|positano/)) { colorGroups['黄系'].count++; }
+      else if (txt.match(/水色|light blue|azur|アズール|パステルブルー|アクア|celeste|volare|ターコイズ|空色/)) { colorGroups['水色系'].count++; }
+      else if (txt.match(/青|blue|blu|ブルー|ネイビー|紺|midnite|midnight|ダークブルー/)) { colorGroups['青/紺系'].count++; }
+      else if (txt.match(/緑|green|verde|グリーン|オリーブ|モス|ミント/)) { colorGroups['緑系'].count++; }
+      else if (txt.match(/灰|grey|grigio|グレー|ガンメタ|シルバー|銀/)) { colorGroups['灰系'].count++; }
+      else if (txt.match(/ベージュ|beige|茶|brown|マロン|ココア|sabbia|champagne/)) { colorGroups['ベージュ/茶/アイボリー'].count++; }
+      else if (txt.match(/黒|black|nero|ブラック/)) { colorGroups['黒系'].count++; }
+      else if (txt.match(/オレンジ|orange|arancia|柿/)) { colorGroups['オレンジ系'].count++; }
+      else if (txt.match(/紫|パープル|ピンク|pink|viola|lilla/)) { colorGroups['紫/ピンク系'].count++; }
+      else { colorGroups['その他'].count++; }
     });
 
     const labels = [];
@@ -258,23 +247,30 @@
           borderWidth: 1
         }]
       },
-      options: { responsive: true, maintainAspectRatio: false }
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'right' } }
+      }
     });
   }
 
-  // ③ 排気量
+  // ③ エンジン (EngineCC列の数値を使う)
   function renderEngineChart(cars) {
     const data = aggregate(cars, c => {
-        let txt = c.Engine_Display || '';
-        const match = txt.match(/\d+/);
-        if (match) {
-            // "110F"などの型式は除外して、数字(cc)っぽいものだけ拾う簡易ロジック
-            const num = parseInt(match[0]);
-            if(num > 400 && num < 1000) return num + 'cc'; 
+        // GASでEngineCCを追加したので、これを使う
+        let txt = String(c.EngineCC || '').trim();
+        
+        // "650cc", "499" などの文字列から数字だけ抜き出す
+        let num = txt.replace(/[^\d]/g, '');
+        
+        if (num) {
+          return num + 'cc';
         }
-        return '不明/その他';
+        return '未記入/不明';
     });
-    // cc順にソート
+
+    // ここは「数値が小さい順（排気量順）」に並び替える
     data.sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
 
     new Chart(document.getElementById('engineChart'), {
@@ -284,58 +280,19 @@
         datasets: [{
           label: '台数',
           data: data.map(d => d[1]),
-          backgroundColor: '#5c6bc0'
+          backgroundColor: '#5c6bc0',
+          borderRadius: 4
         }]
       },
-      options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false }
+      options: { 
+        indexAxis: 'y', 
+        responsive: true, 
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } }
+      }
     });
   }
 
-  // ④ 年式
-  function renderYearChart(cars) {
-    const counts = {};
-    for(let y = 1957; y <= 1977; y++) counts[y] = 0; 
-    
-    cars.forEach(c => {
-      const y = parseInt(c.Year);
-      if (y && y > 1900 && y < 2026) counts[y] = (counts[y] || 0) + 1;
-    });
-    const sortedYears = Object.keys(counts).sort();
-    
-    new Chart(document.getElementById('yearChart'), {
-      type: 'bar',
-      data: {
-        labels: sortedYears,
-        datasets: [{
-          label: '登録台数',
-          data: sortedYears.map(y => counts[y]),
-          backgroundColor: '#ffa726'
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
-  }
-
-  // ⑤ 生息地
-  function renderPrefChart(cars) {
-    const data = aggregate(cars, c => c.Prefecture || '未登録');
-    const top10 = data.slice(0, 10);
-
-    new Chart(document.getElementById('prefChart'), {
-      type: 'bar',
-      data: {
-        labels: top10.map(d => d[0]),
-        datasets: [{
-          label: '台数',
-          data: top10.map(d => d[1]),
-          backgroundColor: '#26a69a'
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
-  }
-
-  // 実行
   initStats();
 </script>
 </body>
