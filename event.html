@@ -5,10 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>イベント情報 | Registro500 Giappone</title>
   
-  <!-- 設定ファイル -->
   <script src="config.js"></script>
-  
-  <!-- Firebase (認証用) -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 
@@ -23,7 +20,7 @@
       font-family: system-ui, sans-serif;
       background-color: var(--bg-main);
       color: var(--text-main);
-      margin: 0; padding: 20px 16px 80px; /* 下部にボタン用余白 */
+      margin: 0; padding: 20px 16px 80px;
     }
     .page { max-width: 800px; margin: 0 auto; }
     
@@ -31,95 +28,84 @@
     .header h1 { color: var(--accent); margin-bottom: 5px; }
     .back-link { color: var(--accent); text-decoration: none; font-weight: bold; }
 
-    /* セクション */
     .section-title {
       font-size: 1.2rem; font-weight: bold; margin: 40px 0 15px;
-      padding-bottom: 5px; border-bottom: 2px solid #ddd;
-      color: #444;
+      padding-bottom: 5px; border-bottom: 2px solid #ddd; color: #444;
     }
 
-    /* イベントカード */
     .event-card {
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      border-left: 5px solid var(--accent);
+      background: var(--card-bg); border-radius: 12px; padding: 20px;
+      margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      border-left: 5px solid var(--accent); position: relative;
     }
-    .event-card.past {
-      border-left-color: #999;
-      opacity: 0.8;
-      background: #f9f9f9;
-    }
+    .event-card.past { border-left-color: #999; opacity: 0.8; background: #f9f9f9; }
     
     .ev-date { font-weight: bold; color: var(--accent); font-size: 1.1rem; }
     .ev-week { font-size: 0.9rem; color: #666; margin-left: 5px; }
-    .event-card.past .ev-date { color: #666; text-decoration: line-through; }
-
     .ev-title { margin: 8px 0; font-size: 1.25rem; font-weight: bold; }
-    
     .ev-info-row { display: flex; gap: 15px; margin-bottom: 8px; color: #444; font-size: 0.95rem; align-items: center; }
     .ev-icon { width: 20px; text-align: center; }
-
+    
     .ev-desc { 
       margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee;
       white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6;
     }
 
     .ev-footer {
-      margin-top: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;
+      margin-top: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; flex-wrap: wrap; gap: 10px;
     }
     .owner-badge {
       display: inline-flex; align-items: center; gap: 5px;
       text-decoration: none; color: #555; background: #eee;
       padding: 4px 10px; border-radius: 20px; transition: 0.2s;
     }
-    .owner-badge:hover { background: #ddd; color: #000; }
-    
     .ev-link-btn {
       display: inline-block; background: var(--accent); color: white;
       text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 0.9rem;
     }
 
-    /* 投稿ボタン (FAB) */
+    /* 参加ボタンエリア */
+    .participation-area {
+      margin-top: 15px; padding: 12px; background: #f0f7ff; border-radius: 8px;
+      display: flex; align-items: flex-start; gap: 15px;
+    }
+    .btn-join {
+      background: white; border: 2px solid var(--accent); color: var(--accent);
+      padding: 6px 16px; border-radius: 20px; font-weight: bold; cursor: pointer;
+      display: flex; align-items: center; gap: 5px; transition: 0.2s; flex-shrink: 0;
+    }
+    .btn-join.joined { background: var(--accent); color: white; }
+    .btn-join:hover { opacity: 0.8; }
+    
+    .participants-list { font-size: 0.85rem; color: #666; flex-grow: 1; }
+    .participant-link {
+      color: var(--accent); text-decoration: none; font-weight: 500;
+      margin-right: 3px; display: inline-block;
+    }
+    .participant-link:hover { text-decoration: underline; }
+    .participant-link:not(:last-child):after { content: ","; color: #666; }
+
+    /* FAB & Modal */
     .fab-btn {
       position: fixed; bottom: 20px; right: 20px;
-      background: #e11d48; color: white;
-      width: 60px; height: 60px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      cursor: pointer; z-index: 100; transition: transform 0.2s;
+      background: #e11d48; color: white; width: 60px; height: 60px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 30px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer; z-index: 100;
     }
-    .fab-btn:active { transform: scale(0.95); }
-
-    /* モーダル */
     .modal-overlay {
       position: fixed; top:0; left:0; width:100%; height:100%;
-      background: rgba(0,0,0,0.5); z-index: 200;
-      display: none; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.5); z-index: 200; display: none; align-items: center; justify-content: center;
     }
     .modal-content {
-      background: white; width: 90%; max-width: 500px;
-      padding: 25px; border-radius: 12px;
+      background: white; width: 90%; max-width: 500px; padding: 25px; border-radius: 12px;
       max-height: 90vh; overflow-y: auto;
     }
-    .form-group { margin-bottom: 15px; }
-    .form-label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
     .form-input, .form-textarea, .form-select {
-      width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;
-      font-size: 1rem;
+      width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; margin-bottom: 15px;
     }
     .form-textarea { height: 100px; }
-    
     .btn-submit {
-      width: 100%; background: var(--accent); color: white; border: none;
-      padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer;
-    }
-    .btn-submit:disabled { background: #ccc; }
-
-    .login-alert {
-      color: #e11d48; font-weight: bold; text-align: center; margin-bottom: 10px; display: none;
+      width: 100%; background: var(--accent); color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer;
     }
   </style>
 </head>
@@ -127,7 +113,6 @@
 
 <div class="page">
   <a href="index.html" class="back-link">← ガレージに戻る</a>
-  
   <div class="header">
     <h1>Eventi</h1>
     <p>FIAT 500 イベント・ミーティング情報</p>
@@ -135,66 +120,43 @@
 
   <div id="loading" style="text-align:center; padding:40px;">読み込んでいます...</div>
 
-  <!-- 今後のイベント -->
   <div id="futureSection" style="display:none;">
     <h2 class="section-title">📅 今後のイベント</h2>
     <div id="futureList"></div>
   </div>
 
-  <!-- 過去のイベント -->
   <div id="pastSection" style="display:none;">
     <h2 class="section-title">🗄️ 終了したイベント</h2>
     <div id="pastList"></div>
   </div>
 </div>
 
-<!-- 投稿ボタン -->
 <div class="fab-btn" id="postBtn" title="イベントを投稿する">＋</div>
 
-<!-- 投稿モーダル -->
 <div class="modal-overlay" id="postModal">
   <div class="modal-content">
     <h2 style="margin-top:0;">イベント投稿</h2>
-    <p class="login-alert" id="loginAlert">※投稿するにはログインが必要です</p>
-    
     <form id="eventForm">
-      <div class="form-group">
-        <label class="form-label">投稿するオーナー車両 <span style="color:red">*</span></label>
-        <select id="ownerCarSelect" class="form-select" required>
-          <option value="">読み込み中...</option>
-        </select>
-        <small style="color:#666;">※ログイン中のオーナーとして投稿されます</small>
-      </div>
+      <label class="form-label">投稿するオーナー <span style="color:red">*</span></label>
+      <select id="ownerCarSelect" class="form-select" required><option value="">読み込み中...</option></select>
 
-      <div class="form-group">
-        <label class="form-label">イベント名 <span style="color:red">*</span></label>
-        <input type="text" name="EventName" class="form-input" required placeholder="例: 新春 500 ミーティング">
-      </div>
+      <label class="form-label">イベント名 <span style="color:red">*</span></label>
+      <input type="text" name="EventName" class="form-input" required placeholder="例: 新春 500 ミーティング">
 
-      <div class="form-group">
-        <label class="form-label">開催日 <span style="color:red">*</span></label>
-        <input type="date" name="EventDate" class="form-input" required>
-      </div>
+      <label class="form-label">開催日時 <span style="color:red">*</span></label>
+      <input type="text" name="EventDate" class="form-input" required placeholder="例: 2026/1/10 10:00〜">
 
-      <div class="form-group">
-        <label class="form-label">場所・都道府県 <span style="color:red">*</span></label>
-        <input type="text" name="Location" class="form-input" required placeholder="例: 神奈川県〇〇公園">
-      </div>
+      <label class="form-label">開催場所（都道府県も記載してください） <span style="color:red">*</span></label>
+      <input type="text" name="Location" class="form-input" required placeholder="例: 神奈川県〇〇公園">
 
-      <div class="form-group">
-        <label class="form-label">費用</label>
-        <input type="text" name="Fee" class="form-input" placeholder="例: 無料、1000円など">
-      </div>
+      <label class="form-label">費用</label>
+      <input type="text" name="Fee" class="form-input" placeholder="例: 無料、1000円など">
 
-      <div class="form-group">
-        <label class="form-label">ウェブサイトURL</label>
-        <input type="url" name="URL" class="form-input" placeholder="https://...">
-      </div>
+      <label class="form-label">ウェブサイトURL</label>
+      <input type="url" name="URL" class="form-input" placeholder="https://...">
 
-      <div class="form-group">
-        <label class="form-label">詳細・備考</label>
-        <textarea name="Description" class="form-textarea" placeholder="詳細な時間や集合場所など"></textarea>
-      </div>
+      <label class="form-label">詳細・備考</label>
+      <textarea name="Description" class="form-textarea" placeholder="詳細な集合場所や内容など"></textarea>
 
       <button type="submit" class="btn-submit" id="submitBtn">投稿する</button>
       <button type="button" onclick="closeModal()" style="width:100%; margin-top:10px; background:none; border:none; color:#666;">キャンセル</button>
@@ -203,9 +165,7 @@
 </div>
 
 <script>
-  // ▼▼▼ ここから書き換え ▼▼▼
-  
-  // 1. 設定をここに直接書きます（これで読み込みエラーを防ぎます）
+  // Firebase設定
   const myFirebaseConfig = {
     apiKey: "AIzaSyCNCNsu61S3DIQ2pcmK2Ic_vqCINlZB9nk",
     authDomain: "registro500giappone-93f98.firebaseapp.com",
@@ -214,107 +174,147 @@
     messagingSenderId: "566236968832", 
     appId: "1:566236968832:web:7f6a75960090885e332200"
   };
-  // ※もし上記の値で動かない場合は、edit.htmlにある値をコピペしてください
 
-  // 2. Firebase初期化
   if (!firebase.apps.length) {
     firebase.initializeApp(myFirebaseConfig);
   }
 
-  // ▲▲▲ 書き換えここまで ▲▲▲
-
   let currentUser = null;
+  let myCarId = null;
 
-  // 初期ロード
   window.addEventListener('DOMContentLoaded', () => {
     fetchEvents();
-    
-    // ログイン状態監視
     firebase.auth().onAuthStateChanged(user => {
       currentUser = user;
+      if(user) checkMyCar(user);
     });
   });
 
-  // （以下のコードはそのまま...）  
+  async function checkMyCar(user) {
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`${API_URL}?mode=mycars&idToken=${token}`);
+      const json = await res.json();
+      if(json.success && json.data.length > 0) {
+        myCarId = json.data[0].DocumentID;
+      } else {
+        myCarId = "ADMIN"; 
+      }
+      fetchEvents(); 
+    } catch(e) {}
+  }
 
-
-  // イベント取得
   async function fetchEvents() {
     try {
       const res = await fetch(API_URL + '?mode=events');
       const json = await res.json();
-      
       document.getElementById('loading').style.display = 'none';
-      if (!json.success) return; // エラー等の場合
+      if (!json.success) return;
 
       const events = json.data;
-      const today = new Date();
-      today.setHours(0,0,0,0);
-
-      const futureContainer = document.getElementById('futureList');
-      const pastContainer = document.getElementById('pastList');
-      let futureCount = 0;
-      let pastCount = 0;
+      const today = new Date(); today.setHours(0,0,0,0);
+      const futureEl = document.getElementById('futureList');
+      const pastEl = document.getElementById('pastList');
+      futureEl.innerHTML = ''; pastEl.innerHTML = '';
 
       events.forEach(ev => {
-        const evDate = new Date(ev.EventDate);
-        const isPast = evDate < today;
-
+        let d = new Date(ev.EventDate);
+        if(isNaN(d.getTime())) d = new Date();
+        const isPast = d < today;
         const card = createEventCard(ev, isPast);
-        if (isPast) {
-          pastContainer.appendChild(card);
-          pastCount++;
-        } else {
-          futureContainer.appendChild(card);
-          futureCount++;
-        }
+        (isPast ? pastEl : futureEl).appendChild(card);
       });
 
-      if (futureCount > 0) document.getElementById('futureSection').style.display = 'block';
-      if (pastCount > 0) document.getElementById('pastSection').style.display = 'block';
+      if (futureEl.childElementCount > 0) document.getElementById('futureSection').style.display = 'block';
+      if (pastEl.childElementCount > 0) document.getElementById('pastSection').style.display = 'block';
 
-      if (futureCount === 0 && pastCount === 0) {
-         document.getElementById('loading').textContent = "現在登録されているイベントはありません。";
-         document.getElementById('loading').style.display = 'block';
-      }
-
-    } catch(e) {
-      console.error(e);
-      document.getElementById('loading').textContent = "読み込みエラー";
-    }
+    } catch(e) { console.error(e); }
   }
 
-  // カード生成
   function createEventCard(ev, isPast) {
     const div = document.createElement('div');
     div.className = 'event-card' + (isPast ? ' past' : '');
 
+    const participants = ev.Participants || [];
+    const count = participants.length;
+    const isJoined = participants.some(p => p.OwnerID === myCarId);
+    
+    // ★参加者名リンク生成（全員表示）
+    let namesHtml = "";
+    if (count === 0) {
+      namesHtml = "参加表明オーナーはまだいません";
+    } else {
+      namesHtml = participants.map(p => {
+        if(p.OwnerID === 'ADMIN') return `<span>${esc(p.HandleName)}</span>`;
+        return `<a href="detail.html?doc=${p.OwnerID}" target="_blank" class="participant-link">${esc(p.HandleName)}</a>`;
+      }).join('');
+    }
+
+    let dateStr = ev.EventDate;
     const d = new Date(ev.EventDate);
-    const dateStr = `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`;
-    const week = ['日','月','火','水','木','金','土'][d.getDay()];
+    if(!isNaN(d.getTime())) {
+       dateStr = `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()} (${['日','月','火','水','木','金','土'][d.getDay()]})`;
+    }
 
     const linkHtml = ev.URL ? `<a href="${ev.URL}" target="_blank" class="ev-link-btn">Webサイトへ</a>` : '';
+    const ownerLink = ev.OwnerID === 'ADMIN' ? 
+        `<span class="owner-badge">👤 ${esc(ev.OwnerName)}</span>` : 
+        `<a href="detail.html?doc=${ev.OwnerID}" class="owner-badge" target="_blank">👤 ${esc(ev.OwnerName)}</a>`;
+
+    const joinBtnHtml = isPast ? '' : `
+      <div class="participation-area">
+        <button class="btn-join ${isJoined ? 'joined' : ''}" onclick="toggleJoin('${ev.EventID}')">
+          ${isJoined ? '✅ 参加します' : '✋ 参加する'}
+        </button>
+        <div class="participants-list">
+          <strong>参加予定: ${count}名</strong><br>
+          ${namesHtml}
+        </div>
+      </div>
+    `;
 
     div.innerHTML = `
-      <div class="ev-date">${dateStr} <span class="ev-week">(${week})</span></div>
+      <div class="ev-date">${esc(dateStr)}</div>
       <h3 class="ev-title">${esc(ev.EventName)}</h3>
       
       <div class="ev-info-row"><span class="ev-icon">📍</span> ${esc(ev.Location)}</div>
       ${ev.Fee ? `<div class="ev-info-row"><span class="ev-icon">¥</span> ${esc(ev.Fee)}</div>` : ''}
-      
       <div class="ev-desc">${esc(ev.Description)}</div>
-      
+      ${joinBtnHtml}
       <div class="ev-footer">
-        <a href="detail.html?doc=${ev.OwnerID}" class="owner-badge" target="_blank">
-           👤 Posted by ${esc(ev.OwnerName)}
-        </a>
+        ${ownerLink}
         ${linkHtml}
       </div>
     `;
     return div;
   }
 
-  // --- 投稿機能 ---
+  window.toggleJoin = async (eventId) => {
+    if (!currentUser) {
+      alert("参加表明するには、ログイン（オーナー登録）が必要です。");
+      return;
+    }
+    if (!confirm("参加ステータスを変更しますか？")) return;
+
+    try {
+      const token = await currentUser.getIdToken();
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'toggle_participation',
+          formData: { idToken: token, EventID: eventId }
+        })
+      });
+      const json = await res.json();
+      if(json.success) {
+        alert(json.data.message);
+        fetchEvents();
+      } else {
+        alert("エラー: " + json.error);
+      }
+    } catch(e) { alert("通信エラー"); }
+  };
+
   const postBtn = document.getElementById('postBtn');
   const modal = document.getElementById('postModal');
   const form = document.getElementById('eventForm');
@@ -322,22 +322,15 @@
 
   postBtn.addEventListener('click', async () => {
     if (!currentUser) {
-      alert("イベントを投稿するには、オーナーページからログインしてください。\n（または右上の更新ボタンで再読み込みしてください）");
-      // 未ログインでもフォームは見せない（またはログイン画面へ誘導）
+      alert("イベントを投稿するにはログインが必要です。");
       return;
     }
-    
-    // ログイン済みなら自分の車両リストを取得
     select.innerHTML = '<option>読み込み中...</option>';
     modal.style.display = 'flex';
-    
     try {
       const token = await currentUser.getIdToken();
-      // 自分の車を取得するAPIを叩く
-      // ※ main.gs に mode=mycars を追加しました
       const res = await fetch(`${API_URL}?mode=mycars&idToken=${token}`);
       const json = await res.json();
-      
       select.innerHTML = '';
       if (json.success && json.data.length > 0) {
         json.data.forEach(car => {
@@ -347,72 +340,46 @@
           select.appendChild(opt);
         });
       } else {
-        alert("登録車両が見つかりませんでした。");
-        closeModal();
+        alert("投稿可能な車両が見つかりませんでした。\n（管理者の場合はそのまま投稿可能です）");
+        const opt = document.createElement('option');
+        opt.value = "ADMIN"; opt.textContent = "管理者として投稿"; select.appendChild(opt);
       }
-    } catch(e) {
-      alert("車両情報の取得に失敗しました");
-      closeModal();
-    }
+    } catch(e) { alert("エラーが発生しました"); closeModal(); }
   });
 
-  function closeModal() {
-    modal.style.display = 'none';
-  }
+  function closeModal() { modal.style.display = 'none'; }
 
-  // フォーム送信
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!currentUser) return;
-    
     const submitBtn = document.getElementById('submitBtn');
-    submitBtn.disabled = true;
-    submitBtn.textContent = "送信中...";
-
+    submitBtn.disabled = true; submitBtn.textContent = "送信中...";
     try {
       const token = await currentUser.getIdToken();
       const formData = {
-        idToken: token,
-        OwnerID: select.value,
-        EventName: form.EventName.value,
-        EventDate: form.EventDate.value,
-        Location: form.Location.value,
-        Fee: form.Fee.value,
-        URL: form.URL.value,
-        Description: form.Description.value
+        idToken: token, OwnerID: select.value,
+        EventName: form.EventName.value, EventDate: form.EventDate.value,
+        Location: form.Location.value, Fee: form.Fee.value,
+        URL: form.URL.value, Description: form.Description.value
       };
-
       const res = await fetch(API_URL, {
         method: 'POST',
-        body: JSON.stringify({
-          action: 'save_event',
-          formData: formData
-        })
+        body: JSON.stringify({ action: 'save_event', formData: formData })
       });
-      
       const json = await res.json();
       if (json.success) {
-        alert("イベントを投稿しました！");
-        location.reload();
+        alert("イベントを投稿しました！"); location.reload();
       } else {
         alert("エラー: " + json.error);
       }
-    } catch(e) {
-      console.error(e);
-      alert("通信エラーが発生しました");
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = "投稿する";
+    } catch(e) { alert("通信エラーが発生しました"); } finally {
+      submitBtn.disabled = false; submitBtn.textContent = "投稿する";
     }
   });
 
   function esc(s) {
     if(!s) return '';
-    return s.toString().replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+    return s.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
 </script>
 </body>
