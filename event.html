@@ -43,8 +43,12 @@
     
     .ev-date { font-weight: bold; color: var(--accent); font-size: 1.1rem; }
     .ev-title { margin: 8px 0; font-size: 1.25rem; font-weight: bold; }
-    .ev-info-row { display: flex; gap: 15px; margin-bottom: 8px; color: #444; font-size: 0.95rem; align-items: center; }
-    .ev-icon { width: 20px; text-align: center; }
+/* 既存のスタイル */
+    .ev-info-row { display: flex; gap: 15px; margin-bottom: 8px; color: #444; font-size: 0.95rem; align-items: flex-start; } /* align-itemsをcenterからflex-startに変更 */
+    
+    /* ▼▼▼ これを追加 ▼▼▼ */
+    /* 場所や費用のテキスト部分も改行を反映させる */
+    .ev-info-val { white-space: pre-wrap; flex: 1; }    .ev-icon { width: 20px; text-align: center; }
     
     .ev-desc { 
       margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee;
@@ -172,12 +176,16 @@
       <label class="form-label">開催日時 <span style="color:red">*</span></label>
       <input type="text" name="EventDate" class="form-input" required placeholder="例: 2026/1/10 10:00〜">
 
+<!-- 変更前 (input type="text") -->
+      <!-- <input type="text" name="Location" ... > -->
+      
+      <!-- ▼▼▼ 変更後 (textarea) ▼▼▼ -->
       <label class="form-label">開催場所（都道府県も） <span style="color:red">*</span></label>
-      <input type="text" name="Location" class="form-input" required placeholder="例: 神奈川県〇〇公園">
+      <textarea name="Location" class="form-input" rows="2" required placeholder="例: 神奈川県〇〇市&#13;&#10;〇〇公園駐車場"></textarea>
 
       <label class="form-label">費用</label>
-      <input type="text" name="Fee" class="form-input" placeholder="例: 無料、1000円など">
-
+      <textarea name="Fee" class="form-input" rows="2" placeholder="例: 1台 1000円&#13;&#10;（同乗者は無料）"></textarea>
+      
       <label class="form-label">ウェブサイトURL</label>
       <input type="url" name="URL" class="form-input" placeholder="https://...">
 
@@ -322,13 +330,23 @@
       `;
     }
 
+    
     div.innerHTML = `
       ${adminHtml}
       <div class="ev-date">${esc(dateStr)}</div>
       <h3 class="ev-title">${esc(ev.EventName)}</h3>
       
-      <div class="ev-info-row"><span class="ev-icon">📍</span> ${esc(ev.Location)}</div>
-      ${ev.Fee ? `<div class="ev-info-row"><span class="ev-icon">¥</span> ${esc(ev.Fee)}</div>` : ''}
+      <div class="ev-info-row">
+        <span class="ev-icon">📍</span>
+        <div class="ev-info-val">${esc(ev.Location)}</div>
+      </div>
+      
+      ${ev.Fee ? `
+      <div class="ev-info-row">
+        <span class="ev-icon">¥</span>
+        <div class="ev-info-val">${esc(ev.Fee)}</div>
+      </div>` : ''}
+      
       <div class="ev-desc">${esc(ev.Description)}</div>
       ${joinBtnHtml}
       <div class="ev-footer">
