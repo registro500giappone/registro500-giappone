@@ -15,6 +15,7 @@
       --card-bg: #ffffff;
       --accent: #2856a8;
       --text-main: #111827;
+      --danger: #e11d48;
     }
     body {
       font-family: system-ui, sans-serif;
@@ -41,7 +42,6 @@
     .event-card.past { border-left-color: #999; opacity: 0.8; background: #f9f9f9; }
     
     .ev-date { font-weight: bold; color: var(--accent); font-size: 1.1rem; }
-    .ev-week { font-size: 0.9rem; color: #666; margin-left: 5px; }
     .ev-title { margin: 8px 0; font-size: 1.25rem; font-weight: bold; }
     .ev-info-row { display: flex; gap: 15px; margin-bottom: 8px; color: #444; font-size: 0.95rem; align-items: center; }
     .ev-icon { width: 20px; text-align: center; }
@@ -64,7 +64,18 @@
       text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 0.9rem;
     }
 
-    /* 参加ボタンエリア */
+    /* 管理用ボタン */
+    .ev-admin-actions {
+      position: absolute; top: 15px; right: 15px; display: flex; gap: 8px;
+    }
+    .btn-edit, .btn-delete {
+      background: #f0f0f0; border: 1px solid #ccc; color: #555;
+      padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;
+    }
+    .btn-edit:hover { background: #e0e0e0; color: var(--accent); }
+    .btn-delete:hover { background: #ffebeb; color: var(--danger); border-color: var(--danger); }
+
+    /* 参加ボタン */
     .participation-area {
       margin-top: 15px; padding: 12px; background: #f0f7ff; border-radius: 8px;
       display: flex; align-items: flex-start; gap: 15px;
@@ -88,7 +99,7 @@
     /* FAB & Modal */
     .fab-btn {
       position: fixed; bottom: 20px; right: 20px;
-      background: #e11d48; color: white; width: 60px; height: 60px; border-radius: 50%;
+      background: var(--danger); color: white; width: 60px; height: 60px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center; font-size: 30px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer; z-index: 100;
     }
@@ -107,6 +118,16 @@
     .btn-submit {
       width: 100%; background: var(--accent); color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer;
     }
+    
+    /* 確認画面用 */
+    .confirm-view { display: none; background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+    .confirm-row { margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+    .confirm-label { font-size: 0.8rem; color: #666; font-weight: bold; display: block; }
+    .confirm-val { font-size: 1rem; color: #333; white-space: pre-wrap; }
+    .btn-group { display: flex; gap: 10px; }
+    .btn-back { background: #bbb; color: white; flex: 1; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    .btn-final { background: var(--danger); color: white; flex: 1; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
   </style>
 </head>
 <body>
@@ -133,10 +154,15 @@
 
 <div class="fab-btn" id="postBtn" title="イベントを投稿する">＋</div>
 
+<!-- 投稿/編集モーダル -->
 <div class="modal-overlay" id="postModal">
   <div class="modal-content">
-    <h2 style="margin-top:0;">イベント投稿</h2>
+    <h2 id="modalTitle" style="margin-top:0;">イベント投稿</h2>
+    
+    <!-- 入力フォーム -->
     <form id="eventForm">
+      <input type="hidden" name="EventID" value=""> <!-- 編集用ID -->
+
       <label class="form-label">投稿するオーナー <span style="color:red">*</span></label>
       <select id="ownerCarSelect" class="form-select" required><option value="">読み込み中...</option></select>
 
@@ -146,7 +172,7 @@
       <label class="form-label">開催日時 <span style="color:red">*</span></label>
       <input type="text" name="EventDate" class="form-input" required placeholder="例: 2026/1/10 10:00〜">
 
-      <label class="form-label">開催場所（都道府県も記載してください） <span style="color:red">*</span></label>
+      <label class="form-label">開催場所（都道府県も） <span style="color:red">*</span></label>
       <input type="text" name="Location" class="form-input" required placeholder="例: 神奈川県〇〇公園">
 
       <label class="form-label">費用</label>
@@ -158,9 +184,19 @@
       <label class="form-label">詳細・備考</label>
       <textarea name="Description" class="form-textarea" placeholder="詳細な集合場所や内容など"></textarea>
 
-      <button type="submit" class="btn-submit" id="submitBtn">投稿する</button>
+      <button type="button" class="btn-submit" onclick="showConfirm()">確認画面へ</button>
       <button type="button" onclick="closeModal()" style="width:100%; margin-top:10px; background:none; border:none; color:#666;">キャンセル</button>
     </form>
+
+    <!-- 確認画面 -->
+    <div id="confirmView" class="confirm-view">
+      <h3>以下の内容で送信しますか？</h3>
+      <div id="confirmContent"></div>
+      <div class="btn-group">
+        <button class="btn-back" onclick="hideConfirm()">修正する</button>
+        <button class="btn-final" id="realSubmitBtn" onclick="submitEvent()">送信する</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -180,7 +216,8 @@
   }
 
   let currentUser = null;
-  let myCarId = null;
+  let myCarId = null; 
+  let loadedEvents = []; // 編集用に保持
 
   window.addEventListener('DOMContentLoaded', () => {
     fetchEvents();
@@ -211,6 +248,7 @@
       document.getElementById('loading').style.display = 'none';
       if (!json.success) return;
 
+      loadedEvents = json.data; // データ保持
       const events = json.data;
       const today = new Date(); today.setHours(0,0,0,0);
       const futureEl = document.getElementById('futureList');
@@ -239,7 +277,7 @@
     const count = participants.length;
     const isJoined = participants.some(p => p.OwnerID === myCarId);
     
-    // ★参加者名リンク生成（全員表示）
+    // 参加者リンク
     let namesHtml = "";
     if (count === 0) {
       namesHtml = "参加表明オーナーはまだいません";
@@ -273,7 +311,19 @@
       </div>
     `;
 
+    // 編集・削除ボタン (自分がオーナー or 管理者なら表示)
+    let adminHtml = '';
+    if (currentUser && (ev.OwnerID === myCarId || myCarId === 'ADMIN')) {
+      adminHtml = `
+        <div class="ev-admin-actions">
+          <button class="btn-edit" onclick="openEdit('${ev.EventID}')">✏️ 編集</button>
+          <button class="btn-delete" onclick="deleteEvent('${ev.EventID}')">🗑️ 削除</button>
+        </div>
+      `;
+    }
+
     div.innerHTML = `
+      ${adminHtml}
       <div class="ev-date">${esc(dateStr)}</div>
       <h3 class="ev-title">${esc(ev.EventName)}</h3>
       
@@ -289,13 +339,152 @@
     return div;
   }
 
-  window.toggleJoin = async (eventId) => {
-    if (!currentUser) {
-      alert("参加表明するには、ログイン（オーナー登録）が必要です。");
-      return;
-    }
-    if (!confirm("参加ステータスを変更しますか？")) return;
+  // --- 投稿・編集機能 ---
+  const modal = document.getElementById('postModal');
+  const form = document.getElementById('eventForm');
+  const select = document.getElementById('ownerCarSelect');
+  const confirmView = document.getElementById('confirmView');
 
+  // 新規投稿ボタン
+  document.getElementById('postBtn').addEventListener('click', async () => {
+    if (!currentUser) return alert("ログインしてください");
+    await prepareModal();
+    resetForm();
+    document.getElementById('modalTitle').innerText = "イベント投稿";
+    modal.style.display = 'flex';
+  });
+
+  // 編集ボタン
+  window.openEdit = async (eventId) => {
+    if (!currentUser) return alert("ログインしてください");
+    await prepareModal();
+    
+    const ev = loadedEvents.find(e => e.EventID === eventId);
+    if(!ev) return;
+
+    // フォームに値をセット
+    form.EventID.value = ev.EventID;
+    form.EventName.value = ev.EventName;
+    // 日付はDate型ならフォーマット調整が必要かもだが、現状テキストでOKならそのまま
+    // input type="date" を使ってないのでテキストとして入る
+    form.EventDate.value = ev.EventDate; 
+    form.Location.value = ev.Location;
+    form.Fee.value = ev.Fee;
+    form.URL.value = ev.URL;
+    form.Description.value = ev.Description;
+    
+    document.getElementById('modalTitle').innerText = "イベント編集";
+    modal.style.display = 'flex';
+  };
+
+  async function prepareModal() {
+    select.innerHTML = '<option>読み込み中...</option>';
+    hideConfirm();
+    try {
+      const token = await currentUser.getIdToken();
+      const res = await fetch(`${API_URL}?mode=mycars&idToken=${token}`);
+      const json = await res.json();
+      select.innerHTML = '';
+      if (json.success && json.data.length > 0) {
+        json.data.forEach(car => {
+          const opt = document.createElement('option');
+          opt.value = car.DocumentID;
+          opt.textContent = `${car.Model} (${car.HandleName})`;
+          select.appendChild(opt);
+        });
+      } else {
+        const opt = document.createElement('option');
+        opt.value = "ADMIN"; opt.textContent = "管理者として投稿"; select.appendChild(opt);
+      }
+    } catch(e) { alert("エラー"); }
+  }
+
+  function resetForm() {
+    form.reset();
+    form.EventID.value = "";
+  }
+
+  function closeModal() { modal.style.display = 'none'; }
+
+  // 確認画面表示
+  window.showConfirm = () => {
+    if (!form.reportValidity()) return;
+    
+    const content = `
+      <div class="confirm-row"><span class="confirm-label">イベント名</span><div class="confirm-val">${esc(form.EventName.value)}</div></div>
+      <div class="confirm-row"><span class="confirm-label">日時</span><div class="confirm-val">${esc(form.EventDate.value)}</div></div>
+      <div class="confirm-row"><span class="confirm-label">場所</span><div class="confirm-val">${esc(form.Location.value)}</div></div>
+      <div class="confirm-row"><span class="confirm-label">詳細</span><div class="confirm-val">${esc(form.Description.value)}</div></div>
+    `;
+    document.getElementById('confirmContent').innerHTML = content;
+    form.style.display = 'none';
+    confirmView.style.display = 'block';
+  };
+
+  window.hideConfirm = () => {
+    confirmView.style.display = 'none';
+    form.style.display = 'block';
+  };
+
+  // 送信実行
+  window.submitEvent = async () => {
+    const btn = document.getElementById('realSubmitBtn');
+    btn.disabled = true; btn.innerText = "送信中...";
+    
+    try {
+      const token = await currentUser.getIdToken();
+      const formData = {
+        idToken: token,
+        EventID: form.EventID.value, // 新規なら空、編集ならID
+        OwnerID: select.value,
+        EventName: form.EventName.value,
+        EventDate: form.EventDate.value,
+        Location: form.Location.value,
+        Fee: form.Fee.value,
+        URL: form.URL.value,
+        Description: form.Description.value
+      };
+
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'save_event', formData: formData })
+      });
+      const json = await res.json();
+      if (json.success) {
+        alert("保存しました！");
+        location.reload();
+      } else {
+        alert("エラー: " + json.error);
+      }
+    } catch(e) { alert("通信エラー"); }
+    finally { btn.disabled = false; btn.innerText = "送信する"; }
+  };
+
+  // 削除機能
+  window.deleteEvent = async (eventId) => {
+    if(!confirm("本当にこのイベントを削除しますか？\n（この操作は取り消せません）")) return;
+    try {
+      const token = await currentUser.getIdToken();
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'delete_event',
+          formData: { idToken: token, EventID: eventId }
+        })
+      });
+      const json = await res.json();
+      if(json.success) {
+        alert("削除しました");
+        fetchEvents();
+      } else {
+        alert("エラー: " + json.error);
+      }
+    } catch(e) { alert("通信エラー"); }
+  };
+
+  window.toggleJoin = async (eventId) => {
+    if (!currentUser) return alert("ログインしてください");
+    if (!confirm("参加ステータスを変更しますか？")) return;
     try {
       const token = await currentUser.getIdToken();
       const res = await fetch(API_URL, {
@@ -314,68 +503,6 @@
       }
     } catch(e) { alert("通信エラー"); }
   };
-
-  const postBtn = document.getElementById('postBtn');
-  const modal = document.getElementById('postModal');
-  const form = document.getElementById('eventForm');
-  const select = document.getElementById('ownerCarSelect');
-
-  postBtn.addEventListener('click', async () => {
-    if (!currentUser) {
-      alert("イベントを投稿するにはログインが必要です。");
-      return;
-    }
-    select.innerHTML = '<option>読み込み中...</option>';
-    modal.style.display = 'flex';
-    try {
-      const token = await currentUser.getIdToken();
-      const res = await fetch(`${API_URL}?mode=mycars&idToken=${token}`);
-      const json = await res.json();
-      select.innerHTML = '';
-      if (json.success && json.data.length > 0) {
-        json.data.forEach(car => {
-          const opt = document.createElement('option');
-          opt.value = car.DocumentID;
-          opt.textContent = `${car.Model} (${car.HandleName})`;
-          select.appendChild(opt);
-        });
-      } else {
-        alert("投稿可能な車両が見つかりませんでした。\n（管理者の場合はそのまま投稿可能です）");
-        const opt = document.createElement('option');
-        opt.value = "ADMIN"; opt.textContent = "管理者として投稿"; select.appendChild(opt);
-      }
-    } catch(e) { alert("エラーが発生しました"); closeModal(); }
-  });
-
-  function closeModal() { modal.style.display = 'none'; }
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!currentUser) return;
-    const submitBtn = document.getElementById('submitBtn');
-    submitBtn.disabled = true; submitBtn.textContent = "送信中...";
-    try {
-      const token = await currentUser.getIdToken();
-      const formData = {
-        idToken: token, OwnerID: select.value,
-        EventName: form.EventName.value, EventDate: form.EventDate.value,
-        Location: form.Location.value, Fee: form.Fee.value,
-        URL: form.URL.value, Description: form.Description.value
-      };
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'save_event', formData: formData })
-      });
-      const json = await res.json();
-      if (json.success) {
-        alert("イベントを投稿しました！"); location.reload();
-      } else {
-        alert("エラー: " + json.error);
-      }
-    } catch(e) { alert("通信エラーが発生しました"); } finally {
-      submitBtn.disabled = false; submitBtn.textContent = "投稿する";
-    }
-  });
 
   function esc(s) {
     if(!s) return '';
