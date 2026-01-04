@@ -32,7 +32,7 @@
     /* 案内ボックス */
     .guide-box {
       background: #fff; border-radius: 12px; padding: 20px;
-      margin-bottom: 30px; border: 1px solid #e5e7eb;
+      margin-bottom: 20px; border: 1px solid #e5e7eb;
       box-shadow: 0 2px 4px rgba(0,0,0,0.03);
     }
     .guide-title {
@@ -41,15 +41,34 @@
     }
     .guide-title::before { content: "ℹ️"; }
     .guide-text { font-size: 0.95rem; line-height: 1.6; color: #444; margin-bottom: 10px; }
-    .guide-list {
-      margin: 10px 0; padding-left: 20px; font-size: 0.95rem; color: #444;
-    }
+    .guide-list { margin: 10px 0; padding-left: 20px; font-size: 0.95rem; color: #444; }
     .guide-list li { margin-bottom: 4px; }
+
+    /* フィルターボタンエリア */
+    .filter-area {
+      display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 20px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .filter-btn {
+      white-space: nowrap; padding: 6px 14px; border-radius: 20px;
+      border: 1px solid #ccc; background: white; color: #555;
+      font-size: 0.9rem; cursor: pointer; transition: 0.2s;
+    }
+    .filter-btn.active {
+      background: var(--accent); color: white; border-color: var(--accent); font-weight: bold;
+    }
 
     .section-title {
       font-size: 1.2rem; font-weight: bold; margin: 40px 0 15px;
       padding-bottom: 5px; border-bottom: 2px solid #ddd; color: #444;
     }
+
+    /* 月別見出し */
+    .month-header {
+      font-size: 1.1rem; font-weight: bold; color: var(--accent);
+      margin: 25px 0 10px 5px; display: flex; align-items: center;
+    }
+    .month-header::before { content: "📅"; margin-right: 8px; }
 
     .event-card {
       background: var(--card-bg); border-radius: 12px; padding: 20px;
@@ -58,9 +77,7 @@
     }
     .event-card.past { border-left-color: #999; opacity: 0.8; background: #f9f9f9; }
     
-    .ev-admin-row {
-      display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px;
-    }
+    .ev-admin-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; }
     .btn-edit, .btn-delete {
       background: #f0f0f0; border: 1px solid #ccc; color: #555;
       padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;
@@ -71,13 +88,8 @@
     .ev-date { font-weight: bold; color: var(--accent); font-size: 1.1rem; }
     .ev-title { margin: 5px 0 15px; font-size: 1.3rem; font-weight: bold; line-height: 1.4; }
     
-    .ev-info-row {
-      display: flex; gap: 15px; margin-bottom: 8px; color: #333; font-size: 0.95rem; align-items: flex-start;
-    }
-    .ev-label {
-      width: 5em; flex-shrink: 0; font-weight: bold; color: #666;
-      text-align: justify; text-align-last: justify;
-    }
+    .ev-info-row { display: flex; gap: 15px; margin-bottom: 8px; color: #333; font-size: 0.95rem; align-items: flex-start; }
+    .ev-label { width: 5em; flex-shrink: 0; font-weight: bold; color: #666; text-align: justify; text-align-last: justify; }
     .ev-info-val { white-space: pre-wrap; flex: 1; line-height: 1.5; }
 
     .ev-desc { 
@@ -85,9 +97,7 @@
       white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; color: #444;
     }
 
-    .ev-url-row {
-      margin-top: 10px; font-size: 0.9rem; word-break: break-all;
-    }
+    .ev-url-row { margin-top: 10px; font-size: 0.9rem; word-break: break-all; }
     .ev-url-row a { color: var(--accent); text-decoration: underline; }
 
     .participation-area {
@@ -103,16 +113,11 @@
     .btn-join:hover { opacity: 0.8; }
     
     .participants-list { font-size: 0.85rem; color: #666; flex-grow: 1; line-height: 1.5; padding-top: 4px; }
-    .participant-link {
-      color: var(--accent); text-decoration: none; font-weight: 500;
-      margin-right: 3px; display: inline-block;
-    }
+    .participant-link { color: var(--accent); text-decoration: none; font-weight: 500; margin-right: 3px; display: inline-block; }
     .participant-link:hover { text-decoration: underline; }
     .participant-link:not(:last-child):after { content: ","; color: #666; }
 
-    .ev-footer {
-      margin-top: 15px; display: flex; justify-content: flex-end; font-size: 0.85rem;
-    }
+    .ev-footer { margin-top: 15px; display: flex; justify-content: flex-end; font-size: 0.85rem; }
     .owner-badge {
       display: inline-flex; align-items: center; gap: 5px;
       text-decoration: none; color: #777; background: #eee;
@@ -130,8 +135,7 @@
       background: rgba(0,0,0,0.5); z-index: 200; display: none; align-items: center; justify-content: center;
     }
     .modal-content {
-      background: white; width: 90%; max-width: 500px; padding: 25px; border-radius: 12px;
-      max-height: 90vh; overflow-y: auto;
+      background: white; width: 90%; max-width: 500px; padding: 25px; border-radius: 12px; max-height: 90vh; overflow-y: auto;
     }
     .form-group { margin-bottom: 15px; }
     .form-label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
@@ -139,6 +143,11 @@
       width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;
     }
     .form-textarea { height: 100px; }
+    
+    /* 日付・時間入力用 */
+    .form-row-date { display: flex; align-items: center; gap: 10px; }
+    .week-label { font-weight: bold; color: var(--accent); }
+
     .btn-submit {
       width: 100%; background: var(--accent); color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer;
     }
@@ -150,7 +159,6 @@
     .btn-group { display: flex; gap: 10px; }
     .btn-back { background: #bbb; color: white; flex: 1; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
     .btn-final { background: var(--danger); color: white; flex: 1; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
-
   </style>
 </head>
 <body>
@@ -162,7 +170,6 @@
     <p>FIAT 500 イベント・ミーティング情報</p>
   </div>
 
-  <!-- 案内文エリア -->
   <div class="guide-box">
     <h2 class="guide-title">イベント・ミーティング情報について</h2>
     <div class="guide-text">
@@ -176,6 +183,16 @@
       大規模なイベントはもちろん、数台集まるだけの気軽なミーティングまで、規模の大小は問いません。
       情報共有や仲間集めのために、ぜひたくさんの投稿をお待ちしています！
     </div>
+  </div>
+
+  <div class="filter-area" id="regionFilter">
+    <button class="filter-btn active" data-region="all">すべて</button>
+    <button class="filter-btn" data-region="北海道・東北">北海道・東北</button>
+    <button class="filter-btn" data-region="関東">関東</button>
+    <button class="filter-btn" data-region="中部">中部</button>
+    <button class="filter-btn" data-region="近畿">近畿</button>
+    <button class="filter-btn" data-region="中国・四国">中国・四国</button>
+    <button class="filter-btn" data-region="九州・沖縄">九州・沖縄</button>
   </div>
 
   <div id="loading" style="text-align:center; padding:40px;">読み込んでいます...</div>
@@ -193,7 +210,6 @@
 
 <div class="fab-btn" id="postBtn" title="イベントを投稿する">＋</div>
 
-<!-- 投稿/編集モーダル -->
 <div class="modal-overlay" id="postModal">
   <div class="modal-content">
     <h2 id="modalTitle" style="margin-top:0;">イベント投稿</h2>
@@ -212,8 +228,16 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">開催日時 <span style="color:red">*</span></label>
-        <input type="text" name="EventDate" class="form-input" required placeholder="例: 2026/1/10 10:00〜">
+        <label class="form-label">開催日 <span style="color:red">*</span></label>
+        <div class="form-row-date">
+          <input type="date" id="inputDate" class="form-input" required>
+          <span id="weekdayLabel" class="week-label">(曜日)</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">開催時間（未定の場合は空欄でOK）</label>
+        <input type="time" id="inputTime" class="form-input">
       </div>
 
       <div class="form-group">
@@ -269,12 +293,45 @@
   let currentUser = null;
   let myCarId = null; 
   let loadedEvents = [];
+  let allEventsData = []; // フィルター用
+  let currentRegion = 'all';
+
+  // 地域定義
+  const REGION_MAP = {
+    '北海道・東北': ['北海道','青森','岩手','宮城','秋田','山形','福島'],
+    '関東': ['茨城','栃木','群馬','埼玉','千葉','東京','神奈川','山梨'],
+    '中部': ['新潟','富山','石川','福井','長野','岐阜','静岡','愛知'],
+    '近畿': ['三重','滋賀','京都','大阪','兵庫','奈良','和歌山'],
+    '中国・四国': ['鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知'],
+    '九州・沖縄': ['福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄']
+  };
 
   window.addEventListener('DOMContentLoaded', () => {
     fetchEvents();
     firebase.auth().onAuthStateChanged(user => {
       currentUser = user;
       if(user) checkMyCar(user);
+    });
+
+    // 曜日自動表示
+    document.getElementById('inputDate').addEventListener('change', function() {
+      if(this.value) {
+        const d = new Date(this.value);
+        const w = ['日','月','火','水','木','金','土'][d.getDay()];
+        document.getElementById('weekdayLabel').textContent = `(${w})`;
+      } else {
+        document.getElementById('weekdayLabel').textContent = '(曜日)';
+      }
+    });
+
+    // フィルターボタン
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentRegion = btn.dataset.region;
+        renderEvents();
+      });
     });
   });
 
@@ -300,27 +357,55 @@
       if (!json.success) return;
 
       loadedEvents = json.data;
-      const events = json.data;
-      const today = new Date(); today.setHours(0,0,0,0);
-      const futureEl = document.getElementById('futureList');
-      const pastEl = document.getElementById('pastList');
-      futureEl.innerHTML = ''; pastEl.innerHTML = '';
-
-      events.forEach(ev => {
-        let d = new Date(ev.EventDate);
-        if(isNaN(d.getTime())) d = new Date();
-        const isPast = d < today;
-        const card = createEventCard(ev, isPast);
-        (isPast ? pastEl : futureEl).appendChild(card);
-      });
-
-      if (futureEl.childElementCount > 0) document.getElementById('futureSection').style.display = 'block';
-      if (pastEl.childElementCount > 0) document.getElementById('pastSection').style.display = 'block';
+      allEventsData = json.data; // 保持
+      renderEvents();
 
     } catch(e) { console.error(e); }
   }
 
-  function createEventCard(ev, isPast) {
+  function renderEvents() {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const futureEl = document.getElementById('futureList');
+    const pastEl = document.getElementById('pastList');
+    futureEl.innerHTML = ''; pastEl.innerHTML = '';
+
+    // フィルター適用
+    const filtered = allEventsData.filter(ev => {
+      if(currentRegion === 'all') return true;
+      const targets = REGION_MAP[currentRegion] || [];
+      return targets.some(pref => ev.Location.includes(pref));
+    });
+
+    let currentMonthStr = "";
+
+    filtered.forEach(ev => {
+      let d = new Date(ev.EventDate);
+      if(isNaN(d.getTime())) d = new Date(); // パースできない場合
+      
+      const isPast = d < today;
+      const card = createEventCard(ev, isPast, d);
+
+      if (isPast) {
+        pastEl.appendChild(card);
+      } else {
+        // 月見出しの挿入 (未来のみ)
+        const monthStr = `${d.getFullYear()}年 ${d.getMonth()+1}月`;
+        if (monthStr !== currentMonthStr) {
+          const h = document.createElement('div');
+          h.className = 'month-header';
+          h.innerText = monthStr;
+          futureEl.appendChild(h);
+          currentMonthStr = monthStr;
+        }
+        futureEl.appendChild(card);
+      }
+    });
+
+    document.getElementById('futureSection').style.display = (futureEl.children.length > 0) ? 'block' : 'none';
+    document.getElementById('pastSection').style.display = (pastEl.children.length > 0) ? 'block' : 'none';
+  }
+
+  function createEventCard(ev, isPast, dateObj) {
     const div = document.createElement('div');
     div.className = 'event-card' + (isPast ? ' past' : '');
 
@@ -338,11 +423,18 @@
       }).join('');
     }
 
-    let dateStr = ev.EventDate;
-    const d = new Date(ev.EventDate);
-    if(!isNaN(d.getTime())) {
-       dateStr = `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()} (${['日','月','火','水','木','金','土'][d.getDay()]})`;
+    // 日付整形: 2026-02-08 10:00 -> 2026/2/8 (日) 10:00
+    // EventDate文字列をそのまま信用せず、Dateオブジェクトから生成したほうが綺麗
+    const w = ['日','月','火','水','木','金','土'][dateObj.getDay()];
+    // 時間があるかチェック (yyyy-mm-dd hh:mm かどうか)
+    const hasTime = ev.EventDate.includes(':'); 
+    let timeStr = "";
+    if(hasTime) {
+       const hh = String(dateObj.getHours()).padStart(2,'0');
+       const mm = String(dateObj.getMinutes()).padStart(2,'0');
+       timeStr = ` ${hh}:${mm}〜`;
     }
+    const dateDisplay = `${dateObj.getFullYear()}/${dateObj.getMonth()+1}/${dateObj.getDate()} (${w})${timeStr}`;
 
     const urlHtml = ev.URL ? `<div class="ev-url-row">🔗 参照URL: <a href="${ev.URL}" target="_blank">${esc(ev.URL)}</a></div>` : '';
     
@@ -373,7 +465,7 @@
 
     div.innerHTML = `
       ${adminHtml}
-      <div class="ev-date">${esc(dateStr)}</div>
+      <div class="ev-date">${esc(dateDisplay)}</div>
       <h3 class="ev-title">${esc(ev.EventName)}</h3>
       
       <div class="ev-info-row">
@@ -420,9 +512,32 @@
     const ev = loadedEvents.find(e => e.EventID === eventId);
     if(!ev) return;
 
+    // データ復元
     form.EventID.value = ev.EventID;
     form.EventName.value = ev.EventName;
-    form.EventDate.value = ev.EventDate; 
+    
+    // 日付と時間を分離
+    // ev.EventDate は "2026-02-08 10:00" または "2026-02-08" などの文字列
+    // あるいは Dateオブジェクトの文字列の場合もあるので Date化して処理
+    const d = new Date(ev.EventDate);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    form.inputDate.value = `${yyyy}-${mm}-${dd}`;
+    // 曜日更新発火
+    form.inputDate.dispatchEvent(new Event('change'));
+
+    // 時間があるか？ (00:00以外か、元の文字列に時間があるか)
+    // GAS側で保存時に "YYYY/MM/DD HH:mm" で保存しているので、それを見る
+    const hasTime = ev.EventDate.includes(' ') || ev.EventDate.includes('T');
+    if(hasTime && (d.getHours() !== 0 || d.getMinutes() !== 0)) {
+       const HH = String(d.getHours()).padStart(2,'0');
+       const MM = String(d.getMinutes()).padStart(2,'0');
+       form.inputTime.value = `${HH}:${MM}`;
+    } else {
+       form.inputTime.value = "";
+    }
+
     form.Location.value = ev.Location;
     form.Fee.value = ev.Fee;
     form.URL.value = ev.URL;
@@ -457,6 +572,7 @@
   function resetForm() {
     form.reset();
     form.EventID.value = "";
+    document.getElementById('weekdayLabel').textContent = "(曜日)";
   }
 
   function closeModal() { modal.style.display = 'none'; }
@@ -464,9 +580,15 @@
   window.showConfirm = () => {
     if (!form.reportValidity()) return;
     
+    // 日時の結合表示
+    const dVal = form.inputDate.value; // YYYY-MM-DD
+    const tVal = form.inputTime.value; // HH:mm
+    let dtDisplay = dVal;
+    if(tVal) dtDisplay += ` ${tVal}〜`;
+
     const content = `
       <div class="confirm-row"><span class="confirm-label">イベント名</span><div class="confirm-val">${esc(form.EventName.value)}</div></div>
-      <div class="confirm-row"><span class="confirm-label">日時</span><div class="confirm-val">${esc(form.EventDate.value)}</div></div>
+      <div class="confirm-row"><span class="confirm-label">日時</span><div class="confirm-val">${esc(dtDisplay)}</div></div>
       <div class="confirm-row"><span class="confirm-label">場所</span><div class="confirm-val">${esc(form.Location.value)}</div></div>
       <div class="confirm-row"><span class="confirm-label">詳細</span><div class="confirm-val">${esc(form.Description.value)}</div></div>
     `;
@@ -485,12 +607,19 @@
     btn.disabled = true; btn.innerText = "送信中...";
     try {
       const token = await currentUser.getIdToken();
+      
+      // 日時の結合 (保存用フォーマット作成)
+      const dVal = form.inputDate.value; 
+      const tVal = form.inputTime.value; 
+      // 2026-02-08 10:00 または 2026-02-08 (文字列として保存)
+      const combinedDate = tVal ? `${dVal} ${tVal}` : dVal;
+
       const formData = {
         idToken: token,
         EventID: form.EventID.value,
         OwnerID: select.value,
         EventName: form.EventName.value,
-        EventDate: form.EventDate.value,
+        EventDate: combinedDate, // 結合した日時を送る
         Location: form.Location.value,
         Fee: form.Fee.value,
         URL: form.URL.value,
