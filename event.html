@@ -37,68 +37,73 @@
     .event-card {
       background: var(--card-bg); border-radius: 12px; padding: 20px;
       margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      border-left: 5px solid var(--accent); position: relative;
+      border-left: 5px solid var(--accent);
     }
     .event-card.past { border-left-color: #999; opacity: 0.8; background: #f9f9f9; }
     
-    .ev-date { font-weight: bold; color: var(--accent); font-size: 1.1rem; }
-    .ev-title { margin: 8px 0; font-size: 1.25rem; font-weight: bold; }
-/* 既存のスタイル */
-    .ev-info-row { display: flex; gap: 15px; margin-bottom: 8px; color: #444; font-size: 0.95rem; align-items: flex-start; } /* align-itemsをcenterからflex-startに変更 */
-    
-    /* ▼▼▼ これを追加 ▼▼▼ */
-    /* 場所や費用のテキスト部分も改行を反映させる */
-    .ev-info-val { white-space: pre-wrap; flex: 1; }    .ev-icon { width: 20px; text-align: center; }
-    
-    .ev-desc { 
-      margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee;
-      white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6;
-    }
-
-    .ev-footer {
-      margin-top: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; flex-wrap: wrap; gap: 10px;
-    }
-    .owner-badge {
-      display: inline-flex; align-items: center; gap: 5px;
-      text-decoration: none; color: #555; background: #eee;
-      padding: 4px 10px; border-radius: 20px; transition: 0.2s;
-    }
-    .ev-link-btn {
-      display: inline-block; background: var(--accent); color: white;
-      text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 0.9rem;
-    }
-
-    /* 管理用ボタン */
-    .ev-admin-actions {
-      position: absolute; top: 15px; right: 15px; display: flex; gap: 8px;
+    /* 管理ボタン（編集・削除）エリア */
+    .ev-admin-row {
+      display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px;
     }
     .btn-edit, .btn-delete {
       background: #f0f0f0; border: 1px solid #ccc; color: #555;
-      padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;
+      padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;
     }
     .btn-edit:hover { background: #e0e0e0; color: var(--accent); }
     .btn-delete:hover { background: #ffebeb; color: var(--danger); border-color: var(--danger); }
 
-    /* 参加ボタン */
+    .ev-date { font-weight: bold; color: var(--accent); font-size: 1.1rem; }
+    .ev-title { margin: 5px 0 15px; font-size: 1.3rem; font-weight: bold; line-height: 1.4; }
+    
+    /* 情報行（場所・費用） */
+    .ev-info-row {
+      display: flex; gap: 15px; margin-bottom: 8px; color: #333; font-size: 0.95rem; align-items: flex-start;
+    }
+    .ev-label {
+      width: 5em; flex-shrink: 0; font-weight: bold; color: #666;
+      text-align: justify; text-align-last: justify; /* 文字数違っても両端揃えっぽく */
+    }
+    .ev-info-val { white-space: pre-wrap; flex: 1; line-height: 1.5; }
+
+    .ev-desc { 
+      margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee;
+      white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; color: #444;
+    }
+
+    .ev-url-row {
+      margin-top: 10px; font-size: 0.9rem; word-break: break-all;
+    }
+    .ev-url-row a { color: var(--accent); text-decoration: underline; }
+
+    /* 参加ボタンエリア */
     .participation-area {
-      margin-top: 15px; padding: 12px; background: #f0f7ff; border-radius: 8px;
+      margin-top: 20px; padding: 12px; background: #f0f7ff; border-radius: 8px;
       display: flex; align-items: flex-start; gap: 15px;
     }
     .btn-join {
       background: white; border: 2px solid var(--accent); color: var(--accent);
-      padding: 6px 16px; border-radius: 20px; font-weight: bold; cursor: pointer;
-      display: flex; align-items: center; gap: 5px; transition: 0.2s; flex-shrink: 0;
+      padding: 8px 16px; border-radius: 20px; font-weight: bold; cursor: pointer;
+      display: flex; align-items: center; gap: 5px; transition: 0.2s; flex-shrink: 0; font-size: 0.9rem;
     }
     .btn-join.joined { background: var(--accent); color: white; }
     .btn-join:hover { opacity: 0.8; }
     
-    .participants-list { font-size: 0.85rem; color: #666; flex-grow: 1; }
+    .participants-list { font-size: 0.85rem; color: #666; flex-grow: 1; line-height: 1.5; padding-top: 4px; }
     .participant-link {
       color: var(--accent); text-decoration: none; font-weight: 500;
       margin-right: 3px; display: inline-block;
     }
     .participant-link:hover { text-decoration: underline; }
     .participant-link:not(:last-child):after { content: ","; color: #666; }
+
+    .ev-footer {
+      margin-top: 15px; display: flex; justify-content: flex-end; font-size: 0.85rem;
+    }
+    .owner-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      text-decoration: none; color: #777; background: #eee;
+      padding: 4px 10px; border-radius: 20px; transition: 0.2s;
+    }
 
     /* FAB & Modal */
     .fab-btn {
@@ -115,8 +120,10 @@
       background: white; width: 90%; max-width: 500px; padding: 25px; border-radius: 12px;
       max-height: 90vh; overflow-y: auto;
     }
+    .form-group { margin-bottom: 15px; }
+    .form-label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
     .form-input, .form-textarea, .form-select {
-      width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; margin-bottom: 15px;
+      width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;
     }
     .form-textarea { height: 100px; }
     .btn-submit {
@@ -165,32 +172,42 @@
     
     <!-- 入力フォーム -->
     <form id="eventForm">
-      <input type="hidden" name="EventID" value=""> <!-- 編集用ID -->
+      <input type="hidden" name="EventID" value="">
 
-      <label class="form-label">投稿するオーナー <span style="color:red">*</span></label>
-      <select id="ownerCarSelect" class="form-select" required><option value="">読み込み中...</option></select>
+      <div class="form-group">
+        <label class="form-label">投稿するオーナー <span style="color:red">*</span></label>
+        <select id="ownerCarSelect" class="form-select" required><option value="">読み込み中...</option></select>
+      </div>
 
-      <label class="form-label">イベント名 <span style="color:red">*</span></label>
-      <input type="text" name="EventName" class="form-input" required placeholder="例: 新春 500 ミーティング">
+      <div class="form-group">
+        <label class="form-label">イベント名 <span style="color:red">*</span></label>
+        <input type="text" name="EventName" class="form-input" required placeholder="例: 新春 500 ミーティング">
+      </div>
 
-      <label class="form-label">開催日時 <span style="color:red">*</span></label>
-      <input type="text" name="EventDate" class="form-input" required placeholder="例: 2026/1/10 10:00〜">
+      <div class="form-group">
+        <label class="form-label">開催日時 <span style="color:red">*</span></label>
+        <input type="text" name="EventDate" class="form-input" required placeholder="例: 2026/1/10 10:00〜">
+      </div>
 
-<!-- 変更前 (input type="text") -->
-      <!-- <input type="text" name="Location" ... > -->
-      
-      <!-- ▼▼▼ 変更後 (textarea) ▼▼▼ -->
-      <label class="form-label">開催場所（都道府県も） <span style="color:red">*</span></label>
-      <textarea name="Location" class="form-input" rows="2" required placeholder="例: 神奈川県〇〇市&#13;&#10;〇〇公園駐車場"></textarea>
+      <div class="form-group">
+        <label class="form-label">開催場所（都道府県も） <span style="color:red">*</span></label>
+        <textarea name="Location" class="form-input" rows="2" required placeholder="例: 神奈川県〇〇市&#13;&#10;〇〇公園駐車場"></textarea>
+      </div>
 
-      <label class="form-label">費用</label>
-      <textarea name="Fee" class="form-input" rows="2" placeholder="例: 1台 1000円&#13;&#10;（同乗者は無料）"></textarea>
-      
-      <label class="form-label">ウェブサイトURL</label>
-      <input type="url" name="URL" class="form-input" placeholder="https://...">
+      <div class="form-group">
+        <label class="form-label">費用</label>
+        <textarea name="Fee" class="form-input" rows="2" placeholder="例: 1台 1000円&#13;&#10;（同乗者は無料）"></textarea>
+      </div>
 
-      <label class="form-label">詳細・備考</label>
-      <textarea name="Description" class="form-textarea" placeholder="詳細な集合場所や内容など"></textarea>
+      <div class="form-group">
+        <label class="form-label">ウェブサイトURL</label>
+        <input type="url" name="URL" class="form-input" placeholder="https://...">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">詳細・備考</label>
+        <textarea name="Description" class="form-textarea" placeholder="詳細な集合場所や内容など"></textarea>
+      </div>
 
       <button type="button" class="btn-submit" onclick="showConfirm()">確認画面へ</button>
       <button type="button" onclick="closeModal()" style="width:100%; margin-top:10px; background:none; border:none; color:#666;">キャンセル</button>
@@ -225,7 +242,7 @@
 
   let currentUser = null;
   let myCarId = null; 
-  let loadedEvents = []; // 編集用に保持
+  let loadedEvents = [];
 
   window.addEventListener('DOMContentLoaded', () => {
     fetchEvents();
@@ -256,7 +273,7 @@
       document.getElementById('loading').style.display = 'none';
       if (!json.success) return;
 
-      loadedEvents = json.data; // データ保持
+      loadedEvents = json.data;
       const events = json.data;
       const today = new Date(); today.setHours(0,0,0,0);
       const futureEl = document.getElementById('futureList');
@@ -302,56 +319,60 @@
        dateStr = `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()} (${['日','月','火','水','木','金','土'][d.getDay()]})`;
     }
 
-    const linkHtml = ev.URL ? `<a href="${ev.URL}" target="_blank" class="ev-link-btn">Webサイトへ</a>` : '';
+    // 参照URL
+    const urlHtml = ev.URL ? `<div class="ev-url-row">🔗 参照URL: <a href="${ev.URL}" target="_blank">${esc(ev.URL)}</a></div>` : '';
+    
+    // 投稿者リンク
     const ownerLink = ev.OwnerID === 'ADMIN' ? 
         `<span class="owner-badge">👤 ${esc(ev.OwnerName)}</span>` : 
         `<a href="detail.html?doc=${ev.OwnerID}" class="owner-badge" target="_blank">👤 ${esc(ev.OwnerName)}</a>`;
 
+    // 参加ボタン
     const joinBtnHtml = isPast ? '' : `
       <div class="participation-area">
         <button class="btn-join ${isJoined ? 'joined' : ''}" onclick="toggleJoin('${ev.EventID}')">
-          ${isJoined ? '✅ 参加します' : '✋ 参加する'}
+          ${isJoined ? '✅ 参加予定です' : '✋ 参加予定'}
         </button>
         <div class="participants-list">
-          <strong>参加予定: ${count}名</strong><br>
           ${namesHtml}
         </div>
       </div>
     `;
 
-    // 編集・削除ボタン (自分がオーナー or 管理者なら表示)
+    // 編集・削除ボタン (日付と被らないよう上部に配置)
     let adminHtml = '';
     if (currentUser && (ev.OwnerID === myCarId || myCarId === 'ADMIN')) {
       adminHtml = `
-        <div class="ev-admin-actions">
+        <div class="ev-admin-row">
           <button class="btn-edit" onclick="openEdit('${ev.EventID}')">✏️ 編集</button>
           <button class="btn-delete" onclick="deleteEvent('${ev.EventID}')">🗑️ 削除</button>
         </div>
       `;
     }
 
-    
     div.innerHTML = `
       ${adminHtml}
       <div class="ev-date">${esc(dateStr)}</div>
       <h3 class="ev-title">${esc(ev.EventName)}</h3>
       
       <div class="ev-info-row">
-        <span class="ev-icon">📍</span>
+        <span class="ev-label">開催場所</span>
         <div class="ev-info-val">${esc(ev.Location)}</div>
       </div>
       
       ${ev.Fee ? `
       <div class="ev-info-row">
-        <span class="ev-icon">¥</span>
+        <span class="ev-label">費用</span>
         <div class="ev-info-val">${esc(ev.Fee)}</div>
       </div>` : ''}
       
       <div class="ev-desc">${esc(ev.Description)}</div>
+      ${urlHtml}
+      
       ${joinBtnHtml}
+      
       <div class="ev-footer">
         ${ownerLink}
-        ${linkHtml}
       </div>
     `;
     return div;
@@ -383,8 +404,6 @@
     // フォームに値をセット
     form.EventID.value = ev.EventID;
     form.EventName.value = ev.EventName;
-    // 日付はDate型ならフォーマット調整が必要かもだが、現状テキストでOKならそのまま
-    // input type="date" を使ってないのでテキストとして入る
     form.EventDate.value = ev.EventDate; 
     form.Location.value = ev.Location;
     form.Fee.value = ev.Fee;
@@ -453,7 +472,7 @@
       const token = await currentUser.getIdToken();
       const formData = {
         idToken: token,
-        EventID: form.EventID.value, // 新規なら空、編集ならID
+        EventID: form.EventID.value,
         OwnerID: select.value,
         EventName: form.EventName.value,
         EventDate: form.EventDate.value,
