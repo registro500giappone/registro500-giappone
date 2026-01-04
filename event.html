@@ -29,6 +29,23 @@
     .header h1 { color: var(--accent); margin-bottom: 5px; }
     .back-link { color: var(--accent); text-decoration: none; font-weight: bold; }
 
+    /* 案内ボックス */
+    .guide-box {
+      background: #fff; border-radius: 12px; padding: 20px;
+      margin-bottom: 30px; border: 1px solid #e5e7eb;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    }
+    .guide-title {
+      font-size: 1.1rem; font-weight: bold; margin: 0 0 10px; color: var(--text-main);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .guide-title::before { content: "ℹ️"; }
+    .guide-text { font-size: 0.95rem; line-height: 1.6; color: #444; margin-bottom: 10px; }
+    .guide-list {
+      margin: 10px 0; padding-left: 20px; font-size: 0.95rem; color: #444;
+    }
+    .guide-list li { margin-bottom: 4px; }
+
     .section-title {
       font-size: 1.2rem; font-weight: bold; margin: 40px 0 15px;
       padding-bottom: 5px; border-bottom: 2px solid #ddd; color: #444;
@@ -41,7 +58,6 @@
     }
     .event-card.past { border-left-color: #999; opacity: 0.8; background: #f9f9f9; }
     
-    /* 管理ボタン（編集・削除）エリア */
     .ev-admin-row {
       display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px;
     }
@@ -55,13 +71,12 @@
     .ev-date { font-weight: bold; color: var(--accent); font-size: 1.1rem; }
     .ev-title { margin: 5px 0 15px; font-size: 1.3rem; font-weight: bold; line-height: 1.4; }
     
-    /* 情報行（場所・費用） */
     .ev-info-row {
       display: flex; gap: 15px; margin-bottom: 8px; color: #333; font-size: 0.95rem; align-items: flex-start;
     }
     .ev-label {
       width: 5em; flex-shrink: 0; font-weight: bold; color: #666;
-      text-align: justify; text-align-last: justify; /* 文字数違っても両端揃えっぽく */
+      text-align: justify; text-align-last: justify;
     }
     .ev-info-val { white-space: pre-wrap; flex: 1; line-height: 1.5; }
 
@@ -75,7 +90,6 @@
     }
     .ev-url-row a { color: var(--accent); text-decoration: underline; }
 
-    /* 参加ボタンエリア */
     .participation-area {
       margin-top: 20px; padding: 12px; background: #f0f7ff; border-radius: 8px;
       display: flex; align-items: flex-start; gap: 15px;
@@ -105,7 +119,6 @@
       padding: 4px 10px; border-radius: 20px; transition: 0.2s;
     }
 
-    /* FAB & Modal */
     .fab-btn {
       position: fixed; bottom: 20px; right: 20px;
       background: var(--danger); color: white; width: 60px; height: 60px; border-radius: 50%;
@@ -130,7 +143,6 @@
       width: 100%; background: var(--accent); color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer;
     }
     
-    /* 確認画面用 */
     .confirm-view { display: none; background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
     .confirm-row { margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
     .confirm-label { font-size: 0.8rem; color: #666; font-weight: bold; display: block; }
@@ -148,6 +160,22 @@
   <div class="header">
     <h1>Eventi</h1>
     <p>FIAT 500 イベント・ミーティング情報</p>
+  </div>
+
+  <!-- 案内文エリア -->
+  <div class="guide-box">
+    <h2 class="guide-title">イベント・ミーティング情報について</h2>
+    <div class="guide-text">
+      Registro500では、オーナー同士が繋がれる機会を増やすため、皆様からのイベント情報の投稿を幅広く募集しています。
+    </div>
+    <ul class="guide-list">
+      <li>クラシックFIAT 500対象のイベント</li>
+      <li>オーナー発信の小規模オフ会・ミーティング</li>
+    </ul>
+    <div class="guide-text">
+      大規模なイベントはもちろん、数台集まるだけの気軽なミーティングまで、規模の大小は問いません。
+      情報共有や仲間集めのために、ぜひたくさんの投稿をお待ちしています！
+    </div>
   </div>
 
   <div id="loading" style="text-align:center; padding:40px;">読み込んでいます...</div>
@@ -170,7 +198,6 @@
   <div class="modal-content">
     <h2 id="modalTitle" style="margin-top:0;">イベント投稿</h2>
     
-    <!-- 入力フォーム -->
     <form id="eventForm">
       <input type="hidden" name="EventID" value="">
 
@@ -190,7 +217,7 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">開催場所（都道府県も） <span style="color:red">*</span></label>
+        <label class="form-label">開催場所 <span style="color:red">*</span></label>
         <textarea name="Location" class="form-input" rows="2" required placeholder="例: 神奈川県〇〇市&#13;&#10;〇〇公園駐車場"></textarea>
       </div>
 
@@ -213,7 +240,6 @@
       <button type="button" onclick="closeModal()" style="width:100%; margin-top:10px; background:none; border:none; color:#666;">キャンセル</button>
     </form>
 
-    <!-- 確認画面 -->
     <div id="confirmView" class="confirm-view">
       <h3>以下の内容で送信しますか？</h3>
       <div id="confirmContent"></div>
@@ -302,7 +328,6 @@
     const count = participants.length;
     const isJoined = participants.some(p => p.OwnerID === myCarId);
     
-    // 参加者リンク
     let namesHtml = "";
     if (count === 0) {
       namesHtml = "参加表明オーナーはまだいません";
@@ -319,15 +344,12 @@
        dateStr = `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()} (${['日','月','火','水','木','金','土'][d.getDay()]})`;
     }
 
-    // 参照URL
     const urlHtml = ev.URL ? `<div class="ev-url-row">🔗 参照URL: <a href="${ev.URL}" target="_blank">${esc(ev.URL)}</a></div>` : '';
     
-    // 投稿者リンク
     const ownerLink = ev.OwnerID === 'ADMIN' ? 
         `<span class="owner-badge">👤 ${esc(ev.OwnerName)}</span>` : 
         `<a href="detail.html?doc=${ev.OwnerID}" class="owner-badge" target="_blank">👤 ${esc(ev.OwnerName)}</a>`;
 
-    // 参加ボタン
     const joinBtnHtml = isPast ? '' : `
       <div class="participation-area">
         <button class="btn-join ${isJoined ? 'joined' : ''}" onclick="toggleJoin('${ev.EventID}')">
@@ -339,7 +361,6 @@
       </div>
     `;
 
-    // 編集・削除ボタン (日付と被らないよう上部に配置)
     let adminHtml = '';
     if (currentUser && (ev.OwnerID === myCarId || myCarId === 'ADMIN')) {
       adminHtml = `
@@ -384,7 +405,6 @@
   const select = document.getElementById('ownerCarSelect');
   const confirmView = document.getElementById('confirmView');
 
-  // 新規投稿ボタン
   document.getElementById('postBtn').addEventListener('click', async () => {
     if (!currentUser) return alert("ログインしてください");
     await prepareModal();
@@ -393,7 +413,6 @@
     modal.style.display = 'flex';
   });
 
-  // 編集ボタン
   window.openEdit = async (eventId) => {
     if (!currentUser) return alert("ログインしてください");
     await prepareModal();
@@ -401,7 +420,6 @@
     const ev = loadedEvents.find(e => e.EventID === eventId);
     if(!ev) return;
 
-    // フォームに値をセット
     form.EventID.value = ev.EventID;
     form.EventName.value = ev.EventName;
     form.EventDate.value = ev.EventDate; 
@@ -443,7 +461,6 @@
 
   function closeModal() { modal.style.display = 'none'; }
 
-  // 確認画面表示
   window.showConfirm = () => {
     if (!form.reportValidity()) return;
     
@@ -463,11 +480,9 @@
     form.style.display = 'block';
   };
 
-  // 送信実行
   window.submitEvent = async () => {
     const btn = document.getElementById('realSubmitBtn');
     btn.disabled = true; btn.innerText = "送信中...";
-    
     try {
       const token = await currentUser.getIdToken();
       const formData = {
@@ -497,7 +512,6 @@
     finally { btn.disabled = false; btn.innerText = "送信する"; }
   };
 
-  // 削除機能
   window.deleteEvent = async (eventId) => {
     if(!confirm("本当にこのイベントを削除しますか？\n（この操作は取り消せません）")) return;
     try {
