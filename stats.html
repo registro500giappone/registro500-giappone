@@ -2,16 +2,19 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-27SHHC4JYH');
-</script>
   
+  <!-- ▼▼▼ Google Analytics (GA4) ▼▼▼ -->
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-27SHHC4JYH');
+  </script>
+  <!-- ▲▲▲ 追加済み ▲▲▲ -->
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>統計データ | Registro500 Giappone</title>
   
@@ -193,12 +196,12 @@
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
-        layout: { padding: { right: 30 } }, // 右側に数字が出るスペースを確保
+        layout: { padding: { right: 30 } }, 
         plugins: { 
           legend: { display: false },
           datalabels: {
-            anchor: 'end', // 棒の端っこを基準に
-            align: 'end',  // 外側に表示
+            anchor: 'end',
+            align: 'end',
             color: '#333',
             font: { weight: 'bold' },
             formatter: (value) => value + '台'
@@ -274,18 +277,18 @@
         plugins: { 
           legend: { position: 'right' },
           datalabels: {
-            color: '#fff', // 文字色を白に
+            color: '#fff', 
             font: { weight: 'bold', size: 14 },
-            textShadowColor: '#000', // 白背景の時用に影をつける（見やすくするため）
+            textShadowColor: '#000',
             textShadowBlur: 3,
-            formatter: (value) => value // 単に数値を表示
+            formatter: (value) => value 
           }
         }
       }
     });
   }
 
-  // ③ エンジン (未記入は最後 + 数値表示)
+  // ③ エンジン
   function renderEngineChart(cars) {
     const data = aggregate(cars, c => {
         let txt = String(c.EngineCC || '').trim();
@@ -294,12 +297,9 @@
         return '未記入/不明';
     });
 
-    // 並び替えロジック変更
     data.sort((a, b) => {
-      // "未記入/不明" は強制的に後ろへ
       if (a[0] === '未記入/不明') return 1;
       if (b[0] === '未記入/不明') return -1;
-      // それ以外は数値順 (昇順)
       return parseInt(a[0]) - parseInt(b[0]);
     });
 
