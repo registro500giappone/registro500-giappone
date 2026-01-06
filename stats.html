@@ -3,17 +3,14 @@
 <head>
   <meta charset="UTF-8">
   
-  <!-- ▼▼▼ Google Analytics (GA4) ▼▼▼ -->
-  <!-- Google tag (gtag.js) -->
+  <!-- Google Analytics (GA4) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-
     gtag('config', 'G-27SHHC4JYH');
   </script>
-  <!-- ▲▲▲ 追加済み ▲▲▲ -->
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>統計データ | Registro500 Giappone</title>
@@ -123,7 +120,6 @@
 </div>
 
 <script>
-  // DataLabelsプラグインを登録
   Chart.register(ChartDataLabels);
 
   const COLOR_PALETTE = {
@@ -141,27 +137,69 @@
     other:  '#CFD8DC'  
   };
 
+  // ★キャッシュキー設定
+  const CACHE_KEY_STATS = 'registro500_stats_data';
+
+  // 初期化処理
+  initStats();
+
   async function initStats() {
+    // 1. まずキャッシュがあれば表示 (爆速表示)
+    const cached = localStorage.getItem(CACHE_KEY_STATS);
+    if (cached) {
+      try {
+        const data = JSON.parse(cached);
+        console.log("キャッシュから統計を表示");
+        drawAllCharts(data);
+      } catch (e) { console.error(e); }
+    }
+
+    // 2. 裏で最新データを取得
     try {
       const res = await fetch(API_URL + '?mode=index');
       const json = await res.json();
       
       if (!json.success) throw new Error("データ取得失敗");
       
-      const cars = json.data;
-      document.getElementById('totalCount').innerText = cars.length;
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('statsContent').style.display = 'grid';
-
-      renderModelChart(cars);
-      renderColorChart(cars);
-      renderEngineChart(cars);
+      // データに変化があれば再描画してキャッシュ更新
+      const newStr = JSON.stringify(json.data);
+      if (newStr !== cached) {
+        console.log("最新データでグラフを更新");
+        localStorage.setItem(CACHE_KEY_STATS, newStr);
+        drawAllCharts(json.data);
+      } else {
+        console.log("データに変更なし");
+      }
 
     } catch (e) {
       console.error(e);
-      document.getElementById('loading').innerText = "データの読み込みに失敗しました";
+      // キャッシュもなく通信も失敗した場合のみエラー表示
+      if (!cached) {
+        document.getElementById('loading').innerText = "データの読み込みに失敗しました";
+      }
     }
   }
+
+  // グラフ描画を一括で行う関数
+  function drawAllCharts(cars) {
+    // 既存のチャートがあれば破棄 (再描画用)
+    [modelChartInst, colorChartInst, engineChartInst].forEach(c => {
+      if(c) c.destroy();
+    });
+
+    document.getElementById('totalCount').innerText = cars.length;
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('statsContent').style.display = 'grid';
+
+    renderModelChart(cars);
+    renderColorChart(cars);
+    renderEngineChart(cars);
+  }
+
+  // チャートインスタンス保持用 (更新時に破棄するため)
+  let modelChartInst = null;
+  let colorChartInst = null;
+  let engineChartInst = null;
 
   function aggregate(data, keyExtractor) {
     const counts = {};
@@ -173,7 +211,6 @@
     return Object.entries(counts).sort((a, b) => b[1] - a[1]);
   }
 
-  // ① モデル別
   function renderModelChart(cars) {
     const data = aggregate(cars, c => {
       let name = c.Model_DisplayC || 'その他';
@@ -181,7 +218,8 @@
       return name;
     });
 
-    new Chart(document.getElementById('modelChart'), {
+    const ctx = document.getElementById('modelChart');
+    modelChartInst = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: data.map(d => d[0]),
@@ -200,10 +238,7 @@
         plugins: { 
           legend: { display: false },
           datalabels: {
-            anchor: 'end',
-            align: 'end',
-            color: '#333',
-            font: { weight: 'bold' },
+            anchor: 'end', align: 'end', color: '#333', font: { weight: 'bold' },
             formatter: (value) => value + '台'
           }
         },
@@ -212,7 +247,6 @@
     });
   }
 
-  // ② カラー (多い順ソート + 数値表示)
   function renderColorChart(cars) {
     const colorGroups = {
       '白系': { count: 0, color: COLOR_PALETTE.white, border: '#ccc' }, 
@@ -231,7 +265,6 @@
 
     cars.forEach(c => {
       const txt = (c.BodyColor || '').toLowerCase();
-      
       if (!txt) {} 
       else if (txt.match(/白|white|bianco|ホワイト|アイボリー|ivory|avorio|パール/)) { colorGroups['白系'].count++; }
       else if (txt.match(/赤|red|rosso|レッド|ワイン|ボルドー|corallo/)) { colorGroups['赤系'].count++; }
@@ -251,16 +284,14 @@
     for (const [key, val] of Object.entries(colorGroups)) {
       if (val.count > 0) {
         sortedData.push({
-          label: key,
-          count: val.count,
-          color: val.color,
-          border: val.border || val.color
+          label: key, count: val.count, color: val.color, border: val.border || val.color
         });
       }
     }
     sortedData.sort((a, b) => b.count - a.count);
 
-    new Chart(document.getElementById('colorChart'), {
+    const ctx = document.getElementById('colorChart');
+    colorChartInst = new Chart(ctx, {
       type: 'pie',
       data: {
         labels: sortedData.map(d => d.label),
@@ -272,15 +303,12 @@
         }]
       },
       options: { 
-        responsive: true, 
-        maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false,
         plugins: { 
           legend: { position: 'right' },
           datalabels: {
-            color: '#fff', 
-            font: { weight: 'bold', size: 14 },
-            textShadowColor: '#000',
-            textShadowBlur: 3,
+            color: '#fff', font: { weight: 'bold', size: 14 },
+            textShadowColor: '#000', textShadowBlur: 3,
             formatter: (value) => value 
           }
         }
@@ -288,7 +316,6 @@
     });
   }
 
-  // ③ エンジン
   function renderEngineChart(cars) {
     const data = aggregate(cars, c => {
         let txt = String(c.EngineCC || '').trim();
@@ -303,7 +330,8 @@
       return parseInt(a[0]) - parseInt(b[0]);
     });
 
-    new Chart(document.getElementById('engineChart'), {
+    const ctx = document.getElementById('engineChart');
+    engineChartInst = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: data.map(d => d[0]),
@@ -315,25 +343,18 @@
         }]
       },
       options: { 
-        indexAxis: 'y', 
-        responsive: true, 
-        maintainAspectRatio: false,
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
         layout: { padding: { right: 30 } },
         plugins: { 
           legend: { display: false },
           datalabels: {
-            anchor: 'end',
-            align: 'end',
-            color: '#333',
-            font: { weight: 'bold' },
+            anchor: 'end', align: 'end', color: '#333', font: { weight: 'bold' },
             formatter: (value) => value + '台'
           }
         }
       }
     });
   }
-
-  initStats();
 </script>
 </body>
 </html>
