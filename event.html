@@ -2,16 +2,19 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-27SHHC4JYH');
-</script>
   
+  <!-- ▼▼▼ Google Analytics (GA4) ▼▼▼ -->
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-27SHHC4JYH');
+  </script>
+  <!-- ▲▲▲ 追加済み ▲▲▲ -->
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>イベント情報 | Registro500 Giappone</title>
   
@@ -153,8 +156,6 @@
       width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;
     }
     .form-textarea { height: 100px; }
-    
-    /* 日付・時間入力用 */
     .form-row-date { display: flex; align-items: center; gap: 10px; }
     .week-label { font-weight: bold; color: var(--accent); }
 
@@ -220,6 +221,7 @@
 
 <div class="fab-btn" id="postBtn" title="イベントを投稿する">＋</div>
 
+<!-- 投稿/編集モーダル -->
 <div class="modal-overlay" id="postModal">
   <div class="modal-content">
     <h2 id="modalTitle" style="margin-top:0;">イベント投稿</h2>
@@ -300,13 +302,15 @@
     firebase.initializeApp(myFirebaseConfig);
   }
 
+  // --- ローカルキャッシュ設定 ---
+  const CACHE_KEY_EVENTS = 'registro500_event_data';
+  
   let currentUser = null;
   let myCarId = null; 
   let loadedEvents = [];
-  let allEventsData = []; // フィルター用
+  let allEventsData = []; 
   let currentRegion = 'all';
 
-  // 地域定義
   const REGION_MAP = {
     '北海道・東北': ['北海道','青森','岩手','宮城','秋田','山形','福島'],
     '関東': ['茨城','栃木','群馬','埼玉','千葉','東京','神奈川','山梨'],
@@ -317,7 +321,12 @@
   };
 
   window.addEventListener('DOMContentLoaded', () => {
+    // 1. まずローカルキャッシュを表示 (爆速表示)
+    initFromCache();
+
+    // 2. 裏で最新データを取得
     fetchEvents();
+
     firebase.auth().onAuthStateChanged(user => {
       currentUser = user;
       if(user) checkMyCar(user);
@@ -334,7 +343,6 @@
       }
     });
 
-    // フィルターボタン
     document.querySelectorAll('.filter-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -344,6 +352,23 @@
       });
     });
   });
+
+  // キャッシュから初期表示
+  function initFromCache() {
+    const cached = localStorage.getItem(CACHE_KEY_EVENTS);
+    if (cached) {
+      try {
+        const data = JSON.parse(cached);
+        console.log("キャッシュから表示します");
+        allEventsData = data;
+        loadedEvents = data;
+        document.getElementById('loading').style.display = 'none';
+        renderEvents();
+      } catch (e) {
+        console.error("キャッシュ読み込みエラー", e);
+      }
+    }
+  }
 
   async function checkMyCar(user) {
     try {
@@ -355,7 +380,7 @@
       } else {
         myCarId = "ADMIN"; 
       }
-      fetchEvents(); 
+      renderEvents(); 
     } catch(e) {}
   }
 
@@ -363,12 +388,22 @@
     try {
       const res = await fetch(API_URL + '?mode=events');
       const json = await res.json();
+      
       document.getElementById('loading').style.display = 'none';
       if (!json.success) return;
 
-      loadedEvents = json.data;
-      allEventsData = json.data; // 保持
-      renderEvents();
+      const newStr = JSON.stringify(json.data);
+      const oldStr = localStorage.getItem(CACHE_KEY_EVENTS);
+
+      if (newStr !== oldStr) {
+        console.log("最新データを取得・更新しました");
+        localStorage.setItem(CACHE_KEY_EVENTS, newStr);
+        allEventsData = json.data;
+        loadedEvents = json.data;
+        renderEvents();
+      } else {
+        console.log("データに変更はありません");
+      }
 
     } catch(e) { console.error(e); }
   }
@@ -379,7 +414,6 @@
     const pastEl = document.getElementById('pastList');
     futureEl.innerHTML = ''; pastEl.innerHTML = '';
 
-    // フィルター適用
     const filtered = allEventsData.filter(ev => {
       if(currentRegion === 'all') return true;
       const targets = REGION_MAP[currentRegion] || [];
@@ -390,7 +424,7 @@
 
     filtered.forEach(ev => {
       let d = new Date(ev.EventDate);
-      if(isNaN(d.getTime())) d = new Date(); // パースできない場合
+      if(isNaN(d.getTime())) d = new Date(); 
       
       const isPast = d < today;
       const card = createEventCard(ev, isPast, d);
@@ -398,7 +432,6 @@
       if (isPast) {
         pastEl.appendChild(card);
       } else {
-        // 月見出しの挿入 (未来のみ)
         const monthStr = `${d.getFullYear()}年 ${d.getMonth()+1}月`;
         if (monthStr !== currentMonthStr) {
           const h = document.createElement('div');
@@ -433,11 +466,8 @@
       }).join('');
     }
 
-    // 日付整形: 2026-02-08 10:00 -> 2026/2/8 (日) 10:00
-    // EventDate文字列をそのまま信用せず、Dateオブジェクトから生成したほうが綺麗
     const w = ['日','月','火','水','木','金','土'][dateObj.getDay()];
-    // 時間があるかチェック (yyyy-mm-dd hh:mm かどうか)
-    const hasTime = ev.EventDate.includes(':'); 
+    const hasTime = ev.EventDate.includes(' ') || ev.EventDate.includes('T'); 
     let timeStr = "";
     if(hasTime) {
        const hh = String(dateObj.getHours()).padStart(2,'0');
@@ -491,9 +521,7 @@
       
       <div class="ev-desc">${esc(ev.Description)}</div>
       ${urlHtml}
-      
       ${joinBtnHtml}
-      
       <div class="ev-footer">
         ${ownerLink}
       </div>
@@ -501,7 +529,6 @@
     return div;
   }
 
-  // --- 投稿・編集機能 ---
   const modal = document.getElementById('postModal');
   const form = document.getElementById('eventForm');
   const select = document.getElementById('ownerCarSelect');
@@ -522,23 +549,16 @@
     const ev = loadedEvents.find(e => e.EventID === eventId);
     if(!ev) return;
 
-    // データ復元
     form.EventID.value = ev.EventID;
     form.EventName.value = ev.EventName;
     
-    // 日付と時間を分離
-    // ev.EventDate は "2026-02-08 10:00" または "2026-02-08" などの文字列
-    // あるいは Dateオブジェクトの文字列の場合もあるので Date化して処理
     const d = new Date(ev.EventDate);
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth()+1).padStart(2,'0');
     const dd = String(d.getDate()).padStart(2,'0');
     form.inputDate.value = `${yyyy}-${mm}-${dd}`;
-    // 曜日更新発火
     form.inputDate.dispatchEvent(new Event('change'));
 
-    // 時間があるか？ (00:00以外か、元の文字列に時間があるか)
-    // GAS側で保存時に "YYYY/MM/DD HH:mm" で保存しているので、それを見る
     const hasTime = ev.EventDate.includes(' ') || ev.EventDate.includes('T');
     if(hasTime && (d.getHours() !== 0 || d.getMinutes() !== 0)) {
        const HH = String(d.getHours()).padStart(2,'0');
@@ -590,9 +610,8 @@
   window.showConfirm = () => {
     if (!form.reportValidity()) return;
     
-    // 日時の結合表示
-    const dVal = form.inputDate.value; // YYYY-MM-DD
-    const tVal = form.inputTime.value; // HH:mm
+    const dVal = form.inputDate.value;
+    const tVal = form.inputTime.value;
     let dtDisplay = dVal;
     if(tVal) dtDisplay += ` ${tVal}〜`;
 
@@ -617,11 +636,8 @@
     btn.disabled = true; btn.innerText = "送信中...";
     try {
       const token = await currentUser.getIdToken();
-      
-      // 日時の結合 (保存用フォーマット作成)
       const dVal = form.inputDate.value; 
       const tVal = form.inputTime.value; 
-      // 2026-02-08 10:00 または 2026-02-08 (文字列として保存)
       const combinedDate = tVal ? `${dVal} ${tVal}` : dVal;
 
       const formData = {
@@ -629,7 +645,7 @@
         EventID: form.EventID.value,
         OwnerID: select.value,
         EventName: form.EventName.value,
-        EventDate: combinedDate, // 結合した日時を送る
+        EventDate: combinedDate,
         Location: form.Location.value,
         Fee: form.Fee.value,
         URL: form.URL.value,
@@ -643,6 +659,7 @@
       const json = await res.json();
       if (json.success) {
         alert("保存しました！");
+        localStorage.removeItem(CACHE_KEY_EVENTS);
         location.reload();
       } else {
         alert("エラー: " + json.error);
@@ -665,6 +682,7 @@
       const json = await res.json();
       if(json.success) {
         alert("削除しました");
+        localStorage.removeItem(CACHE_KEY_EVENTS);
         fetchEvents();
       } else {
         alert("エラー: " + json.error);
@@ -687,6 +705,7 @@
       const json = await res.json();
       if(json.success) {
         alert(json.data.message);
+        localStorage.removeItem(CACHE_KEY_EVENTS);
         fetchEvents();
       } else {
         alert("エラー: " + json.error);
