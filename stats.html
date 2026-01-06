@@ -22,7 +22,6 @@
     @media (min-width: 768px) { .tab-content.active { grid-template-columns: 1fr 1fr; } .full { grid-column: span 2; } }
     .chart-card { background: var(--card); border-radius: var(--radius); padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     .chart-title { font-size: 1rem; font-weight: bold; border-bottom: 2px solid var(--bg); padding-bottom: 10px; margin-bottom: 15px; text-align: center; }
-    /* 文字が多いグラフの枠を少し高く設定 */
     .chart-container { position: relative; height: 350px; width: 100%; }
     .chart-container.tall { height: 450px; }
     #loading { text-align: center; padding: 50px; font-weight: bold; }
@@ -79,11 +78,15 @@
 
 <script>
   let chartInstances = {};
-  const CACHE_KEY = 'registro500_stats_v21'; 
+  const CACHE_KEY = 'registro500_stats_v22'; 
   
+  // ボディカラー配色設定
   const COLOR_PALETTE = {
-    '白/アイボリー系': '#f8f8f8', '赤系': '#D32F2F', '黄系': '#FBC02D', 'ブルー系': '#1976D2', '水色系': '#81D4FA', '緑系': '#388E3C', 'グレー系': '#757575', 'ベージュ系': '#D7CCC8', '黒系': '#212121', 'オレンジ系': '#F57C00', 'その他': '#CFD8DC'
+    '白/アイボリー系': '#f8f8f8', '赤系': '#CD212A', '黄系': '#FBC02D', 'ブルー系': '#0039A6', '水色系': '#81D4FA', '緑系': '#008C45', 'グレー系': '#757575', 'ベージュ系': '#D7CCC8', '黒系': '#212121', 'オレンジ系': '#F57C00', 'その他': '#CFD8DC'
   };
+
+  // イタリア国旗をイメージした配色（緑、銀、赤）
+  const ITALIAN_TRICOLORE = ['#008C45', '#E1E1E1', '#CD212A', '#0039A6', '#FBC02D', '#757575'];
 
   window.addEventListener('DOMContentLoaded', () => {
     Chart.register(ChartDataLabels);
@@ -117,47 +120,45 @@
     document.getElementById('totalCount').innerText = cars.length;
     Object.values(chartInstances).forEach(ins => ins.destroy());
 
-    // 基本情報
+    // --- タブ1: 基本 ---
     renderBar('modelChart', cars, c => (c.Model_DisplayC || '').split('(')[0].trim(), '#2856a8');
-    renderPie('colorChart', cars, c => getColorGroup(c.BodyColor), true);
+    renderPie('colorChart', cars, c => getColorGroup(c.BodyColor), 'palette');
     renderPie('steeringChart', cars, c => {
       if (String(c.Steering).includes('左')) return '左ハンドル';
       if (String(c.Steering).includes('右')) return '右ハンドル';
       return null;
-    });
+    }, 'italy');
 
-    // 機関
+    // --- タブ2: 機関 ---
     renderBar('engineChart', cars, c => {
       let cc = String(c.EngineCC || '').replace(/[^0-9]/g, '');
       return cc ? cc + 'cc' : null;
     }, '#ff9800');
-    renderPie('ignitionChart', cars, c => c.IgnitionType);
-    renderPie('generatorChart', cars, c => c.Generator);
+    renderPie('ignitionChart', cars, c => c.IgnitionType, 'italy');
+    renderPie('generatorChart', cars, c => c.Generator, 'italy');
     renderBar('transChart', cars, c => c.Transmission ? (c.Transmission + (c.Synchro ? `(${c.Synchro})` : '')) : null, '#673ab7');
 
-    // メンテナンス (ミッションサイクルを追加)
+    // --- タブ3: メンテナンス ---
     renderBar('eOilBrandChart', cars, c => getBrandJa(c.EngineOil), '#e91e63');
     renderBar('eOilCycleChart', cars, c => getCycleJa(c.EngineOilInterval), '#795548');
     renderBar('mOilBrandChart', cars, c => getBrandJa(c.TransmissionOil), '#607d8b');
     renderBar('mOilCycleChart', cars, c => getCycleJa(c.TransmissionOilInterval), '#4d5360');
 
-    // 足回り
+    // --- タブ4: 足回り ---
     renderBar('tireBrandChart', cars, c => getBrandJa(c.TireBrandName), '#2196f3');
     renderBar('tireSizeChart', cars, c => normalizeTireSize(c.TireSize), '#00bcd4');
-    renderPie('wheelChart', cars, c => c.Wheel);
+    renderPie('wheelChart', cars, c => c.Wheel, 'italy');
     renderBar('rimChart', cars, c => {
       if(!c.RimDiameter_in) return null;
       return c.RimDiameter_in + 'インチ' + (c.RimWidth_in ? '(' + c.RimWidth_in + 'J)' : '');
     }, '#9e9e9e');
   }
 
-  // --- 高機能名寄せ ---
-
+  // --- 名寄せ ---
   function getBrandJa(t) {
     if (!t) return null;
     let v = String(t).toLowerCase().trim();
     if (v.match(/不明|未記入|無し|メーカー不定/)) return null;
-
     if (v.match(/motul|モチュール/)) return 'モチュール';
     if (v.match(/michelin|ミシュラン/)) return 'ミシュラン';
     if (v.match(/pirelli|ピレリ|cinturato|チンチュラート/)) return 'ピレリ';
@@ -172,21 +173,12 @@
     if (v.match(/gulf|ガルフ/)) return 'ガルフ';
     if (v.match(/nutec|ニューテック/)) return 'NUTEC';
     if (v.match(/ash|a\.s\.h|アッシュ/)) return 'A.S.H';
-    if (v.match(/pennzoil|ペンズ/)) return 'ペンズオイル';
+    if (v.match(/pennzoil|ペンズオイル|ペンズ/)) return 'ペンズオイル';
     if (v.match(/valvoline|バルボリン/)) return 'バルボリン';
-    if (v.match(/kendall|ケンドル/)) return 'ケンドル';
-    if (v.match(/amalie|アマリー/)) return 'アマリー';
-    if (v.match(/spectro|スペクトロ/)) return 'SPECTRO';
-    if (v.match(/omega|オメガ/)) return 'オメガ';
     if (v.match(/revtech|レブテック/)) return 'RevTech';
     if (v.match(/polo/)) return 'POLO Lubricants';
-    if (v.match(/hiroko|広島高潤/)) return '広島高潤';
     if (v.match(/ontario|オンタリオ/)) return 'オンタリオSS';
     if (v.match(/tcガレージ|tcgarage/)) return 'TCガレージ';
-    if (v.match(/debica|デビカ/)) return 'Debica';
-    if (v.match(/radar|レーダー/)) return 'Radar';
-    if (v.match(/falken|ファルケン/)) return 'ファルケン';
-    
     return t.charAt(0).toUpperCase() + t.slice(1);
   }
 
@@ -194,14 +186,14 @@
     if (!t) return null;
     const v = String(t).toLowerCase();
     if (v.match(/白|white|bianco|ビアンコ|アイボリー|ivory|象牙|パール/)) return '白/アイボリー系';
-    if (v.match(/赤|red|rosso|ロッソ|レッド|ワイン|ボルドー/)) return '赤系';
+    if (v.match(/赤|red|rosso|ロッソ|レッド|ワイン/)) return '赤系';
     if (v.match(/黄|yellow|giallo|ジャッロ|イエロー|クリーム|positano|バニラ/)) return '黄系';
-    if (v.match(/水色|light blue|azur|celeste|チェレステ|volare|アクア|空色/)) return '水色系';
+    if (v.match(/水色|light blue|azur|celeste|volare|アクア|空色|ターコイズ/)) return '水色系';
     if (v.match(/青|blue|blu|ブルー|ネイビー|紺/)) return 'ブルー系';
     if (v.match(/緑|green|verde|グリーン|ミント|抹茶/)) return '緑系';
     if (v.match(/灰|grey|grigio|グリージョ|グレー|ガンメタ|シルバー/)) return 'グレー系';
     if (v.match(/ベージュ|beige|茶|brown|sabbia/)) return 'ベージュ系';
-    if (v.match(/黒|black|nero|ブラック/)) return '黒系';
+    if (v.match(/黒|black|nero/)) return '黒系';
     if (v.match(/オレンジ|orange/)) return 'オレンジ系';
     return 'その他';
   }
@@ -210,7 +202,6 @@
     if (!t) return null;
     let v = String(t).toUpperCase().replace(/\s+/g, '');
     if (v.match(/不明|未記入/)) return null;
-    // 125R12系の揺れを統合
     if (v.match(/^125.*12$/)) return '125R12';
     if (v.match(/^135.*12$/)) return '135/80R12';
     if (v.match(/^145.*12$/)) return '145/70R12';
@@ -230,14 +221,12 @@
     return v;
   }
 
-  // --- 描画エンジン ---
+  // --- 描画関数 ---
   function aggregate(cars, extractor) {
     const counts = {};
     cars.forEach(c => {
       const val = extractor(c);
-      if (val && val !== 'undefined' && val !== 'null') {
-        counts[val] = (counts[val] || 0) + 1;
-      }
+      if (val && val !== 'undefined' && val !== 'null') { counts[val] = (counts[val] || 0) + 1; }
     });
     return Object.entries(counts).sort((a, b) => b[1] - a[1]);
   }
@@ -250,36 +239,34 @@
       data: { labels: data.map(d => d[0]), datasets: [{ data: data.map(d => d[1]), backgroundColor: color, borderRadius: 4 }] },
       options: { 
         indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-        layout: { padding: { right: 50 } }, // 右側に台数表示用の余白を作る
+        layout: { padding: { right: 50 } },
         plugins: { 
           legend: { display: false }, 
           datalabels: { anchor: 'end', align: 'end', formatter: v => v + '台', color: '#444', font: { weight: 'bold' } } 
         },
-        scales: { 
-          x: { beginAtZero: true, grid: { display: false } }, 
-          y: { grid: { display: false }, ticks: { autoSkip: false } } // ラベルを間引かずに全部出す
-        }
+        scales: { x: { beginAtZero: true, grid: { display: false } }, y: { grid: { display: false }, ticks: { autoSkip: false } } }
       }
     });
   }
 
-  function renderPie(id, cars, extractor, usePalette = false) {
+  function renderPie(id, cars, extractor, theme = 'default') {
     const data = aggregate(cars, extractor);
     if (data.length === 0) return;
+    let bgColors = (theme === 'palette') 
+                   ? data.map(d => COLOR_PALETTE[d[0]] || '#CFD8DC') 
+                   : (theme === 'italy') ? ITALIAN_TRICOLORE : ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];
+
     chartInstances[id] = new Chart(document.getElementById(id), {
       type: 'pie',
       data: {
         labels: data.map(d => d[0]),
-        datasets: [{
-          data: data.map(d => d[1]),
-          backgroundColor: usePalette ? data.map(d => COLOR_PALETTE[d[0]] || '#CFD8DC') : ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#C9CBCF', '#4D5360']
-        }]
+        datasets: [{ data: data.map(d => d[1]), backgroundColor: bgColors, borderColor: '#fff', borderWidth: 2 }]
       },
       options: { 
         responsive: true, maintainAspectRatio: false,
         plugins: { 
           legend: { position: 'right', labels: { boxWidth: 12 } }, 
-          datalabels: { color: usePalette ? '#444' : '#fff', font: { weight: 'bold' }, formatter: v => v } 
+          datalabels: { color: (theme === 'palette') ? '#444' : '#fff', font: { weight: 'bold' }, formatter: v => v } 
         }
       }
     });
