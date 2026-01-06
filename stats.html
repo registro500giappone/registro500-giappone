@@ -15,7 +15,7 @@
     .page { max-width: 1000px; margin: 0 auto; }
     .header { text-align: center; margin-bottom: 20px; }
     .header h1 { color: var(--accent); margin-bottom: 5px; }
-    .note { font-size: 0.8rem; color: #666; margin-bottom: 15px; }
+    .note { font-size: 0.85rem; color: #d32f2f; background: #fff; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .tabs { display: flex; justify-content: center; gap: 8px; margin-bottom: 25px; flex-wrap: wrap; }
     .tab-btn { padding: 10px 16px; border: none; background: #ddd; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
     .tab-btn.active { background: var(--accent); color: white; }
@@ -33,8 +33,8 @@
 <div class="page">
   <div class="header">
     <h1>Registro500 Statistics</h1>
-    <p>登録車両: <span id="totalCount">-</span>台 / 集計対象: <span id="activeCount">-</span>台</p>
-    <div class="note">※「未記入」データを除いた有効回答のみを集計しています。</div>
+    <p>全登録車両: <span id="totalCount">-</span>台</p>
+    <div class="note">※以下のグラフは「未記入」回答を除いた有効データのみを集計しています。</div>
   </div>
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('basic')">基本情報</button>
@@ -46,7 +46,7 @@
   
   <div id="basic" class="tab-content active">
     <div class="chart-card full"><div class="chart-title">🚗 モデル別</div><div class="chart-container"><canvas id="modelChart"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">🎨 ボディカラー</div><div class="chart-container"><canvas id="colorChart"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">🎨 ボディカラー (多い順)</div><div class="chart-container"><canvas id="colorChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">🎡 ハンドル位置</div><div class="chart-container"><canvas id="steeringChart"></canvas></div></div>
     <div class="chart-card full"><div class="chart-title">📍 都道府県</div><div class="chart-container"><canvas id="prefChart"></canvas></div></div>
   </div>
@@ -128,9 +128,8 @@
     renderBar('rimWidthChart', cars, c => (c.RimWidth_in ? c.RimWidth_in+'J' : ''), '#9e9e9e');
   }
 
-  // 名寄せロジック (日本語化)
   function getBrand(txt) {
-    if(!txt) return '';
+    if(!txt || txt === '不明') return '';
     const t = txt.toLowerCase();
     if(t.match(/motul|モチュール/)) return 'モチュール';
     if(t.match(/michelin|ミシュラン/)) return 'ミシュラン';
@@ -182,25 +181,25 @@
     return 'その他';
   }
 
-  // 集計関数 (空文字＝未記入を除外)
   function aggregate(cars, extractor) {
     const counts = {};
-    let active = 0;
     cars.forEach(c => {
       const v = extractor(c);
-      if (v && v !== '未記入' && v !== '不明') {
+      if (v && v !== '未記入' && v !== '不明' && v !== 'その他' && v !== 'その他/随時') {
         counts[v] = (counts[v] || 0) + 1;
-        active++;
+      } else if (v === 'その他' || v === 'その他/随時') {
+        counts[v] = (counts[v] || 0) + 1; // その他はカウントに含める
       }
     });
-    return { data: Object.entries(counts).sort((a,b)=>b[1]-a[1]), total: active };
+    // 降順ソート
+    return Object.entries(counts).sort((a,b)=>b[1]-a[1]);
   }
 
   function renderBar(id, cars, extractor, color) {
-    const agg = aggregate(cars, extractor);
+    const data = aggregate(cars, extractor);
     chartInstances[id] = new Chart(document.getElementById(id), {
       type: 'bar',
-      data: { labels: agg.data.map(d=>d[0]), datasets: [{ data: agg.data.map(d=>d[1]), backgroundColor: color }] },
+      data: { labels: data.map(d=>d[0]), datasets: [{ data: data.map(d=>d[1]), backgroundColor: color }] },
       options: {
         indexAxis: 'y', responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'end', formatter: v=>v+'台' } },
@@ -210,12 +209,12 @@
   }
 
   function renderPie(id, cars, extractor) {
-    const agg = aggregate(cars, extractor);
+    const data = aggregate(cars, extractor);
     chartInstances[id] = new Chart(document.getElementById(id), {
       type: 'pie',
       data: {
-        labels: agg.data.map(d=>d[0]),
-        datasets: [{ data: agg.data.map(d=>d[1]), backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#8BC34A','#9E9E9E'] }]
+        labels: data.map(d=>d[0]),
+        datasets: [{ data: data.map(d=>d[1]), backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#8BC34A','#9E9E9E'] }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
@@ -225,15 +224,14 @@
   }
 
   function renderColorPie(id, cars) {
-    const agg = aggregate(cars, c => getColorGroup(c.BodyColor));
-    document.getElementById('activeCount').innerText = agg.total; // ボディカラーを基準に有効数を表示
+    const data = aggregate(cars, c => getColorGroup(c.BodyColor));
     chartInstances[id] = new Chart(document.getElementById(id), {
       type: 'pie',
       data: {
-        labels: agg.data.map(d=>d[0]),
+        labels: data.map(d=>d[0]),
         datasets: [{
-          data: agg.data.map(d=>d[1]),
-          backgroundColor: agg.data.map(d=>COLOR_PALETTE[d[0]] || '#CFD8DC'),
+          data: data.map(d=>d[1]),
+          backgroundColor: data.map(d=>COLOR_PALETTE[d[0]] || '#CFD8DC'),
           borderColor: '#fff', borderWidth: 2
         }]
       },
