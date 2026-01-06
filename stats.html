@@ -46,14 +46,12 @@
 
   <div id="loading">データを集計・分析中...</div>
 
-  <!-- タブ1: 基本情報 -->
   <div id="basic" class="tab-content active">
     <div class="chart-card full"><div class="chart-title">🚗 モデル別分布</div><div class="chart-container tall"><canvas id="modelChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">🎨 ボディカラー</div><div class="chart-container"><canvas id="colorChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">🎡 ハンドル位置</div><div class="chart-container"><canvas id="steeringChart"></canvas></div></div>
   </div>
 
-  <!-- タブ2: 機関・電装 -->
   <div id="powertrain" class="tab-content">
     <div class="chart-card"><div class="chart-title">⚙️ 排気量(cc)</div><div class="chart-container"><canvas id="engineChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">⚡ 点火方式</div><div class="chart-container"><canvas id="ignitionChart"></canvas></div></div>
@@ -61,15 +59,16 @@
     <div class="chart-card"><div class="chart-title">🕹️ 変速機・シンクロ</div><div class="chart-container"><canvas id="transChart"></canvas></div></div>
   </div>
 
-  <!-- タブ3: メンテナンス -->
   <div id="maintenance" class="tab-content">
     <div class="chart-card full"><div class="chart-title">🛢️ エンジンオイル ブランド</div><div class="chart-container tall"><canvas id="eOilBrandChart"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">📅 オイル交換：距離ベース</div><div class="chart-container tall"><canvas id="eOilDistChart"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">⏳ オイル交換：期間・車検ベース</div><div class="chart-container tall"><canvas id="eOilTimeChart"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">📅 エンジンオイル：距離ベース</div><div class="chart-container tall"><canvas id="eOilDistChart"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">⏳ エンジンオイル：期間・車検ベース</div><div class="chart-container tall"><canvas id="eOilTimeChart"></canvas></div></div>
+    
     <div class="chart-card full"><div class="chart-title">⚙️ ミッションオイル ブランド</div><div class="chart-container tall"><canvas id="mOilBrandChart"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">📅 ミッション：距離ベース</div><div class="chart-container tall"><canvas id="mOilDistChart"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">⏳ ミッション：期間・車検ベース</div><div class="chart-container tall"><canvas id="mOilTimeChart"></canvas></div></div>
   </div>
 
-  <!-- タブ4: 足回り -->
   <div id="footwork" class="tab-content">
     <div class="chart-card"><div class="chart-title">🏁 タイヤ ブランド</div><div class="chart-container tall"><canvas id="tireBrandChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">📏 タイヤ サイズ</div><div class="chart-container tall"><canvas id="tireSizeChart"></canvas></div></div>
@@ -82,7 +81,7 @@
 
 <script>
   let chartInstances = {};
-  const CACHE_KEY = 'registro500_stats_v24'; 
+  const CACHE_KEY = 'registro500_stats_v25'; 
   
   const COLOR_PALETTE = {
     '白/アイボリー系': '#f8f8f8', '赤系': '#CD212A', '黄系': '#FBC02D', 'ブルー系': '#0039A6', '水色系': '#81D4FA', '緑系': '#008C45', 'グレー系': '#757575', 'ベージュ系': '#D7CCC8', '黒系': '#212121', 'オレンジ系': '#F57C00', 'その他': '#CFD8DC'
@@ -144,6 +143,8 @@
     renderBar('eOilTimeChart', cars, c => getCycleTimeJa(c.EngineOilInterval), '#8d6e63');
     
     renderBar('mOilBrandChart', cars, c => getBrandJa(c.TransmissionOil), '#607d8b');
+    renderBar('mOilDistChart', cars, c => getCycleDistJa(c.TransmissionOilInterval), '#4d5360');
+    renderBar('mOilTimeChart', cars, c => getCycleTimeJa(c.TransmissionOilInterval), '#78909c');
 
     renderBar('tireBrandChart', cars, c => getBrandJa(c.TireBrandName), '#2196f3');
     renderBar('tireSizeChart', cars, c => normalizeTireSize(c.TireSize), '#00bcd4');
@@ -172,7 +173,7 @@
     if (v.match(/gulf|ガルフ/)) return 'ガルフ';
     if (v.match(/nutec|ニューテック/)) return 'NUTEC';
     if (v.match(/ash|a\.s\.h|アッシュ/)) return 'A.S.H';
-    if (v.match(/pennzoil|ペンズ/)) return 'ペンズオイル';
+    if (v.match(/pennzoil|ペンズオイル|ペンズ/)) return 'ペンズオイル';
     if (v.match(/valvoline|バルボリン/)) return 'バルボリン';
     if (v.match(/revtech|レブテック/)) return 'RevTech';
     if (v.match(/polo/)) return 'POLO Lubricants';
@@ -187,7 +188,7 @@
     if (v.match(/白|white|bianco|ビアンコ|アイボリー|ivory|象牙|パール/)) return '白/アイボリー系';
     if (v.match(/赤|red|rosso|ロッソ|レッド|ワイン|ボルドー/)) return '赤系';
     if (v.match(/黄|yellow|giallo|ジャッロ|イエロー|クリーム|positano|バニラ/)) return '黄系';
-    if (v.match(/水色|light blue|azur|チェレステ|volare|アクア|空色/)) return '水色系';
+    if (v.match(/水色|light blue|azur|チェレステ|volare|アクア|空色|ターコイズ/)) return '水色系';
     if (v.match(/青|blue|blu|ブルー|ネイビー|紺/)) return 'ブルー系';
     if (v.match(/緑|green|verde|グリーン|ミント|抹茶/)) return '緑系';
     if (v.match(/灰|grey|grigio|グリージョ|グレー|ガンメタ|シルバー/)) return 'グレー系';
@@ -207,10 +208,9 @@
     return v;
   }
 
-  // サイクル：距離ベースの名寄せ (カンマなしに統一し、同意語を統合)
   function getCycleDistJa(t) {
     if (!t) return null;
-    let v = String(t).replace(/,/g, '').toLowerCase(); // カンマ削除
+    let v = String(t).replace(/,/g, '').toLowerCase(); 
     if (v.match(/不明|未記入/)) return null;
     if (v.match(/10000|１万/)) return '10,000km';
     if (v.match(/5000/)) return '5,000km';
@@ -225,19 +225,15 @@
     return null;
   }
 
-  // サイクル：期間ベースの名寄せ
   function getCycleTimeJa(t) {
     if (!t) return null;
     let v = String(t).toLowerCase();
     if (v.match(/不明|未記入/)) return null;
-    // 半年・6ヶ月の統合
     if (v.match(/半年|6ヶ月|6ケ月|6ヵ月|6か月/)) return '半年/6ヶ月ごと';
-    // 1年の統合
     if (v.match(/1年|１年|12ヶ月|12ヶ月/)) return '1年ごと';
-    // 車検・2年の統合
     if (v.match(/車検|2年|２年/) && !v.includes('半年')) return '車検/2年ごと';
     if (v.match(/随時|不定期|気分|足す|減ったら/)) return '随時・足し油';
-    if (!v.match(/[0-9]00/)) return t; // 距離(100km単位)でない記述はそのまま
+    if (!v.match(/[0-9]00/)) return t; 
     return null;
   }
 
