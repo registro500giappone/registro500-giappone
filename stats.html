@@ -9,22 +9,22 @@
   <script src="config.js"></script>
   <style>
     :root { --accent: #2856a8; --bg: #f4f4f7; --card: #fff; --radius: 12px; }
-    body { font-family: system-ui, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: #333; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: #333; }
     .page { max-width: 1000px; margin: 0 auto; }
     .header { text-align: center; margin-bottom: 20px; }
-    .header h1 { color: var(--accent); margin: 0; }
-    .note { font-size: 0.8rem; color: #d32f2f; margin-top: 10px; }
+    .header h1 { color: var(--accent); margin: 0; font-size: 1.6rem; }
+    .note { font-size: 0.8rem; color: #d32f2f; margin-top: 10px; background: #fff; display: inline-block; padding: 5px 12px; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .tabs { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-    .tab-btn { padding: 10px 18px; border: none; background: #ddd; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
+    .tab-btn { padding: 10px 18px; border: none; background: #ddd; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: 0.2s; }
     .tab-btn.active { background: var(--accent); color: white; }
     .tab-content { display: none; }
     .tab-content.active { display: grid; grid-template-columns: 1fr; gap: 20px; }
     @media (min-width: 768px) { .tab-content.active { grid-template-columns: 1fr 1fr; } .full { grid-column: span 2; } }
     .chart-card { background: var(--card); border-radius: var(--radius); padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     .chart-title { font-size: 1rem; font-weight: bold; border-bottom: 2px solid var(--bg); padding-bottom: 10px; margin-bottom: 15px; text-align: center; }
-    .chart-container { position: relative; height: 320px; width: 100%; }
+    .chart-container { position: relative; height: 350px; width: 100%; }
     #loading { text-align: center; padding: 50px; font-weight: bold; }
-    .back { display: block; text-align: center; margin-top: 20px; color: var(--accent); text-decoration: none; font-weight: bold; }
+    .back { display: block; text-align: center; margin-top: 25px; color: var(--accent); text-decoration: none; font-weight: bold; padding-bottom: 40px; }
   </style>
 </head>
 <body>
@@ -33,7 +33,7 @@
   <div class="header">
     <h1>Registro500 Statistics</h1>
     <p>現在の登録車両: <span id="totalCount">-</span> 台</p>
-    <div class="note">※「未記入」データを除いた有効回答のみを集計・分類しています。</div>
+    <div class="note">※空欄・不明データを除いた有効回答を1件から集計しています。</div>
   </div>
 
   <div class="tabs">
@@ -43,16 +43,14 @@
     <button class="tab-btn" data-tab="footwork">足回り</button>
   </div>
 
-  <div id="loading">データを読み込み中...</div>
+  <div id="loading">データを集計・分析中...</div>
 
-  <!-- タブ1: 基本情報 -->
   <div id="basic" class="tab-content active">
     <div class="chart-card full"><div class="chart-title">🚗 モデル別分布</div><div class="chart-container"><canvas id="modelChart"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">🎨 ボディカラー (分類済)</div><div class="chart-container"><canvas id="colorChart"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">🎨 ボディカラー</div><div class="chart-container"><canvas id="colorChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">🎡 ハンドル位置</div><div class="chart-container"><canvas id="steeringChart"></canvas></div></div>
   </div>
 
-  <!-- タブ2: 機関・電装 -->
   <div id="powertrain" class="tab-content">
     <div class="chart-card"><div class="chart-title">⚙️ 排気量(cc)</div><div class="chart-container"><canvas id="engineChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">⚡ 点火方式</div><div class="chart-container"><canvas id="ignitionChart"></canvas></div></div>
@@ -60,17 +58,15 @@
     <div class="chart-card"><div class="chart-title">🕹️ 変速機・シンクロ</div><div class="chart-container"><canvas id="transChart"></canvas></div></div>
   </div>
 
-  <!-- タブ3: メンテナンス -->
   <div id="maintenance" class="tab-content">
     <div class="chart-card"><div class="chart-title">🛢️ エンジンオイル ブランド</div><div class="chart-container"><canvas id="eOilBrandChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">📅 オイル交換サイクル</div><div class="chart-container"><canvas id="eOilCycleChart"></canvas></div></div>
     <div class="chart-card full"><div class="chart-title">⚙️ ミッションオイル ブランド</div><div class="chart-container"><canvas id="mOilBrandChart"></canvas></div></div>
   </div>
 
-  <!-- タブ4: 足回り -->
   <div id="footwork" class="tab-content">
     <div class="chart-card"><div class="chart-title">🏁 タイヤ ブランド</div><div class="chart-container"><canvas id="tireBrandChart"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">📏 タイヤ サイズ (太さ別)</div><div class="chart-container"><canvas id="tireSizeChart"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">📏 タイヤ サイズ</div><div class="chart-container"><canvas id="tireSizeChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">🛞 ホイール</div><div class="chart-container"><canvas id="wheelChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">↔️ リム径/幅</div><div class="chart-container"><canvas id="rimChart"></canvas></div></div>
   </div>
@@ -80,10 +76,10 @@
 
 <script>
   let chartInstances = {};
-  const CACHE_KEY = 'registro500_stats_v18'; // キャッシュキーを更新
+  const CACHE_KEY = 'registro500_stats_v20'; // バージョンアップ
   
   const COLOR_PALETTE = {
-    '白/アイボリー系': '#f5f5f5', '赤系': '#D32F2F', '黄系': '#FBC02D', 'ブルー系': '#1976D2', '水色系': '#81D4FA', '緑系': '#388E3C', 'グレー系': '#757575', 'ベージュ系': '#D7CCC8', '黒系': '#212121', 'その他': '#CFD8DC'
+    '白/アイボリー系': '#f8f8f8', '赤系': '#D32F2F', '黄系': '#FBC02D', 'ブルー系': '#1976D2', '水色系': '#81D4FA', '緑系': '#388E3C', 'グレー系': '#757575', 'ベージュ系': '#D7CCC8', '黒系': '#212121', 'オレンジ系': '#F57C00', 'その他': '#CFD8DC'
   };
 
   window.addEventListener('DOMContentLoaded', () => {
@@ -118,7 +114,7 @@
     document.getElementById('totalCount').innerText = cars.length;
     Object.values(chartInstances).forEach(ins => ins.destroy());
 
-    // --- 各グラフ描画 ---
+    // --- 基本情報 ---
     renderBar('modelChart', cars, c => (c.Model_DisplayC || '').split('(')[0].trim(), '#2856a8');
     renderPie('colorChart', cars, c => getColorGroup(c.BodyColor), true);
     renderPie('steeringChart', cars, c => {
@@ -127,102 +123,120 @@
       return null;
     });
 
-    renderBar('engineChart', cars, c => c.EngineCC ? String(c.EngineCC).replace('cc','') + 'cc' : null, '#ff9800');
+    // --- 機関 ---
+    renderBar('engineChart', cars, c => {
+      let cc = String(c.EngineCC || '').replace(/[^0-9]/g, '');
+      return cc ? cc + 'cc' : null;
+    }, '#ff9800');
     renderPie('ignitionChart', cars, c => c.IgnitionType);
     renderPie('generatorChart', cars, c => c.Generator);
     renderBar('transChart', cars, c => c.Transmission ? (c.Transmission + (c.Synchro ? `(${c.Synchro})` : '')) : null, '#673ab7');
 
-    renderBar('eOilBrandChart', cars, c => getBrandJa(c.EngineOil, 'EngineOil'), '#e91e63');
+    // --- メンテナンス ---
+    renderBar('eOilBrandChart', cars, c => getBrandJa(c.EngineOil), '#e91e63');
     renderBar('eOilCycleChart', cars, c => getCycleJa(c.EngineOilInterval), '#795548');
-    renderBar('mOilBrandChart', cars, c => getBrandJa(c.TransmissionOil, 'TransmissionOil'), '#607d8b');
+    renderBar('mOilBrandChart', cars, c => getBrandJa(c.TransmissionOil), '#607d8b');
 
-    renderBar('tireBrandChart', cars, c => getBrandJa(c.TireBrandName, 'TireBrand'), '#2196f3');
-    renderBar('tireSizeChart', cars, c => getTireGroup(c.TireSize), '#00bcd4');
+    // --- 足回り ---
+    renderBar('tireBrandChart', cars, c => getBrandJa(c.TireBrandName), '#2196f3');
+    renderBar('tireSizeChart', cars, c => normalizeTireSize(c.TireSize), '#00bcd4');
     renderPie('wheelChart', cars, c => c.Wheel);
-    renderBar('rimChart', cars, c => c.RimDiameter_in ? c.RimDiameter_in + 'インチ(' + (c.RimWidth_in || '-') + 'J)' : null, '#9e9e9e');
+    renderBar('rimChart', cars, c => {
+      if(!c.RimDiameter_in) return null;
+      return c.RimDiameter_in + 'インチ' + (c.RimWidth_in ? '(' + c.RimWidth_in + 'J)' : '');
+    }, '#9e9e9e');
   }
 
-  // --- 高度な名寄せロジック ---
+  // --- 高度な名寄せ辞書 ---
 
-  function getBrandJa(t, debugKey) {
+  function getBrandJa(t) {
     if (!t) return null;
-    const v = String(t).toLowerCase();
-    
-    // 辞書
+    let v = String(t).toLowerCase().trim();
+    if (v.match(/不明|未記入|無し|メーカー不定/)) return null;
+
+    // 銘柄名寄せ辞書
     if (v.match(/motul|モチュール/)) return 'モチュール';
     if (v.match(/michelin|ミシュラン/)) return 'ミシュラン';
-    if (v.match(/pirelli|ピレリ|cinturato/)) return 'ピレリ';
-    if (v.match(/bridgestone|ブリヂストン|bs|snee/)) return 'ブリヂストン';
-    if (v.match(/yokohama|ヨコハマ|横浜/)) return 'ヨコハマ';
-    if (v.match(/dunlop|ダンロップ/)) return 'ダンロップ';
+    if (v.match(/pirelli|ピレリ|cinturato|チンチュラート/)) return 'ピレリ';
+    if (v.match(/bridgestone|ブリヂストン|ブリジストン|bs|sneaker|スニーカー/)) return 'ブリヂストン';
+    if (v.match(/yokohama|ヨコハマ|横浜|advan|アドバン/)) return 'ヨコハマ';
+    if (v.match(/dunlop|ダンロップ|digityer|dunlpop/)) return 'ダンロップ';
     if (v.match(/lubross|ルブロス/)) return 'ルブロス';
     if (v.match(/meister|マイスター/)) return 'マイスター';
     if (v.match(/castrol|カストロール/)) return 'カストロール';
     if (v.match(/wako|ワコーズ/)) return 'ワコーズ';
     if (v.match(/agip|eni|アジップ/)) return 'Agip / eni';
     if (v.match(/gulf|ガルフ/)) return 'ガルフ';
-    if (v.match(/nutec|ニューテック/)) return 'ニューテック';
-    if (v.match(/ash|アッシュ/)) return 'A.S.H';
-    if (v.match(/pennzoil|ペンズ/)) return 'ペンズオイル';
-    if (v.match(/radar|レーダー/)) return 'Radar';
-    if (v.match(/falken|ファルケン/)) return 'ファルケン';
+    if (v.match(/nutec|ニューテック/)) return 'NUTEC';
+    if (v.match(/ash|a\.s\.h|アッシュ/)) return 'A.S.H';
+    if (v.match(/pennzoil|ペンズオイル|ペンズ/)) return 'ペンズオイル';
     if (v.match(/valvoline|バルボリン/)) return 'バルボリン';
     if (v.match(/kendall|ケンドル/)) return 'ケンドル';
     if (v.match(/amalie|アマリー/)) return 'アマリー';
     if (v.match(/sunoco|スノコ/)) return 'スノコ';
-    
-    // デバッグ用ログ: その他に分類されたものをコンソールに出す
-    console.log(`【調査用】${debugKey}のその他: ${t}`);
-    return 'その他';
-  }
+    if (v.match(/spectro|スペクトロ/)) return 'SPECTRO';
+    if (v.match(/omega|オメガ/)) return 'オメガ';
+    if (v.match(/revtech|レブテック/)) return 'RevTech';
+    if (v.match(/polo/)) return 'POLO Lubricants';
+    if (v.match(/hiroko|広島高潤/)) return '広島高潤';
+    if (v.match(/ontario|オンタリオ/)) return 'オンタリオSS';
+    if (v.match(/tcガレージ|tcgarage/)) return 'TCガレージ';
+    if (v.match(/debica|デビカ/)) return 'Debica';
+    if (v.match(/radar|レーダー/)) return 'Radar';
+    if (v.match(/falken|ファルケン/)) return 'ファルケン';
+    if (v.match(/deestone/)) return 'DEESTONE';
+    if (v.match(/fcr/)) return 'FCR';
 
-  function getTireGroup(t) {
-    if (!t) return null;
-    const v = String(t).replace(/\s+/g, '');
-    if (v.startsWith('125')) return '125系 (標準)';
-    if (v.startsWith('135')) return '135系';
-    if (v.startsWith('145')) return '145系 (ワイド)';
-    if (v.startsWith('155')) return '155系';
-    if (v.startsWith('165')) return '165系';
-    return 'その他';
+    // 辞書にないが「不明」でないものは、先頭を大文字にしてそのまま返す
+    return t.charAt(0).toUpperCase() + t.slice(1);
   }
 
   function getColorGroup(t) {
     if (!t) return null;
     const v = String(t).toLowerCase();
+    if (v.match(/不明|未記入/)) return null;
     
-    if (v.match(/白|white|bianco|ホワイト|アイボリー|ivory|avorio|パール/)) return '白/アイボリー系';
-    if (v.match(/赤|red|rosso|レッド|ワイン|ボルドー/)) return '赤系';
-    if (v.match(/黄|yellow|giallo|イエロー|クリーム|positano/)) return '黄系';
-    if (v.match(/水色|light blue|azur|アクア|celeste|volare|ターコイズ|空色/)) return '水色系';
-    if (v.match(/青|blue|blu|ブルー|ネイビー|紺|midnight/)) return 'ブルー系';
-    if (v.match(/緑|green|verde|グリーン|オリーブ|モス|ミント/)) return '緑系';
-    if (v.match(/灰|grey|grigio|グレー|ガンメタ|シルバー/)) return 'グレー系';
-    if (v.match(/ベージュ|beige|茶|brown|sabbia/)) return 'ベージュ系';
-    if (v.match(/黒|black|nero/)) return '黒系';
+    if (v.match(/白|white|bianco|ビアンコ|アイボリー|ivory|avorio|象牙|パール|琺瑯/)) return '白/アイボリー系';
+    if (v.match(/赤|red|rosso|ロッソ|レッド|ワイン|ボルドー|corallo/)) return '赤系';
+    if (v.match(/黄|yellow|giallo|ジャッロ|イエロー|クリーム|positano|マスタード|バニラ/)) return '黄系';
+    if (v.match(/水色|light blue|azur|celeste|チェレステ|volare|ヴォラーレ|アクア|空色|ターコイズ/)) return '水色系';
+    if (v.match(/青|blue|blu|ブルー|ネイビー|紺|midnight|紺/)) return 'ブルー系';
+    if (v.match(/緑|green|verde|グリーン|オリーブ|モス|ミント|抹茶/)) return '緑系';
+    if (v.match(/灰|grey|grigio|グリージョ|グレー|ガンメタ|シルバー|銀/)) return 'グレー系';
+    if (v.match(/ベージュ|beige|茶|brown|sabbia|sabbia/)) return 'ベージュ系';
+    if (v.match(/黒|black|nero|ブラック/)) return '黒系';
     if (v.match(/オレンジ|orange|arancia/)) return 'オレンジ系';
 
-    console.log(`【調査用】色のその他: ${t}`);
     return 'その他';
+  }
+
+  function normalizeTireSize(t) {
+    if (!t) return null;
+    let v = String(t).toUpperCase().replace(/\s+/g, '');
+    if (v.match(/不明|未記入/)) return null;
+    // よくある書き方を統一
+    v = v.replace('SR12', 'R12').replace('125-12', '125R12').replace('125/12', '125R12');
+    return v;
   }
 
   function getCycleJa(t) {
     if (!t) return null;
     const v = String(t);
-    if (v.match(/3000|2000|2500/)) return '3,000km以下';
+    if (v.match(/不明|未記入/)) return null;
+    if (v.match(/3000|2000|2500|2800/)) return '3,000km以下';
     if (v.match(/5000/)) return '5,000km目安';
     if (v.match(/半年|6ヶ月|6ヶ月/)) return '半年ごと';
-    if (v.match(/1年/)) return '1年ごと';
+    if (v.match(/1年|12ヶ月/)) return '1年ごと';
     if (v.match(/車検/)) return '車検ごと';
-    return 'その他';
+    return t; // 独特な書き方の場合はそのまま表示
   }
 
-  // --- 共通描画ユーティリティ ---
+  // --- 描画ロジック ---
   function aggregate(cars, extractor) {
     const counts = {};
     cars.forEach(c => {
       const val = extractor(c);
-      if (val && val !== '未記入' && val !== '不明' && val !== 'undefined') {
+      if (val && val !== 'undefined' && val !== 'null') {
         counts[val] = (counts[val] || 0) + 1;
       }
     });
@@ -234,11 +248,11 @@
     if (data.length === 0) return;
     chartInstances[id] = new Chart(document.getElementById(id), {
       type: 'bar',
-      data: { labels: data.map(d => d[0]), datasets: [{ data: data.map(d => d[1]), backgroundColor: color }] },
-      options: {
+      data: { labels: data.map(d => d[0]), datasets: [{ data: data.map(d => d[1]), backgroundColor: color, borderRadius: 4 }] },
+      options: { 
         indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'end', formatter: v => v + '台' } },
-        scales: { x: { beginAtZero: true } }
+        plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'end', formatter: v => v + '台', color: '#444', font: { weight: 'bold' } } },
+        scales: { x: { beginAtZero: true, grid: { display: false } }, y: { grid: { display: false } } }
       }
     });
   }
@@ -252,10 +266,16 @@
         labels: data.map(d => d[0]),
         datasets: [{
           data: data.map(d => d[1]),
-          backgroundColor: usePalette ? data.map(d => COLOR_PALETTE[d[0]] || '#CFD8DC') : ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF']
+          backgroundColor: usePalette ? data.map(d => COLOR_PALETTE[d[0]] || '#CFD8DC') : ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#C9CBCF', '#4D5360']
         }]
       },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }, datalabels: { color: usePalette ? '#000' : '#fff', font: { weight: 'bold' } } } }
+      options: { 
+        responsive: true, maintainAspectRatio: false,
+        plugins: { 
+          legend: { position: 'right', labels: { boxWidth: 12 } }, 
+          datalabels: { color: usePalette ? '#444' : '#fff', font: { weight: 'bold' }, formatter: v => v } 
+        }
+      }
     });
   }
 </script>
