@@ -46,12 +46,14 @@
 
   <div id="loading">データを集計・分析中...</div>
 
+  <!-- タブ1: 基本情報 -->
   <div id="basic" class="tab-content active">
     <div class="chart-card full"><div class="chart-title">🚗 モデル別分布</div><div class="chart-container tall"><canvas id="modelChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">🎨 ボディカラー</div><div class="chart-container"><canvas id="colorChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">🎡 ハンドル位置</div><div class="chart-container"><canvas id="steeringChart"></canvas></div></div>
   </div>
 
+  <!-- タブ2: 機関・電装 -->
   <div id="powertrain" class="tab-content">
     <div class="chart-card"><div class="chart-title">⚙️ 排気量(cc)</div><div class="chart-container"><canvas id="engineChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">⚡ 点火方式</div><div class="chart-container"><canvas id="ignitionChart"></canvas></div></div>
@@ -59,13 +61,18 @@
     <div class="chart-card"><div class="chart-title">🕹️ 変速機・シンクロ</div><div class="chart-container"><canvas id="transChart"></canvas></div></div>
   </div>
 
+  <!-- タブ3: メンテナンス -->
   <div id="maintenance" class="tab-content">
-    <div class="chart-card"><div class="chart-title">🛢️ エンジンオイル ブランド</div><div class="chart-container tall"><canvas id="eOilBrandChart"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">📅 エンジンオイル交換サイクル</div><div class="chart-container tall"><canvas id="eOilCycleChart"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">⚙️ ミッションオイル ブランド</div><div class="chart-container tall"><canvas id="mOilBrandChart"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">📅 ミッションオイル交換サイクル</div><div class="chart-container tall"><canvas id="mOilCycleChart"></canvas></div></div>
+    <div class="chart-card full"><div class="chart-title">🛢️ エンジンオイル ブランド</div><div class="chart-container"><canvas id="eOilBrandChart"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">📅 エンジンオイル：交換距離ベース</div><div class="chart-container"><canvas id="eOilDistChart"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">⏳ エンジンオイル：交換期間・車検</div><div class="chart-container"><canvas id="eOilTimeChart"></canvas></div></div>
+    
+    <div class="chart-card full"><div class="chart-title">⚙️ ミッションオイル ブランド</div><div class="chart-container"><canvas id="mOilBrandChart"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">📅 ミッション：交換距離ベース</div><div class="chart-container"><canvas id="mOilDistChart"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">⏳ ミッション：交換期間・車検</div><div class="chart-container"><canvas id="mOilTimeChart"></canvas></div></div>
   </div>
 
+  <!-- タブ4: 足回り -->
   <div id="footwork" class="tab-content">
     <div class="chart-card"><div class="chart-title">🏁 タイヤ ブランド</div><div class="chart-container tall"><canvas id="tireBrandChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">📏 タイヤ サイズ</div><div class="chart-container tall"><canvas id="tireSizeChart"></canvas></div></div>
@@ -78,15 +85,14 @@
 
 <script>
   let chartInstances = {};
-  const CACHE_KEY = 'registro500_stats_v22'; 
+  const CACHE_KEY = 'registro500_stats_v23'; 
   
-  // ボディカラー配色設定
   const COLOR_PALETTE = {
     '白/アイボリー系': '#f8f8f8', '赤系': '#CD212A', '黄系': '#FBC02D', 'ブルー系': '#0039A6', '水色系': '#81D4FA', '緑系': '#008C45', 'グレー系': '#757575', 'ベージュ系': '#D7CCC8', '黒系': '#212121', 'オレンジ系': '#F57C00', 'その他': '#CFD8DC'
   };
 
-  // イタリア国旗をイメージした配色（緑、銀、赤）
-  const ITALIAN_TRICOLORE = ['#008C45', '#E1E1E1', '#CD212A', '#0039A6', '#FBC02D', '#757575'];
+  const ITALY_2COLOR = ['#008C45', '#CD212A']; // 緑と赤
+  const ITALIAN_COLORS = ['#008C45', '#E1E1E1', '#CD212A', '#0039A6', '#FBC02D', '#757575'];
 
   window.addEventListener('DOMContentLoaded', () => {
     Chart.register(ChartDataLabels);
@@ -120,7 +126,7 @@
     document.getElementById('totalCount').innerText = cars.length;
     Object.values(chartInstances).forEach(ins => ins.destroy());
 
-    // --- タブ1: 基本 ---
+    // --- 基本 ---
     renderBar('modelChart', cars, c => (c.Model_DisplayC || '').split('(')[0].trim(), '#2856a8');
     renderPie('colorChart', cars, c => getColorGroup(c.BodyColor), 'palette');
     renderPie('steeringChart', cars, c => {
@@ -129,7 +135,7 @@
       return null;
     }, 'italy');
 
-    // --- タブ2: 機関 ---
+    // --- 機関 ---
     renderBar('engineChart', cars, c => {
       let cc = String(c.EngineCC || '').replace(/[^0-9]/g, '');
       return cc ? cc + 'cc' : null;
@@ -138,13 +144,16 @@
     renderPie('generatorChart', cars, c => c.Generator, 'italy');
     renderBar('transChart', cars, c => c.Transmission ? (c.Transmission + (c.Synchro ? `(${c.Synchro})` : '')) : null, '#673ab7');
 
-    // --- タブ3: メンテナンス ---
+    // --- メンテナンス (距離と期間を分離) ---
     renderBar('eOilBrandChart', cars, c => getBrandJa(c.EngineOil), '#e91e63');
-    renderBar('eOilCycleChart', cars, c => getCycleJa(c.EngineOilInterval), '#795548');
+    renderBar('eOilDistChart', cars, c => getCycleDistJa(c.EngineOilInterval), '#795548');
+    renderBar('eOilTimeChart', cars, c => getCycleTimeJa(c.EngineOilInterval), '#8d6e63');
+    
     renderBar('mOilBrandChart', cars, c => getBrandJa(c.TransmissionOil), '#607d8b');
-    renderBar('mOilCycleChart', cars, c => getCycleJa(c.TransmissionOilInterval), '#4d5360');
+    renderBar('mOilDistChart', cars, c => getCycleDistJa(c.TransmissionOilInterval), '#4d5360');
+    renderBar('mOilTimeChart', cars, c => getCycleTimeJa(c.TransmissionOilInterval), '#78909c');
 
-    // --- タブ4: 足回り ---
+    // --- 足回り ---
     renderBar('tireBrandChart', cars, c => getBrandJa(c.TireBrandName), '#2196f3');
     renderBar('tireSizeChart', cars, c => normalizeTireSize(c.TireSize), '#00bcd4');
     renderPie('wheelChart', cars, c => c.Wheel, 'italy');
@@ -154,7 +163,7 @@
     }, '#9e9e9e');
   }
 
-  // --- 名寄せ ---
+  // --- 集計ロジック ---
   function getBrandJa(t) {
     if (!t) return null;
     let v = String(t).toLowerCase().trim();
@@ -186,14 +195,14 @@
     if (!t) return null;
     const v = String(t).toLowerCase();
     if (v.match(/白|white|bianco|ビアンコ|アイボリー|ivory|象牙|パール/)) return '白/アイボリー系';
-    if (v.match(/赤|red|rosso|ロッソ|レッド|ワイン/)) return '赤系';
+    if (v.match(/赤|red|rosso|ロッソ|レッド|ワイン|ボルドー/)) return '赤系';
     if (v.match(/黄|yellow|giallo|ジャッロ|イエロー|クリーム|positano|バニラ/)) return '黄系';
     if (v.match(/水色|light blue|azur|celeste|volare|アクア|空色|ターコイズ/)) return '水色系';
     if (v.match(/青|blue|blu|ブルー|ネイビー|紺/)) return 'ブルー系';
     if (v.match(/緑|green|verde|グリーン|ミント|抹茶/)) return '緑系';
     if (v.match(/灰|grey|grigio|グリージョ|グレー|ガンメタ|シルバー/)) return 'グレー系';
     if (v.match(/ベージュ|beige|茶|brown|sabbia/)) return 'ベージュ系';
-    if (v.match(/黒|black|nero/)) return '黒系';
+    if (v.match(/黒|black|nero|ブラック/)) return '黒系';
     if (v.match(/オレンジ|orange/)) return 'オレンジ系';
     return 'その他';
   }
@@ -208,17 +217,31 @@
     return v;
   }
 
-  function getCycleJa(t) {
+  // サイクル：距離ベースのみ抽出
+  function getCycleDistJa(t) {
     if (!t) return null;
-    let v = String(t);
-    if (v.match(/不明|未記入|不定期/)) return null;
+    let v = String(t).toLowerCase();
     if (v.match(/3000|2000|2500|2800/)) return '3,000km以下';
     if (v.match(/5000/)) return '5,000km目安';
     if (v.match(/10000|１万/)) return '10,000km目安';
-    if (v.match(/半年|6ヶ月/)) return '半年ごと';
+    if (v.match(/km|キロ|00/)) {
+        let m = v.match(/[0-9,]+/);
+        return m ? m[0] + 'km' : null;
+    }
+    return null;
+  }
+
+  // サイクル：期間・車検ベースのみ抽出
+  function getCycleTimeJa(t) {
+    if (!t) return null;
+    let v = String(t).toLowerCase();
+    if (v.match(/半年|6ヶ月|6ヶ月/)) return '半年ごと';
     if (v.match(/1年|１年|12ヶ月/)) return '1年ごと';
+    if (v.match(/2年/)) return '2年ごと';
     if (v.match(/車検/)) return '車検ごと';
-    return v;
+    if (v.match(/随時|不定期|気分|足す/)) return '随時・足し油';
+    if (!v.match(/km|キロ|00/)) return t; // 距離っぽくない自由記述は期間側へ
+    return null;
   }
 
   // --- 描画関数 ---
@@ -252,9 +275,15 @@
   function renderPie(id, cars, extractor, theme = 'default') {
     const data = aggregate(cars, extractor);
     if (data.length === 0) return;
-    let bgColors = (theme === 'palette') 
+    
+    let bgColors;
+    if (data.length === 2) {
+      bgColors = ITALY_2COLOR; // 2項目の場合は緑・赤
+    } else {
+      bgColors = (theme === 'palette') 
                    ? data.map(d => COLOR_PALETTE[d[0]] || '#CFD8DC') 
-                   : (theme === 'italy') ? ITALIAN_TRICOLORE : ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];
+                   : (theme === 'italy') ? ITALIAN_COLORS : ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];
+    }
 
     chartInstances[id] = new Chart(document.getElementById(id), {
       type: 'pie',
