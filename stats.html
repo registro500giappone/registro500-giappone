@@ -15,8 +15,9 @@
     .page { max-width: 1000px; margin: 0 auto; }
     .header { text-align: center; margin-bottom: 20px; }
     .header h1 { color: var(--accent); margin-bottom: 5px; }
+    .note { font-size: 0.8rem; color: #666; margin-bottom: 15px; }
     .tabs { display: flex; justify-content: center; gap: 8px; margin-bottom: 25px; flex-wrap: wrap; }
-    .tab-btn { padding: 10px 16px; border: none; background: #ddd; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: 0.3s; }
+    .tab-btn { padding: 10px 16px; border: none; background: #ddd; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
     .tab-btn.active { background: var(--accent); color: white; }
     .tab-content { display: none; }
     .tab-content.active { display: grid; grid-template-columns: 1fr; gap: 20px; }
@@ -32,7 +33,8 @@
 <div class="page">
   <div class="header">
     <h1>Registro500 Statistics</h1>
-    <p>現在の登録車両データ (<span id="totalCount">-</span>台)</p>
+    <p>登録車両: <span id="totalCount">-</span>台 / 集計対象: <span id="activeCount">-</span>台</p>
+    <div class="note">※「未記入」データを除いた有効回答のみを集計しています。</div>
   </div>
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('basic')">基本情報</button>
@@ -41,6 +43,7 @@
     <button class="tab-btn" onclick="switchTab('footwork')">足回り</button>
   </div>
   <div id="loading">データを集計中...</div>
+  
   <div id="basic" class="tab-content active">
     <div class="chart-card full"><div class="chart-title">🚗 モデル別</div><div class="chart-container"><canvas id="modelChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">🎨 ボディカラー</div><div class="chart-container"><canvas id="colorChart"></canvas></div></div>
@@ -70,21 +73,21 @@
 
 <script>
   Chart.register(ChartDataLabels);
-  const CACHE_KEY = 'registro500_stats_v9';
+  const CACHE_KEY = 'registro500_stats_v10';
   let chartInstances = {};
 
   const COLOR_PALETTE = {
     '白/アイボリー系': '#f5f5f5', '赤系': '#D32F2F', '黄系': '#FBC02D',
     'ブルー系': '#1976D2', '水色系': '#81D4FA', '緑系': '#388E3C',
     'グレー系': '#757575', 'ベージュ系': '#D7CCC8', '黒系': '#212121',
-    'オレンジ系': '#F57C00', '紫系': '#7B1FA2', 'その他': '#CFD8DC'
+    'オレンジ系': '#F57C00', 'その他': '#CFD8DC'
   };
 
   init();
 
   async function init() {
     const cached = localStorage.getItem(CACHE_KEY);
-    if (cached) { draw(JSON.parse(cached)); }
+    if (cached) draw(JSON.parse(cached));
     try {
       const res = await fetch(API_URL + '?mode=index');
       const json = await res.json();
@@ -100,60 +103,57 @@
     document.getElementById('loading').style.display = 'none';
     Object.values(chartInstances).forEach(ins => ins.destroy());
 
-    // --- タブ1 ---
-    renderBar('modelChart', cars, c => (c.Model_DisplayC||'不明').split('(')[0].trim(), '#2856a8');
+    // 基本情報
+    renderBar('modelChart', cars, c => (c.Model_DisplayC||'').split('(')[0].trim(), '#2856a8');
     renderColorPie('colorChart', cars);
-    renderPie('steeringChart', cars, c => {
-      if(c.Steering === '左') return '左ハンドル';
-      if(c.Steering === '右') return '右ハンドル';
-      return '未記入';
-    });
-    renderBar('prefChart', cars, c => c.Prefecture || '不明', '#4caf50');
+    renderPie('steeringChart', cars, c => (c.Steering === '左' ? '左ハンドル' : (c.Steering === '右' ? '右ハンドル' : '')));
+    renderBar('prefChart', cars, c => c.Prefecture, '#4caf50');
 
-    // --- タブ2 ---
-    renderBar('engineChart', cars, c => c.EngineCC ? c.EngineCC+'cc' : '不明', '#ff9800');
-    renderPie('ignitionChart', cars, c => c.IgnitionType || '不明');
-    renderPie('generatorChart', cars, c => c.Generator || '不明');
-    renderBar('transChart', cars, c => (c.Transmission||'不明')+(c.Synchro?`(${c.Synchro})`:''), '#673ab7');
+    // 機関・電装
+    renderBar('engineChart', cars, c => (c.EngineCC ? c.EngineCC+'cc' : ''), '#ff9800');
+    renderPie('ignitionChart', cars, c => c.IgnitionType);
+    renderPie('generatorChart', cars, c => c.Generator);
+    renderBar('transChart', cars, c => (c.Transmission ? (c.Transmission + (c.Synchro ? `(${c.Synchro})` : '')) : ''), '#673ab7');
 
-    // --- タブ3 ---
+    // メンテ
     renderBar('eOilBrandChart', cars, c => getBrand(c.EngineOil), '#e91e63');
     renderPie('eOilVisChart', cars, c => getViscosity(c.EngineOil));
     renderBar('eOilCycleChart', cars, c => getInterval(c.EngineOilInterval), '#795548');
     renderBar('mOilBrandChart', cars, c => getBrand(c.TransmissionOil), '#607d8b');
 
-    // --- タブ4 ---
+    // 足回り
     renderBar('tireBrandChart', cars, c => getBrand(c.TireBrandName), '#2196f3');
     renderBar('tireSizeChart', cars, c => normalizeTire(c.TireSize), '#00bcd4');
-    renderPie('wheelChart', cars, c => c.Wheel || '不明');
-    renderBar('rimWidthChart', cars, c => c.RimWidth_in ? c.RimWidth_in+'J' : '不明', '#9e9e9e');
+    renderPie('wheelChart', cars, c => c.Wheel);
+    renderBar('rimWidthChart', cars, c => (c.RimWidth_in ? c.RimWidth_in+'J' : ''), '#9e9e9e');
   }
 
-  // --- 名寄せロジック ---
+  // 名寄せロジック (日本語化)
   function getBrand(txt) {
-    if(!txt || txt === '不明') return '未記入';
+    if(!txt) return '';
     const t = txt.toLowerCase();
-    if(t.match(/motul|モチュール/)) return 'MOTUL';
-    if(t.match(/michelin|ミシュラン/)) return 'Michelin';
-    if(t.match(/pirelli|ピレリ/)) return 'Pirelli';
-    if(t.match(/bridgestone|ブリヂストン|ブリジストン|bs/)) return 'Bridgestone';
-    if(t.match(/yokohama|ヨコハマ|横浜/)) return 'Yokohama';
-    if(t.match(/dunlop|ダンロップ/)) return 'Dunlop';
-    if(t.match(/castrol|カストロール/)) return 'Castrol';
-    if(t.match(/lubross|ルブロス/)) return 'Lubross';
-    if(t.match(/meister|マイスター/)) return 'Meister';
-    if(t.match(/gulf|ガルフ/)) return 'Gulf';
-    if(t.match(/nutec|ニューテック/)) return 'NUTEC';
+    if(t.match(/motul|モチュール/)) return 'モチュール';
+    if(t.match(/michelin|ミシュラン/)) return 'ミシュラン';
+    if(t.match(/pirelli|ピレリ/)) return 'ピレリ';
+    if(t.match(/bridgestone|ブリヂストン|ブリジストン|bs/)) return 'ブリヂストン';
+    if(t.match(/yokohama|ヨコハマ|横浜/)) return 'ヨコハマ';
+    if(t.match(/dunlop|ダンロップ/)) return 'ダンロップ';
+    if(t.match(/castrol|カストロール/)) return 'カストロール';
+    if(t.match(/lubross|ルブロス/)) return 'ルブロス';
+    if(t.match(/meister|マイスター/)) return 'マイスター';
+    if(t.match(/gulf|ガルフ/)) return 'ガルフ';
+    if(t.match(/nutec|ニューテック/)) return 'ニューテック';
+    if(t.match(/pennzoil|ペンズオイル/)) return 'ペンズオイル';
     return 'その他';
   }
 
   function getViscosity(txt) {
     const m = (txt||'').match(/\d+W-\d+/i);
-    return m ? m[0].toUpperCase() : '未記入';
+    return m ? m[0].toUpperCase() : '';
   }
 
   function getInterval(txt) {
-    if(!txt) return '未記入';
+    if(!txt) return '';
     const t = txt.toLowerCase();
     if(t.match(/3000|2500|2000/)) return '3,000km以下';
     if(t.match(/5000/)) return '5,000km目安';
@@ -164,7 +164,7 @@
   }
 
   function normalizeTire(txt) {
-    if(!txt) return '未記入';
+    if(!txt) return '';
     return txt.replace(/\s+/g,'').toUpperCase();
   }
 
@@ -179,38 +179,28 @@
     if(t.match(/灰|grey|grigio|グレー|シルバー|銀/)) return 'グレー系';
     if(t.match(/ベージュ|beige|茶|brown|sabbia/)) return 'ベージュ系';
     if(t.match(/黒|black|nero/)) return '黒系';
-    if(t.match(/オレンジ|orange|arancia/)) return 'オレンジ系';
     return 'その他';
   }
 
-  function renderColorPie(id, cars) {
+  // 集計関数 (空文字＝未記入を除外)
+  function aggregate(cars, extractor) {
     const counts = {};
-    cars.forEach(c => { const g = getColorGroup(c.BodyColor); counts[g] = (counts[g]||0)+1; });
-    const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-    chartInstances[id] = new Chart(document.getElementById(id), {
-      type: 'pie',
-      data: {
-        labels: sorted.map(d=>d[0]),
-        datasets: [{
-          data: sorted.map(d=>d[1]),
-          backgroundColor: sorted.map(d=>COLOR_PALETTE[d[0]] || '#CFD8DC'),
-          borderColor: '#fff', borderWidth: 2
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'right' }, datalabels: { color: '#000', font: { weight: 'bold' }, formatter: v=>v } }
+    let active = 0;
+    cars.forEach(c => {
+      const v = extractor(c);
+      if (v && v !== '未記入' && v !== '不明') {
+        counts[v] = (counts[v] || 0) + 1;
+        active++;
       }
     });
+    return { data: Object.entries(counts).sort((a,b)=>b[1]-a[1]), total: active };
   }
 
   function renderBar(id, cars, extractor, color) {
-    const counts = {};
-    cars.forEach(c => { const v = extractor(c); counts[v] = (counts[v]||0)+1; });
-    const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0, 15);
+    const agg = aggregate(cars, extractor);
     chartInstances[id] = new Chart(document.getElementById(id), {
       type: 'bar',
-      data: { labels: sorted.map(d=>d[0]), datasets: [{ data: sorted.map(d=>d[1]), backgroundColor: color }] },
+      data: { labels: agg.data.map(d=>d[0]), datasets: [{ data: agg.data.map(d=>d[1]), backgroundColor: color }] },
       options: {
         indexAxis: 'y', responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'end', formatter: v=>v+'台' } },
@@ -220,21 +210,36 @@
   }
 
   function renderPie(id, cars, extractor) {
-    const counts = {};
-    cars.forEach(c => { const v = extractor(c); counts[v] = (counts[v]||0)+1; });
-    const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+    const agg = aggregate(cars, extractor);
     chartInstances[id] = new Chart(document.getElementById(id), {
       type: 'pie',
       data: {
-        labels: sorted.map(d=>d[0]),
+        labels: agg.data.map(d=>d[0]),
+        datasets: [{ data: agg.data.map(d=>d[1]), backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#8BC34A','#9E9E9E'] }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'right' }, datalabels: { color: '#fff', font: { weight: 'bold' }, formatter: v=>v } }
+      }
+    });
+  }
+
+  function renderColorPie(id, cars) {
+    const agg = aggregate(cars, c => getColorGroup(c.BodyColor));
+    document.getElementById('activeCount').innerText = agg.total; // ボディカラーを基準に有効数を表示
+    chartInstances[id] = new Chart(document.getElementById(id), {
+      type: 'pie',
+      data: {
+        labels: agg.data.map(d=>d[0]),
         datasets: [{
-          data: sorted.map(d=>d[1]),
-          backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#8BC34A','#9E9E9E']
+          data: agg.data.map(d=>d[1]),
+          backgroundColor: agg.data.map(d=>COLOR_PALETTE[d[0]] || '#CFD8DC'),
+          borderColor: '#fff', borderWidth: 2
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'right' }, datalabels: { color: '#fff', font: { weight: 'bold' } } }
+        plugins: { legend: { position: 'right' }, datalabels: { color: '#000', font: { weight: 'bold' } } }
       }
     });
   }
