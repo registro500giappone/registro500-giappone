@@ -689,30 +689,35 @@
       }
     } catch(e) { alert("通信エラー"); }
   };
-
+// event.html の 460行目付近を差し替え
   window.toggleJoin = async (eventId) => {
-    if (!currentUser) return alert("ログインしてください");
+    if (!currentUser) return alert("参加表明するにはログインしてください");
     if (!confirm("参加ステータスを変更しますか？")) return;
+    
     try {
       const token = await currentUser.getIdToken();
       const res = await fetch(API_URL, {
         method: 'POST',
         body: JSON.stringify({
           action: 'toggle_participation',
-          formData: { idToken: token, EventID: eventId }
+          formData: { idToken: token, EventID: eventId } // IDトークンとイベントIDだけでOK
         })
       });
       const json = await res.json();
-      if(json.success) {
-        alert(json.data.message);
+      
+      if(json.success && json.data) {
+        alert(json.data.message || "更新しました");
         localStorage.removeItem(CACHE_KEY_EVENTS);
-        fetchEvents();
+        fetchEvents(); // 再描画
       } else {
-        alert("エラー: " + json.error);
+        alert("エラー: " + (json.error || "不明なエラーが発生しました"));
       }
-    } catch(e) { alert("通信エラー"); }
+    } catch(e) { 
+      console.error(e);
+      alert("通信エラーが発生しました。時間を置いて再度お試しください。"); 
+    }
   };
-
+  
   function esc(s) {
     if(!s) return '';
     return s.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
