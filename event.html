@@ -2,18 +2,14 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  
-  <!-- ▼▼▼ Google Analytics (GA4) ▼▼▼ -->
-  <!-- Google tag (gtag.js) -->
+  <!-- Google Analytics (GA4) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-
     gtag('config', 'G-27SHHC4JYH');
   </script>
-  <!-- ▲▲▲ 追加済み ▲▲▲ -->
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>イベント情報 | Registro500 Giappone</title>
@@ -42,7 +38,6 @@
     .header h1 { color: var(--accent); margin-bottom: 5px; }
     .back-link { color: var(--accent); text-decoration: none; font-weight: bold; }
 
-    /* 案内ボックス */
     .guide-box {
       background: #fff; border-radius: 12px; padding: 20px;
       margin-bottom: 20px; border: 1px solid #e5e7eb;
@@ -57,7 +52,6 @@
     .guide-list { margin: 10px 0; padding-left: 20px; font-size: 0.95rem; color: #444; }
     .guide-list li { margin-bottom: 4px; }
 
-    /* フィルターボタンエリア */
     .filter-area {
       display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 20px;
       -webkit-overflow-scrolling: touch;
@@ -76,7 +70,6 @@
       padding-bottom: 5px; border-bottom: 2px solid #ddd; color: #444;
     }
 
-    /* 月別見出し */
     .month-header {
       font-size: 1.1rem; font-weight: bold; color: var(--accent);
       margin: 25px 0 10px 5px; display: flex; align-items: center;
@@ -221,7 +214,6 @@
 
 <div class="fab-btn" id="postBtn" title="イベントを投稿する">＋</div>
 
-<!-- 投稿/編集モーダル -->
 <div class="modal-overlay" id="postModal">
   <div class="modal-content">
     <h2 id="modalTitle" style="margin-top:0;">イベント投稿</h2>
@@ -288,7 +280,6 @@
 </div>
 
 <script>
-  // Firebase設定
   const myFirebaseConfig = {
     apiKey: "AIzaSyCNCNsu61S3DIQ2pcmK2Ic_vqCINlZB9nk",
     authDomain: "registro500giappone-93f98.firebaseapp.com",
@@ -298,16 +289,11 @@
     appId: "1:566236968832:web:7f6a75960090885e332200"
   };
 
-  if (!firebase.apps.length) {
-    firebase.initializeApp(myFirebaseConfig);
-  }
+  if (!firebase.apps.length) firebase.initializeApp(myFirebaseConfig);
 
-  // --- ローカルキャッシュ設定 ---
-  const CACHE_KEY_EVENTS = 'registro500_event_data';
-  
+  const CACHE_KEY_EVENTS = 'registro500_event_data_v2';
   let currentUser = null;
   let myCarId = null; 
-  let loadedEvents = [];
   let allEventsData = []; 
   let currentRegion = 'all';
 
@@ -321,28 +307,19 @@
   };
 
   window.addEventListener('DOMContentLoaded', () => {
-    // 1. まずローカルキャッシュを表示 (爆速表示)
     initFromCache();
-
-    // 2. 裏で最新データを取得
     fetchEvents();
-
     firebase.auth().onAuthStateChanged(user => {
       currentUser = user;
       if(user) checkMyCar(user);
     });
-
-    // 曜日自動表示
     document.getElementById('inputDate').addEventListener('change', function() {
       if(this.value) {
         const d = new Date(this.value);
         const w = ['日','月','火','水','木','金','土'][d.getDay()];
         document.getElementById('weekdayLabel').textContent = `(${w})`;
-      } else {
-        document.getElementById('weekdayLabel').textContent = '(曜日)';
       }
     });
-
     document.querySelectorAll('.filter-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -353,20 +330,14 @@
     });
   });
 
-  // キャッシュから初期表示
   function initFromCache() {
     const cached = localStorage.getItem(CACHE_KEY_EVENTS);
     if (cached) {
       try {
-        const data = JSON.parse(cached);
-        console.log("キャッシュから表示します");
-        allEventsData = data;
-        loadedEvents = data;
+        allEventsData = JSON.parse(cached);
         document.getElementById('loading').style.display = 'none';
         renderEvents();
-      } catch (e) {
-        console.error("キャッシュ読み込みエラー", e);
-      }
+      } catch (e) {}
     }
   }
 
@@ -375,11 +346,8 @@
       const token = await user.getIdToken();
       const res = await fetch(`${API_URL}?mode=mycars&idToken=${token}`);
       const json = await res.json();
-      if(json.success && json.data.length > 0) {
-        myCarId = json.data[0].DocumentID;
-      } else {
-        myCarId = "ADMIN"; 
-      }
+      if(json.success && json.data.length > 0) myCarId = json.data[0].DocumentID;
+      else myCarId = "ADMIN";
       renderEvents(); 
     } catch(e) {}
   }
@@ -388,24 +356,12 @@
     try {
       const res = await fetch(API_URL + '?mode=events');
       const json = await res.json();
-      
       document.getElementById('loading').style.display = 'none';
       if (!json.success) return;
-
-      const newStr = JSON.stringify(json.data);
-      const oldStr = localStorage.getItem(CACHE_KEY_EVENTS);
-
-      if (newStr !== oldStr) {
-        console.log("最新データを取得・更新しました");
-        localStorage.setItem(CACHE_KEY_EVENTS, newStr);
-        allEventsData = json.data;
-        loadedEvents = json.data;
-        renderEvents();
-      } else {
-        console.log("データに変更はありません");
-      }
-
-    } catch(e) { console.error(e); }
+      localStorage.setItem(CACHE_KEY_EVENTS, JSON.stringify(json.data));
+      allEventsData = json.data;
+      renderEvents();
+    } catch(e) {}
   }
 
   function renderEvents() {
@@ -421,29 +377,21 @@
     });
 
     let currentMonthStr = "";
-
     filtered.forEach(ev => {
       let d = new Date(ev.EventDate);
-      if(isNaN(d.getTime())) d = new Date(); 
-      
       const isPast = d < today;
       const card = createEventCard(ev, isPast, d);
-
       if (isPast) {
         pastEl.appendChild(card);
       } else {
         const monthStr = `${d.getFullYear()}年 ${d.getMonth()+1}月`;
         if (monthStr !== currentMonthStr) {
-          const h = document.createElement('div');
-          h.className = 'month-header';
-          h.innerText = monthStr;
-          futureEl.appendChild(h);
-          currentMonthStr = monthStr;
+          const h = document.createElement('div'); h.className = 'month-header';
+          h.innerText = monthStr; futureEl.appendChild(h); currentMonthStr = monthStr;
         }
         futureEl.appendChild(card);
       }
     });
-
     document.getElementById('futureSection').style.display = (futureEl.children.length > 0) ? 'block' : 'none';
     document.getElementById('pastSection').style.display = (pastEl.children.length > 0) ? 'block' : 'none';
   }
@@ -452,132 +400,68 @@
     const div = document.createElement('div');
     div.className = 'event-card' + (isPast ? ' past' : '');
 
-    const participants = ev.Participants || [];
-    const count = participants.length;
+    // 有効な参加者（IDと名前が空でない）のみ抽出
+    const participants = (ev.Participants || []).filter(p => p.OwnerID && p.HandleName && p.OwnerID !== 'undefined');
     const isJoined = participants.some(p => p.OwnerID === myCarId);
     
-    let namesHtml = "";
-    if (count === 0) {
-      namesHtml = "参加表明オーナーはまだいません";
-    } else {
-      namesHtml = participants.map(p => {
+    let namesHtml = participants.length === 0 ? "参加表明オーナーはまだいません" : participants.map(p => {
         if(p.OwnerID === 'ADMIN') return `<span>${esc(p.HandleName)}</span>`;
         return `<a href="detail.html?doc=${p.OwnerID}" target="_blank" class="participant-link">${esc(p.HandleName)}</a>`;
-      }).join('');
-    }
+    }).join('');
 
     const w = ['日','月','火','水','木','金','土'][dateObj.getDay()];
     const hasTime = ev.EventDate.includes(' ') || ev.EventDate.includes('T'); 
-    let timeStr = "";
-    if(hasTime) {
-       const hh = String(dateObj.getHours()).padStart(2,'0');
-       const mm = String(dateObj.getMinutes()).padStart(2,'0');
-       timeStr = ` ${hh}:${mm}〜`;
-    }
+    let timeStr = hasTime ? ` ${String(dateObj.getHours()).padStart(2,'0')}:${String(dateObj.getMinutes()).padStart(2,'0')}〜` : "";
     const dateDisplay = `${dateObj.getFullYear()}/${dateObj.getMonth()+1}/${dateObj.getDate()} (${w})${timeStr}`;
-
-    const urlHtml = ev.URL ? `<div class="ev-url-row">🔗 参照URL: <a href="${ev.URL}" target="_blank">${esc(ev.URL)}</a></div>` : '';
-    
-    const ownerLink = ev.OwnerID === 'ADMIN' ? 
-        `<span class="owner-badge">👤 ${esc(ev.OwnerName)}</span>` : 
-        `<a href="detail.html?doc=${ev.OwnerID}" class="owner-badge" target="_blank">👤 ${esc(ev.OwnerName)}</a>`;
-
-    const joinBtnHtml = isPast ? '' : `
-      <div class="participation-area">
-        <button class="btn-join ${isJoined ? 'joined' : ''}" onclick="toggleJoin('${ev.EventID}')">
-          ${isJoined ? '✅ 参加予定です' : '✋ 参加予定'}
-        </button>
-        <div class="participants-list">
-          ${namesHtml}
-        </div>
-      </div>
-    `;
 
     let adminHtml = '';
     if (currentUser && (ev.OwnerID === myCarId || myCarId === 'ADMIN')) {
-      adminHtml = `
-        <div class="ev-admin-row">
-          <button class="btn-edit" onclick="openEdit('${ev.EventID}')">✏️ 編集</button>
-          <button class="btn-delete" onclick="deleteEvent('${ev.EventID}')">🗑️ 削除</button>
-        </div>
-      `;
+      adminHtml = `<div class="ev-admin-row"><button class="btn-edit" onclick="openEdit('${ev.EventID}')">✏️ 編集</button><button class="btn-delete" onclick="deleteEvent('${ev.EventID}')">🗑️ 削除</button></div>`;
     }
 
     div.innerHTML = `
       ${adminHtml}
       <div class="ev-date">${esc(dateDisplay)}</div>
       <h3 class="ev-title">${esc(ev.EventName)}</h3>
-      
-      <div class="ev-info-row">
-        <span class="ev-label">開催場所</span>
-        <div class="ev-info-val">${esc(ev.Location)}</div>
-      </div>
-      
-      ${ev.Fee ? `
-      <div class="ev-info-row">
-        <span class="ev-label">費用</span>
-        <div class="ev-info-val">${esc(ev.Fee)}</div>
-      </div>` : ''}
-      
+      <div class="ev-info-row"><span class="ev-label">開催場所</span><div class="ev-info-val">${esc(ev.Location)}</div></div>
+      ${ev.Fee ? `<div class="ev-info-row"><span class="ev-label">費用</span><div class="ev-info-val">${esc(ev.Fee)}</div></div>` : ''}
       <div class="ev-desc">${esc(ev.Description)}</div>
-      ${urlHtml}
-      ${joinBtnHtml}
-      <div class="ev-footer">
-        ${ownerLink}
-      </div>
+      ${ev.URL ? `<div class="ev-url-row">🔗 参照URL: <a href="${ev.URL}" target="_blank">${esc(ev.URL)}</a></div>` : ''}
+      ${isPast ? '' : `<div class="participation-area"><button class="btn-join ${isJoined ? 'joined' : ''}" onclick="toggleJoin('${ev.EventID}')">${isJoined ? '✅ 参加予定です' : '✋ 参加予定'}</button><div class="participants-list">${namesHtml}</div></div>`}
+      <div class="ev-footer">${ev.OwnerID === 'ADMIN' ? `<span class="owner-badge">👤 ${esc(ev.OwnerName)}</span>` : `<a href="detail.html?doc=${ev.OwnerID}" class="owner-badge" target="_blank">👤 ${esc(ev.OwnerName)}</a>`}</div>
     `;
     return div;
   }
 
-  const modal = document.getElementById('postModal');
-  const form = document.getElementById('eventForm');
-  const select = document.getElementById('ownerCarSelect');
-  const confirmView = document.getElementById('confirmView');
-
   document.getElementById('postBtn').addEventListener('click', async () => {
     if (!currentUser) return alert("ログインしてください");
-    await prepareModal();
-    resetForm();
+    await prepareModal(); resetForm();
     document.getElementById('modalTitle').innerText = "イベント投稿";
-    modal.style.display = 'flex';
+    document.getElementById('postModal').style.display = 'flex';
   });
 
   window.openEdit = async (eventId) => {
     if (!currentUser) return alert("ログインしてください");
     await prepareModal();
-    
-    const ev = loadedEvents.find(e => e.EventID === eventId);
+    const ev = allEventsData.find(e => e.EventID === eventId);
     if(!ev) return;
-
+    const form = document.getElementById('eventForm');
     form.EventID.value = ev.EventID;
     form.EventName.value = ev.EventName;
-    
     const d = new Date(ev.EventDate);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth()+1).padStart(2,'0');
-    const dd = String(d.getDate()).padStart(2,'0');
-    form.inputDate.value = `${yyyy}-${mm}-${dd}`;
+    form.inputDate.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     form.inputDate.dispatchEvent(new Event('change'));
-
-    const hasTime = ev.EventDate.includes(' ') || ev.EventDate.includes('T');
-    if(hasTime && (d.getHours() !== 0 || d.getMinutes() !== 0)) {
-       const HH = String(d.getHours()).padStart(2,'0');
-       const MM = String(d.getMinutes()).padStart(2,'0');
-       form.inputTime.value = `${HH}:${MM}`;
-    } else {
-       form.inputTime.value = "";
-    }
-
+    if(ev.EventDate.includes(' ') || ev.EventDate.includes('T')) form.inputTime.value = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     form.Location.value = ev.Location;
     form.Fee.value = ev.Fee;
     form.URL.value = ev.URL;
     form.Description.value = ev.Description;
-    
     document.getElementById('modalTitle').innerText = "イベント編集";
-    modal.style.display = 'flex';
+    document.getElementById('postModal').style.display = 'flex';
   };
 
   async function prepareModal() {
+    const select = document.getElementById('ownerCarSelect');
     select.innerHTML = '<option>読み込み中...</option>';
     hideConfirm();
     try {
@@ -587,137 +471,70 @@
       select.innerHTML = '';
       if (json.success && json.data.length > 0) {
         json.data.forEach(car => {
-          const opt = document.createElement('option');
-          opt.value = car.DocumentID;
-          opt.textContent = `${car.Model} (${car.HandleName})`;
-          select.appendChild(opt);
+          const opt = document.createElement('option'); opt.value = car.DocumentID;
+          opt.textContent = `${car.Model} (${car.HandleName})`; select.appendChild(opt);
         });
       } else {
-        const opt = document.createElement('option');
-        opt.value = "ADMIN"; opt.textContent = "管理者として投稿"; select.appendChild(opt);
+        const opt = document.createElement('option'); opt.value = "ADMIN"; opt.textContent = "管理者として投稿"; select.appendChild(opt);
       }
     } catch(e) { alert("エラー"); }
   }
 
-  function resetForm() {
-    form.reset();
-    form.EventID.value = "";
-    document.getElementById('weekdayLabel').textContent = "(曜日)";
-  }
-
-  function closeModal() { modal.style.display = 'none'; }
+  function resetForm() { document.getElementById('eventForm').reset(); document.getElementById('eventForm').EventID.value = ""; }
+  function closeModal() { document.getElementById('postModal').style.display = 'none'; }
 
   window.showConfirm = () => {
+    const form = document.getElementById('eventForm');
     if (!form.reportValidity()) return;
-    
-    const dVal = form.inputDate.value;
-    const tVal = form.inputTime.value;
-    let dtDisplay = dVal;
-    if(tVal) dtDisplay += ` ${tVal}〜`;
-
-    const content = `
+    const dt = form.inputTime.value ? `${form.inputDate.value} ${form.inputTime.value}〜` : form.inputDate.value;
+    document.getElementById('confirmContent').innerHTML = `
       <div class="confirm-row"><span class="confirm-label">イベント名</span><div class="confirm-val">${esc(form.EventName.value)}</div></div>
-      <div class="confirm-row"><span class="confirm-label">日時</span><div class="confirm-val">${esc(dtDisplay)}</div></div>
+      <div class="confirm-row"><span class="confirm-label">日時</span><div class="confirm-val">${esc(dt)}</div></div>
       <div class="confirm-row"><span class="confirm-label">場所</span><div class="confirm-val">${esc(form.Location.value)}</div></div>
-      <div class="confirm-row"><span class="confirm-label">詳細</span><div class="confirm-val">${esc(form.Description.value)}</div></div>
     `;
-    document.getElementById('confirmContent').innerHTML = content;
-    form.style.display = 'none';
-    confirmView.style.display = 'block';
+    form.style.display = 'none'; document.getElementById('confirmView').style.display = 'block';
   };
 
-  window.hideConfirm = () => {
-    confirmView.style.display = 'none';
-    form.style.display = 'block';
-  };
+  window.hideConfirm = () => { document.getElementById('confirmView').style.display = 'none'; document.getElementById('eventForm').style.display = 'block'; };
 
   window.submitEvent = async () => {
     const btn = document.getElementById('realSubmitBtn');
     btn.disabled = true; btn.innerText = "送信中...";
     try {
+      const form = document.getElementById('eventForm');
       const token = await currentUser.getIdToken();
-      const dVal = form.inputDate.value; 
-      const tVal = form.inputTime.value; 
-      const combinedDate = tVal ? `${dVal} ${tVal}` : dVal;
-
+      const combinedDate = form.inputTime.value ? `${form.inputDate.value} ${form.inputTime.value}` : form.inputDate.value;
       const formData = {
-        idToken: token,
-        EventID: form.EventID.value,
-        OwnerID: select.value,
-        EventName: form.EventName.value,
-        EventDate: combinedDate,
-        Location: form.Location.value,
-        Fee: form.Fee.value,
-        URL: form.URL.value,
-        Description: form.Description.value
+        idToken: token, EventID: form.EventID.value, OwnerID: document.getElementById('ownerCarSelect').value,
+        EventName: form.EventName.value, EventDate: combinedDate, Location: form.Location.value,
+        Fee: form.Fee.value, URL: form.URL.value, Description: form.Description.value
       };
-
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'save_event', formData: formData })
-      });
-      const json = await res.json();
-      if (json.success) {
-        alert("保存しました！");
-        localStorage.removeItem(CACHE_KEY_EVENTS);
-        location.reload();
-      } else {
-        alert("エラー: " + json.error);
-      }
+      const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'save_event', formData: formData }) });
+      if ((await res.json()).success) { alert("保存しました！"); location.reload(); }
     } catch(e) { alert("通信エラー"); }
     finally { btn.disabled = false; btn.innerText = "送信する"; }
   };
 
   window.deleteEvent = async (eventId) => {
-    if(!confirm("本当にこのイベントを削除しますか？\n（この操作は取り消せません）")) return;
+    if(!confirm("本当に削除しますか？")) return;
     try {
       const token = await currentUser.getIdToken();
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'delete_event',
-          formData: { idToken: token, EventID: eventId }
-        })
-      });
+      const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'delete_event', formData: { idToken: token, EventID: eventId } }) });
+      if((await res.json()).success) { alert("削除しました"); location.reload(); }
+    } catch(e) {}
+  };
+
+  window.toggleJoin = async (eventId) => {
+    if (!currentUser) return alert("ログインしてください");
+    if (!confirm("参加ステータスを変更しますか？")) return;
+    try {
+      const token = await currentUser.getIdToken();
+      const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'toggle_participation', formData: { idToken: token, EventID: eventId } }) });
       const json = await res.json();
-      if(json.success) {
-        alert("削除しました");
-        localStorage.removeItem(CACHE_KEY_EVENTS);
-        fetchEvents();
-      } else {
-        alert("エラー: " + json.error);
-      }
+      if(json.success) { alert(json.data.message); localStorage.removeItem(CACHE_KEY_EVENTS); fetchEvents(); }
     } catch(e) { alert("通信エラー"); }
   };
-// event.html の 460行目付近を差し替え
-  window.toggleJoin = async (eventId) => {
-    if (!currentUser) return alert("参加表明するにはログインしてください");
-    if (!confirm("参加ステータスを変更しますか？")) return;
-    
-    try {
-      const token = await currentUser.getIdToken();
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'toggle_participation',
-          formData: { idToken: token, EventID: eventId } // IDトークンとイベントIDだけでOK
-        })
-      });
-      const json = await res.json();
-      
-      if(json.success && json.data) {
-        alert(json.data.message || "更新しました");
-        localStorage.removeItem(CACHE_KEY_EVENTS);
-        fetchEvents(); // 再描画
-      } else {
-        alert("エラー: " + (json.error || "不明なエラーが発生しました"));
-      }
-    } catch(e) { 
-      console.error(e);
-      alert("通信エラーが発生しました。時間を置いて再度お試しください。"); 
-    }
-  };
-  
+
   function esc(s) {
     if(!s) return '';
     return s.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
