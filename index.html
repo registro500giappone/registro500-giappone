@@ -570,6 +570,24 @@
         img.className = 'car-image';
         
         let photoUrl = (car.PhotoMain && String(car.PhotoMain).trim()) || NO_IMAGE_URL;
+
+        // ▼▼▼ ImageKit連携：Firebaseの画像をImageKit経由で軽量化して表示 ▼▼▼
+        if (photoUrl.includes('firebasestorage.googleapis.com')) {
+          try {
+             const pathParts = photoUrl.split('/o/');
+             if (pathParts.length > 1) {
+               // ?alt=media などのパラメータを除去してパスのみ抽出
+               const filePath = pathParts[1].split('?')[0];
+               
+               // ImageKitのURLに変換 (tr=w-400 で幅400pxにリサイズ)
+               photoUrl = `https://ik.imagekit.io/registro500/${filePath}?tr=w-400`;
+             }
+          } catch(e) {
+             console.log('ImageKit変換エラー:', e);
+          }
+        }
+        // ▲▲▲ ImageKit連携ここまで ▲▲▲
+
         img.onerror = function() { this.src = NO_IMAGE_URL; };
         img.src = photoUrl;
         img.loading = "lazy";
@@ -611,9 +629,6 @@
       });
 
       applySearchFilter();
-      
-      // 一覧モードの時にフィルタリングされたら表示が崩れないよう、
-      // ここでクラスの再適用等は不要（CSS Gridが自動調整します）
     }
 
     // 検索機能
