@@ -2,18 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-27SHHC4JYH');
-  </script>
-  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>お知らせ・更新履歴 - Registro500 Giappone</title>
-  <link rel="manifest" href="manifest.json">
   <script src="config.js"></script>
   <style>
     :root { --rg-bg: #f4f6f8; --rg-text: #111827; --rg-accent: #2856a8; --rg-surface: #ffffff; }
@@ -23,15 +13,13 @@
     .logo { height: 60px; object-fit: contain; mix-blend-mode: multiply; }
     .back-link { display: inline-block; margin-bottom: 20px; color: var(--rg-accent); text-decoration: none; font-weight: bold; }
     
-    .news-card { background: var(--rg-surface); border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-    .news-date { color: #666; font-size: 0.9rem; font-weight: bold; display: block; margin-bottom: 8px; }
-    .news-title { font-size: 1.2rem; font-weight: bold; margin: 0 0 12px 0; color: var(--rg-accent); line-height: 1.4; }
-    .news-body { font-size: 0.95rem; white-space: pre-wrap; }
-    .badge-new { background: #e11d48; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; vertical-align: middle; margin-left: 5px; }
-    
-    .news-body b { color: var(--rg-accent); }
-    .news-body ul { margin-top: 5px; padding-left: 1.5rem; }
-    .news-body li { margin-bottom: 5px; }
+    #newsList { min-height: 200px; }
+    .news-card { background: var(--rg-surface); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .news-date { color: #666; font-size: 0.85rem; font-weight: bold; display: block; margin-bottom: 5px; }
+    .news-title { font-size: 1.1rem; font-weight: bold; margin: 0 0 10px 0; color: var(--rg-accent); line-height: 1.4; }
+    .news-body { font-size: 0.95rem; white-space: pre-wrap; color: #374151; }
+    .badge-new { background: #e11d48; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; vertical-align: middle; margin-left: 8px; }
+    .loading { text-align: center; padding: 40px; color: #666; }
   </style>
 </head>
 <body>
@@ -43,98 +31,49 @@
       <h1>お知らせ・更新履歴</h1>
     </div>
 
-    <!-- 記事ここから -->
+    <div id="newsList">
+      <div class="loading">お知らせを読み込んでいます...</div>
+    </div>
+  </div>
 
-    <article class="news-card">
-      <span class="news-date">2026.01.08</span>
-      <h2 class="news-title">PC版「一覧モード」を追加しました <span class="badge-new">NEW</span></h2>
-      <div class="news-body">トップページに、PCでの閲覧時に便利な新しい表示機能を追加しました。
+  <script>
+    async function fetchNews() {
+      const listEl = document.getElementById('newsList');
+      try {
+        const res = await fetch(API_URL + '?mode=news');
+        const json = await res.json();
+        
+        if (!json.success || !json.data || json.data.length === 0) {
+          listEl.innerHTML = '<div class="loading">お知らせはありません。</div>';
+          return;
+        }
 
-<b>【機能追加（PC版のみ）】</b>
-・<b>「一覧モード」ボタンの設置</b>
-　写真だけをタイル状に敷き詰めて表示する機能を追加しました。
-　文字情報を隠すことで、1画面で100台以上の愛車を一望でき、圧倒的なボリューム感を楽しめます。
-　
-　※写真にマウスを乗せると、オーナー名・県名・車種が表示されます。
-　（PC画面右上の「▦ 一覧モード」ボタンで切り替え可能です）
+        listEl.innerHTML = '';
+        const now = new Date();
 
-より使いやすく、楽しいサイトを目指して改善を続けてまいります。</div>
-    </article>
+        json.data.forEach(item => {
+          const card = document.createElement('article');
+          card.className = 'news-card';
 
-    <article class="news-card">
-      <span class="news-date">2026.01.07</span>
-      <h2 class="news-title">統計データの詳細化およびシステム不具合の修正について</h2>
-      <div class="news-body">本日、統計機能の大幅アップデートおよび、イベント機能に関する不具合の修正を行いました。
+          // 7日以内ならNEWバッジを表示
+          const postDate = new Date(item.Date.replace(/\./g, '/'));
+          const diffDays = (now - postDate) / (1000 * 60 * 60 * 24);
+          const badgeHtml = diffDays < 7 ? '<span class="badge-new">NEW</span>' : '';
 
-<b>【機能アップデート】</b>
-・<b>カテゴリー別タブの導入</b>: 「基本情報」「機関・電装」「メンテナンス」「足回り」の4つに整理し、詳細なデータが閲覧可能になりました。
-・<b>メンテナンス情報の詳細化</b>: エンジンオイル・ミッションオイルの銘柄分布に加え、交換サイクルを「距離ベース」と「期間ベース」に分離して集計。
-・<b>足回り情報の拡充</b>: タイヤブランド、タイヤサイズ、ホイール、リム幅等の統計を追加。
+          card.innerHTML = `
+            <span class="news-date">${item.Date}</span>
+            <h2 class="news-title">${item.Title}${badgeHtml}</h2>
+            <div class="news-body">${item.Content}</div>
+          `;
+          listEl.appendChild(card);
+        });
+      } catch (e) {
+        listEl.innerHTML = '<div class="loading">読み込みに失敗しました。</div>';
+        console.error(e);
+      }
+    }
 
-<b>【不具合修正・改善】</b>
-・<b>イベント参加表明のエラー修正</b>: 参加表明時に正しくデータが登録されない不具合を解消しました。
-・<b>参加者リストのクリーンアップ</b>: リストに空の項目が表示される問題を修正しました。
-・<b>グラフ表示の最適化</b>: グラフのラベルが間引かれていた問題を修正し、全ての項目が表示されるよう改善しました。
-・<b>名寄せ精度の向上</b>: 表記の揺れ（カンマの有無や単位の違い）を自動統合し、より正確な集計結果が反映されるようになりました。
-
-ご不便をおかけした皆様にはお詫び申し上げます。新しくなった統計データをぜひご活用ください！</div>
-    </article>
-
-    <article class="news-card">
-      <span class="news-date">2026.01.05</span>
-      <h2 class="news-title">新年のご挨拶 ＆ イベント情報ページ公開のお知らせ</h2>
-      <div class="news-body">あけましておめでとうございます。
-本年もRegistro500 Giapponeをよろしくお願いいたします。
-
-さて、新年最初のアップデートとして、トップページに「📅 イベント」ボタンを追加し、イベント情報ページを公開しました。
-
-【公開の趣旨】
-オーナー同士がリアルに交流できる機会を増やしたいという想いから、イベントやミーティングの情報を集約できる掲示板を作成しました。
-大規模なカーイベントはもちろん、「近所のカフェで集まろう」といったオーナー発信の小規模なオフ会まで、規模を問わず幅広く情報を募集しています。
-
-【使い方】
-・探す: 地域別フィルターや開催月ごとのリストで、お近くのイベントを探せます。
-・参加する: ログインすると「✋ 参加予定」ボタンを押して、参加表明ができます。誰が行くのか分かるので、参加のきっかけになります。
-・投稿する: ご自身が主催するミーティングや、知っているイベント情報を自由に投稿できます（修正・削除も可能です）。
-
-ぜひ積極的にご活用いただき、本年もチンクエチェント・ライフを一緒に盛り上げていきましょう！</div>
-    </article>
-
-    <article class="news-card">
-      <span class="news-date">2025.12.29</span>
-      <h2 class="news-title">統計データページを公開しました</h2>
-      <div class="news-body">登録台数が70台を超えたことを記念し、登録車両の統計データが見られるページを公開しました。
-トップページの「📊 統計を見る」ボタンからアクセスできます。
-
-【公開されたデータ】
-・車種モデル別分布（台数順）
-・ボディーカラー分布（人気色ランキング）
-・エンジン排気量別分布
-
-ぜひ、愛車のデータが全体の中でどのような位置付けかチェックしてみてください！</div>
-    </article>
-
-    <article class="news-card">
-      <span class="news-date">2025.12.10</span>
-      <h2 class="news-title">日本地図表示機能「Mappa」を公開しました</h2>
-      <div class="news-body">トップページに新しいボタン「🗺️ Mappa」を追加しました。
-登録された車両が日本地図上のどのエリアにいるか、視覚的に楽しめるようになりました。
-
-・登録がある都道府県は青く色付けされ、現在の台数が表示されます。
-・地図上のエリアをタップすると、その地域の車両リストが表示されます。
-・自分の住む地域や、ツーリング先の仲間探しにぜひご活用ください！</div>
-    </article>
-
-    <article class="news-card">
-      <span class="news-date">2025.12.09</span>
-      <h2 class="news-title">オーナーへの問い合わせ機能を追加しました</h2>
-      <div class="news-body">ログインユーザー限定で、車両詳細ページからオーナー様へメッセージを送れるようになりました。
-メールアドレスは非公開のまま転送されます（オーナー様が返信すると公開されます）。
-情報交換や交流にお役立てください。
-※問い合わせを受け付けたくない場合は、編集ページから設定をオフにできます。</div>
-    </article>
-
-    <article class="news-card">
-      <span class="news-date">2025.12.08</span>
-      <h2 class="news-title">入力項目の追加と修正</h2>
-      <div class="news-body">・SNS項目に「YouTube
+    fetchNews();
+  </script>
+</body>
+</html>
