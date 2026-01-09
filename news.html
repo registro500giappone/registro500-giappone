@@ -19,8 +19,8 @@
     .news-title { font-size: 1.1rem; font-weight: bold; margin: 0 0 10px 0; color: var(--rg-accent); line-height: 1.4; }
     .news-body { font-size: 0.95rem; white-space: pre-wrap; color: #374151; }
     
-    /* ハイパーリンクのスタイル */
-    .news-body a { color: var(--rg-accent); text-decoration: underline; font-weight: 500; }
+    /* リンクのスタイル */
+    .news-body a { color: var(--rg-accent); text-decoration: underline; font-weight: 500; word-break: break-all; }
     .news-body a:hover { opacity: 0.7; }
 
     .badge-new { background: #e11d48; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; vertical-align: middle; margin-left: 8px; }
@@ -38,9 +38,10 @@
   </div>
 
   <script>
-    // テキスト内のURLをリンクに変換する関数
+    // URLをリンクに変換する（HTMLタグや日本語句読点で止まるように改良）
     function linkify(text) {
-      const urlPattern = /(https?:\/\/[^\s]+)/g;
+      // URLの後に < や スペース、全角スペース、改行、日本語の句読点が来たらそこで切る
+      const urlPattern = /(https?:\/\/[^\s<>\u3000！?。、]+)/g;
       return text.replace(urlPattern, function(url) {
         return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
       });
@@ -68,8 +69,10 @@
           const diffDays = (now - postDate) / (1000 * 60 * 60 * 24);
           const badgeHtml = diffDays < 7 ? '<span class="badge-new">NEW</span>' : '';
 
-          // 本文内のURLをリンク化する
-          const linkedContent = linkify(item.Content);
+          // 1. まずHTMLとして改行タグなどを処理できるようにし、その中でURLをリンク化する
+          // スプレッドシート内の <br> を活かしつつリンク化
+          let content = item.Content;
+          const linkedContent = linkify(content);
 
           card.innerHTML = `
             <span class="news-date">${item.Date}</span>
