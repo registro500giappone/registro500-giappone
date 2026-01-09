@@ -571,16 +571,22 @@
         
         let photoUrl = (car.PhotoMain && String(car.PhotoMain).trim()) || NO_IMAGE_URL;
 
-        // ▼▼▼ ImageKit連携：Firebaseの画像をImageKit経由で軽量化して表示 ▼▼▼
+        // ▼▼▼ ImageKit連携：修正版（二重エンコード対応＋alt=media必須） ▼▼▼
         if (photoUrl.includes('firebasestorage.googleapis.com')) {
           try {
              const pathParts = photoUrl.split('/o/');
              if (pathParts.length > 1) {
-               // ?alt=media などのパラメータを除去してパスのみ抽出
-               const filePath = pathParts[1].split('?')[0];
+               // 1. ファイルパス部分（例: images%2Fphoto.jpg）を取り出す
+               // 重要なのは ?alt=media より前の部分
+               let filePath = pathParts[1].split('?')[0];
                
-               // ImageKitのURLに変換 (tr=w-400 で幅400pxにリサイズ)
-               photoUrl = `https://ik.imagekit.io/registro500/${filePath}?tr=w-400`;
+               // 2. 二重エンコード
+               // ImageKitがデコードしても、Firebaseが理解できる形（%2F）を維持する
+               let encodedPath = encodeURIComponent(filePath);
+               
+               // 3. パラメータ（alt=media）を付けてURL生成
+               // これがないとFirebaseはJSONを返してしまい、画像が表示されない
+               photoUrl = `https://ik.imagekit.io/registro500/${encodedPath}?alt=media&tr=w-400`;
              }
           } catch(e) {
              console.log('ImageKit変換エラー:', e);
