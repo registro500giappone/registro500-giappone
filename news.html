@@ -18,6 +18,11 @@
     .news-date { color: #666; font-size: 0.85rem; font-weight: bold; display: block; margin-bottom: 5px; }
     .news-title { font-size: 1.1rem; font-weight: bold; margin: 0 0 10px 0; color: var(--rg-accent); line-height: 1.4; }
     .news-body { font-size: 0.95rem; white-space: pre-wrap; color: #374151; }
+    
+    /* ハイパーリンクのスタイル */
+    .news-body a { color: var(--rg-accent); text-decoration: underline; font-weight: 500; }
+    .news-body a:hover { opacity: 0.7; }
+
     .badge-new { background: #e11d48; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; vertical-align: middle; margin-left: 8px; }
     .loading { text-align: center; padding: 40px; color: #666; }
   </style>
@@ -25,22 +30,26 @@
 <body>
   <div class="page">
     <a href="index.html" class="back-link">← トップページに戻る</a>
-    
     <div class="header">
       <img src="logo_horizontal.png" alt="Registro500" class="logo">
       <h1>お知らせ・更新履歴</h1>
     </div>
-
-    <div id="newsList">
-      <div class="loading">お知らせを読み込んでいます...</div>
-    </div>
+    <div id="newsList"><div class="loading">お知らせを読み込んでいます...</div></div>
   </div>
 
   <script>
+    // テキスト内のURLをリンクに変換する関数
+    function linkify(text) {
+      const urlPattern = /(https?:\/\/[^\s]+)/g;
+      return text.replace(urlPattern, function(url) {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+      });
+    }
+
     async function fetchNews() {
       const listEl = document.getElementById('newsList');
       try {
-        const res = await fetch(API_URL + '?mode=news');
+        const res = await fetch(API_URL + '?mode=news&t=' + new Date().getTime());
         const json = await res.json();
         
         if (!json.success || !json.data || json.data.length === 0) {
@@ -48,22 +57,24 @@
           return;
         }
 
+        const sortedData = json.data.sort((a, b) => b.Date.localeCompare(a.Date));
         listEl.innerHTML = '';
         const now = new Date();
 
-        json.data.forEach(item => {
+        sortedData.forEach(item => {
           const card = document.createElement('article');
           card.className = 'news-card';
-
-          // 7日以内ならNEWバッジを表示
           const postDate = new Date(item.Date.replace(/\./g, '/'));
           const diffDays = (now - postDate) / (1000 * 60 * 60 * 24);
           const badgeHtml = diffDays < 7 ? '<span class="badge-new">NEW</span>' : '';
 
+          // 本文内のURLをリンク化する
+          const linkedContent = linkify(item.Content);
+
           card.innerHTML = `
             <span class="news-date">${item.Date}</span>
             <h2 class="news-title">${item.Title}${badgeHtml}</h2>
-            <div class="news-body">${item.Content}</div>
+            <div class="news-body">${linkedContent}</div>
           `;
           listEl.appendChild(card);
         });
