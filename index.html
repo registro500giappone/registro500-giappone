@@ -445,34 +445,9 @@
         const img = document.createElement('img');
         img.className = 'car-image';
         
+        // ★ここを元の安全な状態に戻しました★
+        // ImageKit連携を削除し、FirebaseのURLをそのまま使うようにしました
         let photoUrl = (car.PhotoMain && String(car.PhotoMain).trim()) || NO_IMAGE_URL;
-
-        // ▼▼▼ ImageKit連携：トークン継承＆二重エンコード版 ▼▼▼
-        // これでFirebaseのセキュリティトークンを維持したまま画像を取得できます
-        if (photoUrl.includes('firebasestorage.googleapis.com')) {
-          try {
-             const pathParts = photoUrl.split('/o/');
-             if (pathParts.length > 1) {
-               // 1. パス部分と、合言葉（クエリパラメータ）部分を分ける
-               const fullPath = pathParts[1]; 
-               const splitQ = fullPath.split('?');
-               
-               const filePath = splitQ[0]; // images%2Fphoto.jpg
-               const queryString = splitQ[1] || 'alt=media'; // alt=media&token=... (合言葉)
-               
-               // 2. 二重エンコード（ImageKitのデコード対策）
-               // これをしないとImageKitが勝手に %2F を / に戻してしまい、Firebaseでエラーになります
-               const encodedPath = encodeURIComponent(filePath);
-               
-               // 3. 合言葉をそのままお尻にくっつけてURL生成
-               // w-400 でリサイズしつつ、Firebaseのトークンも渡します
-               photoUrl = `https://ik.imagekit.io/registro500/${encodedPath}?${queryString}&tr=w-400`;
-             }
-          } catch(e) {
-             console.log('ImageKit変換エラー:', e);
-          }
-        }
-        // ▲▲▲ ImageKit連携ここまで ▲▲▲
 
         img.onerror = function() { this.src = NO_IMAGE_URL; };
         img.src = photoUrl;
