@@ -140,7 +140,6 @@
       position: absolute; top: -2px; right: -10px; width: 8px; height: 8px;
       background-color: #e11d48; border-radius: 50%; border: 1px solid white;
     }
-    /* Xアイコンのサイズ調整 */
     .x-icon-link svg { width: 16px; height: 16px; fill: currentColor; }
 
     /* ===== PC向けレイアウト調整 ===== */
@@ -222,11 +221,11 @@
             </div>
           </div>
 
-          <a href="edit.html" class="btn-secondary btn-owner">オーナーページへ</a>
+          <!-- ★名称を「マイガレージ」に変更 -->
+          <a href="edit.html" class="btn-secondary btn-owner">マイガレージ</a>
         </div>
         
         <nav class="header-nav">
-          <!-- 公式𝕏 アイコンのみ -->
           <a href="https://x.com/registro500" target="_blank" rel="noopener" class="x-icon-link" title="公式𝕏">
             <svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
           </a>
@@ -269,19 +268,10 @@
 
     function forceReload() { window.location.reload(true); }
 
-    // サイト共有機能
     function shareSite() {
-      const shareData = {
-        title: 'Registro500 Giappone',
-        text: '日本のチンクエチェント・オーナー名鑑。あなたの愛車も登録しませんか？',
-        url: 'https://www.registro500.com/'
-      };
-      if (navigator.share) {
-        navigator.share(shareData).catch(() => {});
-      } else {
-        navigator.clipboard.writeText(shareData.url);
-        alert('サイトURLをコピーしました！SNS等でシェアしていただけると嬉しいです。');
-      }
+      const shareData = { title: 'Registro500 Giappone', text: '日本のチンクエチェント・オーナー名鑑。', url: 'https://www.registro500.com/' };
+      if (navigator.share) { navigator.share(shareData).catch(() => {}); }
+      else { navigator.clipboard.writeText(shareData.url); alert('URLをコピーしました！'); }
     }
 
     async function initApp() {
@@ -311,10 +301,7 @@
           }
           document.getElementById('loading').style.display = 'none';
         }
-      } catch (e) { 
-        console.error(e);
-        if (carsData.length === 0) document.getElementById('loading').textContent = '通信エラーが発生しました。';
-      }
+      } catch (e) { console.error(e); }
     }
 
     async function checkNewsBadge() {
