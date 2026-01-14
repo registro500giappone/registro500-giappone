@@ -471,7 +471,7 @@
     document.getElementById('postModal').style.display = 'flex';
   });
 
-  window.openEdit = async (eventId) => {
+window.openEdit = async (eventId) => {
     if (!currentUser) return alert("ログインしてください");
     await prepareModal();
     const ev = allEventsData.find(e => e.EventID === eventId);
@@ -479,12 +479,20 @@
     const form = document.getElementById('eventForm');
     form.EventID.value = ev.EventID;
     form.EventName.value = ev.EventName;
+
+    // 日本時間として日付と時間をパースする
     const d = new Date(ev.EventDate);
-    form.inputDate.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+
+    form.inputDate.value = `${yyyy}-${mm}-${dd}`;
     form.inputDate.dispatchEvent(new Event('change'));
     
-    const dateStr = String(ev.EventDate || '');
-    if(dateStr.includes(' ') || dateStr.includes('T')) form.inputTime.value = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    // 時間が00:00以外の場合、または時間指定がある場合のみセット
+    form.inputTime.value = `${hh}:${min}`;
     
     form.Location.value = ev.Location;
     form.Fee.value = ev.Fee;
@@ -493,7 +501,7 @@
     document.getElementById('modalTitle').innerText = "イベント編集";
     document.getElementById('postModal').style.display = 'flex';
   };
-
+  
   async function prepareModal() {
     const select = document.getElementById('ownerCarSelect');
     select.innerHTML = '<option>読み込み中...</option>';
@@ -525,27 +533,37 @@
   function resetForm() { document.getElementById('eventForm').reset(); document.getElementById('eventForm').EventID.value = ""; }
   function closeModal() { document.getElementById('postModal').style.display = 'none'; }
 
-  window.showConfirm = () => {
+window.showConfirm = () => {
     const form = document.getElementById('eventForm');
     if (!form.reportValidity()) return;
-    const dt = form.inputTime.value ? `${form.inputDate.value} ${form.inputTime.value}〜` : form.inputDate.value;
+    
+    // 表示用の時間を取得
+    const timeDisplay = form.inputTime.value ? `${form.inputTime.value}〜` : "";
+    
     document.getElementById('confirmContent').innerHTML = `
       <div class="confirm-row"><span class="confirm-label">イベント名</span><div class="confirm-val">${esc(form.EventName.value)}</div></div>
-      <div class="confirm-row"><span class="confirm-label">日時</span><div class="confirm-val">${esc(dt)}</div></div>
+      <div class="confirm-row"><span class="confirm-label">日時</span><div class="confirm-val">${esc(form.inputDate.value)} ${timeDisplay}</div></div>
       <div class="confirm-row"><span class="confirm-label">場所</span><div class="confirm-val">${esc(form.Location.value)}</div></div>
     `;
-    form.style.display = 'none'; document.getElementById('confirmView').style.display = 'block';
+    form.style.display = 'none'; 
+    document.getElementById('confirmView').style.display = 'block';
   };
-
   window.hideConfirm = () => { document.getElementById('confirmView').style.display = 'none'; document.getElementById('eventForm').style.display = 'block'; };
 
-  window.submitEvent = async () => {
+window.submitEvent = async () => {
     const btn = document.getElementById('realSubmitBtn');
     btn.disabled = true; btn.innerText = "送信中...";
     try {
       const form = document.getElementById('eventForm');
       const eventId = form.EventID.value || ('EVT_' + new Date().getTime());
-      const combinedDate = form.inputTime.value ? `${form.inputDate.value} ${form.inputTime.value}` : form.inputDate.value;
+      
+      // 日付と時間を結合し、日本時間(+09:00)であることを明示する
+      let isoDate = "";
+      if (form.inputTime.value) {
+        isoDate = `${form.inputDate.value}T${form.inputTime.value}:00+09:00`;
+      } else {
+        isoDate = `${form.inputDate.value}T00:00:00+09:00`;
+      }
       
       const { data: myCar } = await supabaseClient.from('cars').select('handle_name').eq('document_id', document.getElementById('ownerCarSelect').value).single();
 
@@ -554,7 +572,7 @@
         owner_id: document.getElementById('ownerCarSelect').value,
         owner_name: myCar ? myCar.handle_name : '管理者',
         event_name: form.EventName.value,
-        event_date: combinedDate,
+        event_date: isoDate, // ここを修正
         location: form.Location.value,
         fee: form.Fee.value,
         url: form.URL.value,
@@ -573,7 +591,7 @@
       btn.disabled = false; btn.innerText = "送信する";
     }
   };
-
+  
   window.deleteEvent = async (eventId) => {
     if(!confirm("本当に削除しますか？")) return;
     try {
