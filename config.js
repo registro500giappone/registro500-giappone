@@ -24,4 +24,4 @@ const FIREBASE_CONFIG = {
 };
 /* config.js の一番下に追記 */
 const SUPABASE_URL = "https://ttlttclfovuzafvghvaq.supabase.co";
-const SUPABASE_ANON_KEY = "sb_secret_bppATrT9pIKi1taK_9Bd7g_YhiOxrSx";
+const SUPABASE_ANON_KEY = "sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt";
