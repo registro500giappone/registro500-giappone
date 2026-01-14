@@ -24,6 +24,10 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   
   <script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>  
 
   <style>
     /* ========== ベース設定 ========== */
@@ -387,25 +391,57 @@
       });
     }
 
-    async function fetchDetail() {
+async function fetchDetail() {
       if (!docId) {
         document.getElementById('loading').textContent = 'エラー: 車両IDが指定されていません';
         return;
       }
       try {
-        const res = await fetch(`${API_URL}?mode=detail&doc=${docId}`);
-        const json = await res.json();
-        if (json.success && json.data) {
-          currentCarData = json.data;
-          renderDetail(json.data);
-        } else {
-          document.getElementById('loading').textContent = 'データの取得に失敗しました';
+        const { data, error } = await supabaseClient
+          .from('cars')
+          .select(`
+            *,
+            HandleName:handle_name,
+            Prefecture:prefecture,
+            PhotoMain:photo_main,
+            Model_DisplayC:model_display_c,
+            Year:year,
+            DocumentID:document_id,
+            OwnerEmail:owner_email,
+            AcceptInquiry:accept_inquiry,
+            Engine_Display:engine_display,
+            IgnitionSubType:ignition_sub_type,
+            ElectricPumpName:electric_pump_name,
+            CarburetorName:carburetor_name,
+            TireBrandName:tire_brand_name,
+            RimDiameter_in:rim_diameter_in,
+            RimWidth_in:rim_width_in,
+            EngineOilInterval:engine_oil_interval,
+            TransmissionOil:transmission_oil,
+            TransmissionOilInterval:transmission_oil_interval,
+            X_Twitter:x_twitter,
+            Instagram:instagram,
+            YouTube:youtube,
+            Minkara:minkara,
+            Facebook:facebook,
+            Threads:threads,
+            BlogOrWebsite:blog_or_website,
+            Highlights:highlights
+          `)
+          .eq('document_id', docId)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          currentCarData = data;
+          renderDetail(data);
         }
       } catch (e) {
-        document.getElementById('loading').textContent = '通信エラーが発生しました';
+        console.error("Supabaseエラー:", e);
+        document.getElementById('loading').textContent = 'データの取得に失敗しました';
       }
     }
-
     function renderDetail(car) {
       document.getElementById('loading').style.display = 'none';
       document.getElementById('content').style.display = 'block';
