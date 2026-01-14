@@ -15,6 +15,11 @@
   <title>イベント情報 | Registro500 Giappone</title>
   
   <script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+  
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 
@@ -352,18 +357,40 @@
     } catch(e) {}
   }
 
-  async function fetchEvents() {
+async function fetchEvents() {
     try {
-      const res = await fetch(API_URL + '?mode=events');
-      const json = await res.json();
-      document.getElementById('loading').style.display = 'none';
-      if (!json.success) return;
-      localStorage.setItem(CACHE_KEY_EVENTS, JSON.stringify(json.data));
-      allEventsData = json.data;
-      renderEvents();
-    } catch(e) {}
-  }
+      // Supabaseからイベントと参加者情報をまとめて取得
+      const { data, error } = await supabaseClient
+        .from('events')
+        .select(`
+          EventID:id,
+          EventName:event_name,
+          EventDate:event_date,
+          Location:location,
+          Fee:fee,
+          URL:url,
+          Description:description,
+          OwnerID:owner_id,
+          OwnerName:owner_name,
+          Participants:event_participants(
+            OwnerID:car_id,
+            HandleName:handle_name
+          )
+        `)
+        .order('event_date', { ascending: true });
 
+      if (error) throw error;
+
+      document.getElementById('loading').style.display = 'none';
+      if (data) {
+        localStorage.setItem(CACHE_KEY_EVENTS, JSON.stringify(data));
+        allEventsData = data;
+        renderEvents();
+      }
+    } catch(e) {
+      console.error("イベント取得エラー:", e);
+    }
+  }
   function renderEvents() {
     const today = new Date(); today.setHours(0,0,0,0);
     const futureEl = document.getElementById('futureList');
@@ -497,48 +524,83 @@
 
   window.hideConfirm = () => { document.getElementById('confirmView').style.display = 'none'; document.getElementById('eventForm').style.display = 'block'; };
 
-  window.submitEvent = async () => {
+window.submitEvent = async () => {
     const btn = document.getElementById('realSubmitBtn');
     btn.disabled = true; btn.innerText = "送信中...";
     try {
       const form = document.getElementById('eventForm');
-      const token = await currentUser.getIdToken();
+      const eventId = form.EventID.value || ('EVT_' + new Date().getTime());
       const combinedDate = form.inputTime.value ? `${form.inputDate.value} ${form.inputTime.value}` : form.inputDate.value;
-      const formData = {
-        idToken: token, EventID: form.EventID.value, OwnerID: document.getElementById('ownerCarSelect').value,
-        EventName: form.EventName.value, EventDate: combinedDate, Location: form.Location.value,
-        Fee: form.Fee.value, URL: form.URL.value, Description: form.Description.value
-      };
-      const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'save_event', formData: formData }) });
-      if ((await res.json()).success) { alert("保存しました！"); location.reload(); }
-    } catch(e) { alert("通信エラー"); }
-    finally { btn.disabled = false; btn.innerText = "送信する"; }
-  };
+      
+      const { data: myCar } = await supabaseClient.from('cars').select('handle_name').eq('document_id', document.getElementById('ownerCarSelect').value).single();
 
-  window.deleteEvent = async (eventId) => {
+      const eventData = {
+        id: eventId,
+        owner_id: document.getElementById('ownerCarSelect').value,
+        owner_name: myCar ? myCar.handle_name : '管理者',
+        event_name: form.EventName.value,
+        event_date: combinedDate,
+        location: form.Location.value,
+        fee: form.Fee.value,
+        url: form.URL.value,
+        description: form.Description.value
+      };
+
+      const { error } = await supabaseClient.from('events').upsert(eventData);
+      if (error) throw error;
+
+      alert("保存しました！");
+      location.reload();
+    } catch(e) {
+      console.error(e);
+      alert("保存に失敗しました");
+    } finally {
+      btn.disabled = false; btn.innerText = "送信する";
+    }
+  };
+  
+window.deleteEvent = async (eventId) => {
     if(!confirm("本当に削除しますか？")) return;
     try {
-      const token = await currentUser.getIdToken();
-      const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'delete_event', formData: { idToken: token, EventID: eventId } }) });
-      if((await res.json()).success) { alert("削除しました"); location.reload(); }
-    } catch(e) {}
+      const { error } = await supabaseClient.from('events').delete().eq('id', eventId);
+      if (error) throw error;
+      alert("削除しました");
+      location.reload();
+    } catch(e) {
+      alert("削除に失敗しました");
+    }
   };
 
-  window.toggleJoin = async (eventId) => {
+  
+window.toggleJoin = async (eventId) => {
     if (!currentUser) return alert("ログインしてください");
     if (!confirm("参加ステータスを変更しますか？")) return;
     try {
-      const token = await currentUser.getIdToken();
-      const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'toggle_participation', formData: { idToken: token, EventID: eventId } }) });
-      const json = await res.json();
-      if(json.success) { alert(json.data.message); localStorage.removeItem(CACHE_KEY_EVENTS); fetchEvents(); }
-    } catch(e) { alert("通信エラー"); }
-  };
+      // 現在の参加状態を確認
+      const { data: existing } = await supabaseClient
+        .from('event_participants')
+        .select('id')
+        .eq('event_id', eventId)
+        .eq('car_id', myCarId)
+        .single();
 
-  function esc(s) {
-    if(!s) return '';
-    return s.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-  }
+      if (existing) {
+        // すでに参加中なら削除（取消）
+        await supabaseClient.from('event_participants').delete().eq('id', existing.id);
+        alert("参加を取り消しました");
+      } else {
+        // 未参加なら追加
+        const { data: myCar } = await supabaseClient.from('cars').select('handle_name').eq('document_id', myCarId).single();
+        await supabaseClient.from('event_participants').insert([
+          { event_id: eventId, car_id: myCarId, handle_name: myCar ? myCar.handle_name : 'オーナー' }
+        ]);
+        alert("参加表明しました！");
+      }
+      fetchEvents(); // リロードせずに再取得
+    } catch(e) {
+      alert("通信エラーが発生しました");
+    }
+  };
 </script>
 </body>
 </html>
