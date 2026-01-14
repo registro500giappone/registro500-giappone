@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     
-    <!-- ▼▼▼ Google Analytics (GA4) ▼▼▼ -->
+    <!-- Google Analytics (GA4) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -11,80 +11,97 @@
       gtag('js', new Date());
       gtag('config', 'G-27SHHC4JYH');
     </script>
-    <!-- ▲▲▲ 追加済み ▲▲▲ -->
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro 500 - Mappa</title>
     
-    <script src="config.js"></script> <!-- config.jsを利用 -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-</script>
-
+    <script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script>
     
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/topojson@3"></script>
     
     <style>
-        body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f7; color: #333; }
+        :root {
+            --map-bg: #f8fafc;
+            --pref-none: #ffffff;
+            --pref-stroke: #cbd5e1;
+            --accent-blue: #2856a8;
+            --accent-red: #e11d48;
+        }
+
+        body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; background: var(--map-bg); color: #333; }
         header { background: #fff; padding: 15px; text-align: center; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 100; }
-        h1 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; }
-        .back-link { display: inline-block; margin-top: 8px; color: #2856a8; text-decoration: none; font-size: 0.85rem; padding: 4px 12px; border: 1px solid #ddd; border-radius: 20px; }
+        h1 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; color: var(--accent-blue); }
+        .back-link { display: inline-block; margin-top: 8px; color: var(--accent-blue); text-decoration: none; font-size: 0.85rem; padding: 4px 12px; border: 1px solid #ddd; border-radius: 20px; font-weight: bold; }
         .container { max-width: 1000px; margin: 0 auto; padding: 20px 10px; text-align: center; }
 
         #map-container {
             width: 100%;
-            height: auto;
             max-width: 800px;
             margin: 0 auto;
             background: #fff;
             position: relative;
             aspect-ratio: 1 / 1; 
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
             overflow: hidden;
         }
 
         svg { width: 100%; height: 100%; display: block; }
 
         .prefecture {
-            fill: #f9f9f9; stroke: #bbb; stroke-width: 0.5px; cursor: pointer; transition: fill 0.2s;
+            fill: var(--pref-none);
+            stroke: var(--pref-stroke);
+            stroke-width: 0.5px;
+            cursor: pointer;
+            transition: fill 0.2s, opacity 0.2s;
         }
-        .prefecture:hover { fill: #eee; }
+        .prefecture:hover { opacity: 0.8; fill: #f1f5f9; }
 
-        .active-pref { fill: #2856a8 !important; stroke: #1e4285 !important; }
-        .selected-pref { fill: #e11d48 !important; stroke: #9f1239 !important; }
+        /* 台数に応じた色（JSで動的に設定しますが予備として） */
+        .active-pref { stroke: #1e4285; stroke-width: 0.8px; }
+        .selected-pref { fill: var(--accent-red) !important; stroke: #9f1239 !important; }
 
         .pref-label {
-            fill: #fff; font-size: 11px; font-weight: 800; font-family: sans-serif;
-            text-anchor: middle; dominant-baseline: central; pointer-events: none;
-            paint-order: stroke; stroke: #2856a8; stroke-width: 2.5px; stroke-linecap: round; stroke-linejoin: round;
+            fill: #1e293b;
+            font-size: 12px;
+            font-weight: 900;
+            text-anchor: middle;
+            dominant-baseline: central;
+            pointer-events: none;
+            /* 数字を見やすくするための薄い縁取り */
+            paint-order: stroke;
+            stroke: rgba(255,255,255,0.8);
+            stroke-width: 3px;
         }
-        .selected-pref + .pref-label { stroke: #e11d48; }
 
-        .inset-box { fill: #fff; stroke: #ddd; stroke-width: 2; }
+        .inset-box { fill: #fff; stroke: #e2e8f0; stroke-width: 1; }
 
         #info-panel {
             position: absolute; bottom: 20px; right: 20px;
-            background: rgba(255, 255, 255, 0.95); color: #333;
-            padding: 10px 20px; border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 16px; border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             font-weight: bold; font-size: 14px;
-            border-left: 5px solid #2856a8;
+            border: 1px solid #e2e8f0;
             pointer-events: none; opacity: 0; transition: opacity 0.2s;
-            z-index: 20; min-width: 120px; text-align: center;
+            z-index: 20; min-width: 100px;
         }
 
         #garage-area { display: none; margin-top: 20px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: left; }
         .area-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .garage-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 15px; justify-items: center; }
-        .garage-item { width: 100%; cursor: pointer; text-align: center; }
-        .garage-icon-lg { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid #f0f0f0; background: #eee; }
-        .garage-name { font-size: 0.7rem; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .close-btn { border: none; background: #eee; padding: 5px 15px; border-radius: 15px; cursor: pointer; }
+        .garage-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); gap: 15px; justify-items: center; }
+        .garage-item { width: 100%; cursor: pointer; text-align: center; transition: transform 0.2s; }
+        .garage-item:hover { transform: scale(1.05); }
+        .garage-icon-lg { width: 65px; height: 65px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); background: #eee; }
+        .garage-name { font-size: 0.7rem; margin-top: 6px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #475569; }
+        .close-btn { border: none; background: #f1f5f9; padding: 6px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; color: #64748b; }
         
-        #loading { margin: 50px 0; color: #777; }
+        #loading { margin: 50px 0; font-weight: bold; color: var(--accent-blue); }
     </style>
 </head>
 <body>
@@ -95,7 +112,7 @@
 </header>
 
 <div class="container">
-    <div id="loading">地図データを取得中...</div>
+    <div id="loading">データを読込中...</div>
 
     <div id="map-container">
         <div id="info-panel"></div>
@@ -103,17 +120,32 @@
 
     <div id="garage-area">
         <div class="area-header">
-            <span id="area-title" style="font-weight:bold;">AREA</span>
-            <button onclick="closeGarage()" class="close-btn">閉じる</button>
+            <span id="area-title" style="font-weight:bold; font-size:1.1rem; color:#1e293b;">AREA</span>
+            <button onclick="closeGarage()" class="close-btn">× 閉じる</button>
         </div>
         <div id="garage-list" class="garage-list"></div>
     </div>
 </div>
 
 <script>
-    // キャッシュキー
-    const CACHE_KEY_MAP = 'registro500_map_cars';
+    const CACHE_KEY_MAP = 'registro500_map_cars_v2';
     const MAP_FILE_URL = "prefectures.json"; 
+
+    // 台数に応じたグラデーション色 (案1)
+    const COLOR_SCALE = [
+        { count: 1, color: "#e0f2fe" }, // 1台: ごく薄い水色
+        { count: 3, color: "#bae6fd" }, // 2-3台
+        { count: 5, color: "#7dd3fc" }, // 4-5台
+        { count: 10, color: "#38bdf8" }, // 6-10台
+        { count: 20, color: "#0284c7" }, // 11台〜20台
+        { count: 99, color: "#075985" }  // それ以上
+    ];
+
+    function getColor(count) {
+        if (!count || count === 0) return "var(--pref-none)";
+        const step = COLOR_SCALE.find(s => count <= s.count) || COLOR_SCALE[COLOR_SCALE.length - 1];
+        return step.color;
+    }
 
     const ID_MAP = {
         1:"北海道",2:"青森県",3:"岩手県",4:"宮城県",5:"秋田県",6:"山形県",7:"福島県",
@@ -134,40 +166,37 @@
 
     async function init() {
         try {
-            // 地図データ取得 (これは軽いので毎回取得でOK)
             const mapRes = await fetch(MAP_FILE_URL);
             if(!mapRes.ok) throw new Error("Map load failed");
             const mapData = await mapRes.json();
 
-            // 1. 車両データ: キャッシュがあればまず表示
+            // 1. キャッシュから読み込み（爆速表示用）
             const cached = localStorage.getItem(CACHE_KEY_MAP);
             if (cached) {
-                try {
-                    const cars = JSON.parse(cached);
-                    console.log("キャッシュから地図描画");
-                    drawMap(mapData, cars);
-                } catch(e) {}
+                drawMap(mapData, JSON.parse(cached));
             }
 
-            // 2. 裏で最新データを取得
-            const carsRes = await fetch(API_URL + '?mode=index');
-            const carsJson = await carsRes.json();
+            // 2. Supabaseから最新データを取得
+            const { data: cars, error } = await supabaseClient
+              .from('cars')
+              .select(`
+                DocumentID:document_id,
+                HandleName:handle_name,
+                Prefecture:prefecture,
+                Model_DisplayC:model_display_c,
+                PhotoMain:photo_main
+              `);
+
+            if (error) throw error;
             
-            if (carsJson.success) {
-                const newStr = JSON.stringify(carsJson.data);
-                // データに変更があれば再描画
-                if (newStr !== cached) {
-                    console.log("最新データで地図更新");
-                    localStorage.setItem(CACHE_KEY_MAP, newStr);
-                    drawMap(mapData, carsJson.data);
-                }
+            if (cars) {
+                localStorage.setItem(CACHE_KEY_MAP, JSON.stringify(cars));
+                drawMap(mapData, cars);
             }
 
         } catch (e) {
-            console.error(e);
-            if (!localStorage.getItem(CACHE_KEY_MAP)) {
-               document.getElementById('loading').innerText = "エラーが発生しました";
-            }
+            console.error("読込エラー:", e);
+            document.getElementById('loading').innerText = "エラーが発生しました";
         }
     }
 
@@ -176,7 +205,7 @@
 
         const prefData = {};
         cars.forEach(car => {
-            let pName = (car.Prefecture || car.prefecture || "").trim();
+            let pName = (car.Prefecture || "").trim();
             if(EN_MAP[pName.toUpperCase()]) pName = EN_MAP[pName.toUpperCase()];
             if(!prefData[pName]) prefData[pName] = [];
             prefData[pName].push(car);
@@ -201,7 +230,6 @@
         const okinawaFeatures = allFeatures.filter(d => d.id == 47 || d.properties.id == 47);
         const mainFeatures = allFeatures.filter(d => d.id != 47 && d.properties.id != 47);
 
-        // A. 本州
         const mainProjection = d3.geoMercator()
             .center([137.5, 37.5]) 
             .scale(2300) 
@@ -209,7 +237,6 @@
         const mainPath = d3.geoPath().projection(mainProjection);
         renderFeatures(svg, mainFeatures, mainPath, prefData, panel);
 
-        // B. 沖縄
         if (okinawaFeatures.length > 0) {
             const boxX = 20, boxY = 20, boxW = 160, boxH = 120;
             const insetProjection = d3.geoMercator()
@@ -235,15 +262,21 @@
             .append("path")
             .attr("class", "prefecture")
             .attr("d", path)
+            .style("fill", d => {
+                const p = d.properties;
+                const candidates = Object.values(p).map(v => String(v));
+                if(d.id) candidates.push(String(d.id)); 
+                if(d.id && ID_MAP[d.id]) candidates.push(ID_MAP[d.id]);
+                const matchKey = Object.keys(prefData).find(key => candidates.some(val => val.includes(key) || key.includes(val)));
+                return matchKey ? getColor(prefData[matchKey].length) : "var(--pref-none)";
+            })
             .each(function(d) {
                 const p = d.properties;
                 const candidates = Object.values(p).map(v => String(v));
                 if(d.id) candidates.push(String(d.id)); 
                 if(d.id && ID_MAP[d.id]) candidates.push(ID_MAP[d.id]);
 
-                const matchKey = Object.keys(prefData).find(key => {
-                    return candidates.some(val => val.includes(key) || key.includes(val));
-                });
+                const matchKey = Object.keys(prefData).find(key => candidates.some(val => val.includes(key) || key.includes(val)));
 
                 if(matchKey) {
                     d3.select(this).classed("active-pref", true);
@@ -276,25 +309,14 @@
             .attr("transform", function(d) {
                 const centroid = path.centroid(d);
                 if (isNaN(centroid[0])) return "translate(-999,-999)";
-                
-                let x = centroid[0];
-                let y = centroid[1];
-
-                if (d.id == 13 || (d.properties && d.properties.id == 13) || (d.dispName && d.dispName.includes("東京"))) {
-                    y -= 26; x -= 5; 
-                }
-                if (d.dispName && d.dispName.includes("長崎")) x += 5;
-                if (d.dispName && d.dispName.includes("鹿児島")) y -= 10;
-                if (d.dispName && d.dispName.includes("兵庫")) y -= 5;
-
+                let x = centroid[0], y = centroid[1];
+                if (d.dispName.includes("東京")) { y -= 26; x -= 5; }
+                if (d.dispName.includes("長崎")) x += 5;
+                if (d.dispName.includes("鹿児島")) y -= 10;
+                if (d.dispName.includes("兵庫")) y -= 5;
                 return `translate(${x},${y})`;
             })
-            .text(function(d) {
-                if (d.carList && d.carList.length > 0) {
-                    return d.carList.length;
-                }
-                return "";
-            });
+            .text(d => (d.carList && d.carList.length > 0) ? d.carList.length : "");
     }
 
     function showGarage(name, cars) {
@@ -304,16 +326,11 @@
         area.style.display = 'block';
         list.innerHTML = '';
         cars.forEach(car => {
-            const imgUrl = car.PhotoMain || car.car_image || 'https://placehold.co/100x100?text=No+Img';
-            const handleName = car.HandleName || "No Name";
+            const imgUrl = car.PhotoMain || 'https://placehold.co/100x100?text=No+Img';
             const item = document.createElement('div');
             item.className = 'garage-item';
-            const img = document.createElement('img');
-            img.src = imgUrl; img.className = 'garage-icon-lg'; img.loading = "lazy";
-            const nameDiv = document.createElement('div');
-            nameDiv.className = 'garage-name'; nameDiv.innerText = handleName;
+            item.innerHTML = `<img src="${imgUrl}" class="garage-icon-lg" loading="lazy"><div class="garage-name">${car.HandleName || "No Name"}</div>`;
             if(car.DocumentID) { item.onclick = () => window.location.href = `detail.html?doc=${car.DocumentID}`; }
-            item.appendChild(img); item.appendChild(nameDiv);
             list.appendChild(item);
         });
         setTimeout(() => { area.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
@@ -322,6 +339,5 @@
     function closeGarage() { document.getElementById('garage-area').style.display = 'none'; }
     init();
 </script>
-
 </body>
 </html>
