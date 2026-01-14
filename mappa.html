@@ -2,8 +2,6 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    
-    <!-- Google Analytics (GA4) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -26,18 +24,21 @@
     
     <style>
         :root {
-            --map-bg: #f8fafc;
-            --pref-none: #ffffff;
-            --pref-stroke: #cbd5e1;
-            --accent-blue: #2856a8;
-            --accent-red: #e11d48;
+            /* フィアット500のアイボリーをイメージした背景色 */
+            --map-bg: #f5f2eb; 
+            --pref-none: #fdfdfc;
+            --pref-stroke: #cfc8bd;
+            --fiat-red: #c1272d; /* クラシックフィアットの赤 */
+            --fiat-blue: #2856a8;
         }
 
-        body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; background: var(--map-bg); color: #333; }
-        header { background: #fff; padding: 15px; text-align: center; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 100; }
-        h1 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; color: var(--accent-blue); }
-        .back-link { display: inline-block; margin-top: 8px; color: var(--accent-blue); text-decoration: none; font-size: 0.85rem; padding: 4px 12px; border: 1px solid #ddd; border-radius: 20px; font-weight: bold; }
-        .container { max-width: 1000px; margin: 0 auto; padding: 20px 10px; text-align: center; }
+        body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif; margin: 0; padding: 0; background: var(--map-bg); color: #333; }
+        header { background: #fff; padding: 15px; text-align: center; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        h1 { margin: 0; font-size: 1.1rem; letter-spacing: 2px; color: var(--fiat-blue); font-weight: 900; }
+        .back-link { display: inline-block; margin-top: 8px; color: var(--fiat-blue); text-decoration: none; font-size: 0.85rem; padding: 4px 15px; border: 1.5px solid var(--fiat-blue); border-radius: 20px; font-weight: bold; transition: 0.2s; }
+        .back-link:hover { background: var(--fiat-blue); color: #fff; }
+        
+        .container { max-width: 900px; margin: 0 auto; padding: 20px 10px; text-align: center; }
 
         #map-container {
             width: 100%;
@@ -46,8 +47,9 @@
             background: #fff;
             position: relative;
             aspect-ratio: 1 / 1; 
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border-radius: 15px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05), 0 10px 30px rgba(0,0,0,0.08);
+            border: 1px solid #e0ddd5;
             overflow: hidden;
         }
 
@@ -56,63 +58,76 @@
         .prefecture {
             fill: var(--pref-none);
             stroke: var(--pref-stroke);
-            stroke-width: 0.5px;
+            stroke-width: 0.8px;
             cursor: pointer;
-            transition: fill 0.2s, opacity 0.2s;
+            transition: all 0.3s ease;
         }
-        .prefecture:hover { opacity: 0.8; fill: #f1f5f9; }
+        
+        /* 車がいる県: 落ち着いた赤 */
+        .active-pref {
+            fill: #fca5a5; /* 薄い赤（背景） */
+        }
+        .active-pref:hover {
+            fill: var(--fiat-red);
+        }
 
-        /* 台数に応じた色（JSで動的に設定しますが予備として） */
-        .active-pref { stroke: #1e4285; stroke-width: 0.8px; }
-        .selected-pref { fill: var(--accent-red) !important; stroke: #9f1239 !important; }
+        /* 選択中の県 */
+        .selected-pref {
+            fill: var(--fiat-red) !important;
+            stroke: #7f1d1d !important;
+            stroke-width: 1.5px !important;
+        }
 
         .pref-label {
-            fill: #1e293b;
-            font-size: 12px;
+            fill: #450a0a;
+            font-size: 13px;
             font-weight: 900;
             text-anchor: middle;
             dominant-baseline: central;
             pointer-events: none;
-            /* 数字を見やすくするための薄い縁取り */
+            /* 数字を浮き立たせる加工 */
             paint-order: stroke;
-            stroke: rgba(255,255,255,0.8);
-            stroke-width: 3px;
+            stroke: #fff;
+            stroke-width: 4px;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
 
-        .inset-box { fill: #fff; stroke: #e2e8f0; stroke-width: 1; }
+        .inset-box { fill: #fff; stroke: #cfc8bd; stroke-width: 1; stroke-dasharray: 4; }
 
         #info-panel {
-            position: absolute; bottom: 20px; right: 20px;
+            position: absolute; bottom: 25px; left: 25px;
             background: rgba(255, 255, 255, 0.9);
-            padding: 8px 16px; border-radius: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            font-weight: bold; font-size: 14px;
-            border: 1px solid #e2e8f0;
-            pointer-events: none; opacity: 0; transition: opacity 0.2s;
-            z-index: 20; min-width: 100px;
+            padding: 10px 20px; border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            font-weight: 900; font-size: 15px;
+            border: 2px solid var(--fiat-blue);
+            pointer-events: none; opacity: 0; transition: 0.2s;
+            z-index: 20; color: var(--fiat-blue);
         }
 
-        #garage-area { display: none; margin-top: 20px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: left; }
-        .area-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .garage-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); gap: 15px; justify-items: center; }
-        .garage-item { width: 100%; cursor: pointer; text-align: center; transition: transform 0.2s; }
-        .garage-item:hover { transform: scale(1.05); }
-        .garage-icon-lg { width: 65px; height: 65px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); background: #eee; }
-        .garage-name { font-size: 0.7rem; margin-top: 6px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #475569; }
-        .close-btn { border: none; background: #f1f5f9; padding: 6px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; color: #64748b; }
+        #garage-area { display: none; margin-top: 30px; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 15px 40px rgba(0,0,0,0.12); text-align: left; border-top: 5px solid var(--fiat-red); }
+        .area-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        #area-title { font-weight: 900; font-size: 1.2rem; color: #1e293b; border-bottom: 3px solid var(--fiat-red); padding-bottom: 5px; }
+        .garage-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 20px; justify-items: center; }
+        .garage-item { width: 100%; cursor: pointer; text-align: center; }
+        .garage-icon-lg { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; border: 2px solid #eee; transition: 0.2s; }
+        .garage-item:hover .garage-icon-lg { transform: translateY(-5px); border-color: var(--fiat-red); box-shadow: 0 5px 15px rgba(193, 39, 45, 0.2); }
+        .garage-name { font-size: 0.75rem; margin-top: 8px; font-weight: bold; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .close-btn { border: none; background: #eee; padding: 8px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; color: #666; }
         
-        #loading { margin: 50px 0; font-weight: bold; color: var(--accent-blue); }
+        #loading { margin: 100px 0; font-weight: bold; color: var(--fiat-blue); font-size: 1.2rem; letter-spacing: 2px; }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>REGISTRO MAPPA</h1>
-    <a href="index.html" class="back-link">← ガレージに戻る</a>
+    <h1>REGISTRO 500 MAPPA</h1>
+    <a href="index.html" class="back-link">TORNA AL GARAGE</a>
 </header>
 
 <div class="container">
-    <div id="loading">データを読込中...</div>
+    <div id="loading">CARICAMENTO...</div>
 
     <div id="map-container">
         <div id="info-panel"></div>
@@ -120,31 +135,22 @@
 
     <div id="garage-area">
         <div class="area-header">
-            <span id="area-title" style="font-weight:bold; font-size:1.1rem; color:#1e293b;">AREA</span>
-            <button onclick="closeGarage()" class="close-btn">× 閉じる</button>
+            <span id="area-title">AREA</span>
+            <button onclick="closeGarage()" class="close-btn">CHIUDI</button>
         </div>
         <div id="garage-list" class="garage-list"></div>
     </div>
 </div>
 
 <script>
-    const CACHE_KEY_MAP = 'registro500_map_cars_v2';
+    const CACHE_KEY_MAP = 'registro500_map_cars_v3';
     const MAP_FILE_URL = "prefectures.json"; 
 
-    // 台数に応じたグラデーション色 (案1)
-    const COLOR_SCALE = [
-        { count: 1, color: "#e0f2fe" }, // 1台: ごく薄い水色
-        { count: 3, color: "#bae6fd" }, // 2-3台
-        { count: 5, color: "#7dd3fc" }, // 4-5台
-        { count: 10, color: "#38bdf8" }, // 6-10台
-        { count: 20, color: "#0284c7" }, // 11台〜20台
-        { count: 99, color: "#075985" }  // それ以上
-    ];
-
+    // 台数に応じた色（2段階のみでシンプルに）
     function getColor(count) {
         if (!count || count === 0) return "var(--pref-none)";
-        const step = COLOR_SCALE.find(s => count <= s.count) || COLOR_SCALE[COLOR_SCALE.length - 1];
-        return step.color;
+        if (count >= 5) return "#fee2e2"; // 5台以上: 少し濃い赤背景
+        return "#fef2f2"; // 1-4台: ごく薄い赤背景
     }
 
     const ID_MAP = {
@@ -167,16 +173,13 @@
     async function init() {
         try {
             const mapRes = await fetch(MAP_FILE_URL);
-            if(!mapRes.ok) throw new Error("Map load failed");
             const mapData = await mapRes.json();
 
-            // 1. キャッシュから読み込み（爆速表示用）
             const cached = localStorage.getItem(CACHE_KEY_MAP);
             if (cached) {
                 drawMap(mapData, JSON.parse(cached));
             }
 
-            // 2. Supabaseから最新データを取得
             const { data: cars, error } = await supabaseClient
               .from('cars')
               .select(`
@@ -193,16 +196,14 @@
                 localStorage.setItem(CACHE_KEY_MAP, JSON.stringify(cars));
                 drawMap(mapData, cars);
             }
-
         } catch (e) {
-            console.error("読込エラー:", e);
-            document.getElementById('loading').innerText = "エラーが発生しました";
+            console.error(e);
+            document.getElementById('loading').innerText = "ERROR";
         }
     }
 
     function drawMap(mapData, cars) {
         document.getElementById('loading').style.display = 'none';
-
         const prefData = {};
         cars.forEach(car => {
             let pName = (car.Prefecture || "").trim();
@@ -215,41 +216,23 @@
         const height = 800;
         const container = d3.select("#map-container");
         container.select("svg").remove();
-
-        const svg = container.append("svg")
-            .attr("viewBox", `0 0 ${width} ${height}`)
-            .attr("preserveAspectRatio", "xMidYMid meet");
-        
+        const svg = container.append("svg").attr("viewBox", `0 0 ${width} ${height}`);
         const panel = document.getElementById('info-panel');
 
-        let objKey = "japan";
-        if(!mapData.objects[objKey] && mapData.objects.prefectures) objKey = "prefectures";
-        if(!mapData.objects[objKey]) objKey = Object.keys(mapData.objects)[0];
-        
+        let objKey = mapData.objects.japan ? "japan" : (mapData.objects.prefectures ? "prefectures" : Object.keys(mapData.objects)[0]);
         const allFeatures = topojson.feature(mapData, mapData.objects[objKey]).features;
         const okinawaFeatures = allFeatures.filter(d => d.id == 47 || d.properties.id == 47);
         const mainFeatures = allFeatures.filter(d => d.id != 47 && d.properties.id != 47);
 
-        const mainProjection = d3.geoMercator()
-            .center([137.5, 37.5]) 
-            .scale(2300) 
-            .translate([width / 2, height / 2 + 50]);
+        const mainProjection = d3.geoMercator().center([137.5, 38.3]).scale(2300).translate([width / 2, height / 2]);
         const mainPath = d3.geoPath().projection(mainProjection);
         renderFeatures(svg, mainFeatures, mainPath, prefData, panel);
 
         if (okinawaFeatures.length > 0) {
             const boxX = 20, boxY = 20, boxW = 160, boxH = 120;
-            const insetProjection = d3.geoMercator()
-                .center([127.8, 26.5]) 
-                .scale(6000)
-                .translate([boxX + boxW/2, boxY + boxH/2]);
+            const insetProjection = d3.geoMercator().center([127.8, 26.5]).scale(6000).translate([boxX + boxW/2, boxY + boxH/2]);
             const insetPath = d3.geoPath().projection(insetProjection);
-
-            svg.append("rect")
-                .attr("x", boxX).attr("y", boxY)
-                .attr("width", boxW).attr("height", boxH)
-                .attr("class", "inset-box");
-
+            svg.append("rect").attr("x", boxX).attr("y", boxY).attr("width", boxW).attr("height", boxH).attr("class", "inset-box");
             renderFeatures(svg, okinawaFeatures, insetPath, prefData, panel);
         }
     }
@@ -260,30 +243,23 @@
             .data(features)
             .enter()
             .append("path")
-            .attr("class", "prefecture")
+            .attr("class", d => {
+                const p = d.properties;
+                const candidates = [p.nam_ja, p.name, p.nam, ID_MAP[d.id], String(d.id)].map(v => String(v));
+                const matchKey = Object.keys(prefData).find(key => candidates.some(val => val && (val.includes(key) || key.includes(val))));
+                return matchKey ? "prefecture active-pref" : "prefecture";
+            })
             .attr("d", path)
             .style("fill", d => {
                 const p = d.properties;
-                const candidates = Object.values(p).map(v => String(v));
-                if(d.id) candidates.push(String(d.id)); 
-                if(d.id && ID_MAP[d.id]) candidates.push(ID_MAP[d.id]);
-                const matchKey = Object.keys(prefData).find(key => candidates.some(val => val.includes(key) || key.includes(val)));
-                return matchKey ? getColor(prefData[matchKey].length) : "var(--pref-none)";
-            })
-            .each(function(d) {
-                const p = d.properties;
-                const candidates = Object.values(p).map(v => String(v));
-                if(d.id) candidates.push(String(d.id)); 
-                if(d.id && ID_MAP[d.id]) candidates.push(ID_MAP[d.id]);
-
-                const matchKey = Object.keys(prefData).find(key => candidates.some(val => val.includes(key) || key.includes(val)));
-
+                const candidates = [p.nam_ja, p.name, p.nam, ID_MAP[d.id], String(d.id)].map(v => String(v));
+                const matchKey = Object.keys(prefData).find(key => candidates.some(val => val && (val.includes(key) || key.includes(val))));
                 if(matchKey) {
-                    d3.select(this).classed("active-pref", true);
                     d.carList = prefData[matchKey];
                     d.displayName = matchKey;
+                    return getColor(d.carList.length);
                 }
-                d.dispName = (p.nam_ja || p.name || p.nam || (d.id ? ID_MAP[d.id] : "Unknown"));
+                return "var(--pref-none)";
             })
             .on("click", function(event, d) {
                 if(d.carList) {
@@ -293,12 +269,11 @@
                 }
             })
             .on("mouseover", function(event, d) {
+                const name = d.displayName || d.properties.nam_ja || d.properties.name || ID_MAP[d.id] || "Unknown";
                 panel.style.opacity = 1;
-                panel.innerText = d.dispName + (d.carList ? ` (${d.carList.length}台)` : "");
+                panel.innerText = name + (d.carList ? ` : ${d.carList.length}台` : "");
             })
-            .on("mouseout", function() {
-                panel.style.opacity = 0;
-            });
+            .on("mouseout", function() { panel.style.opacity = 0; });
 
         svg.append("g")
             .selectAll("text")
@@ -310,10 +285,8 @@
                 const centroid = path.centroid(d);
                 if (isNaN(centroid[0])) return "translate(-999,-999)";
                 let x = centroid[0], y = centroid[1];
-                if (d.dispName.includes("東京")) { y -= 26; x -= 5; }
-                if (d.dispName.includes("長崎")) x += 5;
-                if (d.dispName.includes("鹿児島")) y -= 10;
-                if (d.dispName.includes("兵庫")) y -= 5;
+                const name = d.displayName || d.properties.nam_ja || d.properties.name || "";
+                if (name.includes("東京")) { y -= 24; x -= 4; }
                 return `translate(${x},${y})`;
             })
             .text(d => (d.carList && d.carList.length > 0) ? d.carList.length : "");
@@ -322,18 +295,17 @@
     function showGarage(name, cars) {
         const area = document.getElementById('garage-area');
         const list = document.getElementById('garage-list');
-        document.getElementById('area-title').innerText = `${name} (${cars.length}台)`;
+        document.getElementById('area-title').innerText = `${name} / ${cars.length}台`;
         area.style.display = 'block';
         list.innerHTML = '';
         cars.forEach(car => {
-            const imgUrl = car.PhotoMain || 'https://placehold.co/100x100?text=No+Img';
             const item = document.createElement('div');
             item.className = 'garage-item';
-            item.innerHTML = `<img src="${imgUrl}" class="garage-icon-lg" loading="lazy"><div class="garage-name">${car.HandleName || "No Name"}</div>`;
-            if(car.DocumentID) { item.onclick = () => window.location.href = `detail.html?doc=${car.DocumentID}`; }
+            item.innerHTML = `<img src="${car.PhotoMain || 'https://placehold.co/100x100?text=No+Img'}" class="garage-icon-lg" loading="lazy"><div class="garage-name">${car.HandleName || "---"}</div>`;
+            item.onclick = () => window.location.href = `detail.html?doc=${car.DocumentID}`;
             list.appendChild(item);
         });
-        setTimeout(() => { area.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
+        setTimeout(() => { area.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
     }
 
     function closeGarage() { document.getElementById('garage-area').style.display = 'none'; }
