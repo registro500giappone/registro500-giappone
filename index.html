@@ -36,7 +36,12 @@
   <link rel="manifest" href="manifest.json">
   
   <script src="config.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // Supabaseクライアントの初期化
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+  
   <style>
     /* ========== ベース設定 ========== */
     :root {
@@ -288,22 +293,35 @@
       checkNewsBadge();
     }
 
-    async function fetchCars() {
-      try {
-        const res = await fetch(API_URL + '?mode=index');
-        const json = await res.json();
-        if (json.success && json.data) {
-          if (JSON.stringify(json.data) !== localStorage.getItem(CACHE_KEY)) {
-            carsData = json.data;
-            localStorage.setItem(CACHE_KEY, JSON.stringify(json.data));
-            renderCars(document.getElementById('sortSelect').value);
-            updateCarCount();
-          }
-          document.getElementById('loading').style.display = 'none';
-        }
-      } catch (e) { console.error(e); }
-    }
+async function fetchCars() {
+    try {
+      // Supabaseからデータを取得
+      const { data, error } = await supabaseClient
+        .from('cars')
+        .select(`
+          PhotoMain:photo_main,
+          Model_DisplayC:model_display_c,
+          Year:year,
+          Prefecture:prefecture,
+          HandleName:handle_name,
+          DocumentID:document_id,
+          updatedAt:updated_at
+        `);
 
+      if (error) throw error;
+
+      if (data) {
+        carsData = data;
+        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+        renderCars(document.getElementById('sortSelect').value);
+        updateCarCount();
+      }
+      document.getElementById('loading').style.display = 'none';
+    } catch (e) {
+      console.error("Supabase読込エラー:", e);
+      document.getElementById('loading').innerText = "エラー: データの取得に失敗しました。";
+    }
+  }
     async function checkNewsBadge() {
       try {
         const res = await fetch(API_URL + '?mode=news');
