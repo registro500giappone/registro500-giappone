@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>お知らせ・更新履歴 - Registro500 Giappone</title>
   <script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
+  
   <style>
     :root { --rg-bg: #f4f6f8; --rg-text: #111827; --rg-accent: #2856a8; --rg-surface: #ffffff; }
     body { font-family: system-ui, -apple-system, sans-serif; background: var(--rg-bg); color: var(--rg-text); margin: 0; padding: 20px; line-height: 1.6; }
@@ -47,32 +50,32 @@
       });
     }
 
-    async function fetchNews() {
+async function fetchNews() {
       const listEl = document.getElementById('newsList');
       try {
-        const res = await fetch(API_URL + '?mode=news&t=' + new Date().getTime());
-        const json = await res.json();
+        const { data, error } = await supabaseClient
+          .from('news')
+          .select('Date:date, Title:title, Content:content')
+          .order('date', { ascending: false });
+
+        if (error) throw error;
         
-        if (!json.success || !json.data || json.data.length === 0) {
+        if (!data || data.length === 0) {
           listEl.innerHTML = '<div class="loading">お知らせはありません。</div>';
           return;
         }
 
-        const sortedData = json.data.sort((a, b) => b.Date.localeCompare(a.Date));
         listEl.innerHTML = '';
         const now = new Date();
 
-        sortedData.forEach(item => {
+        data.forEach(item => {
           const card = document.createElement('article');
           card.className = 'news-card';
+          // 日付のドットをスラッシュに変換（既存ロジック維持）
           const postDate = new Date(item.Date.replace(/\./g, '/'));
           const diffDays = (now - postDate) / (1000 * 60 * 60 * 24);
           const badgeHtml = diffDays < 7 ? '<span class="badge-new">NEW</span>' : '';
-
-          // 1. まずHTMLとして改行タグなどを処理できるようにし、その中でURLをリンク化する
-          // スプレッドシート内の <br> を活かしつつリンク化
-          let content = item.Content;
-          const linkedContent = linkify(content);
+          const linkedContent = linkify(item.Content);
 
           card.innerHTML = `
             <span class="news-date">${item.Date}</span>
@@ -86,6 +89,7 @@
         console.error(e);
       }
     }
+    
     fetchNews();
   </script>
 </body>
