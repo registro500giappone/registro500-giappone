@@ -15,10 +15,11 @@
   <title>イベント情報 | Registro500 Giappone</title>
   
   <script src="config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-</script>
+  <!-- Supabase Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  </script>
   
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
@@ -185,7 +186,7 @@
       Registro500では、オーナー同士が繋がれる機会を増やすため、皆様からのイベント情報の投稿を幅広く募集しています。
     </div>
     <ul class="guide-list">
-      <li>クラシックFIAT 500対象のイベント</li>
+      <li>クラシックFIAT 500対象 of イベント</li>
       <li>オーナー発信の小規模オフ会・ミーティング</li>
     </ul>
     <div class="guide-text">
@@ -296,7 +297,7 @@
 
   if (!firebase.apps.length) firebase.initializeApp(myFirebaseConfig);
 
-  const CACHE_KEY_EVENTS = 'registro500_event_data_v2';
+  const CACHE_KEY_EVENTS = 'registro500_event_data_v3';
   let currentUser = null;
   let myCarId = null; 
   let allEventsData = []; 
@@ -348,18 +349,19 @@
 
   async function checkMyCar(user) {
     try {
-      const token = await user.getIdToken();
-      const res = await fetch(`${API_URL}?mode=mycars&idToken=${token}`);
-      const json = await res.json();
-      if(json.success && json.data.length > 0) myCarId = json.data[0].DocumentID;
+      const { data: cars, error } = await supabaseClient
+        .from('cars')
+        .select('document_id')
+        .eq('owner_email', user.email.toLowerCase());
+
+      if(cars && cars.length > 0) myCarId = cars[0].document_id;
       else myCarId = "ADMIN";
       renderEvents(); 
     } catch(e) {}
   }
 
-async function fetchEvents() {
+  async function fetchEvents() {
     try {
-      // Supabaseからイベントと参加者情報をまとめて取得
       const { data, error } = await supabaseClient
         .from('events')
         .select(`
@@ -389,8 +391,10 @@ async function fetchEvents() {
       }
     } catch(e) {
       console.error("イベント取得エラー:", e);
+      document.getElementById('loading').innerText = "データの取得に失敗しました。";
     }
   }
+
   function renderEvents() {
     const today = new Date(); today.setHours(0,0,0,0);
     const futureEl = document.getElementById('futureList');
@@ -427,7 +431,6 @@ async function fetchEvents() {
     const div = document.createElement('div');
     div.className = 'event-card' + (isPast ? ' past' : '');
 
-    // 有効な参加者（IDと名前が空でない）のみ抽出
     const participants = (ev.Participants || []).filter(p => p.OwnerID && p.HandleName && p.OwnerID !== 'undefined');
     const isJoined = participants.some(p => p.OwnerID === myCarId);
     
@@ -437,7 +440,8 @@ async function fetchEvents() {
     }).join('');
 
     const w = ['日','月','火','水','木','金','土'][dateObj.getDay()];
-    const hasTime = ev.EventDate.includes(' ') || ev.EventDate.includes('T'); 
+    const dateStr = String(ev.EventDate || '');
+    const hasTime = dateStr.includes(' ') || dateStr.includes('T'); 
     let timeStr = hasTime ? ` ${String(dateObj.getHours()).padStart(2,'0')}:${String(dateObj.getMinutes()).padStart(2,'0')}〜` : "";
     const dateDisplay = `${dateObj.getFullYear()}/${dateObj.getMonth()+1}/${dateObj.getDate()} (${w})${timeStr}`;
 
@@ -478,7 +482,10 @@ async function fetchEvents() {
     const d = new Date(ev.EventDate);
     form.inputDate.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     form.inputDate.dispatchEvent(new Event('change'));
-    if(ev.EventDate.includes(' ') || ev.EventDate.includes('T')) form.inputTime.value = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    
+    const dateStr = String(ev.EventDate || '');
+    if(dateStr.includes(' ') || dateStr.includes('T')) form.inputTime.value = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    
     form.Location.value = ev.Location;
     form.Fee.value = ev.Fee;
     form.URL.value = ev.URL;
@@ -492,19 +499,27 @@ async function fetchEvents() {
     select.innerHTML = '<option>読み込み中...</option>';
     hideConfirm();
     try {
-      const token = await currentUser.getIdToken();
-      const res = await fetch(`${API_URL}?mode=mycars&idToken=${token}`);
-      const json = await res.json();
+      const { data: cars, error } = await supabaseClient
+        .from('cars')
+        .select('document_id, handle_name, model_select_a')
+        .eq('owner_email', currentUser.email.toLowerCase());
+
+      if (error) throw error;
+
       select.innerHTML = '';
-      if (json.success && json.data.length > 0) {
-        json.data.forEach(car => {
-          const opt = document.createElement('option'); opt.value = car.DocumentID;
-          opt.textContent = `${car.Model} (${car.HandleName})`; select.appendChild(opt);
+      if (cars && cars.length > 0) {
+        cars.forEach(car => {
+          const opt = document.createElement('option'); 
+          opt.value = car.document_id;
+          opt.textContent = `${car.model_select_a} (${car.handle_name})`; select.appendChild(opt);
         });
       } else {
         const opt = document.createElement('option'); opt.value = "ADMIN"; opt.textContent = "管理者として投稿"; select.appendChild(opt);
       }
-    } catch(e) { alert("エラー"); }
+    } catch(e) { 
+      console.error(e);
+      select.innerHTML = '<option value="ADMIN">管理者として投稿</option>';
+    }
   }
 
   function resetForm() { document.getElementById('eventForm').reset(); document.getElementById('eventForm').EventID.value = ""; }
@@ -524,7 +539,7 @@ async function fetchEvents() {
 
   window.hideConfirm = () => { document.getElementById('confirmView').style.display = 'none'; document.getElementById('eventForm').style.display = 'block'; };
 
-window.submitEvent = async () => {
+  window.submitEvent = async () => {
     const btn = document.getElementById('realSubmitBtn');
     btn.disabled = true; btn.innerText = "送信中...";
     try {
@@ -558,8 +573,8 @@ window.submitEvent = async () => {
       btn.disabled = false; btn.innerText = "送信する";
     }
   };
-  
-window.deleteEvent = async (eventId) => {
+
+  window.deleteEvent = async (eventId) => {
     if(!confirm("本当に削除しますか？")) return;
     try {
       const { error } = await supabaseClient.from('events').delete().eq('id', eventId);
@@ -571,12 +586,10 @@ window.deleteEvent = async (eventId) => {
     }
   };
 
-  
-window.toggleJoin = async (eventId) => {
+  window.toggleJoin = async (eventId) => {
     if (!currentUser) return alert("ログインしてください");
     if (!confirm("参加ステータスを変更しますか？")) return;
     try {
-      // 現在の参加状態を確認
       const { data: existing } = await supabaseClient
         .from('event_participants')
         .select('id')
@@ -585,25 +598,21 @@ window.toggleJoin = async (eventId) => {
         .single();
 
       if (existing) {
-        // すでに参加中なら削除（取消）
         await supabaseClient.from('event_participants').delete().eq('id', existing.id);
         alert("参加を取り消しました");
       } else {
-        // 未参加なら追加
         const { data: myCar } = await supabaseClient.from('cars').select('handle_name').eq('document_id', myCarId).single();
         await supabaseClient.from('event_participants').insert([
           { event_id: eventId, car_id: myCarId, handle_name: myCar ? myCar.handle_name : 'オーナー' }
         ]);
         alert("参加表明しました！");
       }
-      fetchEvents(); // リロードせずに再取得
+      fetchEvents();
     } catch(e) {
       alert("通信エラーが発生しました");
     }
   };
 
-...（これまでのプログラム）...
-  
   function esc(s) {
     if(!s) return '';
     return s.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
@@ -611,4 +620,3 @@ window.toggleJoin = async (eventId) => {
 </script>
 </body>
 </html>
-
