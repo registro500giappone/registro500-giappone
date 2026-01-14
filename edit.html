@@ -18,6 +18,12 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
   <script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+  
 
   <style>
     html { font-size: 16px; }
@@ -320,20 +326,23 @@
       };
       document.getElementById('logoutBtn').onclick = () => auth.signOut().then(() => window.location.reload());
 
-      async function detectUserCars() {
+async function detectUserCars() {
         try {
-          const res = await fetch(`${API_URL}?mode=mycars&idToken=${currentIdToken}`);
-          if (!res.ok) throw new Error("GAS通信エラー");
-          const json = await res.json();
-          if (!json.success) throw new Error(json.error || "GAS内部エラー");
+          // Supabaseから自分の所有車両を検索
+          const { data: cars, error } = await supabaseClient
+            .from('cars')
+            .select('document_id, handle_name, model_select_a')
+            .eq('owner_email', auth.currentUser.email.toLowerCase());
+
+          if (error) throw error;
           
-          const cars = json.data || [];
-          if (cars.length === 0) {
+          if (!cars || cars.length === 0) {
             showBlankForm(); 
           } else if (cars.length === 1) {
-            // ★【目論見通り】既存オーナーなら詳細ページへ転送
-            window.location.href = `detail.html?doc=${cars[0].DocumentID}`;
+            // 1台ならその車の詳細ページへ
+            window.location.href = `detail.html?doc=${cars[0].document_id}`;
           } else {
+            // 複数台なら選択画面を表示
             showCarSelection(cars); 
           }
         } catch (e) {
@@ -348,25 +357,105 @@
         cars.forEach(car => {
           const div = document.createElement('div');
           div.className = 'car-select-item';
+          div.innerHTML = `<div class="car-select-info">🚗 ${car.model_select_a} (${car.handle_name}様)</div><div style="color:var(--rg-accent)">詳細を表示 〉</div>`;
+          div.onclick = () => window.location.href = `detail.html?doc=${car.document_id}`;
+          myCarList.appendChild(div);
+        });
+      }
+      
+      function showCarSelection(cars) {
+        pageLoading.style.display = 'none'; carSelectionArea.style.display = 'block';
+        myCarList.innerHTML = '';
+        cars.forEach(car => {
+          const div = document.createElement('div');
+          div.className = 'car-select-item';
           div.innerHTML = `<div class="car-select-info">🚗 ${car.Model} (${car.HandleName}様)</div><div style="color:var(--rg-accent)">詳細を表示 〉</div>`;
           div.onclick = () => window.location.href = `detail.html?doc=${car.DocumentID}`;
           myCarList.appendChild(div);
         });
       }
 
-      async function loadSpecificCar(docId) {
+async function loadSpecificCar(docId) {
         carSelectionArea.style.display = 'none'; pageLoading.style.display = 'block';
         try {
-          const res = await fetch(`${API_URL}?mode=edit_init&doc=${docId}`);
-          const json = await res.json();
-          if (json.success) {
-            fillForm(json.data);
+          const { data, error } = await supabaseClient
+            .from('cars')
+            .select('*')
+            .eq('document_id', docId)
+            .single();
+
+          if (error) throw error;
+
+          if (data) {
+            // Supabaseの小文字キーをフォームが期待するCamelCaseに変換して流し込む
+            const formData = {
+              DocumentID: data.document_id,
+              HandleName: data.handle_name,
+              Prefecture: data.prefecture,
+              ModelSelectA: data.model_select_a,
+              ModelTextA: data.model_text_a,
+              ModelSelectB: data.model_select_b,
+              ModelTextB: data.model_text_b,
+              Year: data.year,
+              BodyColor: data.body_color,
+              Length_cm: data.length_cm,
+              Capacity: data.capacity,
+              Steering: data.steering,
+              EngineCC: data.engine_cc,
+              EngineTypeSelect: data.engine_type_select,
+              EngineTypeText: data.engine_type_text,
+              IgnitionType: data.ignition_type,
+              IgnitionSubType: data.ignition_sub_type,
+              DistributionType: data.distribution_type,
+              CoilName: data.coil_name,
+              PlugName: data.plug_name,
+              FuelInjection: data.fuel_injection,
+              CarburetorName: data.carburetor_name,
+              FuelPump: data.fuel_pump,
+              ElectricPumpName: data.electric_pump_name,
+              Generator: data.generator,
+              OilCooler: data.oil_cooler,
+              Transmission: data.transmission,
+              Synchro: data.synchro,
+              Joint: data.joint,
+              Wheel: data.wheel,
+              RimDiameter_in: data.rim_diameter_in,
+              RimWidth_in: data.rim_width_in,
+              TireType: data.tire_type,
+              TireSize: data.tire_size,
+              TireBrandName: data.tire_brand_name,
+              EngineOil: data.engine_oil,
+              EngineOilInterval: data.engine_oil_interval,
+              TransmissionOil: data.transmission_oil,
+              TransmissionOilInterval: data.transmission_oil_interval,
+              Battery: data.battery,
+              Highlights: data.highlights,
+              X_Twitter: data.x_twitter,
+              Instagram: data.instagram,
+              YouTube: data.youtube,
+              Minkara: data.minkara,
+              Facebook: data.facebook,
+              Threads: data.threads,
+              BlogOrWebsite: data.blog_or_website,
+              PhotoMain: data.photo_main,
+              PhotoFront: data.photo_front,
+              PhotoSide: data.photo_side,
+              PhotoRear: data.photo_rear,
+              PhotoEngine: data.photo_engine,
+              PhotoInterior: data.photo_interior,
+              PhotoSteeringCluster: data.photo_steering_cluster,
+              AcceptInquiry: data.accept_inquiry
+            };
+            fillForm(formData);
             pageLoading.style.display = 'none'; formContent.style.display = 'block';
             submitBtn.disabled = false; submitBtn.textContent = "変更内容を保存する";
           }
-        } catch (e) { alert("読込エラー"); }
+        } catch (e) { 
+            console.error(e);
+            alert("データの読込に失敗しました"); 
+        }
       }
-
+      
       window.showBlankForm = function() {
         carSelectionArea.style.display = 'none'; pageLoading.style.display = 'none'; formContent.style.display = 'block';
         submitBtn.disabled = false; submitBtn.textContent = "新しく登録する";
@@ -428,20 +517,97 @@
         } catch (err) { alert("アップロード失敗"); }
       };
 
-      submitBtn.onclick = async () => {
-        const fd = new FormData(carForm), data = {}; fd.forEach((v, k) => data[k] = v);
-        if (!data.HandleName || !data.PhotoMain) { alert("必須項目(名前・写真)を入力してください"); return; }
-        submitBtn.disabled = true; submitBtn.textContent = "保存中...";
-        try {
-          data.idToken = await auth.currentUser.getIdToken(true);
-          const action = data.DocumentID ? 'update' : 'save';
-          const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: action, formData: data }) });
-          const resJson = await res.json();
-          if (resJson.success) { alert("更新しました！"); window.location.href = "index.html"; }
-          else throw new Error(resJson.error);
-        } catch (e) { alert("エラー: " + e.message); submitBtn.disabled = false; submitBtn.textContent = "再試行"; }
-      };
+submitBtn.onclick = async () => {
+        const fd = new FormData(carForm);
+        const rawData = {}; 
+        fd.forEach((v, k) => rawData[k] = v);
 
+        if (!rawData.HandleName || !rawData.PhotoMain) { 
+          alert("必須項目(名前・写真)を入力してください"); return; 
+        }
+
+        submitBtn.disabled = true; submitBtn.textContent = "保存中...";
+
+        try {
+          const docId = rawData.DocumentID || ('DOC_' + new Date().getTime());
+          
+          // フォームの CamelCase を Supabase の snake_case に変換して保存
+          const supabaseData = {
+            document_id: docId,
+            owner_email: auth.currentUser.email.toLowerCase(),
+            handle_name: rawData.HandleName,
+            prefecture: rawData.Prefecture,
+            model_select_a: rawData.ModelSelectA,
+            model_text_a: rawData.ModelTextA,
+            model_select_b: rawData.ModelSelectB,
+            model_text_b: rawData.ModelTextB,
+            year: rawData.Year,
+            body_color: rawData.BodyColor,
+            length_cm: rawData.Length_cm,
+            capacity: rawData.Capacity,
+            steering: rawData.Steering,
+            engine_cc: rawData.EngineCC,
+            engine_type_select: rawData.EngineTypeSelect,
+            engine_type_text: rawData.EngineTypeText,
+            ignition_type: rawData.IgnitionType,
+            ignition_sub_type: rawData.IgnitionSubType,
+            distribution_type: rawData.DistributionType,
+            coil_name: rawData.CoilName,
+            plug_name: rawData.PlugName,
+            fuel_injection: rawData.FuelInjection,
+            carburetor_name: rawData.CarburetorName,
+            fuel_pump: rawData.FuelPump,
+            electric_pump_name: rawData.ElectricPumpName,
+            generator: rawData.Generator,
+            oil_cooler: rawData.OilCooler,
+            transmission: rawData.Transmission,
+            synchro: rawData.Synchro,
+            joint: rawData.Joint,
+            wheel: rawData.Wheel,
+            rim_diameter_in: rawData.RimDiameter_in,
+            rim_width_in: rawData.RimWidth_in,
+            tire_type: rawData.TireType,
+            tire_size: rawData.TireSize,
+            tire_brand_name: rawData.TireBrandName,
+            engine_oil: rawData.EngineOil,
+            engine_oil_interval: rawData.EngineOilInterval,
+            transmission_oil: rawData.TransmissionOil,
+            transmission_oil_interval: rawData.TransmissionOilInterval,
+            battery: rawData.Battery,
+            highlights: rawData.Highlights,
+            x_twitter: rawData.X_Twitter,
+            instagram: rawData.Instagram,
+            youtube: rawData.YouTube,
+            minkara: rawData.Minkara,
+            facebook: rawData.Facebook,
+            threads: rawData.Threads,
+            blog_or_website: rawData.BlogOrWebsite,
+            photo_main: rawData.PhotoMain,
+            photo_front: rawData.PhotoFront,
+            photo_side: rawData.PhotoSide,
+            photo_rear: rawData.PhotoRear,
+            photo_engine: rawData.PhotoEngine,
+            photo_interior: rawData.PhotoInterior,
+            photo_steering_cluster: rawData.PhotoSteeringCluster,
+            accept_inquiry: rawData.AcceptInquiry === "on" || rawData.AcceptInquiry === "true",
+            updated_at: new Date()
+          };
+
+          const { error } = await supabaseClient
+            .from('cars')
+            .upsert(supabaseData, { onConflict: 'document_id' });
+
+          if (error) throw error;
+
+          alert("マイガレージを更新しました！"); 
+          window.location.href = "index.html"; 
+        } catch (e) { 
+          console.error(e);
+          alert("保存エラー: " + e.message); 
+          submitBtn.disabled = false; submitBtn.textContent = "再試行"; 
+        }
+      };
+      
       ['ModelSelectA', 'ModelSelectB', 'EngineTypeSelect'].forEach(id => {
         const el = document.getElementById(id);
         if(el) {
