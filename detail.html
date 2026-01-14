@@ -400,25 +400,43 @@ async function fetchDetail() {
         const { data, error } = await supabaseClient
           .from('cars')
           .select(`
-            *,
-            HandleName:handle_name,
-            Prefecture:prefecture,
-            PhotoMain:photo_main,
-            Model_DisplayC:model_display_c,
-            Year:year,
             DocumentID:document_id,
             OwnerEmail:owner_email,
-            AcceptInquiry:accept_inquiry,
+            HandleName:handle_name,
+            Prefecture:prefecture,
+            Year:year,
+            BodyColor:body_color,
+            Length_cm:length_cm,
+            Capacity:capacity,
+            Steering:steering,
+            EngineCC:engine_cc,
             Engine_Display:engine_display,
+            IgnitionType:ignition_type,
             IgnitionSubType:ignition_sub_type,
-            ElectricPumpName:electric_pump_name,
+            FuelInjection:fuel_injection,
             CarburetorName:carburetor_name,
-            TireBrandName:tire_brand_name,
+            FuelPump:fuel_pump,
+            ElectricPumpName:electric_pump_name,
+            Generator:generator,
+            OilCooler:oil_cooler,
+            CoilName:coil_name,
+            PlugName:plug_name,
+            DistributionType:distribution_type,
+            Transmission:transmission,
+            Synchro:synchro,
+            Joint:joint,
+            Wheel:wheel,
             RimDiameter_in:rim_diameter_in,
             RimWidth_in:rim_width_in,
+            TireType:tire_type,
+            TireSize:tire_size,
+            TireBrandName:tire_brand_name,
+            EngineOil:engine_oil,
             EngineOilInterval:engine_oil_interval,
             TransmissionOil:transmission_oil,
             TransmissionOilInterval:transmission_oil_interval,
+            Battery:battery,
+            Highlights:highlights,
             X_Twitter:x_twitter,
             Instagram:instagram,
             YouTube:youtube,
@@ -426,7 +444,15 @@ async function fetchDetail() {
             Facebook:facebook,
             Threads:threads,
             BlogOrWebsite:blog_or_website,
-            Highlights:highlights
+            PhotoMain:photo_main,
+            PhotoFront:photo_front,
+            PhotoSide:photo_side,
+            PhotoRear:photo_rear,
+            PhotoEngine:photo_engine,
+            PhotoInterior:photo_interior,
+            PhotoSteeringCluster:photo_steering_cluster,
+            AcceptInquiry:accept_inquiry,
+            Model_DisplayC:model_display_c
           `)
           .eq('document_id', docId)
           .single();
@@ -435,13 +461,14 @@ async function fetchDetail() {
 
         if (data) {
           currentCarData = data;
-          renderDetail(data);
+          renderDetail(data); // これで car.BodyColor などが正しく認識されます
         }
       } catch (e) {
         console.error("Supabaseエラー:", e);
         document.getElementById('loading').textContent = 'データの取得に失敗しました';
       }
     }
+    
     function renderDetail(car) {
       document.getElementById('loading').style.display = 'none';
       document.getElementById('content').style.display = 'block';
