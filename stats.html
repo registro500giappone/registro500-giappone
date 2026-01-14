@@ -7,6 +7,12 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.1.0"></script>
   <script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+  
   <style>
     :root { --accent: #2856a8; --bg: #f4f4f7; --card: #fff; --radius: 12px; }
     body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: #333; }
@@ -106,18 +112,42 @@
     });
   }
 
-  async function fetchData() {
+async function fetchData() {
     try {
-      const res = await fetch(API_URL + '?mode=index');
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
+      // グラフに必要な項目をすべて取得（snake_caseをCamelCaseに変換して取得）
+      const { data, error } = await supabaseClient
+        .from('cars')
+        .select(`
+          Model_DisplayC:model_display_c,
+          BodyColor:body_color,
+          Steering:steering,
+          EngineCC:engine_cc,
+          IgnitionType:ignition_type,
+          Generator:generator,
+          Transmission:transmission,
+          Synchro:synchro,
+          EngineOil:engine_oil,
+          EngineOilInterval:engine_oil_interval,
+          TransmissionOil:transmission_oil,
+          TransmissionOilInterval:transmission_oil_interval,
+          TireBrandName:tire_brand_name,
+          TireSize:tire_size,
+          Wheel:wheel,
+          RimDiameter_in:rim_diameter_in,
+          RimWidth_in:rim_width_in
+        `);
+
+      if (error) throw error;
+
       document.getElementById('loading').style.display = 'none';
-      renderAllCharts(json.data);
+      if (data) {
+        renderAllCharts(data);
+      }
     } catch (err) {
+      console.error(err);
       document.getElementById('loading').innerText = "エラー: データの取得に失敗しました。";
     }
   }
-
   function renderAllCharts(cars) {
     document.getElementById('totalCount').innerText = cars.length;
     Object.values(chartInstances).forEach(ins => ins.destroy());
