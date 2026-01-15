@@ -26,6 +26,7 @@
     }
     body { margin: 0; font-family: system-ui, -apple-system, sans-serif; line-height: 1.7; color: var(--rg-text); background: var(--rg-bg); padding-bottom: 96px; padding-top: 85px; }
 /* --- ヘッダーバーのレイアウト修正 --- */
+/* --- ヘッダーバー：Flex構造で三分割 --- */
 .rg-header-bar {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -33,30 +34,77 @@
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
   box-shadow: 0 1px 5px rgba(0,0,0,0.05);
-  height: 75px;
-  display: grid;
-  /* 左右を均等に広げてロゴを中央固定、かつ重なりを防ぐ */
-  grid-template-columns: 1fr auto 1fr; 
+  height: 70px;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding: 0 1rem;
+  padding: 0 15px;
 }
 
-/* --- 戻るリンクの調整 --- */
+/* 左：戻るリンク（頭揃え対応） */
+.rg-back-link {
+  flex: 1;
+  display: flex;
+  justify-content: flex-start;
+}
 .rg-back-link a {
   text-decoration: none;
   color: var(--rg-accent);
   font-weight: 600;
   font-size: 0.85rem;
   line-height: 1.2;
+  display: flex; /* 矢印と文字を横並びに */
+  gap: 4px;
+}
+
+/* 中央：ロゴ（スマホで重ならないよう縮小） */
+.rg-header-logo {
+  flex: 0;
+}
+.rg-header-logo img {
+  height: 30px;
+  width: auto;
+  mix-blend-mode: multiply;
+  display: block;
+}
+
+/* 右：マイメニュー（右端に固定） */
+.rg-header-right {
+  flex: 1;
   display: flex;
-  align-items: flex-start; /* 矢印を1行目の高さに合わせる */
+  justify-content: flex-end;
+}
+.rg-menu-btn {
+  background: #fff;
+  color: var(--rg-accent);
+  border: 1.5px solid var(--rg-accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
 }
 
-/* PCでは改行しない */
-.rg-back-link br {
-  display: none;
+/* ギャラリー写真のサイズ復活 */
+.rg-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); /* 90pxから160pxへ拡大 */
+  gap: 12px;
 }
 
+/* --- スマホ専用微調整 --- */
+@media (max-width: 768px) {
+  .rg-header-bar { padding: 0 10px; }
+  .rg-header-logo img { height: 24px; } /* ロゴをさらに小さくして余白確保 */
+  .rg-menu-btn { padding: 5px 10px; font-size: 0.75rem; }
+  .rg-back-link a { font-size: 0.8rem; }
+}
+
+/* PCでは「に戻る」を改行しない */
+@media (min-width: 769px) {
+  .rg-back-link br { display: none; }
+}
+    
 /* --- ロゴのサイズ制限（スマホでの重なり防止） --- */
 .rg-header-logo img {
   height: 32px;
@@ -106,17 +154,20 @@
 </head>
 <body>
 <header class="rg-header-bar">
+     <!-- 左：戻るリンク -->
      <div class="rg-back-link">
        <a href="index.html">
-         <span style="margin-right: 5px;">←</span>
-         <span>ガレージ<br>に戻る</span>
+         <div>←</div>
+         <div>ガレージ<br>に戻る</div>
        </a>
      </div>
 
+     <!-- 中央：ロゴ -->
      <div class="rg-header-logo">
        <img src="logo_horizontal.png" alt="Registro500">
      </div>
 
+     <!-- 右：マイメニュー -->
      <div class="rg-header-right">
         <div id="ownerMenuArea" class="dropdown" style="display:none;">
           <button class="rg-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
