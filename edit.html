@@ -7,101 +7,364 @@
   <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-27SHHC4JYH');</script>
   <title>マイガレージ - Registro500 Giappone</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
+
   <style>
     html { font-size: 16px; }
     @media (min-width: 1025px) { html { font-size: 18px; } }
-    :root { --rg-surface: #ffffff; --rg-bg: #f4f6f8; --rg-border: #e5e7eb; --rg-text: #111827; --rg-muted: #6b7280; --rg-accent: #2856a8; --rg-primary-red: #e11d48; --rg-radius-card: 1rem; --rg-accent-soft: #e6efff; --rg-accent-border: #c2d4ff; }
-    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; line-height: 1.7; color: var(--rg-text); background: var(--rg-bg); padding-top: 80px; padding-bottom: 100px; }
-    .rg-header-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(244, 246, 248, 0.95); backdrop-filter: blur(8px); box-shadow: 0 1px 5px rgba(0,0,0,0.05); height: 75px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 1rem; }
-    .rg-back-link a { text-decoration: none; color: var(--rg-accent); font-weight: 600; font-size: 0.85rem; line-height: 1.3; display: inline-block; }
-    .rg-header-logo img { height: 32px; width: auto; mix-blend-mode: multiply; display: block; }
+    :root {
+      --rg-surface: #ffffff; --rg-bg: #f4f6f8; --rg-border: #e5e7eb;
+      --rg-text: #111827; --rg-muted: #6b7280; --rg-accent: #2856a8;
+      --rg-primary-red: #e11d48; --rg-radius-card: 1rem;
+      --rg-accent-soft: #e6efff; --rg-accent-border: #c2d4ff;
+    }
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; line-height: 1.7; color: var(--rg-text); background: var(--rg-bg); padding-top: 85px; padding-bottom: 120px; }
+    
+    /* ヘッダー完全版レイアウト */
+    .rg-header-bar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px);
+      box-shadow: 0 1px 5px rgba(0,0,0,0.05); height: 75px;
+      display: flex; justify-content: space-between; align-items: center; padding: 0 15px;
+    }
+    .rg-back-link { flex: 1; display: flex; justify-content: flex-start; }
+    .rg-back-link a { text-decoration: none; color: var(--rg-accent); font-weight: 600; font-size: 0.85rem; line-height: 1.2; display: flex; gap: 8px; }
+    /* インデント調整 */
+    .back-text { display: inline-block; }
+    @media (min-width: 769px) { .back-br { display: none; } }
+
+    .rg-header-logo { flex: 0; text-align: center; }
+    .rg-header-logo img { height: 28px; width: auto; mix-blend-mode: multiply; display: block; }
+    @media (max-width: 480px) { .rg-header-logo img { height: 22px; max-width: 100px; } }
+
+    .rg-header-right { flex: 1; }
+
     .page { max-width: 72rem; margin: 0 auto; padding: 0 12px; }
     .form-card, .intro-card, .selection-card { background: var(--rg-surface); border-radius: var(--rg-radius-card); border: 1px solid var(--rg-border); padding: 1.5rem; margin-bottom: 1rem; }
     .page-title { font-size: 1.4rem; text-align: center; margin: 0 0 0.6rem; }
     .rg-section-title { display: block; margin: 1.5rem 0 1rem; font-weight: 700; font-size: 1.15rem; padding: 0.5rem 1rem; background: #eff6ff; border-left: 6px solid var(--rg-accent); border-bottom: 1px solid var(--rg-border); border-radius: 4px; color: var(--rg-accent); }
+    
     label { display: block; font-size: 0.9rem; font-weight: 600; margin-top: 0.8rem; margin-bottom: 0.3rem; }
     .badge-required { background: var(--rg-primary-red); color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 4px; font-weight: normal; }
+    
     input[type="text"], input[type="number"], textarea, select { width: 100%; padding: 0.7rem; border-radius: 0.5rem; border: 1px solid #d1d5db; font-size: 1rem; margin-bottom: 0.5rem; box-sizing: border-box; }
+    textarea { min-height: 6em; resize: vertical; }
+    
     .radio-group { display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.95rem; margin-bottom: 0.5rem; }
+    .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; }
+    
     .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
-    .photo-upload-box { border: 2px dashed #ccc; border-radius: 8px; padding: 8px; text-align: center; background: #fafafa; cursor: pointer; min-height: 160px; display: flex; flex-direction: column; align-items: center; }
-    .preview-area { width: 100%; aspect-ratio: 1/1; background: #eee; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    .photo-upload-box { border: 2px dashed #ccc; border-radius: 8px; padding: 8px; text-align: center; background: #fafafa; cursor: pointer; min-height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .preview-area { width: 100%; aspect-ratio: 1/1; background: #eee; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; margin-bottom: 5px; }
     .preview-img { width: 100%; height: 100%; object-fit: cover; display: none; }
-    .submit-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 1rem; background: rgba(255,255,255,0.95); border-top: 1px solid #ccc; text-align: center; z-index: 100; display: flex; gap: 10px; justify-content: center; }
+    .photo-label { font-size: 0.75rem; font-weight: bold; margin-bottom: 4px; }
+
+    .submit-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 1rem; background: rgba(255,255,255,0.98); border-top: 1px solid #ccc; text-align: center; z-index: 100; display: flex; gap: 12px; justify-content: center; }
     #submitButton { flex: 2; max-width: 400px; padding: 0.8rem; border-radius: 999px; border: none; background: var(--rg-primary-red); color: white; font-weight: bold; font-size: 1rem; cursor: pointer; }
-    #cancelButton { flex: 1; max-width: 200px; padding: 0.8rem; border-radius: 999px; border: 1.5px solid #ccc; background: #fff; color: #666; font-weight: bold; font-size: 1rem; cursor: pointer; }
+    #cancelButton { flex: 1; max-width: 150px; padding: 0.8rem; border-radius: 999px; border: 1.5px solid #ccc; background: #fff; color: #666; font-weight: bold; font-size: 1rem; cursor: pointer; }
+    
     #loginOverlay { position: fixed; inset: 0; background: rgba(244, 246, 248, 0.98); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     #loginOverlay.hidden { display: none; }
-    .btn-google { background: #4285F4; color: white; border: none; border-radius: 999px; padding: 12px 24px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 1rem; }
-    .car-select-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border: 1px solid var(--rg-border); border-radius: 8px; margin-bottom: 10px; cursor: pointer; background: white; }
+    .btn-google { background: #4285F4; color: white; border: none; border-radius: 999px; padding: 12px 24px; font-weight: bold; cursor: pointer; }
+    
+    .car-select-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border: 1px solid var(--rg-border); border-radius: 8px; margin-bottom: 10px; cursor: pointer; background: white; transition: 0.2s; }
+    .car-select-item:hover { background: var(--rg-accent-soft); border-color: var(--rg-accent); }
+    
     #formContent, #carSelectionArea, #pageLoading { display: none; }
-    .risk-note { background: #fff1f2; border: 1px solid #fecdd3; padding: 1rem; border-radius: 8px; font-size: 0.85rem; color: #9f1239; margin-top: 1rem; line-height: 1.5; }
+    .inline-small { display: flex; gap: 1rem; }
+    .inline-small > div { flex: 1; }
+    
+    .risk-note { background: #fff1f2; border: 1px solid #fecdd3; padding: 1rem; border-radius: 8px; font-size: 0.8rem; color: #9f1239; margin-top: 1rem; line-height: 1.5; text-align: left; }
   </style>
 </head>
 <body>
+
   <header class="rg-header-bar">
-    <div class="rg-back-link"><a href="index.html">← ガレージ<br>&nbsp;&nbsp;に戻る</a></div>
+    <div class="rg-back-link">
+      <a href="index.html">
+        <div>←</div>
+        <div class="back-text">ガレージ<br class="back-br">に戻る</div>
+      </a>
+    </div>
     <div class="rg-header-logo"><img src="logo_horizontal.png" alt="Registro500"></div>
-    <div style="flex:1;"></div>
+    <div class="rg-header-right"></div>
   </header>
 
-  <div id="loginOverlay" class="hidden"><div class="login-card" style="background:white; padding:40px; border-radius:20px; text-align:center;"><h2>オーナー認証</h2><p>マイガレージを利用するにはログインが必要です。</p><button class="btn-google" id="googleLoginBtn">Googleでログイン</button></div></div>
+  <div id="loginOverlay" class="hidden">
+    <div style="background:white; padding:40px; border-radius:20px; text-align:center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+      <h2 style="margin-top:0;">オーナー認証</h2>
+      <p>マイガレージを利用するにはログインが必要です。</p>
+      <button class="btn-google" id="googleLoginBtn">Googleでログイン</button>
+    </div>
+  </div>
 
   <div class="page">
-    <section class="intro-card"><h1 class="page-title">マイガレージ</h1><p style="text-align:center; font-size:0.9rem; margin:0;">ログイン中: <span id="userEmailDisplay">確認中...</span><button id="logoutBtn" style="font-size:0.75rem; padding:4px 8px; cursor:pointer; margin-left:10px;">ログアウト</button></p></section>
-    <div id="pageLoading" style="display:block; text-align:center; padding:3rem;">車両情報を確認しています...</div>
-    <section id="carSelectionArea" class="selection-card"><h2 style="font-size:1.1rem; margin-top:0;">管理する車両を選択してください</h2><div id="myCarList"></div><button class="btn-google" style="background:var(--rg-accent);" onclick="showBlankForm()">＋ 新しく車両を登録する</button></section>
+    <section class="intro-card">
+      <h1 class="page-title">マイガレージ</h1>
+      <p style="text-align:center; font-size:0.9rem; margin:0;">
+        ログイン中: <span id="userEmailDisplay">確認中...</span>
+        <button id="logoutBtn" style="font-size:0.7rem; padding:2px 6px; cursor:pointer; margin-left:10px; border-radius:4px; border:1px solid #ccc; background:#fff;">ログアウト</button>
+      </p>
+    </section>
+
+    <div id="pageLoading" style="display:block; text-align:center; padding:3rem; color:#666;">車両情報を確認しています...</div>
+
+    <!-- ポータルエリア -->
+    <section id="carSelectionArea" class="selection-card">
+      <h2 style="font-size:1.1rem; margin-top:0;">管理する車両を選択してください</h2>
+      <div id="myCarList"></div>
+      <button class="btn-google" style="background:var(--rg-accent); width:100%; margin-top:10px;" onclick="showBlankForm()">＋ 新しく車両を登録する</button>
+    </section>
+
+    <!-- メインフォーム：全項目網羅 -->
     <section class="form-card" id="formContent">
       <form id="carForm">
         <input type="hidden" id="DocumentID" name="DocumentID">
+
         <h2 class="rg-section-title">基本情報</h2>
-        <label>ハンドルネーム <span class="badge-required">必須</span></label><input type="text" name="HandleName" required>
-        <label>都道府県 <span class="badge-required">必須</span></label><input type="text" name="Prefecture" placeholder="例：神奈川県" required>
+        <label>ハンドルネーム <span class="badge-required">必須</span></label>
+        <input type="text" name="HandleName" required>
+        
+        <label>都道府県 <span class="badge-required">必須</span></label>
+        <input type="text" name="Prefecture" placeholder="例：神奈川県" required>
+        
         <label>車両モデル <span class="badge-required">必須</span></label>
-        <select name="ModelSelectA" id="ModelSelectA" required><option value="">選択してください</option><option value="Nuova500">Nuova500</option><option value="FIAT ABARTH">FIAT ABARTH</option><option value="その他">その他</option></select>
+        <select name="ModelSelectA" id="ModelSelectA" required>
+          <option value="">選択してください</option>
+          <option value="Nuova500">Nuova500</option>
+          <option value="FIAT ABARTH">FIAT ABARTH</option>
+          <option value="その他">その他</option>
+        </select>
         <div id="ModelSelectAWrapper" style="display:none;"><input type="text" name="ModelTextA" placeholder="車種名を入力"></div>
+
         <label>モデル詳細 <span class="badge-required">必須</span></label>
-        <select name="ModelSelectB" id="ModelSelectB" required><option value="">選択してください</option><option value="F">F</option><option value="L">L</option><option value="R">R</option><option value="D">D</option><option value="Giardiniera">Giardiniera</option><option value="Sport">Sport</option><option value="N Normale">N Normale</option><option value="Prima Serie">Prima Serie</option><option value="595">595</option><option value="595SS">595SS</option><option value="695">695</option><option value="695SS">695SS</option><option value="その他">その他</option></select>
+        <select name="ModelSelectB" id="ModelSelectB" required>
+          <option value="">選択してください</option>
+          <option value="F">F</option><option value="L">L</option><option value="R">R</option>
+          <option value="D">D</option><option value="Giardiniera">Giardiniera</option>
+          <option value="Sport">Sport</option><option value="N Normale">N Normale</option>
+          <option value="Prima Serie">Prima Serie</option><option value="595">595</option>
+          <option value="595SS">595SS</option><option value="695">695</option>
+          <option value="695SS">695SS</option><option value="その他">その他</option>
+        </select>
         <div id="ModelSelectBWrapper" style="display:none;"><input type="text" name="ModelTextB" placeholder="グレード詳細を入力"></div>
-        <div class="inline-small"><div><label>年式 <span class="badge-required">必須</span></label><input type="text" name="Year" placeholder="1970等" required></div><div><label>ボディカラー</label><input type="text" name="BodyColor"></div></div>
-        <div class="inline-small"><div><label>全長(cm)</label><input type="number" name="Length_cm"></div><div><label>乗車定員</label><div class="radio-group"><label><input type="radio" name="Capacity" value="2">2人</label><label><input type="radio" name="Capacity" value="4">4人</label><label><input type="radio" name="Capacity" value="5">5人</label></div></div></div>
-        <label>ハンドル</label><div class="radio-group"><label><input type="radio" name="Steering" value="左">左</label><label><input type="radio" name="Steering" value="右">右</label></div>
+
+        <div class="inline-small">
+          <div><label>年式 <span class="badge-required">必須</span></label><input type="text" name="Year" placeholder="1970等" required></div>
+          <div><label>ボディカラー</label><input type="text" name="BodyColor"></div>
+        </div>
+        
+        <div class="inline-small">
+          <div><label>全長(cm)</label><input type="number" name="Length_cm"></div>
+          <div><label>乗車定員</label>
+            <div class="radio-group">
+              <label><input type="radio" name="Capacity" value="2">2人</label>
+              <label><input type="radio" name="Capacity" value="4">4人</label>
+              <label><input type="radio" name="Capacity" value="5">5人</label>
+            </div>
+          </div>
+        </div>
+        
+        <label>ハンドル</label>
+        <div class="radio-group">
+          <label><input type="radio" name="Steering" value="左">左</label>
+          <label><input type="radio" name="Steering" value="右">右</label>
+        </div>
+
         <h2 class="rg-section-title">エンジン関係</h2>
         <label>排気量(cc)</label><input type="text" name="EngineCC">
-        <label>エンジン形式</label><select name="EngineTypeSelect" id="EngineTypeSelect"><option value="">選択してください</option><option value="110">110</option><option value="110D.000">110D.000</option><option value="110F.000">110F.000</option><option value="126A.000">126A.000</option><option value="その他">その他</option></select>
+        
+        <label>エンジン形式</label>
+        <select name="EngineTypeSelect" id="EngineTypeSelect">
+          <option value="">選択してください</option>
+          <option value="110">110</option><option value="110.004">110.004</option><option value="110D.000">110D.000</option>
+          <option value="110F.000">110F.000</option><option value="110F.000 （ABA205）">110F.000 （ABA205）</option>
+          <option value="110F.000 （ABA206）">110F.000 （ABA206）</option><option value="120">120</option>
+          <option value="126A.000">126A.000</option><option value="126A1.000">126A1.000</option>
+          <option value="126A1.048">126A1.048</option><option value="126A5.000">126A5.000</option>
+          <option value="不明">不明</option><option value="その他">その他</option>
+        </select>
         <div id="EngineTypeSelectWrapper" style="display:none;"><input type="text" name="EngineTypeText" placeholder="型式を入力"></div>
-        <label>点火形式</label><div class="radio-group"><label><input type="radio" name="IgnitionType" value="ポイント">ポイント</label><label><input type="radio" name="IgnitionType" value="セミトラ">セミトラ</label><label><input type="radio" name="IgnitionType" value="フルトラ">フルトラ</label></div>
-        <h2 class="rg-section-title">お問い合わせ設定</h2>
-        <div class="radio-group"><label><input type="radio" name="AcceptInquiry" value="true">メッセージを受け付ける</label><label><input type="radio" name="AcceptInquiry" value="false">受け付けない</label></div>
-        <div class="risk-note"><strong>※メッセージに関する注意事項</strong><br>システムの不具合、受信設定、または相手の容量制限等により、正常に届かない場合があります。運営はメッセージの不達やそれによって生じたトラブルについて一切の責任を負いかねます。</div>
+
+        <label>点火形式</label>
+        <div class="radio-group">
+          <label><input type="radio" name="IgnitionType" value="ポイント">ポイント</label>
+          <label><input type="radio" name="IgnitionType" value="セミトラ">セミトラ</label>
+          <label><input type="radio" name="IgnitionType" value="フルトラ">フルトラ</label>
+        </div>
+        <label>点火製品名など</label><input type="text" name="IgnitionSubType" placeholder="製品名など">
+        
+        <label>配電方式</label>
+        <div class="radio-group">
+          <label><input type="radio" name="DistributionType" value="独立点火">独立点火</label>
+          <label><input type="radio" name="DistributionType" value="同時点火">同時点火</label>
+        </div>
+        
+        <div class="inline-small">
+          <div><label>コイル</label><input type="text" name="CoilName"></div>
+          <div><label>プラグ</label><input type="text" name="PlugName"></div>
+        </div>
+
+        <label>燃料供給装置</label>
+        <div class="radio-group">
+          <label><input type="radio" name="FuelInjection" value="キャブレター">キャブレター</label>
+          <label><input type="radio" name="FuelInjection" value="インジェクション">インジェクション</label>
+        </div>
+        <label>キャブレター等</label><input type="text" name="CarburetorName">
+
+        <label>燃料ポンプ</label>
+        <div class="radio-group">
+          <label><input type="radio" name="FuelPump" value="機械式">機械式</label>
+          <label><input type="radio" name="FuelPump" value="電気式">電気式</label>
+        </div>
+        <label>電ポン製品名など</label><input type="text" name="ElectricPumpName">
+
+        <label>発電機</label>
+        <div class="radio-group">
+          <label><input type="radio" name="Generator" value="ダイナモ">ダイナモ</label>
+          <label><input type="radio" name="Generator" value="オルタネーター">オルタネーター</label>
+          <label><input type="radio" name="Generator" value="その他">その他</label>
+        </div>
+
+        <label>オイルクーラー</label>
+        <div class="radio-group">
+          <label><input type="radio" name="OilCooler" value="無し">無し</label>
+          <label><input type="radio" name="OilCooler" value="機械式">機械式</label>
+          <label><input type="radio" name="OilCooler" value="電気式">電気式</label>
+        </div>
+
+        <h2 class="rg-section-title">駆動系・足回り</h2>
+        <div class="inline-small">
+          <div><label>ミッション</label>
+            <div class="radio-group">
+              <label><input type="radio" name="Transmission" value="4速">4速</label>
+              <label><input type="radio" name="Transmission" value="5速">5速</label>
+            </div>
+          </div>
+          <div><label>シンクロ</label>
+            <div class="radio-group">
+              <label><input type="radio" name="Synchro" value="ノンシンクロ">無し</label>
+              <label><input type="radio" name="Synchro" value="シンクロ">有り</label>
+            </div>
+          </div>
+        </div>
+
+        <label>ジョイント</label>
+        <div class="radio-group">
+          <label><input type="radio" name="Joint" value="ノーマル">ノーマル</label>
+          <label><input type="radio" name="Joint" value="CVジョイント">CVジョイント</label>
+        </div>
+
+        <label>ホイール</label>
+        <div class="radio-group">
+          <label><input type="radio" name="Wheel" value="純正">純正</label>
+          <label><input type="radio" name="Wheel" value="社外">社外</label>
+        </div>
+        
+        <div class="inline-small">
+          <div><label>リム径(inch)</label><input type="number" name="RimDiameter_in"></div>
+          <div><label>リム幅(inch)</label><input type="number" name="RimWidth_in" step="0.1"></div>
+        </div>
+
+        <label>タイヤ型式</label>
+        <div class="radio-group">
+          <label><input type="radio" name="TireType" value="チューブ">チューブ</label>
+          <label><input type="radio" name="TireType" value="チューブレス">チューブレス</label>
+        </div>
+        
+        <div class="inline-small">
+          <div><label>タイヤサイズ</label><input type="text" name="TireSize" placeholder="125R12"></div>
+          <div><label>タイヤメーカー</label><input type="text" name="TireBrandName"></div>
+        </div>
+
+        <h2 class="rg-section-title">オイル・バッテリー</h2>
+        <div class="inline-small">
+          <div><label>エンジンオイル</label><input type="text" name="EngineOil"></div>
+          <div><label>交換周期</label><input type="text" name="EngineOilInterval"></div>
+        </div>
+        <div class="inline-small">
+          <div><label>ミッションオイル</label><input type="text" name="TransmissionOil"></div>
+          <div><label>交換周期</label><input type="text" name="TransmissionOilInterval"></div>
+        </div>
+        <label>バッテリー</label><input type="text" name="Battery">
+
+        <h2 class="rg-section-title">こだわりポイント</h2>
+        <textarea name="Highlights" placeholder="愛車の自慢やカスタム内容、整備のこだわりなどをご自由に。"></textarea>
+
+        <h2 class="rg-section-title">SNS / Web</h2>
+        <div class="inline-small">
+          <div><label>X (Twitter)</label><input type="text" name="X_Twitter" placeholder="@..."></div>
+          <div><label>Instagram</label><input type="text" name="Instagram"></div>
+        </div>
+        <div class="inline-small">
+          <div><label>YouTube</label><input type="text" name="YouTube"></div>
+          <div><label>みんカラ</label><input type="text" name="Minkara"></div>
+        </div>
+        <div class="inline-small">
+          <div><label>Facebook</label><input type="text" name="Facebook"></div>
+          <div><label>Threads</label><input type="text" name="Threads"></div>
+        </div>
+        <label>ブログ・個人サイトURL</label><input type="text" name="BlogOrWebsite">
+
         <h2 class="rg-section-title">写真登録</h2>
         <div class="photo-grid">
-          <div class="photo-upload-box js-photo-upload" data-target="PhotoMain"><span class="photo-label">★メイン <span class="badge-required">必須</span></span><div class="preview-area"><img class="preview-img"></div><input type="hidden" name="PhotoMain"></div>
-          <div class="photo-upload-box js-photo-upload" data-target="PhotoFront"><span class="photo-label">正面</span><div class="preview-area"><img class="preview-img"></div><input type="hidden" name="PhotoFront"></div>
-          <div class="photo-upload-box js-photo-upload" data-target="PhotoEngine"><span class="photo-label">エンジン</span><div class="preview-area"><img class="preview-img"></div><input type="hidden" name="PhotoEngine"></div>
+          <div class="photo-upload-box js-photo-upload" data-target="PhotoMain">
+            <span class="photo-label">★メイン写真 <span class="badge-required">必須</span></span>
+            <div class="preview-area"><img class="preview-img"></div>
+            <input type="hidden" name="PhotoMain">
+          </div>
+          <div class="photo-upload-box js-photo-upload" data-target="PhotoFront">
+            <span class="photo-label">正面</span>
+            <div class="preview-area"><img class="preview-img"></div>
+            <input type="hidden" name="PhotoFront">
+          </div>
+          <div class="photo-upload-box js-photo-upload" data-target="PhotoSide">
+            <span class="photo-label">側面</span>
+            <div class="preview-area"><img class="preview-img"></div>
+            <input type="hidden" name="PhotoSide">
+          </div>
+          <div class="photo-upload-box js-photo-upload" data-target="PhotoRear">
+            <span class="photo-label">背面</span>
+            <div class="preview-area"><img class="preview-img"></div>
+            <input type="hidden" name="PhotoRear">
+          </div>
+          <div class="photo-upload-box js-photo-upload" data-target="PhotoEngine">
+            <span class="photo-label">エンジン</span>
+            <div class="preview-area"><img class="preview-img"></div>
+            <input type="hidden" name="PhotoEngine">
+          </div>
+          <div class="photo-upload-box js-photo-upload" data-target="PhotoSteeringCluster">
+            <span class="photo-label">ハンドル周り</span>
+            <div class="preview-area"><img class="preview-img"></div>
+            <input type="hidden" name="PhotoSteeringCluster">
+          </div>
+          <div class="photo-upload-box js-photo-upload" data-target="PhotoInterior">
+            <span class="photo-label">内装</span>
+            <div class="preview-area"><img class="preview-img"></div>
+            <input type="hidden" name="PhotoInterior">
+          </div>
         </div>
         <input type="file" id="globalFileInput" accept="image/*" style="display:none;">
+
+        <div class="risk-note">
+          <strong>【重要】メッセージ機能について</strong><br>
+          本サイトではオーナー同士の交流を促進するため、詳細ページからのメッセージ送信機能をデフォルトで有効にしています。システムの不具合や受信設定等により不達となる場合がありますが、運営は一切の責任を負いかねます。
+        </div>
       </form>
     </section>
   </div>
-<!-- 保存・キャンセルボタン -->
+
   <div class="submit-bar" id="submitBar" style="display:none;">
-    <button id="cancelButton" type="button" onclick="handleCancel()" 
-            style="flex:1; max-width:150px; padding:0.8rem; border-radius:999px; border:1.5px solid #ccc; background:#fff; color:#666; font-weight:bold; cursor:pointer;">
-      キャンセル
-    </button>
-    <button id="submitButton" 
-            style="flex:2; max-width:300px; padding:0.8rem; border-radius:999px; border:none; background:var(--rg-primary-red); color:white; font-weight:bold; font-size:1rem; cursor:pointer;">
-      読み込み中...
-    </button>
+    <button id="cancelButton" type="button" onclick="handleCancel()">キャンセル</button>
+    <button id="submitButton">読み込み中...</button>
   </div>
-  
+
   <script>
     (function() {
       if (firebase.apps.length === 0) firebase.initializeApp(FIREBASE_CONFIG);
@@ -116,21 +379,38 @@
           const params = new URLSearchParams(window.location.search);
           const docId = params.get('doc');
           const mode = params.get('mode');
-          if (mode === 'new') showBlankForm();
-          else if (docId) loadSpecificCar(docId);
-          else detectUserCars(user.email);
-        } else { overlay.classList.remove('hidden'); pageLoading.style.display = 'none'; }
+
+          // 【重要】明示的なID指定や新規モードがある場合は転送をスキップ
+          if (docId) { loadSpecificCar(docId); }
+          else if (mode === 'new') { showBlankForm(); }
+          else { detectUserCars(user.email); }
+        } else {
+          overlay.classList.remove('hidden');
+          pageLoading.style.display = 'none';
+        }
       });
 
       async function detectUserCars(email) {
         try {
-          const { data: cars, error } = await supabaseClient.from('cars').select('document_id, handle_name, model_display_c').eq('owner_email', email.toLowerCase());
+          const { data: cars, error } = await supabaseClient
+            .from('cars')
+            .select('document_id, handle_name, model_display_c')
+            .eq('owner_email', email.toLowerCase());
+
           pageLoading.style.display = 'none';
-          if (!cars || cars.length === 0) showBlankForm();
-          else if (cars.length === 1) window.location.href = `detail.html?doc=${cars[0].document_id}`;
-          else {
+          if (!cars || cars.length === 0) { 
+            showBlankForm(); 
+          } else if (cars.length === 1) { 
+            // 1台のみなら即座に詳細ページへ転送（これがマイガレージの基本挙動）
+            window.location.href = `detail.html?doc=${cars[0].document_id}`; 
+          } else {
+            // 複数台ならポータルを表示
             carSelectionArea.style.display = 'block';
-            myCarList.innerHTML = cars.map(car => `<div class="car-select-item" onclick="location.href='detail.html?doc=${car.document_id}'"><div><strong>${car.model_display_c || 'FIAT 500'}</strong><br><small>${car.handle_name}様</small></div><div style="color:var(--rg-accent)">管理する 〉</div></div>`).join('');
+            myCarList.innerHTML = cars.map(car => `
+              <div class="car-select-item" onclick="location.href='detail.html?doc=${car.document_id}'">
+                <div><strong>${car.model_display_c || 'FIAT 500'}</strong><br><small>${car.handle_name}様</small></div>
+                <div style="color:var(--rg-accent)">管理する 〉</div>
+              </div>`).join('');
           }
         } catch (e) { alert("車両確認エラー"); }
       }
@@ -146,34 +426,66 @@
       async function loadSpecificCar(docId) {
         try {
           const { data: car, error } = await supabaseClient.from('cars').select('*').eq('document_id', docId).single();
-          if (car) { pageLoading.style.display = 'none'; formContent.style.display = 'block'; document.getElementById('submitBar').style.display = 'flex'; submitBtn.disabled = false; submitBtn.textContent = "変更を保存する"; fillForm(car); }
+          if (car) {
+            pageLoading.style.display = 'none'; formContent.style.display = 'block';
+            document.getElementById('submitBar').style.display = 'flex';
+            submitBtn.disabled = false; submitBtn.textContent = "変更を保存する";
+            fillForm(car);
+          }
         } catch (e) { alert("読込失敗"); }
       }
 
-window.handleCancel = function() {
+      window.handleCancel = function() {
         const docId = document.getElementById('DocumentID').value;
-        if (docId) {
-          // 編集時は元の詳細ページへ
-          window.location.href = `detail.html?doc=${docId}`;
-        } else {
-          // 新規登録キャンセル時はインデックスへ
-          window.location.href = "index.html";
-        }
+        if (docId) window.location.href = `detail.html?doc=${docId}`;
+        else window.location.href = "index.html";
       };
-      
+
       function fillForm(data) {
-        const mapping = { document_id: 'DocumentID', handle_name: 'HandleName', prefecture: 'Prefecture', model_select_a: 'ModelSelectA', model_text_a: 'ModelTextA', model_select_b: 'ModelSelectB', model_text_b: 'ModelTextB', year: 'Year', body_color: 'BodyColor', length_cm: 'Length_cm', capacity: 'Capacity', steering: 'Steering', engine_cc: 'EngineCC', engine_type_select: 'EngineTypeSelect', engine_type_text: 'EngineTypeText', ignition_type: 'IgnitionType', accept_inquiry: 'AcceptInquiry', photo_main: 'PhotoMain', photo_front: 'PhotoFront', photo_engine: 'PhotoEngine' };
+        const mapping = {
+          document_id: 'DocumentID', handle_name: 'HandleName', prefecture: 'Prefecture',
+          model_select_a: 'ModelSelectA', model_text_a: 'ModelTextA', model_select_b: 'ModelSelectB', model_text_b: 'ModelTextB',
+          year: 'Year', body_color: 'BodyColor', length_cm: 'Length_cm', capacity: 'Capacity', steering: 'Steering',
+          engine_cc: 'EngineCC', engine_type_select: 'EngineTypeSelect', engine_type_text: 'EngineTypeText',
+          ignition_type: 'IgnitionType', ignition_sub_type: 'IgnitionSubType', distribution_type: 'DistributionType',
+          coil_name: 'CoilName', plug_name: 'PlugName', fuel_injection: 'FuelInjection', carburetor_name: 'CarburetorName',
+          fuel_pump: 'FuelPump', electric_pump_name: 'ElectricPumpName', generator: 'Generator', oil_cooler: 'OilCooler',
+          transmission: 'Transmission', synchro: 'Synchro', joint: 'Joint', wheel: 'Wheel',
+          rim_diameter_in: 'RimDiameter_in', rim_width_in: 'RimWidth_in', tire_type: 'TireType', tire_size: 'TireSize', tire_brand_name: 'TireBrandName',
+          engine_oil: 'EngineOil', engine_oil_interval: 'EngineOilInterval',
+          transmission_oil: 'TransmissionOil', transmission_oil_interval: 'TransmissionOilInterval',
+          battery: 'Battery', highlights: 'Highlights',
+          x_twitter: 'X_Twitter', instagram: 'Instagram', youtube: 'YouTube', minkara: 'Minkara',
+          facebook: 'Facebook', threads: 'Threads', blog_or_website: 'BlogOrWebsite',
+          photo_main: 'PhotoMain', photo_front: 'PhotoFront', photo_side: 'PhotoSide', photo_rear: 'PhotoRear',
+          photo_engine: 'PhotoEngine', photo_steering_cluster: 'PhotoSteeringCluster', photo_interior: 'PhotoInterior'
+        };
         Object.keys(mapping).forEach(dbKey => {
-          const formKey = mapping[dbKey], val = data[dbKey];
+          const formKey = mapping[dbKey]; const val = data[dbKey];
           if (formKey.startsWith('Photo')) { setPhotoPreview(formKey, val); return; }
           const el = carForm.querySelector(`[name="${formKey}"]`); if (!el) return;
-          if (el.type === 'radio') { const radios = carForm.querySelectorAll(`input[name="${formKey}"]`); radios.forEach(r => { if (String(r.value) === String(val)) r.checked = true; }); }
-          else el.value = val || '';
+          if (el.type === 'radio') {
+            const radios = carForm.querySelectorAll(`input[name="${formKey}"]`);
+            radios.forEach(r => { if (String(r.value) === String(val)) r.checked = true; });
+          } else el.value = val || '';
+        });
+        ['ModelSelectA', 'ModelSelectB', 'EngineTypeSelect'].forEach(id => {
+          const sel = document.getElementById(id);
+          const wrap = document.getElementById(id + 'Wrapper');
+          if (sel && wrap) wrap.style.display = (sel.value === 'その他') ? 'block' : 'none';
         });
       }
 
-      function setPhotoPreview(target, url) { const box = document.querySelector(`[data-target="${target}"]`); if (!box) return; const img = box.querySelector('.preview-img'), input = box.querySelector(`input[name="${target}"]`); input.value = url || ""; if (url) { img.src = url; img.style.display = 'block'; } else { img.style.display = 'none'; } }
-      document.querySelectorAll('.js-photo-upload').forEach(box => { box.onclick = () => { activeTarget = box.dataset.target; fileInput.click(); }; });
+      function setPhotoPreview(target, url) {
+        const box = document.querySelector(`[data-target="${target}"]`); if (!box) return;
+        const img = box.querySelector('.preview-img'), input = box.querySelector(`input[name="${target}"]`);
+        input.value = url || ""; if (url) { img.src = url; img.style.display = 'block'; } else img.style.display = 'none';
+      }
+
+      document.querySelectorAll('.js-photo-upload').forEach(box => {
+        box.onclick = () => { activeTarget = box.dataset.target; fileInput.click(); };
+      });
+
       fileInput.onchange = async (e) => {
         const file = e.target.files[0]; if (!file || !activeTarget) return;
         try {
@@ -185,21 +497,42 @@ window.handleCancel = function() {
 
       submitBtn.onclick = async () => {
         const fd = new FormData(carForm); const raw = {}; fd.forEach((v, k) => raw[k] = v);
-        if (!raw.HandleName || !raw.Prefecture || !raw.Year || !raw.ModelSelectA || !raw.ModelSelectB || !raw.PhotoMain) { alert("必須項目をすべて入力してください。"); return; }
+        if (!raw.HandleName || !raw.Prefecture || !raw.Year || !raw.ModelSelectA || !raw.ModelSelectB || !raw.PhotoMain) { 
+          alert("必須項目（名前・都道府県・年式・車種・詳細・メイン写真）をすべて入力してください。"); return; 
+        }
         submitBtn.disabled = true; submitBtn.textContent = "保存中...";
         try {
           const isNew = !raw.DocumentID; const userEmail = auth.currentUser.email.toLowerCase();
-          const dbData = { owner_email: userEmail, handle_name: raw.HandleName, prefecture: raw.Prefecture, model_select_a: raw.ModelSelectA, model_text_a: raw.ModelTextA, model_select_b: raw.ModelSelectB, model_text_b: raw.ModelTextB, year: raw.Year, body_color: raw.BodyColor, length_cm: raw.Length_cm || null, capacity: raw.Capacity, steering: raw.Steering, engine_cc: raw.EngineCC, engine_type_select: raw.EngineTypeSelect, engine_type_text: raw.EngineTypeText, ignition_type: raw.IgnitionType, photo_main: raw.PhotoMain, photo_front: raw.PhotoFront, photo_engine: raw.PhotoEngine, accept_inquiry: isNew ? true : (raw.AcceptInquiry === "true"), updated_at: new Date() };
+          const dbData = {
+            owner_email: userEmail, handle_name: raw.HandleName, prefecture: raw.Prefecture,
+            model_select_a: raw.ModelSelectA, model_text_a: raw.ModelTextA, model_select_b: raw.ModelSelectB, model_text_b: raw.ModelTextB,
+            year: raw.Year, body_color: raw.BodyColor, length_cm: raw.Length_cm || null, capacity: raw.Capacity, steering: raw.Steering,
+            engine_cc: raw.EngineCC, engine_type_select: raw.EngineTypeSelect, engine_type_text: raw.EngineTypeText,
+            ignition_type: raw.IgnitionType, ignition_sub_type: raw.IgnitionSubType, distribution_type: raw.DistributionType,
+            coil_name: raw.CoilName, plug_name: raw.PlugName, fuel_injection: raw.FuelInjection, carburetor_name: raw.CarburetorName,
+            fuel_pump: raw.FuelPump, electric_pump_name: raw.ElectricPumpName, generator: raw.Generator, oil_cooler: raw.OilCooler,
+            transmission: raw.Transmission, synchro: raw.Synchro, joint: raw.Joint, wheel: raw.Wheel,
+            rim_diameter_in: raw.RimDiameter_in || null, rim_width_in: raw.RimWidth_in || null, tire_type: raw.TireType, tire_size: raw.TireSize, tire_brand_name: raw.TireBrandName,
+            engine_oil: raw.EngineOil, engine_oil_interval: raw.EngineOilInterval, transmission_oil: raw.TransmissionOil, transmission_oil_interval: raw.TransmissionOilInterval,
+            battery: raw.Battery, highlights: raw.Highlights, x_twitter: raw.X_Twitter, instagram: raw.Instagram, youtube: raw.YouTube, minkara: raw.Minkara,
+            facebook: raw.Facebook, threads: raw.Threads, blog_or_website: raw.BlogOrWebsite,
+            photo_main: raw.PhotoMain, photo_front: raw.PhotoFront, photo_side: raw.PhotoSide, photo_rear: raw.PhotoRear,
+            photo_engine: raw.PhotoEngine, photo_steering_cluster: raw.PhotoSteeringCluster, photo_interior: raw.PhotoInterior,
+            accept_inquiry: true, updated_at: new Date()
+          };
           if (!isNew) dbData.document_id = raw.DocumentID;
           const { data: savedData, error } = await supabaseClient.from('cars').upsert(dbData, { onConflict: 'document_id' }).select();
           if (error) throw error;
           const finalDocId = savedData[0].document_id;
           if (isNew) fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'send_thanks_email', formData: { email: userEmail, handleName: raw.HandleName, docId: finalDocId } }) });
-          alert("マイガレージを保存しました！"); window.location.href = `detail.html?doc=${finalDocId}`;
+          alert("保存しました！"); window.location.href = `detail.html?doc=${finalDocId}`;
         } catch (e) { alert("保存エラー: " + e.message); submitBtn.disabled = false; }
       };
 
-      ['ModelSelectA', 'ModelSelectB', 'EngineTypeSelect'].forEach(id => { const el = document.getElementById(id); if(el) el.onchange = (e) => { const wrap = document.getElementById(id + 'Wrapper'); if(wrap) wrap.style.display = (e.target.value === 'その他') ? 'block' : 'none'; }; });
+      ['ModelSelectA', 'ModelSelectB', 'EngineTypeSelect'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.onchange = (e) => { document.getElementById(id + 'Wrapper').style.display = (e.target.value === 'その他') ? 'block' : 'none'; };
+      });
       document.getElementById('googleLoginBtn').onclick = () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
       document.getElementById('logoutBtn').onclick = () => auth.signOut().then(() => location.reload());
     })();
