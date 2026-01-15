@@ -90,8 +90,18 @@
       </form>
     </section>
   </div>
-  <div class="submit-bar" id="submitBar" style="display:none;"><button id="cancelButton" onclick="handleCancel()">キャンセル</button><button id="submitButton">読み込み中...</button></div>
-
+<!-- 保存・キャンセルボタン -->
+  <div class="submit-bar" id="submitBar" style="display:none;">
+    <button id="cancelButton" type="button" onclick="handleCancel()" 
+            style="flex:1; max-width:150px; padding:0.8rem; border-radius:999px; border:1.5px solid #ccc; background:#fff; color:#666; font-weight:bold; cursor:pointer;">
+      キャンセル
+    </button>
+    <button id="submitButton" 
+            style="flex:2; max-width:300px; padding:0.8rem; border-radius:999px; border:none; background:var(--rg-primary-red); color:white; font-weight:bold; font-size:1rem; cursor:pointer;">
+      読み込み中...
+    </button>
+  </div>
+  
   <script>
     (function() {
       if (firebase.apps.length === 0) firebase.initializeApp(FIREBASE_CONFIG);
@@ -140,12 +150,17 @@
         } catch (e) { alert("読込失敗"); }
       }
 
-      window.handleCancel = function() {
+window.handleCancel = function() {
         const docId = document.getElementById('DocumentID').value;
-        if (docId) window.location.href = `detail.html?doc=${docId}`;
-        else window.location.href = "index.html";
+        if (docId) {
+          // 編集時は元の詳細ページへ
+          window.location.href = `detail.html?doc=${docId}`;
+        } else {
+          // 新規登録キャンセル時はインデックスへ
+          window.location.href = "index.html";
+        }
       };
-
+      
       function fillForm(data) {
         const mapping = { document_id: 'DocumentID', handle_name: 'HandleName', prefecture: 'Prefecture', model_select_a: 'ModelSelectA', model_text_a: 'ModelTextA', model_select_b: 'ModelSelectB', model_text_b: 'ModelTextB', year: 'Year', body_color: 'BodyColor', length_cm: 'Length_cm', capacity: 'Capacity', steering: 'Steering', engine_cc: 'EngineCC', engine_type_select: 'EngineTypeSelect', engine_type_text: 'EngineTypeText', ignition_type: 'IgnitionType', accept_inquiry: 'AcceptInquiry', photo_main: 'PhotoMain', photo_front: 'PhotoFront', photo_engine: 'PhotoEngine' };
         Object.keys(mapping).forEach(dbKey => {
