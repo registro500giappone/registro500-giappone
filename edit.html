@@ -598,6 +598,24 @@ submitBtn.onclick = async () => {
             .upsert(supabaseData, { onConflict: 'document_id' });
 
           if (error) throw error;
+
+// --- 追加：新規登録時のみサンクスメール送信依頼 ---
+if (!rawData.DocumentID) {
+  fetch(API_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    body: JSON.stringify({
+      action: 'send_thanks_email',
+      formData: {
+        email: auth.currentUser.email,
+        handleName: rawData.HandleName,
+        docId: docId // supabaseData.document_id
+      }
+    })
+  });
+}
+// --- ここまで ---          
+          
 // 保存成功後、GASにメール送信だけ依頼する
 if (!rawData.DocumentID) { // 新規登録時のみ
     fetch(API_URL, {
