@@ -322,18 +322,23 @@ async function fetchCars() {
       document.getElementById('loading').innerText = "エラー: データの取得に失敗しました。";
     }
   }
-    async function checkNewsBadge() {
+async function checkNewsBadge() {
       try {
-        const res = await fetch(API_URL + '?mode=news');
-        const json = await res.json();
-        if (json.success && json.data && json.data.length > 0) {
-          const latestDate = new Date(json.data[0].Date.replace(/\./g, '/'));
+        // Supabaseから最新1件の日付を取得
+        const { data, error } = await supabaseClient
+          .from('news')
+          .select('date')
+          .order('date', { ascending: false })
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          const latestDate = new Date(data[0].date);
           const diff = Math.ceil((new Date() - latestDate) / (1000 * 60 * 60 * 24));
+          // 7日以内の新着があればバッジを表示
           if (diff <= 7) document.getElementById('newsBadge').style.display = 'block';
         }
       } catch (e) {}
     }
-
     function parseDocNumber(id) { const m = /^DOC_(\d+)$/.exec(String(id)); return m ? parseInt(m[1], 10) : 0; }
 
     function renderCars(sortType) {
