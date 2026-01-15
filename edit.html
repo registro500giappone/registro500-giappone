@@ -361,11 +361,27 @@
         } catch (err) { alert("アップロード失敗"); }
       };
 
-      submitBtn.onclick = async () => {
+submitBtn.onclick = async () => {
         const fd = new FormData(carForm);
-        const raw = Object.fromEntries(fd.entries());
-        if (!raw.HandleName || !raw.PhotoMain) { alert("必須項目を入力してください"); return; }
+        const rawData = {}; 
+        fd.forEach((v, k) => rawData[k] = v);
+
+        // --- 最終ガード：必須項目すべてチェック ---
+        const handleName = (rawData.HandleName || "").trim();
+        const prefecture = (rawData.Prefecture || "").trim();
+        const year = (rawData.Year || "").trim();
+        const modelA = rawData.ModelSelectA; // 車種（ドロップダウン）
+        const modelB = rawData.ModelSelectB; // 詳細（ドロップダウン）
+        const photoMain = rawData.PhotoMain;
+
+        if (!handleName || !prefecture || !year || !modelA || !modelB || !photoMain) { 
+          alert("必須項目（名前・都道府県・年式・車種・詳細・写真）をすべて入力してください"); 
+          return; 
+        }
+        // --- チェックここまで ---
+
         submitBtn.disabled = true; submitBtn.textContent = "保存中...";
+        // ...以下保存処理        submitBtn.disabled = true; submitBtn.textContent = "保存中...";
         try {
           const dbData = {
             owner_email: auth.currentUser.email.toLowerCase(),
