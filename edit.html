@@ -12,17 +12,24 @@
   </script>
   <title>マイガレージ - Registro500 Giappone</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  
+  <!-- SDK読み込み -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
+
   <style>
-    /* 既存のCSSスタイル（完全に保持） */
     html { font-size: 16px; }
     @media (min-width: 1025px) { html { font-size: 18px; } }
-    :root { --rg-surface: #ffffff; --rg-bg: #f4f6f8; --rg-border: #e5e7eb; --rg-text: #111827; --rg-muted: #6b7280; --rg-accent: #2856a8; --rg-primary-red: #e11d48; --rg-radius-card: 1rem; --rg-accent-soft: #e6efff; --rg-accent-border: #c2d4ff; }
+    :root {
+      --rg-surface: #ffffff; --rg-bg: #f4f6f8; --rg-border: #e5e7eb;
+      --rg-text: #111827; --rg-muted: #6b7280; --rg-accent: #2856a8;
+      --rg-primary-red: #e11d48; --rg-radius-card: 1rem;
+      --rg-accent-soft: #e6efff; --rg-accent-border: #c2d4ff;
+    }
     body { margin: 0; font-family: system-ui, -apple-system, sans-serif; line-height: 1.7; color: var(--rg-text); background: var(--rg-bg); padding-top: 80px; padding-bottom: 100px; }
     .rg-header-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(244, 246, 248, 0.95); backdrop-filter: blur(8px); box-shadow: 0 1px 5px rgba(0,0,0,0.05); height: 60px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 1rem; }
     .rg-back-link a { text-decoration: none; color: var(--rg-accent); font-weight: 600; white-space: nowrap; font-size: 0.95rem; }
@@ -34,7 +41,9 @@
     label { display: block; font-size: 0.9rem; font-weight: 600; margin-top: 0.8rem; margin-bottom: 0.3rem; }
     .badge-required { background: var(--rg-primary-red); color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 4px; font-weight: normal; }
     input[type="text"], input[type="number"], textarea, select { width: 100%; padding: 0.7rem; border-radius: 0.5rem; border: 1px solid #d1d5db; font-size: 1rem; margin-bottom: 0.5rem; box-sizing: border-box; }
+    textarea { min-height: 6em; resize: vertical; }
     .radio-group { display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.95rem; margin-bottom: 0.5rem; }
+    .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; }
     .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
     .photo-upload-box { border: 2px dashed #ccc; border-radius: 8px; padding: 8px; text-align: center; background: #fafafa; cursor: pointer; min-height: 160px; display: flex; flex-direction: column; align-items: center; }
     .preview-area { width: 100%; aspect-ratio: 1/1; background: #eee; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
@@ -50,9 +59,13 @@
     #formContent, #carSelectionArea, #pageLoading { display: none; }
     .inline-small { display: flex; gap: 1rem; }
     .inline-small > div { flex: 1; }
+    
+    /* 注意書きスタイル */
+    .risk-note { background: #fff1f2; border: 1px solid #fecdd3; padding: 1rem; border-radius: 8px; font-size: 0.85rem; color: #9f1239; margin-top: 1rem; line-height: 1.5; }
   </style>
 </head>
 <body>
+
   <header class="rg-header-bar">
     <div class="rg-back-link"><a href="index.html">← ガレージに戻る</a></div>
     <div class="rg-header-logo"><img src="logo_horizontal.png" alt="Registro500"></div>
@@ -61,7 +74,7 @@
 
   <div id="loginOverlay" class="hidden">
     <div class="login-card" style="background:white; padding:40px; border-radius:20px; text-align:center;">
-      <h2>オーナー認証</h2>
+      <h2 style="margin-top:0;">オーナー認証</h2>
       <p>マイガレージを利用するにはログインが必要です。</p>
       <button class="btn-google" id="googleLoginBtn">Googleでログイン</button>
     </div>
@@ -78,14 +91,12 @@
 
     <div id="pageLoading" style="display:block; text-align:center; padding:3rem;">車両情報を確認しています...</div>
 
-    <!-- 所有車両選択ポータル -->
     <section id="carSelectionArea" class="selection-card">
       <h2 style="font-size:1.1rem; margin-top:0;">管理する車両を選択してください</h2>
       <div id="myCarList"></div>
       <button class="btn-google" style="background:var(--rg-accent);" onclick="showBlankForm()">＋ 新しく車両を登録する</button>
     </section>
 
-    <!-- 編集フォーム -->
     <section class="form-card" id="formContent">
       <form id="carForm">
         <input type="hidden" id="DocumentID" name="DocumentID">
@@ -103,14 +114,19 @@
           <option value="FIAT ABARTH">FIAT ABARTH</option>
           <option value="その他">その他</option>
         </select>
-        <div id="ModelSelectAWrapper" style="display:none;"><input type="text" name="ModelTextA"></div>
+        <div id="ModelSelectAWrapper" style="display:none;"><input type="text" name="ModelTextA" placeholder="車種名を入力"></div>
 
         <label>モデル詳細 <span class="badge-required">必須</span></label>
         <select name="ModelSelectB" id="ModelSelectB" required>
           <option value="">選択してください</option>
-          <option value="F">F</option><option value="L">L</option><option value="R">R</option><option value="D">D</option><option value="Giardiniera">Giardiniera</option><option value="Sport">Sport</option><option value="N Normale">N Normale</option><option value="Prima Serie">Prima Serie</option><option value="595">595</option><option value="595SS">595SS</option><option value="695">695</option><option value="695SS">695SS</option><option value="その他">その他</option>
+          <option value="F">F</option><option value="L">L</option><option value="R">R</option>
+          <option value="D">D</option><option value="Giardiniera">Giardiniera</option>
+          <option value="Sport">Sport</option><option value="N Normale">N Normale</option>
+          <option value="Prima Serie">Prima Serie</option><option value="595">595</option>
+          <option value="595SS">595SS</option><option value="695">695</option>
+          <option value="695SS">695SS</option><option value="その他">その他</option>
         </select>
-        <div id="ModelSelectBWrapper" style="display:none;"><input type="text" name="ModelTextB"></div>
+        <div id="ModelSelectBWrapper" style="display:none;"><input type="text" name="ModelTextB" placeholder="グレード詳細を入力"></div>
 
         <div class="inline-small">
           <div><label>年式 <span class="badge-required">必須</span></label><input type="text" name="Year" placeholder="1970等" required></div>
@@ -139,7 +155,7 @@
           <option value="">選択してください</option>
           <option value="110">110</option><option value="110.004">110.004</option><option value="110D.000">110D.000</option><option value="110F.000">110F.000</option><option value="110F.000 （ABA205）">110F.000 （ABA205）</option><option value="110F.000 （ABA206）">110F.000 （ABA206）</option><option value="120">120</option><option value="126A.000">126A.000</option><option value="126A1.000">126A1.000</option><option value="126A1.048">126A1.048</option><option value="126A5.000">126A5.000</option><option value="不明">不明</option><option value="その他">その他</option>
         </select>
-        <div id="EngineTypeSelectWrapper" style="display:none;"><input type="text" name="EngineTypeText"></div>
+        <div id="EngineTypeSelectWrapper" style="display:none;"><input type="text" name="EngineTypeText" placeholder="エンジン型式を入力"></div>
 
         <label>点火形式</label>
         <div class="radio-group">
@@ -227,6 +243,16 @@
         <h2 class="rg-section-title">こだわりポイント</h2>
         <textarea name="Highlights" placeholder="愛車の自慢やカスタム内容など"></textarea>
 
+        <h2 class="rg-section-title">お問い合わせ設定</h2>
+        <div class="radio-group">
+          <label><input type="radio" name="AcceptInquiry" value="true">他オーナーからのメッセージを受け付ける</label>
+          <label><input type="radio" name="AcceptInquiry" value="false">受け付けない</label>
+        </div>
+        <div class="risk-note">
+          <strong>※お問い合わせに関する注意事項</strong><br>
+          オーナー様への問い合わせメールは、システムの不具合、受信設定、または相手のメールボックスの容量制限等により、正常に届かない場合があります。本サイトはメッセージの仲介のみを行い、メールの不達やそれによって生じたトラブルについて一切の責任を負いかねますので、あらかじめご了承ください。
+        </div>
+
         <h2 class="rg-section-title">SNS / Web</h2>
         <label>X (Twitter)</label><input type="text" name="X_Twitter" placeholder="@...">
         <label>Instagram</label><input type="text" name="Instagram">
@@ -238,7 +264,7 @@
 
         <h2 class="rg-section-title">写真登録</h2>
         <div class="photo-grid">
-          <div class="photo-upload-box js-photo-upload" data-target="PhotoMain"><span class="photo-label">★メイン</span><div class="preview-area"><img class="preview-img"></div><input type="hidden" name="PhotoMain"></div>
+          <div class="photo-upload-box js-photo-upload" data-target="PhotoMain"><span class="photo-label">★メイン <span class="badge-required">必須</span></span><div class="preview-area"><img class="preview-img"></div><input type="hidden" name="PhotoMain"></div>
           <div class="photo-upload-box js-photo-upload" data-target="PhotoFront"><span class="photo-label">正面</span><div class="preview-area"><img class="preview-img"></div><input type="hidden" name="PhotoFront"></div>
           <div class="photo-upload-box js-photo-upload" data-target="PhotoSide"><span class="photo-label">側面</span><div class="preview-area"><img class="preview-img"></div><input type="hidden" name="PhotoSide"></div>
           <div class="photo-upload-box js-photo-upload" data-target="PhotoRear"><span class="photo-label">背面</span><div class="preview-area"><img class="preview-img"></div><input type="hidden" name="PhotoRear"></div>
@@ -278,22 +304,24 @@
       });
 
       async function detectUserCars(email) {
-        const { data: cars, error } = await supabaseClient
-          .from('cars')
-          .select('document_id, handle_name, model_display_c')
-          .eq('owner_email', email.toLowerCase());
+        try {
+          const { data: cars, error } = await supabaseClient
+            .from('cars')
+            .select('document_id, handle_name, model_display_c')
+            .eq('owner_email', email.toLowerCase());
 
-        pageLoading.style.display = 'none';
-        if (!cars || cars.length === 0) { showBlankForm(); }
-        else if (cars.length === 1) { window.location.href = `detail.html?doc=${cars[0].document_id}`; }
-        else {
-          carSelectionArea.style.display = 'block';
-          myCarList.innerHTML = cars.map(car => `
-            <div class="car-select-item" onclick="location.href='detail.html?doc=${car.document_id}'">
-              <div><strong>${car.model_display_c || 'FIAT 500'}</strong><br><small>${car.handle_name}様</small></div>
-              <div style="color:var(--rg-accent)">管理する 〉</div>
-            </div>`).join('');
-        }
+          pageLoading.style.display = 'none';
+          if (!cars || cars.length === 0) { showBlankForm(); }
+          else if (cars.length === 1) { window.location.href = `detail.html?doc=${cars[0].document_id}`; }
+          else {
+            carSelectionArea.style.display = 'block';
+            myCarList.innerHTML = cars.map(car => `
+              <div class="car-select-item" onclick="location.href='detail.html?doc=${car.document_id}'">
+                <div><strong>${car.model_display_c || 'FIAT 500'}</strong><br><small>${car.handle_name}様</small></div>
+                <div style="color:var(--rg-accent)">管理する 〉</div>
+              </div>`).join('');
+          }
+        } catch (e) { alert("車両確認エラー"); }
       }
 
       window.showBlankForm = function() {
@@ -302,27 +330,31 @@
         submitBtn.disabled = false; submitBtn.textContent = "新しく登録する";
         document.getElementById('DocumentID').value = ""; carForm.reset();
         document.querySelectorAll('.preview-img').forEach(img => img.style.display = 'none');
+        // 新規登録時はデフォルトを「受け付ける」に
+        const inquiryRadio = carForm.querySelector('input[name="AcceptInquiry"][value="true"]');
+        if (inquiryRadio) inquiryRadio.checked = true;
       };
 
       async function loadSpecificCar(docId) {
-        const { data: car, error } = await supabaseClient.from('cars').select('*').eq('document_id', docId).single();
-        if (car) {
-          pageLoading.style.display = 'none'; formContent.style.display = 'block';
-          document.getElementById('submitBar').style.display = 'block';
-          submitBtn.disabled = false; submitBtn.textContent = "変更を保存する";
-          fillForm(car);
-        }
+        try {
+          const { data: car, error } = await supabaseClient.from('cars').select('*').eq('document_id', docId).single();
+          if (car) {
+            pageLoading.style.display = 'none'; formContent.style.display = 'block';
+            document.getElementById('submitBar').style.display = 'block';
+            submitBtn.disabled = false; submitBtn.textContent = "変更を保存する";
+            fillForm(car);
+          }
+        } catch (e) { alert("読込失敗"); }
       }
 
       function fillForm(data) {
-        // snake_caseをCamelCaseに変換してフォームに流し込む（項目漏れなし）
         const mapping = {
-          document_id: 'DocumentID', handle_name: 'HandleName', prefecture: 'Prefecture', model_select_a: 'ModelSelectA', model_text_a: 'ModelTextA', model_select_b: 'ModelSelectB', model_text_b: 'ModelTextB', year: 'Year', body_color: 'BodyColor', length_cm: 'Length_cm', capacity: 'Capacity', steering: 'Steering', engine_cc: 'EngineCC', engine_type_select: 'EngineTypeSelect', engine_type_text: 'EngineTypeText', ignition_type: 'IgnitionType', ignition_sub_type: 'IgnitionSubType', distribution_type: 'DistributionType', coil_name: 'CoilName', plug_name: 'PlugName', fuel_injection: 'FuelInjection', carburetor_name: 'CarburetorName', fuel_pump: 'FuelPump', electric_pump_name: 'ElectricPumpName', generator: 'Generator', oil_cooler: 'OilCooler', transmission: 'Transmission', synchro: 'Synchro', joint: 'Joint', wheel: 'Wheel', rim_diameter_in: 'RimDiameter_in', rim_width_in: 'RimWidth_in', tire_type: 'TireType', tire_size: 'TireSize', tire_brand_name: 'TireBrandName', engine_oil: 'EngineOil', engine_oil_interval: 'EngineOilInterval', transmission_oil: 'TransmissionOil', transmission_oil_interval: 'TransmissionOilInterval', battery: 'Battery', highlights: 'Highlights', x_twitter: 'X_Twitter', instagram: 'Instagram', youtube: 'YouTube', minkara: 'Minkara', facebook: 'Facebook', threads: 'Threads', blog_or_website: 'BlogOrWebsite', photo_main: 'PhotoMain', photo_front: 'PhotoFront', photo_side: 'PhotoSide', photo_rear: 'PhotoRear', photo_engine: 'PhotoEngine', photo_steering_cluster: 'PhotoSteeringCluster', photo_interior: 'PhotoInterior'
+          document_id: 'DocumentID', handle_name: 'HandleName', prefecture: 'Prefecture', model_select_a: 'ModelSelectA', model_text_a: 'ModelTextA', model_select_b: 'ModelSelectB', model_text_b: 'ModelTextB', year: 'Year', body_color: 'BodyColor', length_cm: 'Length_cm', capacity: 'Capacity', steering: 'Steering', engine_cc: 'EngineCC', engine_type_select: 'EngineTypeSelect', engine_type_text: 'EngineTypeText', ignition_type: 'IgnitionType', ignition_sub_type: 'IgnitionSubType', distribution_type: 'DistributionType', coil_name: 'CoilName', plug_name: 'PlugName', fuel_injection: 'FuelInjection', carburetor_name: 'CarburetorName', fuel_pump: 'FuelPump', electric_pump_name: 'ElectricPumpName', generator: 'Generator', oil_cooler: 'OilCooler', transmission: 'Transmission', synchro: 'Synchro', joint: 'Joint', wheel: 'Wheel', rim_diameter_in: 'RimDiameter_in', rim_width_in: 'RimWidth_in', tire_type: 'TireType', tire_size: 'TireSize', tire_brand_name: 'TireBrandName', engine_oil: 'EngineOil', engine_oil_interval: 'EngineOilInterval', transmission_oil: 'TransmissionOil', transmission_oil_interval: 'TransmissionOilInterval', battery: 'Battery', highlights: 'Highlights', x_twitter: 'X_Twitter', instagram: 'Instagram', youtube: 'YouTube', minkara: 'Minkara', facebook: 'Facebook', threads: 'Threads', blog_or_website: 'BlogOrWebsite', photo_main: 'PhotoMain', photo_front: 'PhotoFront', photo_side: 'PhotoSide', photo_rear: 'PhotoRear', photo_engine: 'PhotoEngine', photo_steering_cluster: 'PhotoSteeringCluster', photo_interior: 'PhotoInterior', accept_inquiry: 'AcceptInquiry'
         };
         Object.keys(mapping).forEach(dbKey => {
           const formKey = mapping[dbKey];
           const val = data[dbKey];
-          if (formKey.startsWith('Photo')) { setPhotoPreview(formKey, val); }
+          if (formKey.startsWith('Photo')) { setPhotoPreview(formKey, val); return; }
           const el = carForm.querySelector(`[name="${formKey}"]`);
           if (!el) return;
           if (el.type === 'radio') {
@@ -343,7 +375,7 @@
         const img = box.querySelector('.preview-img'), input = box.querySelector(`input[name="${target}"]`);
         input.value = url || "";
         if (url) { img.src = url; img.style.display = 'block'; }
-        else { img.style.display = 'none'; }
+        else { img.src = ""; img.style.display = 'none'; }
       }
 
       document.querySelectorAll('.js-photo-upload').forEach(box => {
@@ -352,48 +384,143 @@
 
       fileInput.onchange = async (e) => {
         const file = e.target.files[0]; if (!file || !activeTarget) return;
+        const statusText = document.querySelector(`[data-target="${activeTarget}"]`).querySelector('.photo-label');
+        const originalLabel = statusText.innerText;
+        statusText.innerText = "読込中...";
         try {
           const path = `images/${auth.currentUser.uid}/${Date.now()}_${activeTarget}.jpg`;
           const ref = storage.ref().child(path);
           await ref.put(file);
           const url = await ref.getDownloadURL();
           setPhotoPreview(activeTarget, url);
-        } catch (err) { alert("アップロード失敗"); }
+          statusText.innerText = originalLabel;
+        } catch (err) { alert("アップ失敗"); statusText.innerText = originalLabel; }
       };
 
-submitBtn.onclick = async () => {
+      submitBtn.onclick = async () => {
         const fd = new FormData(carForm);
-        const rawData = {}; 
-        fd.forEach((v, k) => rawData[k] = v);
+        const raw = {}; 
+        fd.forEach((v, k) => raw[k] = v);
 
-        // --- 最終ガード：必須項目すべてチェック ---
-        const handleName = (rawData.HandleName || "").trim();
-        const prefecture = (rawData.Prefecture || "").trim();
-        const year = (rawData.Year || "").trim();
-        const modelA = rawData.ModelSelectA; // 車種（ドロップダウン）
-        const modelB = rawData.ModelSelectB; // 詳細（ドロップダウン）
-        const photoMain = rawData.PhotoMain;
+        // --- 厳格なバリデーション ---
+        const handleName = (raw.HandleName || "").trim();
+        const prefecture = (raw.Prefecture || "").trim();
+        const year = (raw.Year || "").trim();
+        const modelA = raw.ModelSelectA;
+        const modelB = raw.ModelSelectB;
+        const photoMain = raw.PhotoMain;
 
         if (!handleName || !prefecture || !year || !modelA || !modelB || !photoMain) { 
-          alert("必須項目（名前・都道府県・年式・車種・詳細・写真）をすべて入力してください"); 
+          alert("必須項目（名前・都道府県・年式・車種・詳細・メイン写真）をすべて入力してください。"); 
           return; 
         }
-        // --- チェックここまで ---
 
         submitBtn.disabled = true; submitBtn.textContent = "保存中...";
-        // ...以下保存処理        submitBtn.disabled = true; submitBtn.textContent = "保存中...";
+
         try {
-          const dbData = {
-            owner_email: auth.currentUser.email.toLowerCase(),
-            handle_name: raw.HandleName, prefecture: raw.Prefecture, model_select_a: raw.ModelSelectA, model_text_a: raw.ModelTextA, model_select_b: raw.ModelSelectB, model_text_b: raw.ModelTextB, year: raw.Year, body_color: raw.BodyColor, length_cm: raw.Length_cm, capacity: raw.Capacity, steering: raw.Steering, engine_cc: raw.EngineCC, engine_type_select: raw.EngineTypeSelect, engine_type_text: raw.EngineTypeText, ignition_type: raw.IgnitionType, ignition_sub_type: raw.IgnitionSubType, distribution_type: raw.DistributionType, coil_name: raw.CoilName, plug_name: raw.PlugName, fuel_injection: raw.FuelInjection, carburetor_name: raw.CarburetorName, fuel_pump: raw.FuelPump, electric_pump_name: raw.ElectricPumpName, generator: raw.Generator, oil_cooler: raw.OilCooler, transmission: raw.Transmission, synchro: raw.Synchro, joint: raw.Joint, wheel: raw.Wheel, rim_diameter_in: raw.RimDiameter_in, rim_width_in: raw.RimWidth_in, tire_type: raw.TireType, tire_size: raw.TireSize, tire_brand_name: raw.TireBrandName, engine_oil: raw.EngineOil, engine_oil_interval: raw.EngineOilInterval, transmission_oil: raw.TransmissionOil, transmission_oil_interval: raw.TransmissionOilInterval, battery: raw.Battery, highlights: raw.Highlights, x_twitter: raw.X_Twitter, instagram: raw.Instagram, youtube: raw.YouTube, minkara: raw.Minkara, facebook: raw.Facebook, threads: raw.Threads, blog_or_website: raw.BlogOrWebsite, photo_main: raw.PhotoMain, photo_front: raw.PhotoFront, photo_side: raw.PhotoSide, photo_rear: raw.PhotoRear, photo_engine: raw.PhotoEngine, photo_steering_cluster: raw.PhotoSteeringCluster, photo_interior: raw.PhotoInterior, updated_at: new Date()
+          const isNew = !raw.DocumentID;
+          const userEmail = auth.currentUser.email.toLowerCase();
+
+          const supabaseData = {
+            owner_email: userEmail,
+            handle_name: handleName,
+            prefecture: prefecture,
+            model_select_a: modelA,
+            model_text_a: raw.ModelTextA,
+            model_select_b: modelB,
+            model_text_b: raw.ModelTextB,
+            year: year,
+            body_color: raw.BodyColor,
+            length_cm: raw.Length_cm || null,
+            capacity: raw.Capacity,
+            steering: raw.Steering,
+            engine_cc: raw.EngineCC,
+            engine_type_select: raw.EngineTypeSelect,
+            engine_type_text: raw.EngineTypeText,
+            ignition_type: raw.IgnitionType,
+            ignition_sub_type: raw.IgnitionSubType,
+            distribution_type: raw.DistributionType,
+            coil_name: raw.CoilName,
+            plug_name: raw.PlugName,
+            fuel_injection: raw.FuelInjection,
+            carburetor_name: raw.CarburetorName,
+            fuel_pump: raw.FuelPump,
+            electric_pump_name: raw.ElectricPumpName,
+            generator: raw.Generator,
+            oil_cooler: raw.OilCooler,
+            transmission: raw.Transmission,
+            synchro: raw.Synchro,
+            joint: raw.Joint,
+            wheel: raw.Wheel,
+            rim_diameter_in: raw.RimDiameter_in || null,
+            rim_width_in: raw.RimWidth_in || null,
+            tire_type: raw.TireType,
+            tire_size: raw.TireSize,
+            tire_brand_name: raw.TireBrandName,
+            engine_oil: raw.EngineOil,
+            engine_oil_interval: raw.EngineOilInterval,
+            transmission_oil: raw.TransmissionOil,
+            transmission_oil_interval: raw.TransmissionOilInterval,
+            battery: raw.Battery,
+            highlights: raw.Highlights,
+            x_twitter: raw.X_Twitter,
+            instagram: raw.Instagram,
+            youtube: raw.YouTube,
+            minkara: raw.Minkara,
+            facebook: raw.Facebook,
+            threads: raw.Threads,
+            blog_or_website: raw.BlogOrWebsite,
+            photo_main: raw.PhotoMain,
+            photo_front: raw.PhotoFront,
+            photo_side: raw.PhotoSide,
+            photo_rear: raw.PhotoRear,
+            photo_engine: raw.PhotoEngine,
+            photo_steering_cluster: raw.PhotoSteeringCluster,
+            photo_interior: raw.PhotoInterior,
+            // 新規時はtrue、編集時は選択値
+            accept_inquiry: isNew ? true : (raw.AcceptInquiry === "true"),
+            updated_at: new Date()
           };
-          if (raw.DocumentID) dbData.document_id = raw.DocumentID;
-          const { data, error } = await supabaseClient.from('cars').upsert(dbData, { onConflict: 'document_id' }).select();
+
+          if (!isNew) supabaseData.document_id = raw.DocumentID;
+
+          const { data: savedData, error } = await supabaseClient
+            .from('cars')
+            .upsert(supabaseData, { onConflict: 'document_id' })
+            .select();
+
           if (error) throw error;
-          alert("保存しました！"); window.location.href = `detail.html?doc=${data[0].document_id}`;
-        } catch (e) { alert("保存エラー: " + e.message); submitBtn.disabled = false; }
+
+          const finalDocId = savedData[0].document_id;
+
+          // 新規登録時のみGASへサンクスメール依頼
+          if (isNew) {
+            fetch(API_URL, {
+              method: 'POST',
+              mode: 'no-cors',
+              body: JSON.stringify({
+                action: 'send_thanks_email',
+                formData: {
+                  email: userEmail,
+                  handleName: handleName,
+                  docId: finalDocId
+                }
+              })
+            });
+          }
+
+          alert("マイガレージを保存しました！"); 
+          window.location.href = `detail.html?doc=${finalDocId}`;
+        } catch (e) { 
+          alert("保存エラー: " + e.message); 
+          submitBtn.disabled = false; 
+          submitBtn.textContent = "再試行";
+        }
       };
 
+      document.getElementById('ModelSelectA').onchange = (e) => { document.getElementById('ModelSelectAWrapper').style.display = (e.target.value === 'その他') ? 'block' : 'none'; };
+      document.getElementById('ModelSelectB').onchange = (e) => { document.getElementById('ModelSelectBWrapper').style.display = (e.target.value === 'その他') ? 'block' : 'none'; };
+      document.getElementById('EngineTypeSelect').onchange = (e) => { document.getElementById('EngineTypeSelectWrapper').style.display = (e.target.value === 'その他') ? 'block' : 'none'; };
       document.getElementById('googleLoginBtn').onclick = () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
       document.getElementById('logoutBtn').onclick = () => auth.signOut().then(() => location.reload());
     })();
