@@ -1,261 +1,100 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
   <meta charset="utf-8">
-  <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-27SHHC4JYH');
-</script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-27SHHC4JYH');
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>車両詳細 - Registro500 Giappone</title>
   
   <link rel="manifest" href="manifest.json">
-
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   
-  <!-- Firebase SDK -->
+  <!-- Firebase & Supabase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  
   <script src="config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-</script>  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  </script>  
 
   <style>
-    /* ========== ベース設定 ========== */
     html { font-size: 16px !important; }
     @media (min-width: 1025px) { html { font-size: 18px !important; } }
-    small, .small { font-size: 1rem; }
-
     :root {
       --rg-surface: #ffffff; --rg-surface-sub: #f8fafc; --rg-bg: #f4f6f8;
       --rg-border: #e5e7eb; --rg-text: #111827; --rg-muted: #6b7280;
       --rg-accent: #2856a8; --rg-accent-soft: #e6efff; --rg-accent-border: #c2d4ff;
       --rg-radius-card: 1rem;
     }
-
-    body {
-      margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      line-height: 1.7; color: var(--rg-text); background: var(--rg-bg);
-      padding-bottom: 96px; 
-      padding-top: 70px; 
-    }
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; line-height: 1.7; color: var(--rg-text); background: var(--rg-bg); padding-bottom: 96px; padding-top: 70px; }
     @media (min-width: 1025px) { body { padding-top: 90px; } }
 
-    .rg-main { max-width: 72rem; }
-    
-    .rg-header-bar {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-      background: rgba(244, 246, 248, 0.9); backdrop-filter: blur(8px);
-      box-shadow: 0 1px 5px rgba(0,0,0,0.05);
-      height: 60px; display: grid; grid-template-columns: 1fr auto 1fr; 
-      align-items: center; padding: 0 1rem;
-    }
-    @media (min-width: 1025px) { .rg-header-bar { height: 80px; padding: 0 2rem; } }
-
-    .rg-back-link a {
-      text-decoration: none; color: var(--rg-accent); font-weight: 600;
-      white-space: nowrap; font-size: 0.95rem; transition: opacity 0.2s;
-    }
-    .rg-back-link a:hover { opacity: 0.7; }
-
-    .rg-header-logo img {
-      height: 32px; width: auto; object-fit: contain; mix-blend-mode: multiply; display: block;
-    }
-    @media (min-width: 1025px) { .rg-header-logo img { height: 54px; } }
-
-    .rg-header-right { text-align: right; }
-
-    .rg-card {
-      background: var(--rg-surface); border-radius: var(--rg-radius-card);
-      border: 1px solid var(--rg-border); padding: 1.2rem;
-    }
-
-    @media (min-width: 992px) {
-      .rg-photo-col { position: sticky; top: calc(90px + 1rem); }
-    }
-
-    .rg-photo-square {
-      position: relative; width: 100%; padding-top: 100%; 
-      border-radius: 0.9rem; border: 1px solid var(--rg-border);
-      overflow: hidden; background: var(--rg-surface-sub);
-    }
-    .rg-photo-square > img {
-      position: absolute; inset: 0; width: 100%; height: 100%;
-      object-fit: cover; display: block; cursor: zoom-in;
-    }
-
-    .rg-photo-title-main {
-      margin-top: 1rem; margin-bottom: 0.2rem; display: flex; flex-wrap: wrap;
-      gap: 0.35rem; align-items: baseline; 
-      font-size: 1.4rem; font-weight: 800; letter-spacing: 0.01em; line-height: 1.3;
-    }
-    .rg-photo-year { font-size: 0.8em; font-weight: 600; color: var(--rg-muted); }
-    .rg-photo-model-main { font-weight: inherit; }
-
-    .rg-photo-owner-row {
-      margin-top: 0.5rem; font-size: 1rem; display: flex; align-items: center;
-      gap: 0.5rem; line-height: 1.4;
-    }
-    .rg-photo-handle { font-weight: 600; }
-    .rg-photo-pref {
-      margin-left: auto; padding: 0.15rem 0.8rem; border-radius: 999px;
-      background: var(--rg-accent-soft); border: 1px solid var(--rg-accent-border);
-      color: var(--rg-accent); font-size: 0.85rem; white-space: nowrap;
-    }
-
-    .rg-action-bar {
-      display: flex; gap: 8px; 
-      margin-top: 0;
-    }
-    .rg-btn-action {
-      flex: 1; display: inline-flex; align-items: center; justify-content: center;
-      padding: 12px; border-radius: 8px; font-size: 0.9rem; font-weight: 600;
-      text-decoration: none; color: #fff; border: none; cursor: pointer;
-      transition: opacity 0.2s;
-    }
-    .rg-btn-action:hover { opacity: 0.9; color: #fff; }
-    .btn-qr { background-color: #374151; }
-    .btn-x { background-color: #000000; }
-    .btn-fb { background-color: #1877F2; }
-    
-    /* 問い合わせボタン */
-    .btn-contact { 
-      background-color: var(--rg-accent); color: white; width: 100%; 
-      border-radius: 8px; font-weight: bold; padding: 12px; border:none; 
-      margin-top:10px; cursor: pointer; transition: opacity 0.2s;
-    }
-    .btn-contact:hover { opacity: 0.9; }
-
-    .rg-section-title {
-      display: block; margin: 0 0 1rem; font-weight: 700; font-size: 1.15rem; 
-      padding: 0.5rem 1rem; background: #eff6ff; 
-      border-left: 6px solid var(--rg-accent); border-bottom: 1px solid var(--rg-border); 
-      border-radius: 4px; color: var(--rg-accent); line-height: 1.4;
-    }
-    .rg-section-title::before { content: none; }
-
-    .rg-spec-grid {
-      display: grid; grid-template-columns: 8.2rem 1fr; 
-      column-gap: 0.5rem; row-gap: 0; margin: 0; font-size: 0.95rem;
-      border-top: 1px solid var(--rg-border); border-bottom: 1px solid var(--rg-border);
-    }
-    .rg-spec-grid dt, .rg-spec-grid dd {
-      padding: 0.6rem 0.4rem; border-top: 1px solid var(--rg-border); margin: 0; line-height: 1.5;
-    }
-    .rg-spec-grid dt {
-      font-weight: 700; color: var(--rg-muted); background: rgba(148, 163, 184, 0.05); 
-      white-space: nowrap; font-size: 0.9rem;
-    }
-    .rg-spec-grid dd { white-space: pre-wrap; word-break: break-word; }
-    @media (min-width: 1025px) {
-      .rg-spec-grid { grid-template-columns: minmax(8rem, 10rem) 1fr; }
-      .rg-spec-grid dt { font-size: 0.95rem; }
-    }
-
-    .rg-highlights { margin: 0; font-size: 0.95rem; line-height: 1.7; }
-
-    .rg-gallery-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-      gap: 0.8rem; margin: 0;
-    }
-    .rg-gallery-thumb {
-      border-radius: 0.6rem; border: none; background: transparent;
-      overflow: hidden; position: relative; padding-top: 100%;
-    }
-    .rg-gallery-thumb > img {
-      position: absolute; inset: 0; width: 100%; height: 100%;
-      object-fit: cover; display: block; cursor: zoom-in;
-    }
-    @media (min-width: 1025px) {
-      .rg-gallery-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
-    }
-
-    /* ライトボックス & QRモーダル & 問い合わせフォーム */
-    .rg-modal {
-      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9);
-      display: none; align-items: center; justify-content: center; z-index: 9999;
-    }
+    .rg-header-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(244, 246, 248, 0.9); backdrop-filter: blur(8px); box-shadow: 0 1px 5px rgba(0,0,0,0.05); height: 60px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 1rem; }
+    .rg-back-link a { text-decoration: none; color: var(--rg-accent); font-weight: 600; font-size: 0.95rem; }
+    .rg-header-logo img { height: 32px; width: auto; mix-blend-mode: multiply; display: block; }
+    .rg-card { background: var(--rg-surface); border-radius: var(--rg-radius-card); border: 1px solid var(--rg-border); padding: 1.2rem; }
+    .rg-photo-square { position: relative; width: 100%; padding-top: 100%; border-radius: 0.9rem; overflow: hidden; background: var(--rg-surface-sub); border: 1px solid var(--rg-border); }
+    .rg-photo-square > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+    .rg-photo-title-main { margin-top: 1rem; font-size: 1.4rem; font-weight: 800; line-height: 1.3; }
+    .rg-photo-year { font-size: 0.8em; color: var(--rg-muted); }
+    .rg-photo-owner-row { margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+    .rg-photo-pref { margin-left: auto; padding: 0.15rem 0.8rem; border-radius: 999px; background: var(--rg-accent-soft); border: 1px solid var(--rg-accent-border); color: var(--rg-accent); font-size: 0.85rem; }
+    .rg-section-title { display: block; margin: 0 0 1rem; font-weight: 700; font-size: 1.15rem; padding: 0.5rem 1rem; background: #eff6ff; border-left: 6px solid var(--rg-accent); color: var(--rg-accent); border-radius: 4px; }
+    .rg-spec-grid { display: grid; grid-template-columns: 8.2rem 1fr; border-top: 1px solid var(--rg-border); }
+    .rg-spec-grid dt, .rg-spec-grid dd { padding: 0.6rem 0.4rem; border-bottom: 1px solid var(--rg-border); margin: 0; }
+    .rg-spec-grid dt { font-weight: 700; color: var(--rg-muted); background: rgba(148,163,184,0.05); font-size: 0.9rem; }
+    .rg-gallery-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 0.8rem; }
+    .rg-gallery-thumb { border-radius: 0.6rem; overflow: hidden; position: relative; padding-top: 100%; }
+    .rg-gallery-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .rg-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9); display: none; align-items: center; justify-content: center; z-index: 9999; }
     .rg-modal.is-open { display: flex; }
-    .rg-modal-inner {
-      max-width: 95vw; max-height: 95vh; position: relative;
-      text-align: center;
-    }
-    .rg-modal-inner img {
-      max-width: 100%; max-height: 95vh; object-fit: contain; border-radius: 0.5rem;
-    }
-    .rg-qr-card, .rg-form-card {
-      background: white; padding: 25px; border-radius: 16px; text-align: center;
-      max-width: 90%; width: 450px;
-    }
-    .rg-qr-title { font-weight: bold; color: var(--rg-accent); margin-bottom: 10px; font-size: 1.2rem; }
-    .rg-qr-desc { font-size: 0.85rem; color: #666; margin-bottom: 15px; line-height: 1.5; text-align: left; background: #f9f9f9; padding:10px; border-radius:6px; }
+    .rg-modal-inner { max-width: 95vw; max-height: 95vh; position: relative; }
+    .btn-contact { background-color: var(--rg-accent); color: white; width: 100%; border-radius: 8px; font-weight: bold; padding: 12px; border:none; margin-top:10px; }
     
-    .rg-modal-close {
-      position: absolute; top: -2.5rem; right: 0; border: none; 
-      font-size: 2rem; color: #fff; background: transparent; cursor: pointer;
-    }
-
-    .rg-edit-btn {
-      font-size: 0.9rem; padding: 0.3rem 1.0rem; border-radius: 999px;
-      border: 1px solid var(--rg-accent-border); background: var(--rg-accent-soft);
-      color: var(--rg-accent); text-decoration: none; display: inline-flex;
-      align-items: center; gap: 0.35rem; font-weight: 600;
-      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.16); white-space: nowrap;
-    }
-    .rg-edit-btn:hover { background: var(--rg-accent); color: #ffffff; }
-
-    #loading { text-align:center; padding:50px; font-size:1rem; color:#666; }
-    #content { display:none; }
-
-    /* 問い合わせフォーム用CSS */
-    .inquiry-input { 
-      width: 100%; margin-bottom: 10px; padding: 10px; 
-      border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; box-sizing: border-box;
-    }
-    .inquiry-textarea { 
-      width: 100%; height: 120px; margin-bottom: 10px; padding: 10px; 
-      border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; resize: vertical; box-sizing: border-box;
-    }
+    /* マイメニューの調整 */
+    .dropdown-menu { border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid var(--rg-border); }
+    .dropdown-item { font-size: 0.9rem; padding: 0.7rem 1.2rem; }
   </style>
 </head>
 
 <body>
    
    <header class="rg-header-bar">
-     <div class="rg-back-link">
-       <a href="index.html">← ガレージに戻る</a>
-     </div>
-     <div class="rg-header-logo">
-       <img src="logo_horizontal.png" alt="Registro500 Giappone">
-     </div>
-     <div class="rg-header-right">
-       <a id="editBtn" class="rg-edit-btn" href="#" style="display:none;">
-         <span class="rg-edit-icon">✏️</span>
-         編集
-       </a>
+     <div class="rg-back-link"><a href="index.html">← タイムライン</a></div>
+     <div class="rg-header-logo"><img src="logo_horizontal.png" alt="Registro500"></div>
+     <div class="rg-header-right" id="ownerMenuArea" style="display:none;">
+        <div class="dropdown">
+          <button class="btn btn-outline-primary btn-sm dropdown-toggle rounded-pill px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            マイメニュー
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item fw-bold" href="#" id="editThisCarLink">✏️ この車両を編集</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="edit.html?mode=new">➕ 2台目を登録する</a></li>
+            <li><a class="dropdown-item text-muted" href="edit.html">🏠 マイガレージへ</a></li>
+          </ul>
+        </div>
      </div>
    </header>
 
-   <main class="container-lg rg-main py-3">
-   <div id="loading">詳細データを読み込んでいます...</div>
+   <main class="container-lg py-3">
+   <div id="loading" class="text-center py-5">データを読み込んでいます...</div>
 
-   <div id="content">
-      <div class="row g-4 align-items-start">
+   <div id="content" style="display:none;">
+      <div class="row g-4">
         
-        <!-- 左カラム：写真・基本情報・ギャラリー -->
-        <div class="col-12 col-lg-5 rg-photo-col">
-          <section class="rg-card mb-3">
+        <!-- 左：写真 -->
+        <div class="col-12 col-lg-5">
+          <section class="rg-card mb-3 text-center">
             <div class="rg-photo-square">
-              <img id="photoMain" src="" alt="メイン写真" data-rg-zoomable onerror="this.src=NO_IMAGE_URL">
+              <img id="photoMain" src="" data-rg-zoomable onerror="this.src=NO_IMAGE_URL">
             </div>
             <div class="rg-photo-title-main">
               <span id="year" class="rg-photo-year"></span>
@@ -272,65 +111,32 @@
           </section>
         </div>
 
-        <!-- 右カラム：スペック・SNS・シェア・問い合わせ -->
+        <!-- 右：詳細スペック -->
         <div class="col-12 col-lg-7">
           <section class="rg-card mb-3">
             <h2 class="rg-section-title">ボディスペック</h2>
             <dl class="rg-spec-grid js-auto-hide">
-              <dt>ボディカラー</dt><dd id="val_BodyColor"></dd>
-              <dt>全長 (cm)</dt><dd id="val_Length_cm"></dd>
-              <dt>乗車定員</dt><dd id="val_Capacity"></dd>
-              <dt>ハンドル</dt><dd id="val_Steering"></dd>
+              <dt>ボディカラー</dt><dd id="val_body_color"></dd>
+              <dt>全長 (cm)</dt><dd id="val_length_cm"></dd>
+              <dt>乗車定員</dt><dd id="val_capacity"></dd>
+              <dt>ハンドル</dt><dd id="val_steering"></dd>
             </dl>
           </section>
 
           <section class="rg-card mb-3">
             <h2 class="rg-section-title">エンジン関係</h2>
             <dl class="rg-spec-grid js-auto-hide">
-              <dt>排気量 (cc)</dt><dd id="val_EngineCC"></dd>
-              <dt>エンジン形式</dt><dd id="val_Engine_Display"></dd>
-              <dt>点火形式</dt><dd id="val_IgnitionType"></dd>
-              <dt>点火製品名</dt><dd id="val_IgnitionSubType"></dd>
-              <dt>デスビ/プラグ</dt><dd id="val_DistPlug"></dd>
-              <dt>コイル</dt><dd id="val_CoilName"></dd>
-              <dt>燃料供給装置</dt><dd id="val_FuelInjection"></dd>
-              <dt>キャブレター</dt><dd id="val_CarburetorName"></dd>
-              <dt>燃料ポンプ</dt><dd id="val_FuelPump"></dd>
-              <dt>電ポン</dt><dd id="val_ElectricPumpName"></dd>
-              <dt>発電機</dt><dd id="val_Generator"></dd>
-              <dt>オイルクーラー</dt><dd id="val_OilCooler"></dd>
-            </dl>
-          </section>
-
-          <section class="rg-card mb-3">
-            <h2 class="rg-section-title">駆動系・足回り</h2>
-            <dl class="rg-spec-grid js-auto-hide">
-              <dt>トランスミッション</dt><dd id="val_Transmission"></dd>
-              <dt>シンクロ</dt><dd id="val_Synchro"></dd>
-              <dt>ジョイント</dt><dd id="val_Joint"></dd>
-              <dt>ホイール</dt><dd id="val_Wheel"></dd>
-              <dt>リム径 (inch)</dt><dd id="val_RimDiameter_in"></dd>
-              <dt>リム幅 (inch)</dt><dd id="val_RimWidth_in"></dd>
-              <dt>タイヤ形式</dt><dd id="val_TireType"></dd>
-              <dt>タイヤサイズ</dt><dd id="val_TireSize"></dd>
-              <dt>タイヤメーカー</dt><dd id="val_TireBrandName"></dd>
-            </dl>
-          </section>
-
-          <section class="rg-card mb-3">
-            <h2 class="rg-section-title">オイル・バッテリー他</h2>
-            <dl class="rg-spec-grid js-auto-hide">
-              <dt>エンジンオイル</dt><dd id="val_EngineOil"></dd>
-              <dt>交換周期</dt><dd id="val_EngineOilInterval"></dd>
-              <dt>ミッションオイル</dt><dd id="val_TransmissionOil"></dd>
-              <dt>交換周期</dt><dd id="val_TransmissionOilInterval"></dd>
-              <dt>バッテリー</dt><dd id="val_Battery"></dd>
+              <dt>排気量 (cc)</dt><dd id="val_engine_cc"></dd>
+              <dt>形式</dt><dd id="val_engine_display"></dd>
+              <dt>点火形式</dt><dd id="val_ignition_type"></dd>
+              <dt>燃料供給</dt><dd id="val_fuel_injection"></dd>
+              <dt>発電機</dt><dd id="val_generator"></dd>
             </dl>
           </section>
 
           <section class="rg-card mb-3" id="highlightsSection" style="display:none;">
             <h2 class="rg-section-title">こだわりポイント</h2>
-            <p class="rg-highlights" id="val_Highlights"></p>
+            <p id="val_highlights" style="white-space: pre-wrap;"></p>
           </section>
 
           <section class="rg-card mb-3" id="snsSection" style="display:none;">
@@ -339,417 +145,128 @@
           </section>
 
           <section class="rg-card mb-3">
-            <h2 class="rg-section-title">ページを共有</h2>
-            <div class="rg-action-bar">
-              <button class="rg-btn-action btn-qr" onclick="showQRCode()">
-                QR表示
-              </button>
-              <a id="shareX" class="rg-btn-action btn-x" href="#" target="_blank">
-                Xでシェア
-              </a>
-              <a id="shareFb" class="rg-btn-action btn-fb" href="#" target="_blank">
-                Facebook
-              </a>
+            <h2 class="rg-section-title">共有・連絡</h2>
+            <div class="d-flex gap-2 mb-2">
+              <button class="btn btn-dark flex-grow-1" onclick="showQRCode()">QR表示</button>
+              <a id="shareX" class="btn btn-black text-white flex-grow-1" style="background:#000;" target="_blank">Xシェア</a>
+            </div>
+            <div id="contactArea" style="display:none;">
+               <button class="btn-contact" onclick="openContactForm()">オーナーへ問い合わせ</button>
             </div>
           </section>
-
-          <!-- ★ 問い合わせエリア (独立したカードとして配置) -->
-          <section class="rg-card mb-3" id="contactArea" style="display:none;">
-            <h2 class="rg-section-title">オーナーへ連絡</h2>
-            <div style="text-align:left;">
-              <p style="font-size:0.9rem; color:#333; margin-bottom:15px; line-height:1.6;">
-                この車両について、オーナー様へメッセージを送ることができます。<br>
-                <small style="color:#666;">※あなたのメールアドレスは非公開のまま転送されます。</small>
-              </p>
-              <button class="btn-contact" onclick="openContactForm()">問い合わせフォームを開く</button>
-            </div>
-          </section>
-
         </div>
       </div>
    </div>
    </main>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
   <script>
     const params = new URLSearchParams(window.location.search);
     const docId = params.get('doc');
-    
-    // ログイン状態と車両データを保持する変数
-    let currentUser = null;
-    let currentCarData = null;
+    let currentCar = null;
 
-    // Firebaseの初期化とログイン状態監視
-    if (typeof firebase !== 'undefined') {
-      if (firebase.apps.length === 0) {
-        firebase.initializeApp(FIREBASE_CONFIG);
-      }
-      firebase.auth().onAuthStateChanged(user => {
-        currentUser = user;
-        updateContactButton(); // ログイン状態が変わったらボタン表示を更新
-      });
-    }
+    if (firebase.apps.length === 0) firebase.initializeApp(FIREBASE_CONFIG);
 
-async function fetchDetail() {
-      if (!docId) {
-        document.getElementById('loading').textContent = 'エラー: 車両IDが指定されていません';
-        return;
-      }
-      try {
-        const { data, error } = await supabaseClient
-          .from('cars')
-          .select(`
-            DocumentID:document_id,
-            OwnerEmail:owner_email,
-            HandleName:handle_name,
-            Prefecture:prefecture,
-            Year:year,
-            BodyColor:body_color,
-            Length_cm:length_cm,
-            Capacity:capacity,
-            Steering:steering,
-            EngineCC:engine_cc,
-            Engine_Display:engine_display,
-            IgnitionType:ignition_type,
-            IgnitionSubType:ignition_sub_type,
-            FuelInjection:fuel_injection,
-            CarburetorName:carburetor_name,
-            FuelPump:fuel_pump,
-            ElectricPumpName:electric_pump_name,
-            Generator:generator,
-            OilCooler:oil_cooler,
-            CoilName:coil_name,
-            PlugName:plug_name,
-            DistributionType:distribution_type,
-            Transmission:transmission,
-            Synchro:synchro,
-            Joint:joint,
-            Wheel:wheel,
-            RimDiameter_in:rim_diameter_in,
-            RimWidth_in:rim_width_in,
-            TireType:tire_type,
-            TireSize:tire_size,
-            TireBrandName:tire_brand_name,
-            EngineOil:engine_oil,
-            EngineOilInterval:engine_oil_interval,
-            TransmissionOil:transmission_oil,
-            TransmissionOilInterval:transmission_oil_interval,
-            Battery:battery,
-            Highlights:highlights,
-            X_Twitter:x_twitter,
-            Instagram:instagram,
-            YouTube:youtube,
-            Minkara:minkara,
-            Facebook:facebook,
-            Threads:threads,
-            BlogOrWebsite:blog_or_website,
-            PhotoMain:photo_main,
-            PhotoFront:photo_front,
-            PhotoSide:photo_side,
-            PhotoRear:photo_rear,
-            PhotoEngine:photo_engine,
-            PhotoInterior:photo_interior,
-            PhotoSteeringCluster:photo_steering_cluster,
-            AcceptInquiry:accept_inquiry,
-            Model_DisplayC:model_display_c
-          `)
-          .eq('document_id', docId)
-          .single();
+    async function fetchDetail() {
+      if (!docId) return;
+      const { data, error } = await supabaseClient
+        .from('cars')
+        .select('*')
+        .eq('document_id', docId)
+        .single();
 
-        if (error) throw error;
-
-        if (data) {
-          currentCarData = data;
-          renderDetail(data); // これで car.BodyColor などが正しく認識されます
-        }
-      } catch (e) {
-        console.error("Supabaseエラー:", e);
-        document.getElementById('loading').textContent = 'データの取得に失敗しました';
+      if (data) {
+        currentCar = data;
+        renderDetail(data);
+        checkOwnership(data);
+      } else {
+        document.getElementById('loading').textContent = "車両が見つかりません";
       }
     }
-    
+
     function renderDetail(car) {
       document.getElementById('loading').style.display = 'none';
       document.getElementById('content').style.display = 'block';
 
-      // 1. 基本情報
-      setText('year', car.Year ? car.Year + '年' : '');
-      setText('modelMain', (car.Model_DisplayC || '').replace(/\s*\(\d{4}\)\s*$/, ''));
-      setText('handleName', car.HandleName);
-      setText('prefecture', car.Prefecture);
+      // 基本
+      document.getElementById('year').textContent = car.year ? car.year + '年' : '';
+      document.getElementById('modelMain').textContent = (car.model_display_c || 'FIAT 500').replace(/\(\d{4}\)/, '');
+      document.getElementById('handleName').textContent = car.handle_name;
+      document.getElementById('prefecture').textContent = car.prefecture;
+      document.getElementById('photoMain').src = car.photo_main || NO_IMAGE_URL;
 
-      const mainImg = document.getElementById('photoMain');
-      mainImg.src = car.PhotoMain || NO_IMAGE_URL;
-
-      const editBtn = document.getElementById('editBtn');
-      editBtn.href = `edit.html?doc=${encodeURIComponent(car.DocumentID)}`;
-      
-      // 問い合わせボタンの表示判定を実行
-      updateContactButton();
-
-      // シェアボタン設定
-      const pageUrl = window.location.href;
-      const shareText = `Registro500 Giapponeに登録しました！ ${car.Year || ''}年式 ${car.Model_DisplayC || ''} (${car.HandleName}さん/ ${car.Prefecture || ''}) #Registro500 #Fiat500`;
-      
-      const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(pageUrl)}`;
-      document.getElementById('shareX').href = xUrl;
-
-      const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}`;
-      document.getElementById('shareFb').href = fbUrl;
-
-      // 3. スペック紐付け
-      const map = {
-        'val_BodyColor': car.BodyColor,
-        'val_Length_cm': car.Length_cm,
-        'val_Capacity': car.Capacity,
-        'val_Steering': car.Steering,
-        'val_EngineCC': car.EngineCC,
-        'val_Engine_Display': car.Engine_Display,
-        'val_IgnitionType': car.IgnitionType,
-        'val_IgnitionSubType': car.IgnitionSubType,
-        'val_FuelInjection': car.FuelInjection,
-        'val_CarburetorName': car.CarburetorName,
-        'val_FuelPump': car.FuelPump,
-        'val_ElectricPumpName': car.ElectricPumpName,
-        'val_Generator': car.Generator,
-        'val_OilCooler': car.OilCooler,
-        'val_CoilName': car.CoilName,
-        'val_Transmission': car.Transmission,
-        'val_Synchro': car.Synchro,
-        'val_Joint': car.Joint,
-        'val_Wheel': car.Wheel,
-        'val_RimDiameter_in': car.RimDiameter_in,
-        'val_RimWidth_in': car.RimWidth_in,
-        'val_TireType': car.TireType,
-        'val_TireSize': car.TireSize,
-        'val_TireBrandName': car.TireBrandName,
-        'val_EngineOil': car.EngineOil,
-        'val_EngineOilInterval': car.EngineOilInterval,
-        'val_TransmissionOil': car.TransmissionOil,
-        'val_TransmissionOilInterval': car.TransmissionOilInterval,
-        'val_Battery': car.Battery
-      };
-      for (const [id, val] of Object.entries(map)) setText(id, val);
-
-      const dist = car.DistributionType || '';
-      const plug = car.PlugName || '';
-      setText('val_DistPlug', (dist && plug) ? `${dist} / ${plug}` : (dist || plug));
+      // スペック（snake_caseに対応）
+      const fields = ['body_color', 'length_cm', 'capacity', 'steering', 'engine_cc', 'engine_display', 'ignition_type', 'fuel_injection', 'generator'];
+      fields.forEach(f => {
+        const el = document.getElementById('val_' + f);
+        if (el) el.textContent = car[f] || '';
+      });
 
       // 空欄隠し
       document.querySelectorAll('.js-auto-hide').forEach(dl => {
-        const dts = dl.querySelectorAll('dt');
-        const dds = dl.querySelectorAll('dd');
-        dts.forEach((dt, i) => {
-          const dd = dds[i];
-          if (!dd.textContent.trim()) {
-            dt.style.display = 'none';
-            dd.style.display = 'none';
-          }
-        });
+        const dts = dl.querySelectorAll('dt'), dds = dl.querySelectorAll('dd');
+        dts.forEach((dt, i) => { if (!dds[i].textContent.trim()) { dt.style.display = 'none'; dds[i].style.display = 'none'; } });
       });
 
-      // こだわり
-      if (car.Highlights) {
+      if (car.highlights) {
         document.getElementById('highlightsSection').style.display = 'block';
-        document.getElementById('val_Highlights').innerHTML = String(car.Highlights).replace(/\r\n|\r|\n/g, '<br>');
+        document.getElementById('val_highlights').textContent = car.highlights;
       }
 
       // ギャラリー
-      const galleryGrid = document.getElementById('galleryGrid');
-      const photos = [
-        { key: 'PhotoFront', label: '前方' },
-        { key: 'PhotoSide', label: '側面' },
-        { key: 'PhotoRear', label: '後方' },
-        { key: 'PhotoEngine', label: 'エンジン' },
-        { key: 'PhotoInterior', label: '内装' },
-        { key: 'PhotoSteeringCluster', label: 'ハンドル/メーター' }
-      ];
-      let hasGallery = false;
-      photos.forEach(p => {
-        if (car[p.key]) {
-          hasGallery = true;
+      const gallery = document.getElementById('galleryGrid');
+      ['photo_front', 'photo_side', 'photo_rear', 'photo_engine', 'photo_interior'].forEach(k => {
+        if (car[k]) {
           const div = document.createElement('div');
-          div.innerHTML = `
-            <div class="rg-gallery-thumb">
-              <img src="${car[p.key]}" alt="${p.label}" data-rg-zoomable onerror="this.src=NO_IMAGE_URL">
-            </div>
-          `;
-          galleryGrid.appendChild(div);
+          div.className = 'rg-gallery-thumb';
+          div.innerHTML = `<img src="${car[k]}" data-rg-zoomable onerror="this.src=NO_IMAGE_URL">`;
+          gallery.appendChild(div);
+          document.getElementById('gallerySection').style.display = 'block';
         }
       });
-      if (hasGallery) document.getElementById('gallerySection').style.display = 'block';
 
       // SNS
       const snsGrid = document.getElementById('snsGrid');
-      const sns = [
-        { key: 'X_Twitter', label: 'X', base: 'https://x.com/' },
-        { key: 'Instagram', label: 'Instagram', base: 'https://www.instagram.com/', suffix: '/' },
-        { key: 'YouTube', label: 'YouTube', base: 'https://www.youtube.com/' },
-        { key: 'Minkara', label: 'みんカラ', base: 'https://minkara.carview.co.jp/userid/', suffix: '/' },
-        { key: 'Facebook', label: 'Facebook' },
-        { key: 'Threads', label: 'Threads' },
-        { key: 'BlogOrWebsite', label: 'Blog/HP' }
-      ];
-      let hasSns = false;
-      sns.forEach(s => {
-        let val = String(car[s.key] || '').trim();
-        if (val) {
-          hasSns = true;
-          let url = val;
-          if (s.base && !/^https?:\/\//i.test(val)) {
-            url = s.base + val.replace(/^@/, '') + (s.suffix || '');
-          }
-          snsGrid.innerHTML += `
-            <dt>${s.label}</dt>
-            <dd><a href="${url}" target="_blank" rel="noopener noreferrer">${val}</a></dd>
-          `;
+      const snsList = [{k:'x_twitter', l:'X', b:'https://x.com/'}, {k:'instagram', l:'Instagram', b:'https://instagram.com/'}];
+      snsList.forEach(s => {
+        if (car[s.k]) {
+          const val = car[s.k].replace('@','');
+          snsGrid.innerHTML += `<dt>${s.l}</dt><dd><a href="${s.b}${val}" target="_blank">${val}</a></dd>`;
+          document.getElementById('snsSection').style.display = 'block';
         }
       });
-      if (hasSns) document.getElementById('snsSection').style.display = 'block';
+
+      // Xシェア
+      const shareTxt = `Registro500: ${car.year || ''} ${car.model_display_c} (${car.handle_name}さん)`;
+      document.getElementById('shareX').href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareTxt)}&url=${encodeURIComponent(location.href)}`;
     }
 
-    function setText(id, text) {
-      const el = document.getElementById(id);
-      if (el) el.textContent = text || '';
-    }
-
-    // ★ ボタンの出し分けロジック
-    function updateContactButton() {
-      if (!currentCarData) return;
-      const btnArea = document.getElementById('contactArea');
-      const editBtn = document.getElementById('editBtn');
-      
-      const isOwner = currentUser && currentUser.email === (currentCarData.OwnerEmail || '').toLowerCase();
-
-      // 編集ボタンの表示（オーナーのみ）
-      if (isOwner) {
-        editBtn.style.display = 'inline-flex';
-      } else {
-        editBtn.style.display = 'none';
-      }
-
-      // 問い合わせボタンの表示
-      const accept = String(currentCarData.AcceptInquiry || 'TRUE').toUpperCase();
-      
-      if (accept !== 'FALSE' && currentUser && !isOwner) {
-        btnArea.style.display = 'block';
-      } else {
-        btnArea.style.display = 'none';
-      }
-    }
-
-    // ★ 問い合わせフォームを表示（法的注意書き・不達リスク追記版）
-    window.openContactForm = function() {
-      if (!currentUser) return;
-      
-      const html = `
-        <div class="rg-form-card" style="text-align:left;">
-          <div class="rg-qr-title" style="text-align:center;">オーナーへ連絡</div>
-          <p class="rg-qr-desc">
-            あなたのメールアドレスは非公開のまま転送されますが、<strong>オーナーが返信すると、あなたのアドレスが相手に公開されます。</strong><br>
-            <br>
-            <small style="color:#e11d48;">
-              ※相手の受信設定や容量オーバー等により届かない場合がありますが、不達通知は届きません。<br>
-              ※当サイトは仲介のみを行います。トラブル等について運営は責任を負いません。
-            </small>
-          </p>
-          <label style="font-weight:bold;display:block;margin-top:10px;">お名前</label>
-          <input type="text" id="inqName" class="inquiry-input" placeholder="あなたのハンドルネーム">
-          
-          <label style="font-weight:bold;display:block;">メールアドレス (返信先)</label>
-          <input type="text" id="inqEmail" class="inquiry-input" value="${currentUser.email}" readonly style="background:#eee; color:#666;">
-          
-          <label style="font-weight:bold;display:block;">メッセージ</label>
-          <textarea id="inqMsg" class="inquiry-textarea" placeholder="はじめまして..."></textarea>
-          
-          <button class="btn-contact" onclick="submitInquiry()">上記に同意して送信する</button>
-        </div>
-      `;
-      openModal(html);
-    }
-
-    // ★ 送信処理
-    window.submitInquiry = async function() {
-      const name = document.getElementById('inqName').value;
-      const msg = document.getElementById('inqMsg').value;
-      
-      if(!name || !msg) { alert("お名前とメッセージを入力してください"); return; }
-      
-      const btn = document.querySelector('.rg-form-card .btn-contact');
-      btn.disabled = true;
-      btn.textContent = "送信中...";
-
-      try {
-        const payload = {
-          action: 'inquiry', 
-          formData: {
-            targetDocId: currentCarData.DocumentID,
-            senderName: name,
-            senderEmail: currentUser.email,
-            message: msg
-          }
-        };
-
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(payload)
-        });
-        
-        const json = await res.json();
-        
-        if (json.success) {
-          alert("メッセージを送信しました！");
-          document.querySelector('.rg-modal').remove();
-        } else {
-          alert("エラー: " + json.error);
-          btn.disabled = false;
-          btn.textContent = "送信する";
+    function checkOwnership(car) {
+      firebase.auth().onAuthStateChanged(user => {
+        if (user && user.email.toLowerCase() === car.owner_email.toLowerCase()) {
+          document.getElementById('ownerMenuArea').style.display = 'block';
+          document.getElementById('editThisCarLink').href = `edit.html?doc=${car.document_id}`;
+        } else if (user && car.accept_inquiry !== false) {
+          document.getElementById('contactArea').style.display = 'block';
         }
-      } catch(e) {
-        alert("通信エラーが発生しました: " + e.message);
-        btn.disabled = false;
-        btn.textContent = "送信する";
-      }
+      });
     }
 
-    // ライトボックス & QR
-    document.body.addEventListener('click', function(e) {
-      if (e.target.matches('[data-rg-zoomable]')) {
-        openModal(`<img src="${e.target.src}">`);
-      }
-    });
+    function showQRCode() {
+      const url = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(location.href)}`;
+      openModal(`<div class="bg-white p-4 rounded text-center"><img src="${url}"><p class="mt-2 small">このページをスマホで開く</p></div>`);
+    }
 
-    function openModal(contentHtml) {
+    function openModal(html) {
       const modal = document.createElement('div');
       modal.className = 'rg-modal is-open';
-      modal.innerHTML = `
-        <div class="rg-modal-inner">
-          <button class="rg-modal-close">×</button>
-          ${contentHtml}
-        </div>
-      `;
+      modal.innerHTML = `<div class="rg-modal-inner"><button class="btn-close btn-close-white position-absolute top-0 end-0 m-2" onclick="this.parentElement.parentElement.remove()"></button>${html}</div>`;
       document.body.appendChild(modal);
-      modal.addEventListener('click', function(ev) {
-        if (ev.target === modal || ev.target.className === 'rg-modal-close') {
-          modal.remove();
-        }
-      });
+      modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
     }
 
-    window.showQRCode = function() {
-      const url = window.location.href;
-      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
-      
-      const html = `
-        <div class="rg-qr-card">
-          <div class="rg-qr-title">このページをシェア</div>
-          <img src="${qrApiUrl}" alt="QR Code" style="width:200px; height:200px; margin-bottom:10px;">
-          <div class="rg-qr-desc">スマホのカメラで読み取ってください</div>
-        </div>
-      `;
-      openModal(html);
+    function openContactForm() {
+       alert("問い合わせ機能は準備中です"); // 必要に応じて実装
     }
 
     fetchDetail();
