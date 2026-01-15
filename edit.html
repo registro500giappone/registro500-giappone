@@ -598,7 +598,21 @@ submitBtn.onclick = async () => {
             .upsert(supabaseData, { onConflict: 'document_id' });
 
           if (error) throw error;
-
+// 保存成功後、GASにメール送信だけ依頼する
+if (!rawData.DocumentID) { // 新規登録時のみ
+    fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors', // レスポンス不要
+        body: JSON.stringify({
+            action: 'send_thanks_email',
+            formData: {
+                email: auth.currentUser.email,
+                handleName: rawData.HandleName,
+                docId: docId // 上で生成されたID
+            }
+        })
+    });
+}
           alert("マイガレージを更新しました！"); 
           window.location.href = "index.html"; 
         } catch (e) { 
