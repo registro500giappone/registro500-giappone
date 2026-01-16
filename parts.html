@@ -71,22 +71,27 @@
 <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-auth-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<!-- 1. 設定ファイルを読み込む（これにより FIREBASE_CONFIG や SUPABASE_URL が使えるようになります） -->
+<script src="config.js"></script>
+
+<!-- 2. ライブラリを読み込む -->
+<script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
-    // ★書き換えポイント1: Firebaseの設定（既存の index.html 等からコピーしてください）
-    const firebaseConfig = {
-        apiKey: "YOUR_FIREBASE_API_KEY",
-        authDomain: "YOUR_PROJECT.firebaseapp.com",
-        projectId: "YOUR_PROJECT_ID",
-    };
-    firebase.initializeApp(firebaseConfig);
+    // --- 初期設定 (config.js の値を使用) ---
+    
+    // Firebaseの初期化
+    firebase.initializeApp(FIREBASE_CONFIG);
 
-    // ★書き換えポイント2: Supabaseの設定（ダッシュボードのSettings > APIにあります）
-    const SUPABASE_URL = 'https://ttlttclfovuzafvghvaq.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt';
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // Supabaseの初期化
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    let jpyRate = 160; // 為替初期値
+    let jpyRate = 160; 
     let currentUser = null;
+
+    // --- 各種機能の関数 ---
 
     // 為替レートを最新にする
     async function updateRate() {
@@ -107,17 +112,19 @@
             loadKeepList(user.uid);
         } else {
             alert("ログインが必要です");
-            // window.location.href = "login.html"; // ログインページへ飛ばす場合
+            // window.location.href = "login.html"; 
         }
     });
 
     // 車両リストを読み込む
     async function loadCars(uid) {
+        // carsテーブルからログイン中のユーザーの車を取得
         const { data } = await _supabase.from('cars').select('*').eq('owner_email', currentUser.email);
         const select = document.getElementById('car-select');
         data?.forEach(car => {
             const opt = document.createElement('option');
-            opt.value = car.model; // 例: 500R
+            // edit.htmlと同じ選択肢（500F, L, R等）が入る想定
+            opt.value = car.model; 
             opt.textContent = `${car.nickname || car.model}`;
             select.appendChild(opt);
         });
@@ -128,36 +135,48 @@
         const query = document.getElementById('search-input').value;
         const model = document.getElementById('car-select').value;
         const resultsDiv = document.getElementById('results');
+        
+        if (!query) { alert("キーワードを入力してください"); return; }
+        
         resultsDiv.innerHTML = "検索中...";
 
-        // SupabaseでJP名、EN名、OEM番号をOR検索
-        const { data, error } = await _supabase
-            .from('parts')
-            .select('*')
-            .or(`name_jp.ilike.%${query}%,name_en.ilike.%${query}%,oem_no.ilike.%${query}%`)
-            .limit(50);
+        // Supabaseで検索 (日本語名、英語名、OEM番号)
+        let dbQuery = _supabase.from('parts').select('*');
+        
+        // キーワード検索
+        dbQuery = dbQuery.or(`name_jp.ilike.%${query}%,name_en.ilike.%${query}%,oem_no.ilike.%${query}%`);
+        
+        // 車種絞り込み（もし選択されていれば）
+        if (model) {
+            dbQuery = dbQuery.ilike('target_cars', `%${model}%`);
+        }
+
+        const { data, error } = await dbQuery.limit(50);
 
         resultsDiv.innerHTML = "";
-        if (data.length === 0) { resultsDiv.innerHTML = "見つかりませんでした"; return; }
+        if (!data || data.length === 0) { resultsDiv.innerHTML = "見つかりませんでした"; return; }
 
         data.forEach(part => {
-            // VAT計算 (Axelは19%引き)
-            const priceAxel = part.source === 'Axel' ? (part.price_euro / 1.19) : part.price_euro;
-            const priceFD = part.source === 'FD' ? part.price_euro : part.price_euro; // FDはそのまま
+            // VAT計算 (Axelは19%引き、FDはそのまま)
+            const isAxel = part.source && part.source.includes('Axel');
+            const priceNet = isAxel ? (part.price_euro / 1.19) : part.price_euro;
 
             const card = document.createElement('div');
             card.className = 'card';
+            // 画像がない場合は config.js の NO_IMAGE_URL を使う
+            const imgUrl = part.image_url || NO_IMAGE_URL;
+
             card.innerHTML = `
-                <img src="${part.image_url || ''}" alt="No Image">
+                <img src="${imgUrl}" alt="Part Image">
                 <div class="card-body">
                     <div class="name-jp">${part.name_jp}</div>
                     <div class="name-en">${part.name_en}</div>
-                    <div class="specs">${part.specs || '仕様情報なし'}</div>
-                    <div style="font-size: 12px; color: #999;">OEM: ${part.oem_no || '-'}</div>
+                    <div class="specs">${part.specs || ''}</div>
+                    <div style="font-size: 11px; color: #999;">OEM: ${part.oem_no || '-'}</div>
                 </div>
                 <div class="shop-area">
                     <a href="${part.page_url}" target="_blank" class="shop-btn" onclick="this.classList.add('visited')">
-                        ${part.source}で確認<br>€${priceAxel.toFixed(2)}
+                        ${part.source || 'ショップ'}で確認<br>€${priceNet.toFixed(2)}
                     </a>
                     <button onclick="keepPart(${part.id}, '${part.source}')" style="background:#333; font-size:11px;">リストに追加</button>
                 </div>
@@ -169,14 +188,16 @@
     // キープ（検討リスト保存）
     async function keepPart(partId, source) {
         if (!currentUser) return;
-        await _supabase.from('user_selections').insert([
+        const { error } = await _supabase.from('user_selections').insert([
             { user_id: currentUser.uid, part_id: partId, shop_name: source }
         ]);
-        loadKeepList(currentUser.uid);
+        if (error) { console.error(error); alert("保存に失敗しました"); }
+        else { loadKeepList(currentUser.uid); }
     }
 
     // リスト読み込み & 合計計算
     async function loadKeepList(uid) {
+        // user_selectionsテーブルと、紐づくpartsテーブルの情報を一気に取得
         const { data } = await _supabase.from('user_selections').select('*, parts(*)').eq('user_id', uid);
         const listDiv = document.getElementById('keep-list');
         listDiv.innerHTML = "";
@@ -184,7 +205,9 @@
 
         data?.forEach(item => {
             const p = item.parts;
-            const price = item.shop_name === 'Axel' ? (p.price_euro / 1.19) : p.price_euro;
+            if (!p) return;
+            const isAxel = item.shop_name && item.shop_name.includes('Axel');
+            const price = isAxel ? (p.price_euro / 1.19) : p.price_euro;
             totalEur += price;
             
             listDiv.innerHTML += `
@@ -199,6 +222,6 @@
         document.getElementById('total-jpy').innerText = `¥${Math.round(totalEur * jpyRate).toLocaleString()}`;
     }
 </script>
-
+    
 </body>
 </html>
