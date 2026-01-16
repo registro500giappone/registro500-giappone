@@ -6,50 +6,42 @@
     <title>Fiat 500 Parts Hub - Registro500</title>
     <style>
         :root { --fiat-red: #c30010; --accent-blue: #007bff; --bg-gray: #f0f2f5; }
-        body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", sans-serif; margin: 0; background: var(--bg-gray); color: #333; display: flex; flex-direction: column; height: 100vh; }
+        body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 0; background: var(--bg-gray); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        /* ヘッダー */
-        header { background: white; padding: 15px; border-bottom: 3px solid var(--fiat-red); position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        header { background: white; padding: 15px; border-bottom: 3px solid var(--fiat-red); z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .controls { display: flex; gap: 10px; max-width: 1200px; margin: 0 auto; flex-wrap: wrap; }
-        select, input { padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
+        select, input { padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; }
         #search-input { flex: 2; min-width: 200px; }
-        #car-select { flex: 1; min-width: 150px; }
-        .search-btn { background: var(--fiat-red); color: white; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; }
+        .search-btn { background: var(--fiat-red); color: white; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer; font-weight: bold; }
 
-        /* メインレイアウト */
+        /* 絞り込みタグエリア */
+        #filter-tags { max-width: 1200px; margin: 10px auto 0; display: flex; gap: 8px; overflow-x: auto; padding: 5px 0; }
+        .tag-btn { background: white; border: 1px solid #ccc; padding: 6px 15px; border-radius: 20px; font-size: 12px; cursor: pointer; white-space: nowrap; transition: 0.2s; }
+        .tag-btn.active { background: var(--fiat-red); color: white; border-color: var(--fiat-red); }
+
         .content { display: flex; flex: 1; overflow: hidden; }
-        #results { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; align-content: start; }
+        #results { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; align-content: start; }
 
-        /* カードデザイン：高さを自動調整し、中身を絶対に見せる */
-        .card { background: white; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #eee; overflow: visible; }
-        
-        .card-img-box { width: 100%; height: 160px; background: #fff; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #f0f0f0; padding: 10px; box-sizing: border-box; }
+        .card { background: white; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #eee; overflow: hidden; }
+        .card-img-box { width: 100%; height: 160px; background: #fff; display: flex; align-items: center; justify-content: center; padding: 10px; box-sizing: border-box; }
         .card img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .card-body { padding: 15px; flex: 1; display: flex; flex-direction: column; }
+        .target-tag { font-size: 11px; color: var(--fiat-red); font-weight: bold; margin-bottom: 5px; }
+        .name-jp { font-weight: bold; font-size: 16px; color: #000; margin-bottom: 5px; line-height: 1.4; }
+        .name-en { font-size: 11px; color: #666; margin-bottom: 10px; line-height: 1.2; }
+        .specs { font-size: 11px; background: #f8f9fa; padding: 8px; border-radius: 6px; color: #444; border-left: 3px solid #ddd; }
         
-        /* カード内部のテキストエリアをしっかり確保 */
-        .card-body { padding: 15px; flex: 1; display: flex; flex-direction: column; min-height: 150px; background: #fff; }
-        .target-tag { font-size: 11px; color: var(--fiat-red); font-weight: bold; margin-bottom: 5px; background: #fff1f0; padding: 2px 8px; border-radius: 4px; align-self: flex-start; }
-        .name-jp { font-weight: bold; font-size: 17px; color: #000 !important; margin-bottom: 8px; line-height: 1.4; display: block !important; }
-        .name-en { font-size: 12px; color: #666 !important; margin-bottom: 10px; line-height: 1.3; display: block !important; }
-        .specs { font-size: 12px; background: #f8f9fa; padding: 8px; border-radius: 6px; color: #444; margin-bottom: 10px; border-left: 3px solid #ddd; }
-        .oem-no { font-size: 11px; color: #999; margin-top: auto; }
-        
-        /* ボタンエリア：枠の下に確実に配置 */
-        .card-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; background: #fafafa; border-top: 1px solid #eee; }
-        .shop-btn { text-decoration: none; padding: 12px 5px; border-radius: 8px; font-size: 13px; text-align: center; border: 2px solid var(--accent-blue); color: var(--accent-blue) !important; font-weight: bold; display: flex; flex-direction: column; justify-content: center; }
-        .shop-btn:hover { background: var(--accent-blue); color: white !important; }
-        .keep-btn { background: #333; color: white !important; border: none; padding: 12px; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: bold; }
+        .card-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; background: #fafafa; border-top: 1px solid #eee; }
+        .shop-btn { text-decoration: none; padding: 10px 5px; border-radius: 8px; font-size: 12px; text-align: center; border: 2px solid var(--accent-blue); color: var(--accent-blue); font-weight: bold; }
+        .keep-btn { background: #333; color: white; border: none; padding: 10px; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: bold; }
 
-        /* サイドバー */
         .sidebar { width: 340px; background: white; border-left: 1px solid #ddd; display: flex; flex-direction: column; }
-        .sidebar-h { padding: 20px; background: #212529; color: white; font-weight: bold; font-size: 18px; }
+        .sidebar-h { padding: 20px; background: #212529; color: white; font-weight: bold; }
         #keep-list { flex: 1; overflow-y: auto; padding: 15px; }
-        .keep-item { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid #eee; font-size: 13px; gap: 10px; }
         .total-box { padding: 20px; background: #f8f9fa; border-top: 3px solid #212529; }
-        .total-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
-        .total-jpy { font-size: 28px; font-weight: bold; color: var(--fiat-red); }
+        .total-jpy { font-size: 26px; font-weight: bold; color: var(--fiat-red); }
 
-        @media (max-width: 900px) { .sidebar { width: 100%; height: 280px; } .content { flex-direction: column; } }
+        @media (max-width: 900px) { .sidebar { width: 100%; height: 250px; } .content { flex-direction: column; } }
     </style>
 </head>
 <body>
@@ -57,29 +49,20 @@
 <header>
     <div class="controls">
         <select id="car-select">
-            <option value="">すべてのパーツを表示</option>
+            <option value="">すべての適合パーツを表示</option>
             <optgroup label="登録済みの自車" id="my-cars-group"></optgroup>
-            <optgroup label="Fiat 500 / 126 Models">
-                <option value="500 N">500 N (Nuova)</option>
-                <option value="500 D">500 D</option>
-                <option value="500 F">500 F</option>
-                <option value="500 L">500 L</option>
-                <option value="500 R">500 R</option>
-                <option value="Giardiniera">500 Giardiniera / Bianchina</option>
-                <option value="126">Fiat 126</option>
-            </optgroup>
-            <optgroup label="Abarth / Giannini (欧州ショップ区分)">
-                <option value="595">Abarth 595 / 695</option>
-                <option value="Giannini">Giannini 500 / 590</option>
-            </optgroup>
-            <optgroup label="Other Fiat">
-                <option value="600">Fiat 600 / Multipla</option>
-                <option value="850">Fiat 850</option>
+            <optgroup label="モデル別選択">
+                <option value="500 N">500 N (Nuova)</option><option value="500 D">500 D</option>
+                <option value="500 F">500 F</option><option value="500 L">500 L</option>
+                <option value="500 R">500 R</option><option value="Giardiniera">Giardiniera / Bianchina</option>
+                <option value="595">Abarth 595/695</option><option value="Giannini">Giannini</option>
+                <option value="126">Fiat 126</option><option value="600">Fiat 600</option>
             </optgroup>
         </select>
-        <input type="text" id="search-input" placeholder="例: ヘッドライト, 4190470, 燃料ポンプ">
+        <input type="text" id="search-input" placeholder="例: ヘッドライト, 4190470">
         <button onclick="search()" class="search-btn">検索</button>
     </div>
+    <div id="filter-tags"><!-- 検索後に自動でタグが出る --></div>
 </header>
 
 <div class="content">
@@ -88,9 +71,9 @@
         <div class="sidebar-h">検討リスト（キープ）</div>
         <div id="keep-list"></div>
         <div class="total-box">
-            <div class="total-row"><span>€ 合計 (免税想定)</span><span id="total-eur">€0.00</span></div>
-            <div class="total-row"><span>日本円換算</span><span id="total-jpy" class="total-jpy">¥0</span></div>
-            <div id="rate-info" style="font-size:11px; color:#666; margin-top:10px;"></div>
+            <div style="display:flex; justify-content:space-between;"><span>合計 (€)</span><span id="total-eur">€0.00</span></div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline;"><span>日本円換算</span><span id="total-jpy" class="total-jpy">¥0</span></div>
+            <div id="rate-info" style="font-size:10px; color:#999; margin-top:10px;"></div>
         </div>
     </aside>
 </div>
@@ -105,14 +88,15 @@
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let jpyRate = 165;
     let currentUser = null;
+    let lastSearchResults = [];
 
     async function updateRate() {
         try {
             const res = await fetch('https://open.er-api.com/v6/latest/EUR');
             const data = await res.json();
             jpyRate = data.rates.JPY;
-            document.getElementById('rate-info').innerText = `実勢為替レート: 1€ = ¥${jpyRate.toFixed(2)}`;
-        } catch (e) { console.error("Rate fail", e); }
+            document.getElementById('rate-info').innerText = `実勢レート: 1€ = ¥${jpyRate.toFixed(2)}`;
+        } catch (e) { console.error(e); }
     }
     updateRate();
 
@@ -138,57 +122,52 @@
         });
     }
 
-    async function search() {
+    async function search(filterKeyword = null) {
         const query = document.getElementById('search-input').value.trim();
         const modelValue = document.getElementById('car-select').value;
         const resultsDiv = document.getElementById('results');
         
-        resultsDiv.innerHTML = "<div style='grid-column:1/-1; text-align:center; padding:50px; color:#666;'>パーツを検索しています...</div>";
-
-        let dbQuery = _supabase.from('parts').select('*');
-        if (query) {
-            dbQuery = dbQuery.or(`name_jp.ilike.%${query}%,name_en.ilike.%${query}%,oem_no.ilike.%${query}%`);
+        if (!filterKeyword) {
+            resultsDiv.innerHTML = "<div style='grid-column:1/-1; text-align:center; padding:50px;'>検索中...</div>";
+            let dbQuery = _supabase.from('parts').select('*');
+            if (query) dbQuery = dbQuery.or(`name_jp.ilike.%${query}%,name_en.ilike.%${query}%,oem_no.ilike.%${query}%`);
+            
+            const { data, error } = await dbQuery.limit(150);
+            if (error || !data) { resultsDiv.innerHTML = "エラーが発生しました"; return; }
+            lastSearchResults = data;
+            generateFilterTags(data);
         }
 
-        const { data, error } = await dbQuery.limit(100);
-        if (error || !data || data.length === 0) {
-            resultsDiv.innerHTML = "<div style='grid-column:1/-1; text-align:center; padding:50px;'>該当するパーツがありません。</div>";
-            return;
-        }
+        let displayData = lastSearchResults;
 
-        // ヒット率向上のための車種フィルタリング
-        let filteredData = data;
+        // 車種フィルタ
         if (modelValue) {
-            const typeKey = modelValue.split(" ").pop(); // D, F, L, Rなどを抽出
-            filteredData = data.filter(part => {
-                const target = part.target_cars || "";
-                return target === "" || target.includes(typeKey) || target.includes(modelValue);
-            });
+            const typeKey = modelValue.split(" ").pop();
+            displayData = displayData.filter(p => (p.target_cars || "").includes(typeKey) || p.target_cars === "");
+        }
+
+        // タグ絞り込み
+        if (filterKeyword && filterKeyword !== "すべて") {
+            displayData = displayData.filter(p => (p.name_jp || "").includes(filterKeyword) || (p.name_en || "").includes(filterKeyword));
         }
 
         resultsDiv.innerHTML = "";
-        filteredData.forEach(part => {
+        displayData.forEach(part => {
             const isAxel = part.shop_name && part.shop_name.includes('Axel');
             const priceNet = isAxel ? (part.price_euro / 1.19) : part.price_euro;
-
             const card = document.createElement('div');
             card.className = 'card';
             card.innerHTML = `
-                <div class="card-img-box">
-                    <img src="${part.image_url || NO_IMAGE_URL}" alt="Part" onerror="this.src='${NO_IMAGE_URL}'">
-                </div>
+                <div class="card-img-box"><img src="${part.image_url || NO_IMAGE_URL}" onerror="this.src='${NO_IMAGE_URL}'"></div>
                 <div class="card-body">
-                    <div class="target-tag">${part.target_cars || '全車種共通 / 汎用'}</div>
+                    <div class="target-tag">${part.target_cars || '全車共通'}</div>
                     <div class="name-jp">${part.name_jp || '名称なし'}</div>
                     <div class="name-en">${part.name_en || ''}</div>
                     ${part.specs ? `<div class="specs">${part.specs}</div>` : ''}
-                    <div class="oem-no">OEM: ${part.oem_no || '-'}</div>
+                    <div style="font-size:10px; color:#ccc; margin-top:auto;">OEM: ${part.oem_no || '-'}</div>
                 </div>
                 <div class="card-footer">
-                    <a href="${part.page_url}" target="_blank" class="shop-btn">
-                        <span>${part.shop_name}</span>
-                        <span style="color:var(--fiat-red); font-size:14px;">€${priceNet.toFixed(2)}</span>
-                    </a>
+                    <a href="${part.page_url}" target="_blank" class="shop-btn"><span>${part.shop_name}</span><span style="color:var(--fiat-red)">€${priceNet.toFixed(2)}</span></a>
                     <button onclick="keepPart(this, ${part.id}, '${part.shop_name}')" class="keep-btn">リストに追加</button>
                 </div>
             `;
@@ -196,20 +175,44 @@
         });
     }
 
+    // 検索結果から「絞り込みタグ」を自動生成する
+    function generateFilterTags(data) {
+        const tagArea = document.getElementById('filter-tags');
+        const keywords = ["電球", "バルブ", "レンズ", "パッキン", "ゴム", "リム", "ボルト", "ネジ", "本体", "Assy"];
+        const found = new Set();
+        data.forEach(p => {
+            keywords.forEach(k => { if ((p.name_jp || "").includes(k)) found.add(k); });
+        });
+
+        tagArea.innerHTML = `<button class="tag-btn active" onclick="applyTag(this, 'すべて')">すべて (${data.length})</button>`;
+        found.forEach(k => {
+            const count = data.filter(p => (p.name_jp || "").includes(k)).length;
+            tagArea.innerHTML += `<button class="tag-btn" onclick="applyTag(this, '${k}')">${k} (${count})</button>`;
+        });
+    }
+
+    function applyTag(btn, keyword) {
+        document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        search(keyword);
+    }
+
     async function keepPart(btn, partId, shopName) {
         if (!currentUser) return;
         const originalText = btn.innerText;
         btn.innerText = "保存中...";
-        btn.disabled = true;
+        
+        // 数値として確実に扱うための処理
+        const pId = parseInt(partId);
 
         const { error } = await _supabase.from('user_selections').insert([
-            { user_id: currentUser.uid, part_id: partId, shop_name: shopName }
+            { user_id: currentUser.uid, part_id: pId, shop_name: shopName }
         ]);
 
         if (error) {
-            alert("保存に失敗しました。SQLを実行したか確認してください。");
+            console.error(error);
+            alert("保存に失敗しました。SQL設定を再確認してください。");
             btn.innerText = originalText;
-            btn.disabled = false;
         } else {
             btn.innerText = "追加済み";
             btn.style.background = "#28a745";
@@ -231,12 +234,7 @@
                     const isAxel = item.shop_name && item.shop_name.includes('Axel');
                     const price = isAxel ? (part.price_euro / 1.19) : part.price_euro;
                     totalEur += price;
-                    listDiv.innerHTML += `
-                        <div class="keep-item">
-                            <div style="flex:1"><b>${item.shop_name.charAt(0)}:</b> ${part.name_jp}</div>
-                            <div style="font-weight:bold">€${price.toFixed(2)}</div>
-                        </div>
-                    `;
+                    listDiv.innerHTML += `<div class="keep-item"><div><b>${item.shop_name.charAt(0)}:</b> ${part.name_jp}</div><div>€${price.toFixed(2)}</div></div>`;
                 }
             }
         }
