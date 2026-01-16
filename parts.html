@@ -1,1 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiat 500 パーツ比較 - Registro500</title>
+    <style>
+        :root { --fiat-red: #c30010; --accent-blue: #007bff; --bg-gray: #f4f4f4; }
+        body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; background: var(--bg-gray); }
+        
+        /* ヘッダー・検索エリア */
+        header { background: white; padding: 15px; border-bottom: 2px solid var(--fiat-red); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .controls { display: flex; gap: 10px; max-width: 1200px; margin: 0 auto; flex-wrap: wrap; }
+        select, input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
+        #search-input { flex: 1; min-width: 200px; }
+        button { background: var(--fiat-red); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
 
+        /* メインレイアウト（検索結果と検討リスト） */
+        .content { display: flex; flex: 1; overflow: hidden; max-width: 1400px; margin: 0 auto; width: 100%; }
+        #results { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; align-content: start; }
+
+        /* パーツカード */
+        .card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+        .card img { width: 100%; height: 180px; object-fit: contain; background: #eee; }
+        .card-body { padding: 15px; flex-grow: 1; }
+        .name-jp { font-weight: bold; font-size: 1.1em; color: #333; margin-bottom: 5px; }
+        .name-en { font-size: 0.85em; color: #777; margin-bottom: 10px; line-height: 1.2; }
+        .specs { font-size: 0.8em; background: #f9f9f9; padding: 5px; border-radius: 4px; margin-bottom: 10px; }
+        
+        /* ショップボタン（往復用） */
+        .shop-area { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid #eee; padding: 15px; background: #fafafa; }
+        .shop-btn { text-decoration: none; padding: 8px; border-radius: 4px; font-size: 11px; text-align: center; border: 1px solid var(--accent-blue); color: var(--accent-blue); transition: 0.2s; }
+        .shop-btn:hover { background: var(--accent-blue); color: white; }
+        .shop-btn.visited { background: #e0e0e0; border-color: #bbb; color: #888; } /* 訪問済み */
+        
+        /* 検討リスト（サイドバー） */
+        .sidebar { width: 320px; background: white; border-left: 1px solid #ddd; display: flex; flex-direction: column; box-shadow: -2px 0 5px rgba(0,0,0,0.05); }
+        .sidebar-h { padding: 15px; background: #333; color: white; font-weight: bold; }
+        #keep-list { flex: 1; overflow-y: auto; padding: 10px; }
+        .total-box { padding: 20px; border-top: 2px solid #333; background: #fff; }
+        .keep-item { font-size: 0.85em; border-bottom: 1px solid #eee; padding: 8px 0; display: flex; justify-content: space-between; }
+
+        @media (max-width: 768px) { .content { flex-direction: column; } .sidebar { width: 100%; height: 250px; } }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="controls">
+        <select id="car-select"><option value="">車両を選択...</option></select>
+        <input type="text" id="search-input" placeholder="例：ヘッドライト, 500R, 4190470">
+        <button onclick="search()">検索</button>
+    </div>
+</header>
+
+<div class="content">
+    <div id="results"><!-- ここにカードが出る --></div>
+    <aside class="sidebar">
+        <div class="sidebar-h">検討リスト（キープ）</div>
+        <div id="keep-list"></div>
+        <div class="total-box">
+            <div id="total-eur">合計: €0.00</div>
+            <div id="total-jpy" style="font-size:1.4em; font-weight:bold; color:var(--fiat-red);">¥0</div>
+            <small id="rate-info" style="color:#999"></small>
+        </div>
+    </aside>
+</div>
+
+<!-- Firebase & Supabase 読み込み -->
+<script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+    // ★書き換えポイント1: Firebaseの設定（既存の index.html 等からコピーしてください）
+    const firebaseConfig = {
+        apiKey: "YOUR_FIREBASE_API_KEY",
+        authDomain: "YOUR_PROJECT.firebaseapp.com",
+        projectId: "YOUR_PROJECT_ID",
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    // ★書き換えポイント2: Supabaseの設定（ダッシュボードのSettings > APIにあります）
+    const SUPABASE_URL = 'https://ttlttclfovuzafvghvaq.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let jpyRate = 160; // 為替初期値
+    let currentUser = null;
+
+    // 為替レートを最新にする
+    async function updateRate() {
+        try {
+            const res = await fetch('https://open.er-api.com/v6/latest/EUR');
+            const data = await res.json();
+            jpyRate = data.rates.JPY;
+            document.getElementById('rate-info').innerText = `為替レート: 1€ = ¥${jpyRate.toFixed(2)}`;
+        } catch (e) { console.error("為替取得失敗", e); }
+    }
+    updateRate();
+
+    // ログイン状態の監視
+    firebase.auth().onAuthStateChanged(async (user) => {
+        if (user) {
+            currentUser = user;
+            loadCars(user.uid);
+            loadKeepList(user.uid);
+        } else {
+            alert("ログインが必要です");
+            // window.location.href = "login.html"; // ログインページへ飛ばす場合
+        }
+    });
+
+    // 車両リストを読み込む
+    async function loadCars(uid) {
+        const { data } = await _supabase.from('cars').select('*').eq('owner_email', currentUser.email);
+        const select = document.getElementById('car-select');
+        data?.forEach(car => {
+            const opt = document.createElement('option');
+            opt.value = car.model; // 例: 500R
+            opt.textContent = `${car.nickname || car.model}`;
+            select.appendChild(opt);
+        });
+    }
+
+    // 検索実行
+    async function search() {
+        const query = document.getElementById('search-input').value;
+        const model = document.getElementById('car-select').value;
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = "検索中...";
+
+        // SupabaseでJP名、EN名、OEM番号をOR検索
+        const { data, error } = await _supabase
+            .from('parts')
+            .select('*')
+            .or(`name_jp.ilike.%${query}%,name_en.ilike.%${query}%,oem_no.ilike.%${query}%`)
+            .limit(50);
+
+        resultsDiv.innerHTML = "";
+        if (data.length === 0) { resultsDiv.innerHTML = "見つかりませんでした"; return; }
+
+        data.forEach(part => {
+            // VAT計算 (Axelは19%引き)
+            const priceAxel = part.source === 'Axel' ? (part.price_euro / 1.19) : part.price_euro;
+            const priceFD = part.source === 'FD' ? part.price_euro : part.price_euro; // FDはそのまま
+
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <img src="${part.image_url || ''}" alt="No Image">
+                <div class="card-body">
+                    <div class="name-jp">${part.name_jp}</div>
+                    <div class="name-en">${part.name_en}</div>
+                    <div class="specs">${part.specs || '仕様情報なし'}</div>
+                    <div style="font-size: 12px; color: #999;">OEM: ${part.oem_no || '-'}</div>
+                </div>
+                <div class="shop-area">
+                    <a href="${part.page_url}" target="_blank" class="shop-btn" onclick="this.classList.add('visited')">
+                        ${part.source}で確認<br>€${priceAxel.toFixed(2)}
+                    </a>
+                    <button onclick="keepPart(${part.id}, '${part.source}')" style="background:#333; font-size:11px;">リストに追加</button>
+                </div>
+            `;
+            resultsDiv.appendChild(card);
+        });
+    }
+
+    // キープ（検討リスト保存）
+    async function keepPart(partId, source) {
+        if (!currentUser) return;
+        await _supabase.from('user_selections').insert([
+            { user_id: currentUser.uid, part_id: partId, shop_name: source }
+        ]);
+        loadKeepList(currentUser.uid);
+    }
+
+    // リスト読み込み & 合計計算
+    async function loadKeepList(uid) {
+        const { data } = await _supabase.from('user_selections').select('*, parts(*)').eq('user_id', uid);
+        const listDiv = document.getElementById('keep-list');
+        listDiv.innerHTML = "";
+        let totalEur = 0;
+
+        data?.forEach(item => {
+            const p = item.parts;
+            const price = item.shop_name === 'Axel' ? (p.price_euro / 1.19) : p.price_euro;
+            totalEur += price;
+            
+            listDiv.innerHTML += `
+                <div class="keep-item">
+                    <span>${p.name_jp}</span>
+                    <span>€${price.toFixed(2)}</span>
+                </div>
+            `;
+        });
+
+        document.getElementById('total-eur').innerText = `合計: €${totalEur.toFixed(2)}`;
+        document.getElementById('total-jpy').innerText = `¥${Math.round(totalEur * jpyRate).toLocaleString()}`;
+    }
+</script>
+
+</body>
+</html>
