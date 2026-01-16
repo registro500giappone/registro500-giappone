@@ -7,39 +7,27 @@
     <style>
         :root { --fiat-red: #c30010; --accent-blue: #007bff; --bg-gray: #f4f4f4; }
         body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; background: var(--bg-gray); }
-        
-        /* ヘッダー・検索エリア */
         header { background: white; padding: 15px; border-bottom: 2px solid var(--fiat-red); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .controls { display: flex; gap: 10px; max-width: 1200px; margin: 0 auto; flex-wrap: wrap; }
         select, input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
         #search-input { flex: 1; min-width: 200px; }
         button { background: var(--fiat-red); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-
-        /* メインレイアウト（検索結果と検討リスト） */
         .content { display: flex; flex: 1; overflow: hidden; max-width: 1400px; margin: 0 auto; width: 100%; }
         #results { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; align-content: start; }
-
-        /* パーツカード */
         .card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
         .card img { width: 100%; height: 180px; object-fit: contain; background: #eee; }
         .card-body { padding: 15px; flex-grow: 1; }
         .name-jp { font-weight: bold; font-size: 1.1em; color: #333; margin-bottom: 5px; }
         .name-en { font-size: 0.85em; color: #777; margin-bottom: 10px; line-height: 1.2; }
         .specs { font-size: 0.8em; background: #f9f9f9; padding: 5px; border-radius: 4px; margin-bottom: 10px; }
-        
-        /* ショップボタン（往復用） */
         .shop-area { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid #eee; padding: 15px; background: #fafafa; }
         .shop-btn { text-decoration: none; padding: 8px; border-radius: 4px; font-size: 11px; text-align: center; border: 1px solid var(--accent-blue); color: var(--accent-blue); transition: 0.2s; }
-        .shop-btn:hover { background: var(--accent-blue); color: white; }
-        .shop-btn.visited { background: #e0e0e0; border-color: #bbb; color: #888; } /* 訪問済み */
-        
-        /* 検討リスト（サイドバー） */
-        .sidebar { width: 320px; background: white; border-left: 1px solid #ddd; display: flex; flex-direction: column; box-shadow: -2px 0 5px rgba(0,0,0,0.05); }
+        .shop-btn.visited { background: #e0e0e0; border-color: #bbb; color: #888; }
+        .sidebar { width: 320px; background: white; border-left: 1px solid #ddd; display: flex; flex-direction: column; }
         .sidebar-h { padding: 15px; background: #333; color: white; font-weight: bold; }
         #keep-list { flex: 1; overflow-y: auto; padding: 10px; }
         .total-box { padding: 20px; border-top: 2px solid #333; background: #fff; }
         .keep-item { font-size: 0.85em; border-bottom: 1px solid #eee; padding: 8px 0; display: flex; justify-content: space-between; }
-
         @media (max-width: 768px) { .content { flex-direction: column; } .sidebar { width: 100%; height: 250px; } }
     </style>
 </head>
@@ -54,7 +42,7 @@
 </header>
 
 <div class="content">
-    <div id="results"><!-- ここにカードが出る --></div>
+    <div id="results"><!-- 検索結果 --></div>
     <aside class="sidebar">
         <div class="sidebar-h">検討リスト（キープ）</div>
         <div id="keep-list"></div>
@@ -66,34 +54,18 @@
     </aside>
 </div>
 
-<!-- Firebase & Supabase 読み込み -->
-<script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-auth-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<!-- 1. 設定ファイルを読み込む（これにより FIREBASE_CONFIG や SUPABASE_URL が使えるようになります） -->
 <script src="config.js"></script>
-
-<!-- 2. ライブラリを読み込む -->
 <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-auth-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-    // --- 初期設定 (config.js の値を使用) ---
-    
-    // Firebaseの初期化
     firebase.initializeApp(FIREBASE_CONFIG);
-
-    // Supabaseの初期化
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let jpyRate = 160; 
     let currentUser = null;
 
-    // --- 各種機能の関数 ---
-
-    // 為替レートを最新にする
     async function updateRate() {
         try {
             const res = await fetch('https://open.er-api.com/v6/latest/EUR');
@@ -104,124 +76,124 @@
     }
     updateRate();
 
-    // ログイン状態の監視
     firebase.auth().onAuthStateChanged(async (user) => {
         if (user) {
             currentUser = user;
-            loadCars(user.uid);
-            loadKeepList(user.uid);
+            loadCars();
+            loadKeepList();
         } else {
             alert("ログインが必要です");
-            // window.location.href = "login.html"; 
         }
     });
 
-    // 車両リストを読み込む
-    async function loadCars(uid) {
-        // carsテーブルからログイン中のユーザーの車を取得
-        const { data } = await _supabase.from('cars').select('*').eq('owner_email', currentUser.email);
+    async function loadCars() {
+        const { data, error } = await _supabase
+            .from('cars')
+            .select('owner_email, handle_name, model_display')
+            .eq('owner_email', currentUser.email);
+
+        if (error) return;
+
         const select = document.getElementById('car-select');
+        select.innerHTML = '<option value="">車両を選択...</option>';
         data?.forEach(car => {
             const opt = document.createElement('option');
-            // edit.htmlと同じ選択肢（500F, L, R等）が入る想定
-            opt.value = car.model; 
-            opt.textContent = `${car.nickname || car.model}`;
+            opt.value = car.model_display; 
+            opt.textContent = car.handle_name ? `${car.handle_name} (${car.model_display})` : car.model_display;
             select.appendChild(opt);
         });
     }
 
-    // 検索実行
     async function search() {
         const query = document.getElementById('search-input').value;
         const model = document.getElementById('car-select').value;
         const resultsDiv = document.getElementById('results');
         
         if (!query) { alert("キーワードを入力してください"); return; }
-        
         resultsDiv.innerHTML = "検索中...";
 
-        // Supabaseで検索 (日本語名、英語名、OEM番号)
         let dbQuery = _supabase.from('parts').select('*');
-        
-        // キーワード検索
         dbQuery = dbQuery.or(`name_jp.ilike.%${query}%,name_en.ilike.%${query}%,oem_no.ilike.%${query}%`);
         
-        // 車種絞り込み（もし選択されていれば）
+        // 車種絞り込み (target_cars列を利用)
         if (model) {
             dbQuery = dbQuery.ilike('target_cars', `%${model}%`);
         }
 
         const { data, error } = await dbQuery.limit(50);
-
         resultsDiv.innerHTML = "";
+
         if (!data || data.length === 0) { resultsDiv.innerHTML = "見つかりませんでした"; return; }
 
         data.forEach(part => {
-            // VAT計算 (Axelは19%引き、FDはそのまま)
-            const isAxel = part.source && part.source.includes('Axel');
+            const isAxel = part.shop_name && part.shop_name.includes('Axel');
             const priceNet = isAxel ? (part.price_euro / 1.19) : part.price_euro;
 
             const card = document.createElement('div');
             card.className = 'card';
-            // 画像がない場合は config.js の NO_IMAGE_URL を使う
-            const imgUrl = part.image_url || NO_IMAGE_URL;
-
             card.innerHTML = `
-                <img src="${imgUrl}" alt="Part Image">
+                <img src="${part.image_url || NO_IMAGE_URL}" alt="Part Image">
                 <div class="card-body">
-                    <div class="name-jp">${part.name_jp}</div>
-                    <div class="name-en">${part.name_en}</div>
+                    <div class="name-jp">${part.name_jp || '名称未設定'}</div>
+                    <div class="name-en">${part.name_en || ''}</div>
                     <div class="specs">${part.specs || ''}</div>
                     <div style="font-size: 11px; color: #999;">OEM: ${part.oem_no || '-'}</div>
                 </div>
                 <div class="shop-area">
                     <a href="${part.page_url}" target="_blank" class="shop-btn" onclick="this.classList.add('visited')">
-                        ${part.source || 'ショップ'}で確認<br>€${priceNet.toFixed(2)}
+                        ${part.shop_name}<br>€${priceNet.toFixed(2)}
                     </a>
-                    <button onclick="keepPart(${part.id}, '${part.source}')" style="background:#333; font-size:11px;">リストに追加</button>
+                    <button onclick="keepPart(${part.id}, '${part.shop_name}')" style="background:#333; color:white; border:none; padding:8px; border-radius:4px; font-size:11px; cursor:pointer;">リストに追加</button>
                 </div>
             `;
             resultsDiv.appendChild(card);
         });
     }
 
-    // キープ（検討リスト保存）
-    async function keepPart(partId, source) {
+    async function keepPart(partId, shopName) {
         if (!currentUser) return;
         const { error } = await _supabase.from('user_selections').insert([
-            { user_id: currentUser.uid, part_id: partId, shop_name: source }
+            { user_id: currentUser.uid, part_id: partId, shop_name: shopName }
         ]);
-        if (error) { console.error(error); alert("保存に失敗しました"); }
-        else { loadKeepList(currentUser.uid); }
+        if (error) alert("保存に失敗しました");
+        else loadKeepList();
     }
 
-    // リスト読み込み & 合計計算
-    async function loadKeepList(uid) {
-        // user_selectionsテーブルと、紐づくpartsテーブルの情報を一気に取得
-        const { data } = await _supabase.from('user_selections').select('*, parts(*)').eq('user_id', uid);
+    async function loadKeepList() {
+        const { data: selections, error: selError } = await _supabase
+            .from('user_selections')
+            .select('*')
+            .eq('user_id', currentUser.uid);
+
+        if (selError) return;
+
         const listDiv = document.getElementById('keep-list');
         listDiv.innerHTML = "";
         let totalEur = 0;
 
-        data?.forEach(item => {
-            const p = item.parts;
-            if (!p) return;
-            const isAxel = item.shop_name && item.shop_name.includes('Axel');
-            const price = isAxel ? (p.price_euro / 1.19) : p.price_euro;
-            totalEur += price;
-            
-            listDiv.innerHTML += `
-                <div class="keep-item">
-                    <span>${p.name_jp}</span>
-                    <span>€${price.toFixed(2)}</span>
-                </div>
-            `;
-        });
+        for (const item of selections) {
+            const { data: part } = await _supabase
+                .from('parts')
+                .select('*')
+                .eq('id', item.part_id)
+                .single();
 
+            if (part) {
+                const isAxel = item.shop_name && item.shop_name.includes('Axel');
+                const price = isAxel ? (part.price_euro / 1.19) : part.price_euro;
+                totalEur += price;
+                
+                listDiv.innerHTML += `
+                    <div class="keep-item">
+                        <span>${part.name_jp}</span>
+                        <span>€${price.toFixed(2)}</span>
+                    </div>
+                `;
+            }
+        }
         document.getElementById('total-eur').innerText = `合計: €${totalEur.toFixed(2)}`;
         document.getElementById('total-jpy').innerText = `¥${Math.round(totalEur * jpyRate).toLocaleString()}`;
     }
 </script>
-    
 </body>
 </html>
