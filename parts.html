@@ -6,50 +6,76 @@
     <title>Fiat 500 パーツ比較 - Registro500</title>
     <style>
         :root { --fiat-red: #c30010; --accent-blue: #007bff; --bg-gray: #f4f4f4; }
-        body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; background: var(--bg-gray); }
-        header { background: white; padding: 15px; border-bottom: 2px solid var(--fiat-red); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .controls { display: flex; gap: 10px; max-width: 1200px; margin: 0 auto; flex-wrap: wrap; }
-        select, input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
-        #search-input { flex: 1; min-width: 200px; }
+        body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; background: var(--bg-gray); color: #333; }
+        
+        /* ヘッダー */
+        header { background: white; padding: 15px; border-bottom: 2px solid var(--fiat-red); }
+        .controls { display: flex; gap: 10px; max-width: 1200px; margin: 0 auto; flex-wrap: wrap; width: 100%; }
+        select, input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; }
+        #search-input { flex: 2; min-width: 200px; }
+        #car-select { flex: 1; min-width: 150px; background-color: #fff9f9; }
         button { background: var(--fiat-red); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .content { display: flex; flex: 1; overflow: hidden; max-width: 1400px; margin: 0 auto; width: 100%; }
-        #results { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; align-content: start; }
-        .card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
-        .card img { width: 100%; height: 180px; object-fit: contain; background: #eee; }
-        .card-body { padding: 15px; flex-grow: 1; }
-        .name-jp { font-weight: bold; font-size: 1.1em; color: #333; margin-bottom: 5px; }
-        .name-en { font-size: 0.85em; color: #777; margin-bottom: 10px; line-height: 1.2; }
-        .specs { font-size: 0.8em; background: #f9f9f9; padding: 5px; border-radius: 4px; margin-bottom: 10px; }
-        .shop-area { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid #eee; padding: 15px; background: #fafafa; }
-        .shop-btn { text-decoration: none; padding: 8px; border-radius: 4px; font-size: 11px; text-align: center; border: 1px solid var(--accent-blue); color: var(--accent-blue); transition: 0.2s; }
-        .shop-btn.visited { background: #e0e0e0; border-color: #bbb; color: #888; }
-        .sidebar { width: 320px; background: white; border-left: 1px solid #ddd; display: flex; flex-direction: column; }
+
+        /* メインレイアウト */
+        .content { display: flex; flex: 1; overflow: hidden; width: 100%; }
+        #results { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; align-content: start; }
+
+        /* パーツカードの改善 */
+        .card { background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; flex-direction: column; border: 1px solid #eee; overflow: hidden; height: 100%; }
+        .card img { width: 100%; height: 200px; object-fit: contain; background: #fff; border-bottom: 1px solid #f0f0f0; }
+        .card-body { padding: 15px; display: flex; flex-direction: column; gap: 5px; flex-grow: 1; }
+        .name-jp { font-weight: bold; font-size: 15px; color: #000; line-height: 1.4; }
+        .name-en { font-size: 12px; color: #666; }
+        .specs { font-size: 12px; background: #f0f0f0; padding: 8px; border-radius: 4px; color: #444; margin: 5px 0; }
+        .oem-no { font-size: 11px; color: #999; }
+        
+        /* ボタンエリア */
+        .shop-area { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px; background: #f9f9f9; border-top: 1px solid #eee; }
+        .shop-btn { text-decoration: none; padding: 8px 4px; border-radius: 4px; font-size: 11px; text-align: center; border: 1px solid var(--accent-blue); color: var(--accent-blue); line-height: 1.2; font-weight: bold; }
+        .shop-btn:hover { background: var(--accent-blue); color: white; }
+        .keep-btn { background: #444; color: white; border: none; padding: 8px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+
+        /* 検討リスト */
+        .sidebar { width: 300px; background: white; border-left: 1px solid #ddd; display: flex; flex-direction: column; }
         .sidebar-h { padding: 15px; background: #333; color: white; font-weight: bold; }
         #keep-list { flex: 1; overflow-y: auto; padding: 10px; }
-        .total-box { padding: 20px; border-top: 2px solid #333; background: #fff; }
-        .keep-item { font-size: 0.85em; border-bottom: 1px solid #eee; padding: 8px 0; display: flex; justify-content: space-between; }
-        @media (max-width: 768px) { .content { flex-direction: column; } .sidebar { width: 100%; height: 250px; } }
+        .total-box { padding: 15px; border-top: 2px solid #333; background: #fff; }
+        .keep-item { font-size: 12px; border-bottom: 1px solid #eee; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; }
+
+        @media (max-width: 768px) { .content { flex-direction: column; } .sidebar { width: 100%; height: 200px; } }
     </style>
 </head>
 <body>
 
 <header>
     <div class="controls">
-        <select id="car-select"><option value="">車両を選択...</option></select>
-        <input type="text" id="search-input" placeholder="例：ヘッドライト, 500R, 4190470">
+        <select id="car-select">
+            <option value="">車種を選択（すべて）</option>
+            <optgroup label="登録済みの自車" id="my-cars-group"></optgroup>
+            <optgroup label="全車種から選ぶ">
+                <option value="500 D">Fiat 500 D</option>
+                <option value="500 F">Fiat 500 F</option>
+                <option value="500 L">Fiat 500 L</option>
+                <option value="500 R">Fiat 500 R</option>
+                <option value="500 N">Fiat 500 N</option>
+                <option value="Giardiniera">Giardiniera (ジャルディニエラ)</option>
+                <option value="Bianchina">Bianchina (ビアンキーナ)</option>
+            </optgroup>
+        </select>
+        <input type="text" id="search-input" placeholder="パーツ名（例：ヘッドライト, キャブレター）">
         <button onclick="search()">検索</button>
     </div>
 </header>
 
 <div class="content">
-    <div id="results"><!-- 検索結果 --></div>
+    <div id="results"></div>
     <aside class="sidebar">
-        <div class="sidebar-h">検討リスト（キープ）</div>
+        <div class="sidebar-h">検討リスト</div>
         <div id="keep-list"></div>
         <div class="total-box">
-            <div id="total-eur">合計: €0.00</div>
+            <div id="total-eur" style="font-size:12px; color:#666;">合計: €0.00</div>
             <div id="total-jpy" style="font-size:1.4em; font-weight:bold; color:var(--fiat-red);">¥0</div>
-            <small id="rate-info" style="color:#999"></small>
+            <div id="rate-info" style="font-size:10px; color:#999; margin-top:5px;"></div>
         </div>
     </aside>
 </div>
@@ -62,7 +88,6 @@
 <script>
     firebase.initializeApp(FIREBASE_CONFIG);
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
     let jpyRate = 160; 
     let currentUser = null;
 
@@ -71,42 +96,35 @@
             const res = await fetch('https://open.er-api.com/v6/latest/EUR');
             const data = await res.json();
             jpyRate = data.rates.JPY;
-            document.getElementById('rate-info').innerText = `為替レート: 1€ = ¥${jpyRate.toFixed(2)}`;
-        } catch (e) { console.error("為替取得失敗", e); }
+            document.getElementById('rate-info').innerText = `為替: 1€ = ¥${jpyRate.toFixed(2)}`;
+        } catch (e) { console.error(e); }
     }
     updateRate();
 
     firebase.auth().onAuthStateChanged(async (user) => {
         if (user) {
             currentUser = user;
-            loadCars();
+            loadMyCars();
             loadKeepList();
         } else {
             alert("ログインが必要です");
         }
     });
 
-    // 車両リスト読み込み (model_display_c を使用)
-    async function loadCars() {
-        // スクリーンショットから確認できた列名 model_display_c を使用
-        const { data, error } = await _supabase
+    async function loadMyCars() {
+        const { data } = await _supabase
             .from('cars')
-            .select('owner_email, model_display_c, handle_name')
+            .select('model_display_c, handle_name')
             .eq('owner_email', currentUser.email);
 
-        if (error) {
-            console.error("車両取得エラー:", error);
-            return;
-        }
-
-        const select = document.getElementById('car-select');
-        select.innerHTML = '<option value="">車両を選択...</option>';
-        
+        const group = document.getElementById('my-cars-group');
+        group.innerHTML = "";
         data?.forEach(car => {
             const opt = document.createElement('option');
-            opt.value = car.model_display_c || ""; 
-            opt.textContent = car.handle_name ? `${car.handle_name} (${car.model_display_c})` : car.model_display_c;
-            select.appendChild(opt);
+            // 検索には model_display_c (Nuova500 Dなど) を使用
+            opt.value = car.model_display_c; 
+            opt.textContent = `${car.handle_name || '自車'} (${car.model_display_c})`;
+            group.appendChild(opt);
         });
     }
 
@@ -115,8 +133,7 @@
         const modelValue = document.getElementById('car-select').value;
         const resultsDiv = document.getElementById('results');
         
-        if (!query && !modelValue) { alert("検索ワードを入力するか車両を選択してください"); return; }
-        resultsDiv.innerHTML = "検索中...";
+        resultsDiv.innerHTML = "<div style='grid-column:1/-1; text-align:center; padding:50px;'>検索中...</div>";
 
         let dbQuery = _supabase.from('parts').select('*');
         
@@ -125,15 +142,18 @@
         }
         
         if (modelValue) {
-            // Nuova500 F などの文字列から F だけを抽出して target_cars と部分一致させる
-            const modelKey = modelValue.replace("Nuova500 ", "").replace("FIAT ABARTH ", "");
+            // "Nuova500 D" や "500 D" から型式名 (D, F, L, R) だけを抽出して検索
+            let modelKey = modelValue.replace("Nuova500 ", "").replace("Fiat ", "").replace("FIAT ABARTH ", "");
             dbQuery = dbQuery.ilike('target_cars', `%${modelKey}%`);
         }
 
-        const { data, error } = await dbQuery.limit(50);
+        const { data, error } = await dbQuery.limit(60);
         resultsDiv.innerHTML = "";
 
-        if (!data || data.length === 0) { resultsDiv.innerHTML = "見つかりませんでした"; return; }
+        if (error || !data || data.length === 0) {
+            resultsDiv.innerHTML = "<div style='grid-column:1/-1; text-align:center; padding:50px;'>該当するパーツが見つかりませんでした</div>";
+            return;
+        }
 
         data.forEach(part => {
             const isAxel = part.shop_name && part.shop_name.includes('Axel');
@@ -142,18 +162,18 @@
             const card = document.createElement('div');
             card.className = 'card';
             card.innerHTML = `
-                <img src="${part.image_url || NO_IMAGE_URL}" alt="Part Image">
+                <img src="${part.image_url || NO_IMAGE_URL}" alt="Part" onerror="this.src='${NO_IMAGE_URL}'">
                 <div class="card-body">
                     <div class="name-jp">${part.name_jp || '名称未設定'}</div>
                     <div class="name-en">${part.name_en || ''}</div>
-                    <div class="specs">${part.specs || ''}</div>
-                    <div style="font-size: 11px; color: #999;">OEM: ${part.oem_no || '-'}</div>
+                    ${part.specs ? `<div class="specs">${part.specs}</div>` : ''}
+                    <div class="oem-no">OEM: ${part.oem_no || '-'}</div>
                 </div>
                 <div class="shop-area">
-                    <a href="${part.page_url}" target="_blank" class="shop-btn" onclick="this.classList.add('visited')">
+                    <a href="${part.page_url}" target="_blank" class="shop-btn">
                         ${part.shop_name}<br>€${priceNet.toFixed(2)}
                     </a>
-                    <button onclick="keepPart(${part.id}, '${part.shop_name}')" style="background:#333; color:white; border:none; padding:8px; border-radius:4px; font-size:11px; cursor:pointer;">リストに追加</button>
+                    <button onclick="keepPart(${part.id}, '${part.shop_name}')" class="keep-btn">リストに追加</button>
                 </div>
             `;
             resultsDiv.appendChild(card);
@@ -165,39 +185,25 @@
         const { error } = await _supabase.from('user_selections').insert([
             { user_id: currentUser.uid, part_id: partId, shop_name: shopName }
         ]);
-        if (error) alert("保存に失敗しました");
-        else loadKeepList();
+        if (!error) loadKeepList();
     }
 
     async function loadKeepList() {
-        if (!currentUser) return;
-        const { data: selections, error: selError } = await _supabase
-            .from('user_selections')
-            .select('*')
-            .eq('user_id', currentUser.uid);
-
-        if (selError) return;
-
+        const { data: selections } = await _supabase.from('user_selections').select('*').eq('user_id', currentUser.uid);
         const listDiv = document.getElementById('keep-list');
         listDiv.innerHTML = "";
         let totalEur = 0;
 
-        for (const item of selections) {
-            const { data: part } = await _supabase
-                .from('parts')
-                .select('*')
-                .eq('id', item.part_id)
-                .single();
-
+        for (const item of (selections || [])) {
+            const { data: part } = await _supabase.from('parts').select('*').eq('id', item.part_id).single();
             if (part) {
                 const isAxel = item.shop_name && item.shop_name.includes('Axel');
                 const price = isAxel ? (part.price_euro / 1.19) : part.price_euro;
                 totalEur += price;
-                
                 listDiv.innerHTML += `
                     <div class="keep-item">
                         <span>${part.name_jp}</span>
-                        <span>€${price.toFixed(2)}</span>
+                        <b>€${price.toFixed(2)}</b>
                     </div>
                 `;
             }
