@@ -114,7 +114,6 @@
 
 async function fetchData() {
     try {
-      // グラフに必要な項目をすべて取得（snake_caseをCamelCaseに変換して取得）
       const { data, error } = await supabaseClient
         .from('cars')
         .select(`
@@ -148,11 +147,46 @@ async function fetchData() {
       document.getElementById('loading').innerText = "エラー: データの取得に失敗しました。";
     }
   }
+
+  // --- 今回の追加：排気量区分けロジック ---
+  function getEngineCategory(v) {
+    if (!v) return null;
+    let cc = parseFloat(String(v).replace(/[^0-9.]/g, ''));
+    if (isNaN(cc)) return null;
+
+    // 4995cc などの入力ミス補正 (4000以上なら10で割る)
+    if (cc >= 4000) cc = cc / 10;
+
+    if (cc <= 500) return "～500cc";
+    if (cc <= 540) return "～540cc";
+    if (cc <= 600) return "～600cc";
+    if (cc <= 650) return "～650cc";
+    if (cc <= 700) return "～700cc";
+    return "700cc超";
+  }
+
+  // --- 今回の追加：モデル名の名寄せ補正 ---
+  function getNormalizedModel(v) {
+    if (!v) return null;
+    let s = String(v);
+    // 「その他」で「Nuova 500 R」等と入っている場合の名寄せ
+    if (s.includes('Nuova 500')) return 'Nuova 500';
+    if (s.includes('500 D')) return '500 D';
+    if (s.includes('500 F')) return '500 F';
+    if (s.includes('500 L')) return '500 L';
+    if (s.includes('500 R')) return '500 R';
+    if (s.includes('Giardiniera') || s.includes('ジャルディニエラ')) return 'Giardiniera';
+    // 通常の表示用モデル名から(年式)を削る
+    return s.split('(')[0].trim();
+  }
+
   function renderAllCharts(cars) {
     document.getElementById('totalCount').innerText = cars.length;
     Object.values(chartInstances).forEach(ins => ins.destroy());
 
-    renderBar('modelChart', cars, c => (c.Model_DisplayC || '').split('(')[0].trim(), '#2856a8');
+    // 車種分布（名寄せあり）
+    renderBar('modelChart', cars, c => getNormalizedModel(c.Model_DisplayC), '#2856a8');
+
     renderPie('colorChart', cars, c => getColorGroup(c.BodyColor), 'palette');
     renderPie('steeringChart', cars, c => {
       if (String(c.Steering).includes('左')) return '左ハンドル';
@@ -160,10 +194,10 @@ async function fetchData() {
       return null;
     }, 'italy');
 
-    renderBar('engineChart', cars, c => {
-      let cc = String(c.EngineCC || '').replace(/[^0-9]/g, '');
-      return cc ? cc + 'cc' : null;
-    }, '#ff9800');
+    // ★排気量(cc) - 指定の区分けで、小さい順に表示
+    const engineOrder = ["～500cc", "～540cc", "～600cc", "～650cc", "～700cc", "700cc超"];
+    renderBar('engineChart', cars, c => getEngineCategory(c.EngineCC), '#ff9800', engineOrder);
+
     renderPie('ignitionChart', cars, c => c.IgnitionType, 'italy');
     renderPie('generatorChart', cars, c => c.Generator, 'italy');
     renderBar('transChart', cars, c => c.Transmission ? (c.Transmission + (c.Synchro ? `(${c.Synchro})` : '')) : null, '#673ab7');
@@ -267,17 +301,33 @@ async function fetchData() {
     return null;
   }
 
-  function aggregate(cars, extractor) {
+  // 集計関数を拡張：並び順(sortOrder)を指定可能に
+  function aggregate(cars, extractor, sortOrder = null) {
     const counts = {};
     cars.forEach(c => {
       const val = extractor(c);
       if (val && val !== 'undefined' && val !== 'null') { counts[val] = (counts[val] || 0) + 1; }
     });
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    
+    let entries = Object.entries(counts);
+    if (sortOrder) {
+      // 指定された順序で並び替え
+      entries.sort((a, b) => {
+        let idxA = sortOrder.indexOf(a[0]);
+        let idxB = sortOrder.indexOf(b[0]);
+        if (idxA === -1) idxA = 999;
+        if (idxB === -1) idxB = 999;
+        return idxA - idxB;
+      });
+    } else {
+      // デフォルトは台数が多い順
+      entries.sort((a, b) => b[1] - a[1]);
+    }
+    return entries;
   }
 
-  function renderBar(id, cars, extractor, color) {
-    const data = aggregate(cars, extractor);
+  function renderBar(id, cars, extractor, color, sortOrder = null) {
+    const data = aggregate(cars, extractor, sortOrder);
     if (data.length === 0) return;
     chartInstances[id] = new Chart(document.getElementById(id), {
       type: 'bar',
@@ -311,7 +361,18 @@ async function fetchData() {
         responsive: true, maintainAspectRatio: false,
         plugins: { 
           legend: { position: 'right', labels: { boxWidth: 12 } }, 
-          datalabels: { color: (theme === 'palette') ? '#444' : '#fff', font: { weight: 'bold' }, formatter: v => v } 
+          datalabels: { 
+            color: (theme === 'palette') ? '#444' : '#fff', 
+            font: { weight: 'bold' }, 
+            formatter: (v, ctx) => {
+              // 5%以下の小さいスライスは数値を非表示にして重なりを防ぐ
+              let sum = 0;
+              let dataArr = ctx.chart.data.datasets[0].data;
+              dataArr.map(data => { sum += data; });
+              let percentage = (v*100 / sum).toFixed(1);
+              return percentage > 5 ? v : '';
+            }
+          } 
         }
       }
     });
