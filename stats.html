@@ -60,9 +60,10 @@
 
   <div id="powertrain" class="tab-content">
     <div class="chart-card"><div class="chart-title">⚙️ 排気量(cc)</div><div class="chart-container"><canvas id="engineChart"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">🔩 エンジン形式</div><div class="chart-container"><canvas id="engineTypeChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">⚡ 点火方式</div><div class="chart-container"><canvas id="ignitionChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">🔋 発電機</div><div class="chart-container"><canvas id="generatorChart"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">🕹️ 変速機・シンクロ</div><div class="chart-container"><canvas id="transChart"></canvas></div></div>
+    <div class="chart-card full"><div class="chart-title">🕹️ 変速機・シンクロ</div><div class="chart-container"><canvas id="transChart"></canvas></div></div>
   </div>
 
   <div id="maintenance" class="tab-content">
@@ -121,6 +122,7 @@ async function fetchData() {
           BodyColor:body_color,
           Steering:steering,
           EngineCC:engine_cc,
+          EngineType:engine_type,
           IgnitionType:ignition_type,
           Generator:generator,
           Transmission:transmission,
@@ -165,6 +167,22 @@ async function fetchData() {
     return "700cc超";
   }
 
+  // --- エンジン形式の名寄せ ---
+  function normalizeEngineType(v) {
+    if (!v) return null;
+    let s = String(v).toUpperCase().replace(/[\s.-]/g, '');
+    if (s.match(/不明|未記入|無し|わからない/)) return null;
+    
+    if (s.includes('110F')) return '110F (500F/L/R)';
+    if (s.includes('110D')) return '110D (500D)';
+    if (s.includes('126A1')) return '126A1 (126/Late 500)';
+    if (s.includes('126A0')) return '126A0';
+    if (s.includes('120')) return '120 (Giardiniera)';
+    if (s.includes('100G')) return '100G (850系)';
+    
+    return s;
+  }
+
   // --- 今回の追加：モデル名の名寄せ補正 ---
   function getNormalizedModel(v) {
     if (!v) return null;
@@ -197,6 +215,9 @@ async function fetchData() {
     // ★排気量(cc) - 指定の区分けで、小さい順に表示
     const engineOrder = ["～500cc", "～540cc", "～600cc", "～650cc", "～700cc", "700cc超"];
     renderBar('engineChart', cars, c => getEngineCategory(c.EngineCC), '#ff9800', engineOrder);
+
+    // ★エンジン形式
+    renderBar('engineTypeChart', cars, c => normalizeEngineType(c.EngineType), '#4caf50');
 
     renderPie('ignitionChart', cars, c => c.IgnitionType, 'italy');
     renderPie('generatorChart', cars, c => c.Generator, 'italy');
