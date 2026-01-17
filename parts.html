@@ -1,94 +1,15 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>【検証モード】Registro500 Parts Data</title>
-    <style>
-        body { font-family: monospace; margin: 0; background: #f0f0f0; color: #333; }
-        header { background: #333; color: white; padding: 20px; position: sticky; top: 0; z-index: 100; }
-        .search-box { display: flex; gap: 10px; max-width: 1000px; margin: 0 auto; }
-        input { flex: 1; padding: 10px; font-size: 16px; border-radius: 4px; border: none; }
-        button { padding: 10px 20px; cursor: pointer; background: #c30010; color: white; border: none; border-radius: 4px; font-weight: bold; }
-        
-        #results { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); 
-            gap: 20px; 
-            padding: 20px; 
-            max-width: 1400px; 
-            margin: 0 auto; 
-        }
-
-        /* 検証用カードスタイル：全情報を露出 */
-        .debug-card { 
-            background: white; 
-            border: 2px solid #666; 
-            padding: 15px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 8px; 
-            font-size: 12px;
-        }
-        .debug-header { 
-            background: #eee; 
-            padding: 5px; 
-            font-weight: bold; 
-            border-bottom: 1px solid #ccc;
-            display: flex;
-            justify-content: space-between;
-        }
-        .shop-name { color: blue; }
-        .price-raw { font-size: 20px; color: #c30010; font-weight: bold; margin: 5px 0; }
-        .img-box { width: 100%; height: 150px; background: #fff; text-align: center; border: 1px solid #eee; }
-        .img-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .link-btn { 
-            display: block; 
-            text-align: center; 
-            background: #007bff; 
-            color: white; 
-            text-decoration: none; 
-            padding: 10px; 
-            border-radius: 4px; 
-            font-weight: bold;
-            margin-top: auto;
-        }
-        .data-label { font-weight: bold; color: #666; width: 80px; display: inline-block; }
-    </style>
-</head>
-<body>
-
-<header>
-    <div class="search-box">
-        <input type="text" id="search-input" placeholder="検証したい商品名やOEM番号を入力（例: VL1322）">
-        <button onclick="debugSearch()">検証用検索</button>
-    </div>
-</header>
-
-<div id="results">
-    <!-- ここに生のデータが並びます -->
-</div>
-
-<script src="config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script>
-    // Supabaseのみ使用（検証のためFirebaseは一旦除外）
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    async function debugSearch() {
+async function debugSearch() {
         const query = document.getElementById('search-input').value.trim();
         const resultsDiv = document.getElementById('results');
         
         if (!query) { alert("キーワードを入れてください"); return; }
-        
         resultsDiv.innerHTML = "DBから生データを取得中...";
 
-        // 検索ロジック：一切のフィルタをかけず、キーワードに合うものを全ショップから取得
+        // 検索対象を大幅に広げ、URLやID、品番のどこかに含まれていれば出すように変更
         const { data, error } = await _supabase
             .from('parts')
             .select('*')
-            .or(`name_jp.ilike.%${query}%,name_en.ilike.%${query}%,oem_no.ilike.%${query}%`)
+            .or(`name_jp.ilike.%${query}%,name_en.ilike.%${query}%,oem_no.ilike.%${query}%,page_url.ilike.%${query}%,product_no.ilike.%${query}%`)
             .limit(100);
 
         if (error) {
@@ -97,8 +18,8 @@
         }
 
         resultsDiv.innerHTML = "";
-        if (data.length === 0) {
-            resultsDiv.innerHTML = "DB内に該当データはありません。";
+        if (!data || data.length === 0) {
+            resultsDiv.innerHTML = `DB内に "${query}" に該当するデータはありません。別の言葉（例: ヘッドライト）で試してください。`;
             return;
         }
 
@@ -114,27 +35,13 @@
                     <img src="${part.image_url || ''}" alt="No Image">
                 </div>
                 <div><span class="data-label">OEM/品番:</span> <strong>${part.oem_no || 'N/A'}</strong></div>
+                <div><span class="data-label">商品番号:</span> ${part.product_no || 'N/A'}</div>
                 <div><span class="data-label">日本語名:</span> ${part.name_jp}</div>
                 <div><span class="data-label">英語名:</span> ${part.name_en}</div>
                 <div><span class="data-label">適合車種:</span> ${part.target_cars}</div>
-                
-                <div class="price-raw">
-                    DB価格: €${part.price_euro}
-                </div>
-                
-                <div style="font-size:10px; color:#888; background:#fff9f9; padding:5px; border:1px solid #ffdada;">
-                    ※注意：この価格は収集プログラムがDBに書き込んだ数値です。<br>
-                    公式サイトと違う場合は、収集時の不具合かデータの鮮度不足です。
-                </div>
-
-                <a href="${part.page_url}" target="_blank" class="link-btn">
-                    実際のショップページを開いて確認
-                </a>
+                <div class="price-raw">DB保存価格: €${part.price_euro}</div>
+                <a href="${part.page_url}" target="_blank" class="link-btn">実際のショップページを開く</a>
             `;
             resultsDiv.appendChild(card);
         });
     }
-</script>
-
-</body>
-</html>
