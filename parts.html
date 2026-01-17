@@ -5,41 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fiat 500 Parts Hub - Registro500</title>
     <style>
-        :root { --fiat-red: #c30010; --accent-blue: #007bff; --bg-gray: #f0f2f5; }
-        body { font-family: sans-serif; margin: 0; background: var(--bg-gray); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        :root { --fiat-red: #c30010; --accent-blue: #007bff; --bg-gray: #f2f2f2; --card-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 0; background: var(--bg-gray); color: #333; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        header { background: white; padding: 15px; border-bottom: 3px solid var(--fiat-red); z-index: 1000; }
-        .controls { display: flex; gap: 10px; max-width: 1200px; margin: 0 auto; flex-wrap: wrap; }
-        select, input { padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
-        #search-input { flex: 2; min-width: 200px; }
-        .search-btn { background: var(--fiat-red); color: white; border: none; padding: 10px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        /* ヘッダー */
+        header { background: white; padding: 15px; border-bottom: 3px solid var(--fiat-red); z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .controls { display: flex; gap: 10px; max-width: 1400px; margin: 0 auto; flex-wrap: wrap; }
+        select, input { padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        #search-input { flex: 2; min-width: 250px; }
+        .search-btn { background: var(--fiat-red); color: white; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer; font-weight: bold; }
 
-        #filter-tags { max-width: 1200px; margin: 10px auto 0; display: flex; gap: 8px; overflow-x: auto; padding: 5px 10px; min-height: 45px; }
-        .tag-btn { background: white; border: 1px solid #ccc; padding: 6px 15px; border-radius: 20px; font-size: 12px; cursor: pointer; white-space: nowrap; }
-        .tag-btn.active { background: var(--fiat-red); color: white; border-color: var(--fiat-red); }
+        #filter-tags { max-width: 1400px; margin: 8px auto 0; display: flex; gap: 8px; overflow-x: auto; padding: 5px 10px; min-height: 40px; }
+        .tag-btn { background: white; border: 1px solid #ccc; padding: 5px 15px; border-radius: 20px; font-size: 12px; cursor: pointer; white-space: nowrap; transition: 0.2s; }
+        .tag-btn.active { background: #333; color: white; border-color: #333; }
 
         .content { display: flex; flex: 1; overflow: hidden; }
-        #results { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; align-content: start; }
+        #results { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; align-content: start; }
 
-        .card { background: white; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #eee; min-height: 400px; }
-        .card-img-box { width: 100%; height: 160px; background: #fff; display: flex; align-items: center; justify-content: center; padding: 10px; box-sizing: border-box; }
+        /* ミニマムカードデザイン */
+        .card { background: white; border-radius: 12px; position: relative; overflow: hidden; box-shadow: var(--card-shadow); display: flex; flex-direction: column; height: 320px; border: 1px solid #eee; }
+        .card-img-box { width: 100%; height: 200px; background: #fff; display: flex; align-items: center; justify-content: center; padding: 10px; box-sizing: border-box; }
         .card img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .card-body { padding: 15px; flex: 1; display: flex; flex-direction: column; }
-        .name-jp { font-weight: bold; font-size: 16px; color: #000; margin-bottom: 5px; line-height: 1.4; }
-        .name-en { font-size: 11px; color: #666; margin-bottom: 10px; }
-        .target-tag { font-size: 11px; color: var(--fiat-red); font-weight: bold; margin-bottom: 5px; }
+        
+        .card-info { padding: 12px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .name-jp { font-weight: bold; font-size: 15px; color: #000; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .price-box { display: flex; justify-content: space-between; align-items: baseline; margin-top: 5px; }
+        .price-eur { font-size: 14px; color: var(--fiat-red); font-weight: bold; }
+        .price-jpy { font-size: 11px; color: #888; }
 
-        .card-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; background: #fafafa; border-top: 1px solid #eee; }
-        .shop-btn { text-decoration: none; padding: 10px 5px; border-radius: 8px; font-size: 12px; text-align: center; border: 2px solid var(--accent-blue); color: var(--accent-blue); font-weight: bold; }
-        .keep-btn { background: #333; color: white; border: none; padding: 10px; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: bold; }
+        /* ホバー時の詳細オーバーレイ */
+        .card-detail { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.96); opacity: 0; transition: 0.3s; display: flex; flex-direction: column; padding: 15px; box-sizing: border-box; pointer-events: none; }
+        .card:hover .card-detail { opacity: 1; pointer-events: auto; }
+        .detail-text { font-size: 11px; line-height: 1.4; color: #555; overflow-y: auto; flex: 1; margin-bottom: 10px; }
+        .detail-btn-group { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        .detail-btn { padding: 10px; border-radius: 6px; font-size: 12px; font-weight: bold; text-align: center; cursor: pointer; text-decoration: none; border: none; }
+        .btn-shop { border: 2px solid var(--accent-blue); color: var(--accent-blue); background: transparent; }
+        .btn-keep { background: #333; color: white; }
 
+        /* 検討リスト（サイドバー） */
         .sidebar { width: 340px; background: white; border-left: 1px solid #ddd; display: flex; flex-direction: column; }
-        .sidebar-h { padding: 20px; background: #212529; color: white; font-weight: bold; }
-        #keep-list { flex: 1; overflow-y: auto; padding: 15px; }
-        .total-box { padding: 20px; background: #f8f9fa; border-top: 3px solid #212529; }
-        .total-jpy { font-size: 26px; font-weight: bold; color: var(--fiat-red); }
+        .sidebar-h { padding: 20px; background: #212529; color: white; font-weight: bold; font-size: 18px; }
+        #keep-list { flex: 1; overflow-y: auto; padding: 0; }
+        .shop-group { border-bottom: 5px solid #f0f0f0; }
+        .shop-title { background: #f8f9fa; padding: 8px 15px; font-size: 12px; font-weight: bold; color: #666; display: flex; justify-content: space-between; }
+        .keep-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px dotted #eee; font-size: 13px; }
+        .item-del { cursor: pointer; color: #ccc; margin-left: 10px; }
+        .item-del:hover { color: var(--fiat-red); }
 
-        @media (max-width: 900px) { .sidebar { width: 100%; height: 250px; } .content { flex-direction: column; } }
+        .total-box { padding: 20px; background: white; border-top: 3px solid #212529; }
+        .total-jpy { font-size: 30px; font-weight: bold; color: var(--fiat-red); }
+
+        @media (max-width: 900px) { .sidebar { width: 100%; height: 280px; } .content { flex-direction: column; } .card-detail { opacity: 1; position: relative; height: auto; display: none; } .card:active .card-detail { display: flex; } }
     </style>
 </head>
 <body>
@@ -47,10 +63,10 @@
 <header>
     <div class="controls">
         <select id="car-select">
-            <option value="">すべての適合パーツを表示</option>
+            <option value="">すべてのパーツを表示</option>
             <optgroup label="登録済みの自車" id="my-cars-group"></optgroup>
-            <optgroup label="Fiat 500 (All Series)">
-                <option value="500">Fiat 500 全部を表示</option>
+            <optgroup label="Fiat 500 Models">
+                <option value="500">Fiat 500 (All Series)</option>
                 <option value="500 N">500 N (Nuova)</option>
                 <option value="500 D">500 D</option>
                 <option value="500 F">500 F</option>
@@ -59,7 +75,7 @@
                 <option value="Giardiniera">Giardiniera / Bianchina</option>
             </optgroup>
             <optgroup label="Other Models">
-                <option value="595">Abarth 595/695</option>
+                <option value="Abarth">Abarth 595 / 695</option>
                 <option value="Giannini">Giannini</option>
                 <option value="126">Fiat 126</option>
                 <option value="600">Fiat 600</option>
@@ -77,9 +93,9 @@
         <div class="sidebar-h">検討リスト</div>
         <div id="keep-list"></div>
         <div class="total-box">
-            <div style="display:flex; justify-content:space-between;"><span>合計 (€)</span><span id="total-eur">€0.00</span></div>
-            <div style="display:flex; justify-content:space-between; align-items:baseline;"><span>日本円換算</span><span id="total-jpy" class="total-jpy">¥0</span></div>
-            <div id="rate-info" style="font-size:10px; color:#999; margin-top:10px;"></div>
+            <div id="total-eur" style="font-size:12px; color:#666; margin-bottom:5px;"></div>
+            <div class="total-jpy" id="total-jpy">¥0</div>
+            <div id="rate-info" style="font-size:10px; color:#aaa; margin-top:8px;"></div>
         </div>
     </aside>
 </div>
@@ -117,7 +133,7 @@
         data?.forEach(car => {
             const opt = document.createElement('option');
             opt.value = car.model_display_c;
-            opt.textContent = `${car.nickname || '自車'} (${car.model_display_c})`;
+            opt.textContent = `${car.handle_name || '自車'} (${car.model_display_c})`;
             group.appendChild(opt);
         });
     }
@@ -128,7 +144,7 @@
         const resultsDiv = document.getElementById('results');
         
         if (!filterKeyword) {
-            resultsDiv.innerHTML = "<div style='grid-column:1/-1; text-align:center; padding:50px;'>検索中...</div>";
+            resultsDiv.innerHTML = "<div style='grid-column:1/-1; text-align:center; padding:50px; color:#999;'>検索中...</div>";
             let dbQuery = _supabase.from('parts').select('*');
             if (query) dbQuery = dbQuery.or(`name_jp.ilike.%${query}%,name_en.ilike.%${query}%,oem_no.ilike.%${query}%`);
             const { data } = await dbQuery.limit(200);
@@ -138,7 +154,7 @@
 
         let displayData = lastSearchResults;
         if (modelValue) {
-            const typeKey = modelValue.split(" ").pop(); // 500 Fなら"F"、500なら"500"
+            const typeKey = modelValue.split(" ").pop();
             displayData = displayData.filter(p => (p.target_cars || "").includes(typeKey) || p.target_cars === "");
         }
 
@@ -159,14 +175,24 @@
             card.className = 'card';
             card.innerHTML = `
                 <div class="card-img-box"><img src="${part.image_url || NO_IMAGE_URL}" onerror="this.src='${NO_IMAGE_URL}'"></div>
-                <div class="card-body">
-                    <div class="target-tag">${part.target_cars || '全車共通'}</div>
+                <div class="card-info">
                     <div class="name-jp">${part.name_jp || '名称なし'}</div>
-                    <div class="name-en">${part.name_en || ''}</div>
+                    <div class="price-box">
+                        <span class="price-eur">€${price.toFixed(2)}</span>
+                        <span class="price-jpy">¥${Math.round(price * jpyRate).toLocaleString()}</span>
+                    </div>
                 </div>
-                <div class="card-footer">
-                    <a href="${part.page_url}" target="_blank" class="shop-btn"><span>${part.shop_name}</span><br>€${price.toFixed(2)}</a>
-                    <button onclick="keepPart(this, ${part.id}, '${part.shop_name}')" class="keep-btn">リストに追加</button>
+                <div class="card-detail">
+                    <div class="detail-text">
+                        <div style="font-weight:bold; color:var(--fiat-red); margin-bottom:5px;">${part.target_cars || '全車共通'}</div>
+                        <div style="margin-bottom:8px;">${part.name_en || ''}</div>
+                        <div style="background:#f4f4f4; padding:5px; border-radius:4px;">${part.specs || '仕様情報なし'}</div>
+                        <div style="margin-top:5px; color:#999;">OEM: ${part.oem_no || '-'}</div>
+                    </div>
+                    <div class="detail-btn-group">
+                        <a href="${part.page_url}" target="_blank" class="detail-btn btn-shop" onclick="markVisited(this)">${part.shop_name} 本サイトへ</a>
+                        <button onclick="keepPart(this, ${part.id}, '${part.shop_name}')" class="detail-btn btn-keep">検討リストに追加</button>
+                    </div>
                 </div>
             `;
             resultsDiv.appendChild(card);
@@ -190,9 +216,7 @@
             tagArea.innerHTML += `<button class="tag-btn" onclick="applyTag(this, '${item.k}')">${item.k} (${item.count})</button>`;
         });
         const otherCount = data.length - categorizedIds.size;
-        if (otherCount > 0) {
-            tagArea.innerHTML += `<button class="tag-btn" onclick="applyTag(this, 'その他')">その他 (${otherCount})</button>`;
-        }
+        if (otherCount > 0) tagArea.innerHTML += `<button class="tag-btn" onclick="applyTag(this, 'その他')">その他 (${otherCount})</button>`;
     }
 
     function applyTag(btn, k) {
@@ -203,76 +227,72 @@
 
     async function keepPart(btn, partId, shopName) {
         if (!currentUser) return;
-        const originalText = btn.innerText;
         btn.innerText = "保存中...";
         const { error } = await _supabase.from('user_selections').insert([
             { user_id: currentUser.uid, part_id: parseInt(partId), shop_name: shopName }
         ]);
-        if (error) {
-            alert("エラー詳細: " + error.message);
-            btn.innerText = originalText;
-        } else {
-            btn.innerText = "追加済み";
-            btn.style.background = "#28a745";
-            loadKeepList();
-        }
+        if (error) { alert("保存失敗: " + error.message); btn.innerText = "再試行"; }
+        else { btn.innerText = "追加済み"; btn.disabled = true; loadKeepList(); }
     }
 
-    // 検討リスト読み込み (リンクなし対応版：2段階で取得)
+    async function deleteItem(id) {
+        const { error } = await _supabase.from('user_selections').delete().eq('id', id);
+        if (!error) loadKeepList();
+    }
+
     async function loadKeepList() {
         if (!currentUser) return;
+        const { data: selections } = await _supabase.from('user_selections').select('*').eq('user_id', currentUser.uid).order('created_at', { ascending: false });
         
-        // 1. まずキープしたID一覧を取得
-        const { data: selections, error } = await _supabase
-            .from('user_selections')
-            .select('*')
-            .eq('user_id', currentUser.uid)
-            .order('created_at', { ascending: false });
-
-        if (error) { console.error(error); return; }
-
         const listDiv = document.getElementById('keep-list');
-        listDiv.innerHTML = "読込中...";
-        let totalEur = 0;
-
+        listDiv.innerHTML = "";
+        
         if (!selections || selections.length === 0) {
-            listDiv.innerHTML = "リストは空です";
-            document.getElementById('total-eur').innerText = "€0.00";
+            listDiv.innerHTML = "<div style='padding:20px; color:#ccc; text-align:center;'>リストは空です</div>";
             document.getElementById('total-jpy').innerText = "¥0";
+            document.getElementById('total-eur').innerText = "";
             return;
         }
 
-        // 2. IDを元にパーツ情報を一件ずつ、または一括で取得
+        // ショップ別に集計
+        const shopGroups = {};
         const partIds = selections.map(s => s.part_id);
-        const { data: partsData } = await _supabase
-            .from('parts')
-            .select('*')
-            .in('id', partIds);
+        const { data: partsData } = await _supabase.from('parts').select('*').in('id', partIds);
 
-        listDiv.innerHTML = "";
-        
-        // 取得したパーツ情報を、キープしたショップ名と紐付けて表示
+        let grandTotalEur = 0;
+
         selections.forEach(sel => {
             const part = partsData.find(p => p.id === sel.part_id);
-            if (part) {
-                const isAxel = sel.shop_name.includes('Axel');
-                const price = isAxel ? (part.price_euro / 1.19) : part.price_euro;
-                totalEur += price;
-                
-                const itemDiv = document.createElement('div');
-                itemDiv.style.fontSize = "12px";
-                itemDiv.style.borderBottom = "1px solid #eee";
-                itemDiv.style.padding = "8px 0";
-                itemDiv.style.display = "flex";
-                itemDiv.style.justifyContent = "space-between";
-                itemDiv.innerHTML = `<span>${part.name_jp}</span><strong>€${price.toFixed(2)}</strong>`;
-                listDiv.appendChild(itemDiv);
-            }
+            if (!part) return;
+            const price = sel.shop_name.includes('Axel') ? (part.price_euro / 1.19) : part.price_euro;
+            
+            if (!shopGroups[sel.shop_name]) shopGroups[sel.shop_name] = { items: [], total: 0 };
+            shopGroups[sel.shop_name].items.push({ selectionId: sel.id, name: part.name_jp, price: price });
+            shopGroups[sel.shop_name].total += price;
+            grandTotalEur += price;
         });
 
-        document.getElementById('total-eur').innerText = `€${totalEur.toFixed(2)}`;
-        document.getElementById('total-jpy').innerText = `¥${Math.round(totalEur * jpyRate).toLocaleString()}`;
+        for (const shop in shopGroups) {
+            const group = shopGroups[shop];
+            const shopDiv = document.createElement('div');
+            shopDiv.className = 'shop-group';
+            shopDiv.innerHTML = `
+                <div class="shop-title"><span>${shop}</span><span>€${group.total.toFixed(2)}</span></div>
+                ${group.items.map(item => `
+                    <div class="keep-item">
+                        <span>${item.name}</span>
+                        <span>€${item.price.toFixed(2)} <i class="item-del" onclick="deleteItem('${item.selectionId}')">✕</i></span>
+                    </div>
+                `).join('')}
+            `;
+            listDiv.appendChild(shopDiv);
+        }
+
+        document.getElementById('total-eur').innerText = `合計: €${grandTotalEur.toFixed(2)}`;
+        document.getElementById('total-jpy').innerText = `¥${Math.round(grandTotalEur * jpyRate).toLocaleString()}`;
     }
+
+    function markVisited(btn) { btn.style.borderColor = "#ccc"; btn.style.color = "#ccc"; }
 </script>
 </body>
 </html>
