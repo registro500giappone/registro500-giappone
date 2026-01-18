@@ -72,14 +72,7 @@
 
     /* ===== ヘッダーエリア ===== */
     .page-header { display: flex; flex-direction: column; gap: 24px; margin-bottom: 32px; }
-    
-    /* ロゴエリアの基準点 */
-    .header-brand-block { 
-      display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; 
-      position: relative; /* バッジ配置の基準 */
-      padding: 20px 0; /* バッジのための余白 */
-    }
-
+    .header-brand-block { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; }
     .logo-mobile { display: block; height: 140px; width: auto; object-fit: contain; mix-blend-mode: multiply; }
     .logo-pc { display: none; }
     .brand-text-group { display: flex; flex-direction: column; gap: 6px; }
@@ -87,53 +80,6 @@
     .page-subtitle { margin: 0; font-size: 0.85rem; font-weight: 500; color: var(--text-main); line-height: 1.4; }
     .page-meta { margin: 0; font-size: 0.85rem; color: var(--accent); font-weight: 600; }
     .goal-pill { margin-right: 6px; }
-
-    /* ========== 100台突破記念バッジ設定（劇的改善版） ========== */
-    .anniv-badge {
-      position: absolute;
-      z-index: 1;
-      pointer-events: none;
-      /* 背景の格子模様を白背景に馴染ませて消す魔法のプロパティ */
-      mix-blend-mode: multiply; 
-    }
-
-    /* スマホ版（縦並びロゴ）の配置 */
-    .badge-shuku {
-      width: 90px;
-      top: -15px;
-      left: 10px;
-      transform: rotate(-10deg);
-    }
-    .badge-100 {
-      width: 200px;
-      bottom: -15px;
-      right: 0px;
-    }
-
-    /* PC版レイアウト調整（横並びロゴ） */
-    @media (min-width: 1025px) {
-      .page-header { flex-direction: row; justify-content: space-between; align-items: flex-end; margin-top: 40px; }
-      .header-brand-block { align-items: flex-start; text-align: left; padding: 0; }
-      .logo-mobile { display: none; }
-      .logo-pc { display: block; height: 130px; width: auto; mix-blend-mode: multiply; margin-left: -5px; }
-      
-      /* PC版バッジ位置：ロゴを囲うように配置 */
-      .badge-shuku {
-        width: 100px;
-        top: -45px;
-        left: -50px;
-        transform: rotate(-15deg);
-      }
-      .badge-100 {
-        width: 220px;
-        bottom: -35px;
-        left: 140px;
-        right: auto;
-      }
-
-      .page-header-right { align-items: flex-end; }
-      .header-nav { justify-content: flex-end; margin-top: 0; }
-    }
 
     /* ===== 右側操作エリア ===== */
     .page-header-right { display: flex; flex-direction: column; gap: 16px; }
@@ -201,6 +147,16 @@
     }
     .x-icon-link svg { width: 16px; height: 16px; fill: currentColor; }
 
+    /* ===== PC向けレイアウト調整 ===== */
+    @media (min-width: 1025px) {
+      .page-header { flex-direction: row; justify-content: space-between; align-items: flex-end; margin-top: 40px; }
+      .header-brand-block { align-items: flex-start; text-align: left; }
+      .logo-mobile { display: none; }
+      .logo-pc { display: block; height: 125px; width: auto; mix-blend-mode: multiply; margin-left: -5px; }
+      .page-header-right { align-items: flex-end; }
+      .header-nav { justify-content: flex-end; margin-top: 0; }
+    }
+
     /* ===== カードリスト ===== */
     .car-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
     @media (min-width: 768px) { .car-list { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px; } }
@@ -236,10 +192,6 @@
   <div class="page">
     <header class="page-header">
       <div class="header-brand-block">
-        <!-- 記念バッジを追加（ロゴの背後・周囲に配置） -->
-        <img src="100dai1.png" class="anniv-badge badge-shuku" alt="祝">
-        <img src="100dai2.png" class="anniv-badge badge-100" alt="100台突破">
-
         <img src="logo_vertical.png" class="logo-mobile" alt="Registro500">
         <img src="logo_horizontal.png" class="logo-pc" alt="Registro500">
         <div class="brand-text-group">
@@ -274,6 +226,7 @@
             </div>
           </div>
 
+          <!-- ★名称を「マイガレージ」に変更 -->
           <a href="edit.html" class="btn-secondary btn-owner">マイガレージ</a>
         </div>
         
@@ -342,6 +295,7 @@
 
 async function fetchCars() {
     try {
+      // Supabaseからデータを取得
       const { data, error } = await supabaseClient
         .from('cars')
         .select(`
@@ -370,6 +324,7 @@ async function fetchCars() {
   }
 async function checkNewsBadge() {
       try {
+        // Supabaseから最新1件の日付を取得
         const { data, error } = await supabaseClient
           .from('news')
           .select('date')
@@ -379,6 +334,7 @@ async function checkNewsBadge() {
         if (!error && data && data.length > 0) {
           const latestDate = new Date(data[0].date);
           const diff = Math.ceil((new Date() - latestDate) / (1000 * 60 * 60 * 24));
+          // 7日以内の新着があればバッジを表示
           if (diff <= 7) document.getElementById('newsBadge').style.display = 'block';
         }
       } catch (e) {}
