@@ -72,14 +72,51 @@
 
     /* ===== ヘッダーエリア ===== */
     .page-header { display: flex; flex-direction: column; gap: 24px; margin-bottom: 32px; }
-    .header-brand-block { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; }
-    .logo-mobile { display: block; height: 140px; width: auto; object-fit: contain; mix-blend-mode: multiply; }
+    
+    /* 記念ロゴ配置のための相対位置設定 */
+    .header-brand-block { 
+      display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; 
+      position: relative; 
+    }
+
+    .logo-mobile { display: block; height: 140px; width: auto; object-fit: contain; mix-blend-mode: multiply; position: relative; z-index: 2; }
     .logo-pc { display: none; }
-    .brand-text-group { display: flex; flex-direction: column; gap: 6px; }
+    .brand-text-group { display: flex; flex-direction: column; gap: 6px; position: relative; z-index: 2; }
     .brand-title { display: none; }
     .page-subtitle { margin: 0; font-size: 0.85rem; font-weight: 500; color: var(--text-main); line-height: 1.4; }
     .page-meta { margin: 0; font-size: 0.85rem; color: var(--accent); font-weight: 600; }
     .goal-pill { margin-right: 6px; }
+
+    /* ★ 100台突破記念バッジCSSここから */
+    .anniv-badge {
+      position: absolute;
+      z-index: 5;
+      pointer-events: none;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+      animation: floatAnniv 3s ease-in-out infinite;
+    }
+    @keyframes floatAnniv {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    /* スマホ版（縦ロゴ）での配置 */
+    .badge-shuku { width: 70px; top: -10px; left: 50%; margin-left: -105px; }
+    .badge-100 { width: 140px; top: 100px; left: 50%; margin-left: 5px; animation-delay: 0.5s; }
+
+    /* PC版レイアウト調整（1025px以上） */
+    @media (min-width: 1025px) {
+      .page-header { flex-direction: row; justify-content: space-between; align-items: flex-end; margin-top: 40px; }
+      .header-brand-block { align-items: flex-start; text-align: left; }
+      .logo-mobile { display: none; }
+      .logo-pc { display: block; height: 125px; width: auto; mix-blend-mode: multiply; margin-left: -5px; position: relative; z-index: 2; }
+      .page-header-right { align-items: flex-end; }
+      .header-nav { justify-content: flex-end; margin-top: 0; }
+
+      /* PC版での記念バッジ位置（横ロゴ） */
+      .badge-shuku { width: 80px; top: -20px; left: -40px; }
+      .badge-100 { width: 170px; top: 70px; left: 160px; animation-delay: 0.5s; }
+    }
+    /* ★ 100台突破記念バッジCSSここまで */
 
     /* ===== 右側操作エリア ===== */
     .page-header-right { display: flex; flex-direction: column; gap: 16px; }
@@ -147,16 +184,6 @@
     }
     .x-icon-link svg { width: 16px; height: 16px; fill: currentColor; }
 
-    /* ===== PC向けレイアウト調整 ===== */
-    @media (min-width: 1025px) {
-      .page-header { flex-direction: row; justify-content: space-between; align-items: flex-end; margin-top: 40px; }
-      .header-brand-block { align-items: flex-start; text-align: left; }
-      .logo-mobile { display: none; }
-      .logo-pc { display: block; height: 125px; width: auto; mix-blend-mode: multiply; margin-left: -5px; }
-      .page-header-right { align-items: flex-end; }
-      .header-nav { justify-content: flex-end; margin-top: 0; }
-    }
-
     /* ===== カードリスト ===== */
     .car-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
     @media (min-width: 768px) { .car-list { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px; } }
@@ -192,6 +219,10 @@
   <div class="page">
     <header class="page-header">
       <div class="header-brand-block">
+        <!-- ★ 100台突破記念画像追加 -->
+        <img src="100dai1.png" class="anniv-badge badge-shuku" alt="祝">
+        <img src="100dai2.png" class="anniv-badge badge-100" alt="100台突破">
+        
         <img src="logo_vertical.png" class="logo-mobile" alt="Registro500">
         <img src="logo_horizontal.png" class="logo-pc" alt="Registro500">
         <div class="brand-text-group">
@@ -226,7 +257,6 @@
             </div>
           </div>
 
-          <!-- ★名称を「マイガレージ」に変更 -->
           <a href="edit.html" class="btn-secondary btn-owner">マイガレージ</a>
         </div>
         
@@ -295,7 +325,6 @@
 
 async function fetchCars() {
     try {
-      // Supabaseからデータを取得
       const { data, error } = await supabaseClient
         .from('cars')
         .select(`
@@ -324,7 +353,6 @@ async function fetchCars() {
   }
 async function checkNewsBadge() {
       try {
-        // Supabaseから最新1件の日付を取得
         const { data, error } = await supabaseClient
           .from('news')
           .select('date')
@@ -334,7 +362,6 @@ async function checkNewsBadge() {
         if (!error && data && data.length > 0) {
           const latestDate = new Date(data[0].date);
           const diff = Math.ceil((new Date() - latestDate) / (1000 * 60 * 60 * 24));
-          // 7日以内の新着があればバッジを表示
           if (diff <= 7) document.getElementById('newsBadge').style.display = 'block';
         }
       } catch (e) {}
