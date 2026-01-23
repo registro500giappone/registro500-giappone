@@ -328,9 +328,6 @@
         <label>ブログ・個人サイトURL</label><input type="text" name="BlogOrWebsite">
 
         <h2 class="rg-section-title">写真登録</h2>
-        <p style="font-size: 0.8rem; color: #666; margin-top: -0.5rem; margin-bottom: 1rem;">
-          ※写真をタップすると追加・変更、<br>右下のアイコンをタップすると登録済み写真をトリミングできます。
-        </p>
         <div class="photo-grid">
           <div class="photo-upload-box js-photo-upload" data-target="PhotoMain">
             <span class="photo-label">★メイン写真 <span class="badge-required">必須</span></span>
@@ -385,7 +382,6 @@
     </section>
   </div>
 
-  <!-- トリミング用モーダル -->
   <div id="cropperModal">
     <div class="cropper-header">
       <span>写真をトリミング</span>
@@ -411,6 +407,7 @@
       const auth = firebase.auth(), storage = firebase.storage();
       const overlay = document.getElementById('loginOverlay'), submitBtn = document.getElementById('submitButton'), carForm = document.getElementById('carForm'), pageLoading = document.getElementById('pageLoading'), formContent = document.getElementById('formContent'), carSelectionArea = document.getElementById('carSelectionArea'), myCarList = document.getElementById('myCarList'), fileInput = document.getElementById('globalFileInput');
       
+      let originalData = null; // ★比較用の元データを保持
       let activeTarget = null;
       let cropper = null;
 
@@ -466,6 +463,7 @@
         try {
           const { data: car, error } = await supabaseClient.from('cars').select('*').eq('document_id', docId).single();
           if (car) {
+            originalData = car; // ★ここで元データを保持
             pageLoading.style.display = 'none'; formContent.style.display = 'block';
             document.getElementById('submitBar').style.display = 'flex';
             submitBtn.disabled = false; submitBtn.textContent = "変更を保存する";
@@ -521,15 +519,13 @@
         input.value = url || ""; if (url) { img.src = url; img.style.display = 'block'; } else img.style.display = 'none';
       }
 
-      // 写真クリックでファイル選択（既存機能）
       document.querySelectorAll('.js-photo-upload').forEach(box => {
         box.onclick = (e) => {
-          if(e.target.classList.contains('btn-re-crop')) return; // ✂ボタンなら無視
+          if(e.target.classList.contains('btn-re-crop')) return;
           activeTarget = box.dataset.target; fileInput.click();
         };
       });
 
-      // ファイルが選択されたらトリミング画面を開く
       fileInput.onchange = (e) => {
         const file = e.target.files[0]; if (!file || !activeTarget) return;
         const reader = new FileReader();
@@ -537,7 +533,6 @@
         reader.readAsDataURL(file);
       };
 
-      // ✂再調整ボタンが押されたとき（既存URLを使って再編集）
       window.startReCrop = (e, target) => {
         e.stopPropagation();
         const input = document.querySelector(`input[name="${target}"]`);
@@ -551,37 +546,17 @@
         const img = document.getElementById('cropperImage');
         img.src = imgSrc;
         modal.style.display = 'flex';
-
         if(cropper) cropper.destroy();
-        cropper = new Cropper(img, {
-          aspectRatio: 1,
-          viewMode: 1,
-          dragMode: 'move',
-          autoCropArea: 1,
-          restore: false,
-          guides: true,
-          center: true,
-          highlight: false,
-          cropBoxMovable: true,
-          cropBoxResizable: true,
-          toggleDragModeOnDblclick: false,
-        });
+        cropper = new Cropper(img, { aspectRatio: 1, viewMode: 1, dragMode: 'move', autoCropArea: 1, restore: false, guides: true, center: true, highlight: false, cropBoxMovable: true, cropBoxResizable: true, toggleDragModeOnDblclick: false });
       }
 
-      window.closeCropper = () => {
-        document.getElementById('cropperModal').style.display = 'none';
-        if(cropper) cropper.destroy();
-        fileInput.value = ""; 
-      };
+      window.closeCropper = () => { document.getElementById('cropperModal').style.display = 'none'; if(cropper) cropper.destroy(); fileInput.value = ""; };
 
-      // トリミング確定ボタン
       document.getElementById('cropDoneBtn').onclick = async () => {
         if(!cropper || !activeTarget) return;
         const canvas = cropper.getCroppedCanvas({ width: 1000, height: 1000 });
-        
         document.getElementById('cropDoneBtn').innerText = "処理中...";
         document.getElementById('cropDoneBtn').disabled = true;
-
         canvas.toBlob(async (blob) => {
           try {
             const path = `images/${auth.currentUser.uid}/${Date.now()}_${activeTarget}.jpg`;
@@ -590,24 +565,43 @@
             const url = await ref.getDownloadURL();
             setPhotoPreview(activeTarget, url);
             closeCropper();
-          } catch (err) {
-            alert("アップロードに失敗しました。CORS設定を確認してください。");
-            console.error(err);
-          } finally {
-            document.getElementById('cropDoneBtn').innerText = "この範囲で確定";
-            document.getElementById('cropDoneBtn').disabled = false;
-          }
+          } catch (err) { alert("アップロードに失敗しました。CORS設定を確認してください。"); } finally { document.getElementById('cropDoneBtn').innerText = "この範囲で確定"; document.getElementById('cropDoneBtn').disabled = false; }
         }, 'image/jpeg', 0.85);
       };
 
       submitBtn.onclick = async () => {
         const fd = new FormData(carForm); const raw = {}; fd.forEach((v, k) => raw[k] = v);
         if (!raw.HandleName || !raw.Prefecture || !raw.Year || !raw.ModelSelectA || !raw.ModelSelectB || !raw.PhotoMain) { 
-          alert("必須項目（名前・都道府県・年式・車種・詳細・メイン写真）をすべて入力してください。"); return; 
+          alert("必須項目をすべて入力してください。"); return; 
         }
         submitBtn.disabled = true; submitBtn.textContent = "保存中...";
         try {
           const isNew = !raw.DocumentID; const userEmail = auth.currentUser.email.toLowerCase();
+
+          // ★差分検知ロジック
+          let updatedFields = [];
+          const fieldMapping = {
+            HandleName: 'handle_name', Prefecture: 'prefecture', ModelSelectA: 'model_select_a', ModelTextA: 'model_text_a', ModelSelectB: 'model_select_b', ModelTextB: 'model_text_b',
+            Year: 'year', BodyColor: 'body_color', Length_cm: 'length_cm', Capacity: 'capacity', Steering: 'steering', EngineCC: 'engine_cc', EngineTypeSelect: 'engine_type_select',
+            EngineTypeText: 'engine_type_text', IgnitionType: 'ignition_type', IgnitionSubType: 'ignition_sub_type', DistributionType: 'distribution_type', CoilName: 'coil_name', PlugName: 'plug_name',
+            FuelInjection: 'fuel_injection', CarburetorName: 'carburetor_name', FuelPump: 'fuel_pump', ElectricPumpName: 'electric_pump_name', Generator: 'generator', OilCooler: 'oil_cooler',
+            Transmission: 'transmission', Synchro: 'synchro', Joint: 'joint', Wheel: 'wheel', RimDiameter_in: 'rim_diameter_in', RimWidth_in: 'rim_width_in', TireType: 'tire_type', TireSize: 'tire_size',
+            TireBrandName: 'tire_brand_name', EngineOil: 'engine_oil', EngineOilInterval: 'engine_oil_interval', TransmissionOil: 'transmission_oil', TransmissionOilInterval: 'transmission_oil_interval',
+            Battery: 'battery', Highlights: 'highlights', X_Twitter: 'x_twitter', Instagram: 'instagram', YouTube: 'youtube', Minkara: 'minkara', Facebook: 'facebook', Threads: 'threads', BlogOrWebsite: 'blog_or_website',
+            PhotoMain: 'photo_main', PhotoFront: 'photo_front', PhotoSide: 'photo_side', PhotoRear: 'photo_rear', PhotoEngine: 'photo_engine', PhotoSteeringCluster: 'photo_steering_cluster', PhotoInterior: 'photo_interior'
+          };
+
+          if (isNew) {
+            updatedFields = Object.values(fieldMapping);
+          } else if (originalData) {
+            Object.keys(fieldMapping).forEach(formKey => {
+              const dbKey = fieldMapping[formKey];
+              if (String(raw[formKey] || "") !== String(originalData[dbKey] || "")) {
+                updatedFields.push(dbKey);
+              }
+            });
+          }
+
           const dbData = {
             owner_email: userEmail, handle_name: raw.HandleName, prefecture: raw.Prefecture,
             model_select_a: raw.ModelSelectA, model_text_a: raw.ModelTextA, model_select_b: raw.ModelSelectB, model_text_b: raw.ModelTextB,
@@ -623,6 +617,8 @@
             facebook: raw.Facebook, threads: raw.Threads, blog_or_website: raw.BlogOrWebsite,
             photo_main: raw.PhotoMain, photo_front: raw.PhotoFront, photo_side: raw.PhotoSide, photo_rear: raw.PhotoRear,
             photo_engine: raw.PhotoEngine, photo_steering_cluster: raw.PhotoSteeringCluster, photo_interior: raw.PhotoInterior,
+            last_update_fields: updatedFields.join(','), // ★ここを追加
+            last_update_date: new Date().toISOString(), // ★ここを追加
             accept_inquiry: true, updated_at: new Date()
           };
           if (!isNew) dbData.document_id = raw.DocumentID;
