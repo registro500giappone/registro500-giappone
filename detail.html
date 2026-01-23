@@ -97,12 +97,10 @@
           <section class="rg-card mb-3">
             <div class="rg-photo-square" id="photoMainContainer"><img id="photoMain" src="" data-rg-zoomable onerror="this.src=NO_IMAGE_URL"></div>
             <div style="margin-top:1rem; font-size:1.4rem; font-weight:800;">
-                <!-- 基本情報エリアにdata-fieldを配置 -->
                 <span id="year" data-field="year"></span> 
                 <span id="modelMain" data-field="model_select_a,model_text_a"></span>
             </div>
             <div class="d-flex align-items-center mt-2">
-                <!-- ハンドルネームにIDを割り当て -->
                 <span id="handleName" class="fw-bold" data-field="handle_name"></span>
                 <span id="prefecture" class="ms-auto badge bg-light text-primary border border-primary-subtle rounded-pill px-3" data-field="prefecture"></span>
             </div>
@@ -223,24 +221,20 @@
       const badgeHtml = `<span class="badge-new-item">NEW</span>`;
 
       updatedFields.forEach(field => {
-        // 1. スペック項目 (dt および 基本情報の span 等を data-field 属性で検索)
         document.querySelectorAll(`[data-field]`).forEach(el => {
           const fields = el.getAttribute('data-field').split(',');
           if (fields.includes(field)) {
-            // 重複表示防止のチェック
             if (!el.innerHTML.includes('badge-new-item')) {
                 el.innerHTML += badgeHtml;
             }
           }
         });
 
-        // 2. こだわりポイント
         if (field === 'highlights') {
           const h2 = document.getElementById('highlightsTitle');
           if(h2 && !h2.innerHTML.includes('badge-new-item')) h2.innerHTML += badgeHtml;
         }
 
-        // 3. 写真（メイン）
         if (field === 'photo_main') {
           const container = document.getElementById('photoMainContainer');
           if (container && !container.querySelector('.photo-label-update')) {
@@ -250,7 +244,6 @@
           }
         }
 
-        // 4. 写真（ギャラリー）
         if (field.startsWith('photo_') && field !== 'photo_main') {
           const thumb = document.getElementById(`thumb_${field}`);
           if (thumb && !thumb.querySelector('.photo-label-update')) {
