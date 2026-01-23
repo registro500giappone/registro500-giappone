@@ -1,420 +1,292 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
-  <meta charset="UTF-8">
-  <!-- Google tag (gtag.js) -->
+  <meta charset="utf-8">
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-27SHHC4JYH');
-  </script>
-  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <!-- キャッシュ対策 -->
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-
-  <title>Registro500 Giappone</title>
-  
-  <!-- SNS・OGP設定 -->
-  <meta name="description" content="日本のFIAT 500オーナーのための登録制コミュニティ。愛車のガレージ、マップ、イベント情報を集約。">
-  <meta property="og:title" content="Registro500 Giappone">
-  <meta property="og:description" content="日本のチンクエチェント・オーナー名鑑。あなたの愛車も登録しませんか？">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://www.registro500.com/">
-  <meta property="og:image" content="https://www.registro500.com/logo_horizontal.png">
-  <meta name="twitter:card" content="summary">
-
-  <!-- アイコン・PWA -->
-  <link rel="icon" href="logo_horizontal.png">
-  <link rel="apple-touch-icon" href="logo_horizontal.png">
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-27SHHC4JYH');</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>車両詳細 - Registro500 Giappone</title>
   <link rel="manifest" href="manifest.json">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-</script>
-  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>  
+
   <style>
-    /* ========== ベース設定 ========== */
+    html { font-size: 16px !important; }
+    @media (min-width: 1025px) { html { font-size: 18px !important; } }
     :root {
-      --bg-main: #f4f4f7;
-      --card-bg: #ffffff;
-      --border-soft: #e5e7eb;
-      --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.08);
-      --text-main: #111827;
-      --text-sub: #6b7280;
-      --accent: #2856a8;
-      --accent-soft: #e6efff;
-      --accent-border: #c2d4ff;
-      --radius-lg: 12px;
-      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --rg-surface: #ffffff; --rg-surface-sub: #f8fafc; --rg-bg: #f4f6f8;
+      --rg-border: #e5e7eb; --rg-text: #111827; --rg-muted: #6b7280;
+      --rg-accent: #2856a8; --rg-accent-soft: #e6efff; --rg-accent-border: #c2d4ff;
+      --rg-radius-card: 1rem;
     }
-
-    * { box-sizing: border-box; }
-    html { font-size: 16px; max-width: 100%; overflow-x: hidden; }
-    @media (min-width: 1025px) { html { font-size: 18px; } }
-
-    body {
-      font-family: var(--font-sans); margin: 0; padding: 20px 16px 40px;
-      background-color: var(--bg-main); color: var(--text-main); line-height: 1.5;
-      overflow-x: hidden;
-    }
-
-    .page { max-width: 1200px; margin: 0 auto; }
-
-    /* ===== ヘッダーエリア ===== */
-    .page-header { display: flex; flex-direction: column; gap: 24px; margin-bottom: 32px; }
-    .header-brand-block { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; }
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; line-height: 1.7; color: var(--rg-text); background: var(--rg-bg); padding-bottom: 96px; padding-top: 85px; }
     
-    /* ロゴを元に戻しました */
-    .logo-mobile { display: block; height: 110px; width: auto; object-fit: contain; mix-blend-mode: multiply; }
-    .logo-pc { display: none; }
+    .rg-header-bar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px);
+      box-shadow: 0 1px 5px rgba(0,0,0,0.05); height: 75px;
+      display: flex; justify-content: space-between; align-items: center; padding: 0 15px;
+    }
+    .rg-back-link { flex: 1; display: flex; justify-content: flex-start; }
+    .rg-back-link a { text-decoration: none; color: var(--rg-accent); font-weight: 600; font-size: 0.85rem; line-height: 1.2; display: flex; gap: 8px; }
+    @media (min-width: 769px) { .back-br { display: none; } }
+
+    .rg-header-logo { flex: 0; text-align: center; }
+    .rg-header-logo img { height: 28px; width: auto; mix-blend-mode: multiply; display: block; margin: 0 auto; }
+    @media (max-width: 480px) { .rg-header-logo img { height: 22px; max-width: 100px; } }
+
+    .rg-header-right { flex: 1; display: flex; justify-content: flex-end; }
+    .rg-menu-btn { background: #fff; color: var(--rg-accent); border: 1.5px solid var(--rg-accent); font-size: 0.8rem; font-weight: 700; padding: 6px 16px; border-radius: 999px; white-space: nowrap; }
+    .rg-menu-btn:hover { background: var(--rg-accent-soft); }
+
+    .rg-card { background: var(--rg-surface); border-radius: var(--rg-radius-card); border: 1px solid var(--rg-border); padding: 1.2rem; }
+    .rg-photo-square { position: relative; width: 100%; padding-top: 100%; border-radius: 0.9rem; border: 1px solid var(--rg-border); overflow: hidden; background: var(--rg-surface-sub); }
+    .rg-photo-square > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+    .rg-section-title { display: block; margin: 0 0 1rem; font-weight: 700; font-size: 1.15rem; padding: 0.5rem 1rem; background: #eff6ff; border-left: 6px solid var(--rg-accent); color: var(--rg-accent); border-radius: 4px; }
+    .rg-spec-grid { display: grid; grid-template-columns: 8.2rem 1fr; column-gap: 0.5rem; border-top: 1px solid var(--rg-border); border-bottom: 1px solid var(--rg-border); }
+    .rg-spec-grid dt, .rg-spec-grid dd { padding: 0.6rem 0.4rem; border-top: 1px solid var(--rg-border); margin: 0; font-size: 0.95rem; }
+    .rg-spec-grid dt { font-weight: 700; color: var(--rg-muted); background: rgba(148, 163, 184, 0.05); white-space: nowrap; position: relative; }
     
-    .brand-text-group { display: flex; flex-direction: column; gap: 6px; }
-    .brand-title { display: none; }
-    .page-subtitle { margin: 0; font-size: 0.85rem; font-weight: 500; color: var(--text-main); line-height: 1.4; }
-    .page-meta { margin: 0; font-size: 0.85rem; color: var(--accent); font-weight: 600; }
-    .goal-pill { margin-right: 6px; }
-
-    /* ===== 右側操作エリア ===== */
-    .page-header-right { display: flex; flex-direction: column; gap: 16px; }
-    .sort-area { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
-
-    .search-box { position: relative; width: 100%; }
-    .search-input {
-      padding: 10px 16px; border-radius: 999px; border: 1px solid var(--border-soft);
-      background-color: #ffffff; font-size: 0.9rem; width: 100%; outline: none; transition: all 0.2s ease;
-    }
-    .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+    .rg-gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    .rg-gallery-thumb { border-radius: 0.6rem; overflow: hidden; position: relative; padding-top: 100%; border: 1px solid var(--rg-border); background: #eee; }
+    .rg-gallery-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
     
-    @media (min-width: 768px) { .search-box { width: auto; } .search-input { width: 220px; } }
+    .rg-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9); display: none; align-items: center; justify-content: center; z-index: 9999; }
+    .rg-modal.is-open { display: flex; }
+    .btn-contact { background-color: var(--rg-accent); color: white; width: 100%; border-radius: 8px; font-weight: bold; padding: 12px; border:none; margin-top:10px; cursor: pointer; }
+    .inquiry-input, .inquiry-textarea { width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+    .risk-note-box { background: #fff1f2; border: 1px solid #fecdd3; padding: 0.8rem; border-radius: 6px; font-size: 0.8rem; color: #9f1239; margin-bottom: 1rem; line-height: 1.4; text-align: left; }
 
-    .sort-left { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text-sub); }
-    .sort-select {
-      padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-soft);
-      background-color: #ffffff; font-size: 0.9rem; outline: none;
-    }
-
-    .btn-secondary {
-      display: inline-flex; align-items: center; justify-content: center;
-      padding: 8px 18px; border-radius: 999px; border: 1px solid var(--accent-border);
-      background-color: #ffffff; color: var(--accent); font-size: 0.9rem; font-weight: 600;
-      text-decoration: none; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-      white-space: nowrap;
-    }
-    .btn-owner { background-color: var(--accent); color: #ffffff; border-color: var(--accent-border); }
-    .btn-owner:hover { opacity: 0.9; transform: translateY(-1px); }
-
-    @media (max-width: 767px) {
-      .sort-area { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: space-between; }
-      .search-box { order: -2; width: 100%; margin-bottom: 4px; }
-      .sort-left { order: -1; }
-      .dropdown { order: 0; }
-      .btn-owner { order: 1; margin-left: auto; margin-top: 4px; width: auto; }
-    }
-
-    .dropdown { position: relative; display: inline-block; }
-    .dropdown-content {
-      display: none; position: absolute; right: 0; background-color: #ffffff;
-      min-width: 180px; box-shadow: 0 8px 16px rgba(0,0,0,0.15); border-radius: 8px;
-      z-index: 1000; overflow: hidden; border: 1px solid var(--border-soft);
-    }
-    .dropdown-content a, .dropdown-content button {
-      color: var(--text-main); padding: 12px 16px; text-decoration: none; display: block;
-      text-align: left; font-size: 0.9rem; border: none; background: none; width: 100%;
-      cursor: pointer; border-bottom: 1px solid var(--border-soft); font-weight: 500;
-    }
-    .dropdown-content a:hover, .dropdown-content button:hover { background-color: var(--bg-main); color: var(--accent); }
-    .dropdown:hover .dropdown-content { display: block; }
-    
-    .mosaic-toggle-item { display: none !important; }
-    @media (min-width: 1025px) { .mosaic-toggle-item { display: block !important; } }
-
-    .header-nav { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 0.8rem; color: var(--text-sub); margin-top: 8px; }
-    .header-nav a { color: var(--text-sub); text-decoration: none; position: relative; display: flex; align-items: center; }
-    .header-nav a:hover { text-decoration: underline; }
-    .news-badge {
-      position: absolute; top: -2px; right: -10px; width: 8px; height: 8px;
-      background-color: #e11d48; border-radius: 50%; border: 1px solid white;
-    }
-    .x-icon-link svg { width: 16px; height: 16px; fill: currentColor; }
-
-    @media (min-width: 1025px) {
-      .page-header { flex-direction: row; justify-content: space-between; align-items: flex-end; margin-top: 40px; }
-      .header-brand-block { align-items: flex-start; text-align: left; }
-      .logo-mobile { display: none; }
-      .logo-pc { display: block; height: 110px; width: auto; mix-blend-mode: multiply; margin-left: -5px; }
-      .page-header-right { align-items: flex-end; }
-      .header-nav { justify-content: flex-end; margin-top: 0; }
-    }
-
-    .car-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-    @media (min-width: 768px) { .car-list { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px; } }
-
-    .car-card { background-color: var(--card-bg); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s ease; position: relative; }
-    .car-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-    .car-link { text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%; }
-    .car-image-wrap { position: relative; width: 100%; padding-top: 100%; background: #f3f4f6; overflow: hidden; }
-    .car-image { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
-    .car-main { padding: 12px 14px; display: flex; flex-direction: column; flex-grow: 1; }
-    .car-meta-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-    .car-year { font-size: 0.75rem; color: var(--text-sub); font-weight: 600; }
-    .car-pref { font-size: 0.7rem; font-weight: 600; color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-border); padding: 1px 8px; border-radius: 999px; }
-    .car-model { margin: 0 0 2px 0; font-size: 1.05rem; font-weight: 700; color: var(--text-main); line-height: 1.3; }
-    .car-owner { margin: 0; font-size: 0.85rem; font-weight: 600; opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    /* 更新ドット印（単純な赤丸） */
-    .badge-update-dot { 
-      position: absolute; top: 10px; right: 10px; width: 8px; height: 8px; 
-      background: #e11d48; border-radius: 50%; 
-      z-index: 2; box-shadow: 0 1px 3px rgba(0,0,0,0.2); 
-    }
-
-    .car-list.view-mosaic { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 4px; }
-    .car-list.view-mosaic .car-main { display: none; }
-    .car-list.view-mosaic .car-card { border-radius: 4px; box-shadow: none; }
-    .car-list.view-mosaic .car-card:hover { transform: scale(1.15); z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-
-    .footer { margin-top: 60px; padding: 40px 16px; border-top: 1px solid var(--border-soft); text-align: center; color: var(--text-sub); font-size: 0.85rem; }
-    .share-btn { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); text-decoration: none; font-weight: 600; cursor: pointer; border: 1px solid var(--accent-border); padding: 10px 24px; border-radius: 999px; background: #fff; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
-    .share-btn:hover { background: var(--accent-soft); transform: translateY(-1px); }
-
-    #loading { text-align:center; padding: 60px; color: var(--text-sub); }
-    .refresh-button { position: fixed; bottom: 20px; right: 20px; background-color: #333; color: white; border: none; border-radius: 50px; padding: 10px 20px; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 9999; cursor: pointer; opacity: 0.8; transition: opacity 0.2s; }
+    .badge-new-item { color: #e11d48; font-size: 0.65rem; font-weight: 800; margin-left: 6px; vertical-align: middle; }
+    .photo-label-update { position: absolute; top: 5px; left: 5px; background: #e11d48; color: white; font-size: 0.6rem; padding: 2px 6px; border-radius: 3px; z-index: 5; font-weight: bold; }
   </style>
 </head>
-
 <body>
-  <div class="page">
-    <header class="page-header">
-      <div class="header-brand-block">
-        <img src="logo_horizontal.png" class="logo-mobile" alt="Registro500">
-        <img src="logo_horizontal.png" class="logo-pc" alt="Registro500">
-        <div class="brand-text-group">
-          <p class="page-subtitle">日本のクラシック FIAT 500 のオンラインガレージ</p>
-          <p class="page-meta"><span class="goal-pill">めざせ500台！</span> 現在 <span id="carCountValue">-</span>台</p>
+   <header class="rg-header-bar">
+     <div class="rg-back-link">
+       <a href="index.html">
+         <div>←</div>
+         <div class="back-text">ガレージ<br class="back-br">に戻る</div>
+       </a>
+     </div>
+     <div class="rg-header-logo"><img src="logo_horizontal.png" alt="Registro500"></div>
+     <div class="rg-header-right">
+        <div id="ownerMenuArea" class="dropdown" style="display:none;">
+          <button class="rg-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">マイメニュー</button>
+          <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-3">
+            <li><h6 class="dropdown-header">車両管理</h6></li>
+            <li><a class="dropdown-item fw-bold" href="#" id="editLink">✏️ この車両を編集</a></li>
+            <li><a class="dropdown-item" href="edit.html?mode=new">➕ 2台目を登録する</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-muted" href="edit.html">🏠 管理車両一覧へ</a></li>
+          </ul>
         </div>
-      </div>
+     </div>
+   </header>
 
-      <div class="page-header-right">
-        <div class="sort-area">
-          <div class="search-box">
-            <input type="text" id="searchInput" class="search-input" placeholder="名前や車種で検索...">
-          </div>
-          <div class="sort-left">
-            <select id="sortSelect" class="sort-select">
-              <option value="newest">新着順</option>
-              <option value="updated_desc">更新順</option>
-              <option value="oldest">登録順</option>
-              <option value="year_desc">年式 (新しい順)</option>
-              <option value="year_asc">年式 (古い順)</option>
-            </select>
-          </div>
-
-          <div class="dropdown">
-            <button class="btn-secondary">メニュー ▾</button>
-            <div class="dropdown-content">
-              <a href="mappa.html">🗺️ Mappa (地図)</a>
-              <a href="stats.html">📊 統計データ</a>
-              <a href="event.html">📅 イベント掲示板</a>
-              <button onclick="shareSite()">🔗 サイトをシェア</button>
-              <button id="viewToggleBtn" class="mosaic-toggle-item" onclick="toggleViewMode()">▦ モザイク表示</button>
+   <main class="container-lg py-3">
+     <div id="loading" class="text-center py-5">詳細データを読み込んでいます...</div>
+     <div id="content" style="display:none;">
+      <div class="row g-4 align-items-start">
+        <div class="col-12 col-lg-5">
+          <section class="rg-card mb-3">
+            <div class="rg-photo-square" id="photoMainContainer"><img id="photoMain" src="" data-rg-zoomable onerror="this.src=NO_IMAGE_URL"></div>
+            <div style="margin-top:1rem; font-size:1.4rem; font-weight:800;">
+                <span id="year" data-field="year"></span> 
+                <span id="modelMain" data-field="model_select_a,model_text_a"></span>
             </div>
-          </div>
-
-          <a href="edit.html" class="btn-secondary btn-owner">マイガレージ</a>
+            <div class="d-flex align-items-center mt-2">
+                <span id="handleName" class="fw-bold" data-field="handle_name"></span>
+                <span id="prefecture" class="ms-auto badge bg-light text-primary border border-primary-subtle rounded-pill px-3" data-field="prefecture"></span>
+            </div>
+          </section>
+          <section class="rg-card mb-3" id="gallerySection" style="display:none;"><div class="rg-gallery-grid" id="galleryGrid"></div></section>
         </div>
-        
-        <nav class="header-nav">
-          <a href="https://x.com/registro500" target="_blank" rel="noopener" class="x-icon-link" title="公式𝕏">
-            <svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-          </a>
-          <span>｜</span>
-          <a href="news.html">お知らせ<span id="newsBadge" class="news-badge" style="display:none;"></span></a>
-          <span>｜</span>
-          <a href="policy.html">ポリシー</a>
-          <span>｜</span>
-          <a href="howto.html">初めての方へ</a>
-        </nav>
+        <div class="col-12 col-lg-7">
+          <section class="rg-card mb-3"><h2 class="rg-section-title">ボディスペック</h2><dl class="rg-spec-grid js-auto-hide">
+            <dt data-field="body_color">ボディカラー</dt><dd id="val_BodyColor"></dd><dt data-field="length_cm">全長(cm)</dt><dd id="val_Length_cm"></dd><dt data-field="capacity">乗車定員</dt><dd id="val_Capacity"></dd><dt data-field="steering">ハンドル</dt><dd id="val_Steering"></dd>
+          </dl></section>
+          <section class="rg-card mb-3"><h2 class="rg-section-title">エンジン関係</h2><dl class="rg-spec-grid js-auto-hide">
+            <dt data-field="engine_cc">排気量(cc)</dt><dd id="val_EngineCC"></dd><dt data-field="engine_type_select,engine_type_text">エンジン形式</dt><dd id="val_Engine_Display"></dd><dt data-field="ignition_type">点火形式</dt><dd id="val_IgnitionType"></dd><dt data-field="ignition_sub_type">点火製品名</dt><dd id="val_IgnitionSubType"></dd><dt data-field="distribution_type,plug_name">配電/プラグ</dt><dd id="val_DistPlug"></dd><dt data-field="coil_name">コイル</dt><dd id="val_CoilName"></dd><dt data-field="fuel_injection">供給装置</dt><dd id="val_FuelInjection"></dd><dt data-field="carburetor_name">キャブ</dt><dd id="val_CarburetorName"></dd><dt data-field="fuel_pump">燃ポン</dt><dd id="val_FuelPump"></dd><dt data-field="electric_pump_name">電ポン名</dt><dd id="val_ElectricPumpName"></dd><dt data-field="generator">発電機</dt><dd id="val_Generator"></dd><dt data-field="oil_cooler">オイルクーラー</dt><dd id="val_OilCooler"></dd>
+          </dl></section>
+          <section class="rg-card mb-3"><h2 class="rg-section-title">駆動系・足回り</h2><dl class="rg-spec-grid js-auto-hide">
+            <dt data-field="transmission">ミッション</dt><dd id="val_Transmission"></dd><dt data-field="synchro">シンクロ</dt><dd id="val_Synchro"></dd><dt data-field="joint">ジョイント</dt><dd id="val_Joint"></dd><dt data-field="wheel">ホイール</dt><dd id="val_Wheel"></dd><dt data-field="rim_diameter_in">リム径</dt><dd id="val_RimDiameter_in"></dd><dt data-field="rim_width_in">リム幅</dt><dd id="val_RimWidth_in"></dd><dt data-field="tire_type">タイヤ形式</dt><dd id="val_TireType"></dd><dt data-field="tire_size">タイヤサイズ</dt><dd id="val_TireSize"></dd><dt data-field="tire_brand_name">メーカー</dt><dd id="val_TireBrandName"></dd>
+          </dl></section>
+          <section class="rg-card mb-3"><h2 class="rg-section-title">オイル・バッテリー</h2><dl class="rg-spec-grid js-auto-hide">
+            <dt data-field="engine_oil">エンジンオイル</dt><dd id="val_EngineOil"></dd><dt data-field="engine_oil_interval">周期</dt><dd id="val_EngineOilInterval"></dd><dt data-field="transmission_oil">ミッションオイル</dt><dd id="val_TransmissionOil"></dd><dt data-field="transmission_oil_interval">周期</dt><dd id="val_TransmissionOilInterval"></dd><dt data-field="battery">バッテリー</dt><dd id="val_Battery"></dd>
+          </dl></section>
+          <section class="rg-card mb-3" id="highlightsSection" style="display:none;"><h2 class="rg-section-title" id="highlightsTitle">こだわり</h2><p id="val_Highlights" style="white-space:pre-wrap;"></p></section>
+          <section class="rg-card mb-3" id="snsSection" style="display:none;"><h2 class="rg-section-title">SNS</h2><dl class="rg-spec-grid" id="snsGrid"></dl></section>
+          <section class="rg-card mb-3"><h2 class="rg-section-title">共有・連絡</h2>
+            <div class="d-flex gap-2 mb-3"><button class="btn btn-dark flex-grow-1" onclick="showQRCode()">QR表示</button><a id="shareX" class="btn btn-black text-white flex-grow-1" style="background:black;" target="_blank">Xでシェア</a></div>
+            <div id="contactArea" style="display:none;"><button class="btn-contact" onclick="openContactForm()">オーナーへメッセージを送る</button></div>
+          </section>
+        </div>
       </div>
-    </header>
+     </div>
+   </main>
 
-    <div id="loading">読み込んでいます...</div>
-    <div id="carList" class="car-list"></div>
-
-    <footer class="footer">
-      <div onclick="shareSite()" class="share-btn">🔗 このサイトをシェアする</div>
-      <p style="margin-top:24px;">© Registro500 Giappone</p>
-    </footer>
-  </div>
-
-  <button class="refresh-button" onclick="forceReload()">↻ 更新</button>
-
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    let carsData = [];
-    const CACHE_KEY = 'registro500_local_data';
+    const params = new URLSearchParams(window.location.search);
+    const docId = params.get('doc');
+    let currentUser = null, currentCar = null;
 
-    (function() {
-      const RELOAD_THRESHOLD = 10 * 60 * 1000;
-      let lastVisibilityChange = new Date().getTime();
-      document.addEventListener('visibilitychange', function() {
-        if (document.visibilityState === 'visible') {
-          const now = new Date().getTime();
-          if (now - lastVisibilityChange > RELOAD_THRESHOLD) { window.location.reload(true); }
-          lastVisibilityChange = now;
+    if (firebase.apps.length === 0) firebase.initializeApp(FIREBASE_CONFIG);
+    firebase.auth().onAuthStateChanged(user => { currentUser = user; if(currentCar) updateOwnerUI(); });
+
+    async function fetchDetail() {
+      if (!docId) return;
+      try {
+        const { data, error } = await supabaseClient.from('cars').select('*').eq('document_id', docId).single();
+        if (data) { 
+          currentCar = data; 
+          renderDetail(data); 
+          updateOwnerUI(); 
+          applyNewBadges(data);
+        }
+      } catch(e) { document.getElementById('loading').textContent = '読込エラー'; }
+    }
+
+    function renderDetail(car) {
+      document.getElementById('loading').style.display = 'none'; document.getElementById('content').style.display = 'block';
+      document.getElementById('year').textContent = car.year ? car.year + '年' : '';
+      document.getElementById('modelMain').textContent = (car.model_display_c || '').replace(/\(\d{4}\)/, '');
+      document.getElementById('handleName').textContent = car.handle_name;
+      document.getElementById('prefecture').textContent = car.prefecture;
+      document.getElementById('photoMain').src = car.photo_main || NO_IMAGE_URL;
+
+      const map = {
+        'val_BodyColor': car.body_color, 'val_Length_cm': car.length_cm, 'val_Capacity': car.capacity, 'val_Steering': car.steering,
+        'val_EngineCC': car.engine_cc, 'val_Engine_Display': car.engine_display, 'val_IgnitionType': car.ignition_type, 'val_IgnitionSubType': car.ignition_sub_type,
+        'val_CoilName': car.coil_name, 'val_FuelInjection': car.fuel_injection, 'val_CarburetorName': car.carburetor_name, 'val_FuelPump': car.fuel_pump,
+        'val_ElectricPumpName': car.electric_pump_name, 'val_Generator': car.generator, 'val_OilCooler': car.oil_cooler, 'val_Transmission': car.transmission,
+        'val_Synchro': car.synchro, 'val_Joint': car.joint, 'val_Wheel': car.wheel, 'val_RimDiameter_in': car.rim_diameter_in, 'val_RimWidth_in': car.rim_width_in,
+        'val_TireType': car.tire_type, 'val_TireSize': car.tire_size, 'val_TireBrandName': car.tire_brand_name, 'val_EngineOil': car.engine_oil,
+        'val_EngineOilInterval': car.engine_oil_interval, 'val_TransmissionOil': car.transmission_oil, 'val_TransmissionOilInterval': car.transmission_oil_interval, 'val_Battery': car.battery
+      };
+      for (const [id, val] of Object.entries(map)) { const el = document.getElementById(id); if(el) el.textContent = val || ''; }
+      document.getElementById('val_DistPlug').textContent = (car.distribution_type || '') + (car.plug_name ? ' / ' + car.plug_name : '');
+
+      document.querySelectorAll('.js-auto-hide').forEach(dl => {
+        const dts = dl.querySelectorAll('dt'), dds = dl.querySelectorAll('dd');
+        dts.forEach((dt, i) => { if(!dds[i].textContent.trim()) { dt.style.display = 'none'; dds[i].style.display = 'none'; } });
+      });
+
+      if (car.highlights) { document.getElementById('highlightsSection').style.display = 'block'; document.getElementById('val_Highlights').textContent = car.highlights; }
+
+      const gallery = document.getElementById('galleryGrid');
+      gallery.innerHTML = '';
+      const photoKeys = [
+        {key:'photo_front', label:'正面'}, {key:'photo_side', label:'側面'}, {key:'photo_rear', label:'背面'},
+        {key:'photo_engine', label:'エンジン'}, {key:'photo_interior', label:'内装'}, {key:'photo_steering_cluster', label:'ハンドル周り'}
+      ];
+      photoKeys.forEach(p => {
+        if (car[p.key]) {
+          gallery.innerHTML += `<div class="rg-gallery-thumb" id="thumb_${p.key}"><img src="${car[p.key]}" data-rg-zoomable onerror="this.src=NO_IMAGE_URL"></div>`;
         }
       });
-    })();
+      if (gallery.innerHTML) document.getElementById('gallerySection').style.display = 'block';
 
-    function forceReload() { window.location.reload(true); }
-
-    function shareSite() {
-      const shareData = { title: 'Registro500 Giappone', text: '日本のチンクエチェント・オーナー名鑑。', url: 'https://www.registro500.com/' };
-      if (navigator.share) { navigator.share(shareData).catch(() => {}); }
-      else { navigator.clipboard.writeText(shareData.url); alert('URLをコピーしました！'); }
+      const snsGrid = document.getElementById('snsGrid');
+      snsGrid.innerHTML = '';
+      const sns = [
+        {k:'x_twitter', l:'X', b:'https://x.com/'}, {k:'instagram', l:'Instagram', b:'https://instagram.com/'}, 
+        {k:'youtube', l:'YouTube', b:'https://youtube.com/'}, {k:'minkara', l:'みんカラ', b:'https://minkara.carview.co.jp/userid/'}, 
+        {k:'facebook', l:'FB', b:''}, {k:'threads', l:'Threads', b:'https://www.threads.net/@'}
+      ];
+      sns.forEach(s => { 
+        if(car[s.k]) { 
+          let url = car[s.k].startsWith('http') ? car[s.k] : s.b + car[s.k].replace('@','');
+          snsGrid.innerHTML += `<dt data-field="${s.k}">${s.l}</dt><dd><a href="${url}" target="_blank">${car[s.k]}</a></dd>`; 
+          document.getElementById('snsSection').style.display = 'block'; 
+        } 
+      });
+      document.getElementById('shareX').href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(car.handle_name + 'さんのFIAT 500')}&url=${encodeURIComponent(location.href)}`;
     }
 
-    async function initApp() {
-      const localData = localStorage.getItem(CACHE_KEY);
-      if (localData) {
-        try {
-          carsData = JSON.parse(localData);
-          renderCars(document.getElementById('sortSelect').value);
-          updateCarCount();
-          document.getElementById('loading').style.display = 'none';
-        } catch (e) { console.error(e); }
-      }
-      fetchCars();
-      checkNewsBadge();
-    }
-
-async function fetchCars() {
-    try {
-      const { data, error } = await supabaseClient
-        .from('cars')
-        .select(`
-          PhotoMain:photo_main,
-          Model_DisplayC:model_display_c,
-          Year:year,
-          Prefecture:prefecture,
-          HandleName:handle_name,
-          DocumentID:document_id,
-          updatedAt:updated_at,
-          last_update_date
-        `);
-
-      if (error) throw error;
-
-      if (data) {
-        carsData = data;
-        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-        renderCars(document.getElementById('sortSelect').value);
-        updateCarCount();
-      }
-      document.getElementById('loading').style.display = 'none';
-    } catch (e) {
-      console.error("Supabase読込エラー:", e);
-      document.getElementById('loading').innerText = "エラー: データの取得に失敗しました。";
-    }
-  }
-
-async function checkNewsBadge() {
-      try {
-        const { data, error } = await supabaseClient
-          .from('news')
-          .select('date')
-          .order('date', { ascending: false })
-          .limit(1);
-
-        if (!error && data && data.length > 0) {
-          const latestDate = new Date(data[0].date);
-          const diff = Math.ceil((new Date() - latestDate) / (1000 * 60 * 60 * 24));
-          if (diff <= 7) document.getElementById('newsBadge').style.display = 'block';
-        }
-      } catch (e) {}
-    }
-    function parseDocNumber(id) { const m = /^DOC_(\d+)$/.exec(String(id)); return m ? parseInt(m[1], 10) : 0; }
-
-    function renderCars(sortType) {
-      const listEl = document.getElementById('carList');
-      listEl.innerHTML = '';
-      const cars = [...carsData];
+    function applyNewBadges(car) {
+      if (!car.last_update_date || !car.last_update_fields) return;
       
-      if (sortType === 'oldest') cars.sort((a,b) => parseDocNumber(a.DocumentID) - parseDocNumber(b.DocumentID));
-      else if (sortType === 'updated_desc') cars.sort((a,b) => new Date(b.updatedAt||0) - new Date(a.updatedAt||0));
-      else if (sortType === 'year_desc') cars.sort((a,b) => (Number(b.Year)||0) - (Number(a.Year)||0));
-      else if (sortType === 'year_asc') cars.sort((a,b) => (Number(a.Year)||0) - (Number(b.Year)||0));
-      else cars.sort((a,b) => parseDocNumber(b.DocumentID) - parseDocNumber(a.DocumentID));
+      const lastUpdate = new Date(car.last_update_date);
+      const diffDays = (new Date() - lastUpdate) / (1000 * 60 * 60 * 24);
+      if (diffDays > 7) return;
 
-      const now = new Date();
-      cars.forEach(car => {
-        const card = document.createElement('article');
-        card.className = 'car-card';
+      const updatedFields = car.last_update_fields.split(',');
+      const badgeHtml = `<span class="badge-new-item">NEW</span>`;
 
-        // 更新バッジ判定 (7日以内)
-        let updateBadgeHtml = '';
-        if (car.last_update_date) {
-          const lastDate = new Date(car.last_update_date);
-          const diffDays = (now - lastDate) / (1000 * 60 * 60 * 24);
-          if (diffDays <= 7) {
-            updateBadgeHtml = `<div class="badge-update-dot"></div>`;
+      updatedFields.forEach(field => {
+        document.querySelectorAll(`[data-field]`).forEach(el => {
+          const fields = el.getAttribute('data-field').split(',');
+          if (fields.includes(field)) {
+            if (!el.innerHTML.includes('badge-new-item')) {
+                el.innerHTML += badgeHtml;
+            }
+          }
+        });
+
+        if (field === 'highlights') {
+          const h2 = document.getElementById('highlightsTitle');
+          if(h2 && !h2.innerHTML.includes('badge-new-item')) h2.innerHTML += badgeHtml;
+        }
+
+        if (field === 'photo_main') {
+          const container = document.getElementById('photoMainContainer');
+          if (container && !container.querySelector('.photo-label-update')) {
+            const div = document.createElement('div');
+            div.className = 'photo-label-update'; div.innerText = 'NEW';
+            container.appendChild(div);
           }
         }
 
-        const modelClean = (car.Model_DisplayC||'').replace(/\s*\(\d{4}\)\s*$/, '');
-        card.innerHTML = `
-          ${updateBadgeHtml}
-          <a href="detail.html?doc=${encodeURIComponent(car.DocumentID)}" class="car-link" title="【${car.Prefecture||'-'}】 ${car.HandleName} / ${car.Model_DisplayC}">
-            <div class="car-image-wrap">
-              <img src="${car.PhotoMain || NO_IMAGE_URL}" class="car-image" loading="lazy" onerror="this.src=NO_IMAGE_URL">
-            </div>
-            <div class="car-main">
-              <div class="car-meta-row">
-                <span class="car-year">${car.Year ? car.Year+'年' : ''}</span>
-                ${car.Prefecture ? `<span class="car-pref">${car.Prefecture}</span>` : ''}
-              </div>
-              <h3 class="car-model">${modelClean}</h3>
-              <p class="car-owner">${car.HandleName || ''}</p>
-            </div>
-          </a>`;
-        listEl.appendChild(card);
-      });
-      applySearchFilter();
-    }
-
-    function applySearchFilter() {
-      const term = document.getElementById('searchInput').value.toLowerCase().trim();
-      document.querySelectorAll('.car-card').forEach(card => {
-        const text = card.textContent.toLowerCase();
-        const linkTitle = card.querySelector('.car-link').title.toLowerCase();
-        card.style.display = (text.includes(term) || linkTitle.includes(term)) ? '' : 'none';
+        if (field.startsWith('photo_') && field !== 'photo_main') {
+          const thumb = document.getElementById(`thumb_${field}`);
+          if (thumb && !thumb.querySelector('.photo-label-update')) {
+            const div = document.createElement('div');
+            div.className = 'photo-label-update'; div.innerText = 'NEW';
+            thumb.appendChild(div);
+          }
+        }
       });
     }
 
-    document.getElementById('searchInput').addEventListener('input', applySearchFilter);
-    document.getElementById('sortSelect').addEventListener('change', e => renderCars(e.target.value));
-
-    let isMosaicMode = false;
-    function toggleViewMode() {
-      const listEl = document.getElementById('carList');
-      const btnEl = document.getElementById('viewToggleBtn');
-      isMosaicMode = !isMosaicMode;
-      if (isMosaicMode) { listEl.classList.add('view-mosaic'); btnEl.textContent = '📄 詳細表示に戻す'; }
-      else { listEl.classList.remove('view-mosaic'); btnEl.textContent = '▦ モザイク表示'; }
+    function updateOwnerUI() {
+      if(!currentCar) return;
+      const isOwner = currentUser && currentUser.email.toLowerCase() === (currentCar.owner_email || '').toLowerCase();
+      if(isOwner) {
+        document.getElementById('ownerMenuArea').style.display = 'block';
+        document.getElementById('editLink').href = `edit.html?doc=${currentCar.document_id}`;
+      } else {
+        if(currentCar.accept_inquiry !== false) document.getElementById('contactArea').style.display = 'block';
+      }
     }
 
-    function updateCarCount() {
-      const countEl = document.getElementById('carCountValue');
-      if (countEl) countEl.textContent = carsData.filter(c => c.DocumentID).length;
-    }
-    initApp();
+    window.openContactForm = function() {
+      if (!currentUser) { alert("ログインが必要です"); return; }
+      const html = `<div class="bg-white p-4 rounded shadow-lg" style="max-width:450px; width:95%; text-align:left;"><h3 class="h5 fw-bold mb-3">オーナーへ連絡</h3><div class="risk-note-box"><strong>【重要】不達リスクに関するご注意</strong><br>メッセージは運営を介して転送されますが、相手の受信設定や容量制限等により正常に届かない場合があります。本サイトは不達によって生じたトラブルの責任を負いかねます。</div><p class="small text-muted mb-3">送信元としてあなたのメアドがオーナーへ開示されます。</p><label class="small fw-bold">お名前</label><input type="text" id="inqName" class="inquiry-input" placeholder="名前など"><label class="small fw-bold">メッセージ</label><textarea id="inqMsg" class="inquiry-textarea" placeholder="はじめまして！"></textarea><button class="btn-contact" id="inqSubmitBtn" onclick="submitInquiry()">上記に同意して送信する</button></div>`;
+      openModal(html);
+    };
+
+    window.submitInquiry = async function() {
+      const name = document.getElementById('inqName').value, msg = document.getElementById('inqMsg').value;
+      if(!name || !msg) return;
+      const btn = document.getElementById('inqSubmitBtn'); btn.disabled = true; btn.textContent = "送信中...";
+      try {
+        await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'inquiry', formData: { targetDocId: currentCar.document_id, senderName: name, senderEmail: currentUser.email, message: msg } }) });
+        alert("メッセージを送信しました！"); location.reload();
+      } catch(e) { alert("通信エラー"); btn.disabled = false; btn.textContent = "送信する"; }
+    };
+
+    function showQRCode() { openModal(`<div class="bg-white p-4 rounded text-center shadow-lg"><img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(location.href)}"><p class="mt-3 small text-muted">カメラで読み取ってください</p></div>`); }
+    function openModal(html) { const m = document.createElement('div'); m.className = 'rg-modal is-open'; m.innerHTML = `<div class="position-relative">${html}<button class="btn-close btn-close-white position-absolute" style="top:-35px; right:0;" onclick="this.parentElement.parentElement.remove()"></button></div>`; document.body.appendChild(m); m.onclick = (e) => { if(e.target === m) m.remove(); }; }
+    document.addEventListener('click', e => { if (e.target.hasAttribute('data-rg-zoomable')) openModal(`<img src="${e.target.src}" style="max-width:95vw; max-height:90vh; object-fit:contain; border-radius:8px;">`); });
+
+    fetchDetail();
   </script>
 </body>
 </html>
