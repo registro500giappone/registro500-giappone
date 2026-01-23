@@ -26,7 +26,6 @@
     }
     body { margin: 0; font-family: system-ui, -apple-system, sans-serif; line-height: 1.7; color: var(--rg-text); background: var(--rg-bg); padding-bottom: 96px; padding-top: 85px; }
     
-    /* ヘッダー完全版レイアウト：三分割Flex */
     .rg-header-bar {
       position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
       background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px);
@@ -51,9 +50,9 @@
     .rg-section-title { display: block; margin: 0 0 1rem; font-weight: 700; font-size: 1.15rem; padding: 0.5rem 1rem; background: #eff6ff; border-left: 6px solid var(--rg-accent); color: var(--rg-accent); border-radius: 4px; }
     .rg-spec-grid { display: grid; grid-template-columns: 8.2rem 1fr; column-gap: 0.5rem; border-top: 1px solid var(--rg-border); border-bottom: 1px solid var(--rg-border); }
     .rg-spec-grid dt, .rg-spec-grid dd { padding: 0.6rem 0.4rem; border-top: 1px solid var(--rg-border); margin: 0; font-size: 0.95rem; }
-    .rg-spec-grid dt { font-weight: 700; color: var(--rg-muted); background: rgba(148, 163, 184, 0.05); white-space: nowrap; }
+    .rg-spec-grid dt { font-weight: 700; color: var(--rg-muted); background: rgba(148, 163, 184, 0.05); white-space: nowrap; position: relative; }
     
-    /* ギャラリー迫力サイズ */
+    /* ギャラリー */
     .rg-gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
     .rg-gallery-thumb { border-radius: 0.6rem; overflow: hidden; position: relative; padding-top: 100%; border: 1px solid var(--rg-border); background: #eee; }
     .rg-gallery-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
@@ -63,6 +62,10 @@
     .btn-contact { background-color: var(--rg-accent); color: white; width: 100%; border-radius: 8px; font-weight: bold; padding: 12px; border:none; margin-top:10px; cursor: pointer; }
     .inquiry-input, .inquiry-textarea { width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
     .risk-note-box { background: #fff1f2; border: 1px solid #fecdd3; padding: 0.8rem; border-radius: 6px; font-size: 0.8rem; color: #9f1239; margin-bottom: 1rem; line-height: 1.4; text-align: left; }
+
+    /* 更新ラベル（detail用） */
+    .badge-new-item { color: #e11d48; font-size: 0.65rem; font-weight: 800; margin-left: 6px; vertical-align: middle; }
+    .photo-label-update { position: absolute; top: 5px; left: 5px; background: #e11d48; color: white; font-size: 0.6rem; padding: 2px 6px; border-radius: 3px; z-index: 5; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -94,7 +97,7 @@
       <div class="row g-4 align-items-start">
         <div class="col-12 col-lg-5">
           <section class="rg-card mb-3">
-            <div class="rg-photo-square"><img id="photoMain" src="" data-rg-zoomable onerror="this.src=NO_IMAGE_URL"></div>
+            <div class="rg-photo-square" id="photoMainContainer"><img id="photoMain" src="" data-rg-zoomable onerror="this.src=NO_IMAGE_URL"></div>
             <div style="margin-top:1rem; font-size:1.4rem; font-weight:800;"><span id="year"></span> <span id="modelMain"></span></div>
             <div class="d-flex align-items-center mt-2"><span id="handleName" class="fw-bold"></span><span id="prefecture" class="ms-auto badge bg-light text-primary border border-primary-subtle rounded-pill px-3"></span></div>
           </section>
@@ -102,18 +105,18 @@
         </div>
         <div class="col-12 col-lg-7">
           <section class="rg-card mb-3"><h2 class="rg-section-title">ボディスペック</h2><dl class="rg-spec-grid js-auto-hide">
-            <dt>ボディカラー</dt><dd id="val_BodyColor"></dd><dt>全長(cm)</dt><dd id="val_Length_cm"></dd><dt>乗車定員</dt><dd id="val_Capacity"></dd><dt>ハンドル</dt><dd id="val_Steering"></dd>
+            <dt data-field="body_color">ボディカラー</dt><dd id="val_BodyColor"></dd><dt data-field="length_cm">全長(cm)</dt><dd id="val_Length_cm"></dd><dt data-field="capacity">乗車定員</dt><dd id="val_Capacity"></dd><dt data-field="steering">ハンドル</dt><dd id="val_Steering"></dd>
           </dl></section>
           <section class="rg-card mb-3"><h2 class="rg-section-title">エンジン関係</h2><dl class="rg-spec-grid js-auto-hide">
-            <dt>排気量(cc)</dt><dd id="val_EngineCC"></dd><dt>エンジン形式</dt><dd id="val_Engine_Display"></dd><dt>点火形式</dt><dd id="val_IgnitionType"></dd><dt>点火製品名</dt><dd id="val_IgnitionSubType"></dd><dt>配電/プラグ</dt><dd id="val_DistPlug"></dd><dt>コイル</dt><dd id="val_CoilName"></dd><dt>供給装置</dt><dd id="val_FuelInjection"></dd><dt>キャブ</dt><dd id="val_CarburetorName"></dd><dt>燃ポン</dt><dd id="val_FuelPump"></dd><dt>電ポン名</dt><dd id="val_ElectricPumpName"></dd><dt>発電機</dt><dd id="val_Generator"></dd><dt>オイルクーラー</dt><dd id="val_OilCooler"></dd>
+            <dt data-field="engine_cc">排気量(cc)</dt><dd id="val_EngineCC"></dd><dt data-field="engine_type_select,engine_type_text">エンジン形式</dt><dd id="val_Engine_Display"></dd><dt data-field="ignition_type">点火形式</dt><dd id="val_IgnitionType"></dd><dt data-field="ignition_sub_type">点火製品名</dt><dd id="val_IgnitionSubType"></dd><dt data-field="distribution_type,plug_name">配電/プラグ</dt><dd id="val_DistPlug"></dd><dt data-field="coil_name">コイル</dt><dd id="val_CoilName"></dd><dt data-field="fuel_injection">供給装置</dt><dd id="val_FuelInjection"></dd><dt data-field="carburetor_name">キャブ</dt><dd id="val_CarburetorName"></dd><dt data-field="fuel_pump">燃ポン</dt><dd id="val_FuelPump"></dd><dt data-field="electric_pump_name">電ポン名</dt><dd id="val_ElectricPumpName"></dd><dt data-field="generator">発電機</dt><dd id="val_Generator"></dd><dt data-field="oil_cooler">オイルクーラー</dt><dd id="val_OilCooler"></dd>
           </dl></section>
           <section class="rg-card mb-3"><h2 class="rg-section-title">駆動系・足回り</h2><dl class="rg-spec-grid js-auto-hide">
-            <dt>ミッション</dt><dd id="val_Transmission"></dd><dt>シンクロ</dt><dd id="val_Synchro"></dd><dt>ジョイント</dt><dd id="val_Joint"></dd><dt>ホイール</dt><dd id="val_Wheel"></dd><dt>リム径</dt><dd id="val_RimDiameter_in"></dd><dt>リム幅</dt><dd id="val_RimWidth_in"></dd><dt>タイヤ形式</dt><dd id="val_TireType"></dd><dt>タイヤサイズ</dt><dd id="val_TireSize"></dd><dt>メーカー</dt><dd id="val_TireBrandName"></dd>
+            <dt data-field="transmission">ミッション</dt><dd id="val_Transmission"></dd><dt data-field="synchro">シンクロ</dt><dd id="val_Synchro"></dd><dt data-field="joint">ジョイント</dt><dd id="val_Joint"></dd><dt data-field="wheel">ホイール</dt><dd id="val_Wheel"></dd><dt data-field="rim_diameter_in">リム径</dt><dd id="val_RimDiameter_in"></dd><dt data-field="rim_width_in">リム幅</dt><dd id="val_RimWidth_in"></dd><dt data-field="tire_type">タイヤ形式</dt><dd id="val_TireType"></dd><dt data-field="tire_size">タイヤサイズ</dt><dd id="val_TireSize"></dd><dt data-field="tire_brand_name">メーカー</dt><dd id="val_TireBrandName"></dd>
           </dl></section>
           <section class="rg-card mb-3"><h2 class="rg-section-title">オイル・バッテリー</h2><dl class="rg-spec-grid js-auto-hide">
-            <dt>エンジンオイル</dt><dd id="val_EngineOil"></dd><dt>周期</dt><dd id="val_EngineOilInterval"></dd><dt>ミッションオイル</dt><dd id="val_TransmissionOil"></dd><dt>周期</dt><dd id="val_TransmissionOilInterval"></dd><dt>バッテリー</dt><dd id="val_Battery"></dd>
+            <dt data-field="engine_oil">エンジンオイル</dt><dd id="val_EngineOil"></dd><dt data-field="engine_oil_interval">周期</dt><dd id="val_EngineOilInterval"></dd><dt data-field="transmission_oil">ミッションオイル</dt><dd id="val_TransmissionOil"></dd><dt data-field="transmission_oil_interval">周期</dt><dd id="val_TransmissionOilInterval"></dd><dt data-field="battery">バッテリー</dt><dd id="val_Battery"></dd>
           </dl></section>
-          <section class="rg-card mb-3" id="highlightsSection" style="display:none;"><h2 class="rg-section-title">こだわり</h2><p id="val_Highlights" style="white-space:pre-wrap;"></p></section>
+          <section class="rg-card mb-3" id="highlightsSection" style="display:none;"><h2 class="rg-section-title" id="highlightsTitle">こだわり</h2><p id="val_Highlights" style="white-space:pre-wrap;"></p></section>
           <section class="rg-card mb-3" id="snsSection" style="display:none;"><h2 class="rg-section-title">SNS</h2><dl class="rg-spec-grid" id="snsGrid"></dl></section>
           <section class="rg-card mb-3"><h2 class="rg-section-title">共有・連絡</h2>
             <div class="d-flex gap-2 mb-3"><button class="btn btn-dark flex-grow-1" onclick="showQRCode()">QR表示</button><a id="shareX" class="btn btn-black text-white flex-grow-1" style="background:black;" target="_blank">Xでシェア</a></div>
@@ -137,7 +140,12 @@
       if (!docId) return;
       try {
         const { data, error } = await supabaseClient.from('cars').select('*').eq('document_id', docId).single();
-        if (data) { currentCar = data; renderDetail(data); updateOwnerUI(); }
+        if (data) { 
+          currentCar = data; 
+          renderDetail(data); 
+          updateOwnerUI(); 
+          applyNewBadges(data); // ★更新項目に印をつける
+        }
       } catch(e) { document.getElementById('loading').textContent = '読込エラー'; }
     }
 
@@ -170,22 +178,80 @@
 
       const gallery = document.getElementById('galleryGrid');
       gallery.innerHTML = '';
-      ['photo_front', 'photo_side', 'photo_rear', 'photo_engine', 'photo_interior', 'photo_steering_cluster'].forEach(k => {
-        if (car[k]) gallery.innerHTML += `<div class="rg-gallery-thumb"><img src="${car[k]}" data-rg-zoomable onerror="this.src=NO_IMAGE_URL"></div>`;
+      const photoKeys = [
+        {key:'photo_front', label:'正面'}, {key:'photo_side', label:'側面'}, {key:'photo_rear', label:'背面'},
+        {key:'photo_engine', label:'エンジン'}, {key:'photo_interior', label:'内装'}, {key:'photo_steering_cluster', label:'ハンドル周り'}
+      ];
+      photoKeys.forEach(p => {
+        if (car[p.key]) {
+          gallery.innerHTML += `<div class="rg-gallery-thumb" id="thumb_${p.key}"><img src="${car[p.key]}" data-rg-zoomable onerror="this.src=NO_IMAGE_URL"></div>`;
+        }
       });
       if (gallery.innerHTML) document.getElementById('gallerySection').style.display = 'block';
 
       const snsGrid = document.getElementById('snsGrid');
       snsGrid.innerHTML = '';
-      const sns = [{k:'x_twitter', l:'X', b:'https://x.com/'}, {k:'instagram', l:'Instagram', b:'https://instagram.com/'}, {k:'youtube', l:'YouTube', b:'https://youtube.com/'}, {k:'minkara', l:'みんカラ', b:'https://minkara.carview.co.jp/userid/'}, {k:'facebook', l:'FB', b:''}, {k:'threads', l:'Threads', b:'https://www.threads.net/@'}];
+      const sns = [
+        {k:'x_twitter', l:'X', b:'https://x.com/'}, {k:'instagram', l:'Instagram', b:'https://instagram.com/'}, 
+        {k:'youtube', l:'YouTube', b:'https://youtube.com/'}, {k:'minkara', l:'みんカラ', b:'https://minkara.carview.co.jp/userid/'}, 
+        {k:'facebook', l:'FB', b:''}, {k:'threads', l:'Threads', b:'https://www.threads.net/@'}
+      ];
       sns.forEach(s => { 
         if(car[s.k]) { 
           let url = car[s.k].startsWith('http') ? car[s.k] : s.b + car[s.k].replace('@','');
-          snsGrid.innerHTML += `<dt>${s.l}</dt><dd><a href="${url}" target="_blank">${car[s.k]}</a></dd>`; 
+          snsGrid.innerHTML += `<dt data-field="${s.k}">${s.l}</dt><dd><a href="${url}" target="_blank">${car[s.k]}</a></dd>`; 
           document.getElementById('snsSection').style.display = 'block'; 
         } 
       });
       document.getElementById('shareX').href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(car.handle_name + 'さんのFIAT 500')}&url=${encodeURIComponent(location.href)}`;
+    }
+
+    // ★更新項目に赤い印をつけるロジック
+    function applyNewBadges(car) {
+      if (!car.last_update_date || !car.last_update_fields) return;
+      
+      const lastUpdate = new Date(car.last_update_date);
+      const diffDays = (new Date() - lastUpdate) / (1000 * 60 * 60 * 24);
+      if (diffDays > 7) return; // 7日以上経過していたら何もしない
+
+      const updatedFields = car.last_update_fields.split(',');
+      const badgeHtml = `<span class="badge-new-item">NEW</span>`;
+
+      updatedFields.forEach(field => {
+        // 1. スペック項目 (dtのdata-field属性で探す)
+        document.querySelectorAll(`dt[data-field]`).forEach(dt => {
+          const fields = dt.getAttribute('data-field').split(',');
+          if (fields.includes(field)) {
+            dt.innerHTML += badgeHtml;
+          }
+        });
+
+        // 2. こだわりポイント
+        if (field === 'highlights') {
+          const h2 = document.getElementById('highlightsTitle');
+          if(h2) h2.innerHTML += badgeHtml;
+        }
+
+        // 3. 写真（メイン）
+        if (field === 'photo_main') {
+          const container = document.getElementById('photoMainContainer');
+          if (container) {
+            const div = document.createElement('div');
+            div.className = 'photo-label-update'; div.innerText = 'NEW';
+            container.appendChild(div);
+          }
+        }
+
+        // 4. 写真（ギャラリー）
+        if (field.startsWith('photo_') && field !== 'photo_main') {
+          const thumb = document.getElementById(`thumb_${field}`);
+          if (thumb) {
+            const div = document.createElement('div');
+            div.className = 'photo-label-update'; div.innerText = 'NEW';
+            thumb.appendChild(div);
+          }
+        }
+      });
     }
 
     function updateOwnerUI() {
