@@ -52,7 +52,6 @@
     .rg-spec-grid dt, .rg-spec-grid dd { padding: 0.6rem 0.4rem; border-top: 1px solid var(--rg-border); margin: 0; font-size: 0.95rem; }
     .rg-spec-grid dt { font-weight: 700; color: var(--rg-muted); background: rgba(148, 163, 184, 0.05); white-space: nowrap; position: relative; }
     
-    /* ギャラリー */
     .rg-gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
     .rg-gallery-thumb { border-radius: 0.6rem; overflow: hidden; position: relative; padding-top: 100%; border: 1px solid var(--rg-border); background: #eee; }
     .rg-gallery-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
@@ -63,7 +62,6 @@
     .inquiry-input, .inquiry-textarea { width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
     .risk-note-box { background: #fff1f2; border: 1px solid #fecdd3; padding: 0.8rem; border-radius: 6px; font-size: 0.8rem; color: #9f1239; margin-bottom: 1rem; line-height: 1.4; text-align: left; }
 
-    /* 更新ラベル（detail用） */
     .badge-new-item { color: #e11d48; font-size: 0.65rem; font-weight: 800; margin-left: 6px; vertical-align: middle; }
     .photo-label-update { position: absolute; top: 5px; left: 5px; background: #e11d48; color: white; font-size: 0.6rem; padding: 2px 6px; border-radius: 3px; z-index: 5; font-weight: bold; }
   </style>
@@ -98,8 +96,16 @@
         <div class="col-12 col-lg-5">
           <section class="rg-card mb-3">
             <div class="rg-photo-square" id="photoMainContainer"><img id="photoMain" src="" data-rg-zoomable onerror="this.src=NO_IMAGE_URL"></div>
-            <div style="margin-top:1rem; font-size:1.4rem; font-weight:800;"><span id="year"></span> <span id="modelMain"></span></div>
-            <div class="d-flex align-items-center mt-2"><span id="handleName" class="fw-bold"></span><span id="prefecture" class="ms-auto badge bg-light text-primary border border-primary-subtle rounded-pill px-3"></span></div>
+            <div style="margin-top:1rem; font-size:1.4rem; font-weight:800;">
+                <!-- 基本情報エリアにdata-fieldを配置 -->
+                <span id="year" data-field="year"></span> 
+                <span id="modelMain" data-field="model_select_a,model_text_a"></span>
+            </div>
+            <div class="d-flex align-items-center mt-2">
+                <!-- ハンドルネームにIDを割り当て -->
+                <span id="handleName" class="fw-bold" data-field="handle_name"></span>
+                <span id="prefecture" class="ms-auto badge bg-light text-primary border border-primary-subtle rounded-pill px-3" data-field="prefecture"></span>
+            </div>
           </section>
           <section class="rg-card mb-3" id="gallerySection" style="display:none;"><div class="rg-gallery-grid" id="galleryGrid"></div></section>
         </div>
@@ -144,7 +150,7 @@
           currentCar = data; 
           renderDetail(data); 
           updateOwnerUI(); 
-          applyNewBadges(data); // ★更新項目に印をつける
+          applyNewBadges(data);
         }
       } catch(e) { document.getElementById('loading').textContent = '読込エラー'; }
     }
@@ -206,36 +212,38 @@
       document.getElementById('shareX').href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(car.handle_name + 'さんのFIAT 500')}&url=${encodeURIComponent(location.href)}`;
     }
 
-    // ★更新項目に赤い印をつけるロジック
     function applyNewBadges(car) {
       if (!car.last_update_date || !car.last_update_fields) return;
       
       const lastUpdate = new Date(car.last_update_date);
       const diffDays = (new Date() - lastUpdate) / (1000 * 60 * 60 * 24);
-      if (diffDays > 7) return; // 7日以上経過していたら何もしない
+      if (diffDays > 7) return;
 
       const updatedFields = car.last_update_fields.split(',');
       const badgeHtml = `<span class="badge-new-item">NEW</span>`;
 
       updatedFields.forEach(field => {
-        // 1. スペック項目 (dtのdata-field属性で探す)
-        document.querySelectorAll(`dt[data-field]`).forEach(dt => {
-          const fields = dt.getAttribute('data-field').split(',');
+        // 1. スペック項目 (dt および 基本情報の span 等を data-field 属性で検索)
+        document.querySelectorAll(`[data-field]`).forEach(el => {
+          const fields = el.getAttribute('data-field').split(',');
           if (fields.includes(field)) {
-            dt.innerHTML += badgeHtml;
+            // 重複表示防止のチェック
+            if (!el.innerHTML.includes('badge-new-item')) {
+                el.innerHTML += badgeHtml;
+            }
           }
         });
 
         // 2. こだわりポイント
         if (field === 'highlights') {
           const h2 = document.getElementById('highlightsTitle');
-          if(h2) h2.innerHTML += badgeHtml;
+          if(h2 && !h2.innerHTML.includes('badge-new-item')) h2.innerHTML += badgeHtml;
         }
 
         // 3. 写真（メイン）
         if (field === 'photo_main') {
           const container = document.getElementById('photoMainContainer');
-          if (container) {
+          if (container && !container.querySelector('.photo-label-update')) {
             const div = document.createElement('div');
             div.className = 'photo-label-update'; div.innerText = 'NEW';
             container.appendChild(div);
@@ -245,7 +253,7 @@
         // 4. 写真（ギャラリー）
         if (field.startsWith('photo_') && field !== 'photo_main') {
           const thumb = document.getElementById(`thumb_${field}`);
-          if (thumb) {
+          if (thumb && !thumb.querySelector('.photo-label-update')) {
             const div = document.createElement('div');
             div.className = 'photo-label-update'; div.innerText = 'NEW';
             thumb.appendChild(div);
