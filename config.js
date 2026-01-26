@@ -14,7 +14,7 @@ const LOGO_URL = "https://firebasestorage.googleapis.com/v0/b/registro500giappon
 
 // Firebase 設定 (edit.html用)
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyCNCNsu61S3DIQ2pcmK2Ic_vqCINlZB9nk",
+  apiKey: "REDACTED_OLD_FIREBASE_API_KEY",
   authDomain: "registro500giappone-93f98.firebaseapp.com",
   projectId: "registro500giappone-93f98",
   storageBucket: "registro500giappone-93f98.firebasestorage.app",
