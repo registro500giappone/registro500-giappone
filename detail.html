@@ -62,6 +62,7 @@
     .inquiry-input, .inquiry-textarea { width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
     .risk-note-box { background: #fff1f2; border: 1px solid #fecdd3; padding: 0.8rem; border-radius: 6px; font-size: 0.8rem; color: #9f1239; margin-bottom: 1rem; line-height: 1.4; text-align: left; }
 
+    /* NEWバッジのスタイル */
     .badge-new-item { color: #e11d48; font-size: 0.65rem; font-weight: 800; margin-left: 6px; vertical-align: middle; }
     .photo-label-update { position: absolute; top: 5px; left: 5px; background: #e11d48; color: white; font-size: 0.6rem; padding: 2px 6px; border-radius: 3px; z-index: 5; font-weight: bold; }
   </style>
@@ -98,7 +99,7 @@
             <div class="rg-photo-square" id="photoMainContainer"><img id="photoMain" src="" data-rg-zoomable onerror="this.src=NO_IMAGE_URL"></div>
             <div style="margin-top:1rem; font-size:1.4rem; font-weight:800;">
                 <span id="year" data-field="year"></span> 
-                <span id="modelMain" data-field="model_select_a,model_text_a"></span>
+                <span id="modelMain" data-field="model_select_a,model_text_a,model_display_c"></span>
             </div>
             <div class="d-flex align-items-center mt-2">
                 <span id="handleName" class="fw-bold" data-field="handle_name"></span>
@@ -120,7 +121,7 @@
           <section class="rg-card mb-3"><h2 class="rg-section-title">オイル・バッテリー</h2><dl class="rg-spec-grid js-auto-hide">
             <dt data-field="engine_oil">エンジンオイル</dt><dd id="val_EngineOil"></dd><dt data-field="engine_oil_interval">周期</dt><dd id="val_EngineOilInterval"></dd><dt data-field="transmission_oil">ミッションオイル</dt><dd id="val_TransmissionOil"></dd><dt data-field="transmission_oil_interval">周期</dt><dd id="val_TransmissionOilInterval"></dd><dt data-field="battery">バッテリー</dt><dd id="val_Battery"></dd>
           </dl></section>
-          <section class="rg-card mb-3" id="highlightsSection" style="display:none;"><h2 class="rg-section-title" id="highlightsTitle">こだわり</h2><p id="val_Highlights" style="white-space:pre-wrap;"></p></section>
+          <section class="rg-card mb-3" id="highlightsSection" style="display:none;"><h2 class="rg-section-title" id="highlightsTitle" data-field="highlights">こだわり</h2><p id="val_Highlights" style="white-space:pre-wrap;"></p></section>
           <section class="rg-card mb-3" id="snsSection" style="display:none;"><h2 class="rg-section-title">SNS</h2><dl class="rg-spec-grid" id="snsGrid"></dl></section>
           <section class="rg-card mb-3"><h2 class="rg-section-title">共有・連絡</h2>
             <div class="d-flex gap-2 mb-3"><button class="btn btn-dark flex-grow-1" onclick="showQRCode()">QR表示</button><a id="shareX" class="btn btn-black text-white flex-grow-1" style="background:black;" target="_blank">Xでシェア</a></div>
@@ -195,12 +196,12 @@
 
       const snsGrid = document.getElementById('snsGrid');
       snsGrid.innerHTML = '';
-      const sns = [
+      const snsList = [
         {k:'x_twitter', l:'X', b:'https://x.com/'}, {k:'instagram', l:'Instagram', b:'https://instagram.com/'}, 
         {k:'youtube', l:'YouTube', b:'https://youtube.com/'}, {k:'minkara', l:'みんカラ', b:'https://minkara.carview.co.jp/userid/'}, 
         {k:'facebook', l:'FB', b:''}, {k:'threads', l:'Threads', b:'https://www.threads.net/@'}
       ];
-      sns.forEach(s => { 
+      snsList.forEach(s => { 
         if(car[s.k]) { 
           let url = car[s.k].startsWith('http') ? car[s.k] : s.b + car[s.k].replace('@','');
           snsGrid.innerHTML += `<dt data-field="${s.k}">${s.l}</dt><dd><a href="${url}" target="_blank">${car[s.k]}</a></dd>`; 
@@ -210,49 +211,61 @@
       document.getElementById('shareX').href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(car.handle_name + 'さんのFIAT 500')}&url=${encodeURIComponent(location.href)}`;
     }
 
+    // ★ 更新バッジの適用ロジック
     function applyNewBadges(car) {
-      if (!car.last_update_date || !car.last_update_fields) return;
+      // updated_at (Supabase) または last_update_date を優先
+      const targetDateStr = car.updated_at || car.last_update_date;
+      if (!targetDateStr) return;
       
-      const lastUpdate = new Date(car.last_update_date);
+      const lastUpdate = new Date(targetDateStr);
       const diffDays = (new Date() - lastUpdate) / (1000 * 60 * 60 * 24);
+      
+      // 7日以内の更新がなければ何もしない
       if (diffDays > 7) return;
 
-      const updatedFields = car.last_update_fields.split(',');
       const badgeHtml = `<span class="badge-new-item">NEW</span>`;
+      const updatedFieldsStr = car.last_update_fields || "";
+      const updatedFields = updatedFieldsStr.split(',').map(f => f.trim()).filter(f => f);
 
-      updatedFields.forEach(field => {
-        document.querySelectorAll(`[data-field]`).forEach(el => {
-          const fields = el.getAttribute('data-field').split(',');
-          if (fields.includes(field)) {
-            if (!el.innerHTML.includes('badge-new-item')) {
-                el.innerHTML += badgeHtml;
+      // A. 個別項目のバッジ付与（last_update_fields に基づく）
+      if (updatedFields.length > 0) {
+        updatedFields.forEach(field => {
+          // 1. テキスト項目 (data-field 属性を持つ要素すべてをスキャン)
+          document.querySelectorAll(`[data-field]`).forEach(el => {
+            const fieldsInAttr = el.getAttribute('data-field').split(',');
+            if (fieldsInAttr.includes(field)) {
+              if (!el.innerHTML.includes('badge-new-item')) {
+                  el.innerHTML += badgeHtml;
+              }
+            }
+          });
+
+          // 2. メイン写真
+          if (field === 'photo_main') {
+            const container = document.getElementById('photoMainContainer');
+            if (container && !container.querySelector('.photo-label-update')) {
+              const div = document.createElement('div');
+              div.className = 'photo-label-update'; div.innerText = 'NEW';
+              container.appendChild(div);
+            }
+          }
+
+          // 3. ギャラリー写真 (photo_front, photo_engine 等)
+          if (field.startsWith('photo_') && field !== 'photo_main') {
+            const thumb = document.getElementById(`thumb_${field}`);
+            if (thumb && !thumb.querySelector('.photo-label-update')) {
+              const div = document.createElement('div');
+              div.className = 'photo-label-update'; div.innerText = 'NEW';
+              thumb.appendChild(div);
             }
           }
         });
-
-        if (field === 'highlights') {
-          const h2 = document.getElementById('highlightsTitle');
-          if(h2 && !h2.innerHTML.includes('badge-new-item')) h2.innerHTML += badgeHtml;
-        }
-
-        if (field === 'photo_main') {
-          const container = document.getElementById('photoMainContainer');
-          if (container && !container.querySelector('.photo-label-update')) {
-            const div = document.createElement('div');
-            div.className = 'photo-label-update'; div.innerText = 'NEW';
-            container.appendChild(div);
-          }
-        }
-
-        if (field.startsWith('photo_') && field !== 'photo_main') {
-          const thumb = document.getElementById(`thumb_${field}`);
-          if (thumb && !thumb.querySelector('.photo-label-update')) {
-            const div = document.createElement('div');
-            div.className = 'photo-label-update'; div.innerText = 'NEW';
-            thumb.appendChild(div);
-          }
-        }
-      });
+      } else {
+        // B. フィールド指定がない場合（新規登録時など）
+        // 少なくともモデル名など、主要箇所にNEWを表示
+        const modelEl = document.getElementById('modelMain');
+        if (modelEl && !modelEl.innerHTML.includes('badge-new-item')) modelEl.innerHTML += badgeHtml;
+      }
     }
 
     function updateOwnerUI() {
