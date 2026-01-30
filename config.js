@@ -25,3 +25,38 @@ const FIREBASE_CONFIG = {
 /* config.js の一番下に追記 */
 const SUPABASE_URL = "https://ttlttclfovuzafvghvaq.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt";
+
+// ▼▼▼ ここから下を追加 ▼▼▼
+
+// アプリ全体の計算・リンク設定
+const CONFIG = {
+    // 1. 為替レート設定（無料API）
+    currency_api: "https://open.er-api.com/v6/latest/EUR",
+    default_rate: 165, // APIエラー時の予備レート
+
+    // 2. ショップごとのVAT（税）ルール定義
+    shops: {
+        "FD Ricambi": {
+            is_price_ex_vat: true,  // DB価格は税抜きか？→はい
+            vat_rate: 0.21,         // 計算用（予備）
+            show_vat_inc: false     // 画面にVAT込みを表示するか？→いいえ
+        },
+        "Axel Gerstl": {
+            is_price_ex_vat: false, // DB価格は税抜きか？→いいえ（税込み）
+            vat_rate: 0.19, 
+            show_vat_inc: true      // 画面にVAT込みを表示するか？→はい
+        }
+    },
+
+    // 3. 外部検索用URL（一括取得していないサイト）
+    external_links: [
+        {
+            name: "eBay (Italy)",
+            url_pattern: "https://www.ebay.it/sch/i.html?_nkw=Fiat+500+" 
+        },
+        {
+            name: "Yahoo!オク",
+            url_pattern: "https://auctions.yahoo.co.jp/search/search?p=Fiat+500+"
+        }
+    ]
+};
