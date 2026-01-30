@@ -197,13 +197,22 @@
     </div>
 
     <!-- スクリプト読み込み -->
-    <!-- Supabase SDK (CDN) -->
+<!-- 1. Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- 設定ファイル -->
+    
+    <!-- 2. 設定ファイル (SUPABASE_URL, KEYが入っている想定) -->
     <script src="config.js"></script>
-    <!-- メイン処理（これから作成します） -->
-    <script src="parts.js"></script>
 
+    <!-- 3. ★ここを追加！ 初期化処理★ -->
+    <script>
+        // config.jsにある定数を使って接続を開始します
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // parts.jsから使えるようにwindowに登録しておきます
+        window.supabaseClient = supabaseClient;
+    </script>
+
+    <!-- 4. メイン処理 -->
+    <script src="parts.js"></script>
     <script>
         // トレイの開閉用（仮）
         let trayOpen = true;
