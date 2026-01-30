@@ -1,36 +1,26 @@
-// parts.js
-// 検索ロジックとリスト計算のメインプログラム
+// parts.js (アップデート版)
 
-// グローバル変数
-let currentRate = CONFIG.default_rate; // 現在の為替レート
-let compareList = []; // 検討リストの中身
+let currentRate = CONFIG.default_rate;
+let compareList = [];
+let shippingCosts = {}; // ショップごとの送料保存用
 
-// DOM読み込み完了時に実行
 document.addEventListener('DOMContentLoaded', async () => {
-    
-    // 1. Supabaseの初期化 (config.jsの変数がある前提ですが、直接キーを使う場合はここに記述)
-    // ※今回は既存環境に合わせて window.supabase が既にあるか、
-    // または下記のようにcreateClientする必要があります。
-    // もし既存の共通jsで初期化されているならこの2行は不要です。
-    // const { createClient } = supabase;
-    // window.supabaseClient = createClient('YOUR_SUPABASE_URL', 'YOUR_SUPABASE_ANON_KEY');
-    
-    // ※引継書によるとVercel環境のようなので、環境変数が使えないHTML直書きの場合は
-    // 以前の edit.html 等で使っている supabaseClient をそのまま使います。
-    // ここでは「window.supabase」がロードされている前提で進めます。
-
-    // 2. 為替レートの取得
+    // 1. 為替レート取得
     await fetchCurrencyRate();
 
-    // 3. 保存されたリストの復元
+    // 2. 保存データの復元
     loadListFromStorage();
 
-    // 4. イベントリスナーの設定
+    // 3. イベントリスナー設定
     document.getElementById('search-btn').addEventListener('click', executeSearch);
-    
-    // Enterキーでも検索できるようにする
     document.getElementById('keyword-input').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') executeSearch();
+    });
+
+    // その他車種の表示切替
+    document.getElementById('toggle-others-chk').addEventListener('change', (e) => {
+        const container = document.getElementById('others-container');
+        container.style.display = e.target.checked ? 'block' : 'none';
     });
 });
 
@@ -40,34 +30,29 @@ async function fetchCurrencyRate() {
     try {
         const response = await fetch(CONFIG.currency_api);
         const data = await response.json();
-        // APIによって構造が違うが、open.er-api.comの場合は data.rates.JPY
         if (data && data.rates && data.rates.JPY) {
             currentRate = data.rates.JPY;
             rateEl.innerText = currentRate.toFixed(2);
-            rateEl.style.color = "#000";
         } else {
             throw new Error("API Error");
         }
     } catch (e) {
-        console.error("為替取得失敗:", e);
         currentRate = CONFIG.default_rate;
         rateEl.innerText = currentRate + " (手動設定)";
     }
-    // リストの日本円を再計算
-    renderList();
+    renderList(); // リスト再計算
 }
 
-// --- 検索実行メイン処理 ---
+// --- 検索実行 ---
 async function executeSearch() {
     const keyword = document.getElementById('keyword-input').value.trim();
     const resultsArea = document.getElementById('results-area');
     
-    // チェックボックスの取得
+    // チェックボックス状態取得
     const checkedCars = Array.from(document.querySelectorAll('input[name="car"]:checked')).map(c => c.value);
     const checkedShops = Array.from(document.querySelectorAll('input[name="shop"]:checked')).map(c => c.value);
     const useExternal = document.getElementById('use-external').checked;
 
-    // バリデーション
     if (!keyword && checkedCars.length === 0) {
         alert("検索キーワードを入力するか、車種を選択してください。");
         return;
@@ -75,62 +60,45 @@ async function executeSearch() {
 
     resultsArea.innerHTML = '<p style="padding:20px;">検索中...</p>';
 
-    // 1. Supabaseから検索 (内部DB)
+    // 1. DB検索
     let dbResults = [];
     if (checkedShops.length > 0) {
-        // クエリ構築
-        let query = window.supabaseClient // 既存のクライアント変数名に合わせてください(supabase または supabaseClient)
-            .from('parts')
-            .select('*');
+        let query = window.supabaseClient.from('parts').select('*');
 
-        // ショップフィルタ
-        // query = query.in('shop_name', checkedShops); // 完全一致のみだが、念のため
-        // テキストフィルタで対応したほうが安全かもしれないが、一旦inで。
-        
-        // キーワード検索 (日本語名、英語名、OEM番号、品番)
+        // キーワード検索 (OR条件)
         if (keyword) {
-            // 複数のカラムをOR検索
-            const searchPattern = `%${keyword}%`;
-            query = query.or(`name_en.ilike.${searchPattern},name_jp.ilike.${searchPattern},oem_no.ilike.${searchPattern},product_no.ilike.${searchPattern}`);
+            const pattern = `%${keyword}%`;
+            query = query.or(`name_en.ilike.${pattern},name_jp.ilike.${pattern},oem_no.ilike.${pattern},product_no.ilike.${pattern}`);
         }
-
-        // 車種フィルタ (target_cars カラムに含まれているか)
-        // 複数選ばれている場合は「どれか一つでも含めばOK」とする
+        // 車種検索
         if (checkedCars.length > 0) {
-            // or条件を作る: target_cars.ilike.%500%,target_cars.ilike.%126% ...
             const carConditions = checkedCars.map(car => `target_cars.ilike.%${car}%`).join(',');
             query = query.or(carConditions);
         }
-        
         // ショップ絞り込み
-        if(checkedShops.length > 0){
-             query = query.in('shop_name', checkedShops);
-        }
+        query = query.in('shop_name', checkedShops);
 
-        // 実行（最大100件）
         const { data, error } = await query.limit(100);
-        
         if (error) {
-            console.error(error);
-            resultsArea.innerHTML = `<p style="color:red;">エラーが発生しました: ${error.message}</p>`;
+            resultsArea.innerHTML = `<p style="color:red;">エラー: ${error.message}</p>`;
             return;
         }
         dbResults = data || [];
     }
 
-    // 2. 外部サイトを別タブで開く
+    // 2. 外部サイトを開く
     if (useExternal && keyword) {
         CONFIG.external_links.forEach(link => {
             window.open(link.url_pattern + encodeURIComponent(keyword), '_blank');
         });
     }
 
-    // 3. 結果表示
-    displayResults(dbResults);
+    // 3. 表示処理 (ショップ別に分ける)
+    displayResultsByShop(dbResults, checkedShops);
 }
 
-// --- 検索結果の描画 ---
-function displayResults(parts) {
+// --- 結果表示 (ショップ別) ---
+function displayResultsByShop(parts, targetShops) {
     const container = document.getElementById('results-area');
     container.innerHTML = "";
 
@@ -139,204 +107,249 @@ function displayResults(parts) {
         return;
     }
 
-    parts.forEach(part => {
-        // ショップ設定の取得
-        const shopConfig = CONFIG.shops[part.shop_name] || { is_price_ex_vat: false, show_vat_inc: true };
+    // 指定されたショップごとにセクションを作る
+    targetShops.forEach(shopName => {
+        // そのショップのパーツだけ抽出
+        const shopParts = parts.filter(p => p.shop_name === shopName);
+        if (shopParts.length === 0) return;
+
+        // セクション作成
+        const section = document.createElement('div');
+        section.style.marginBottom = "30px";
+        section.innerHTML = `<h3 style="background:#eee; padding:10px; border-left:5px solid #333;">${shopName} (${shopParts.length}件)</h3>`;
         
-        // 価格表示ロジック
-        let displayPriceHtml = "";
-        let priceForCalc = part.price_euro; // リストに追加する時の基準価格（VAT抜き推奨）
+        // カードグリッド作成
+        const grid = document.createElement('div');
+        grid.className = 'results-grid'; // CSSでgrid定義が必要ならstyleタグに追加、今回はinlineで
+        grid.style.display = "grid";
+        grid.style.gridTemplateColumns = "repeat(auto-fill, minmax(200px, 1fr))";
+        grid.style.gap = "15px";
+        grid.style.padding = "10px";
 
-        if (shopConfig.is_price_ex_vat) {
-            // データは「税抜き」。FD Ricambiパターン
-            // そのまま表示。
-            displayPriceHtml = `<div class="price-tag">€ ${part.price_euro.toFixed(2)} <span style="font-size:0.6em; color:#666;">(税抜)</span></div>`;
-            priceForCalc = part.price_euro;
-        } else {
-            // データは「税込み」。Axel Gerstlパターン
-            // 税込みを表示しつつ、税抜きも計算して表示したほうが親切かも？
-            // ユーザー指示「VAT抜きで横並び比較したい」
-            const exVat = part.price_euro / (1 + shopConfig.vat_rate);
-            priceForCalc = exVat; // リストには税抜きを入れる
+        shopParts.forEach(part => {
+            grid.appendChild(createPartCard(part));
+        });
 
-            displayPriceHtml = `
-                <div class="price-tag">€ ${part.price_euro.toFixed(2)} <span style="font-size:0.6em; color:#666;">(税込)</span></div>
-                <div style="font-size:0.8em; color:#888;">(税抜: € ${exVat.toFixed(2)})</div>
-            `;
-        }
-
-        // 日本語名がある場合はそれをメインに、なければ英語名
-        const title = part.name_jp && part.name_jp !== "nan" ? part.name_jp : part.name_en;
-        const subTitle = part.name_jp && part.name_jp !== "nan" ? part.name_en : "";
-
-        // カード生成
-        const card = document.createElement('div');
-        card.className = 'part-card';
-        card.innerHTML = `
-            <div>
-                <img src="${part.image_url}" class="part-img" alt="no image" onerror="this.src='https://placehold.co/200x150?text=No+Image'">
-                <div style="margin-top:10px; font-weight:bold;">${title}</div>
-                <div style="font-size:0.8em; color:#666;">${subTitle}</div>
-                <div style="font-size:0.8em; margin:5px 0;">
-                    <span style="background:#eee; padding:2px 5px; border-radius:4px;">${part.shop_name}</span>
-                    <span style="color:#666;">OEM: ${part.oem_no}</span>
-                </div>
-            </div>
-            <div>
-                ${displayPriceHtml}
-                <button onclick="addToList('${part.id}', '${escapeHtml(title)}', '${part.shop_name}', ${priceForCalc}, '${part.page_url}')" 
-                    style="width:100%; margin-top:10px; padding:8px; background:#007bff; color:#fff; border:none; border-radius:4px; cursor:pointer;">
-                    リストに追加
-                </button>
-            </div>
-        `;
-        container.appendChild(card);
+        section.appendChild(grid);
+        container.appendChild(section);
     });
 }
 
-// --- 比較リスト（検討トレイ）の管理 ---
-
-// 商品をリストに追加
-function addToList(id, name, shop, priceExVat, url) {
-    // 既にリストにあるかチェック
-    // 同じIDでも複数個欲しい場合があるかもしれないが、今回は重複チェックなしで追加します
+// カード生成用関数
+function createPartCard(part) {
+    const shopConfig = CONFIG.shops[part.shop_name] || { is_price_ex_vat: false, show_vat_inc: true };
     
-    const item = {
-        uniqueId: Date.now(), // 削除用の一意キー
-        originalId: id,
+    // 価格計算
+    let displayPriceHtml = "";
+    let priceForCalc = part.price_euro;
+
+    if (shopConfig.is_price_ex_vat) {
+        // データ＝税抜き (FD)
+        priceForCalc = part.price_euro;
+        displayPriceHtml = `<div class="price-tag">€ ${part.price_euro.toFixed(2)} <small>(税抜)</small></div>`;
+    } else {
+        // データ＝税込 (Axel)
+        const exVat = part.price_euro / (1 + shopConfig.vat_rate);
+        priceForCalc = exVat; 
+        displayPriceHtml = `
+            <div class="price-tag">€ ${part.price_euro.toFixed(2)} <small>(税込)</small></div>
+            <div style="font-size:0.8em; color:#888;">(税抜: € ${exVat.toFixed(2)})</div>
+        `;
+    }
+
+    const title = part.name_jp && part.name_jp !== "nan" ? part.name_jp : part.name_en;
+
+    const div = document.createElement('div');
+    div.className = 'part-card';
+    // カード全体をクリックしたらリンクへ飛ぶようにする？
+    // 誤クリック防止のため、画像とタイトルのみリンクにする
+    
+    div.innerHTML = `
+        <a href="${part.page_url}" target="_blank" style="text-decoration:none; color:inherit; display:block;">
+            <div style="position:relative;">
+                <img src="${part.image_url}" class="part-img" alt="img" onerror="this.src='https://placehold.co/200x150?text=No+Image'">
+                <span style="position:absolute; bottom:0; right:0; background:rgba(0,0,0,0.6); color:#fff; font-size:0.7em; padding:2px 5px;">別タブで開く &#x2197;</span>
+            </div>
+            <div style="margin-top:10px; font-weight:bold; min-height:3em;">${title}</div>
+        </a>
+        <div style="font-size:0.8em; color:#666; margin-bottom:5px;">OEM: ${part.oem_no}</div>
+        
+        <div style="margin-top:auto;">
+            ${displayPriceHtml}
+            <button onclick="addToList('${part.id}', '${escapeHtml(title)}', '${part.shop_name}', ${priceForCalc}, '${part.page_url}')" 
+                style="width:100%; margin-top:10px; padding:8px; background:#007bff; color:#fff; border:none; border-radius:4px; cursor:pointer;">
+                リストに追加
+            </button>
+        </div>
+    `;
+    return div;
+}
+
+// --- 比較リスト管理（ショップ別集計） ---
+
+function addToList(id, name, shop, price, url) {
+    compareList.push({
+        uniqueId: Date.now(),
         name: name,
         shop: shop,
-        basePrice: priceExVat, // DB上の価格(税抜計算後)
-        userPrice: priceExVat, // ユーザーが修正する価格(初期値はDB価格)
+        price: parseFloat(price), // ユーザー編集用
         url: url
-    };
-    
-    compareList.push(item);
+    });
     saveList();
     renderList();
     
-    // トレイが開いていなければ開く
+    // トレイを開く
     const tray = document.getElementById('comparison-tray');
-    if(tray.style.height !== '300px') {
-        toggleTray();
-    }
+    if(tray.style.height !== '400px') toggleTray(true);
 }
 
-// リストの描画
 function renderList() {
     const tbody = document.getElementById('compare-rows');
     tbody.innerHTML = "";
     
-    let subTotalEur = 0;
-
-    compareList.forEach((item, index) => {
-        // 日本円概算
-        const yen = Math.round(item.userPrice * currentRate);
-        subTotalEur += parseFloat(item.userPrice);
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><a href="${item.url}" target="_blank" style="text-decoration:none; color:#007bff;">${item.name}</a></td>
-            <td>${item.shop}</td>
-            <td>
-                € <input type="number" step="0.01" value="${parseFloat(item.userPrice).toFixed(2)}" 
-                onchange="updateItemPrice(${index}, this.value)" class="input-price">
-            </td>
-            <td>¥ ${yen.toLocaleString()}</td>
-            <td><button onclick="removeFromList(${index})" style="color:red; border:none; background:none; cursor:pointer;">×</button></td>
-        `;
-        tbody.appendChild(row);
+    // ショップごとにグループ化
+    const grouped = {};
+    compareList.forEach(item => {
+        if (!grouped[item.shop]) grouped[item.shop] = [];
+        grouped[item.shop].push(item);
     });
 
-    // 集計表示
-    const shippingEur = parseFloat(document.getElementById('shipping-cost').value) || 0;
-    const finalEur = subTotalEur + shippingEur;
+    let grandTotalEur = 0;
+
+    // ショップごとのブロックを描画
+    Object.keys(grouped).forEach(shopName => {
+        const items = grouped[shopName];
+        let shopSubtotal = 0;
+
+        // 1. ショップヘッダー行
+        const headerRow = document.createElement('tr');
+        headerRow.style.background = "#f0f0f0";
+        headerRow.innerHTML = `<td colspan="5" style="font-weight:bold; padding:8px;">${shopName}</td>`;
+        tbody.appendChild(headerRow);
+
+        // 2. アイテム行
+        items.forEach((item, idx) => {
+            shopSubtotal += item.price;
+            const globalIdx = compareList.indexOf(item); // 削除用インデックス
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td style="padding-left:20px;"><a href="${item.url}" target="_blank">${item.name}</a></td>
+                <td><small>${shopName}</small></td>
+                <td>€ <input type="number" step="0.01" value="${item.price.toFixed(2)}" 
+                    onchange="updateItemPrice(${globalIdx}, this.value)" class="input-price" style="width:60px;"></td>
+                <td>¥ ${Math.round(item.price * currentRate).toLocaleString()}</td>
+                <td><button onclick="removeFromList(${globalIdx})" style="color:red; border:none; background:none;">×</button></td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // 3. 送料・小計行
+        const shipping = parseFloat(shippingCosts[shopName]) || 0;
+        const shopTotal = shopSubtotal + shipping;
+        grandTotalEur += shopTotal;
+
+        const summaryRow = document.createElement('tr');
+        summaryRow.style.borderBottom = "2px solid #ccc";
+        summaryRow.innerHTML = `
+            <td colspan="2" style="text-align:right; font-size:0.9em;">
+                小計: €${shopSubtotal.toFixed(2)} + 送料: 
+                <input type="number" value="${shipping}" onchange="updateShipping('${shopName}', this.value)" 
+                style="width:50px; text-align:right;">
+            </td>
+            <td style="font-weight:bold;">€ ${shopTotal.toFixed(2)}</td>
+            <td style="font-weight:bold;">¥ ${Math.round(shopTotal * currentRate).toLocaleString()}</td>
+            <td></td>
+        `;
+        tbody.appendChild(summaryRow);
+    });
+
+    // 総合計表示
+    document.getElementById('tray-total-jpy').innerText = Math.round(grandTotalEur * currentRate).toLocaleString();
     
-    document.getElementById('tray-total-jpy').innerText = Math.round(finalEur * currentRate).toLocaleString();
+    // フッター更新（総合計）
+    const tfootHtml = `
+        <tr class="total-row" style="background: #333; color: #fff;">
+            <td colspan="2" style="text-align: right; padding:10px;">全ショップ総合計:</td>
+            <td style="font-size:1.2em;">€ ${grandTotalEur.toFixed(2)}</td>
+            <td style="font-size:1.2em; color:#ffeb3b;">¥ ${Math.round(grandTotalEur * currentRate).toLocaleString()}</td>
+            <td></td>
+        </tr>
+    `;
+    // HTML構造上、tfootの中身を書き換えるか、tbodyの最後に追加するか
+    // ここではtbodyの最後に追加します
+    const totalRow = document.createElement('tr');
+    totalRow.innerHTML = tfootHtml;
+    tbody.appendChild(totalRow);
     
-    document.getElementById('subtotal-eur').innerText = subTotalEur.toFixed(2);
-    document.getElementById('subtotal-jpy').innerText = "¥ " + Math.round(subTotalEur * currentRate).toLocaleString();
-    
-    document.getElementById('shipping-jpy').innerText = "¥ " + Math.round(shippingEur * currentRate).toLocaleString();
-    
-    document.getElementById('final-eur').innerText = "€ " + finalEur.toFixed(2);
-    document.getElementById('final-jpy').innerText = "¥ " + Math.round(finalEur * currentRate).toLocaleString();
+    // 送料欄の既存ID処理（エラー防止のため隠すか無効化）
+    const oldShippingInput = document.getElementById('shipping-cost');
+    if(oldShippingInput) oldShippingInput.parentElement.parentElement.style.display = 'none';
 }
 
-// 価格の手動修正
-function updateItemPrice(index, newPrice) {
-    compareList[index].userPrice = parseFloat(newPrice);
+// データの更新系
+function updateItemPrice(index, val) {
+    compareList[index].price = parseFloat(val);
     saveList();
     renderList();
 }
 
-// リストから削除
+function updateShipping(shopName, val) {
+    shippingCosts[shopName] = parseFloat(val);
+    saveList();
+    renderList();
+}
+
 function removeFromList(index) {
     compareList.splice(index, 1);
     saveList();
     renderList();
 }
 
-// リスト全消去
 function clearList() {
     if(confirm("リストを空にしますか？")) {
         compareList = [];
+        shippingCosts = {};
         saveList();
         renderList();
     }
 }
 
-// 手動アイテム追加フォーム（簡易版）
 function showManualAddForm() {
-    const name = prompt("商品名を入力:");
+    const name = prompt("商品名:");
     if(!name) return;
-    const price = prompt("価格(€)を入力:", "0");
-    if(price === null) return;
-    
-    addToList("manual", name, "手動追加", parseFloat(price), "#");
+    const shop = prompt("ショップ名(FD Ricambi, eBay等):", "Manual");
+    const price = prompt("価格(€):", "0");
+    addToList("manual", name, shop, price, "#");
 }
 
-// LocalStorageへの保存・読み出し
 function saveList() {
     localStorage.setItem('fiat500_compare_list', JSON.stringify(compareList));
-    // 送料も保存しておく
-    localStorage.setItem('fiat500_shipping', document.getElementById('shipping-cost').value);
+    localStorage.setItem('fiat500_shipping_costs', JSON.stringify(shippingCosts));
 }
 
 function loadListFromStorage() {
-    const saved = localStorage.getItem('fiat500_compare_list');
-    if (saved) {
-        compareList = JSON.parse(saved);
-    }
-    const savedShipping = localStorage.getItem('fiat500_shipping');
-    if (savedShipping) {
-        document.getElementById('shipping-cost').value = savedShipping;
-    }
+    const list = localStorage.getItem('fiat500_compare_list');
+    if (list) compareList = JSON.parse(list);
+    
+    const ship = localStorage.getItem('fiat500_shipping_costs');
+    if (ship) shippingCosts = JSON.parse(ship);
+    
     renderList();
 }
 
-// トレイ開閉関数
-function toggleTray() {
+function toggleTray(forceOpen = false) {
     const tray = document.getElementById('comparison-tray');
-    // 現在の高さをチェック（style属性が空の場合はCSSの初期値を参照できないため、computedStyleを見るか、フラグで管理）
-    // HTML側でフラグ管理しているので、こちらはあくまで補助
-    if(tray.style.height === '300px') {
-        tray.style.height = '40px';
+    if (forceOpen) {
+        tray.style.height = '400px';
     } else {
-        tray.style.height = '300px';
+        tray.style.height = (tray.style.height === '400px') ? '40px' : '400px';
     }
 }
 
-// 文字列のエスケープ処理
 function escapeHtml(str) {
     if(!str) return '';
     return str.replace(/[&<>"']/g, function(m) {
-        return {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        }[m];
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
     });
 }
