@@ -378,6 +378,7 @@
       }
       fetchCars();
       checkNewsBadge();
+      initAuth();
     }
 
 async function fetchCars() {
@@ -431,30 +432,70 @@ async function checkNewsBadge() {
     let currentUser = { uid: null, docId: null };
     let userRelations = {}; // { "DOC_123": "want", "DOC_456": "met" }
 
-    // 認証状態の監視とデータ初期化
-    // ※Firebase Authの初期化コードが別途必要だが、ここでは既存の仕組みに乗っかる想定
-    // 本来は firebase.auth().onAuthStateChanged(...) 内で呼ぶ
+    // 認証初期化
+    async function initAuth() {
+      // 1. 現在のセッションを取得
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      await setSession(session);
+
+      // 2. 認証状態の変更を監視
+      supabaseClient.auth.onAuthStateChanged(async (_event, session) => {
+        await setSession(session);
+      });
+    }
+
+    async function setSession(session) {
+      if (session?.user) {
+        currentUser.uid = session.user.id;
+        currentUser.email = session.user.email;
+        // 自分の車IDを取得 (carsテーブルにuser_idがあると仮定して検索)
+        // ※carsテーブルにuser_idカラムがない場合はこの処理はスキップされるかエラーになる可能性があるため、
+        //  一旦user_relationsの取得を優先する
+        await initUserRelations();
+      } else {
+        currentUser = { uid: null, docId: null };
+        userRelations = {};
+        updateStatusSummary();
+        // ログアウト時は再描画
+        const sortVal = document.getElementById('sortSelect').value;
+        if (carsData.length > 0) renderCars(sortVal);
+      }
+    }
+
     async function initUserRelations() {
-      // 仮: ログインしていると仮定して処理を進めるためのプレースホルダー
-      // 実際にはここで currentUser.uid を取得する
-      
-      // ユーザー関係データの取得
-      if (currentUser.uid) {
-        try {
-          const { data, error } = await supabaseClient
-            .from('user_relations')
-            .select('target_car_id, status')
-            .eq('user_id', currentUser.uid);
-            
-          if (data) {
-            userRelations = {};
-            data.forEach(item => {
-              userRelations[item.target_car_id] = item.status;
-            });
-            updateStatusSummary();
-            renderCars(document.getElementById('sortSelect').value); // 再描画
-          }
-        } catch (e) { console.error("Relations load error:", e); }
+      if (!currentUser.uid) return;
+
+      try {
+        // 1. ユーザー関係データの取得
+        const { data: relations, error: relError } = await supabaseClient
+          .from('user_relations')
+          .select('target_car_id, status')
+          .eq('user_id', currentUser.uid);
+          
+        if (relations) {
+          userRelations = {};
+          relations.forEach(item => {
+            userRelations[item.target_car_id] = item.status;
+          });
+        }
+
+        // 2. 自分の車IDを取得 (carsテーブルにuser_idカラムがある場合)
+        // ※もしcarsテーブルにuser_idがない場合は、このクエリは失敗する可能性がありますが、
+        //   try-catchで囲んでいるためアプリ全体は止まりません。
+        const { data: myCars, error: carError } = await supabaseClient
+          .from('cars')
+          .select('document_id')
+          .eq('user_id', currentUser.uid)
+          .limit(1);
+
+        if (myCars && myCars.length > 0) {
+          currentUser.docId = myCars[0].document_id;
+        }
+
+        updateStatusSummary();
+        renderCars(document.getElementById('sortSelect').value); // 再描画
+      } catch (e) { 
+        console.error("User data load error:", e); 
       }
     }
 
