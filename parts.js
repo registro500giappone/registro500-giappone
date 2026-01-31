@@ -139,26 +139,25 @@ function displayResultsByShop(parts, targetShops) {
 function createPartCard(part) {
     const shopConfig = CONFIG.shops[part.shop_name] || { is_price_ex_vat: false, show_vat_inc: true, vat_rate: 0.19 };
     
-    // --- 1. 画像URLの補正 (厳密なnan除外版) ---
+    // --- 1. 画像URLの補正 (目に見えない文字を完全に除去する最強版) ---
     let finalImageUrl = "";
-    // 文字列化して前後の空白を消し、小文字にして判定
-    const rawUrl = part.image_url ? String(part.image_url).trim() : "";
+    
+    // データを文字列化し、前後の空白、改行などを完全に除去
+    let rawUrl = part.image_url ? String(part.image_url).replace(/^\s+|\s+$/g, '') : "";
 
-    // 判定条件: 空っぽ、または文字列の "nan", "null", "undefined" の場合は画像なしとみなす
+    // 判定：空、null、undefined、または「nan」という単語が含まれている場合は画像なし
+    // /nan/i.test() を使うことで、"nan ", " NAN", "nan\n" などすべてを検知して弾きます
     const isInvalid = !rawUrl || 
-                      rawUrl.toLowerCase() === "nan" || 
-                      rawUrl.toLowerCase() === "null" || 
-                      rawUrl.toLowerCase() === "undefined";
+                      /^(nan|null|undefined)$/i.test(rawUrl) || 
+                      rawUrl === "";
 
     if (isInvalid) {
         finalImageUrl = 'https://placehold.co/200x150?text=No+Image';
     } else if (rawUrl.startsWith('http')) {
-        // すでにフルURLの場合 (FD Ricambi等)
         finalImageUrl = rawUrl;
     } else {
-        // 相対パスの場合 (Axel Gerstl等)
         const domain = 'https://webshop.fiat500126.com';
-        // スラッシュが重複しないよう整形して結合
+        // スラッシュの有無を正規化
         const cleanPath = rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl;
         finalImageUrl = domain + cleanPath;
     }
@@ -178,7 +177,7 @@ function createPartCard(part) {
         `;
     }
 
-    const title = part.name_jp && part.name_jp !== "nan" ? part.name_jp : (part.name_en || "No Title");
+    const title = part.name_jp && !/nan/i.test(part.name_jp) ? part.name_jp : (part.name_en || "No Title");
 
     // --- 3. HTMLの組み立て ---
     const div = document.createElement('div');
