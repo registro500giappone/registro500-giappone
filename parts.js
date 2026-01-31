@@ -227,24 +227,27 @@ function renderList() {
         headerRow.innerHTML = `<td colspan="5" style="font-weight:bold; padding:8px;">${shopName}</td>`;
         tbody.appendChild(headerRow);
 
-        // 2. アイテム行
+// 2. アイテム行
         items.forEach((item, idx) => {
-            shopSubtotal += item.price;
+            // 安全策：価格が未定義なら0にする
+            const itemPrice = parseFloat(item.price) || 0;
+            shopSubtotal += itemPrice;
             const globalIdx = compareList.indexOf(item); // 削除用インデックス
             
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td style="padding-left:20px;"><a href="${item.url}" target="_blank">${item.name}</a></td>
                 <td><small>${shopName}</small></td>
-                <td>€ <input type="number" step="0.01" value="${item.price.toFixed(2)}" 
+                <td>€ <input type="number" step="0.01" value="${itemPrice.toFixed(2)}" 
                     onchange="updateItemPrice(${globalIdx}, this.value)" class="input-price" style="width:60px;"></td>
-                <td>¥ ${Math.round(item.price * currentRate).toLocaleString()}</td>
+                <td>¥ ${Math.round(itemPrice * currentRate).toLocaleString()}</td>
                 <td><button onclick="removeFromList(${globalIdx})" style="color:red; border:none; background:none;">×</button></td>
             `;
             tbody.appendChild(row);
         });
 
-        // 3. 送料・小計行
+        
+// 3. 送料・小計行
         const shipping = parseFloat(shippingCosts[shopName]) || 0;
         const shopTotal = shopSubtotal + shipping;
         grandTotalEur += shopTotal;
