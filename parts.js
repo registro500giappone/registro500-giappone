@@ -139,17 +139,11 @@ function displayResultsByShop(parts, targetShops) {
 function createPartCard(part) {
     const shopConfig = CONFIG.shops[part.shop_name] || { is_price_ex_vat: false, show_vat_inc: true, vat_rate: 0.19 };
     
-    // --- 1. 画像URLの補正 (目に見えない文字を完全に除去する最強版) ---
+    // --- 1. 画像URLの補正 (直リンク制限を回避する最強版) ---
     let finalImageUrl = "";
-    
-    // データを文字列化し、前後の空白、改行などを完全に除去
     let rawUrl = part.image_url ? String(part.image_url).replace(/^\s+|\s+$/g, '') : "";
 
-    // 判定：空、null、undefined、または「nan」という単語が含まれている場合は画像なし
-    // /nan/i.test() を使うことで、"nan ", " NAN", "nan\n" などすべてを検知して弾きます
-    const isInvalid = !rawUrl || 
-                      /^(nan|null|undefined)$/i.test(rawUrl) || 
-                      rawUrl === "";
+    const isInvalid = !rawUrl || /^(nan|null|undefined)$/i.test(rawUrl) || rawUrl === "";
 
     if (isInvalid) {
         finalImageUrl = 'https://placehold.co/200x150?text=No+Image';
@@ -157,12 +151,11 @@ function createPartCard(part) {
         finalImageUrl = rawUrl;
     } else {
         const domain = 'https://webshop.fiat500126.com';
-        // スラッシュの有無を正規化
         const cleanPath = rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl;
         finalImageUrl = domain + cleanPath;
     }
 
-    // --- 2. 価格計算 (既存ロジック) ---
+    // --- 2. 価格計算 (既存) ---
     let displayPriceHtml = "";
     let priceForCalc = part.price_euro;
     if (shopConfig.is_price_ex_vat) {
@@ -179,13 +172,16 @@ function createPartCard(part) {
 
     const title = part.name_jp && !/nan/i.test(part.name_jp) ? part.name_jp : (part.name_en || "No Title");
 
-    // --- 3. HTMLの組み立て ---
+    // --- 3. HTMLの組み立て (referrerpolicyを追加してブロックを回避) ---
     const div = document.createElement('div');
     div.className = 'part-card';
     div.innerHTML = `
         <a href="${part.page_url}" target="_blank" style="text-decoration:none; color:inherit; display:block;">
             <div style="position:relative;">
-                <img src="${finalImageUrl}" class="part-img" alt="img" 
+                <img src="${finalImageUrl}" 
+                     class="part-img" 
+                     alt="img" 
+                     referrerpolicy="no-referrer" 
                      onerror="this.onerror=null; this.src='https://placehold.co/200x150?text=No+Image';">
                 <span style="position:absolute; bottom:0; right:0; background:rgba(0,0,0,0.6); color:#fff; font-size:0.7em; padding:2px 5px;">別タブで開く &#x2197;</span>
             </div>
