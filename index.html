@@ -309,7 +309,7 @@
               <a href="stats.html">📊 統計データ</a>
               <a href="event.html">📅 イベント掲示板</a>
               <button onclick="shareSite()">🔗 サイトをシェア</button>
-              <button id="viewToggleBtn" class="mosaic-toggle-item" onclick="toggleViewMode()">📋 リスト表示</button>
+              <button id="viewToggleBtn" onclick="toggleViewMode()">📋 リスト表示</button>
               <button id="menuLoginBtn" onclick="loginWithGoogle()">🔑 ログイン</button>
               <button id="menuLogoutBtn" onclick="logout()" style="display:none;">🚪 ログアウト</button>
             </div>
@@ -672,15 +672,31 @@ async function checkNewsBadge() {
       const btnEl = document.getElementById('viewToggleBtn');
       const sortStatusOpt = document.getElementById('sortStatusOption');
       const summaryBar = document.getElementById('statusSummary');
+      const isMobile = window.innerWidth < 1025; // スマホ・タブレット判定
       
       if (viewMode === 'card') {
         viewMode = 'list';
         listEl.classList.remove('view-mosaic');
         listEl.classList.add('view-list');
-        btnEl.textContent = '▦ モザイク表示';
+        // スマホの場合は次はカードに戻る（モザイクなし）
+        btnEl.textContent = isMobile ? '📄 カード表示' : '▦ モザイク表示';
         sortStatusOpt.style.display = 'block';
         summaryBar.style.display = 'flex'; // 集計バー表示
       } else if (viewMode === 'list') {
+        // スマホならモザイクをスキップしてカードに戻る
+        if (isMobile) {
+          viewMode = 'card';
+          listEl.classList.remove('view-list');
+          btnEl.textContent = '📋 リスト表示';
+          sortStatusOpt.style.display = 'none';
+          summaryBar.style.display = 'none';
+          if(document.getElementById('sortSelect').value === 'status_priority') {
+             document.getElementById('sortSelect').value = 'newest';
+             renderCars('newest');
+          }
+          return;
+        }
+
         viewMode = 'mosaic';
         listEl.classList.remove('view-list');
         listEl.classList.add('view-mosaic');
