@@ -431,32 +431,43 @@ async function checkNewsBadge() {
     // ログインユーザー情報
     let currentUser = { uid: null, docId: null };
     let userRelations = {}; // { "DOC_123": "want", "DOC_456": "met" }
+    let isAuthInitialized = false; // 認証初期化完了フラグ
 
     // 認証初期化
     async function initAuth() {
-      // 1. 現在のセッションを取得
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      await setSession(session);
-
-      // 2. 認証状態の変更を監視
-      supabaseClient.auth.onAuthStateChanged(async (_event, session) => {
+      console.log("initAuth started");
+      try {
+        // 1. 現在のセッションを取得
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (error) console.error("getSession error:", error);
+        console.log("Session retrieved:", session ? "Exists" : "Null");
+        
         await setSession(session);
-      });
+
+        // 2. 認証状態の変更を監視
+        supabaseClient.auth.onAuthStateChanged(async (event, session) => {
+          console.log("AuthStateChanged:", event);
+          await setSession(session);
+        });
+      } catch (e) {
+        console.error("initAuth exception:", e);
+      } finally {
+        isAuthInitialized = true;
+        console.log("initAuth finished");
+      }
     }
 
     async function setSession(session) {
       if (session?.user) {
+        console.log("User logged in:", session.user.id);
         currentUser.uid = session.user.id;
         currentUser.email = session.user.email;
-        // 自分の車IDを取得 (carsテーブルにuser_idがあると仮定して検索)
-        // ※carsテーブルにuser_idカラムがない場合はこの処理はスキップされるかエラーになる可能性があるため、
-        //  一旦user_relationsの取得を優先する
         await initUserRelations();
       } else {
+        console.log("User not logged in");
         currentUser = { uid: null, docId: null };
         userRelations = {};
         updateStatusSummary();
-        // ログアウト時は再描画
         const sortVal = document.getElementById('sortSelect').value;
         if (carsData.length > 0) renderCars(sortVal);
       }
@@ -472,6 +483,14 @@ async function checkNewsBadge() {
           .select('target_car_id, status')
           .eq('user_id', currentUser.uid);
           
+        if (relError) {
+          console.error("Relations fetch error:", relError);
+          // テーブルが存在しない場合などのエラーハンドリング
+          if (relError.code === '42P01') { // undefined_table
+             console.warn("Table 'user_relations' does not exist.");
+          }
+        }
+
         if (relations) {
           userRelations = {};
           relations.forEach(item => {
@@ -479,9 +498,7 @@ async function checkNewsBadge() {
           });
         }
 
-        // 2. 自分の車IDを取得 (carsテーブルにuser_idカラムがある場合)
-        // ※もしcarsテーブルにuser_idがない場合は、このクエリは失敗する可能性がありますが、
-        //   try-catchで囲んでいるためアプリ全体は止まりません。
+        // 2. 自分の車IDを取得
         const { data: myCars, error: carError } = await supabaseClient
           .from('cars')
           .select('document_id')
@@ -493,7 +510,7 @@ async function checkNewsBadge() {
         }
 
         updateStatusSummary();
-        renderCars(document.getElementById('sortSelect').value); // 再描画
+        renderCars(document.getElementById('sortSelect').value);
       } catch (e) { 
         console.error("User data load error:", e); 
       }
@@ -649,8 +666,13 @@ async function checkNewsBadge() {
     }
 
     async function toggleStatus(btn, type, docId) {
+      if (!isAuthInitialized) {
+        alert("認証情報を読み込み中です。しばらく待ってから再度お試しください。");
+        return;
+      }
+
       if (!currentUser.uid) {
-        alert("この機能を使うにはログインが必要です。");
+        alert(`この機能を使うにはログインが必要です。\n(Debug: UID is null)`);
         return;
       }
 
@@ -705,7 +727,7 @@ async function checkNewsBadge() {
         }
       } catch (e) {
         console.error("Save error:", e);
-        alert("保存に失敗しました。");
+        alert(`保存に失敗しました。\nError: ${e.message || e.error_description || JSON.stringify(e)}`);
         // ロールバック処理が必要ならここに記述
       }
     }
