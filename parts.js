@@ -139,19 +139,25 @@ function displayResultsByShop(parts, targetShops) {
 function createPartCard(part) {
     const shopConfig = CONFIG.shops[part.shop_name] || { is_price_ex_vat: false, show_vat_inc: true, vat_rate: 0.19 };
     
-    // --- 1. 画像URLの補正 (Axel Gerstl対応) ---
-    let finalImageUrl = part.image_url;
-    if (finalImageUrl && finalImageUrl !== 'nan') {
-        if (!finalImageUrl.startsWith('http')) {
-            // Axel Gerstlのドメインを付与
-            const domain = 'https://webshop.fiat500126.com';
-            finalImageUrl = domain + (finalImageUrl.startsWith('/') ? '' : '/') + finalImageUrl;
-        }
-    } else {
+    // --- 1. 画像URLの補正 (実測データに基づいた確定版) ---
+    let finalImageUrl = "";
+    // image_urlを文字列として取得し、前後の空白を削除
+    const rawUrl = part.image_url ? String(part.image_url).trim() : "";
+
+    // "nan" という文字列、または空の場合を厳格に判定して除外
+    if (!rawUrl || rawUrl.toLowerCase() === "nan" || rawUrl === "null" || rawUrl === "undefined") {
         finalImageUrl = 'https://placehold.co/200x150?text=No+Image';
+    } else if (rawUrl.startsWith('http')) {
+        // FD Ricambi など、すでにフルURLの場合
+        finalImageUrl = rawUrl;
+    } else {
+        // Axel Gerstl の相対パス (img_big/... 等) にドメインを付与
+        const domain = 'https://webshop.fiat500126.com';
+        // 先頭のスラッシュの有無を調整して結合
+        finalImageUrl = domain + (rawUrl.startsWith('/') ? '' : '/') + rawUrl;
     }
 
-    // --- 2. 価格計算 (既存ロジック) ---
+    // --- 2. 価格計算 ---
     let displayPriceHtml = "";
     let priceForCalc = part.price_euro;
 
