@@ -139,33 +139,38 @@ function displayResultsByShop(parts, targetShops) {
 function createPartCard(part) {
     const shopConfig = CONFIG.shops[part.shop_name] || { is_price_ex_vat: false, show_vat_inc: true, vat_rate: 0.19 };
     
-    // --- 1. 画像URLの補正 (実測データに基づいた確定版) ---
+    // --- 1. 画像URLの補正 (厳密なnan除外版) ---
     let finalImageUrl = "";
-    // image_urlを文字列として取得し、前後の空白を削除
+    // 文字列化して前後の空白を消し、小文字にして判定
     const rawUrl = part.image_url ? String(part.image_url).trim() : "";
 
-    // "nan" という文字列、または空の場合を厳格に判定して除外
-    if (!rawUrl || rawUrl.toLowerCase() === "nan" || rawUrl === "null" || rawUrl === "undefined") {
+    // 判定条件: 空っぽ、または文字列の "nan", "null", "undefined" の場合は画像なしとみなす
+    const isInvalid = !rawUrl || 
+                      rawUrl.toLowerCase() === "nan" || 
+                      rawUrl.toLowerCase() === "null" || 
+                      rawUrl.toLowerCase() === "undefined";
+
+    if (isInvalid) {
         finalImageUrl = 'https://placehold.co/200x150?text=No+Image';
     } else if (rawUrl.startsWith('http')) {
-        // FD Ricambi など、すでにフルURLの場合
+        // すでにフルURLの場合 (FD Ricambi等)
         finalImageUrl = rawUrl;
     } else {
-        // Axel Gerstl の相対パス (img_big/... 等) にドメインを付与
+        // 相対パスの場合 (Axel Gerstl等)
         const domain = 'https://webshop.fiat500126.com';
-        // 先頭のスラッシュの有無を調整して結合
-        finalImageUrl = domain + (rawUrl.startsWith('/') ? '' : '/') + rawUrl;
+        // スラッシュが重複しないよう整形して結合
+        const cleanPath = rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl;
+        finalImageUrl = domain + cleanPath;
     }
 
-    // --- 2. 価格計算 ---
+    // --- 2. 価格計算 (既存ロジック) ---
     let displayPriceHtml = "";
     let priceForCalc = part.price_euro;
-
     if (shopConfig.is_price_ex_vat) {
         priceForCalc = part.price_euro;
         displayPriceHtml = `<div class="price-tag">€ ${part.price_euro.toFixed(2)} <small>(税抜)</small></div>`;
     } else {
-        const exVat = part.price_euro / (1 + shopConfig.vat_rate);
+        const exVat = part.price_euro / (1 + (shopConfig.vat_rate || 0.19));
         priceForCalc = exVat; 
         displayPriceHtml = `
             <div class="price-tag">€ ${part.price_euro.toFixed(2)} <small>(税込)</small></div>
@@ -173,7 +178,7 @@ function createPartCard(part) {
         `;
     }
 
-    const title = part.name_jp && part.name_jp !== "nan" ? part.name_jp : part.name_en;
+    const title = part.name_jp && part.name_jp !== "nan" ? part.name_jp : (part.name_en || "No Title");
 
     // --- 3. HTMLの組み立て ---
     const div = document.createElement('div');
@@ -181,7 +186,8 @@ function createPartCard(part) {
     div.innerHTML = `
         <a href="${part.page_url}" target="_blank" style="text-decoration:none; color:inherit; display:block;">
             <div style="position:relative;">
-                <img src="${finalImageUrl}" class="part-img" alt="img" onerror="this.src='https://placehold.co/200x150?text=No+Image'">
+                <img src="${finalImageUrl}" class="part-img" alt="img" 
+                     onerror="this.onerror=null; this.src='https://placehold.co/200x150?text=No+Image';">
                 <span style="position:absolute; bottom:0; right:0; background:rgba(0,0,0,0.6); color:#fff; font-size:0.7em; padding:2px 5px;">別タブで開く &#x2197;</span>
             </div>
             <div style="margin-top:10px; font-weight:bold; min-height:3em;">${escapeHtml(title)}</div>
