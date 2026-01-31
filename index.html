@@ -187,6 +187,72 @@
     .car-list.view-mosaic .car-card { border-radius: 4px; box-shadow: none; }
     .car-list.view-mosaic .car-card:hover { transform: scale(1.15); z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
 
+    /* ===== リスト表示モード ===== */
+    .car-list.view-list { display: flex; flex-direction: column; gap: 8px; }
+    .car-list.view-list .car-card { 
+      flex-direction: row; align-items: center; height: auto; padding: 8px 12px; 
+      border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border-soft);
+    }
+    .car-list.view-list .car-card:hover { transform: none; background-color: #f9fafb; }
+    
+    .car-list.view-list .car-link { 
+      flex-direction: row; align-items: center; width: 100%; gap: 16px; text-decoration: none;
+    }
+    
+    /* 画像 */
+    .car-list.view-list .car-image-wrap { 
+      width: 60px; height: 45px; padding-top: 0; flex-shrink: 0; border-radius: 4px; background: #eee;
+    }
+    .car-list.view-list .car-image { position: static; width: 100%; height: 100%; object-fit: cover; }
+    .car-list.view-list .badge-update-dot { top: 4px; left: 4px; right: auto; border: 1px solid #fff; }
+
+    /* メイン情報エリア */
+    .car-list.view-list .car-main { 
+      flex-direction: row; align-items: center; padding: 0; width: 100%; gap: 12px;
+    }
+    
+    /* 各カラムの幅調整 (PC) */
+    .car-list.view-list .car-owner { width: 160px; font-size: 0.9rem; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .car-list.view-list .car-model { width: 200px; font-size: 0.85rem; font-weight: 600; color: var(--text-sub); margin: 0; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .car-list.view-list .car-meta-row { width: auto; flex-direction: row; gap: 8px; align-items: center; margin: 0; flex-shrink: 0; }
+    .car-list.view-list .car-pref { font-size: 0.7rem; padding: 0 6px; }
+    .car-list.view-list .car-year { font-size: 0.75rem; }
+
+    /* ステータスアクション (リスト時のみ表示) */
+    .status-action-area { display: none; }
+    .car-list.view-list .status-action-area { 
+      display: flex; align-items: center; margin-left: auto; gap: 8px; flex-shrink: 0;
+    }
+    .status-btn {
+      border: 1px solid var(--border-soft); background: #fff; color: var(--text-sub);
+      padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;
+      display: flex; align-items: center; gap: 4px; transition: all 0.2s;
+    }
+    .status-btn:hover { background: var(--bg-main); color: var(--text-main); }
+    .status-btn.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); font-weight: 600; }
+
+    /* ステータス集計エリア */
+    .status-summary-bar {
+      display: none; /* リスト表示時のみflex */
+      background: #fff; border: 1px solid var(--border-soft); border-radius: 8px;
+      padding: 8px 16px; margin-bottom: 16px; gap: 16px; font-size: 0.85rem; color: var(--text-sub);
+      align-items: center; justify-content: flex-end;
+    }
+    .status-count-item { display: flex; align-items: center; gap: 6px; }
+    .status-count-val { font-weight: 700; color: var(--text-main); }
+
+    /* スマホ対応 */
+    @media (max-width: 767px) {
+      .car-list.view-list .car-image-wrap { width: 50px; height: 50px; border-radius: 50%; }
+      .car-list.view-list .car-main { flex-wrap: wrap; gap: 4px; }
+      .car-list.view-list .car-owner { width: 100%; font-size: 0.95rem; }
+      .car-list.view-list .car-model { width: auto; font-size: 0.75rem; }
+      .car-list.view-list .car-meta-row { width: auto; flex-direction: row; gap: 6px; align-items: center; }
+      .car-list.view-list .status-action-area { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); }
+      .status-label { display: none; } /* スマホではアイコンのみにする等 */
+      .status-summary-bar { justify-content: space-between; font-size: 0.8rem; }
+    }
+
     .footer { margin-top: 60px; padding: 40px 16px; border-top: 1px solid var(--border-soft); text-align: center; color: var(--text-sub); font-size: 0.85rem; }
     .share-btn { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); text-decoration: none; font-weight: 600; cursor: pointer; border: 1px solid var(--accent-border); padding: 10px 24px; border-radius: 999px; background: #fff; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
     .share-btn:hover { background: var(--accent-soft); transform: translateY(-1px); }
@@ -220,6 +286,7 @@
               <option value="oldest">登録順</option>
               <option value="year_desc">年式 (新しい順)</option>
               <option value="year_asc">年式 (古い順)</option>
+              <option value="status_priority" id="sortStatusOption" style="display:none;">面識ステータス順</option>
             </select>
           </div>
 
@@ -230,7 +297,7 @@
               <a href="stats.html">📊 統計データ</a>
               <a href="event.html">📅 イベント掲示板</a>
               <button onclick="shareSite()">🔗 サイトをシェア</button>
-              <button id="viewToggleBtn" class="mosaic-toggle-item" onclick="toggleViewMode()">▦ モザイク表示</button>
+              <button id="viewToggleBtn" class="mosaic-toggle-item" onclick="toggleViewMode()">📋 リスト表示</button>
             </div>
           </div>
 
@@ -252,6 +319,19 @@
     </header>
 
     <div id="loading">読み込んでいます...</div>
+    
+    <!-- ステータス集計バー (リスト表示時のみ) -->
+    <div id="statusSummary" class="status-summary-bar">
+      <div class="status-count-item">
+        <span>⭐️ 気になる:</span>
+        <span id="countWant" class="status-count-val">0</span>人
+      </div>
+      <div class="status-count-item">
+        <span>🤝 挨拶済:</span>
+        <span id="countMet" class="status-count-val">0</span>人
+      </div>
+    </div>
+
     <div id="carList" class="car-list"></div>
 
     <footer class="footer">
@@ -347,15 +427,61 @@ async function checkNewsBadge() {
     }
     function parseDocNumber(id) { const m = /^DOC_(\d+)$/.exec(String(id)); return m ? parseInt(m[1], 10) : 0; }
 
+    // ログインユーザー情報
+    let currentUser = { uid: null, docId: null };
+    let userRelations = {}; // { "DOC_123": "want", "DOC_456": "met" }
+
+    // 認証状態の監視とデータ初期化
+    // ※Firebase Authの初期化コードが別途必要だが、ここでは既存の仕組みに乗っかる想定
+    // 本来は firebase.auth().onAuthStateChanged(...) 内で呼ぶ
+    async function initUserRelations() {
+      // 仮: ログインしていると仮定して処理を進めるためのプレースホルダー
+      // 実際にはここで currentUser.uid を取得する
+      
+      // ユーザー関係データの取得
+      if (currentUser.uid) {
+        try {
+          const { data, error } = await supabaseClient
+            .from('user_relations')
+            .select('target_car_id, status')
+            .eq('user_id', currentUser.uid);
+            
+          if (data) {
+            userRelations = {};
+            data.forEach(item => {
+              userRelations[item.target_car_id] = item.status;
+            });
+            updateStatusSummary();
+            renderCars(document.getElementById('sortSelect').value); // 再描画
+          }
+        } catch (e) { console.error("Relations load error:", e); }
+      }
+    }
+
     function renderCars(sortType) {
       const listEl = document.getElementById('carList');
       listEl.innerHTML = '';
       const cars = [...carsData];
       
+      // ソートロジック
       if (sortType === 'oldest') cars.sort((a,b) => parseDocNumber(a.DocumentID) - parseDocNumber(b.DocumentID));
       else if (sortType === 'updated_desc') cars.sort((a,b) => new Date(b.updatedAt||0) - new Date(a.updatedAt||0));
       else if (sortType === 'year_desc') cars.sort((a,b) => (Number(b.Year)||0) - (Number(a.Year)||0));
       else if (sortType === 'year_asc') cars.sort((a,b) => (Number(a.Year)||0) - (Number(b.Year)||0));
+      else if (sortType === 'status_priority') {
+        // ステータス順: want > met > none
+        const score = (status) => {
+          if (status === 'want') return 3;
+          if (status === 'met') return 2;
+          return 1;
+        };
+        cars.sort((a,b) => {
+          const scoreA = score(userRelations[a.DocumentID]);
+          const scoreB = score(userRelations[b.DocumentID]);
+          if (scoreA !== scoreB) return scoreB - scoreA; // 降順
+          return parseDocNumber(a.DocumentID) - parseDocNumber(b.DocumentID);
+        });
+      }
       else cars.sort((a,b) => parseDocNumber(b.DocumentID) - parseDocNumber(a.DocumentID));
 
       const now = new Date();
@@ -363,7 +489,7 @@ async function checkNewsBadge() {
         const card = document.createElement('article');
         card.className = 'car-card';
 
-        // 更新バッジ判定 (7日以内) -> シンプルな赤丸に変更
+        // 更新バッジ判定 (7日以内)
         let updateBadgeHtml = '';
         if (car.last_update_date) {
           const lastDate = new Date(car.last_update_date);
@@ -373,7 +499,29 @@ async function checkNewsBadge() {
           }
         }
 
+        // 自分の車かどうか判定
+        const isMyCar = (currentUser.docId && car.DocumentID === currentUser.docId);
+        const currentStatus = userRelations[car.DocumentID]; // 'want' or 'met' or undefined
+
         const modelClean = (car.Model_DisplayC||'').replace(/\s*\(\d{4}\)\s*$/, '');
+        
+        // ステータスボタンエリアの生成
+        let statusActionHtml = '';
+        if (!isMyCar) {
+           const wantActive = currentStatus === 'want' ? 'active' : '';
+           const metActive = currentStatus === 'met' ? 'active' : '';
+           
+           statusActionHtml = `
+           <div class="status-action-area" onclick="event.preventDefault(); event.stopPropagation();">
+             <button class="status-btn ${wantActive}" onclick="toggleStatus(this, 'want', '${car.DocumentID}')">
+               <span>⭐️</span><span class="status-label">気になる</span>
+             </button>
+             <button class="status-btn ${metActive}" onclick="toggleStatus(this, 'met', '${car.DocumentID}')">
+               <span>🤝</span><span class="status-label">挨拶済</span>
+             </button>
+           </div>`;
+        }
+
         card.innerHTML = `
           ${updateBadgeHtml}
           <a href="detail.html?doc=${encodeURIComponent(car.DocumentID)}" class="car-link" title="【${car.Prefecture||'-'}】 ${car.HandleName} / ${car.Model_DisplayC}">
@@ -388,10 +536,24 @@ async function checkNewsBadge() {
               <h3 class="car-model">${modelClean}</h3>
               <p class="car-owner">${car.HandleName || ''}</p>
             </div>
-          </a>`;
+          </a>
+          ${statusActionHtml}`;
         listEl.appendChild(card);
       });
       applySearchFilter();
+      updateStatusSummary();
+    }
+
+    // ステータス集計更新
+    function updateStatusSummary() {
+      let wantCount = 0;
+      let metCount = 0;
+      Object.values(userRelations).forEach(status => {
+        if (status === 'want') wantCount++;
+        if (status === 'met') metCount++;
+      });
+      document.getElementById('countWant').textContent = wantCount;
+      document.getElementById('countMet').textContent = metCount;
     }
 
     function applySearchFilter() {
@@ -406,13 +568,105 @@ async function checkNewsBadge() {
     document.getElementById('searchInput').addEventListener('input', applySearchFilter);
     document.getElementById('sortSelect').addEventListener('change', e => renderCars(e.target.value));
 
-    let isMosaicMode = false;
+    let viewMode = 'card'; // 'card', 'list', 'mosaic'
     function toggleViewMode() {
       const listEl = document.getElementById('carList');
       const btnEl = document.getElementById('viewToggleBtn');
-      isMosaicMode = !isMosaicMode;
-      if (isMosaicMode) { listEl.classList.add('view-mosaic'); btnEl.textContent = '📄 詳細表示に戻す'; }
-      else { listEl.classList.remove('view-mosaic'); btnEl.textContent = '▦ モザイク表示'; }
+      const sortStatusOpt = document.getElementById('sortStatusOption');
+      const summaryBar = document.getElementById('statusSummary');
+      
+      if (viewMode === 'card') {
+        viewMode = 'list';
+        listEl.classList.remove('view-mosaic');
+        listEl.classList.add('view-list');
+        btnEl.textContent = '▦ モザイク表示';
+        sortStatusOpt.style.display = 'block';
+        summaryBar.style.display = 'flex'; // 集計バー表示
+      } else if (viewMode === 'list') {
+        viewMode = 'mosaic';
+        listEl.classList.remove('view-list');
+        listEl.classList.add('view-mosaic');
+        btnEl.textContent = '📄 カード表示';
+        sortStatusOpt.style.display = 'none';
+        summaryBar.style.display = 'none'; // 集計バー非表示
+        if(document.getElementById('sortSelect').value === 'status_priority') {
+           document.getElementById('sortSelect').value = 'newest';
+           renderCars('newest');
+        }
+      } else {
+        viewMode = 'card';
+        listEl.classList.remove('view-mosaic');
+        listEl.classList.remove('view-list');
+        btnEl.textContent = '📋 リスト表示';
+        sortStatusOpt.style.display = 'none';
+        summaryBar.style.display = 'none'; // 集計バー非表示
+        if(document.getElementById('sortSelect').value === 'status_priority') {
+           document.getElementById('sortSelect').value = 'newest';
+           renderCars('newest');
+        }
+      }
+    }
+
+    async function toggleStatus(btn, type, docId) {
+      if (!currentUser.uid) {
+        alert("この機能を使うにはログインが必要です。");
+        return;
+      }
+
+      // 現在の状態を確認
+      const currentStatus = userRelations[docId];
+      let newStatus = type;
+
+      // 同じボタンを再度押した場合は解除 (null)
+      if (currentStatus === type) {
+        newStatus = null;
+      }
+
+      // UIを先行更新 (Optimistic UI)
+      userRelations[docId] = newStatus;
+      
+      // ボタンの見た目を更新
+      const parent = btn.parentElement;
+      const wantBtn = parent.querySelector('button:nth-child(1)');
+      const metBtn = parent.querySelector('button:nth-child(2)');
+      
+      wantBtn.classList.remove('active');
+      metBtn.classList.remove('active');
+      
+      if (newStatus === 'want') wantBtn.classList.add('active');
+      if (newStatus === 'met') metBtn.classList.add('active');
+
+      updateStatusSummary();
+
+      // Supabaseへ保存
+      try {
+        if (newStatus) {
+          // Upsert (Insert or Update)
+          const { error } = await supabaseClient
+            .from('user_relations')
+            .upsert({ 
+              user_id: currentUser.uid, 
+              target_car_id: docId, 
+              status: newStatus,
+              updated_at: new Date()
+            }, { onConflict: 'user_id, target_car_id' });
+            
+          if (error) throw error;
+        } else {
+          // Delete (解除の場合)
+          const { error } = await supabaseClient
+            .from('user_relations')
+            .delete()
+            .eq('user_id', currentUser.uid)
+            .eq('target_car_id', docId);
+            
+          if (error) throw error;
+        }
+      } catch (e) {
+        console.error("Save error:", e);
+        alert("保存に失敗しました。");
+        // ロールバック処理が必要ならここに記述
+      }
     }
 
     function updateCarCount() {
