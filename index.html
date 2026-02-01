@@ -124,11 +124,64 @@
     .btn-owner:hover { opacity: 0.9; transform: translateY(-1px); }
 
     @media (max-width: 767px) {
-      .sort-area { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: space-between; }
-      .search-box { order: -2; width: 100%; margin-bottom: 4px; }
-      .sort-left { order: -1; }
-      .dropdown { order: 0; }
-      .btn-owner { order: 1; margin-left: auto; margin-top: 4px; width: auto; }
+      .sort-area { 
+        display: flex; 
+        flex-direction: row; 
+        flex-wrap: wrap; /* 折り返しを許可 */
+        justify-content: space-between; 
+        align-items: center;
+        gap: 8px;
+      }
+      
+      /* 1行目: 検索窓 (全幅) */
+      .search-box { 
+        order: 1; 
+        width: 100%; 
+        flex: 1 1 100%;
+        margin-bottom: 4px; 
+      }
+      .search-input {
+        width: 100% !important;
+        padding: 10px 16px; /* 標準サイズに戻す */
+        font-size: 0.9rem;
+      }
+      
+      /* 2行目: 左から [ソート] [マイガレージ] [メニュー] */
+      
+      /* ソート (表示に戻す) */
+      .sort-left { 
+        display: flex; 
+        order: 2; 
+        flex: 1; /* スペースを分け合う */
+        min-width: 0; /* 縮小可能に */
+      }
+      .sort-select {
+        width: 100%; /* 親に合わせて伸縮 */
+        padding: 8px 4px; /* パディングを詰める */
+        font-size: 0.8rem;
+      }
+      
+      /* マイガレージボタン */
+      .btn-owner { 
+        order: 3; 
+        margin: 0 !important; 
+        width: auto; 
+        padding: 8px 12px; 
+        font-size: 0.8rem;
+        white-space: nowrap;
+        flex: 0 0 auto; /* 文字数分だけ確保 */
+      }
+      
+      /* 表示切り替えメニュー */
+      .dropdown { 
+        order: 4; 
+        flex: 0 0 auto; /* 必要分だけ確保 */
+      }
+      .dropdown .btn-secondary {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+      }
     }
 
     /* ===== ドロップダウンメニュー ===== */
@@ -269,7 +322,18 @@
     .share-btn:hover { background: var(--accent-soft); transform: translateY(-1px); }
 
     #loading { text-align:center; padding: 60px; color: var(--text-sub); }
-    .refresh-button { position: fixed; bottom: 20px; right: 20px; background-color: #333; color: white; border: none; border-radius: 50px; padding: 10px 20px; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 9999; cursor: pointer; opacity: 0.8; transition: opacity 0.2s; }
+    .refresh-button { position: fixed; bottom: 20px; left: 20px; right: auto; background-color: #333; color: white; border: none; border-radius: 50px; padding: 10px 20px; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 9999; cursor: pointer; opacity: 0.8; transition: opacity 0.2s; }
+
+    .scroll-top-button {
+      position: fixed; bottom: 20px; right: 20px;
+      width: 44px; height: 44px; background: #333; color: #fff;
+      border: none; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      cursor: pointer; opacity: 0; visibility: hidden; transition: all 0.3s;
+      display: flex; align-items: center; justify-content: center; z-index: 9998;
+    }
+    .scroll-top-button.visible { opacity: 0.8; visibility: visible; }
+    .scroll-top-button:hover { opacity: 1; transform: translateY(-2px); }
+    .scroll-top-button svg { fill: currentColor; width: 24px; height: 24px; }
   </style>
 </head>
 
@@ -334,8 +398,10 @@
 
     <div id="loading">読み込んでいます...</div>
     
-    <!-- ステータス集計バー (リスト表示時のみ) -->
     <div id="statusSummary" class="status-summary-bar">
+      <button onclick="resetToCardView()" class="status-btn" style="margin-right: auto; font-weight: bold; color: var(--accent); border-color: var(--accent);">
+        🏠 ガレージに戻る
+      </button>
       <div class="status-count-item">
         <span>⭐️ 気になる:</span>
         <span id="countWant" class="status-count-val">0</span>人
@@ -355,6 +421,22 @@
   </div>
 
   <button class="refresh-button" onclick="forceReload()">↻ 更新</button>
+
+  <button id="scrollTopBtn" class="scroll-top-button" onclick="window.scrollTo({top: 0, behavior: 'smooth'});" aria-label="トップへ戻る">
+    <svg viewBox="0 0 24 24"><path d="M12 4l-8 8h6v8h4v-8h6z"></path></svg>
+  </button>
+  
+  <script>
+    // スクロールトップボタンの表示制御
+    window.addEventListener('scroll', () => {
+      const btn = document.getElementById('scrollTopBtn');
+      if (window.scrollY > 100) {
+        btn.classList.add('visible');
+      } else {
+        btn.classList.remove('visible');
+      }
+    });
+  </script>
 
   <script>
     let carsData = [];
@@ -718,6 +800,29 @@ async function checkNewsBadge() {
            document.getElementById('sortSelect').value = 'newest';
            renderCars('newest');
         }
+      }
+    }
+
+    function resetToCardView() {
+      // 強制的にカード表示に戻す
+      viewMode = 'mosaic'; // toggleViewModeでcardになるように調整、あるいは直接処理
+      // もっとシンプルに、現在の状態に関わらずカード初期状態にする処理を書く
+      
+      const listEl = document.getElementById('carList');
+      const btnEl = document.getElementById('viewToggleBtn');
+      const sortStatusOpt = document.getElementById('sortStatusOption');
+      const summaryBar = document.getElementById('statusSummary');
+
+      viewMode = 'card';
+      listEl.classList.remove('view-mosaic');
+      listEl.classList.remove('view-list');
+      btnEl.textContent = '📋 リスト表示';
+      sortStatusOpt.style.display = 'none';
+      summaryBar.style.display = 'none';
+
+      if(document.getElementById('sortSelect').value === 'status_priority') {
+         document.getElementById('sortSelect').value = 'newest';
+         renderCars('newest');
       }
     }
 
