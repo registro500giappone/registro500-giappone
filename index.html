@@ -197,7 +197,7 @@
       cursor: pointer; border-bottom: 1px solid var(--border-soft); font-weight: 500;
     }
     .dropdown-content a:hover, .dropdown-content button:hover { background-color: var(--bg-main); color: var(--accent); }
-    .dropdown:hover .dropdown-content { display: block; }
+    .dropdown.open .dropdown-content { display: block; }
     
     .mosaic-toggle-item { display: none !important; }
     @media (min-width: 1025px) { .mosaic-toggle-item { display: block !important; } }
@@ -438,6 +438,28 @@
     });
   </script>
 
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var dropdown = document.querySelector('.dropdown');
+      if (dropdown) {
+        var trigger = dropdown.querySelector('.btn-secondary');
+        if (trigger) {
+          trigger.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dropdown.classList.toggle('open');
+          });
+        }
+        document.addEventListener('click', function() {
+          dropdown.classList.remove('open');
+        });
+        dropdown.querySelectorAll('.dropdown-content a, .dropdown-content button').forEach(function(el) {
+          el.addEventListener('click', function() {
+            dropdown.classList.remove('open');
+          });
+        });
+      }
+    });
+  </script>
   <script>
     let carsData = [];
     const CACHE_KEY = 'registro500_local_data';
@@ -762,7 +784,7 @@ async function checkNewsBadge() {
         listEl.classList.add('view-list');
         // スマホの場合は次はカードに戻る（モザイクなし）
         btnEl.textContent = isMobile ? '📄 カード表示' : '▦ モザイク表示';
-        sortStatusOpt.style.display = 'block';
+        sortStatusOpt.style.display = (currentUser && currentUser.uid) ? 'block' : 'none';
         summaryBar.style.display = 'flex'; // 集計バー表示
       } else if (viewMode === 'list') {
         // スマホならモザイクをスキップしてカードに戻る
