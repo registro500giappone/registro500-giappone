@@ -217,6 +217,16 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+        .part-subtitle {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-bottom: 6px;
+            line-height: 1.3;
+            /* 1行で省略 */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
         .part-meta {
             font-size: 0.8rem;
             color: #6b7280;
@@ -378,11 +388,15 @@
                 </div>
                 
                 <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #e5e7eb;">
-                    <label class="checkbox-item" style="color: #2856a8;">
-                        <input type="checkbox" id="use-external" value="1"> 外部サイトも検索
-                    </label>
-                    <div style="font-size: 0.8rem; color: #6b7280; margin-left: 24px; margin-top: 4px;">
-                        eBay, Yahoo!オク, Euro Italia, Passione 500, D'Angelo
+                    <div id="external-search-toggle" style="cursor: pointer; font-weight: 600; color: #2856a8;">
+                        + 外部サイトも同時に検索
+                    </div>
+                    <div id="external-search-options" style="display: none; margin-top: 8px; padding-left: 16px;">
+                        <div class="checkbox-group">
+                            <label class="checkbox-item"><input type="checkbox" name="external-site" value="euroitalia"> Euro Italia 500</label>
+                            <label class="checkbox-item"><input type="checkbox" name="external-site" value="passione"> Passione 500</label>
+                            <label class="checkbox-item"><input type="checkbox" name="external-site" value="dangelo"> D'Angelo Motori</label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -452,6 +466,18 @@
         if (typeof supabase !== 'undefined' && typeof SUPABASE_URL !== 'undefined') {
             window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         }
+
+        // 外部サイト検索のアコーディオン
+        document.getElementById('external-search-toggle').addEventListener('click', function() {
+            const options = document.getElementById('external-search-options');
+            if (options.style.display === 'none') {
+                options.style.display = 'block';
+                this.textContent = '- 外部サイトも同時に検索';
+            } else {
+                options.style.display = 'none';
+                this.textContent = '+ 外部サイトも同時に検索';
+            }
+        });
     </script>
     <script src="parts.js"></script>
 

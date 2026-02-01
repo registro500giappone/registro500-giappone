@@ -1,5 +1,45 @@
 // parts.js (アップデート版)
 
+// --- 簡易的な日英翻訳辞書 ---
+const translationDict = {
+    "ガスケット": "gasket",
+    "ベアリング": "bearing",
+    "フィルター": "filter",
+    "オイルフィルター": "oil filter",
+    "エアフィルター": "air filter",
+    "ブレーキ": "brake",
+    "ブレーキシュー": "brake shoe",
+    "ブレーキパッド": "brake pad",
+    "クラッチ": "clutch",
+    "エンジン": "engine",
+    "シリンダー": "cylinder",
+    "ピストン": "piston",
+    "ショックアブソーバー": "shock absorber",
+    "サスペンション": "suspension",
+    "タイヤ": "tire",
+    "ホイール": "wheel",
+    "ライト": "light",
+    "ヘッドライト": "headlight",
+    "テールライト": "taillight",
+    "バンパー": "bumper",
+    "ミラー": "mirror",
+    "ドア": "door",
+    "ウィンドウ": "window",
+    "ワイパー": "wiper"
+};
+
+// --- 翻訳関数 ---
+function translateKeyword(keyword) {
+    // 完全一致、または前方一致で変換
+    for (const [jp, en] of Object.entries(translationDict)) {
+        if (keyword.toLowerCase().startsWith(jp)) {
+            return keyword.toLowerCase().replace(jp, en);
+        }
+    }
+    // 辞書にない場合はそのまま返す
+    return keyword;
+}
+
 let currentRate = CONFIG.default_rate;
 let compareList = [];
 let shippingCosts = {}; // ショップごとの送料保存用
@@ -168,14 +208,15 @@ async function executeSearch() {
         }
 
         if (searchTerm) {
+            const translatedSearchTerm = translateKeyword(searchTerm); // ★翻訳関数を呼び出す
             externalLinksHtml = `
                 <div class="shop-section" style="border: 2px dashed #2856a8; background: #f0f9ff;">
                     <div class="shop-title" style="background:none; border:none; color:#2856a8;">
-                        🌐 外部サイトで検索: "${escapeHtml(searchTerm)}"
+                        🌐 外部サイトで検索: "${escapeHtml(searchTerm)}" ${searchTerm !== translatedSearchTerm ? `(${escapeHtml(translatedSearchTerm)})` : ''}
                     </div>
                     <div style="padding: 0 20px 20px 20px; display:flex; flex-wrap:wrap; gap:12px;">
                         ${CONFIG.external_links.map(link => `
-                            <a href="${link.url_pattern + encodeURIComponent(searchTerm)}" target="_blank" 
+                            <a href="${link.url_pattern + encodeURIComponent(translatedSearchTerm)}" target="_blank" rel="noopener noreferrer"
                                style="padding:10px 16px; background:#fff; border:1px solid #2856a8; color:#2856a8; 
                                       text-decoration:none; border-radius:6px; font-weight:bold; display:flex; align-items:center;">
                                 ${link.name} <span style="margin-left:6px;">↗</span>
@@ -266,9 +307,21 @@ function loadSearchConditions() {
         }
 
         // 親チェックボックスの状態を更新
-        setupCarCheckboxes(); // これを呼ぶことで親の状態が正しく更新される
+        const parent = document.getElementById('car-500-all');
+        if (parent) {
+            if (conditions.all500Checked) {
+                parent.checked = true;
+                document.querySelectorAll('.car-sub').forEach(c => c.checked = true);
+            } else {
+                const children = document.querySelectorAll('.car-sub');
+                const allChecked = Array.from(children).every(c => c.checked);
+                const someChecked = Array.from(children).some(c => c.checked);
+                parent.checked = allChecked;
+                parent.indeterminate = someChecked && !allChecked;
+            }
+        }
 
-        // ショップチェックボックス (HTMLに要素が追加されたらここも修正)
+        // ショップチェックボックス
         if (conditions.shops && conditions.shops.length > 0) {
             conditions.shops.forEach(shopValue => {
                 const shopCb = document.querySelector(`input[name="shop"][value="${shopValue}"]`);
@@ -282,7 +335,6 @@ function loadSearchConditions() {
             const resultCountEl = document.getElementById('result-count');
             if (resultsArea && resultCountEl) {
                 resultsArea.innerHTML = conditions.resultsHtml;
-                // dbResults があれば、件数も復元
                 if (conditions.dbResults) {
                     resultCountEl.innerText = `${conditions.dbResults.length} 件`;
                 }
@@ -292,98 +344,6 @@ function loadSearchConditions() {
     } catch (e) {
         console.error("Failed to load search conditions from sessionStorage", e);
         sessionStorage.removeItem('fiat500_search_conditions');
-    }
-}
-
-// --- 検索条件の保存と復元 ---
-function saveSearchConditions(keyword, cars, shops, useExternal, all500Checked) {
-    const conditions = {
-        keyword: keyword,
-        cars: cars,
-        shops: shops,
-        useExternal: useExternal,
-        all500Checked: all500Checked,
-        timestamp: Date.now()
-    };
-    sessionStorage.setItem('fiat500_search_conditions', JSON.stringify(conditions));
-}
-
-function loadSearchConditions() {
-    const json = sessionStorage.getItem('fiat500_search_conditions');
-    if (!json) return;
-
-    try {
-        const conditions = JSON.parse(json);
-        
-        // 1時間以上前のデータなら破棄
-        if (Date.now() - conditions.timestamp > 3600 * 1000) {
-            sessionStorage.removeItem('fiat500_search_conditions');
-            return;
-        }
-
-        // フォームへの反映
-        const keywordInput = document.getElementById('keyword-input');
-        if (keywordInput) keywordInput.value = conditions.keyword || "";
-        
-        const extCheck = document.getElementById('use-external');
-        if (extCheck) extCheck.checked = !!conditions.useExternal;
-
-        // 車種チェックボックス
-        const allCars = document.querySelectorAll('input[name="car"]');
-        let isOtherCarChecked = false;
-        
-        allCars.forEach(cb => {
-            const shouldCheck = conditions.cars.includes(cb.value);
-            cb.checked = shouldCheck;
-            
-            // その他エリアにあるか確認
-            const parentDiv = cb.closest('#others-area');
-            if (shouldCheck && parentDiv) {
-                isOtherCarChecked = true;
-            }
-        });
-
-        // その他エリアが開くべきなら開く
-        if (isOtherCarChecked) {
-            const area = document.getElementById('others-area');
-            const btn = document.getElementById('toggle-others-btn');
-            if (area && area.style.display !== 'block') {
-                area.style.display = 'block';
-                if (btn) btn.innerText = '- その他の車種を隠す';
-            }
-        }
-
-        // 親(500 All)のチェック状態復元
-        const parent = document.getElementById('car-500-all');
-        if (parent) {
-            if (conditions.all500Checked) {
-                parent.checked = true;
-                // 親がチェックされていたら子も強制的にチェック（不整合防止）
-                document.querySelectorAll('.car-sub').forEach(c => c.checked = true);
-            } else {
-                // 個別チェックの反映後に親の状態を更新
-                const children = document.querySelectorAll('.car-sub');
-                const allChecked = Array.from(children).every(c => c.checked);
-                const someChecked = Array.from(children).some(c => c.checked);
-                parent.checked = allChecked;
-                parent.indeterminate = someChecked && !allChecked;
-            }
-        }
-
-        // ショップチェックボックス
-        const allShops = document.querySelectorAll('input[name="shop"]');
-        allShops.forEach(cb => {
-            cb.checked = conditions.shops.includes(cb.value);
-        });
-
-        // 検索自動実行
-        // DOM更新の反映を確実にするため、少しだけ遅延させる
-        setTimeout(() => {
-            executeSearch();
-        }, 50);
-
-    } catch (e) {
-        console.error("検索条件の復元に失敗しました", e);
     }
 }
 
@@ -471,6 +431,7 @@ function createPartCard(part) {
     }
 
     const title = part.name_jp && !/nan/i.test(part.name_jp) ? part.name_jp : (part.name_en || "No Title");
+    const subtitleHtml = part.name_en ? `<div class="part-subtitle" title="${escapeHtml(part.name_en)}">${escapeHtml(part.name_en)}</div>` : '';
     const jpyApprox = Math.round(priceForCalc * currentRate).toLocaleString();
 
     // --- 3. HTMLの組み立て ---
@@ -488,6 +449,7 @@ function createPartCard(part) {
             </div>
             <div class="part-body">
                 <div class="part-title" title="${escapeHtml(title)}">${escapeHtml(title)}</div>
+                ${subtitleHtml}
                 <div class="part-meta">OEM: ${part.oem_no || '-'}</div>
                 
                 <div class="part-price-area">
