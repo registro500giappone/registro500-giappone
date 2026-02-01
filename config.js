@@ -51,12 +51,16 @@ const CONFIG = {
     // 3. 外部検索用URL（一括取得していないサイト）
     external_links: [
         {
-            name: "eBay (Italy)",
-            url_pattern: "https://www.ebay.it/sch/i.html?_nkw=Fiat+500+" 
+            name: "Euro Italia 500",
+            url_pattern: "https://euroitalia500-commerce.it/?s="
         },
         {
-            name: "Yahoo!オク",
-            url_pattern: "https://auctions.yahoo.co.jp/search/search?p=Fiat+500+"
+            name: "Passione 500",
+            url_pattern: "https://passione500.it/?s="
+        },
+        {
+            name: "D'Angelo Motori",
+            url_pattern: "https://www.dangelomotori.it/en/?s="
         }
     ]
 };

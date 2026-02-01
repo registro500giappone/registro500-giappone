@@ -1,4 +1,3 @@
-
 -- 既存のテーブルを削除して再作成（型変更のため）
 drop table if exists public.user_relations;
 
@@ -24,8 +23,9 @@ drop policy if exists "Users can delete their own relations" on public.user_rela
 
 -- ポリシー作成 (user_idカラムに基づくアクセス制御)
 -- 注意: Firebase Authを使用しているため、Supabaseのauth.uid()は使用できません。
--- セキュリティ要件に応じて、アプリケーション側でuser_idの整合性を担保する必要があります。
--- ここでは、user_idカラムが一致する行に対する操作を許可します。
+-- そのため、RLSポリシーは `USING (true)` となり、SupabaseのSecurity Advisorで
+-- "RLS Policy Always True" (WARN) が表示されますが、これは現在のアーキテクチャ上、意図された設定です。
+-- 将来的にSupabase Authに移行する場合は、`using (auth.uid()::text = user_id)` に変更してください。
 
 create policy "Users can view their own relations"
   on public.user_relations for select
