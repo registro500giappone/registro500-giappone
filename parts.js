@@ -202,7 +202,6 @@ async function executeSearch() {
     displayResultsByShop(dbResults, checkedShops, container);
 
     // 4. 検索条件と結果の保存
-    console.log("Saving search conditions and results to sessionStorage:", { keyword, checkedCars, checkedShops, useExternal, all500Checked, dbResults, resultsHtml: container.innerHTML });
     saveSearchConditions(keyword, checkedCars, checkedShops, useExternal, all500Checked, dbResults, container.innerHTML);
 }
 
@@ -227,11 +226,9 @@ function loadSearchConditions() {
 
     try {
         const conditions = JSON.parse(json);
-        console.log("Loaded search conditions and results from sessionStorage:", conditions);
         
         // 1時間以上前のデータなら破棄
         if (Date.now() - conditions.timestamp > 3600 * 1000) {
-            console.log("Search conditions in sessionStorage are too old, clearing.");
             sessionStorage.removeItem('fiat500_search_conditions');
             return;
         }
@@ -284,7 +281,6 @@ function loadSearchConditions() {
             const resultsArea = document.getElementById('results-area');
             const resultCountEl = document.getElementById('result-count');
             if (resultsArea && resultCountEl) {
-                console.log("Restoring search results HTML:", conditions.resultsHtml.substring(0, 200) + "..."); // 長いので一部のみ表示
                 resultsArea.innerHTML = conditions.resultsHtml;
                 // dbResults があれば、件数も復元
                 if (conditions.dbResults) {
