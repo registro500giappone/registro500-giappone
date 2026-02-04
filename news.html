@@ -2,15 +2,23 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-27SHHC4JYH');</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>お知らせ・更新履歴 - Registro500 Giappone</title>
+  <meta name="description" content="Registro500 Giapponeのお知らせと更新履歴。">
+  <meta property="og:title" content="お知らせ・更新履歴 - Registro500 Giappone">
+  <meta property="og:description" content="Registro500 Giapponeのお知らせと更新履歴。">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://www.registro500.com/logo_horizontal.png">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
 <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
   
   <style>
-    :root { --rg-bg: #f4f6f8; --rg-text: #111827; --rg-accent: #2856a8; --rg-surface: #ffffff; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: var(--rg-bg); color: var(--rg-text); margin: 0; padding: 20px; line-height: 1.6; }
+    body { padding: 20px; line-height: 1.6; }
     .page { max-width: 800px; margin: 0 auto; }
     .header { margin-bottom: 30px; text-align: center; }
     .logo { height: 60px; object-fit: contain; mix-blend-mode: multiply; }
@@ -41,11 +49,17 @@
   </div>
 
   <script>
+    function esc(s) {
+      if (!s) return '';
+      return s.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
     // URLをリンクに変換する（HTMLタグや日本語句読点で止まるように改良）
     function linkify(text) {
-      // URLの後に < や スペース、全角スペース、改行、日本語の句読点が来たらそこで切る
+      // 先にHTMLエスケープしてからURLをリンク化
+      const escaped = esc(text);
       const urlPattern = /(https?:\/\/[^\s<>\u3000！?。、]+)/g;
-      return text.replace(urlPattern, function(url) {
+      return escaped.replace(urlPattern, function(url) {
         return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
       });
     }
@@ -78,8 +92,8 @@ async function fetchNews() {
           const linkedContent = linkify(item.Content);
 
           card.innerHTML = `
-            <span class="news-date">${item.Date}</span>
-            <h2 class="news-title">${item.Title}${badgeHtml}</h2>
+            <span class="news-date">${esc(item.Date)}</span>
+            <h2 class="news-title">${esc(item.Title)}${badgeHtml}</h2>
             <div class="news-body">${linkedContent}</div>
           `;
           listEl.appendChild(card);

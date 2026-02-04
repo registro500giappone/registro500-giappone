@@ -13,16 +13,23 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>イベント情報 | Registro500 Giappone</title>
+  <meta name="description" content="日本のFIAT 500オーナー向けイベント情報。オフ会やミーティングの予定を共有。">
+  <meta property="og:title" content="イベント情報 - Registro500 Giappone">
+  <meta property="og:description" content="日本のFIAT 500オーナー向けイベント情報。オフ会やミーティングの予定を共有。">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://www.registro500.com/logo_horizontal.png">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="style.css">
   
   <script src="config.js"></script>
   <!-- Supabase Library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   </script>
-  
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" integrity="sha384-HLJUgAQ2oo6rdMC4QW+Oz2qQfPOtu/lzncKG4sZiq8+2W9uOa3K0b3UGpckKqv7H" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js" integrity="sha384-+/4lqMnmLqwbdHXshvGDmBTeWlNoPRdjXi4ZsiBj10EhQXaTBe3RF5JZktdSjug6" crossorigin="anonymous"></script>
 
   <style>
     :root {
@@ -217,7 +224,7 @@
       Registro500では、オーナー同士が繋がれる機会を増やすため、皆様からのイベント情報の投稿を幅広く募集しています。
     </div>
     <ul class="guide-list">
-      <li>クラシックFIAT 500対象 of イベント</li>
+      <li>クラシックFIAT 500対象のイベント</li>
       <li>オーナー発信の小規模オフ会・ミーティング</li>
     </ul>
     <div class="guide-text">
@@ -333,16 +340,7 @@
 </script>
 
 <script>
-  const myFirebaseConfig = {
-    apiKey: "AIzaSyCNCNsu61S3DIQ2pcmK2Ic_vqCINlZB9nk",
-    authDomain: "registro500giappone-93f98.firebaseapp.com",
-    projectId: "registro500giappone-93f98",
-    storageBucket: "registro500giappone-93f98.firebasestorage.app",
-    messagingSenderId: "566236968832", 
-    appId: "1:566236968832:web:7f6a75960090885e332200"
-  };
-
-  if (!firebase.apps.length) firebase.initializeApp(myFirebaseConfig);
+  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
 
   const CACHE_KEY_EVENTS = 'registro500_event_data_v3';
   let currentUser = null;
@@ -588,6 +586,7 @@ window.openEdit = async (eventId) => {
 
   function resetForm() { document.getElementById('eventForm').reset(); document.getElementById('eventForm').EventID.value = ""; }
   function closeModal() { document.getElementById('postModal').style.display = 'none'; }
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && document.getElementById('postModal').style.display === 'flex') closeModal(); });
 
 window.showConfirm = () => {
     const form = document.getElementById('eventForm');

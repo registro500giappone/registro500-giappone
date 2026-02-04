@@ -22,11 +22,8 @@ const FIREBASE_CONFIG = {
   appId: "1:723005462978:web:e967a16a278f54b278de5b",
   measurementId: "G-ZRBFX1V51B"
 };
-/* config.js の一番下に追記 */
 const SUPABASE_URL = "https://ttlttclfovuzafvghvaq.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt";
-
-// ▼▼▼ ここから下を追加 ▼▼▼
 
 // アプリ全体の計算・リンク設定
 const CONFIG = {

@@ -14,11 +14,6 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <!-- キャッシュ対策 -->
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-
   <title>Registro500 Giappone</title>
   
   <!-- SNS・OGP設定 -->
@@ -34,13 +29,14 @@
   <link rel="icon" href="logo_horizontal.png">
   <link rel="apple-touch-icon" href="logo_horizontal.png">
   <link rel="manifest" href="manifest.json">
-  
+  <link rel="stylesheet" href="style.css">
+
   <script src="config.js"></script>
   <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" integrity="sha384-HLJUgAQ2oo6rdMC4QW+Oz2qQfPOtu/lzncKG4sZiq8+2W9uOa3K0b3UGpckKqv7H" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js" integrity="sha384-+/4lqMnmLqwbdHXshvGDmBTeWlNoPRdjXi4ZsiBj10EhQXaTBe3RF5JZktdSjug6" crossorigin="anonymous"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>
     // Firebase初期化
     if (!firebase.apps.length) {
@@ -366,7 +362,7 @@
           </div>
 
           <div class="dropdown">
-            <button class="btn-secondary">メニュー ▾</button>
+            <button class="btn-secondary" aria-expanded="false" aria-haspopup="true">メニュー ▾</button>
             <div class="dropdown-content">
               <div id="menuUserInfo" style="padding: 8px 16px; font-size: 0.8rem; color: #666; border-bottom: 1px solid #eee; display: none;"></div>
               <a href="mappa.html">🗺️ Mappa (地図)</a>
@@ -443,19 +439,25 @@
       var dropdown = document.querySelector('.dropdown');
       if (dropdown) {
         var trigger = dropdown.querySelector('.btn-secondary');
+        function toggleDropdown(open) {
+          var isOpen = typeof open === 'boolean' ? open : !dropdown.classList.contains('open');
+          dropdown.classList.toggle('open', isOpen);
+          if (trigger) trigger.setAttribute('aria-expanded', isOpen);
+        }
         if (trigger) {
           trigger.addEventListener('click', function(e) {
             e.stopPropagation();
-            dropdown.classList.toggle('open');
+            toggleDropdown();
+          });
+          trigger.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleDropdown(); }
+            if (e.key === 'Escape') toggleDropdown(false);
           });
         }
-        document.addEventListener('click', function() {
-          dropdown.classList.remove('open');
-        });
+        document.addEventListener('click', function() { toggleDropdown(false); });
+        document.addEventListener('keydown', function(e) { if (e.key === 'Escape') toggleDropdown(false); });
         dropdown.querySelectorAll('.dropdown-content a, .dropdown-content button').forEach(function(el) {
-          el.addEventListener('click', function() {
-            dropdown.classList.remove('open');
-          });
+          el.addEventListener('click', function() { toggleDropdown(false); });
         });
       }
     });
@@ -463,6 +465,11 @@
   <script>
     let carsData = [];
     const CACHE_KEY = 'registro500_local_data';
+
+    function esc(s) {
+      if (!s) return '';
+      return s.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
 
     (function() {
       const RELOAD_THRESHOLD = 10 * 60 * 1000;
@@ -726,17 +733,17 @@ async function checkNewsBadge() {
 
         card.innerHTML = `
           ${updateBadgeHtml}
-          <a href="detail.html?doc=${encodeURIComponent(car.DocumentID)}" class="car-link" title="【${car.Prefecture||'-'}】 ${car.HandleName} / ${car.Model_DisplayC}">
+          <a href="detail.html?doc=${encodeURIComponent(car.DocumentID)}" class="car-link" title="${esc('【' + (car.Prefecture||'-') + '】 ' + car.HandleName + ' / ' + car.Model_DisplayC)}">
             <div class="car-image-wrap">
               <img src="${car.PhotoMain || NO_IMAGE_URL}" class="car-image" loading="lazy" onerror="this.src=NO_IMAGE_URL">
             </div>
             <div class="car-main">
               <div class="car-meta-row">
-                <span class="car-year">${car.Year ? car.Year+'年' : ''}</span>
-                ${car.Prefecture ? `<span class="car-pref">${car.Prefecture}</span>` : ''}
+                <span class="car-year">${car.Year ? esc(car.Year)+'年' : ''}</span>
+                ${car.Prefecture ? `<span class="car-pref">${esc(car.Prefecture)}</span>` : ''}
               </div>
-              <h3 class="car-model">${modelClean}</h3>
-              <p class="car-owner">${car.HandleName || ''}</p>
+              <h3 class="car-model">${esc(modelClean)}</h3>
+              <p class="car-owner">${esc(car.HandleName || '')}</p>
             </div>
           </a>
           ${statusActionHtml}`;
@@ -826,10 +833,6 @@ async function checkNewsBadge() {
     }
 
     function resetToCardView() {
-      // 強制的にカード表示に戻す
-      viewMode = 'mosaic'; // toggleViewModeでcardになるように調整、あるいは直接処理
-      // もっとシンプルに、現在の状態に関わらずカード初期状態にする処理を書く
-      
       const listEl = document.getElementById('carList');
       const btnEl = document.getElementById('viewToggleBtn');
       const sortStatusOpt = document.getElementById('sortStatusOption');
@@ -894,7 +897,7 @@ async function checkNewsBadge() {
               user_id: currentUser.uid, 
               target_car_id: docId, 
               status: newStatus,
-              updated_at: new Date()
+              updated_at: new Date().toISOString()
             }, { onConflict: 'user_id, target_car_id' });
             
           if (error) throw error;
@@ -911,7 +914,12 @@ async function checkNewsBadge() {
       } catch (e) {
         console.error("Save error:", e);
         alert(`保存に失敗しました。\nError: ${e.message || e.error_description || JSON.stringify(e)}`);
-        // ロールバック処理が必要ならここに記述
+        userRelations[docId] = currentStatus;
+        wantBtn.classList.remove('active');
+        metBtn.classList.remove('active');
+        if (currentStatus === 'want') wantBtn.classList.add('active');
+        if (currentStatus === 'met') metBtn.classList.add('active');
+        updateStatusSummary();
       }
     }
 

@@ -2,55 +2,33 @@
 <html lang="ja">
 <head>
   <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
   <meta charset="UTF-8">
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
   <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-27SHHC4JYH');</script>
   <title>マイガレージ - Registro500 Giappone</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   
   <!-- Cropper.js -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" integrity="sha384-oMy41mb/qJnpJlpXOF57hSu2KGi47l/UV9+tPNrBOs7/ap5Vubj/3phrCtjutHMQ" crossorigin="anonymous">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js" integrity="sha384-r+ljwOAhwY4/kdyzMnuBg7MEVoWpTMp5EYUDntB/E9qzNwL9dAEcNrb2XaV+mJc2" crossorigin="anonymous"></script>
 
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" integrity="sha384-HLJUgAQ2oo6rdMC4QW+Oz2qQfPOtu/lzncKG4sZiq8+2W9uOa3K0b3UGpckKqv7H" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js" integrity="sha384-+/4lqMnmLqwbdHXshvGDmBTeWlNoPRdjXi4ZsiBj10EhQXaTBe3RF5JZktdSjug6" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js" integrity="sha384-oFrOL1TiREYNET0lsYF3LjQuyi2gL7vhjH1X8vFr+umcmzAdPELopeSgbcrv4uRm" crossorigin="anonymous"></script>
   <script src="config.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
 
   <style>
-    html { font-size: 16px; }
-    @media (min-width: 1025px) { html { font-size: 18px; } }
-    :root {
-      --rg-surface: #ffffff; --rg-bg: #f4f6f8; --rg-border: #e5e7eb;
-      --rg-text: #111827; --rg-muted: #6b7280; --rg-accent: #2856a8;
-      --rg-primary-red: #e11d48; --rg-radius-card: 1rem;
-      --rg-accent-soft: #e6efff; --rg-accent-border: #c2d4ff;
-    }
-    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; line-height: 1.7; color: var(--rg-text); background: var(--rg-bg); padding-top: 85px; padding-bottom: 120px; }
-    
-    .rg-header-bar {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-      background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px);
-      box-shadow: 0 1px 5px rgba(0,0,0,0.05); height: 75px;
-      display: flex; justify-content: space-between; align-items: center; padding: 0 15px;
-    }
-    .rg-back-link { flex: 1; display: flex; justify-content: flex-start; }
-    .rg-back-link a { text-decoration: none; color: var(--rg-accent); font-weight: 600; font-size: 0.85rem; line-height: 1.2; display: flex; gap: 8px; }
+    :root { --rg-primary-red: #e11d48; }
+    body { line-height: 1.7; padding-top: 85px; padding-bottom: 120px; }
     .back-text { display: inline-block; }
-    @media (min-width: 769px) { .back-br { display: none; } }
-
-    .rg-header-logo { flex: 0; text-align: center; }
-    .rg-header-logo img { height: 28px; width: auto; mix-blend-mode: multiply; display: block; }
-    @media (max-width: 480px) { .rg-header-logo img { height: 22px; max-width: 100px; } }
-
-    .rg-header-right { flex: 1; }
 
     .page { max-width: 72rem; margin: 0 auto; padding: 0 12px; }
     .form-card, .intro-card, .selection-card { background: var(--rg-surface); border-radius: var(--rg-radius-card); border: 1px solid var(--rg-border); padding: 1.5rem; margin-bottom: 1rem; }
     .page-title { font-size: 1.4rem; text-align: center; margin: 0 0 0.6rem; }
-    .rg-section-title { display: block; margin: 1.5rem 0 1rem; font-weight: 700; font-size: 1.15rem; padding: 0.5rem 1rem; background: #eff6ff; border-left: 6px solid var(--rg-accent); border-bottom: 1px solid var(--rg-border); border-radius: 4px; color: var(--rg-accent); }
+    .rg-section-title { margin: 1.5rem 0 1rem; border-bottom: 1px solid var(--rg-border); }
     
     label { display: block; font-size: 0.9rem; font-weight: 600; margin-top: 0.8rem; margin-bottom: 0.3rem; }
     .badge-required { background: var(--rg-primary-red); color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 4px; font-weight: normal; }
@@ -147,7 +125,16 @@
         <input type="text" name="HandleName" required>
         
         <label>都道府県 <span class="badge-required">必須</span></label>
-        <input type="text" name="Prefecture" placeholder="例：神奈川県" required>
+        <select name="Prefecture" required>
+          <option value="">選択してください</option>
+          <option>北海道</option><option>青森県</option><option>岩手県</option><option>宮城県</option><option>秋田県</option><option>山形県</option><option>福島県</option>
+          <option>茨城県</option><option>栃木県</option><option>群馬県</option><option>埼玉県</option><option>千葉県</option><option>東京都</option><option>神奈川県</option>
+          <option>新潟県</option><option>富山県</option><option>石川県</option><option>福井県</option><option>山梨県</option><option>長野県</option><option>岐阜県</option>
+          <option>静岡県</option><option>愛知県</option><option>三重県</option><option>滋賀県</option><option>京都府</option><option>大阪府</option><option>兵庫県</option>
+          <option>奈良県</option><option>和歌山県</option><option>鳥取県</option><option>島根県</option><option>岡山県</option><option>広島県</option><option>山口県</option>
+          <option>徳島県</option><option>香川県</option><option>愛媛県</option><option>高知県</option><option>福岡県</option><option>佐賀県</option><option>長崎県</option>
+          <option>熊本県</option><option>大分県</option><option>宮崎県</option><option>鹿児島県</option><option>沖縄県</option>
+        </select>
         
         <label>車両モデル <span class="badge-required">必須</span></label>
         <select name="ModelSelectA" id="ModelSelectA" required>
@@ -171,7 +158,7 @@
         <div id="ModelSelectBWrapper" style="display:none;"><input type="text" name="ModelTextB" placeholder="グレード詳細を入力"></div>
 
         <div class="inline-small">
-          <div><label>年式 <span class="badge-required">必須</span></label><input type="text" name="Year" placeholder="1970等" required></div>
+          <div><label>年式 <span class="badge-required">必須</span></label><input type="text" name="Year" placeholder="1970等" pattern="[0-9]{4}" title="4桁の西暦で入力してください" required></div>
           <div><label>ボディカラー</label><input type="text" name="BodyColor"></div>
         </div>
         
@@ -193,7 +180,7 @@
         </div>
 
         <h2 class="rg-section-title">エンジン関係</h2>
-        <label>排気量(cc)</label><input type="text" name="EngineCC">
+        <label>排気量(cc)</label><input type="number" name="EngineCC" min="0" max="9999">
         
         <label>エンジン形式</label>
         <select name="EngineTypeSelect" id="EngineTypeSelect">
@@ -619,7 +606,7 @@
             photo_engine: raw.PhotoEngine, photo_steering_cluster: raw.PhotoSteeringCluster, photo_interior: raw.PhotoInterior,
             last_update_fields: updatedFields.join(','), // ★ここを追加
             last_update_date: new Date().toISOString(), // ★ここを追加
-            accept_inquiry: true, updated_at: new Date()
+            accept_inquiry: true, updated_at: new Date().toISOString()
           };
           if (!isNew) dbData.document_id = raw.DocumentID;
           const { data: savedData, error } = await supabaseClient.from('cars').upsert(dbData, { onConflict: 'document_id' }).select();
