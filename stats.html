@@ -61,6 +61,20 @@
     }
     .scroll-top-button.visible { opacity: 1; visibility: visible; }
     .scroll-top-button svg { width: 28px; height: 28px; fill: #fff; }
+
+    /* ダークモード */
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #0f172a; --card: #1e293b; --accent: #60a5fa; }
+      body { color: #e2e8f0; color-scheme: dark; }
+      .header h1 { color: #60a5fa; }
+      .note { background: #1e293b; color: #f87171; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+      .tab-btn { background: #334155; color: #94a3b8; }
+      .tab-btn.active { background: #60a5fa; color: #fff; }
+      .chart-card { background: #1e293b; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+      .chart-title { border-bottom-color: #334155; color: #e2e8f0; }
+      .back-link { color: #60a5fa; }
+      #loading { color: #94a3b8; }
+    }
   </style>
 </head>
 <body>
@@ -141,8 +155,14 @@
   const ITALY_2COLOR = ['#008C45', '#CD212A']; 
   const ITALIAN_COLORS = ['#008C45', '#E1E1E1', '#CD212A', '#0039A6', '#FBC02D', '#757575'];
 
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const chartTextColor = isDark ? '#94a3b8' : '#666';
+  const chartLabelColor = isDark ? '#cbd5e1' : '#444';
+
   window.addEventListener('DOMContentLoaded', () => {
     Chart.register(ChartDataLabels);
+    Chart.defaults.color = chartTextColor;
+    Chart.defaults.scale.grid = { color: isDark ? '#334155' : undefined };
     initTabs();
     fetchData();
   });
@@ -391,7 +411,7 @@
         layout: { padding: { right: 50 } },
         plugins: { 
           legend: { display: false }, 
-          datalabels: { anchor: 'end', align: 'end', formatter: v => v + '台', color: '#444', font: { weight: 'bold' } } 
+          datalabels: { anchor: 'end', align: 'end', formatter: v => v + '台', color: chartLabelColor, font: { weight: 'bold' } } 
         },
         scales: { x: { beginAtZero: true, grid: { display: false } }, y: { grid: { display: false }, ticks: { autoSkip: false } } }
       }
@@ -412,13 +432,13 @@
     }
     chartInstances[id] = new Chart(canvas, {
       type: 'pie',
-      data: { labels: data.map(d => d[0]), datasets: [{ data: data.map(d => d[1]), backgroundColor: bgColors, borderColor: '#fff', borderWidth: 2 }] },
+      data: { labels: data.map(d => d[0]), datasets: [{ data: data.map(d => d[1]), backgroundColor: bgColors, borderColor: isDark ? '#1e293b' : '#fff', borderWidth: 2 }] },
       options: { 
         responsive: true, maintainAspectRatio: false,
         plugins: { 
           legend: { position: 'right', labels: { boxWidth: 12 } }, 
           datalabels: { 
-            color: (theme === 'palette') ? '#444' : '#fff', 
+            color: (theme === 'palette') ? chartLabelColor : '#fff', 
             font: { weight: 'bold' }, 
             formatter: (v, ctx) => {
               let sum = 0;

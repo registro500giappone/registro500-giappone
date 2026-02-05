@@ -78,9 +78,32 @@
     .rg-modal-wrap { position: relative; }
     .rg-modal-close { position: absolute; top: -35px; right: 0; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 4px 8px; line-height: 1; }
     .rg-modal-close:hover { opacity: 0.7; }
+    .rg-gallery-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.85); border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 1.3rem; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; color: #333; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .rg-gallery-nav:hover { background: #fff; }
+    .rg-gallery-prev { left: 10px; }
+    .rg-gallery-next { right: 10px; }
+    .rg-gallery-counter { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.8); font-size: 0.85rem; }
     .rg-modal-heading { font-size: 1.1rem; font-weight: 700; margin: 0 0 1rem; }
     .rg-modal-note { font-size: 0.875rem; color: var(--rg-muted); margin-bottom: 1rem; }
     .rg-modal-label { font-size: 0.875rem; font-weight: 700; }
+
+    /* ダークモード */
+    @media (prefers-color-scheme: dark) {
+      .rg-gallery-thumb { background: #334155; }
+      .rg-dropdown-menu { background: #1e293b; }
+      .rg-dropdown-item { color: var(--rg-text); border-top-color: #334155; }
+      .rg-dropdown-item:hover { background: #334155; }
+      .rg-dropdown-divider { border-top-color: #334155; }
+      .rg-badge-pref { background: #1e293b; }
+      .rg-modal-box { background: #1e293b; color: var(--rg-text); }
+      .rg-gallery-nav { background: rgba(30, 41, 59, 0.85); color: #e2e8f0; }
+      .rg-gallery-nav:hover { background: #1e293b; }
+      .inquiry-input, .inquiry-textarea { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+      .risk-note-box { background: #2d1a1e; border-color: #5c2830; }
+      .rg-btn-dark { background: #334155; }
+      .rg-btn-dark:hover { background: #475569; }
+      .btn-contact { background-color: var(--rg-accent); }
+    }
   </style>
 </head>
 <body>
@@ -140,7 +163,7 @@
           <section class="rg-card" id="highlightsSection" style="display:none;"><h2 class="rg-section-title" id="highlightsTitle" data-field="highlights">こだわり</h2><p id="val_Highlights" style="white-space:pre-wrap;"></p></section>
           <section class="rg-card" id="snsSection" style="display:none;"><h2 class="rg-section-title">SNS</h2><dl class="rg-spec-grid" id="snsGrid"></dl></section>
           <section class="rg-card"><h2 class="rg-section-title">共有・連絡</h2>
-            <div class="rg-action-row"><button class="rg-btn rg-btn-dark" onclick="showQRCode()">QR表示</button><a id="shareX" class="rg-btn rg-btn-black" target="_blank">Xでシェア</a></div>
+            <div class="rg-action-row"><button class="rg-btn rg-btn-dark" onclick="showQRCode()">QR表示</button><a id="shareX" class="rg-btn rg-btn-black" target="_blank">Xでシェア</a><a id="shareLINE" class="rg-btn" style="background:#06C755;color:#fff;" target="_blank">LINEで送る</a></div>
             <div id="contactArea" style="display:none;"><button class="btn-contact" onclick="openContactForm()">オーナーへメッセージを送る</button></div>
           </section>
         </div>
@@ -248,6 +271,7 @@
         }
       });
       document.getElementById('shareX').href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(car.handle_name + 'さんのFIAT 500')}&url=${encodeURIComponent(location.href)}`;
+      document.getElementById('shareLINE').href = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(location.href)}`;
     }
 
     // ★ 更新バッジの適用ロジック
@@ -362,7 +386,39 @@
       const autoFocus = m.querySelector('input, textarea, button');
       if (autoFocus) autoFocus.focus();
     }
-    document.addEventListener('click', e => { if (e.target.hasAttribute('data-rg-zoomable')) openModal(`<img src="${e.target.src}" style="max-width:95vw; max-height:90vh; object-fit:contain; border-radius:8px;">`); });
+    function openGallery(startIndex) {
+      const imgs = Array.from(document.querySelectorAll('[data-rg-zoomable]')).filter(img => img.src && !img.src.endsWith(NO_IMAGE_URL));
+      if (imgs.length === 0) return;
+      let idx = startIndex;
+      const m = document.createElement('div'); m.className = 'rg-modal is-open';
+      m.innerHTML = `<div class="rg-modal-wrap" style="display:flex;align-items:center;justify-content:center;">
+        ${imgs.length > 1 ? '<button class="rg-gallery-nav rg-gallery-prev" aria-label="前へ">&#8249;</button>' : ''}
+        <img class="rg-gallery-img" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px;">
+        ${imgs.length > 1 ? '<button class="rg-gallery-nav rg-gallery-next" aria-label="次へ">&#8250;</button>' : ''}
+        ${imgs.length > 1 ? '<span class="rg-gallery-counter"></span>' : ''}
+        <button class="rg-modal-close" aria-label="閉じる">✕</button>
+      </div>`;
+      document.body.appendChild(m);
+      const imgEl = m.querySelector('.rg-gallery-img');
+      const counter = m.querySelector('.rg-gallery-counter');
+      function show(i) { idx = (i + imgs.length) % imgs.length; imgEl.src = imgs[idx].src; if (counter) counter.textContent = (idx + 1) + ' / ' + imgs.length; }
+      show(idx);
+      const closeModal = () => m.remove();
+      m.querySelector('.rg-modal-close').onclick = closeModal;
+      m.onclick = (e) => { if (e.target === m) closeModal(); };
+      if (m.querySelector('.rg-gallery-prev')) m.querySelector('.rg-gallery-prev').onclick = (e) => { e.stopPropagation(); show(idx - 1); };
+      if (m.querySelector('.rg-gallery-next')) m.querySelector('.rg-gallery-next').onclick = (e) => { e.stopPropagation(); show(idx + 1); };
+      m.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeModal();
+        if (e.key === 'ArrowLeft') show(idx - 1);
+        if (e.key === 'ArrowRight') show(idx + 1);
+      });
+      let touchStartX = 0;
+      m.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; }, {passive: true});
+      m.addEventListener('touchend', (e) => { const dx = e.changedTouches[0].clientX - touchStartX; if (Math.abs(dx) > 50) { dx > 0 ? show(idx - 1) : show(idx + 1); } });
+      m.setAttribute('tabindex', '-1'); m.focus();
+    }
+    document.addEventListener('click', e => { if (e.target.hasAttribute('data-rg-zoomable')) { const imgs = Array.from(document.querySelectorAll('[data-rg-zoomable]')).filter(img => img.src && !img.src.endsWith(NO_IMAGE_URL)); openGallery(imgs.indexOf(e.target)); } });
 
     function toggleOwnerMenu(forceClose) {
       const dd = document.getElementById('ownerMenuArea');
