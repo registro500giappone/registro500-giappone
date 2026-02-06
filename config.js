@@ -32,35 +32,33 @@ const CONFIG = {
     default_rate: 165, // APIエラー時の予備レート
 
     // 2. ショップごとのVAT（税）ルール定義
+    // is_price_ex_vat: DB価格が税抜きかどうか
+    // vat_rate: VAT率（税込み店舗の場合に税抜き計算で使用）
     shops: {
         "FD Ricambi": {
-            is_price_ex_vat: true,  // DB価格は税抜きか？→はい
-            vat_rate: 0.21,         // 計算用（予備）
-            show_vat_inc: false     // 画面にVAT込みを表示するか？→いいえ
+            is_price_ex_vat: true,   // 税抜き価格
+            vat_rate: 0,
+            base_url: "https://fdricambi.com"
         },
         "Axel Gerstl": {
-            is_price_ex_vat: false, // DB価格は税抜きか？→いいえ（税込み）
-            vat_rate: 0.19, 
-            show_vat_inc: true      // 画面にVAT込みを表示するか？→はい
-        }
-    },
-
-    // 3. 外部検索用URL（一括取得していないサイト）
-    external_links: [
-        {
-            id: "euroitalia",
-            name: "Euro Italia 500",
-            url_pattern: "https://euroitalia500-commerce.it/ricerca?controller=search&orderby=position&orderway=desc&search_query="
+            is_price_ex_vat: false,  // 税込み価格
+            vat_rate: 0.19,          // ドイツVAT 19%
+            base_url: "https://webshop.fiat500126.com"
         },
-        {
-            id: "passione",
-            name: "Passione 500",
-            url_pattern: "https://passione500.it/?s="
+        "EuroItalia500": {
+            is_price_ex_vat: false,  // 税込み価格
+            vat_rate: 0.22,          // イタリアVAT 22%
+            base_url: "https://euroitalia500-commerce.it"
         },
-        {
-            id: "dangelo",
-            name: "D'Angelo Motori",
-            url_pattern: "https://www.dangelomotori.it/en/?s="
+        "Passione 500": {
+            is_price_ex_vat: false,  // 税込み価格
+            vat_rate: 0.22,          // イタリアVAT 22%
+            base_url: "https://passione500.it"
+        },
+        "D'Angelo Motori": {
+            is_price_ex_vat: true,   // 税抜き価格
+            vat_rate: 0,
+            base_url: "https://www.dangelomotori.it"
         }
-    ]
+    }
 };
