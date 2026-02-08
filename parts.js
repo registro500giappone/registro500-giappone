@@ -1,41 +1,52 @@
 // parts.js - 5店舗パーツ価格比較ツール
 
-// --- 簡易的な日英翻訳辞書 ---
+// --- 日本語→英語・イタリア語 翻訳辞書 ---
 const translationDict = {
-    "ガスケット": "gasket",
-    "ベアリング": "bearing",
-    "フィルター": "filter",
-    "オイルフィルター": "oil filter",
-    "エアフィルター": "air filter",
-    "ブレーキ": "brake",
-    "ブレーキシュー": "brake shoe",
-    "ブレーキパッド": "brake pad",
-    "クラッチ": "clutch",
-    "エンジン": "engine",
-    "シリンダー": "cylinder",
-    "ピストン": "piston",
-    "ショックアブソーバー": "shock absorber",
-    "サスペンション": "suspension",
-    "タイヤ": "tire",
-    "ホイール": "wheel",
-    "ライト": "light",
-    "ヘッドライト": "headlight",
-    "テールライト": "taillight",
-    "バンパー": "bumper",
-    "ミラー": "mirror",
-    "ドア": "door",
-    "ウィンドウ": "window",
-    "ワイパー": "wiper"
+    "ガスケット": ["gasket", "guarnizione"],
+    "パッキン": ["gasket", "guarnizione"],
+    "ベアリング": ["bearing", "cuscinetto"],
+    "フィルター": ["filter", "filtro"],
+    "オイルフィルター": ["oil filter", "filtro olio"],
+    "エアフィルター": ["air filter", "filtro aria"],
+    "ブレーキ": ["brake", "freno"],
+    "ブレーキシュー": ["brake shoe", "ganascia freno"],
+    "ブレーキパッド": ["brake pad", "pastiglia freno"],
+    "クラッチ": ["clutch", "frizione"],
+    "エンジン": ["engine", "motore"],
+    "シリンダー": ["cylinder", "cilindro"],
+    "ピストン": ["piston", "pistone"],
+    "ショックアブソーバー": ["shock absorber", "ammortizzatore"],
+    "サスペンション": ["suspension", "sospensione"],
+    "タイヤ": ["tire", "pneumatico"],
+    "ホイール": ["wheel", "ruota"],
+    "ライト": ["light", "luce", "faro"],
+    "ヘッドライト": ["headlight", "faro"],
+    "テールライト": ["taillight", "fanale"],
+    "バンパー": ["bumper", "paraurti"],
+    "ミラー": ["mirror", "specchio"],
+    "ドア": ["door", "porta"],
+    "ウィンドウ": ["window", "vetro", "finestrino"],
+    "ワイパー": ["wiper", "tergicristallo"],
+    "キャブレター": ["carburetor", "carburatore"],
+    "マフラー": ["muffler", "marmitta"],
+    "ラジエーター": ["radiator", "radiatore"],
+    "スターター": ["starter", "motorino"],
+    "オルタネーター": ["alternator", "alternatore"],
+    "ポンプ": ["pump", "pompa"],
+    "ホース": ["hose", "tubo"],
+    "ケーブル": ["cable", "cavo"],
+    "シール": ["seal", "paraolio", "guarnizione"]
 };
 
-// --- 翻訳関数 ---
+// --- 翻訳関数（複数言語対応） ---
 function translateKeyword(keyword) {
-    for (const [jp, en] of Object.entries(translationDict)) {
-        if (keyword.toLowerCase().startsWith(jp)) {
-            return keyword.toLowerCase().replace(jp, en);
+    const lowerKeyword = keyword.toLowerCase();
+    for (const [jp, translations] of Object.entries(translationDict)) {
+        if (lowerKeyword.includes(jp.toLowerCase())) {
+            return translations; // 配列を返す
         }
     }
-    return keyword;
+    return [keyword]; // 翻訳なしの場合は元のキーワードを配列で返す
 }
 
 // グローバル変数
@@ -179,17 +190,29 @@ async function executeSearch() {
     let dbResults = [];
     let query = window.supabaseClient.from('parts').select('*');
 
-    // キーワード検索
+    // キーワード検索（日本語・英語・イタリア語対応）
     if (keyword) {
-        const translatedKeyword = translateKeyword(keyword);
+        const translations = translateKeyword(keyword);
         const pattern = `%${keyword}%`;
-        const translatedPattern = `%${translatedKeyword}%`;
 
-        if (keyword !== translatedKeyword) {
-            query = query.or(`name_en.ilike.${pattern},name_jp.ilike.${pattern},oem_no.ilike.${pattern},product_no.ilike.${pattern},name_en.ilike.${translatedPattern}`);
-        } else {
-            query = query.or(`name_en.ilike.${pattern},name_jp.ilike.${pattern},oem_no.ilike.${pattern},product_no.ilike.${pattern}`);
-        }
+        // 基本の検索条件（元のキーワードで name_en, name_jp, oem_no, product_no を検索）
+        let searchConditions = [
+            `name_en.ilike.${pattern}`,
+            `name_jp.ilike.${pattern}`,
+            `oem_no.ilike.${pattern}`,
+            `product_no.ilike.${pattern}`
+        ];
+
+        // 翻訳された各キーワードでも検索
+        translations.forEach(translated => {
+            if (translated.toLowerCase() !== keyword.toLowerCase()) {
+                const translatedPattern = `%${translated}%`;
+                searchConditions.push(`name_en.ilike.${translatedPattern}`);
+                searchConditions.push(`name_jp.ilike.${translatedPattern}`);
+            }
+        });
+
+        query = query.or(searchConditions.join(','));
     }
 
     // 車種検索
