@@ -1383,8 +1383,8 @@ function renderOptimizationSection() {
         <div class="optimization-summary">
     `;
 
-    // ショップごとのカード
-    Object.keys(shopAnalysis).sort((a, b) => shopAnalysis[a].total - shopAnalysis[b].total).forEach(shopName => {
+    // ショップごとのカード（比較リストの出現順に合わせる）
+    shops.forEach(shopName => {
         const analysis = shopAnalysis[shopName];
         const isBest = shopName === bestShop;
         const itemsList = analysis.items.map(i => i.name.substring(0, 20)).join(', ');
