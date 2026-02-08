@@ -1,52 +1,58 @@
 // parts.js - 5店舗パーツ価格比較ツール
 
-// --- 日本語→英語・イタリア語 翻訳辞書 ---
-const translationDict = {
-    "ガスケット": ["gasket", "guarnizione"],
-    "パッキン": ["gasket", "guarnizione"],
-    "ベアリング": ["bearing", "cuscinetto"],
-    "フィルター": ["filter", "filtro"],
-    "オイルフィルター": ["oil filter", "filtro olio"],
-    "エアフィルター": ["air filter", "filtro aria"],
-    "ブレーキ": ["brake", "freno"],
-    "ブレーキシュー": ["brake shoe", "ganascia freno"],
-    "ブレーキパッド": ["brake pad", "pastiglia freno"],
-    "クラッチ": ["clutch", "frizione"],
-    "エンジン": ["engine", "motore"],
-    "シリンダー": ["cylinder", "cilindro"],
-    "ピストン": ["piston", "pistone"],
-    "ショックアブソーバー": ["shock absorber", "ammortizzatore"],
-    "サスペンション": ["suspension", "sospensione"],
-    "タイヤ": ["tire", "pneumatico"],
-    "ホイール": ["wheel", "ruota"],
-    "ライト": ["light", "luce", "faro"],
-    "ヘッドライト": ["headlight", "faro"],
-    "テールライト": ["taillight", "fanale"],
-    "バンパー": ["bumper", "paraurti"],
-    "ミラー": ["mirror", "specchio"],
-    "ドア": ["door", "porta"],
-    "ウィンドウ": ["window", "vetro", "finestrino"],
-    "ワイパー": ["wiper", "tergicristallo"],
-    "キャブレター": ["carburetor", "carburatore"],
-    "マフラー": ["muffler", "marmitta"],
-    "ラジエーター": ["radiator", "radiatore"],
-    "スターター": ["starter", "motorino"],
-    "オルタネーター": ["alternator", "alternatore"],
-    "ポンプ": ["pump", "pompa"],
-    "ホース": ["hose", "tubo"],
-    "ケーブル": ["cable", "cavo"],
-    "シール": ["seal", "paraolio", "guarnizione"]
-};
+// --- 同義語グループ（日本語・英語・イタリア語） ---
+// どの言語で検索しても、同じグループの全言語で検索される
+const synonymGroups = [
+    ["ガスケット", "パッキン", "gasket", "guarnizione"],
+    ["ベアリング", "bearing", "cuscinetto"],
+    ["フィルター", "filter", "filtro"],
+    ["オイルフィルター", "oil filter", "filtro olio"],
+    ["エアフィルター", "air filter", "filtro aria"],
+    ["ブレーキ", "brake", "freno"],
+    ["ブレーキシュー", "brake shoe", "ganascia freno"],
+    ["ブレーキパッド", "brake pad", "pastiglia freno"],
+    ["クラッチ", "clutch", "frizione"],
+    ["エンジン", "engine", "motore"],
+    ["シリンダー", "cylinder", "cilindro"],
+    ["ピストン", "piston", "pistone"],
+    ["ショックアブソーバー", "shock absorber", "ammortizzatore"],
+    ["サスペンション", "suspension", "sospensione"],
+    ["タイヤ", "tire", "pneumatico"],
+    ["ホイール", "wheel", "ruota"],
+    ["ライト", "light", "luce", "faro"],
+    ["ヘッドライト", "headlight", "faro"],
+    ["テールライト", "taillight", "fanale"],
+    ["バンパー", "bumper", "paraurti"],
+    ["ミラー", "mirror", "specchio"],
+    ["ドア", "door", "porta"],
+    ["ウィンドウ", "window", "vetro", "finestrino"],
+    ["ワイパー", "wiper", "tergicristallo"],
+    ["キャブレター", "carburetor", "carburatore"],
+    ["マフラー", "muffler", "marmitta"],
+    ["ラジエーター", "radiator", "radiatore"],
+    ["スターター", "starter", "motorino"],
+    ["オルタネーター", "alternator", "alternatore"],
+    ["ポンプ", "pump", "pompa"],
+    ["ホース", "hose", "tubo"],
+    ["ケーブル", "cable", "cavo"],
+    ["シール", "seal", "paraolio"]
+];
 
-// --- 翻訳関数（複数言語対応） ---
+// --- 同義語検索関数（どの言語でも全言語で検索） ---
 function translateKeyword(keyword) {
     const lowerKeyword = keyword.toLowerCase();
-    for (const [jp, translations] of Object.entries(translationDict)) {
-        if (lowerKeyword.includes(jp.toLowerCase())) {
-            return translations; // 配列を返す
+
+    // 同義語グループから検索
+    for (const group of synonymGroups) {
+        for (const word of group) {
+            if (lowerKeyword.includes(word.toLowerCase())) {
+                // マッチしたグループの全単語を返す（元のキーワードは除く）
+                return group.filter(w => w.toLowerCase() !== lowerKeyword);
+            }
         }
     }
-    return [keyword]; // 翻訳なしの場合は元のキーワードを配列で返す
+
+    return []; // 同義語なし
 }
 
 // グローバル変数
@@ -192,25 +198,21 @@ async function executeSearch() {
     // 検索条件を構築
     let searchConditions = [];
     if (keyword) {
-        const translations = translateKeyword(keyword);
-
-        // 翻訳された各キーワードで検索（英語・イタリア語）
-        translations.forEach(translated => {
-            const translatedPattern = `%${translated}%`;
-            searchConditions.push(`name_en.ilike.${translatedPattern}`);
-            searchConditions.push(`name_jp.ilike.${translatedPattern}`);
-        });
-
-        // 元のキーワードでも検索（OEM番号、品番）
+        const synonyms = translateKeyword(keyword);
         const pattern = `%${keyword}%`;
+
+        // 元のキーワードで検索
+        searchConditions.push(`name_en.ilike.${pattern}`);
+        searchConditions.push(`name_jp.ilike.${pattern}`);
         searchConditions.push(`oem_no.ilike.${pattern}`);
         searchConditions.push(`product_no.ilike.${pattern}`);
 
-        // 翻訳がなかった場合は元のキーワードでname_en/name_jpも検索
-        if (translations.length === 1 && translations[0] === keyword) {
-            searchConditions.push(`name_en.ilike.${pattern}`);
-            searchConditions.push(`name_jp.ilike.${pattern}`);
-        }
+        // 同義語でも検索（name_en, name_jpのみ）
+        synonyms.forEach(synonym => {
+            const synonymPattern = `%${synonym}%`;
+            searchConditions.push(`name_en.ilike.${synonymPattern}`);
+            searchConditions.push(`name_jp.ilike.${synonymPattern}`);
+        });
     }
 
     // 車種条件を構築
