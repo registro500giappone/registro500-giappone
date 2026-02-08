@@ -1426,16 +1426,6 @@ function renderOptimizationSection() {
         `;
     }
 
-    // 送料未設定の警告
-    const shopsWithoutShipping = shops.filter(s => !shippingCosts[s] || shippingCosts[s] === 0);
-    if (shopsWithoutShipping.length > 0) {
-        html += `
-            <div style="margin-top:12px; font-size:0.85rem; color:#6b7280;">
-                ※ ${shopsWithoutShipping.join('、')} の送料が未設定です。正確な比較のため各店舗の送料を入力してください。
-            </div>
-        `;
-    }
-
     section.innerHTML = html;
 }
 
