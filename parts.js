@@ -186,68 +186,76 @@ async function executeSearch() {
     resultsArea.innerHTML = '<p style="padding:40px; text-align:center;">検索中...</p>';
     resultCountEl.innerText = "- 件";
 
-    // DB検索
+    // DB検索（各ショップごとに並列でクエリを実行）
     let dbResults = [];
-    let query = window.supabaseClient.from('parts').select('*');
 
-    // キーワード検索（日本語・英語・イタリア語対応）
+    // 検索条件を構築
+    let searchConditions = [];
     if (keyword) {
         const translations = translateKeyword(keyword);
-        const pattern = `%${keyword}%`;
 
-        // 基本の検索条件（元のキーワードで name_en, name_jp, oem_no, product_no を検索）
-        let searchConditions = [
-            `name_en.ilike.${pattern}`,
-            `name_jp.ilike.${pattern}`,
-            `oem_no.ilike.${pattern}`,
-            `product_no.ilike.${pattern}`
-        ];
-
-        // 翻訳された各キーワードでも検索
+        // 翻訳された各キーワードで検索（英語・イタリア語）
         translations.forEach(translated => {
-            if (translated.toLowerCase() !== keyword.toLowerCase()) {
-                const translatedPattern = `%${translated}%`;
-                searchConditions.push(`name_en.ilike.${translatedPattern}`);
-                searchConditions.push(`name_jp.ilike.${translatedPattern}`);
-            }
+            const translatedPattern = `%${translated}%`;
+            searchConditions.push(`name_en.ilike.${translatedPattern}`);
+            searchConditions.push(`name_jp.ilike.${translatedPattern}`);
         });
 
-        query = query.or(searchConditions.join(','));
+        // 元のキーワードでも検索（OEM番号、品番）
+        const pattern = `%${keyword}%`;
+        searchConditions.push(`oem_no.ilike.${pattern}`);
+        searchConditions.push(`product_no.ilike.${pattern}`);
+
+        // 翻訳がなかった場合は元のキーワードでname_en/name_jpも検索
+        if (translations.length === 1 && translations[0] === keyword) {
+            searchConditions.push(`name_en.ilike.${pattern}`);
+            searchConditions.push(`name_jp.ilike.${pattern}`);
+        }
     }
 
-    // 車種検索
-    // 500系が選択されている場合は、一般的な「500」も検索対象に含める
+    // 車種条件を構築
+    let carConditions = [];
     if (checkedCars.length > 0 || all500Checked) {
-        let conditions = [];
-
-        // 親（Fiat 500全モデル）がチェックされている場合、または子がチェックされている場合
-        // 両方とも「500」を含むものを検索対象にする
         if (all500Checked) {
-            conditions.push(`target_cars.ilike.%500%`);
+            carConditions.push(`target_cars.ilike.%500%`);
         }
-
-        // 個別の車種も追加（500系以外、例えば126やGiardinieraなど）
         checkedCars.forEach(car => {
             if (!car.startsWith('500')) {
-                conditions.push(`target_cars.ilike.%${car}%`);
+                carConditions.push(`target_cars.ilike.%${car}%`);
             }
         });
+    }
 
-        if (conditions.length > 0) {
-            query = query.or(conditions.join(','));
+
+    // 各ショップごとに並列でクエリを実行（各ショップ最大500件）
+    const LIMIT_PER_SHOP = 500;
+    const shopQueries = checkedShops.map(async (shopName) => {
+        let query = window.supabaseClient.from('parts').select('*');
+
+        // キーワード条件
+        if (searchConditions.length > 0) {
+            query = query.or(searchConditions.join(','));
         }
-    }
 
-    // ショップ絞り込み
-    query = query.in('shop_name', checkedShops);
+        // 車種条件
+        if (carConditions.length > 0) {
+            query = query.or(carConditions.join(','));
+        }
 
-    const { data, error } = await query.limit(200);
-    if (error) {
-        console.error(error);
-        resultsArea.innerHTML = `<p style="color:red; padding:20px;">エラーが発生しました: ${error.message}</p>`;
-        return;
-    }
-    dbResults = data || [];
+        // ショップ絞り込み
+        query = query.eq('shop_name', shopName);
+
+        const { data, error } = await query.limit(LIMIT_PER_SHOP);
+        if (error) {
+            console.error(`${shopName}のクエリエラー:`, error);
+            return [];
+        }
+        return data || [];
+    });
+
+    // 全ショップの結果を待機してマージ
+    const results = await Promise.all(shopQueries);
+    dbResults = results.flat();
 
     // 結果を保存（モード切替用）
     lastSearchResults = dbResults;
