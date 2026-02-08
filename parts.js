@@ -1053,8 +1053,8 @@ function escapeHtml(str) {
 
 // インラインonclick内のJS文字列用エスケープ（'と\をエスケープ）
 function escapeJs(str) {
-    if (!str) return '';
-    return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
 // ===== 全画面モーダル機能 =====
