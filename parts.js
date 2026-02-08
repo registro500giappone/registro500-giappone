@@ -201,17 +201,21 @@ async function executeSearch() {
         const synonyms = translateKeyword(keyword);
         const pattern = `%${keyword}%`;
 
-        // 元のキーワードで検索
+        // 元のキーワードで検索（全テキストフィールド対象）
         searchConditions.push(`name_en.ilike.${pattern}`);
         searchConditions.push(`name_jp.ilike.${pattern}`);
         searchConditions.push(`oem_no.ilike.${pattern}`);
         searchConditions.push(`product_no.ilike.${pattern}`);
+        searchConditions.push(`search_keywords_jp.ilike.${pattern}`);
+        searchConditions.push(`category.ilike.${pattern}`);
+        searchConditions.push(`specs.ilike.${pattern}`);
 
-        // 同義語でも検索（name_en, name_jpのみ）
+        // 同義語でも検索（名前・キーワード系フィールド）
         synonyms.forEach(synonym => {
             const synonymPattern = `%${synonym}%`;
             searchConditions.push(`name_en.ilike.${synonymPattern}`);
             searchConditions.push(`name_jp.ilike.${synonymPattern}`);
+            searchConditions.push(`search_keywords_jp.ilike.${synonymPattern}`);
         });
     }
 
