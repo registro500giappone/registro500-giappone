@@ -891,7 +891,7 @@ function renderCompareList() {
 
     Object.keys(grouped).forEach(shopName => {
         const items = grouped[shopName];
-        let shopSubtotal = items.reduce((sum, item) => sum + (item.priceExVat || 0), 0);
+        let shopSubtotal = items.reduce((sum, item) => sum + (parseFloat(item.priceExVat) || 0), 0);
         const shipping = parseFloat(shippingCosts[shopName]) || 0;
         const shopTotal = shopSubtotal + shipping;
         grandTotalEur += shopTotal;
@@ -912,7 +912,7 @@ function renderCompareList() {
                      onerror="this.src='https://placehold.co/50x50/f3f4f6/9ca3af?text=No'">
                 <div class="compare-item-info">
                     <div class="compare-item-name">${item.name}</div>
-                    <div class="compare-item-price">€${item.priceExVat.toFixed(2)} ≒ ¥${Math.round(item.priceExVat * currentRate).toLocaleString()}</div>
+                    <div class="compare-item-price">€${(item.priceExVat || 0).toFixed(2)} ≒ ¥${Math.round((item.priceExVat || 0) * currentRate).toLocaleString()}</div>
                 </div>
                 <div class="compare-item-actions">
                     <a href="${item.pageUrl}" target="_blank" rel="noopener noreferrer" title="本サイトで見る">↗</a>
@@ -1094,7 +1094,7 @@ function renderModalCompareList() {
 
     Object.keys(grouped).forEach(shopName => {
         const items = grouped[shopName];
-        let shopSubtotal = items.reduce((sum, item) => sum + (item.priceExVat || 0), 0);
+        let shopSubtotal = items.reduce((sum, item) => sum + (parseFloat(item.priceExVat) || 0), 0);
         const shipping = parseFloat(shippingCosts[shopName]) || 0;
         const shopTotal = shopSubtotal + shipping;
         grandTotalEur += shopTotal;
@@ -1113,7 +1113,7 @@ function renderModalCompareList() {
                      onerror="this.src='https://placehold.co/50x50/f3f4f6/9ca3af?text=No'">
                 <div class="compare-item-info">
                     <div class="compare-item-name">${item.name}</div>
-                    <div class="compare-item-price">€${item.priceExVat.toFixed(2)} ≒ ¥${Math.round(item.priceExVat * currentRate).toLocaleString()}</div>
+                    <div class="compare-item-price">€${(item.priceExVat || 0).toFixed(2)} ≒ ¥${Math.round((item.priceExVat || 0) * currentRate).toLocaleString()}</div>
                 </div>
                 <div class="compare-item-actions">
                     <a href="${item.pageUrl}" target="_blank" rel="noopener noreferrer" title="本サイトで見る">↗</a>
