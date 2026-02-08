@@ -528,23 +528,51 @@
             background: rgba(255,255,255,0.1);
         }
 
-        /* 保存/読み込みUI */
+        /* 保存/読み込みUI（折りたたみ式） */
         .save-load-section {
             background: #f9fafb;
-            padding: 16px;
             border-radius: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
+            border: 1px solid #e5e7eb;
+        }
+        .save-load-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 14px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .save-load-toggle:hover {
+            background: #f3f4f6;
+            border-radius: 8px;
         }
         .save-load-section h4 {
-            margin: 0 0 12px 0;
-            font-size: 0.95rem;
-            color: #374151;
+            margin: 0;
+            font-size: 0.85rem;
+            color: #6b7280;
+            font-weight: 600;
+        }
+        .save-load-arrow {
+            font-size: 0.7rem;
+            color: #9ca3af;
+            transition: transform 0.2s;
+        }
+        .save-load-section.open .save-load-arrow {
+            transform: rotate(90deg);
+        }
+        .save-load-body {
+            display: none;
+            padding: 10px 14px 12px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .save-load-section.open .save-load-body {
+            display: block;
         }
         .saved-lists {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 12px;
+            gap: 6px;
         }
         .saved-list-item {
             display: flex;
@@ -1030,16 +1058,20 @@
             </div>
 
             <div class="modal-body">
-                <!-- 保存/読み込みセクション -->
-                <div class="save-load-section">
-                    <h4>リストの保存・読み込み</h4>
-                    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-                        <input type="text" id="save-list-name" placeholder="リスト名を入力" style="padding:8px 12px; border:1px solid #d1d5db; border-radius:4px; width:200px;">
-                        <button onclick="saveListWithName()" style="padding:8px 16px; background:#10b981; color:#fff; border:none; border-radius:4px; cursor:pointer; font-weight:600;">保存</button>
-                        <span style="font-size:0.8rem; color:#9ca3af;">※ リスト名は任意の名前を付けられます</span>
+                <!-- 保存/読み込みセクション（折りたたみ式） -->
+                <div class="save-load-section" id="save-load-section">
+                    <div class="save-load-toggle" onclick="document.getElementById('save-load-section').classList.toggle('open')">
+                        <h4>リストの保存・読み込み</h4>
+                        <span class="save-load-arrow">▶</span>
                     </div>
-                    <div class="saved-lists" id="saved-lists-area">
-                        <!-- JSで描画 -->
+                    <div class="save-load-body">
+                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                            <input type="text" id="save-list-name" placeholder="リスト名（任意）" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:4px; width:180px; font-size:0.85rem;">
+                            <button onclick="saveListWithName()" style="padding:6px 14px; background:#10b981; color:#fff; border:none; border-radius:4px; cursor:pointer; font-weight:600; font-size:0.85rem;">保存</button>
+                            <div class="saved-lists" id="saved-lists-area">
+                                <!-- JSで描画 -->
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <!-- 比較リスト本体 -->
