@@ -667,7 +667,7 @@ function createOemSection(oemKey, group) {
             <td class="actions-cell">
                 <a href="${part.page_url}" target="_blank" rel="noopener noreferrer" title="本サイトで見る">↗ 詳細</a>
                 <button class="${isAdded ? 'added' : ''}" data-part-id="${part.id}"
-                    onclick="toggleListItemFromTable('${part.id}', '${escapeHtml(title)}', '${part.shop_name}', ${priceExVat}, '${part.page_url}', '${finalImageUrl}', this)">
+                    onclick="toggleListItemFromTable('${escapeJs(part.id)}', '${escapeJs(title)}', '${escapeJs(part.shop_name)}', ${priceExVat}, '${escapeJs(part.page_url)}', '${escapeJs(finalImageUrl)}', this)">
                     ${isAdded ? '✓ 追加済' : '＋ 追加'}
                 </button>
             </td>
@@ -786,7 +786,7 @@ function createPartCard(part) {
             </div>
         </a>
         <div style="padding: 0 12px 12px 12px;">
-            <button class="${btnClass}" data-part-id="${part.id}" onclick="event.preventDefault(); toggleListItem('${part.id}', '${escapeHtml(title)}', '${part.shop_name}', ${priceExVat}, '${part.page_url}', '${finalImageUrl}')">
+            <button class="${btnClass}" data-part-id="${part.id}" onclick="event.preventDefault(); toggleListItem('${escapeJs(part.id)}', '${escapeJs(title)}', '${escapeJs(part.shop_name)}', ${priceExVat}, '${escapeJs(part.page_url)}', '${escapeJs(finalImageUrl)}')">
                 ${btnText}
             </button>
         </div>
@@ -927,7 +927,7 @@ function renderCompareList() {
         summaryDiv.className = 'compare-shop-summary';
         summaryDiv.innerHTML = `
             <div>
-                小計: €${shopSubtotal.toFixed(2)} + 送料: €<input type="number" class="shipping-input" value="${shipping}" onchange="updateShipping('${shopName}', this.value)" step="0.01" min="0">
+                小計: €${shopSubtotal.toFixed(2)} + 送料: €<input type="number" class="shipping-input" value="${shipping}" onchange="updateShipping('${escapeJs(shopName)}', this.value)" step="0.01" min="0">
             </div>
             <div style="font-weight:700;">
                 €${shopTotal.toFixed(2)} ≒ ¥${Math.round(shopTotal * currentRate).toLocaleString()}
@@ -1051,6 +1051,12 @@ function escapeHtml(str) {
     });
 }
 
+// インラインonclick内のJS文字列用エスケープ（'と\をエスケープ）
+function escapeJs(str) {
+    if (!str) return '';
+    return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
 // ===== 全画面モーダル機能 =====
 
 function openCompareModal() {
@@ -1127,7 +1133,7 @@ function renderModalCompareList() {
         summaryDiv.className = 'compare-shop-summary';
         summaryDiv.innerHTML = `
             <div>
-                小計: €${shopSubtotal.toFixed(2)} + 送料: €<input type="number" class="shipping-input" value="${shipping}" onchange="updateShippingModal('${shopName}', this.value)" step="0.01" min="0">
+                小計: €${shopSubtotal.toFixed(2)} + 送料: €<input type="number" class="shipping-input" value="${shipping}" onchange="updateShippingModal('${escapeJs(shopName)}', this.value)" step="0.01" min="0">
             </div>
             <div style="font-weight:700;">
                 €${shopTotal.toFixed(2)} ≒ ¥${Math.round(shopTotal * currentRate).toLocaleString()}
@@ -1324,8 +1330,8 @@ function renderSavedLists() {
         itemDiv.className = 'saved-list-item';
         itemDiv.innerHTML = `
             <span><strong>${escapeHtml(name)}</strong> (${itemCount}点) <span style="color:#9ca3af; font-size:0.75rem;">${savedDate}</span></span>
-            <button class="load-btn" onclick="loadSavedList('${escapeHtml(name)}')">読込</button>
-            <button class="delete-saved-btn" onclick="deleteSavedList('${escapeHtml(name)}')">削除</button>
+            <button class="load-btn" onclick="loadSavedList('${escapeJs(name)}')">読込</button>
+            <button class="delete-saved-btn" onclick="deleteSavedList('${escapeJs(name)}')">削除</button>
         `;
         container.appendChild(itemDiv);
     });
