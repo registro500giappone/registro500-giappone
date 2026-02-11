@@ -302,7 +302,7 @@ function renderSpotMarkers(spots) {
       .addTo(map)
       .bindPopup('<b>' + escapeHtml(s.name) + '</b><br>'
         + (s.registration_count || 0) + '人登録<br>'
-        + '<a href="#" onclick="showSpotDetail(\'' + s.spot_id + '\'); return false;">詳細を見る</a>');
+        + '<a href="#" onclick="switchToSpotsTab();showSpotDetail(\'' + s.spot_id + '\'); return false;">詳細を見る</a>');
     markers[s.spot_id] = marker;
   });
 }
@@ -506,10 +506,15 @@ function showNearbyCheck(lat, lng) {
 // スポット詳細モーダル
 // =================================================
 async function showSpotDetail(spotId) {
-  var modal = document.getElementById('detailModal');
-  var body = document.getElementById('detailBody');
-  body.innerHTML = '<div class="loading-spinner">読み込み中...</div>';
-  modal.classList.add('show');
+  var listEl = document.getElementById('spotList');
+  var detailEl = document.getElementById('spotDetail');
+  var filterEl = document.getElementById('filterCategory').parentElement;
+
+  // 一覧を隠して詳細を表示
+  listEl.style.display = 'none';
+  filterEl.style.display = 'none';
+  detailEl.style.display = 'block';
+  detailEl.innerHTML = '<div class="loading-spinner">読み込み中...</div>';
 
   try {
     var res = await apiGet({ mode: 'spot_detail', spot_id: spotId });
@@ -547,33 +552,42 @@ async function showSpotDetail(spotId) {
 
     var searchQuery = encodeURIComponent(s.name + (s.address ? ' ' + s.address : ''));
 
-    var html = '<h3>' + icon + ' ' + escapeHtml(s.name) + '</h3>'
-      + '<p><span class="spot-card-badge">' + label + '</span> '
-      + (s.registration_count || 0) + '人登録</p>'
-      + (s.address ? '<p style="font-size:0.85rem;color:var(--text-sub)">' + escapeHtml(s.address) + '</p>' : '');
+    // 自分の登録かチェック
+    var myFav = currentUser && currentUser.documentId
+      ? myFavorites.find(function(f) { return f.spot_id === spotId; })
+      : null;
 
-    // Google Mapリンク（スポット名で検索）
-    html += '<div style="margin:10px 0">'
+    // ヘッダー（戻るボタン + 編集ボタン）
+    var html = '<div style="display:flex;align-items:center;margin-bottom:8px">'
+      + '<a href="#" onclick="closeSpotDetail();return false" style="color:var(--accent);font-size:0.82rem;text-decoration:none">← 一覧に戻る</a>'
+      + '<span style="flex:1"></span>';
+    if (myFav) {
+      html += '<button class="btn-secondary" style="font-size:0.72rem;padding:4px 10px" onclick="editMyFavorite(\'' + spotId + '\')">編集</button>';
+    }
+    html += '</div>';
+
+    html += '<h3 style="margin:0 0 6px">' + icon + ' ' + escapeHtml(s.name) + '</h3>'
+      + '<p style="margin:0 0 6px"><span class="spot-card-badge">' + label + '</span> '
+      + (s.registration_count || 0) + '人登録</p>'
+      + (s.address ? '<p style="font-size:0.85rem;color:var(--text-sub);margin:0 0 8px">' + escapeHtml(s.address) + '</p>' : '');
+
+    // Google Mapリンク
+    html += '<div style="margin-bottom:12px">'
       + '<a href="https://www.google.com/maps/search/' + searchQuery + '" target="_blank" rel="noopener" class="btn-secondary" style="text-decoration:none;font-size:0.78rem">📍 Google Mapで見る</a>'
       + '</div>';
 
-    // 出没登録ボタン（ログイン中のみ）
-    if (currentUser && currentUser.documentId) {
-      var myFav = myFavorites.find(function(f) { return f.spot_id === spotId; });
-      if (myFav) {
-        html += '<button class="btn-danger" style="margin:8px 0" onclick="removeFavorite(\'' + spotId + '\')">出没登録を解除</button>';
-      } else {
-        html += '<button class="btn-primary" style="margin:8px 0" onclick="addFavorite(\'' + spotId + '\')">出没スポットに登録</button>';
-      }
+    // 出没スポットに登録ボタン（未登録の場合のみ）
+    if (currentUser && currentUser.documentId && !myFav) {
+      html += '<button class="btn-primary" style="margin-bottom:12px;font-size:0.82rem;padding:8px 16px" onclick="addFavorite(\'' + spotId + '\')">出没スポットに登録</button>';
     }
 
     // 登録者一覧
     if (s.favorites && s.favorites.length > 0) {
-      html += '<h4 style="margin-top:16px;font-size:0.9rem">出没メンバー</h4>';
+      html += '<h4 style="margin:12px 0 6px;font-size:0.88rem">出没メンバー</h4>';
       s.favorites.forEach(function(f) {
         var displayName = nameMap[f.owner_document_id] || f.owner_document_id;
         html += '<div class="schedule-card">'
-          + '<div style="font-weight:600">' + escapeHtml(displayName) + '</div>'
+          + '<div style="font-weight:600;font-size:0.85rem">' + escapeHtml(displayName) + '</div>'
           + (f.comment ? '<div class="schedule-meta">' + escapeHtml(f.comment) + '</div>' : '')
           + '</div>';
       });
@@ -581,7 +595,7 @@ async function showSpotDetail(spotId) {
 
     // 出没予定
     if (s.schedules && s.schedules.length > 0) {
-      html += '<h4 style="margin-top:16px;font-size:0.9rem">今後の出没予定</h4>';
+      html += '<h4 style="margin:12px 0 6px;font-size:0.88rem">今後の出没予定</h4>';
       s.schedules.forEach(function(sc) {
         var displayName = nameMap[sc.owner_document_id] || sc.owner_document_id;
         var dateLabel = formatDateWithDay(sc.visit_date);
@@ -594,10 +608,60 @@ async function showSpotDetail(spotId) {
       });
     }
 
-    body.innerHTML = html;
+    detailEl.innerHTML = html;
   } catch(err) {
-    body.innerHTML = '<div class="empty-state"><div class="empty-state-text">エラー: ' + err.message + '</div></div>';
+    detailEl.innerHTML = '<div style="margin-bottom:8px"><a href="#" onclick="closeSpotDetail();return false" style="color:var(--accent);font-size:0.82rem;text-decoration:none">← 一覧に戻る</a></div>'
+      + '<div class="empty-state"><div class="empty-state-text">エラー: ' + err.message + '</div></div>';
   }
+}
+
+function closeSpotDetail() {
+  document.getElementById('spotList').style.display = '';
+  document.getElementById('filterCategory').parentElement.style.display = '';
+  document.getElementById('spotDetail').style.display = 'none';
+  // 地図を全体表示に戻す
+  map.setView([37, 137], 7);
+}
+
+function editMyFavorite(spotId) {
+  var fav = myFavorites.find(function(f) { return f.spot_id === spotId; });
+  if (!fav) return;
+  // 編集画面を詳細エリアに表示
+  var detailEl = document.getElementById('spotDetail');
+  var html = '<div style="display:flex;align-items:center;margin-bottom:12px">'
+    + '<a href="#" onclick="showSpotDetail(\'' + spotId + '\');return false" style="color:var(--accent);font-size:0.82rem;text-decoration:none">← 戻る</a>'
+    + '<span style="flex:1"></span>'
+    + '</div>';
+  html += '<h4 style="margin:0 0 12px;font-size:0.95rem">出没登録の編集</h4>';
+  html += '<div class="spot-form" style="padding:0">';
+  html += '<label>コメント</label>';
+  html += '<textarea id="editFavComment" rows="2" placeholder="例: 週末によく寄ります">' + escapeHtml(fav.comment || '') + '</textarea>';
+  html += '<div style="display:flex;gap:8px;margin-top:4px">';
+  html += '<button class="btn-primary" style="flex:1" onclick="saveMyFavorite(\'' + spotId + '\')">保存</button>';
+  html += '<button class="btn-danger" style="flex-shrink:0" onclick="confirmDeleteFavorite(\'' + spotId + '\')">削除</button>';
+  html += '</div></div>';
+  detailEl.innerHTML = html;
+}
+
+function saveMyFavorite(spotId) {
+  var fav = myFavorites.find(function(f) { return f.spot_id === spotId; });
+  if (!fav) return;
+  var comment = document.getElementById('editFavComment').value.trim();
+  apiPost('updateFavoriteSpot', {
+    favorite_id: fav.favorite_id,
+    owner_document_id: currentUser.documentId,
+    comment: comment
+  }).then(function(res) {
+    if (!res.success) throw new Error(res.error);
+    fav.comment = comment;
+    showSpotDetail(spotId);
+    loadMyFavorites();
+  }).catch(function(err) { alert('エラー: ' + err.message); });
+}
+
+function confirmDeleteFavorite(spotId) {
+  if (!confirm('この出没登録を削除しますか？')) return;
+  removeFavorite(spotId);
 }
 
 function closeDetailModal() {
@@ -659,8 +723,16 @@ function removeFavorite(spotId) {
   }).then(function(res) {
     if (!res.success) throw new Error(res.error);
     loadMyFavorites();
-    closeDetailModal();
+    closeSpotDetail();
   }).catch(function(err) { alert('エラー: ' + err.message); });
+}
+
+function switchToSpotsTab() {
+  document.querySelectorAll('.sidebar-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.sidebar-section').forEach(function(s) { s.classList.remove('active'); });
+  document.querySelector('[data-target="sectionSpots"]').classList.add('active');
+  document.getElementById('sectionSpots').classList.add('active');
+  activeMainTab = 'sectionSpots';
 }
 
 // =================================================
