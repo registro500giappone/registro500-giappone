@@ -117,7 +117,7 @@ function initMap() {
     minZoom: 5,
     zoomSnap: 0.5,
     zoomDelta: 0.5
-  }).setView([36.5, 138], 6);
+  }).setView([37, 137], 7);
 
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
@@ -126,10 +126,7 @@ function initMap() {
     noWrap: true
   }).addTo(map);
 
-  setTimeout(function() {
-    map.invalidateSize();
-    map.fitBounds([[31, 130], [45.5, 146]], { padding: [20, 20] });
-  }, 300);
+  setTimeout(function() { map.invalidateSize(); }, 300);
 
   // 地図クリック — 新規登録タブが表示中なら常に有効
   map.on('click', function(e) {
@@ -525,12 +522,11 @@ function showSpotDetail(spotId) {
       + (s.registration_count || 0) + '人登録</p>'
       + (s.address ? '<p style="font-size:0.85rem;color:var(--text-sub)">' + escapeHtml(s.address) + '</p>' : '');
 
-    // ストリートビュー
+    // ストリートビュー・地図リンク
     if (s.latitude && s.longitude) {
-      html += '<div style="margin:10px 0">'
-        + '<iframe src="https://www.google.com/maps/embed/v1/streetview?key=' + FIREBASE_CONFIG.apiKey
-        + '&location=' + s.latitude + ',' + s.longitude
-        + '&heading=0&pitch=0&fov=90" width="100%" height="200" style="border:0;border-radius:8px" allowfullscreen loading="lazy"></iframe>'
+      html += '<div style="margin:10px 0;display:flex;gap:8px">'
+        + '<a href="https://www.google.com/maps/@' + s.latitude + ',' + s.longitude + ',17z/data=!3m1!4b1" target="_blank" rel="noopener" class="btn-secondary" style="text-decoration:none;font-size:0.78rem">📍 Google Map</a>'
+        + '<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + s.latitude + ',' + s.longitude + '" target="_blank" rel="noopener" class="btn-secondary" style="text-decoration:none;font-size:0.78rem">🔭 ストリートビュー</a>'
         + '</div>';
     }
 
