@@ -505,13 +505,14 @@ function showNearbyCheck(lat, lng) {
 // =================================================
 // スポット詳細モーダル
 // =================================================
-function showSpotDetail(spotId) {
+async function showSpotDetail(spotId) {
   var modal = document.getElementById('detailModal');
   var body = document.getElementById('detailBody');
   body.innerHTML = '<div class="loading-spinner">読み込み中...</div>';
   modal.classList.add('show');
 
-  apiGet({ mode: 'spot_detail', spot_id: spotId }).then(function(res) {
+  try {
+    var res = await apiGet({ mode: 'spot_detail', spot_id: spotId });
     if (!res.success) throw new Error(res.error);
     var s = res.data;
     var icon = CATEGORY_ICONS[s.category] || '📍';
@@ -520,6 +521,28 @@ function showSpotDetail(spotId) {
     // 地図をこのスポットにズーム
     if (s.latitude && s.longitude) {
       map.setView([s.latitude, s.longitude], 16);
+    }
+
+    // ハンドルネーム解決（Supabaseから直接取得）
+    var ownerIds = [];
+    (s.favorites || []).forEach(function(f) {
+      if (ownerIds.indexOf(f.owner_document_id) === -1) ownerIds.push(f.owner_document_id);
+    });
+    (s.schedules || []).forEach(function(sc) {
+      if (ownerIds.indexOf(sc.owner_document_id) === -1) ownerIds.push(sc.owner_document_id);
+    });
+
+    var nameMap = {};
+    if (supabaseClient && ownerIds.length > 0) {
+      var carsResult = await supabaseClient
+        .from('cars')
+        .select('document_id,handle_name')
+        .in('document_id', ownerIds);
+      if (carsResult.data) {
+        carsResult.data.forEach(function(c) {
+          if (c.handle_name) nameMap[c.document_id] = c.handle_name;
+        });
+      }
     }
 
     var searchQuery = encodeURIComponent(s.name + (s.address ? ' ' + s.address : ''));
@@ -548,8 +571,9 @@ function showSpotDetail(spotId) {
     if (s.favorites && s.favorites.length > 0) {
       html += '<h4 style="margin-top:16px;font-size:0.9rem">出没メンバー</h4>';
       s.favorites.forEach(function(f) {
+        var displayName = nameMap[f.owner_document_id] || f.owner_document_id;
         html += '<div class="schedule-card">'
-          + '<div style="font-weight:600">' + escapeHtml(f.handle_name || f.owner_document_id) + '</div>'
+          + '<div style="font-weight:600">' + escapeHtml(displayName) + '</div>'
           + (f.comment ? '<div class="schedule-meta">' + escapeHtml(f.comment) + '</div>' : '')
           + '</div>';
       });
@@ -559,20 +583,21 @@ function showSpotDetail(spotId) {
     if (s.schedules && s.schedules.length > 0) {
       html += '<h4 style="margin-top:16px;font-size:0.9rem">今後の出没予定</h4>';
       s.schedules.forEach(function(sc) {
+        var displayName = nameMap[sc.owner_document_id] || sc.owner_document_id;
         var dateLabel = formatDateWithDay(sc.visit_date);
         var timeLabel = formatTimeSlot(sc.visit_time_slot);
         html += '<div class="schedule-card">'
           + '<div class="schedule-date">' + dateLabel + (timeLabel ? ' ' + timeLabel : '') + '</div>'
-          + '<div class="schedule-meta">' + escapeHtml(sc.handle_name || sc.owner_document_id)
+          + '<div class="schedule-meta">' + escapeHtml(displayName)
           + (sc.comment ? ' — ' + escapeHtml(sc.comment) : '') + '</div>'
           + '</div>';
       });
     }
 
     body.innerHTML = html;
-  }).catch(function(err) {
+  } catch(err) {
     body.innerHTML = '<div class="empty-state"><div class="empty-state-text">エラー: ' + err.message + '</div></div>';
-  });
+  }
 }
 
 function closeDetailModal() {
@@ -791,23 +816,50 @@ function schedLoadData() {
     });
 }
 
-function schedEnrichWithSpotNames(callback) {
-  var ids = [];
+async function schedEnrichWithSpotNames(callback) {
+  // スポット名を取得
+  var spotIds = [];
   schedData.forEach(function(sc) {
-    if (ids.indexOf(sc.spot_id) === -1) ids.push(sc.spot_id);
+    if (spotIds.indexOf(sc.spot_id) === -1) spotIds.push(sc.spot_id);
   });
-  if (ids.length === 0) { callback(); return; }
+  if (spotIds.length > 0) {
+    try {
+      var res = await apiGet({ mode: 'spots' });
+      if (res.success) {
+        var spotMap = {};
+        (res.data || []).forEach(function(s) { spotMap[s.spot_id] = s; });
+        schedData.forEach(function(sc) {
+          var s = spotMap[sc.spot_id];
+          if (s) { sc.spot_name = s.name; sc.spot_category = s.category; }
+        });
+      }
+    } catch(e) {}
+  }
 
-  apiGet({ mode: 'spots' }).then(function(res) {
-    if (!res.success) { callback(); return; }
-    var spotMap = {};
-    (res.data || []).forEach(function(s) { spotMap[s.spot_id] = s; });
-    schedData.forEach(function(sc) {
-      var s = spotMap[sc.spot_id];
-      if (s) { sc.spot_name = s.name; sc.spot_category = s.category; }
-    });
-    callback();
-  }).catch(function() { callback(); });
+  // ハンドルネームを取得（Supabase carsテーブルから）
+  var ownerIds = [];
+  schedData.forEach(function(sc) {
+    if (ownerIds.indexOf(sc.owner_document_id) === -1) ownerIds.push(sc.owner_document_id);
+  });
+  if (supabaseClient && ownerIds.length > 0) {
+    try {
+      var carsResult = await supabaseClient
+        .from('cars')
+        .select('document_id,handle_name')
+        .in('document_id', ownerIds);
+      if (carsResult.data) {
+        carsResult.data.forEach(function(c) {
+          if (c.handle_name) {
+            schedData.forEach(function(sc) {
+              if (sc.owner_document_id === c.document_id) sc.handle_name = c.handle_name;
+            });
+          }
+        });
+      }
+    } catch(e) {}
+  }
+
+  callback();
 }
 
 function schedFillCalendar() {
