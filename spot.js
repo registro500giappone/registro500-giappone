@@ -179,12 +179,20 @@ function switchSidebarTab(target) {
 }
 
 // =================================================
-// ヘッダーボタン: 新規登録
+// ヘッダーボタン: 新規登録 / 予定登録（モードで切替）
 // =================================================
+function headerAddAction() {
+  if (scheduleFullViewActive) {
+    // 出没予報モード → 予定登録モーダルを開く
+    openScheduleModal();
+  } else {
+    // 出没スポットモード → 新規登録セクションに切替
+    switchSidebarTab('sectionAdd');
+  }
+}
+
 function headerOpenAdd() {
-  // 出没予報モードを閉じる
   if (scheduleFullViewActive) switchMode('spots');
-  // サイドバーを新規登録セクションに切替
   switchSidebarTab('sectionAdd');
 }
 
@@ -206,7 +214,7 @@ function switchMode(mode) {
     fullView.style.display = 'block';
     btnSpots.classList.remove('active');
     btnSchedule.classList.add('active');
-    btnAdd.style.display = 'none';
+    btnAdd.textContent = '+ 予定登録';
     initScheduleTab();
   } else {
     scheduleFullViewActive = false;
@@ -214,7 +222,7 @@ function switchMode(mode) {
     fullView.style.display = 'none';
     btnSpots.classList.add('active');
     btnSchedule.classList.remove('active');
-    btnAdd.style.display = '';
+    btnAdd.textContent = '+ 新規登録';
     setTimeout(function() { map.invalidateSize(); }, 100);
   }
 }
