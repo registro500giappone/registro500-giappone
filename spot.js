@@ -529,10 +529,9 @@ function showSpotDetail(spotId) {
       + (s.registration_count || 0) + '人登録</p>'
       + (s.address ? '<p style="font-size:0.85rem;color:var(--text-sub)">' + escapeHtml(s.address) + '</p>' : '');
 
-    // Google Map・ストリートビューリンク（スポット名で検索）
-    html += '<div style="margin:10px 0;display:flex;gap:8px">'
-      + '<a href="https://www.google.com/maps/search/' + searchQuery + '" target="_blank" rel="noopener" class="btn-secondary" style="text-decoration:none;font-size:0.78rem">📍 Google Map</a>'
-      + '<a href="https://www.google.com/maps/search/' + searchQuery + '&layer=streetview" target="_blank" rel="noopener" class="btn-secondary" style="text-decoration:none;font-size:0.78rem">🔭 ストリートビュー</a>'
+    // Google Mapリンク（スポット名で検索）
+    html += '<div style="margin:10px 0">'
+      + '<a href="https://www.google.com/maps/search/' + searchQuery + '" target="_blank" rel="noopener" class="btn-secondary" style="text-decoration:none;font-size:0.78rem">📍 Google Mapで見る</a>'
       + '</div>';
 
     // 出没登録ボタン（ログイン中のみ）
