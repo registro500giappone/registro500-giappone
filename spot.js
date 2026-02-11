@@ -139,22 +139,10 @@ function initMap() {
 // タブ制御
 // =================================================
 function initTabs() {
-  // メインタブ
+  // サイドバータブ（一覧 / マイ出没）
   document.querySelectorAll('.sidebar-tab').forEach(function(tab) {
     tab.addEventListener('click', function() {
-      document.querySelectorAll('.sidebar-tab').forEach(function(t) { t.classList.remove('active'); });
-      document.querySelectorAll('.sidebar-section').forEach(function(s) { s.classList.remove('active'); });
-      tab.classList.add('active');
-      var target = tab.dataset.target;
-      document.getElementById(target).classList.add('active');
-      activeMainTab = target;
-
-      // 登録タブ選択時のみ十字カーソル表示
-      var crosshair = document.getElementById('crosshair');
-      if (crosshair) crosshair.style.display = (target === 'sectionAdd') ? 'block' : 'none';
-
-      // 出没予報タブを初回表示時に初期化
-      if (target === 'sectionSchedule') initScheduleTab();
+      switchSidebarTab(tab.dataset.target);
     });
   });
 
@@ -174,6 +162,53 @@ function initTabs() {
     searchInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') { e.preventDefault(); searchPlace(); }
     });
+  }
+}
+
+function switchSidebarTab(target) {
+  document.querySelectorAll('.sidebar-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.sidebar-section').forEach(function(s) { s.classList.remove('active'); });
+  var tabBtn = document.querySelector('.sidebar-tab[data-target="' + target + '"]');
+  if (tabBtn) tabBtn.classList.add('active');
+  document.getElementById(target).classList.add('active');
+  activeMainTab = target;
+
+  // 登録タブ選択時のみ十字カーソル表示
+  var crosshair = document.getElementById('crosshair');
+  if (crosshair) crosshair.style.display = (target === 'sectionAdd') ? 'block' : 'none';
+}
+
+// =================================================
+// ヘッダーボタン: 新規登録
+// =================================================
+function headerOpenAdd() {
+  // 出没予報モードを閉じる
+  if (scheduleFullViewActive) headerToggleSchedule();
+  // サイドバーを新規登録セクションに切替
+  switchSidebarTab('sectionAdd');
+}
+
+// =================================================
+// ヘッダーボタン: 出没予報トグル
+// =================================================
+var scheduleFullViewActive = false;
+
+function headerToggleSchedule() {
+  scheduleFullViewActive = !scheduleFullViewActive;
+  var mapEl = document.getElementById('spotMap');
+  var fullView = document.getElementById('scheduleFullView');
+  var btn = document.getElementById('btnHeaderSchedule');
+
+  if (scheduleFullViewActive) {
+    mapEl.style.display = 'none';
+    fullView.style.display = 'block';
+    btn.classList.add('active');
+    initScheduleTab();
+  } else {
+    mapEl.style.display = '';
+    fullView.style.display = 'none';
+    btn.classList.remove('active');
+    setTimeout(function() { map.invalidateSize(); }, 100);
   }
 }
 
@@ -229,21 +264,42 @@ async function lookupDocumentId(email) {
 }
 
 // =================================================
-// API呼び出し（GAS バックエンド用）
+// API呼び出し（GAS バックエンド用）+ ローディングバー連動
 // =================================================
+var _loadingCount = 0;
+
+function showLoading() {
+  _loadingCount++;
+  var bar = document.getElementById('loadingBar');
+  if (bar) bar.classList.add('active');
+}
+
+function hideLoading() {
+  _loadingCount = Math.max(0, _loadingCount - 1);
+  if (_loadingCount === 0) {
+    var bar = document.getElementById('loadingBar');
+    if (bar) bar.classList.remove('active');
+  }
+}
+
 function apiGet(params) {
+  showLoading();
   var qs = Object.keys(params).map(function(k) {
     return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
   }).join('&');
-  return fetch(API_URL + '?' + qs).then(function(r) { return r.json(); });
+  return fetch(API_URL + '?' + qs)
+    .then(function(r) { return r.json(); })
+    .finally(hideLoading);
 }
 
 function apiPost(action, data) {
+  showLoading();
   return fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: action, data: data })
-  }).then(function(r) { return r.json(); });
+  }).then(function(r) { return r.json(); })
+    .finally(hideLoading);
 }
 
 // =================================================
@@ -791,11 +847,7 @@ function removeFavorite(spotId) {
 }
 
 function switchToSpotsTab() {
-  document.querySelectorAll('.sidebar-tab').forEach(function(t) { t.classList.remove('active'); });
-  document.querySelectorAll('.sidebar-section').forEach(function(s) { s.classList.remove('active'); });
-  document.querySelector('[data-target="sectionSpots"]').classList.add('active');
-  document.getElementById('sectionSpots').classList.add('active');
-  activeMainTab = 'sectionSpots';
+  switchSidebarTab('sectionSpots');
 }
 
 // =================================================

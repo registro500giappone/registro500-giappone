@@ -46,10 +46,14 @@
 <header class="spot-header">
   <a href="index.html" class="back-link">← トップ</a>
   <h1>出没スポット</h1>
+  <button class="btn-header" id="btnHeaderAdd" onclick="headerOpenAdd()">+ 新規登録</button>
+  <button class="btn-header" id="btnHeaderSchedule" onclick="headerToggleSchedule()">📅 出没予報</button>
   <span id="authStatus" style="font-size:0.78rem;color:var(--text-sub)"></span>
   <button id="btnLogin" class="btn-secondary" onclick="doLogin()" style="display:none;font-size:0.78rem">ログイン</button>
   <button id="btnLogout" class="btn-secondary" onclick="doLogout()" style="display:none;font-size:0.78rem">ログアウト</button>
 </header>
+<!-- ===== ローディングバー ===== -->
+<div id="loadingBar" class="loading-bar"></div>
 
 <!-- ===== メインレイアウト ===== -->
 <div class="spot-layout">
@@ -57,10 +61,8 @@
   <!-- サイドバー -->
   <aside class="spot-sidebar">
     <div class="sidebar-tabs">
-      <button class="sidebar-tab active" data-target="sectionSpots">スポット一覧</button>
+      <button class="sidebar-tab active" data-target="sectionSpots">一覧</button>
       <button class="sidebar-tab" data-target="sectionMySpots">マイ出没</button>
-      <button class="sidebar-tab" data-target="sectionAdd">新規登録</button>
-      <button class="sidebar-tab" data-target="sectionSchedule">出没予報</button>
     </div>
 
     <!-- タブ1: スポット一覧 -->
@@ -157,31 +159,33 @@
         </button>
       </div>
     </div>
-    <!-- タブ4: 出没予報 -->
-    <div id="sectionSchedule" class="sidebar-section">
-      <div class="sidebar-content">
-        <!-- 週ナビ -->
-        <div class="sched-week-nav">
-          <button onclick="schedChangeWeek(-1)">&lt; 前の週</button>
-          <div class="sched-week-label" id="schedWeekLabel"></div>
-          <button onclick="schedChangeWeek(1)">次の週 &gt;</button>
-        </div>
-
-        <!-- 週間カレンダー -->
-        <div class="sched-week-grid" id="schedWeekGrid"></div>
-
-        <!-- 今後の予定一覧 -->
-        <h3 style="font-size:0.9rem;font-weight:700;margin:16px 0 8px">今後の出没予定</h3>
-        <div id="scheduleList"></div>
-      </div>
-    </div>
-
   </aside>
 
   <!-- 地図エリア -->
   <div class="spot-map-area">
     <div id="spotMap"></div>
     <div id="crosshair" class="new-spot-crosshair">+</div>
+
+    <!-- 出没予報フルビュー（地図と切り替え表示） -->
+    <div id="scheduleFullView" class="schedule-full-view" style="display:none">
+      <div class="schedule-full-inner">
+        <div class="schedule-full-header">
+          <h2>📅 出没予報</h2>
+          <button class="btn-secondary" onclick="headerToggleSchedule()">✕ 閉じる</button>
+        </div>
+        <!-- 週ナビ -->
+        <div class="sched-week-nav">
+          <button onclick="schedChangeWeek(-1)">&lt; 前の週</button>
+          <div class="sched-week-label" id="schedWeekLabel"></div>
+          <button onclick="schedChangeWeek(1)">次の週 &gt;</button>
+        </div>
+        <!-- 週間カレンダー（大きい版） -->
+        <div class="sched-week-grid-full" id="schedWeekGrid"></div>
+        <!-- 今後の予定一覧 -->
+        <h3 style="font-size:1rem;font-weight:700;margin:20px 0 10px">今後の出没予定</h3>
+        <div id="scheduleList"></div>
+      </div>
+    </div>
   </div>
 </div>
 

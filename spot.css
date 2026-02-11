@@ -40,9 +40,40 @@ body {
 }
 .spot-header .back-link:hover { background: var(--accent-soft); }
 
+/* ===== ヘッダーボタン ===== */
+.btn-header {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 6px 14px; background: var(--accent-soft); color: var(--accent);
+  border: 1px solid var(--accent-border); border-radius: 20px;
+  font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  white-space: nowrap; transition: background 0.2s;
+}
+.btn-header:hover { background: var(--accent); color: #fff; }
+.btn-header.active {
+  background: var(--accent); color: #fff;
+}
+
+/* ===== ローディングバー ===== */
+.loading-bar {
+  height: 3px; width: 100%; position: relative;
+  background: var(--border-soft); overflow: hidden;
+  opacity: 0; transition: opacity 0.2s;
+}
+.loading-bar.active { opacity: 1; }
+.loading-bar::after {
+  content: ''; position: absolute;
+  top: 0; left: -40%; width: 40%; height: 100%;
+  background: var(--accent);
+  animation: loading-slide 1.2s ease-in-out infinite;
+}
+@keyframes loading-slide {
+  0% { left: -40%; }
+  100% { left: 100%; }
+}
+
 /* ===== レイアウト ===== */
 .spot-layout {
-  display: flex; height: calc(100vh - 52px);
+  display: flex; height: calc(100vh - 55px);
 }
 .spot-sidebar {
   width: 360px; background: var(--card-bg);
@@ -254,12 +285,52 @@ body {
   white-space: nowrap; text-overflow: ellipsis;
 }
 
+/* ===== 出没予報フルビュー ===== */
+.schedule-full-view {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: var(--bg-main); z-index: 400;
+  overflow-y: auto;
+}
+.schedule-full-inner {
+  max-width: 900px; margin: 0 auto; padding: 24px;
+}
+.schedule-full-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.schedule-full-header h2 {
+  margin: 0; font-size: 1.2rem; font-weight: 700;
+}
+.sched-week-grid-full {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 6px; margin-bottom: 16px;
+}
+.sched-week-grid-full .sched-day-cell {
+  min-height: 120px; padding: 8px;
+}
+.sched-week-grid-full .sched-day-header {
+  font-size: 0.78rem; margin-bottom: 4px;
+}
+.sched-week-grid-full .sched-day-number {
+  font-size: 1rem; margin-bottom: 6px;
+}
+.sched-week-grid-full .sched-day-entry {
+  font-size: 0.75rem; padding: 3px 6px; margin-bottom: 4px;
+  white-space: normal; word-break: break-all;
+}
+
 /* ===== レスポンシブ ===== */
 @media (max-width: 767px) {
+  .spot-header { flex-wrap: wrap; gap: 8px; }
+  .spot-header h1 { flex: 1 1 100%; order: -1; }
+  .btn-header { font-size: 0.72rem; padding: 5px 10px; }
   .spot-layout { flex-direction: column-reverse; height: auto; }
   .spot-sidebar { width: 100%; height: 50vh; border-right: none; border-top: 1px solid var(--border-soft); }
   .spot-map-area { height: 50vh; }
   .spot-modal { width: 95%; max-width: none; }
+  .schedule-full-inner { padding: 16px; }
+  .sched-week-grid-full .sched-day-cell { min-height: 80px; padding: 4px; }
+  .sched-week-grid-full .sched-day-entry { font-size: 0.65rem; }
 }
 
 /* ===== ダークモード ===== */
