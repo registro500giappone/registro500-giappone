@@ -587,7 +587,7 @@ async function showSpotDetail(spotId) {
       s.favorites.forEach(function(f) {
         var displayName = nameMap[f.owner_document_id] || f.owner_document_id;
         html += '<div class="schedule-card">'
-          + '<div style="font-weight:600;font-size:0.85rem">' + escapeHtml(displayName) + '</div>'
+          + '<div style="font-size:0.85rem">' + memberLink(f.owner_document_id, displayName) + '</div>'
           + (f.comment ? '<div class="schedule-meta">' + escapeHtml(f.comment) + '</div>' : '')
           + '</div>';
       });
@@ -602,7 +602,7 @@ async function showSpotDetail(spotId) {
         var timeLabel = formatTimeSlot(sc.visit_time_slot);
         html += '<div class="schedule-card">'
           + '<div class="schedule-date">' + dateLabel + (timeLabel ? ' ' + timeLabel : '') + '</div>'
-          + '<div class="schedule-meta">' + escapeHtml(displayName)
+          + '<div class="schedule-meta">' + memberLink(sc.owner_document_id, displayName)
           + (sc.comment ? ' — ' + escapeHtml(sc.comment) : '') + '</div>'
           + '</div>';
       });
@@ -626,16 +626,67 @@ function closeSpotDetail() {
 function editMyFavorite(spotId) {
   var fav = myFavorites.find(function(f) { return f.spot_id === spotId; });
   if (!fav) return;
-  // 編集画面を詳細エリアに表示
   var detailEl = document.getElementById('spotDetail');
+
+  var timeSlots = fav.time_slots || [];
+  var weekdays = fav.weekdays || [];
+
   var html = '<div style="display:flex;align-items:center;margin-bottom:12px">'
     + '<a href="#" onclick="showSpotDetail(\'' + spotId + '\');return false" style="color:var(--accent);font-size:0.82rem;text-decoration:none">← 戻る</a>'
-    + '<span style="flex:1"></span>'
     + '</div>';
   html += '<h4 style="margin:0 0 12px;font-size:0.95rem">出没登録の編集</h4>';
   html += '<div class="spot-form" style="padding:0">';
+
+  // コメント
   html += '<label>コメント</label>';
   html += '<textarea id="editFavComment" rows="2" placeholder="例: 週末によく寄ります">' + escapeHtml(fav.comment || '') + '</textarea>';
+
+  // よく行く時間帯
+  html += '<label>よく行く時間帯</label>';
+  html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">';
+  [['morning','朝'],['afternoon','昼'],['evening','夕方'],['night','夜']].forEach(function(ts) {
+    var checked = timeSlots.indexOf(ts[0]) !== -1 ? ' checked' : '';
+    html += '<label style="font-size:0.82rem;font-weight:400;display:flex;align-items:center;gap:4px">'
+      + '<input type="checkbox" class="editFavTimeSlot" value="' + ts[0] + '"' + checked + '>' + ts[1] + '</label>';
+  });
+  html += '</div>';
+
+  // 時間の補足
+  html += '<label>時間の補足</label>';
+  html += '<input type="text" id="editFavTimeComment" placeholder="例: 10時頃" value="' + escapeHtml(fav.time_comment || '') + '">';
+
+  // よく行く曜日
+  html += '<label>よく行く曜日</label>';
+  html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">';
+  [['mon','月'],['tue','火'],['wed','水'],['thu','木'],['fri','金'],['sat','土'],['sun','日']].forEach(function(wd) {
+    var checked = weekdays.indexOf(wd[0]) !== -1 ? ' checked' : '';
+    html += '<label style="font-size:0.82rem;font-weight:400;display:flex;align-items:center;gap:4px">'
+      + '<input type="checkbox" class="editFavWeekday" value="' + wd[0] + '"' + checked + '>' + wd[1] + '</label>';
+  });
+  html += '</div>';
+
+  // 頻度
+  html += '<label>頻度</label>';
+  html += '<select id="editFavFrequency">';
+  [['','未設定'],['weekly','毎週'],['biweekly','隔週'],['monthly','月1回'],['occasionally','たまに']].forEach(function(fr) {
+    var selected = (fav.frequency || '') === fr[0] ? ' selected' : '';
+    html += '<option value="' + fr[0] + '"' + selected + '>' + fr[1] + '</option>';
+  });
+  html += '</select>';
+
+  // 滞在時間
+  html += '<label>予定滞在時間（分）</label>';
+  html += '<input type="number" id="editFavDuration" placeholder="例: 60" min="0" max="1440" value="' + (fav.duration_minutes || '') + '">';
+
+  // 公開設定
+  html += '<label>公開設定</label>';
+  html += '<select id="editFavVisibility">';
+  [['public','公開'],['private','非公開']].forEach(function(v) {
+    var selected = (fav.visibility || 'public') === v[0] ? ' selected' : '';
+    html += '<option value="' + v[0] + '"' + selected + '>' + v[1] + '</option>';
+  });
+  html += '</select>';
+
   html += '<div style="display:flex;gap:8px;margin-top:4px">';
   html += '<button class="btn-primary" style="flex:1" onclick="saveMyFavorite(\'' + spotId + '\')">保存</button>';
   html += '<button class="btn-danger" style="flex-shrink:0" onclick="confirmDeleteFavorite(\'' + spotId + '\')">削除</button>';
@@ -646,16 +697,28 @@ function editMyFavorite(spotId) {
 function saveMyFavorite(spotId) {
   var fav = myFavorites.find(function(f) { return f.spot_id === spotId; });
   if (!fav) return;
-  var comment = document.getElementById('editFavComment').value.trim();
-  apiPost('updateFavoriteSpot', {
+
+  var timeSlots = [];
+  document.querySelectorAll('.editFavTimeSlot:checked').forEach(function(cb) { timeSlots.push(cb.value); });
+  var weekdays = [];
+  document.querySelectorAll('.editFavWeekday:checked').forEach(function(cb) { weekdays.push(cb.value); });
+
+  var payload = {
     favorite_id: fav.favorite_id,
     owner_document_id: currentUser.documentId,
-    comment: comment
-  }).then(function(res) {
+    comment: document.getElementById('editFavComment').value.trim(),
+    time_slots: timeSlots,
+    time_comment: document.getElementById('editFavTimeComment').value.trim(),
+    weekdays: weekdays,
+    frequency: document.getElementById('editFavFrequency').value,
+    duration_minutes: document.getElementById('editFavDuration').value ? Number(document.getElementById('editFavDuration').value) : null,
+    visibility: document.getElementById('editFavVisibility').value
+  };
+
+  apiPost('updateFavoriteSpot', payload).then(function(res) {
     if (!res.success) throw new Error(res.error);
-    fav.comment = comment;
-    showSpotDetail(spotId);
     loadMyFavorites();
+    showSpotDetail(spotId);
   }).catch(function(err) { alert('エラー: ' + err.message); });
 }
 
@@ -960,7 +1023,7 @@ function schedRenderList() {
     return '<div class="schedule-card">'
       + '<div class="schedule-date">' + dateLabel + (timeLabel ? ' ' + timeLabel : '') + '</div>'
       + '<div style="font-weight:600;margin:2px 0">' + icon + ' ' + escapeHtml(sc.spot_name || sc.spot_id) + '</div>'
-      + '<div class="schedule-meta">' + escapeHtml(sc.handle_name || sc.owner_document_id)
+      + '<div class="schedule-meta">' + memberLink(sc.owner_document_id, sc.handle_name || sc.owner_document_id)
       + (sc.visit_time_comment ? ' — ' + escapeHtml(sc.visit_time_comment) : '')
       + (sc.comment ? '<br>' + escapeHtml(sc.comment) : '') + '</div>'
       + (canDelete ? '<button class="btn-danger" style="margin-top:6px;font-size:0.72rem;padding:4px 10px" onclick="deleteSchedule(\'' + sc.schedule_id + '\')">削除</button>' : '')
@@ -1048,4 +1111,9 @@ function escapeHtml(str) {
   if (!str) return '';
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function memberLink(docId, displayName) {
+  return '<a href="detail.html?doc=' + encodeURIComponent(docId) + '" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:600">'
+    + escapeHtml(displayName) + '</a>';
 }
