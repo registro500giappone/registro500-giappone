@@ -55,6 +55,17 @@ function translateKeyword(keyword) {
     return []; // 同義語なし
 }
 
+// --- カテゴリ → サブカテゴリ マッピング ---
+const CATEGORY_MAP = {
+    "エンジン・吸排気": ["キャブレター", "ガスケット", "ピストン", "シリンダー", "マフラー", "エアフィルター", "オイルフィルター", "バルブ", "ポンプ"],
+    "駆動系・ミッション": ["クラッチ", "ギアボックス", "ドライブシャフト", "ケーブル", "ベアリング"],
+    "足回り・ブレーキ": ["ブレーキシュー", "ブレーキドラム", "ショックアブソーバー", "スプリング", "ホイール", "タイロッド", "ハブ"],
+    "電装・ライト・点火系": ["ヘッドライト", "テールライト", "ウインカー", "スターター", "オルタネーター", "点火プラグ", "ワイパー", "ホーン"],
+    "外装・ボディ・幌": ["バンパー", "ミラー", "ウェザーストリップ", "幌", "モール", "エンブレム", "ドアハンドル", "フェンダー"],
+    "内装・インテリア": ["シート", "カーペット", "ダッシュボード", "メーター", "ステアリング", "ペダル", "サンバイザー"],
+    "アクセサリー・その他": ["ステッカー", "キーホルダー", "カバー", "ボルト", "工具"]
+};
+
 // グローバル変数
 let currentRate = CONFIG.default_rate;
 let compareList = [];       // { uniqueId, partId, name, shop, priceExVat, pageUrl, imageUrl }
@@ -63,14 +74,23 @@ let currentOpenSection = null; // 現在開いているセクション
 let currentViewMode = 'shop'; // 'shop' または 'oem'
 let lastSearchResults = [];   // 最後の検索結果を保持（モード切替用）
 let lastTargetShops = [];     // 最後の検索対象ショップ
+let selectedCategory = null;  // 現在選択中のカテゴリ
 
 // --- 初期化 ---
 document.addEventListener('DOMContentLoaded', async () => {
     // ショップチェックボックスを動的生成（リンク付き）
     renderShopCheckboxes();
+    renderCategoryNav();
 
     await fetchCurrencyRate();
     loadListFromStorage();
+
+    // トレイ初期状態: モバイルまたはリスト空ならデフォルト閉じる
+    if (window.innerWidth < 1024 || compareList.length === 0) {
+        var tray = document.getElementById('comparison-tray');
+        tray.classList.add('collapsed');
+        document.body.classList.add('tray-collapsed');
+    }
 
     document.getElementById('search-btn').addEventListener('click', executeSearch);
     document.getElementById('keyword-input').addEventListener('keypress', (e) => {
@@ -103,6 +123,112 @@ function renderShopCheckboxes() {
         `;
         container.appendChild(label);
     });
+}
+
+// --- カテゴリナビゲーション ---
+function renderCategoryNav() {
+    var container = document.getElementById('category-nav');
+    if (!container) return;
+    container.innerHTML = '';
+
+    Object.keys(CATEGORY_MAP).forEach(function(catName) {
+        var subs = CATEGORY_MAP[catName];
+        var group = document.createElement('div');
+        group.className = 'cat-group';
+        group.dataset.category = catName;
+
+        var main = document.createElement('div');
+        main.className = 'cat-main';
+        main.innerHTML = '<span>' + catName + '</span><span class="cat-arrow">▶</span>';
+        main.onclick = function() { toggleCategory(catName); };
+        group.appendChild(main);
+
+        var subsDiv = document.createElement('div');
+        subsDiv.className = 'cat-subs';
+        subs.forEach(function(sub) {
+            var chip = document.createElement('span');
+            chip.className = 'cat-sub-chip';
+            chip.textContent = sub;
+            chip.onclick = function(e) {
+                e.stopPropagation();
+                selectSubcategory(catName, sub);
+            };
+            subsDiv.appendChild(chip);
+        });
+        group.appendChild(subsDiv);
+        container.appendChild(group);
+    });
+}
+
+function toggleCategory(catName) {
+    var allGroups = document.querySelectorAll('.cat-group');
+    var targetGroup = document.querySelector('.cat-group[data-category="' + catName + '"]');
+    if (!targetGroup) return;
+
+    var wasActive = selectedCategory === catName;
+
+    // 他のグループを閉じる
+    allGroups.forEach(function(g) {
+        if (g !== targetGroup) {
+            g.classList.remove('open');
+            g.querySelector('.cat-main').classList.remove('active');
+        }
+    });
+
+    if (wasActive) {
+        // 同じカテゴリをクリック → 解除
+        targetGroup.classList.remove('open');
+        targetGroup.querySelector('.cat-main').classList.remove('active');
+        selectedCategory = null;
+        updateCategoryBadge();
+    } else {
+        // 新しいカテゴリを選択
+        targetGroup.classList.add('open');
+        targetGroup.querySelector('.cat-main').classList.add('active');
+        selectedCategory = catName;
+        updateCategoryBadge();
+        executeSearch();
+    }
+}
+
+function selectSubcategory(catName, keyword) {
+    selectedCategory = catName;
+
+    // UIを更新
+    var allGroups = document.querySelectorAll('.cat-group');
+    allGroups.forEach(function(g) {
+        var isTarget = g.dataset.category === catName;
+        g.classList.toggle('open', isTarget);
+        g.querySelector('.cat-main').classList.toggle('active', isTarget);
+    });
+
+    // キーワード欄にサブカテゴリ名をセット
+    document.getElementById('keyword-input').value = keyword;
+    updateCategoryBadge();
+    executeSearch();
+}
+
+function clearCategory() {
+    selectedCategory = null;
+    var allGroups = document.querySelectorAll('.cat-group');
+    allGroups.forEach(function(g) {
+        g.classList.remove('open');
+        g.querySelector('.cat-main').classList.remove('active');
+    });
+    updateCategoryBadge();
+}
+
+function updateCategoryBadge() {
+    var badge = document.getElementById('active-category-badge');
+    if (!badge) return;
+
+    if (selectedCategory) {
+        badge.style.display = 'block';
+        badge.className = 'active-cat-badge';
+        badge.innerHTML = 'カテゴリ: ' + selectedCategory + ' <span class="clear-cat" onclick="clearCategory()">×</span>';
+    } else {
+        badge.style.display = 'none';
+    }
 }
 
 // --- その他車種のトグル ---
@@ -179,8 +305,8 @@ async function executeSearch() {
     const checkedShops = Array.from(document.querySelectorAll('input[name="shop"]:checked')).map(c => c.value);
     const all500Checked = document.getElementById('car-500-all').checked;
 
-    if (!keyword && checkedCars.length === 0 && !all500Checked) {
-        alert("検索キーワードを入力するか、車種を選択してください。");
+    if (!keyword && !selectedCategory && checkedCars.length === 0 && !all500Checked) {
+        alert("検索キーワードを入力するか、カテゴリ・車種を選択してください。");
         return;
     }
 
@@ -248,6 +374,11 @@ async function executeSearch() {
             query = query.or(carConditions.join(','));
         }
 
+        // カテゴリ絞り込み
+        if (selectedCategory) {
+            query = query.eq('category', selectedCategory);
+        }
+
         // ショップ絞り込み
         query = query.eq('shop_name', shopName);
 
@@ -288,6 +419,7 @@ async function executeSearch() {
 function saveSearchConditions(keyword, cars, shops, all500Checked, dbResults) {
     const conditions = {
         keyword, cars, shops, all500Checked, dbResults,
+        selectedCategory: selectedCategory,
         timestamp: Date.now()
     };
     sessionStorage.setItem('fiat500_search_conditions', JSON.stringify(conditions));
@@ -349,6 +481,17 @@ function loadSearchConditions() {
                 const shopCb = document.querySelector(`input[name="shop"][value="${shopValue}"]`);
                 if (shopCb) shopCb.checked = true;
             });
+        }
+
+        // カテゴリの復元
+        if (conditions.selectedCategory) {
+            selectedCategory = conditions.selectedCategory;
+            updateCategoryBadge();
+            var targetGroup = document.querySelector('.cat-group[data-category="' + selectedCategory + '"]');
+            if (targetGroup) {
+                targetGroup.classList.add('open');
+                targetGroup.querySelector('.cat-main').classList.add('active');
+            }
         }
 
         // 検索結果の復元

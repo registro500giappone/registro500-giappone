@@ -893,6 +893,91 @@
             margin-bottom: 4px;
         }
 
+        /* カテゴリナビゲーション */
+        .category-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .cat-group {
+            border-radius: 6px;
+        }
+        .cat-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 10px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #374151;
+            transition: background 0.15s;
+            user-select: none;
+        }
+        .cat-main:hover {
+            background: #f3f4f6;
+        }
+        .cat-main.active {
+            background: #eff6ff;
+            color: #2856a8;
+        }
+        .cat-main .cat-arrow {
+            font-size: 0.65rem;
+            color: #9ca3af;
+            transition: transform 0.2s;
+        }
+        .cat-group.open .cat-arrow {
+            transform: rotate(90deg);
+        }
+        .cat-subs {
+            display: none;
+            padding: 4px 0 8px 8px;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .cat-group.open .cat-subs {
+            display: flex;
+        }
+        .cat-sub-chip {
+            padding: 3px 9px;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .cat-sub-chip:hover {
+            background: #2856a8;
+            color: #fff;
+            border-color: #2856a8;
+        }
+        .active-cat-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            color: #2856a8;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .active-cat-badge .clear-cat {
+            cursor: pointer;
+            color: #93c5fd;
+            font-weight: bold;
+            transition: color 0.15s;
+        }
+        .active-cat-badge .clear-cat:hover {
+            color: #ef4444;
+        }
+
         /* スマホ用レスポンシブ (今回はPC優先だが、最低限崩れないように) */
         @media (max-width: 1024px) {
             .layout-container {
@@ -936,7 +1021,16 @@
             <div class="filter-section">
                 <label class="filter-label">キーワード / 品番</label>
                 <input type="text" id="keyword-input" class="search-input" placeholder="例: ガスケット, 4136894">
+                <div id="active-category-badge" style="display:none;"></div>
                 <button id="search-btn" class="search-btn">検索する</button>
+            </div>
+
+            <!-- カテゴリから探す -->
+            <div class="filter-section">
+                <label class="filter-label">カテゴリから探す</label>
+                <div id="category-nav" class="category-nav">
+                    <!-- JSで描画 -->
+                </div>
             </div>
 
             <!-- 車種選択 (階層構造) -->
