@@ -183,33 +183,45 @@ function switchSidebarTab(target) {
 // =================================================
 function headerOpenAdd() {
   // 出没予報モードを閉じる
-  if (scheduleFullViewActive) headerToggleSchedule();
+  if (scheduleFullViewActive) switchMode('spots');
   // サイドバーを新規登録セクションに切替
   switchSidebarTab('sectionAdd');
 }
 
 // =================================================
-// ヘッダーボタン: 出没予報トグル
+// モード切替: 出没スポット ⇔ 出没予報
 // =================================================
 var scheduleFullViewActive = false;
 
-function headerToggleSchedule() {
-  scheduleFullViewActive = !scheduleFullViewActive;
+function switchMode(mode) {
   var mapEl = document.getElementById('spotMap');
   var fullView = document.getElementById('scheduleFullView');
-  var btn = document.getElementById('btnHeaderSchedule');
+  var btnSpots = document.getElementById('btnModeSpots');
+  var btnSchedule = document.getElementById('btnModeSchedule');
+  var btnAdd = document.getElementById('btnHeaderAdd');
 
-  if (scheduleFullViewActive) {
+  if (mode === 'schedule') {
+    scheduleFullViewActive = true;
     mapEl.style.display = 'none';
     fullView.style.display = 'block';
-    btn.classList.add('active');
+    btnSpots.classList.remove('active');
+    btnSchedule.classList.add('active');
+    btnAdd.style.display = 'none';
     initScheduleTab();
   } else {
+    scheduleFullViewActive = false;
     mapEl.style.display = '';
     fullView.style.display = 'none';
-    btn.classList.remove('active');
+    btnSpots.classList.add('active');
+    btnSchedule.classList.remove('active');
+    btnAdd.style.display = '';
     setTimeout(function() { map.invalidateSize(); }, 100);
   }
+}
+
+// 後方互換: 既存のonclick参照用
+function headerToggleSchedule() {
+  switchMode(scheduleFullViewActive ? 'spots' : 'schedule');
 }
 
 // =================================================

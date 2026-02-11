@@ -33,7 +33,22 @@ body {
   position: sticky; top: 0; z-index: 1000;
   display: flex; align-items: center; gap: 12px;
 }
-.spot-header h1 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; flex: 1; }
+/* セグメントコントロール（モード切替） */
+.mode-toggle {
+  display: flex; background: var(--bg-main); border-radius: 8px;
+  padding: 3px; gap: 2px; flex: 1;
+}
+.mode-toggle-btn {
+  flex: 1; padding: 6px 14px; border: none; border-radius: 6px;
+  font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  background: transparent; color: var(--text-sub);
+  transition: background 0.2s, color 0.2s;
+  white-space: nowrap; text-align: center;
+}
+.mode-toggle-btn:hover { color: var(--text-main); }
+.mode-toggle-btn.active {
+  background: var(--accent); color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
 .spot-header .back-link {
   color: var(--accent); text-decoration: none; font-size: 0.85rem;
   padding: 4px 12px; border: 1px solid var(--border-soft); border-radius: 20px;
@@ -212,10 +227,17 @@ body {
   line-height: 1;
 }
 
+/* ===== 出没予定リスト（グリッド） ===== */
+#scheduleList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+}
+
 /* ===== 出没予定カード ===== */
 .schedule-card {
   background: var(--accent-soft); border: 1px solid var(--accent-border);
-  border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;
+  border-radius: 8px; padding: 8px 10px; margin-bottom: 0;
 }
 .schedule-date { font-weight: 700; font-size: 0.88rem; }
 .schedule-meta { font-size: 0.78rem; color: var(--text-sub); margin-top: 2px; }
@@ -292,14 +314,7 @@ body {
   overflow-y: auto;
 }
 .schedule-full-inner {
-  max-width: 900px; margin: 0 auto; padding: 24px;
-}
-.schedule-full-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 20px;
-}
-.schedule-full-header h2 {
-  margin: 0; font-size: 1.2rem; font-weight: 700;
+  max-width: 1100px; margin: 0 auto; padding: 24px;
 }
 .sched-week-grid-full {
   display: grid; grid-template-columns: repeat(7, 1fr);
@@ -322,7 +337,8 @@ body {
 /* ===== レスポンシブ ===== */
 @media (max-width: 767px) {
   .spot-header { flex-wrap: wrap; gap: 8px; }
-  .spot-header h1 { flex: 1 1 100%; order: -1; }
+  .mode-toggle { flex: 1 1 100%; order: -1; }
+  .mode-toggle-btn { font-size: 0.75rem; padding: 5px 10px; }
   .btn-header { font-size: 0.72rem; padding: 5px 10px; }
   .spot-layout { flex-direction: column-reverse; height: auto; }
   .spot-sidebar { width: 100%; height: 50vh; border-right: none; border-top: 1px solid var(--border-soft); }

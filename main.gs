@@ -8,6 +8,10 @@
 const SHEET_NAME_MASTER = 'cars';
 const DOCUMENT_ID_COLUMN_NAME = 'DocumentID';
 
+// Supabase設定（spots_api.gs で使用）
+const SUPABASE_URL = 'https://ttlttclfovuzafvghvaq.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt';
+
 // Firebase設定（サーバー側での検証に使用）
 const FIREBASE_API_KEY = "AIzaSyCNCNsu61S3DIQ2pcmK2Ic_vqCINlZB9nk";
 
@@ -89,6 +93,11 @@ function doGet(e) {
     if (mode === 'index') resultData = getIndexData();
     else if (mode === 'detail') resultData = getDetailData(docId);
     else if (mode === 'edit_init') resultData = docId ? getCarForEdit(docId) : {};
+    // --- スポット機能 (spots_api.gs) ---
+    else if (mode === 'spots') resultData = getSpots(params);
+    else if (mode === 'spot_detail') resultData = getSpotDetail(params.spot_id);
+    else if (mode === 'my_favorites') resultData = getMyFavorites(params.owner_document_id);
+    else if (mode === 'schedules') resultData = getSchedules(params);
     else throw new Error('Unknown mode');
     
     return createJsonOutput({ success: true, data: resultData });
@@ -104,12 +113,19 @@ function doPost(e) {
     const requestData = JSON.parse(e.postData.contents);
     const action = requestData.action;
     const formData = requestData.formData;
-
-    if (!formData) throw new Error('No form data');
+    const data = requestData.data;
 
     let result = {};
-    if (action === 'save') result = saveCarFromForm(formData);
-    else if (action === 'update') result = updateCarFromForm(formData);
+    if (action === 'save') { if (!formData) throw new Error('No form data'); result = saveCarFromForm(formData); }
+    else if (action === 'update') { if (!formData) throw new Error('No form data'); result = updateCarFromForm(formData); }
+    // --- スポット機能 (spots_api.gs) ---
+    else if (action === 'createSpot') result = createSpot(data || formData);
+    else if (action === 'addFavoriteSpot') result = addFavoriteSpot(data || formData);
+    else if (action === 'updateFavoriteSpot') result = updateFavoriteSpot(data || formData);
+    else if (action === 'deleteFavoriteSpot') result = deleteFavoriteSpot(data || formData);
+    else if (action === 'createSchedule') result = createSchedule(data || formData);
+    else if (action === 'deleteSchedule') result = deleteSchedule(data || formData);
+    else if (action === 'findNearbySpots') { var d = data || formData; result = findNearbySpots(d.latitude, d.longitude, d.radius); }
     else throw new Error('Unknown action');
 
     return createJsonOutput({ success: true, data: result });
