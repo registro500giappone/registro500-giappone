@@ -82,13 +82,18 @@ function initGooglePlaces() {
 }
 
 function initMap() {
+  var container = document.getElementById('spotMap');
+  if (!container.offsetWidth || !container.offsetHeight) {
+    container.style.minHeight = '400px';
+  }
+
   map = L.map('spotMap', {
     maxBounds: [[15, 110], [55, 160]],
     maxBoundsViscosity: 1.0,
     minZoom: 5,
     zoomSnap: 0.5,
     zoomDelta: 0.5
-  }).fitBounds([[31, 130], [45.5, 146]], { padding: [20, 20] });
+  }).setView([36.5, 138], 6);
 
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
@@ -97,7 +102,10 @@ function initMap() {
     noWrap: true
   }).addTo(map);
 
-  setTimeout(function() { map.invalidateSize(); }, 200);
+  setTimeout(function() {
+    map.invalidateSize();
+    map.fitBounds([[31, 130], [45.5, 146]], { padding: [20, 20] });
+  }, 300);
 
   // 地図クリック — 新規登録タブが表示中なら常に有効
   map.on('click', function(e) {
