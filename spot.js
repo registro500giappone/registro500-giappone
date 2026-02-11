@@ -28,6 +28,30 @@ const CATEGORY_LABELS = {
   other: 'その他'
 };
 
+const TIME_SLOT_LABELS = {
+  morning: '朝',
+  afternoon: '昼',
+  evening: '夕方',
+  night: '夜'
+};
+
+const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
+
+function formatDateWithDay(dateStr) {
+  if (!dateStr) return '';
+  var parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  var m = Number(parts[1]);
+  var day = Number(parts[2]);
+  var dow = DAY_NAMES[d.getDay()];
+  return m + '/' + day + '（' + dow + '）';
+}
+
+function formatTimeSlot(slot) {
+  return TIME_SLOT_LABELS[slot] || slot || '';
+}
+
 const CATEGORY_ICONS = {
   cafe: '☕', parking: '🅿️', photo: '📷', viewpoint: '🏔️',
   workshop: '🔧', meeting: '🤝', drive: '🛣️', other: '📍'
@@ -501,10 +525,19 @@ function showSpotDetail(spotId) {
       + (s.registration_count || 0) + '人登録</p>'
       + (s.address ? '<p style="font-size:0.85rem;color:var(--text-sub)">' + escapeHtml(s.address) + '</p>' : '');
 
-    // 出没登録ボタン
+    // ストリートビュー
+    if (s.latitude && s.longitude) {
+      html += '<div style="margin:10px 0">'
+        + '<iframe src="https://www.google.com/maps/embed/v1/streetview?key=' + FIREBASE_CONFIG.apiKey
+        + '&location=' + s.latitude + ',' + s.longitude
+        + '&heading=0&pitch=0&fov=90" width="100%" height="200" style="border:0;border-radius:8px" allowfullscreen loading="lazy"></iframe>'
+        + '</div>';
+    }
+
+    // 出没登録ボタン（ログイン中のみ）
     if (currentUser && currentUser.documentId) {
-      var isMine = myFavorites.some(function(f) { return f.spot_id === spotId; });
-      if (isMine) {
+      var myFav = myFavorites.find(function(f) { return f.spot_id === spotId; });
+      if (myFav) {
         html += '<button class="btn-danger" style="margin:8px 0" onclick="removeFavorite(\'' + spotId + '\')">出没登録を解除</button>';
       } else {
         html += '<button class="btn-primary" style="margin:8px 0" onclick="addFavorite(\'' + spotId + '\')">出没スポットに登録</button>';
@@ -516,7 +549,7 @@ function showSpotDetail(spotId) {
       html += '<h4 style="margin-top:16px;font-size:0.9rem">出没メンバー</h4>';
       s.favorites.forEach(function(f) {
         html += '<div class="schedule-card">'
-          + '<div>' + escapeHtml(f.owner_document_id) + '</div>'
+          + '<div style="font-weight:600">' + escapeHtml(f.handle_name || f.owner_document_id) + '</div>'
           + (f.comment ? '<div class="schedule-meta">' + escapeHtml(f.comment) + '</div>' : '')
           + '</div>';
       });
@@ -526,9 +559,11 @@ function showSpotDetail(spotId) {
     if (s.schedules && s.schedules.length > 0) {
       html += '<h4 style="margin-top:16px;font-size:0.9rem">今後の出没予定</h4>';
       s.schedules.forEach(function(sc) {
+        var dateLabel = formatDateWithDay(sc.visit_date);
+        var timeLabel = formatTimeSlot(sc.visit_time_slot);
         html += '<div class="schedule-card">'
-          + '<div class="schedule-date">' + sc.visit_date + ' ' + (sc.visit_time_slot || '') + '</div>'
-          + '<div class="schedule-meta">' + escapeHtml(sc.owner_document_id)
+          + '<div class="schedule-date">' + dateLabel + (timeLabel ? ' ' + timeLabel : '') + '</div>'
+          + '<div class="schedule-meta">' + escapeHtml(sc.handle_name || sc.owner_document_id)
           + (sc.comment ? ' — ' + escapeHtml(sc.comment) : '') + '</div>'
           + '</div>';
       });
@@ -796,10 +831,12 @@ function schedRenderList() {
   container.innerHTML = schedData.map(function(sc) {
     var icon = CATEGORY_ICONS[sc.spot_category] || '📍';
     var canDelete = currentUser && currentUser.documentId === sc.owner_document_id;
+    var dateLabel = formatDateWithDay(sc.visit_date);
+    var timeLabel = formatTimeSlot(sc.visit_time_slot);
     return '<div class="schedule-card">'
-      + '<div class="schedule-date">' + sc.visit_date + ' ' + (sc.visit_time_slot || '') + '</div>'
+      + '<div class="schedule-date">' + dateLabel + (timeLabel ? ' ' + timeLabel : '') + '</div>'
       + '<div style="font-weight:600;margin:2px 0">' + icon + ' ' + escapeHtml(sc.spot_name || sc.spot_id) + '</div>'
-      + '<div class="schedule-meta">' + escapeHtml(sc.owner_document_id)
+      + '<div class="schedule-meta">' + escapeHtml(sc.handle_name || sc.owner_document_id)
       + (sc.visit_time_comment ? ' — ' + escapeHtml(sc.visit_time_comment) : '')
       + (sc.comment ? '<br>' + escapeHtml(sc.comment) : '') + '</div>'
       + (canDelete ? '<button class="btn-danger" style="margin-top:6px;font-size:0.72rem;padding:4px 10px" onclick="deleteSchedule(\'' + sc.schedule_id + '\')">削除</button>' : '')
