@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-27SHHC4JYH');
+  </script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>出没スポット - Registro500 Giappone</title>
+  <meta name="description" content="FIAT 500オーナーの出没スポットを共有。カフェ、駐車場、撮影スポットを地図で探そう。">
+  <meta property="og:title" content="出没スポット - Registro500 Giappone">
+  <meta property="og:description" content="FIAT 500オーナーの出没スポットを共有。偶然の出会いが待っている。">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://www.registro500.com/logo_horizontal.png">
+  <link rel="icon" href="logo_horizontal.png">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="spot.css">
+
+  <!-- JS: config, Firebase, Supabase -->
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0"
+    integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"
+    integrity="sha384-HLJUgAQ2oo6rdMC4QW+Oz2qQfPOtu/lzncKG4sZiq8+2W9uOa3K0b3UGpckKqv7H" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"
+    integrity="sha384-+/4lqMnmLqwbdHXshvGDmBTeWlNoPRdjXi4ZsiBj10EhQXaTBe3RF5JZktdSjug6" crossorigin="anonymous"></script>
+  <script>
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+  </script>
+
+  <!-- Leaflet -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+</head>
+<body>
+
+<!-- ===== ヘッダー ===== -->
+<header class="spot-header">
+  <a href="index.html" class="back-link">← トップ</a>
+  <h1>出没スポット</h1>
+  <span id="authStatus" style="font-size:0.78rem;color:var(--text-sub)"></span>
+  <button id="btnLogin" class="btn-secondary" onclick="doLogin()" style="display:none;font-size:0.78rem">ログイン</button>
+  <button id="btnLogout" class="btn-secondary" onclick="doLogout()" style="display:none;font-size:0.78rem">ログアウト</button>
+</header>
+
+<!-- ===== メインレイアウト ===== -->
+<div class="spot-layout">
+
+  <!-- サイドバー -->
+  <aside class="spot-sidebar">
+    <div class="sidebar-tabs">
+      <button class="sidebar-tab active" data-target="sectionSpots">スポット一覧</button>
+      <button class="sidebar-tab" data-target="sectionMySpots">マイ出没</button>
+      <button class="sidebar-tab" data-target="sectionAdd">新規登録</button>
+      <button class="sidebar-tab" data-target="sectionSchedule">出没予報</button>
+    </div>
+
+    <!-- タブ1: スポット一覧 -->
+    <div id="sectionSpots" class="sidebar-section active">
+      <div class="sidebar-content">
+        <div style="margin-bottom:10px">
+          <select id="filterCategory" onchange="loadSpots()" style="width:100%;padding:6px 8px;border:1px solid var(--border-soft);border-radius:8px;font-size:0.82rem">
+            <option value="">すべてのカテゴリ</option>
+            <option value="cafe">☕ カフェ・飲食店</option>
+            <option value="parking">🅿️ 駐車場・PA/SA</option>
+            <option value="photo">📷 撮影スポット</option>
+            <option value="viewpoint">🏔️ 展望スポット</option>
+            <option value="workshop">🔧 整備工場</option>
+            <option value="meeting">🤝 集合場所</option>
+            <option value="drive">🛣️ ドライブルート</option>
+            <option value="other">📍 その他</option>
+          </select>
+        </div>
+        <div id="spotList">
+          <div class="loading-spinner">読み込み中...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- タブ2: マイスポット -->
+    <div id="sectionMySpots" class="sidebar-section">
+      <div class="sidebar-content">
+        <div id="myFavList">
+          <div class="empty-state">
+            <div class="empty-state-icon">⭐</div>
+            <div class="empty-state-text">ログインするとマイスポットが表示されます</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- タブ3: 新規登録 -->
+    <div id="sectionAdd" class="sidebar-section">
+      <div class="spot-form">
+
+        <!-- 位置選択サブタブ -->
+        <div class="add-sub-tabs">
+          <button class="add-sub-tab active" data-target="subSearch">施設名で検索</button>
+          <button class="add-sub-tab" data-target="subMapClick">地図をクリック</button>
+        </div>
+
+        <!-- サブタブ1: 施設名検索 -->
+        <div id="subSearch" class="add-sub-section active">
+          <div style="display:flex;gap:6px;margin-bottom:8px">
+            <input type="text" id="searchPlaceName" placeholder="施設名・場所名を入力" style="flex:1;margin-bottom:0">
+            <button class="btn-secondary" onclick="searchPlace()" style="white-space:nowrap">検索</button>
+          </div>
+          <div id="searchResults"></div>
+        </div>
+
+        <!-- サブタブ2: 地図クリック -->
+        <div id="subMapClick" class="add-sub-section">
+          <p style="font-size:0.82rem;color:var(--text-sub);margin:0 0 8px">
+            地図上の任意の場所をクリックすると、その位置にマーカーが表示され座標と住所が自動入力されます。
+          </p>
+          <p id="clickPosDisplay" style="font-size:0.82rem;margin:0 0 8px"></p>
+        </div>
+
+        <!-- 隠し緯度経度フィールド -->
+        <input type="hidden" id="inputLat">
+        <input type="hidden" id="inputLng">
+
+        <hr style="border:none;border-top:1px solid var(--border-soft);margin:12px 0">
+
+        <label>スポット名 *</label>
+        <input type="text" id="inputName" placeholder="例: 道の駅 箱根峠" maxlength="200">
+
+        <label>カテゴリ *</label>
+        <select id="inputCategory">
+          <option value="">選択してください</option>
+          <option value="cafe">☕ カフェ・飲食店</option>
+          <option value="parking">🅿️ 駐車場・PA/SA</option>
+          <option value="photo">📷 撮影スポット</option>
+          <option value="viewpoint">🏔️ 展望スポット</option>
+          <option value="workshop">🔧 整備工場</option>
+          <option value="meeting">🤝 集合場所</option>
+          <option value="drive">🛣️ ドライブルート</option>
+          <option value="other">📍 その他</option>
+        </select>
+
+        <label>住所（任意）</label>
+        <input type="text" id="inputAddress" placeholder="例: 神奈川県足柄下郡箱根町">
+
+        <div id="nearbyResults" style="display:none;margin-bottom:12px"></div>
+
+        <button id="btnSubmitSpot" class="btn-primary" onclick="submitNewSpot()">
+          スポットを登録
+        </button>
+      </div>
+    </div>
+    <!-- タブ4: 出没予報 -->
+    <div id="sectionSchedule" class="sidebar-section">
+      <div class="sidebar-content">
+        <!-- 週ナビ -->
+        <div class="sched-week-nav">
+          <button onclick="schedChangeWeek(-1)">&lt; 前の週</button>
+          <div class="sched-week-label" id="schedWeekLabel"></div>
+          <button onclick="schedChangeWeek(1)">次の週 &gt;</button>
+        </div>
+
+        <!-- 週間カレンダー -->
+        <div class="sched-week-grid" id="schedWeekGrid"></div>
+
+        <!-- 今後の予定一覧 -->
+        <h3 style="font-size:0.9rem;font-weight:700;margin:16px 0 8px">今後の出没予定</h3>
+        <div id="scheduleList"></div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- 地図エリア -->
+  <div class="spot-map-area">
+    <div id="spotMap"></div>
+    <div id="crosshair" class="new-spot-crosshair">+</div>
+  </div>
+</div>
+
+<!-- ===== 詳細モーダル ===== -->
+<div id="detailModal" class="spot-modal-overlay" onclick="if(event.target===this)closeDetailModal()">
+  <div class="spot-modal">
+    <button class="spot-modal-close" onclick="closeDetailModal()">&times;</button>
+    <div id="detailBody">
+      <div class="loading-spinner">読み込み中...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 予定登録モーダル ===== -->
+<div id="schedModal" class="spot-modal-overlay" onclick="if(event.target===this)closeSchedModal()">
+  <div class="spot-modal">
+    <button class="spot-modal-close" onclick="closeSchedModal()">&times;</button>
+    <h2>出没予定を登録</h2>
+    <div class="spot-form">
+      <label>日付</label>
+      <input type="date" id="schedDate">
+
+      <label>スポット *</label>
+      <select id="schedSpot">
+        <option value="">選択してください</option>
+      </select>
+
+      <label>時間帯</label>
+      <select id="schedTimeSlot">
+        <option value="">未定</option>
+        <option value="morning">朝 (6:00-11:00)</option>
+        <option value="afternoon">昼 (11:00-17:00)</option>
+        <option value="evening">夕方 (17:00-20:00)</option>
+        <option value="night">夜 (20:00-)</option>
+      </select>
+
+      <label>時間の補足</label>
+      <input type="text" id="schedTimeComment" placeholder="例: 10時頃到着予定" maxlength="50">
+
+      <label>予定滞在時間（分）</label>
+      <input type="number" id="schedDuration" placeholder="例: 120" min="0" max="1440">
+
+      <label>コメント</label>
+      <textarea id="schedComment" placeholder="例: 参加者募集中！" rows="2"></textarea>
+
+      <button class="btn-primary" onclick="submitSchedule()" id="btnSubmitSched">予定を登録</button>
+    </div>
+  </div>
+</div>
+
+<!-- アプリJS -->
+<script src="spot.js"></script>
+
+</body>
+</html>

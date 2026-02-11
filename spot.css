@@ -1,0 +1,273 @@
+/* ============================================
+   Registro500 — spot.css
+   出没スポット機能用スタイル
+   ============================================ */
+
+:root {
+  --bg-main: #f4f4f7;
+  --card-bg: #ffffff;
+  --border-soft: #e5e7eb;
+  --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --text-main: #111827;
+  --text-sub: #6b7280;
+  --accent: #2856a8;
+  --accent-soft: #e6efff;
+  --accent-border: #c2d4ff;
+  --radius-lg: 12px;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { font-size: 16px; max-width: 100%; overflow-x: hidden; }
+@media (min-width: 1025px) { html { font-size: 18px; } }
+
+body {
+  font-family: var(--font-sans); margin: 0; padding: 0;
+  background-color: var(--bg-main); color: var(--text-main); line-height: 1.5;
+}
+
+/* ===== ヘッダー ===== */
+.spot-header {
+  background: var(--card-bg); padding: 12px 16px;
+  border-bottom: 1px solid var(--border-soft);
+  position: sticky; top: 0; z-index: 1000;
+  display: flex; align-items: center; gap: 12px;
+}
+.spot-header h1 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; flex: 1; }
+.spot-header .back-link {
+  color: var(--accent); text-decoration: none; font-size: 0.85rem;
+  padding: 4px 12px; border: 1px solid var(--border-soft); border-radius: 20px;
+}
+.spot-header .back-link:hover { background: var(--accent-soft); }
+
+/* ===== レイアウト ===== */
+.spot-layout {
+  display: flex; height: calc(100vh - 52px);
+}
+.spot-sidebar {
+  width: 360px; background: var(--card-bg);
+  border-right: 1px solid var(--border-soft);
+  overflow-y: auto; flex-shrink: 0;
+}
+.spot-map-area {
+  flex: 1; position: relative;
+}
+#spotMap { width: 100%; height: 100%; }
+
+/* ===== サイドバー内 ===== */
+.sidebar-tabs {
+  display: flex; border-bottom: 2px solid var(--border-soft);
+  position: sticky; top: 0; background: var(--card-bg); z-index: 10;
+}
+.sidebar-tab {
+  flex: 1; padding: 10px 8px; text-align: center;
+  font-size: 0.82rem; font-weight: 600; color: var(--text-sub);
+  cursor: pointer; border: none; background: none;
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  transition: color 0.2s, border-color 0.2s;
+}
+.sidebar-tab.active {
+  color: var(--accent); border-bottom-color: var(--accent);
+}
+.sidebar-tab:hover { color: var(--accent); }
+
+.sidebar-content { padding: 12px; }
+.sidebar-section { display: none; }
+.sidebar-section.active { display: block; }
+
+/* ===== スポットカード ===== */
+.spot-card {
+  background: var(--card-bg); border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg); padding: 12px; margin-bottom: 10px;
+  cursor: pointer; transition: box-shadow 0.2s, border-color 0.2s;
+}
+.spot-card:hover {
+  box-shadow: var(--shadow-soft); border-color: var(--accent-border);
+}
+.spot-card-name {
+  font-size: 0.95rem; font-weight: 600; margin: 0 0 4px;
+}
+.spot-card-meta {
+  font-size: 0.78rem; color: var(--text-sub);
+  display: flex; gap: 10px; flex-wrap: wrap;
+}
+.spot-card-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 12px;
+  font-size: 0.72rem; font-weight: 600; background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* ===== 登録フォーム ===== */
+.spot-form { padding: 12px; }
+.spot-form label {
+  display: block; font-size: 0.82rem; font-weight: 600;
+  margin-bottom: 4px; color: var(--text-main);
+}
+.spot-form input,
+.spot-form select,
+.spot-form textarea {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--border-soft);
+  border-radius: 8px; font-size: 0.88rem; margin-bottom: 12px;
+  font-family: var(--font-sans);
+}
+.spot-form input:focus,
+.spot-form select:focus,
+.spot-form textarea:focus {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.spot-form textarea { resize: vertical; min-height: 60px; }
+
+/* ===== 登録サブタブ ===== */
+.add-sub-tabs {
+  display: flex; gap: 4px; margin-bottom: 12px;
+}
+.add-sub-tab {
+  flex: 1; padding: 7px 8px; text-align: center;
+  font-size: 0.78rem; font-weight: 600; color: var(--text-sub);
+  cursor: pointer; border: 1px solid var(--border-soft); background: var(--bg-main);
+  border-radius: 6px; transition: all 0.2s;
+}
+.add-sub-tab.active {
+  color: var(--accent); background: var(--accent-soft);
+  border-color: var(--accent-border);
+}
+.add-sub-tab:hover { color: var(--accent); }
+.add-sub-section { display: none; }
+.add-sub-section.active { display: block; }
+
+/* ===== ボタン ===== */
+.btn-primary {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 10px 20px; background: var(--accent); color: #fff;
+  border: none; border-radius: 8px; font-size: 0.88rem; font-weight: 600;
+  cursor: pointer; width: 100%; transition: opacity 0.2s;
+}
+.btn-primary:hover { opacity: 0.9; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-secondary {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 8px 16px; background: var(--card-bg); color: var(--accent);
+  border: 1px solid var(--accent-border); border-radius: 8px;
+  font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-secondary:hover { background: var(--accent-soft); }
+
+.btn-danger {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 8px 16px; background: #fef2f2; color: #dc2626;
+  border: 1px solid #fecaca; border-radius: 8px;
+  font-size: 0.82rem; font-weight: 600; cursor: pointer;
+}
+.btn-danger:hover { background: #fee2e2; }
+
+/* ===== モーダル ===== */
+.spot-modal-overlay {
+  display: none; position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+  z-index: 2000; align-items: center; justify-content: center;
+}
+.spot-modal-overlay.show { display: flex; }
+.spot-modal {
+  background: var(--card-bg); border-radius: var(--radius-lg);
+  width: 90%; max-width: 500px; max-height: 85vh;
+  overflow-y: auto; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
+.spot-modal h2 { margin: 0 0 16px; font-size: 1.1rem; }
+.spot-modal-close {
+  float: right; background: none; border: none;
+  font-size: 1.5rem; cursor: pointer; color: var(--text-sub);
+  line-height: 1;
+}
+
+/* ===== 出没予定カード ===== */
+.schedule-card {
+  background: var(--accent-soft); border: 1px solid var(--accent-border);
+  border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;
+}
+.schedule-date { font-weight: 700; font-size: 0.88rem; }
+.schedule-meta { font-size: 0.78rem; color: var(--text-sub); margin-top: 2px; }
+
+/* ===== お知らせ・空状態 ===== */
+.empty-state {
+  text-align: center; padding: 40px 20px; color: var(--text-sub);
+}
+.empty-state-icon { font-size: 2.5rem; margin-bottom: 8px; }
+.empty-state-text { font-size: 0.88rem; }
+
+/* ===== ローディング ===== */
+.loading-spinner {
+  text-align: center; padding: 20px; color: var(--text-sub); font-size: 0.85rem;
+}
+
+/* ===== Leaflet カスタム ===== */
+.spot-marker-icon {
+  background: var(--accent); color: #fff; border-radius: 50%;
+  width: 30px; height: 30px; display: flex; align-items: center;
+  justify-content: center; font-size: 14px; font-weight: 700;
+  border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+.new-spot-crosshair {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 2rem; color: #dc2626; z-index: 500; pointer-events: none;
+  text-shadow: 0 0 4px #fff;
+  display: none;
+}
+
+/* ===== 出没予報カレンダー ===== */
+.sched-week-nav {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; margin-bottom: 12px;
+}
+.sched-week-nav button {
+  background: none; border: 1px solid var(--border-soft); border-radius: 6px;
+  padding: 4px 10px; cursor: pointer; font-size: 0.78rem; color: var(--text-main);
+}
+.sched-week-nav button:hover { background: var(--accent-soft); }
+.sched-week-label {
+  font-weight: 700; font-size: 0.85rem; min-width: 120px; text-align: center;
+}
+.sched-week-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 3px; margin-bottom: 12px;
+}
+.sched-day-cell {
+  background: var(--card-bg); border: 1px solid var(--border-soft);
+  border-radius: 6px; padding: 4px 2px; min-height: 70px;
+  cursor: pointer; transition: border-color 0.2s;
+}
+.sched-day-cell:hover { border-color: var(--accent-border); }
+.sched-day-cell.today { border-color: var(--accent); border-width: 2px; }
+.sched-day-header {
+  font-size: 0.65rem; color: var(--text-sub); text-align: center; margin-bottom: 2px;
+}
+.sched-day-number {
+  font-size: 0.85rem; font-weight: 700; text-align: center; margin-bottom: 3px;
+}
+.sched-day-number.today { color: var(--accent); }
+.sched-day-number.sun { color: #dc2626; }
+.sched-day-number.sat { color: #2563eb; }
+.sched-day-entry {
+  background: var(--accent-soft); border-radius: 3px; padding: 1px 3px;
+  font-size: 0.6rem; margin-bottom: 2px; overflow: hidden;
+  white-space: nowrap; text-overflow: ellipsis;
+}
+
+/* ===== レスポンシブ ===== */
+@media (max-width: 767px) {
+  .spot-layout { flex-direction: column-reverse; height: auto; }
+  .spot-sidebar { width: 100%; height: 50vh; border-right: none; border-top: 1px solid var(--border-soft); }
+  .spot-map-area { height: 50vh; }
+  .spot-modal { width: 95%; max-width: none; }
+}
+
+/* ===== ダークモード ===== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-main: #0f172a; --card-bg: #1e293b; --border-soft: #334155;
+    --text-main: #f1f5f9; --text-sub: #94a3b8; --accent: #60a5fa;
+    --accent-soft: #1e3a5f; --accent-border: #2563eb;
+    --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+}
