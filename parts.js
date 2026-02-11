@@ -71,8 +71,7 @@ let currentRate = CONFIG.default_rate;
 let compareList = [];       // { uniqueId, partId, name, shop, priceExVat, pageUrl, imageUrl }
 let shippingCosts = {};     // { shopName: number }
 let currentOpenSection = null; // 現在開いているセクション
-let currentViewMode = 'shop'; // 'shop' または 'oem'
-let lastSearchResults = [];   // 最後の検索結果を保持（モード切替用）
+let lastSearchResults = [];   // 最後の検索結果を保持
 let lastTargetShops = [];     // 最後の検索対象ショップ
 let selectedCategory = null;  // 現在選択中のカテゴリ
 
@@ -403,13 +402,7 @@ async function executeSearch() {
     resultCountEl.innerText = `${totalCount} 件`;
 
     resultsArea.innerHTML = "";
-
-    // 現在のモードに応じて表示
-    if (currentViewMode === 'oem') {
-        displayResultsByOem(dbResults, resultsArea);
-    } else {
-        displayResultsByShop(dbResults, checkedShops, resultsArea);
-    }
+    displayResultsByShop(dbResults, checkedShops, resultsArea);
 
     // 検索条件の保存
     saveSearchConditions(keyword, checkedCars, checkedShops, all500Checked, dbResults);
@@ -503,13 +496,7 @@ function loadSearchConditions() {
             const resultCountEl = document.getElementById('result-count');
             if (resultsArea && resultCountEl) {
                 resultCountEl.innerText = `${conditions.dbResults.length} 件`;
-
-                // 現在のモードに応じて表示
-                if (currentViewMode === 'oem') {
-                    displayResultsByOem(conditions.dbResults, resultsArea);
-                } else {
-                    displayResultsByShop(conditions.dbResults, conditions.shops, resultsArea);
-                }
+                displayResultsByShop(conditions.dbResults, conditions.shops, resultsArea);
             }
         }
 
@@ -580,35 +567,6 @@ function displayResultsByShop(parts, targetShops, container) {
     });
 }
 
-// === 表示モード切替 ===
-
-function switchViewMode(mode) {
-    if (currentViewMode === mode) return;
-
-    currentViewMode = mode;
-
-    // ボタンのactive状態を更新
-    document.querySelectorAll('.view-mode-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.mode === mode);
-    });
-
-    // フローティングボタンをリセット
-    currentOpenSection = null;
-    document.getElementById('floating-collapse-btn').classList.remove('visible');
-
-    // 検索結果があれば再表示
-    if (lastSearchResults.length > 0) {
-        const resultsArea = document.getElementById('results-area');
-        resultsArea.innerHTML = "";
-
-        if (mode === 'oem') {
-            displayResultsByOem(lastSearchResults, resultsArea);
-        } else {
-            displayResultsByShop(lastSearchResults, lastTargetShops, resultsArea);
-        }
-    }
-}
-
 // === OEM番号正規化 ===
 function normalizeOemNumber(oem) {
     if (!oem) return null;
@@ -634,210 +592,6 @@ function normalizeOemNumber(oem) {
 
     // スペース、ハイフン、ピリオドを除去して大文字に
     return trimmed.replace(/[\s\-\.]/g, '').toUpperCase();
-}
-
-// === 部品別（OEMグループ）表示 ===
-function displayResultsByOem(parts, container) {
-    container.innerHTML = "";
-
-    if (parts.length === 0) {
-        container.innerHTML = '<p style="padding:40px; text-align:center; color:#6b7280;">条件に合うパーツが見つかりませんでした。</p>';
-        return;
-    }
-
-    // OEM番号でグループ化
-    const oemGroups = {};
-    const noOemParts = [];
-
-    parts.forEach(part => {
-        const normalizedOem = normalizeOemNumber(part.oem_no);
-        if (normalizedOem) {
-            if (!oemGroups[normalizedOem]) {
-                oemGroups[normalizedOem] = {
-                    originalOem: part.oem_no,
-                    parts: []
-                };
-            }
-            oemGroups[normalizedOem].parts.push(part);
-        } else {
-            noOemParts.push(part);
-        }
-    });
-
-    // OEMグループをソート（部品数が多い順）
-    const sortedOemKeys = Object.keys(oemGroups).sort((a, b) => {
-        return oemGroups[b].parts.length - oemGroups[a].parts.length;
-    });
-
-    // 複数店舗で扱っているグループ（比較価値が高い）を先に表示
-    const multiShopGroups = sortedOemKeys.filter(key => {
-        const shops = new Set(oemGroups[key].parts.map(p => p.shop_name));
-        return shops.size > 1;
-    });
-    const singleShopGroups = sortedOemKeys.filter(key => {
-        const shops = new Set(oemGroups[key].parts.map(p => p.shop_name));
-        return shops.size === 1;
-    });
-
-    // 複数店舗のグループを表示
-    if (multiShopGroups.length > 0) {
-        const headerDiv = document.createElement('div');
-        headerDiv.style.cssText = 'padding: 12px 16px; background: #dcfce7; border-radius: 8px; margin-bottom: 16px; font-weight: 600; color: #166534;';
-        headerDiv.innerHTML = `複数店舗で比較可能な部品 (${multiShopGroups.length}グループ)`;
-        container.appendChild(headerDiv);
-
-        multiShopGroups.forEach(oemKey => {
-            container.appendChild(createOemSection(oemKey, oemGroups[oemKey]));
-        });
-    }
-
-    // 単一店舗のグループを表示
-    if (singleShopGroups.length > 0) {
-        const headerDiv = document.createElement('div');
-        headerDiv.style.cssText = 'padding: 12px 16px; background: #f3f4f6; border-radius: 8px; margin-bottom: 16px; margin-top: 24px; font-weight: 600; color: #6b7280;';
-        headerDiv.innerHTML = `1店舗のみの部品 (${singleShopGroups.length}グループ)`;
-        container.appendChild(headerDiv);
-
-        singleShopGroups.forEach(oemKey => {
-            container.appendChild(createOemSection(oemKey, oemGroups[oemKey]));
-        });
-    }
-
-    // 統計サマリー（上部に表示）
-    const oemCount = Object.keys(oemGroups).length;
-    const totalOemParts = Object.values(oemGroups).reduce((sum, g) => sum + g.parts.length, 0);
-
-    const summaryDiv = document.createElement('div');
-    summaryDiv.style.cssText = 'padding: 12px 16px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem; color: #6b7280;';
-    summaryDiv.innerHTML = `
-        <span style="color: #111827; font-weight: 600;">OEM番号あり: ${totalOemParts}件 (${oemCount}グループ)</span>
-        ${noOemParts.length > 0 ? `<span style="margin-left: 16px;">OEM番号なし: ${noOemParts.length}件 → <a href="#" onclick="switchViewMode('shop'); return false;" style="color: #2856a8;">店舗別表示で確認</a></span>` : ''}
-    `;
-    container.insertBefore(summaryDiv, container.firstChild);
-}
-
-// OEMセクション生成（比較テーブル付き）
-function createOemSection(oemKey, group) {
-    const section = document.createElement('div');
-    section.className = 'oem-section';
-
-    // 代表的な商品名を取得（日本語優先）
-    let representativeName = '';
-    for (const part of group.parts) {
-        if (part.name_jp && !/nan/i.test(part.name_jp)) {
-            representativeName = part.name_jp;
-            break;
-        }
-    }
-    if (!representativeName) {
-        representativeName = group.parts[0].name_en || 'Unknown Part';
-    }
-
-    // 価格順にソート（安い順）
-    const sortedParts = [...group.parts].sort((a, b) => {
-        const priceA = getPriceExVat(parseFloat(a.price_euro) || 0, a.shop_name);
-        const priceB = getPriceExVat(parseFloat(b.price_euro) || 0, b.shop_name);
-        return priceA - priceB;
-    });
-
-    const cheapestPrice = getPriceExVat(parseFloat(sortedParts[0].price_euro) || 0, sortedParts[0].shop_name);
-
-    section.innerHTML = `
-        <div class="oem-header">
-            <div class="oem-title">${escapeHtml(representativeName)}</div>
-            <div class="oem-number">OEM: ${group.originalOem}</div>
-        </div>
-        <div class="oem-content">
-            <table class="shop-compare-table">
-                <thead>
-                    <tr>
-                        <th style="width:50px;"></th>
-                        <th>ショップ</th>
-                        <th>商品名</th>
-                        <th style="text-align:right;">価格 (税抜)</th>
-                        <th style="text-align:right;">操作</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    `;
-
-    const tbody = section.querySelector('tbody');
-
-    sortedParts.forEach((part, index) => {
-        const shopConfig = CONFIG.shops[part.shop_name] || { is_price_ex_vat: true, vat_rate: 0 };
-        const rawPrice = parseFloat(part.price_euro);
-        const priceExVat = isNaN(rawPrice) ? 0 : getPriceExVat(rawPrice, part.shop_name);
-        const jpyApprox = Math.round(priceExVat * currentRate).toLocaleString();
-
-        const isCheapest = index === 0 && sortedParts.length > 1;
-        const isAdded = compareList.some(item => item.partId === part.id);
-
-        // 画像URL処理
-        let finalImageUrl = "";
-        let rawUrl = part.image_url ? String(part.image_url).replace(/^\s+|\s+$/g, '') : "";
-        const isInvalid = !rawUrl || /^(nan|null|undefined)$/i.test(rawUrl) || rawUrl === "";
-        if (isInvalid) {
-            finalImageUrl = 'https://placehold.co/50x50/f3f4f6/9ca3af?text=No';
-        } else if (rawUrl.startsWith('http')) {
-            finalImageUrl = rawUrl;
-        } else {
-            const baseUrl = shopConfig.base_url || 'https://webshop.fiat500126.com';
-            finalImageUrl = baseUrl + (rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl);
-        }
-
-        const title = part.name_jp && !/nan/i.test(part.name_jp) ? part.name_jp : (part.name_en || "No Title");
-        const productNo = part.product_no && !/nan/i.test(part.product_no) ? part.product_no : '';
-
-        const row = document.createElement('tr');
-        row.className = isCheapest ? 'cheapest' : '';
-        row.dataset.partId = part.id;
-        row.innerHTML = `
-            <td>
-                <img src="${finalImageUrl}" class="part-thumb" alt=""
-                     onerror="this.src='https://placehold.co/50x50/f3f4f6/9ca3af?text=No'"
-                     referrerpolicy="no-referrer">
-            </td>
-            <td class="shop-name-cell">
-                ${part.shop_name}
-                ${isCheapest ? '<span class="cheapest-badge">最安</span>' : ''}
-            </td>
-            <td>
-                <div>${escapeHtml(title)}</div>
-                ${productNo ? `<div class="product-no">品番: ${escapeHtml(productNo)}</div>` : ''}
-            </td>
-            <td class="price-cell">
-                <div class="price-main">€${priceExVat.toFixed(2)}</div>
-                <div class="price-jpy">約 ${jpyApprox}円</div>
-            </td>
-            <td class="actions-cell">
-                <a href="${part.page_url}" target="_blank" rel="noopener noreferrer" title="本サイトで見る">↗ 詳細</a>
-                <button class="${isAdded ? 'added' : ''}" data-part-id="${part.id}"
-                    onclick="toggleListItemFromTable('${escapeJs(part.id)}', '${escapeJs(title)}', '${escapeJs(part.shop_name)}', ${priceExVat}, '${escapeJs(part.page_url)}', '${escapeJs(finalImageUrl)}', this)">
-                    ${isAdded ? '✓ 追加済' : '＋ 追加'}
-                </button>
-            </td>
-        `;
-        tbody.appendChild(row);
-    });
-
-    return section;
-}
-
-// テーブルからのリスト追加/削除
-function toggleListItemFromTable(partId, name, shop, priceExVat, pageUrl, imageUrl, buttonEl) {
-    toggleListItem(partId, name, shop, priceExVat, pageUrl, imageUrl);
-
-    // ボタン状態を即座に更新
-    const isAdded = compareList.some(item => item.partId === partId);
-    if (isAdded) {
-        buttonEl.classList.add('added');
-        buttonEl.textContent = '✓ 追加済';
-    } else {
-        buttonEl.classList.remove('added');
-        buttonEl.textContent = '＋ 追加';
-    }
 }
 
 // アコーディオン開閉
@@ -976,7 +730,6 @@ function toggleListItem(partId, name, shop, priceExVat, pageUrl, imageUrl) {
 
 // カードのボタン状態を更新（両モード対応）
 function updateCardButtons() {
-    // カードモード（店舗別表示）
     document.querySelectorAll('.part-card').forEach(card => {
         const partId = card.dataset.partId;
         const btn = card.querySelector('.add-btn');
@@ -989,23 +742,6 @@ function updateCardButtons() {
         } else {
             btn.classList.remove('added');
             btn.textContent = '＋ リストに追加';
-        }
-    });
-
-    // テーブルモード（部品別表示）
-    document.querySelectorAll('.shop-compare-table tbody tr').forEach(row => {
-        const partId = row.dataset.partId;
-        if (!partId) return;
-        const btn = row.querySelector('button[data-part-id]');
-        if (!btn) return;
-
-        const isAdded = compareList.some(item => item.partId === partId);
-        if (isAdded) {
-            btn.classList.add('added');
-            btn.textContent = '✓ 追加済';
-        } else {
-            btn.classList.remove('added');
-            btn.textContent = '＋ 追加';
         }
     });
 }
