@@ -715,7 +715,7 @@ function doLogout() {
 var schedWeekStart = null;
 var schedData = [];
 var schedInitialized = false;
-var DAY_NAMES = ['月', '火', '水', '木', '金', '土', '日'];
+var SCHED_DAY_NAMES = ['月', '火', '水', '木', '金', '土', '日'];
 
 function initScheduleTab() {
   if (schedInitialized) return;
@@ -765,7 +765,7 @@ function schedRenderWeek() {
     var dayClass = (i === 6) ? 'sun' : (i === 5 ? 'sat' : '');
 
     html += '<div class="sched-day-cell' + (isToday ? ' today' : '') + '" onclick="openScheduleModal(\'' + ds + '\')">'
-      + '<div class="sched-day-header">' + DAY_NAMES[i] + '</div>'
+      + '<div class="sched-day-header">' + SCHED_DAY_NAMES[i] + '</div>'
       + '<div class="sched-day-number ' + dayClass + (isToday ? ' today' : '') + '">' + d.getDate() + '</div>'
       + '<div id="sched-day-' + ds + '"></div>'
       + '</div>';
