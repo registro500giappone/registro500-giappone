@@ -21,10 +21,8 @@ const CATEGORY_LABELS = {
   cafe: 'カフェ・飲食店',
   parking: '駐車場・PA/SA',
   photo: '撮影スポット',
-  viewpoint: '展望スポット',
-  workshop: '整備工場',
   meeting: '集合場所',
-  drive: 'ドライブルート',
+  vending: '自販機前',
   other: 'その他'
 };
 
@@ -53,8 +51,8 @@ function formatTimeSlot(slot) {
 }
 
 const CATEGORY_ICONS = {
-  cafe: '☕', parking: '🅿️', photo: '📷', viewpoint: '🏔️',
-  workshop: '🔧', meeting: '🤝', drive: '🛣️', other: '📍'
+  cafe: '☕', parking: '🅿️', photo: '📷',
+  meeting: '🤝', vending: '🧃', other: '📍'
 };
 
 // 都道府県→中心座標マッピング
