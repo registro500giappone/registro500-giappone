@@ -326,7 +326,7 @@ function apiPost(action, data) {
   showLoading();
   return fetch(API_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ action: action, data: data })
   }).then(function(r) { return r.json(); })
     .finally(hideLoading);
