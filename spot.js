@@ -103,6 +103,18 @@ function initGooglePlaces() {
   } catch(e) { console.warn('Google Places not available, using Nominatim fallback'); }
 }
 
+// async読み込みのため、検索時にも再チェック
+function checkGoogleReady() {
+  if (!googleReady) {
+    try {
+      if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+        googleReady = true;
+      }
+    } catch(e) {}
+  }
+  return googleReady;
+}
+
 function initMap() {
   var container = document.getElementById('spotMap');
   if (!container.offsetWidth || !container.offsetHeight) {
@@ -417,7 +429,7 @@ function handleMapClick(latlng) {
 function reverseGeocode(lat, lng) {
   var addressInput = document.getElementById('inputAddress');
 
-  if (googleReady) {
+  if (checkGoogleReady()) {
     var geocoder = new google.maps.Geocoder();
     geocoder.geocode({ location: { lat: lat, lng: lng } }, function(results, status) {
       if (status === 'OK' && results && results[0]) {
@@ -448,7 +460,7 @@ function searchPlace() {
   var resultsDiv = document.getElementById('searchResults');
   resultsDiv.innerHTML = '<div class="loading-spinner">検索中...</div>';
 
-  if (googleReady) {
+  if (checkGoogleReady()) {
     searchWithGoogle(query, resultsDiv);
   } else {
     searchWithNominatim(query, resultsDiv);
