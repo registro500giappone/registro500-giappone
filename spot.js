@@ -911,6 +911,19 @@ function submitNewSpot() {
     address: address || null
   }).then(function(res) {
     if (!res.success) throw new Error(res.error);
+    var spotId = res.data.spot_id;
+    // 自分で登録したスポットはマイ出没にも自動追加
+    if (currentUser && currentUser.documentId && spotId) {
+      return apiPost('addFavoriteSpot', {
+        owner_document_id: currentUser.documentId,
+        spot_id: spotId
+      }).then(function() {
+        loadMyFavorites();
+      }).catch(function() {
+        // マイ出没追加が失敗してもスポット登録自体は成功
+      });
+    }
+  }).then(function() {
     alert('スポット「' + name + '」を登録しました！');
     resetForm();
     loadSpots();
