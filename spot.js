@@ -328,13 +328,15 @@ function apiPost(action, data) {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ action: action, data: data })
-  }).then(function(r) {
-    if (!r.ok) console.error('apiPost HTTP error:', r.status, r.statusText);
-    return r.text();
-  }).then(function(text) {
-    console.log('apiPost response:', text.substring(0, 500));
-    return JSON.parse(text);
-  }).finally(hideLoading);
+  }).then(function(r) { return r.text(); })
+    .then(function(text) {
+      var json = JSON.parse(text);
+      // GASがsuccessラッパーなしで返す場合の正規化
+      if (json.success === undefined && json.error === undefined) {
+        return { success: true, data: json };
+      }
+      return json;
+    }).finally(hideLoading);
 }
 
 // =================================================
