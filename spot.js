@@ -872,6 +872,7 @@ function addFavorite(spotId) {
       }
       throw new Error(res.error);
     }
+    alert('マイ出没に登録しました！');
     loadMyFavorites();
     closeDetailModal();
   }).catch(function(err) { alert('エラー: ' + err.message); });
