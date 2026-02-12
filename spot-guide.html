@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>使い方ガイド | 出没スポット</title>
+    <link rel="stylesheet" href="./style.css">
+    <style>
+        body {
+            background-color: #f4f4f7;
+            color: #111827;
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.8;
+        }
+        .guide-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .guide-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .guide-header h1 {
+            font-size: 1.8rem;
+            color: #111827;
+            margin-bottom: 8px;
+        }
+        .guide-header p {
+            color: #6b7280;
+            font-size: 1rem;
+        }
+        .guide-section {
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .guide-section h2 {
+            font-size: 1.2rem;
+            color: #2856a8;
+            margin: 0 0 16px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .guide-section h3 {
+            font-size: 1rem;
+            color: #374151;
+            margin: 20px 0 12px 0;
+        }
+        .guide-section p {
+            margin: 0 0 12px 0;
+            color: #4b5563;
+        }
+        .guide-section ul, .guide-section ol {
+            margin: 0 0 16px 0;
+            padding-left: 24px;
+            color: #4b5563;
+        }
+        .guide-section li {
+            margin-bottom: 8px;
+        }
+        .step-number {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            background: #2856a8;
+            color: #fff;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 28px;
+            font-weight: 700;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        .step-content {
+            flex: 1;
+        }
+        .step-content strong {
+            color: #111827;
+        }
+        .tip-box {
+            background: #eff6ff;
+            border-left: 4px solid #2856a8;
+            padding: 16px 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 16px 0;
+        }
+        .tip-box strong {
+            color: #1e40af;
+        }
+        .warning-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 16px 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 16px 0;
+        }
+        .warning-box strong {
+            color: #92400e;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 16px 0;
+        }
+        .feature-card {
+            background: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        .feature-card .icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+        .feature-card strong {
+            display: block;
+            margin-bottom: 6px;
+            color: #111827;
+            line-height: 1.3;
+        }
+        .feature-card span {
+            font-size: 0.85rem;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #6b7280;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .back-link:hover {
+            color: #2856a8;
+        }
+        .cta-button {
+            display: inline-block;
+            padding: 12px 32px;
+            background: #2856a8;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 700;
+            margin-top: 16px;
+        }
+        .cta-button:hover {
+            background: #1e408a;
+        }
+        .mode-badge {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            vertical-align: middle;
+        }
+        .mode-badge.spot {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .mode-badge.schedule {
+            background: #fce7f3;
+            color: #9d174d;
+        }
+        .category-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 8px;
+            margin: 12px 0;
+            list-style: none;
+            padding: 0;
+        }
+        .category-list li {
+            background: #f9fafb;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+        .screen-layout {
+            display: flex;
+            gap: 12px;
+            margin: 16px 0;
+            flex-wrap: wrap;
+        }
+        .screen-part {
+            flex: 1;
+            min-width: 200px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .screen-part strong {
+            display: block;
+            margin-bottom: 6px;
+            color: #111827;
+        }
+        .screen-part span {
+            font-size: 0.85rem;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="guide-container">
+    <a href="index.html" class="back-link">&larr; ガレージに戻る</a>
+
+    <div class="guide-header">
+        <h1>出没スポット &amp; 出没予報</h1>
+        <p style="font-size: 1.1rem; font-weight: 600; color: #2856a8; letter-spacing: 0.03em;">Fiat 500 オーナーの行きつけスポット共有 &amp; 出没予定カレンダー</p>
+        <p style="margin-top: 16px; color: #92400e; font-size: 0.9rem;">※ ガレージ登録オーナー限定サービスです（閲覧はログインなしでもOK）</p>
+    </div>
+
+    <!-- このツールでできること -->
+    <div class="guide-section">
+        <h2>できること</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="icon">🗺️</div>
+                <strong>スポットを地図で探す</strong>
+                <span>全国のオーナー行きつけスポットを地図上で一覧</span>
+            </div>
+            <div class="feature-card">
+                <div class="icon">📍</div>
+                <strong>スポットを登録する</strong>
+                <span>お気に入りの場所を地図に追加して共有</span>
+            </div>
+            <div class="feature-card">
+                <div class="icon">⭐</div>
+                <strong>マイ出没に登録</strong>
+                <span>よく行くスポットを自分の出没リストに追加</span>
+            </div>
+            <div class="feature-card">
+                <div class="icon">📅</div>
+                <strong>出没予報で予定共有</strong>
+                <span>「この日ここに行くよ」を予告して偶然の出会いを演出</span>
+            </div>
+            <div class="feature-card">
+                <div class="icon">🤝</div>
+                <strong>メンバーを確認</strong>
+                <span>同じスポットに通うオーナー仲間が見える</span>
+            </div>
+            <div class="feature-card">
+                <div class="icon">🔍</div>
+                <strong>カテゴリで絞り込み</strong>
+                <span>カフェ・駐車場・撮影スポットなど8種類から検索</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2つのモード -->
+    <div class="guide-section">
+        <h2>2つのモード</h2>
+        <p>画面上部のトグルボタンでモードを切り替えられます。</p>
+        <div class="screen-layout">
+            <div class="screen-part">
+                <strong><span class="mode-badge spot">出没スポット</span></strong>
+                <span>地図上にスポットが表示されるモード。スポットの閲覧・登録・マイ出没の管理ができます。普段はこちらを使います。</span>
+            </div>
+            <div class="screen-part">
+                <strong><span class="mode-badge schedule">出没予報</span></strong>
+                <span>週間カレンダーで出没予定を確認するモード。「いつ・誰が・どこに行く」が一覧で見えます。</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 画面構成 -->
+    <div class="guide-section">
+        <h2>画面の見方</h2>
+        <h3>出没スポットモード</h3>
+        <div class="screen-layout">
+            <div class="screen-part">
+                <strong>左: サイドバー</strong>
+                <span>「一覧」タブでスポット一覧表示。「マイ出没」タブで自分の登録スポットを確認。「+ 新規登録」で新しいスポットを追加。</span>
+            </div>
+            <div class="screen-part">
+                <strong>右: 地図</strong>
+                <span>スポットがカテゴリアイコンで表示されます。マーカーをクリックするとポップアップで詳細リンクが表示されます。</span>
+            </div>
+        </div>
+        <h3>出没予報モード</h3>
+        <div class="screen-layout">
+            <div class="screen-part">
+                <strong>週間カレンダー</strong>
+                <span>月〜日の7日間が表示されます。各日付をクリックするとその日の予定を登録できます。前の週・次の週ボタンで週を移動。</span>
+            </div>
+            <div class="screen-part">
+                <strong>予定リスト</strong>
+                <span>カレンダーの下に、その週の全出没予定が日付順に表示されます。自分の予定は削除ボタンで取り消し可能。</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- カテゴリ一覧 -->
+    <div class="guide-section">
+        <h2>スポットのカテゴリ（8種類）</h2>
+        <p>スポットは以下のカテゴリに分類されます。一覧画面のプルダウンで絞り込みも可能です。</p>
+        <ul class="category-list">
+            <li>☕ カフェ・飲食店</li>
+            <li>🅿️ 駐車場・PA/SA</li>
+            <li>📷 撮影スポット</li>
+            <li>🏔️ 展望スポット</li>
+            <li>🔧 整備工場</li>
+            <li>🤝 集合場所</li>
+            <li>🛣️ ドライブルート</li>
+            <li>📍 その他</li>
+        </ul>
+    </div>
+
+    <!-- スポットを探す -->
+    <div class="guide-section">
+        <h2>スポットを探す</h2>
+
+        <div class="step">
+            <span class="step-number">1</span>
+            <div class="step-content">
+                <strong>地図を見渡す</strong><br>
+                ページを開くと日本全体の地図が表示されます。ログイン済みの場合、登録都道府県付近に自動ズームします。
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">2</span>
+            <div class="step-content">
+                <strong>カテゴリで絞り込む</strong><br>
+                サイドバー上部のプルダウンでカテゴリを選ぶと、該当スポットだけが表示されます。
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">3</span>
+            <div class="step-content">
+                <strong>スポットの詳細を見る</strong><br>
+                サイドバーの一覧カードをクリックすると、スポット名・カテゴリ・住所・登録メンバー・今後の出没予定が確認できます。Google Mapリンクから現地のナビも可能です。
+            </div>
+        </div>
+    </div>
+
+    <!-- スポットを登録する -->
+    <div class="guide-section">
+        <h2>新しいスポットを登録する</h2>
+
+        <div class="step">
+            <span class="step-number">1</span>
+            <div class="step-content">
+                <strong>「+ 新規登録」をクリック</strong><br>
+                ヘッダー右上のボタンを押すと、サイドバーが登録フォームに切り替わります。
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">2</span>
+            <div class="step-content">
+                <strong>場所を選ぶ（2つの方法）</strong><br>
+                <strong>方法A: 施設名で検索</strong> — 施設名・場所名を入力して検索。候補をクリックすると地図に反映されます。<br>
+                <strong>方法B: 地図をクリック</strong> — 「地図をクリック」タブに切り替えて、地図上の任意の位置をクリック。住所が自動入力されます。
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">3</span>
+            <div class="step-content">
+                <strong>スポット名とカテゴリを入力</strong><br>
+                スポット名（必須）・カテゴリ（必須）・住所（任意）を入力します。施設名検索を使った場合は自動入力されます。
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">4</span>
+            <div class="step-content">
+                <strong>「スポットを登録」をクリック</strong><br>
+                近くに既存スポットがある場合は重複チェックが表示されます。問題なければ登録完了です。
+            </div>
+        </div>
+
+        <div class="tip-box">
+            <strong>重複チェック機能</strong><br>
+            位置を選択すると、半径500m以内に既存スポットがあるかを自動チェックします。同じ場所が既に登録されている場合は、そちらに「マイ出没」登録することをおすすめします。
+        </div>
+    </div>
+
+    <!-- マイ出没 -->
+    <div class="guide-section">
+        <h2>マイ出没（お気に入りスポット）</h2>
+        <p>「マイ出没」は、自分がよく行くスポットを登録する機能です。登録すると、そのスポットの「出没メンバー」に名前が表示されます。</p>
+
+        <h3>登録する</h3>
+        <p>スポット詳細画面で「出没スポットに登録」ボタンをクリックするだけ。</p>
+
+        <h3>編集する</h3>
+        <p>マイ出没に登録済みのスポット詳細画面で「編集」ボタンが表示されます。以下の情報を設定できます。</p>
+        <ul>
+            <li><strong>コメント</strong> — 「週末によく寄ります」など一言</li>
+            <li><strong>よく行く時間帯</strong> — 朝・昼・夕方・夜から複数選択</li>
+            <li><strong>時間の補足</strong> — 「10時頃」などの自由記入</li>
+            <li><strong>よく行く曜日</strong> — 月〜日から複数選択</li>
+            <li><strong>頻度</strong> — 毎週・隔週・月1回・たまに</li>
+            <li><strong>滞在時間</strong> — 分単位で入力</li>
+            <li><strong>公開設定</strong> — 公開 or 非公開</li>
+        </ul>
+
+        <h3>削除する</h3>
+        <p>編集画面の「削除」ボタンで登録を解除できます。スポット自体は削除されません。</p>
+    </div>
+
+    <!-- 出没予報 -->
+    <div class="guide-section">
+        <h2>出没予報（予定の共有）</h2>
+        <p>「出没予報」は、いつ・どこに行く予定かを事前に共有する機能です。同じ日に同じスポットへ行く予定のオーナーがいれば、偶然の出会いが生まれるかもしれません。</p>
+
+        <h3>予定を見る</h3>
+        <div class="step">
+            <span class="step-number">1</span>
+            <div class="step-content">
+                <strong>ヘッダーの「出没予報」をクリック</strong><br>
+                地図が週間カレンダーに切り替わります。
+            </div>
+        </div>
+        <div class="step">
+            <span class="step-number">2</span>
+            <div class="step-content">
+                <strong>週を移動して予定を確認</strong><br>
+                「前の週」「次の週」ボタンで表示期間を切り替えます。カレンダーの各日にはスポット名が表示されます。
+            </div>
+        </div>
+
+        <h3>予定を登録する</h3>
+        <div class="step">
+            <span class="step-number">1</span>
+            <div class="step-content">
+                <strong>カレンダーの日付をクリック、または「+ 予定登録」</strong><br>
+                予定登録モーダルが開きます。
+            </div>
+        </div>
+        <div class="step">
+            <span class="step-number">2</span>
+            <div class="step-content">
+                <strong>スポット・日付・時間帯を入力</strong><br>
+                スポットは「マイ出没」に登録したものから選択します。時間帯（朝・昼・夕方・夜）やコメントも任意で追加できます。
+            </div>
+        </div>
+
+        <div class="warning-box">
+            <strong>マイ出没への事前登録が必要</strong><br>
+            出没予報に登録できるスポットは、「マイ出没」に登録済みのスポットのみです。先にスポット詳細画面から「出没スポットに登録」してください。
+        </div>
+    </div>
+
+    <!-- ログインについて -->
+    <div class="guide-section">
+        <h2>ログインについて</h2>
+        <p>Googleアカウントでログインします。ヘッダー右側の「ログイン」ボタンからどうぞ。</p>
+
+        <h3>ログインなしでできること</h3>
+        <ul>
+            <li>スポット一覧の閲覧</li>
+            <li>地図上のマーカー確認</li>
+            <li>スポット詳細の閲覧</li>
+            <li>出没予報カレンダーの閲覧</li>
+        </ul>
+
+        <h3>ログインが必要な操作</h3>
+        <ul>
+            <li>新しいスポットの登録</li>
+            <li>マイ出没への追加・編集・削除</li>
+            <li>出没予報の登録・削除</li>
+        </ul>
+
+        <div class="tip-box">
+            <strong>自動ズーム機能</strong><br>
+            ログインすると、ガレージに登録した都道府県付近に地図が自動ズームします。自分の地元のスポットがすぐに見つかります。
+        </div>
+    </div>
+
+    <!-- よくある質問 -->
+    <div class="guide-section">
+        <h2>よくある質問</h2>
+
+        <h3>Q. スポットは誰でも登録できる？</h3>
+        <p>はい。ログイン済みであれば、どなたでもスポットを登録できます。カフェ、駐車場、撮影スポットなど、Fiat 500で行きたい場所をどんどん追加してください。</p>
+
+        <h3>Q. 他のオーナーの予定が見える？</h3>
+        <p>はい。出没予報モードでは、全オーナーの公開予定が表示されます。同じ日に同じスポットに行くオーナーがいたら声をかけてみてください。</p>
+
+        <h3>Q. マイ出没の「非公開」設定にすると？</h3>
+        <p>非公開にすると、そのスポットの出没メンバー一覧に名前が表示されなくなります。自分のマイ出没リストには引き続き表示されます。</p>
+
+        <h3>Q. スポットの場所が正確でない場合は？</h3>
+        <p>「地図をクリック」方式で登録すれば、ピンポイントで位置を指定できます。施設名検索で候補が見つからない場合にも便利です。</p>
+
+        <h3>Q. 登録したスポットを削除したい</h3>
+        <p>現在、スポット自体の削除は管理者にお問い合わせください。「マイ出没」からの登録解除は編集画面の「削除」ボタンで可能です。</p>
+
+        <h3>Q. 出没予報の予定を変更したい</h3>
+        <p>予定リストから自分の予定を削除し、新しい予定を登録し直してください。</p>
+    </div>
+
+    <!-- CTAセクション -->
+    <div class="guide-section" style="text-align: center;">
+        <h2>出没スポットを覗いてみよう</h2>
+        <p>全国のFiat 500オーナーの行きつけスポットが見えます。<br>あなたのお気に入りの場所も登録してみませんか？</p>
+        <a href="spot.html" class="cta-button">出没スポットを開く</a>
+    </div>
+
+</div>
+
+</body>
+</html>
