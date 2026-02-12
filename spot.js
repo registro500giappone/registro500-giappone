@@ -669,9 +669,9 @@ async function showSpotDetail(spotId) {
       + '<a href="https://www.google.com/maps/search/' + searchQuery + '" target="_blank" rel="noopener" class="btn-secondary" style="text-decoration:none;font-size:0.78rem">📍 Google Mapで見る</a>'
       + '</div>';
 
-    // 出没スポットに登録ボタン（未登録の場合のみ）
+    // マイ出没に登録ボタン（未登録の場合のみ）
     if (currentUser && currentUser.documentId && !myFav) {
-      html += '<button class="btn-primary" style="margin-bottom:12px;font-size:0.82rem;padding:8px 16px" onclick="addFavorite(\'' + spotId + '\')">出没スポットに登録</button>';
+      html += '<button class="btn-primary" style="margin-bottom:12px;font-size:0.82rem;padding:8px 16px" onclick="addFavorite(\'' + spotId + '\')">マイ出没に登録</button>';
     }
 
     // 登録者一覧
