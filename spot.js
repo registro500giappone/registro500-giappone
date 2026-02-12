@@ -863,7 +863,15 @@ function addFavorite(spotId) {
     owner_document_id: currentUser.documentId,
     spot_id: spotId
   }).then(function(res) {
-    if (!res.success) throw new Error(res.error);
+    if (!res.success) {
+      if (res.error && res.error.indexOf('23505') !== -1) {
+        alert('既にマイ出没に登録済みです');
+        loadMyFavorites();
+        closeDetailModal();
+        return;
+      }
+      throw new Error(res.error);
+    }
     loadMyFavorites();
     closeDetailModal();
   }).catch(function(err) { alert('エラー: ' + err.message); });
