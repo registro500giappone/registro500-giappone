@@ -625,6 +625,8 @@ function createPartCard(part) {
     const shopConfig = CONFIG.shops[part.shop_name] || { is_price_ex_vat: true, vat_rate: 0 };
 
     // 画像URL処理
+    // referrerpolicy="no-referrer" + loading="lazy" で外部サーバーへの負荷を軽減
+    // onerror でフォールバックプレースホルダーを表示
     let finalImageUrl = "";
     let rawUrl = part.image_url ? String(part.image_url).replace(/^\s+|\s+$/g, '') : "";
     const isInvalid = !rawUrl || /^(nan|null|undefined)$/i.test(rawUrl) || rawUrl === "";
