@@ -328,8 +328,13 @@ function apiPost(action, data) {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ action: action, data: data })
-  }).then(function(r) { return r.json(); })
-    .finally(hideLoading);
+  }).then(function(r) {
+    if (!r.ok) console.error('apiPost HTTP error:', r.status, r.statusText);
+    return r.text();
+  }).then(function(text) {
+    console.log('apiPost response:', text.substring(0, 500));
+    return JSON.parse(text);
+  }).finally(hideLoading);
 }
 
 // =================================================
@@ -908,6 +913,7 @@ function submitNewSpot() {
     resetForm();
     loadSpots();
   }).catch(function(err) {
+    console.error('createSpot error:', err);
     alert('登録エラー: ' + err.message);
   }).finally(function() {
     btn.disabled = false;
