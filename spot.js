@@ -810,6 +810,7 @@ function saveMyFavorite(spotId) {
 
   apiPost('updateFavoriteSpot', payload).then(function(res) {
     if (!res.success) throw new Error(res.error);
+    alert('マイ出没を更新しました！');
     loadMyFavorites();
     showSpotDetail(spotId);
   }).catch(function(err) { alert('エラー: ' + err.message); });
@@ -887,6 +888,7 @@ function removeFavorite(spotId) {
     owner_document_id: currentUser.documentId
   }).then(function(res) {
     if (!res.success) throw new Error(res.error);
+    alert('マイ出没から削除しました');
     loadMyFavorites();
     closeSpotDetail();
   }).catch(function(err) { alert('エラー: ' + err.message); });
@@ -1211,6 +1213,7 @@ function deleteSchedule(scheduleId) {
     owner_document_id: currentUser.documentId
   }).then(function(res) {
     if (!res.success) throw new Error(res.error);
+    alert('出没予定を削除しました');
     schedRenderWeek();
     schedLoadData();
   }).catch(function(err) { alert('エラー: ' + err.message); });
