@@ -383,7 +383,6 @@ function loadSpots() {
 // =================================================
 function applySortAndFilter() {
   var category = document.getElementById('filterCategory').value;
-  var sortOrder = document.getElementById('sortOrder').value;
   var viewportOnly = document.getElementById('filterViewport').checked;
 
   // カテゴリフィルタ
@@ -392,20 +391,11 @@ function applySortAndFilter() {
     spots = spots.filter(function(s) { return s.category === category; });
   }
 
-  // ソート
-  spots = spots.slice(); // コピーを作成
-  if (sortOrder === 'newest') {
-    spots.sort(function(a, b) {
-      return (b.created_at || '').localeCompare(a.created_at || '');
-    });
-  } else {
-    // 人気順（デフォルト）
-    spots.sort(function(a, b) {
-      var diff = (b.registration_count || 0) - (a.registration_count || 0);
-      if (diff !== 0) return diff;
-      return (b.created_at || '').localeCompare(a.created_at || '');
-    });
-  }
+  // 新着順ソート
+  spots = spots.slice();
+  spots.sort(function(a, b) {
+    return (b.created_at || '').localeCompare(a.created_at || '');
+  });
 
   // ビューポートフィルタ
   if (viewportOnly && map) {
@@ -994,6 +984,7 @@ function addFavorite(spotId) {
     }
     alert('マイ出没に登録しました！');
     loadMyFavorites();
+    loadSpots();
     closeDetailModal();
   }).catch(function(err) { alert('エラー: ' + err.message); });
 }
@@ -1009,6 +1000,7 @@ function removeFavorite(spotId) {
     if (!res.success) throw new Error(res.error);
     alert('マイ出没から削除しました');
     loadMyFavorites();
+    loadSpots();
     closeSpotDetail();
   }).catch(function(err) { alert('エラー: ' + err.message); });
 }
