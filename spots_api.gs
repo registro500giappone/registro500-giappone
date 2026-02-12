@@ -124,10 +124,16 @@ function createSpot(data) {
  */
 function getSpots(params) {
   params = params || {};
-  var limit = Math.min(Number(params.limit) || 50, 200);
+  var limit = Math.min(Number(params.limit) || 500, 500);
   var offset = Number(params.offset) || 0;
 
-  var query = 'spots?order=registration_count.desc,created_at.desc'
+  // ソート順の決定
+  var order = 'registration_count.desc,created_at.desc';
+  if (params.sort === 'newest') {
+    order = 'created_at.desc';
+  }
+
+  var query = 'spots?order=' + order
     + '&limit=' + limit
     + '&offset=' + offset;
 

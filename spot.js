@@ -10,12 +10,16 @@ let map;
 let markers = {};
 let clickMarker = null;
 let allSpots = [];
+let filteredSpots = [];
 let myFavorites = [];
 let currentUser = null;     // { uid, email, documentId, prefecture }
 let selectedLatLng = null;
 let supabaseClient = null;
 let googleReady = false;
 let activeMainTab = 'sectionSpots';
+let markerClusterGroup = null;
+let displayedCount = 0;
+const SPOTS_PER_PAGE = 20;
 
 const CATEGORY_LABELS = {
   cafe: 'カフェ・飲食店',
@@ -136,7 +140,24 @@ function initMap() {
     noWrap: true
   }).addTo(map);
 
+  // MarkerClusterGroup 初期化
+  markerClusterGroup = L.markerClusterGroup({
+    maxClusterRadius: 50,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true
+  });
+  map.addLayer(markerClusterGroup);
+
   setTimeout(function() { map.invalidateSize(); }, 300);
+
+  // ビューポートフィルタ用: 地図移動時にリスト再描画
+  map.on('moveend', function() {
+    var vpCheck = document.getElementById('filterViewport');
+    if (vpCheck && vpCheck.checked) {
+      applySortAndFilter();
+    }
+  });
 
   // 地図クリック — 新規登録タブが表示中なら常に有効
   map.on('click', function(e) {
@@ -343,47 +364,131 @@ function apiPost(action, data) {
 // スポット読み込み
 // =================================================
 function loadSpots() {
-  var category = document.getElementById('filterCategory').value;
-  var params = { mode: 'spots' };
-  if (category) params.category = category;
+  var params = { mode: 'spots', limit: 500 };
 
   document.getElementById('spotList').innerHTML = '<div class="loading-spinner">読み込み中...</div>';
 
   apiGet(params).then(function(res) {
     if (!res.success) throw new Error(res.error);
     allSpots = res.data || [];
-    renderSpotList(allSpots);
-    renderSpotMarkers(allSpots);
+    applySortAndFilter();
   }).catch(function(err) {
     document.getElementById('spotList').innerHTML =
       '<div class="empty-state"><div class="empty-state-text">読み込みエラー: ' + err.message + '</div></div>';
   });
 }
 
-function renderSpotList(spots) {
+// =================================================
+// ソート・フィルタ・ページネーション中核
+// =================================================
+function applySortAndFilter() {
+  var category = document.getElementById('filterCategory').value;
+  var sortOrder = document.getElementById('sortOrder').value;
+  var viewportOnly = document.getElementById('filterViewport').checked;
+
+  // カテゴリフィルタ
+  var spots = allSpots;
+  if (category) {
+    spots = spots.filter(function(s) { return s.category === category; });
+  }
+
+  // ソート
+  spots = spots.slice(); // コピーを作成
+  if (sortOrder === 'newest') {
+    spots.sort(function(a, b) {
+      return (b.created_at || '').localeCompare(a.created_at || '');
+    });
+  } else {
+    // 人気順（デフォルト）
+    spots.sort(function(a, b) {
+      var diff = (b.registration_count || 0) - (a.registration_count || 0);
+      if (diff !== 0) return diff;
+      return (b.created_at || '').localeCompare(a.created_at || '');
+    });
+  }
+
+  // ビューポートフィルタ
+  if (viewportOnly && map) {
+    var bounds = map.getBounds();
+    spots = spots.filter(function(s) {
+      if (!s.latitude || !s.longitude) return false;
+      return bounds.contains([s.latitude, s.longitude]);
+    });
+  }
+
+  filteredSpots = spots;
+
+  // 件数表示
+  var countEl = document.getElementById('spotCount');
+  if (countEl) {
+    countEl.textContent = spots.length + '件';
+  }
+
+  // ページネーション付きリスト描画
+  renderSpotListPaginated(spots);
+
+  // マーカー描画（カテゴリフィルタ適用済みの全スポット、ビューポートフィルタは無関係）
+  var markerSpots = allSpots;
+  if (category) {
+    markerSpots = allSpots.filter(function(s) { return s.category === category; });
+  }
+  renderSpotMarkers(markerSpots);
+}
+
+function renderSpotListPaginated(spots) {
+  displayedCount = 0;
   var container = document.getElementById('spotList');
   if (spots.length === 0) {
     container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📍</div>'
       + '<div class="empty-state-text">スポットがまだありません</div></div>';
     return;
   }
-  container.innerHTML = spots.map(function(s) {
+  container.innerHTML = '';
+  loadMoreSpots();
+}
+
+function buildSpotCards(spots, start, count) {
+  var end = Math.min(start + count, spots.length);
+  var html = '';
+  for (var i = start; i < end; i++) {
+    var s = spots[i];
     var icon = CATEGORY_ICONS[s.category] || '📍';
     var label = CATEGORY_LABELS[s.category] || s.category;
-    return '<div class="spot-card" onclick="showSpotDetail(\'' + s.spot_id + '\')">'
+    html += '<div class="spot-card" onclick="showSpotDetail(\'' + s.spot_id + '\')">'
       + '<div class="spot-card-name">' + icon + ' ' + escapeHtml(s.name) + '</div>'
       + '<div class="spot-card-meta">'
       + '<span class="spot-card-badge">' + label + '</span>'
       + '<span>' + (s.registration_count || 0) + '人登録</span>'
       + (s.address ? '<span>' + escapeHtml(s.address) + '</span>' : '')
       + '</div></div>';
-  }).join('');
+  }
+  return html;
+}
+
+function loadMoreSpots() {
+  var container = document.getElementById('spotList');
+  // 既存の「もっと見る」ボタンを削除
+  var existingBtn = container.querySelector('.load-more-btn');
+  if (existingBtn) existingBtn.remove();
+
+  var html = buildSpotCards(filteredSpots, displayedCount, SPOTS_PER_PAGE);
+  container.insertAdjacentHTML('beforeend', html);
+  displayedCount = Math.min(displayedCount + SPOTS_PER_PAGE, filteredSpots.length);
+
+  // まだ表示しきれていない場合「もっと見る」ボタンを追加
+  if (displayedCount < filteredSpots.length) {
+    var remaining = filteredSpots.length - displayedCount;
+    container.insertAdjacentHTML('beforeend',
+      '<button class="load-more-btn" onclick="loadMoreSpots()">もっと見る（残り' + remaining + '件）</button>');
+  }
 }
 
 function renderSpotMarkers(spots) {
-  Object.keys(markers).forEach(function(id) { map.removeLayer(markers[id]); });
+  // クラスタグループをクリア
+  markerClusterGroup.clearLayers();
   markers = {};
 
+  var newMarkers = [];
   spots.forEach(function(s) {
     if (!s.latitude || !s.longitude) return;
     var icon = L.divIcon({
@@ -392,12 +497,14 @@ function renderSpotMarkers(spots) {
       iconSize: [30, 30]
     });
     var marker = L.marker([s.latitude, s.longitude], { icon: icon })
-      .addTo(map)
       .bindPopup('<b>' + escapeHtml(s.name) + '</b><br>'
         + (s.registration_count || 0) + '人登録<br>'
         + '<a href="#" onclick="switchToSpotsTab();showSpotDetail(\'' + s.spot_id + '\'); return false;">詳細を見る</a>');
     markers[s.spot_id] = marker;
+    newMarkers.push(marker);
   });
+
+  markerClusterGroup.addLayers(newMarkers);
 }
 
 // =================================================
@@ -601,11 +708,13 @@ function showNearbyCheck(lat, lng) {
 async function showSpotDetail(spotId) {
   var listEl = document.getElementById('spotList');
   var detailEl = document.getElementById('spotDetail');
-  var filterEl = document.getElementById('filterCategory').parentElement;
+  var filterRow = document.querySelector('.spot-filter-row');
+  var vpToggle = document.querySelector('.spot-viewport-toggle');
 
   // 一覧を隠して詳細を表示
   listEl.style.display = 'none';
-  filterEl.style.display = 'none';
+  if (filterRow) filterRow.style.display = 'none';
+  if (vpToggle) vpToggle.style.display = 'none';
   detailEl.style.display = 'block';
   detailEl.innerHTML = '<div class="loading-spinner">読み込み中...</div>';
 
@@ -616,9 +725,16 @@ async function showSpotDetail(spotId) {
     var icon = CATEGORY_ICONS[s.category] || '📍';
     var label = CATEGORY_LABELS[s.category] || s.category;
 
-    // 地図をこのスポットにズーム
+    // 地図をこのスポットにズーム（クラスタ内マーカーも展開）
     if (s.latitude && s.longitude) {
-      map.setView([s.latitude, s.longitude], 16);
+      var targetMarker = markers[spotId];
+      if (targetMarker && markerClusterGroup) {
+        markerClusterGroup.zoomToShowLayer(targetMarker, function() {
+          targetMarker.openPopup();
+        });
+      } else {
+        map.setView([s.latitude, s.longitude], 16);
+      }
     }
 
     // ハンドルネーム解決（Supabaseから直接取得）
@@ -710,7 +826,10 @@ async function showSpotDetail(spotId) {
 
 function closeSpotDetail() {
   document.getElementById('spotList').style.display = '';
-  document.getElementById('filterCategory').parentElement.style.display = '';
+  var filterRow = document.querySelector('.spot-filter-row');
+  var vpToggle = document.querySelector('.spot-viewport-toggle');
+  if (filterRow) filterRow.style.display = '';
+  if (vpToggle) vpToggle.style.display = '';
   document.getElementById('spotDetail').style.display = 'none';
   // 地図を全体表示に戻す
   map.setView([37, 137], 7);
