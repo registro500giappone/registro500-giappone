@@ -63,14 +63,32 @@
       return s.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
-    // URLをリンクに変換する（HTMLタグや日本語句読点で止まるように改良）
+    // URLをリンクに変換する、既存の<a>タグは保持
     function linkify(text) {
-      // 先にHTMLエスケープしてからURLをリンク化
-      const escaped = esc(text);
+      // 既に<a>タグが含まれている場合は、その部分をプレースホルダーに置換
+      const aTagPattern = /<a\s+href="([^"]*)"\s*>([^<]*)<\/a>/g;
+      const placeholders = [];
+      let placeholder = 0;
+
+      const textWithPlaceholders = text.replace(aTagPattern, function(match) {
+        placeholders.push(match);
+        return `__LINK_PLACEHOLDER_${placeholder++}__`;
+      });
+
+      // その後、HTMLエスケープしてURLをリンク化
+      const escaped = esc(textWithPlaceholders);
       const urlPattern = /(https?:\/\/[^\s<>\u3000！?。、]+)/g;
-      return escaped.replace(urlPattern, function(url) {
+      const linkified = escaped.replace(urlPattern, function(url) {
         return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
       });
+
+      // プレースホルダーを元の<a>タグに戻す
+      let result = linkified;
+      placeholders.forEach((link, i) => {
+        result = result.replace(`__LINK_PLACEHOLDER_${i}__`, link);
+      });
+
+      return result;
     }
 
 async function fetchNews() {
