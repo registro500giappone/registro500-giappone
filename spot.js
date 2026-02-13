@@ -246,9 +246,22 @@ function switchMode(mode) {
     scheduleFullViewActive = true;
     mapEl.style.display = 'none';
     fullView.style.display = 'block';
+
     // スマホで出没予報を表示するときは高さ制限を外す
-    if (mapArea) mapArea.style.height = 'auto';
-    if (layout) layout.style.height = 'auto';
+    // モバイルメディアクエリの height: 50vh を上書き
+    if (mapArea) {
+      mapArea.style.height = '';
+      mapArea.style.minHeight = 'calc(100vh - 55px)';
+    }
+    if (layout) {
+      layout.style.height = '';
+      layout.style.minHeight = 'calc(100vh - 55px)';
+    }
+    if (fullView) {
+      fullView.style.height = '';
+      fullView.style.minHeight = 'calc(100vh - 55px)';
+    }
+
     btnSpots.classList.remove('active');
     btnSchedule.classList.add('active');
     btnAdd.textContent = '+ 予定登録';
@@ -257,9 +270,21 @@ function switchMode(mode) {
     scheduleFullViewActive = false;
     mapEl.style.display = '';
     fullView.style.display = 'none';
-    // スポット表示に戻すときは高さを復元（メディアクエリのデフォルトに）
-    if (mapArea) mapArea.style.height = '';
-    if (layout) layout.style.height = '';
+
+    // スポット表示に戻すときは高さを復元
+    if (mapArea) {
+      mapArea.style.height = '';
+      mapArea.style.minHeight = '';
+    }
+    if (layout) {
+      layout.style.height = '';
+      layout.style.minHeight = '';
+    }
+    if (fullView) {
+      fullView.style.height = '';
+      fullView.style.minHeight = '';
+    }
+
     btnSpots.classList.add('active');
     btnSchedule.classList.remove('active');
     btnAdd.textContent = '+ 新規登録';
