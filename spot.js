@@ -1087,7 +1087,8 @@ function submitNewSpot() {
   }).then(function() {
     alert('スポット「' + name + '」を登録しました！');
     resetForm();
-    loadSpots();
+    // トリガーがregistration_countを更新するまで少し待ってからリロード
+    setTimeout(function() { loadSpots(); }, 800);
   }).catch(function(err) {
     console.error('createSpot error:', err);
     alert('登録エラー: ' + err.message);

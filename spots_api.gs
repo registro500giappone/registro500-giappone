@@ -1,15 +1,15 @@
 /***** =========================================================
  * Registro500 Giappone — spots_api.gs
- * お気に入りスポット機能 API
+ * Favorite Spots API
  * ========================================================= ****/
 
 // =================================================
-// Supabase 接続設定は main.gs で定義
-// SUPABASE_URL, SUPABASE_ANON_KEY を使用
+// Supabase connection settings defined in main.gs
+// Uses SUPABASE_URL, SUPABASE_ANON_KEY
 // =================================================
 
 /**
- * Supabase REST API 共通リクエスト
+ * Supabase REST API common request
  */
 function supabaseRequest_(endpoint, method, payload, extraHeaders) {
   const url = SUPABASE_URL + '/rest/v1/' + endpoint;
@@ -49,7 +49,7 @@ function supabaseRequest_(endpoint, method, payload, extraHeaders) {
 }
 
 // =================================================
-// ヘルパー: DocumentID → HandleName 変換
+
 // =================================================
 function resolveHandleNames_(ownerDocIds) {
   if (!ownerDocIds || ownerDocIds.length === 0) return {};
@@ -74,23 +74,23 @@ function resolveHandleNames_(ownerDocIds) {
 }
 
 // =================================================
-// 1. createSpot — スポット新規登録
+
 // =================================================
 /**
  * @param {Object} data
- *   - name {string} 必須
- *   - category {string} 必須
- *   - latitude {number} 必須
- *   - longitude {number} 必須
- *   - place_id {string} 任意
- *   - address {string} 任意
+ *   - name {string} required
+ *   - category {string} required
+ *   - latitude {number} required
+ *   - longitude {number} required
+ *   - place_id {string} optional
+ *   - address {string} optional
  * @returns {Object} { spot_id: "SPOT_001" }
  */
 function createSpot(data) {
-  if (!data.name) throw new Error('スポット名は必須です');
-  if (!data.category) throw new Error('カテゴリは必須です');
+  if (!data.name) throw new Error('Spot name is required');
+  if (!data.category) throw new Error('Category is required');
   if (data.latitude == null || data.longitude == null) {
-    throw new Error('緯度・経度は必須です');
+    throw new Error('Latitude and longitude are required');
   }
 
   var payload = {
@@ -112,7 +112,7 @@ function createSpot(data) {
 }
 
 // =================================================
-// 2. getSpots — スポット一覧取得
+
 // =================================================
 /**
  * @param {Object} params
@@ -127,7 +127,7 @@ function getSpots(params) {
   var limit = Math.min(Number(params.limit) || 500, 500);
   var offset = Number(params.offset) || 0;
 
-  // ソート順の決定
+
   var order = 'registration_count.desc,created_at.desc';
   if (params.sort === 'newest') {
     order = 'created_at.desc';
@@ -137,12 +137,12 @@ function getSpots(params) {
     + '&limit=' + limit
     + '&offset=' + offset;
 
-  // カテゴリフィルタ
+
   if (params.category) {
     query += '&category=eq.' + encodeURIComponent(params.category);
   }
 
-  // 都道府県フィルタ（addressカラムの部分一致）
+
   if (params.prefecture) {
     query += '&address=like.*' + encodeURIComponent(params.prefecture) + '*';
   }
@@ -152,31 +152,31 @@ function getSpots(params) {
 }
 
 // =================================================
-// 3. getSpotDetail — スポット詳細取得
+
 // =================================================
 /**
  * @param {string} spotId - スポットID
  * @returns {Object} スポット詳細 + favorites一覧 + 今後のschedules
  */
 function getSpotDetail(spotId) {
-  if (!spotId) throw new Error('spot_id は必須です');
+  if (!spotId) throw new Error('Error');
 
-  // スポット基本情報
+
   var spots = supabaseRequest_(
     'spots?spot_id=eq.' + encodeURIComponent(spotId) + '&limit=1',
     'GET', null, null
   );
-  if (!spots || spots.length === 0) throw new Error('スポットが見つかりません');
+  if (!spots || spots.length === 0) throw new Error('Error');
   var spot = spots[0];
 
-  // お気に入り登録者一覧（公開のみ）
+
   spot.favorites = supabaseRequest_(
     'favorite_spots?spot_id=eq.' + encodeURIComponent(spotId)
       + '&visibility=eq.public&order=created_at.desc',
     'GET', null, null
   ) || [];
 
-  // 今後の出没予定（公開のみ）
+
   var today = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd');
   spot.schedules = supabaseRequest_(
     'spot_schedules?spot_id=eq.' + encodeURIComponent(spotId)
@@ -185,7 +185,7 @@ function getSpotDetail(spotId) {
     'GET', null, null
   ) || [];
 
-  // ハンドルネーム解決
+
   var allOwnerIds = [];
   spot.favorites.forEach(function(f) {
     if (allOwnerIds.indexOf(f.owner_document_id) === -1) allOwnerIds.push(f.owner_document_id);
@@ -205,7 +205,7 @@ function getSpotDetail(spotId) {
 }
 
 // =================================================
-// 4. addFavoriteSpot — お気に入り登録
+
 // =================================================
 /**
  * @param {Object} data
@@ -215,8 +215,8 @@ function getSpotDetail(spotId) {
  * @returns {Object} { favorite_id: "FAV_001" }
  */
 function addFavoriteSpot(data) {
-  if (!data.owner_document_id) throw new Error('owner_document_id は必須です');
-  if (!data.spot_id) throw new Error('spot_id は必須です');
+  if (!data.owner_document_id) throw new Error('Error');
+  if (!data.spot_id) throw new Error('Error');
 
   var payload = {
     owner_document_id: String(data.owner_document_id),
@@ -236,30 +236,13 @@ function addFavoriteSpot(data) {
   });
   var row = (result && result.length > 0) ? result[0] : result;
 
-  // スポットの登録人数をインクリメント
-  try {
-    var spotData = supabaseRequest_(
-      'spots?spot_id=eq.' + encodeURIComponent(data.spot_id) + '&select=registration_count',
-      'GET', null, null
-    );
-    if (spotData && spotData.length > 0) {
-      var currentCount = spotData[0].registration_count || 0;
-      supabaseRequest_(
-        'spots?spot_id=eq.' + encodeURIComponent(data.spot_id),
-        'PATCH',
-        { registration_count: currentCount + 1 },
-        null
-      );
-    }
-  } catch(e) {
-    // カウント更新に失敗しても favorite_spots の登録は成功
-  }
+  // registration_count is now handled by Supabase trigger
 
   return { favorite_id: row.favorite_id };
 }
 
 // =================================================
-// 5. updateFavoriteSpot — お気に入り更新
+
 // =================================================
 /**
  * @param {Object} data
@@ -269,8 +252,8 @@ function addFavoriteSpot(data) {
  * @returns {Object} 更新後のレコード
  */
 function updateFavoriteSpot(data) {
-  if (!data.favorite_id) throw new Error('favorite_id は必須です');
-  if (!data.owner_document_id) throw new Error('owner_document_id は必須です');
+  if (!data.favorite_id) throw new Error('Error');
+  if (!data.owner_document_id) throw new Error('Error');
 
   var payload = { updated_at: new Date().toISOString() };
   if (data.comment !== undefined)          payload.comment = data.comment;
@@ -288,12 +271,12 @@ function updateFavoriteSpot(data) {
   var result = supabaseRequest_(endpoint, 'PATCH', payload, {
     'Prefer': 'return=representation'
   });
-  if (!result || result.length === 0) throw new Error('更新対象が見つかりません');
+  if (!result || result.length === 0) throw new Error('Error');
   return result[0];
 }
 
 // =================================================
-// 6. deleteFavoriteSpot — お気に入り削除
+
 // =================================================
 /**
  * @param {Object} data
@@ -302,51 +285,28 @@ function updateFavoriteSpot(data) {
  * @returns {Object} { ok: true }
  */
 function deleteFavoriteSpot(data) {
-  if (!data.favorite_id) throw new Error('favorite_id は必須です');
-  if (!data.owner_document_id) throw new Error('owner_document_id は必須です');
+  if (!data.favorite_id) throw new Error('Error');
+  if (!data.owner_document_id) throw new Error('Error');
 
   var endpoint = 'favorite_spots?favorite_id=eq.' + encodeURIComponent(data.favorite_id)
     + '&owner_document_id=eq.' + encodeURIComponent(data.owner_document_id);
 
-  // 削除前に spot_id を取得（登録人数をデクリメントするため）
-  var favData = supabaseRequest_(endpoint + '&select=spot_id', 'GET', null, null);
-  var spotId = favData && favData.length > 0 ? favData[0].spot_id : null;
-
   supabaseRequest_(endpoint, 'DELETE', null, null);
 
-  // スポットの登録人数をデクリメント
-  if (spotId) {
-    try {
-      var spotData = supabaseRequest_(
-        'spots?spot_id=eq.' + encodeURIComponent(spotId) + '&select=registration_count',
-        'GET', null, null
-      );
-      if (spotData && spotData.length > 0) {
-        var currentCount = spotData[0].registration_count || 0;
-        supabaseRequest_(
-          'spots?spot_id=eq.' + encodeURIComponent(spotId),
-          'PATCH',
-          { registration_count: Math.max(0, currentCount - 1) },
-          null
-        );
-      }
-    } catch(e) {
-      // カウント更新に失敗してもレコード削除は成功
-    }
-  }
+  // registration_count is now handled by Supabase trigger
 
   return { ok: true };
 }
 
 // =================================================
-// 7. getMyFavorites — マイお気に入り一覧
+
 // =================================================
 /**
  * @param {string} ownerDocId - オーナーのDocumentID
  * @returns {Array} お気に入り一覧（スポット情報結合済み）
  */
 function getMyFavorites(ownerDocId) {
-  if (!ownerDocId) throw new Error('owner_document_id は必須です');
+  if (!ownerDocId) throw new Error('Error');
 
   var favorites = supabaseRequest_(
     'favorite_spots?owner_document_id=eq.' + encodeURIComponent(ownerDocId)
@@ -356,7 +316,7 @@ function getMyFavorites(ownerDocId) {
 
   if (favorites.length === 0) return [];
 
-  // スポット情報を一括取得して結合
+
   var ids = [];
   favorites.forEach(function(f) {
     if (ids.indexOf(f.spot_id) === -1) ids.push(f.spot_id);
@@ -376,7 +336,7 @@ function getMyFavorites(ownerDocId) {
 }
 
 // =================================================
-// 8. createSchedule — 出没予定登録
+
 // =================================================
 /**
  * @param {Object} data
@@ -387,9 +347,9 @@ function getMyFavorites(ownerDocId) {
  * @returns {Object} { schedule_id: "SCHED_001" }
  */
 function createSchedule(data) {
-  if (!data.owner_document_id) throw new Error('owner_document_id は必須です');
-  if (!data.spot_id) throw new Error('spot_id は必須です');
-  if (!data.visit_date) throw new Error('visit_date は必須です');
+  if (!data.owner_document_id) throw new Error('Error');
+  if (!data.spot_id) throw new Error('Error');
+  if (!data.visit_date) throw new Error('Error');
 
   var payload = {
     owner_document_id: String(data.owner_document_id),
@@ -410,7 +370,7 @@ function createSchedule(data) {
 }
 
 // =================================================
-// 9. deleteSchedule — 出没予定削除
+
 // =================================================
 /**
  * @param {Object} data
@@ -419,8 +379,8 @@ function createSchedule(data) {
  * @returns {Object} { ok: true }
  */
 function deleteSchedule(data) {
-  if (!data.schedule_id) throw new Error('schedule_id は必須です');
-  if (!data.owner_document_id) throw new Error('owner_document_id は必須です');
+  if (!data.schedule_id) throw new Error('Error');
+  if (!data.owner_document_id) throw new Error('Error');
 
   var endpoint = 'spot_schedules?schedule_id=eq.' + encodeURIComponent(data.schedule_id)
     + '&owner_document_id=eq.' + encodeURIComponent(data.owner_document_id);
@@ -430,7 +390,7 @@ function deleteSchedule(data) {
 }
 
 // =================================================
-// 10. getSchedules — 出没予定一覧取得
+
 // =================================================
 /**
  * @param {Object} params
@@ -459,14 +419,14 @@ function getSchedules(params) {
 
   var schedules = supabaseRequest_(query, 'GET', null, null) || [];
 
-  // ハンドルネーム解決
+
   var ownerIds = [];
   schedules.forEach(function(sc) {
     if (ownerIds.indexOf(sc.owner_document_id) === -1) ownerIds.push(sc.owner_document_id);
   });
   var nameMap = resolveHandleNames_(ownerIds);
 
-  // スポット名取得
+
   var spotIds = [];
   schedules.forEach(function(sc) {
     if (spotIds.indexOf(sc.spot_id) === -1) spotIds.push(sc.spot_id);
@@ -490,7 +450,7 @@ function getSchedules(params) {
 }
 
 // =================================================
-// 11. findNearbySpots — 半径内スポット検索
+
 // =================================================
 /**
  * 指定座標から半径内のスポットを検索（矩形近似）
@@ -500,7 +460,7 @@ function getSchedules(params) {
  * @returns {Array} 近隣スポット一覧
  */
 function findNearbySpots(lat, lng, radiusM) {
-  if (lat == null || lng == null) throw new Error('緯度・経度は必須です');
+  if (lat == null || lng == null) throw new Error('Error');
 
   lat = Number(lat);
   lng = Number(lng);
