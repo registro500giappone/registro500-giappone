@@ -3,16 +3,16 @@
  * ========================================================= ****/
 
 // =================================================
-// 設定項目
+
 // =================================================
 const SHEET_NAME_MASTER = 'cars';
 const DOCUMENT_ID_COLUMN_NAME = 'DocumentID';
 
-// Supabase設定（spots_api.gs で使用）
+
 const SUPABASE_URL = 'https://ttlttclfovuzafvghvaq.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt';
 
-// Firebase設定（サーバー側での検証に使用）
+
 const FIREBASE_API_KEY = "AIzaSyCNCNsu61S3DIQ2pcmK2Ic_vqCINlZB9nk";
 
 const FIREBASE_STORAGE_BASE_URL =
@@ -23,7 +23,7 @@ const PHOTO_COLUMNS = [
   'PhotoEngine', 'PhotoInterior', 'PhotoSteeringCluster',
 ];
 
-// ▼▼▼ 修正：'updatedAt' を追加しました（更新順ソート用） ▼▼▼
+
 const INDEX_VIEW_COLUMNS = [
   'PhotoMain', 'Model_DisplayC', 'Year', 'Prefecture', 'HandleName', 'DocumentID', 'updatedAt',
 ];
@@ -31,7 +31,7 @@ const INDEX_VIEW_COLUMNS = [
 const ADMIN_EMAILS = ['registro500giappone@gmail.com'];
 
 // =================================================
-// 通知機能
+
 // =================================================
 
 function sendAdminNotification(record) {
@@ -52,7 +52,7 @@ https://registro500-giappone.vercel.app/detail.html?doc=${record.DocumentID}
 https://docs.google.com/spreadsheets/d/your-spreadsheet-id/edit
   `;
 
-  // 管理者メールアドレスに送信
+
   if (ADMIN_EMAILS.length > 0) {
     MailApp.sendEmail({
       to: ADMIN_EMAILS[0],
@@ -68,7 +68,10 @@ https://docs.google.com/spreadsheets/d/your-spreadsheet-id/edit
 
 function createJsonOutput(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
+    .setMimeType(ContentService.MimeType.JSON)
+    .setHeader('Access-Control-Allow-Origin', '*')
+    .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    .setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
 function doOptions(e) {
@@ -93,7 +96,7 @@ function doGet(e) {
     if (mode === 'index') resultData = getIndexData();
     else if (mode === 'detail') resultData = getDetailData(docId);
     else if (mode === 'edit_init') resultData = docId ? getCarForEdit(docId) : {};
-    // --- スポット機能 (spots_api.gs) ---
+
     else if (mode === 'spots') resultData = getSpots(params);
     else if (mode === 'spot_detail') resultData = getSpotDetail(params.spot_id);
     else if (mode === 'my_favorites') resultData = getMyFavorites(params.owner_document_id);
@@ -109,17 +112,27 @@ function doGet(e) {
 function doPost(e) {
   try {
     if (!e.postData || !e.postData.contents) throw new Error('No post data');
-    
+
     const requestData = JSON.parse(e.postData.contents);
     const action = requestData.action;
     const formData = requestData.formData;
     const data = requestData.data;
 
+
+    console.log('doPost received:', JSON.stringify({ action: action, hasData: !!data, hasFormData: !!formData }));
+    if (action === 'createSpot') {
+      console.log('createSpot data:', JSON.stringify(data));
+      console.log('createSpot formData:', JSON.stringify(formData));
+    }
+
     let result = {};
     if (action === 'save') { if (!formData) throw new Error('No form data'); result = saveCarFromForm(formData); }
     else if (action === 'update') { if (!formData) throw new Error('No form data'); result = updateCarFromForm(formData); }
-    // --- スポット機能 (spots_api.gs) ---
-    else if (action === 'createSpot') result = createSpot(data || formData);
+
+    else if (action === 'createSpot') {
+      if (!data && !formData) throw new Error('createSpot: data and formData are both undefined');
+      result = createSpot(data || formData);
+    }
     else if (action === 'addFavoriteSpot') result = addFavoriteSpot(data || formData);
     else if (action === 'updateFavoriteSpot') result = updateFavoriteSpot(data || formData);
     else if (action === 'deleteFavoriteSpot') result = deleteFavoriteSpot(data || formData);
@@ -135,7 +148,7 @@ function doPost(e) {
 }
 
 // =================================================
-// ★ 新・認証ロジック (Firebase Identity Toolkit)
+
 // =================================================
 
 function getActiveEmail() {
@@ -144,14 +157,14 @@ function getActiveEmail() {
 }
 
 function getAuthEmailFromFormData_(formData) {
-  // 1. IDトークンがある場合（最優先）
+
   if (formData && formData.idToken) {
     const result = verifyFirebaseToken_(formData.idToken);
     if (result.email) return result.email;
     if (result.error) throw new Error(result.error);
   }
 
-  // 2. トークンがない場合（従来セッション）
+
   const sessionEmail = getActiveEmail();
   if (sessionEmail) return sessionEmail;
 
@@ -218,12 +231,12 @@ function hasEditPermission(docId, activeEmail) {
 }
 
 // =================================================
-// データ処理 (Save/Update/Get)
+
 // =================================================
 
 function saveCarFromForm(formData) {
   const activeEmail = getAuthEmailFromFormData_(formData);
-  if (!activeEmail) throw new Error('ログイン情報が見つかりません。再ログインしてください。');
+  if (!activeEmail) throw new Error('Error');
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_NAME_MASTER);
@@ -255,7 +268,7 @@ function saveCarFromForm(formData) {
   sheet.appendRow(headers.map(col => record[col] !== undefined ? record[col] : ''));
   clearCache(newDocId);
 
-  // 通知送信
+
   sendAdminNotification(record);
 
   return { ok: true, DocumentID: newDocId };
@@ -263,12 +276,12 @@ function saveCarFromForm(formData) {
 
 function updateCarFromForm(formData) {
   const docId = formData.DocumentID;
-  if (!docId) throw new Error('DocumentID がありません');
+  if (!docId) throw new Error('Error');
 
   const activeEmail = getAuthEmailFromFormData_(formData);
-  if (!activeEmail) throw new Error('ログイン情報が見つかりません');
+  if (!activeEmail) throw new Error('Error');
   
-  if (!hasEditPermission(docId, activeEmail)) throw new Error('編集権限がありません（オーナーと異なります）');
+  if (!hasEditPermission(docId, activeEmail)) throw new Error('Error');
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_NAME_MASTER);
@@ -284,7 +297,7 @@ function updateCarFromForm(formData) {
       break;
     }
   }
-  if (targetRow === -1) throw new Error('対象データが見つかりません');
+  if (targetRow === -1) throw new Error('Error');
 
   const ownerEmail = String(data[targetRow - 1][ownerEmailColIndex] || '').trim();
   const now = new Date();
