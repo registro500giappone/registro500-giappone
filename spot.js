@@ -20,6 +20,7 @@ let activeMainTab = 'sectionSpots';
 let markerClusterGroup = null;
 let displayedCount = 0;
 const SPOTS_PER_PAGE = 20;
+let lastMapView = { lat: 37, lng: 137, zoom: 7 };  // 詳細から戻るときの位置復元用
 
 const CATEGORY_LABELS = {
   cafe: 'カフェ・飲食店',
@@ -701,6 +702,9 @@ async function showSpotDetail(spotId) {
   var filterRow = document.querySelector('.spot-filter-row');
   var vpToggle = document.querySelector('.spot-viewport-toggle');
 
+  // 現在の地図位置を保存（詳細から戻るときに復元するため）
+  lastMapView = { lat: map.getCenter().lat, lng: map.getCenter().lng, zoom: map.getZoom() };
+
   // 一覧を隠して詳細を表示
   listEl.style.display = 'none';
   if (filterRow) filterRow.style.display = 'none';
@@ -821,8 +825,8 @@ function closeSpotDetail() {
   if (filterRow) filterRow.style.display = '';
   if (vpToggle) vpToggle.style.display = '';
   document.getElementById('spotDetail').style.display = 'none';
-  // 地図を全体表示に戻す
-  map.setView([37, 137], 7);
+  // 詳細を開く前の地図位置に戻す
+  map.setView([lastMapView.lat, lastMapView.lng], lastMapView.zoom);
 }
 
 function editMyFavorite(spotId) {
@@ -984,7 +988,8 @@ function addFavorite(spotId) {
     }
     alert('マイ出没に登録しました！');
     loadMyFavorites();
-    loadSpots();
+    // 重要: スポット一覧をリロード（registration_count を更新）
+    setTimeout(function() { loadSpots(); }, 500);
     closeDetailModal();
   }).catch(function(err) { alert('エラー: ' + err.message); });
 }
@@ -1000,7 +1005,8 @@ function removeFavorite(spotId) {
     if (!res.success) throw new Error(res.error);
     alert('マイ出没から削除しました');
     loadMyFavorites();
-    loadSpots();
+    // 重要: スポット一覧をリロード（registration_count を更新）
+    setTimeout(function() { loadSpots(); }, 500);
     closeSpotDetail();
   }).catch(function(err) { alert('エラー: ' + err.message); });
 }
