@@ -236,6 +236,8 @@ var scheduleFullViewActive = false;
 function switchMode(mode) {
   var mapEl = document.getElementById('spotMap');
   var fullView = document.getElementById('scheduleFullView');
+  var mapArea = document.querySelector('.spot-map-area');
+  var layout = document.querySelector('.spot-layout');
   var btnSpots = document.getElementById('btnModeSpots');
   var btnSchedule = document.getElementById('btnModeSchedule');
   var btnAdd = document.getElementById('btnHeaderAdd');
@@ -244,6 +246,9 @@ function switchMode(mode) {
     scheduleFullViewActive = true;
     mapEl.style.display = 'none';
     fullView.style.display = 'block';
+    // スマホで出没予報を表示するときは高さ制限を外す
+    if (mapArea) mapArea.style.height = 'auto';
+    if (layout) layout.style.height = 'auto';
     btnSpots.classList.remove('active');
     btnSchedule.classList.add('active');
     btnAdd.textContent = '+ 予定登録';
@@ -252,6 +257,9 @@ function switchMode(mode) {
     scheduleFullViewActive = false;
     mapEl.style.display = '';
     fullView.style.display = 'none';
+    // スポット表示に戻すときは高さを復元（メディアクエリのデフォルトに）
+    if (mapArea) mapArea.style.height = '';
+    if (layout) layout.style.height = '';
     btnSpots.classList.add('active');
     btnSchedule.classList.remove('active');
     btnAdd.textContent = '+ 新規登録';

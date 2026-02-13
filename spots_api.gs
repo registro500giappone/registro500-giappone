@@ -235,6 +235,26 @@ function addFavoriteSpot(data) {
     'Prefer': 'return=representation'
   });
   var row = (result && result.length > 0) ? result[0] : result;
+
+  // スポットの登録人数をインクリメント
+  try {
+    var spotData = supabaseRequest_(
+      'spots?spot_id=eq.' + encodeURIComponent(data.spot_id) + '&select=registration_count',
+      'GET', null, null
+    );
+    if (spotData && spotData.length > 0) {
+      var currentCount = spotData[0].registration_count || 0;
+      supabaseRequest_(
+        'spots?spot_id=eq.' + encodeURIComponent(data.spot_id),
+        'PATCH',
+        { registration_count: currentCount + 1 },
+        null
+      );
+    }
+  } catch(e) {
+    // カウント更新に失敗しても favorite_spots の登録は成功
+  }
+
   return { favorite_id: row.favorite_id };
 }
 
@@ -288,7 +308,33 @@ function deleteFavoriteSpot(data) {
   var endpoint = 'favorite_spots?favorite_id=eq.' + encodeURIComponent(data.favorite_id)
     + '&owner_document_id=eq.' + encodeURIComponent(data.owner_document_id);
 
+  // 削除前に spot_id を取得（登録人数をデクリメントするため）
+  var favData = supabaseRequest_(endpoint + '&select=spot_id', 'GET', null, null);
+  var spotId = favData && favData.length > 0 ? favData[0].spot_id : null;
+
   supabaseRequest_(endpoint, 'DELETE', null, null);
+
+  // スポットの登録人数をデクリメント
+  if (spotId) {
+    try {
+      var spotData = supabaseRequest_(
+        'spots?spot_id=eq.' + encodeURIComponent(spotId) + '&select=registration_count',
+        'GET', null, null
+      );
+      if (spotData && spotData.length > 0) {
+        var currentCount = spotData[0].registration_count || 0;
+        supabaseRequest_(
+          'spots?spot_id=eq.' + encodeURIComponent(spotId),
+          'PATCH',
+          { registration_count: Math.max(0, currentCount - 1) },
+          null
+        );
+      }
+    } catch(e) {
+      // カウント更新に失敗してもレコード削除は成功
+    }
+  }
+
   return { ok: true };
 }
 
