@@ -17,6 +17,10 @@ const CACHE_KEY_ALL_CARS = 'all_cars_json_v7'; // キャッシュキー更新
 const FIREBASE_API_KEY = "AIzaSyCNCNsu61S3DIQ2pcmK2Ic_vqCINlZB9nk";
 const FIREBASE_STORAGE_BASE_URL = 'https://firebasestorage.googleapis.com/v0/b/registro500giappone-93f98.firebasestorage.app/o/';
 
+// Supabase設定
+const SUPABASE_URL = 'https://ttlttclfovuzafvghvaq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0bHR0Y2xmb3Z1emFmdmdodmFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU1Mzk0NzYsImV4cCI6MjA1MTExNTQ3Nn0.sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt';
+
 // Brevo設定（APIキーはプロパティストアから取得）
 function getBrevoApiKey_() {
   return PropertiesService.getScriptProperties().getProperty('BREVO_API_KEY');
@@ -315,69 +319,86 @@ function getMyCarsList(idToken) {
 }
 
 // =================================================
+// Supabase ヘルパー関数
+// =================================================
+function supabaseQuery_(table, select, filters) {
+  let url = `${SUPABASE_URL}/rest/v1/${table}?select=${encodeURIComponent(select)}`;
+  if (filters) {
+    Object.keys(filters).forEach(key => {
+      url += `&${key}=${encodeURIComponent(filters[key])}`;
+    });
+  }
+  const options = {
+    method: 'get',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+    },
+    muteHttpExceptions: true
+  };
+  const response = UrlFetchApp.fetch(url, options);
+  return JSON.parse(response.getContentText());
+}
+
+function supabaseUpdate_(table, id, data) {
+  const url = `${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`;
+  const options = {
+    method: 'patch',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    payload: JSON.stringify(data),
+    muteHttpExceptions: true
+  };
+  UrlFetchApp.fetch(url, options);
+}
+
+// =================================================
 // 通知機能 (Daily Digest: 新車 + イベント)
 // =================================================
 function sendDailyDigest() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  
-  // 1. 新車チェック
-  const carSheet = ss.getSheetByName(SHEET_NAME_MASTER);
-  const carData = carSheet.getDataRange().getValues();
-  const cHeaders = carData[0];
-  const cSentIdx = cHeaders.indexOf('NotificationSent');
-  const cModelIdx = cHeaders.indexOf('Model_DisplayC');
-  const cNameIdx = cHeaders.indexOf('HandleName');
-  const cDocIdx = cHeaders.indexOf(DOCUMENT_ID_COLUMN_NAME);
-  
-  const newCars = [];
-  const cRowsToUpd = [];
-  
-  if (cSentIdx !== -1) {
-    for (let i = 1; i < carData.length; i++) {
-      const isSent = String(carData[i][cSentIdx]).toUpperCase();
-      if ((isSent === '' || isSent === 'FALSE') && carData[i][cDocIdx]) {
-        newCars.push({
-          Model: carData[i][cModelIdx],
-          Name: carData[i][cNameIdx],
-          ID: carData[i][cDocIdx]
-        });
-        cRowsToUpd.push(i + 1);
-      }
-    }
-  }
+  // 過去24時間の基準時刻（ISO 8601形式）
+  const now = new Date();
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const yesterdayISO = yesterday.toISOString();
 
-  // 2. 新規イベントチェック
-  const evtSheet = ss.getSheetByName(SHEET_NAME_EVENTS);
-  const evtData = evtSheet.getDataRange().getValues();
-  const eHeaders = evtData[0];
-  const eSentIdx = eHeaders.indexOf('NotificationSent');
-  const eNameIdx = eHeaders.indexOf('EventName');
-  const eDateIdx = eHeaders.indexOf('EventDate');
-  const eOwnerIdx = eHeaders.indexOf('OwnerName');
-  const eLocIdx = eHeaders.indexOf('Location');
-  
-  const newEvents = [];
-  const eRowsToUpd = [];
+  // 1. 新車チェック（Supabase）
+  const newCarsData = supabaseQuery_('cars', 'id,document_id,handle_name,model_display_c,notification_sent,created_at', {
+    'notification_sent': 'eq.false',
+    'created_at': `gte.${yesterdayISO}`,
+    'order': 'created_at.asc'
+  });
 
-  if (eSentIdx !== -1) {
-    for (let i = 1; i < evtData.length; i++) {
-      const isSent = String(evtData[i][eSentIdx]).toUpperCase();
-      if (isSent === '' || isSent === 'FALSE') {
-        const d = new Date(evtData[i][eDateIdx]);
-        const dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
-        newEvents.push({
-          Name: evtData[i][eNameIdx],
-          Date: dateStr,
-          Owner: evtData[i][eOwnerIdx],
-          Loc: evtData[i][eLocIdx]
-        });
-        eRowsToUpd.push(i + 1);
-      }
-    }
-  }
+  const newCars = newCarsData.map(car => ({
+    ID: car.document_id,
+    Name: car.handle_name,
+    Model: car.model_display_c || 'FIAT 500',
+    DbId: car.id
+  }));
+
+  // 2. 新規イベントチェック（Supabase）
+  const newEventsData = supabaseQuery_('events', 'id,event_name,event_date,owner_name,location,notification_sent,created_at', {
+    'notification_sent': 'eq.false',
+    'created_at': `gte.${yesterdayISO}`,
+    'order': 'created_at.asc'
+  });
+
+  const newEvents = newEventsData.map(evt => {
+    const d = new Date(evt.event_date);
+    return {
+      Name: evt.event_name,
+      Date: `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`,
+      Owner: evt.owner_name,
+      Loc: evt.location,
+      DbId: evt.id
+    };
+  });
 
   if (newCars.length === 0 && newEvents.length === 0) {
-    console.log("配信対象なし");
+    Logger.log("配信対象なし");
     return;
   }
 
@@ -410,13 +431,19 @@ function sendDailyDigest() {
       try {
         sendBroadcastViaBrevo(chunk, subject, body);
         Utilities.sleep(1000);
-      } catch (e) { console.error(e); }
+      } catch (e) { Logger.log('メール送信エラー: ' + e); }
     }
   }
 
-  // 5. フラグ更新
-  cRowsToUpd.forEach(r => carSheet.getRange(r, cSentIdx + 1).setValue('TRUE'));
-  eRowsToUpd.forEach(r => evtSheet.getRange(r, eSentIdx + 1).setValue('TRUE'));
+  // 5. Supabase の notification_sent フラグを更新
+  newCars.forEach(car => {
+    try { supabaseUpdate_('cars', car.DbId, { notification_sent: true }); } catch (e) {}
+  });
+  newEvents.forEach(evt => {
+    try { supabaseUpdate_('events', evt.DbId, { notification_sent: true }); } catch (e) {}
+  });
+
+  Logger.log(`メール配信完了: 車両${newCars.length}台、イベント${newEvents.length}件`);
 }
 
 // Brevo & Utils
@@ -435,16 +462,12 @@ function sendBroadcastViaBrevo(bccEmailList, subject, textBody) {
   UrlFetchApp.fetch(url, options);
 }
 function getAllExistingOwnerEmails_() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAME_MASTER);
-  const data = sheet.getDataRange().getValues();
-  const emailIdx = data[0].indexOf('OwnerEmail');
-  if (emailIdx === -1) return [];
+  const carsData = supabaseQuery_('cars', 'owner_email', {});
   const emailSet = new Set();
-  for (let i = 1; i < data.length; i++) {
-    const val = String(data[i][emailIdx] || '').trim();
+  carsData.forEach(car => {
+    const val = String(car.owner_email || '').trim();
     if (val && val.includes('@')) emailSet.add(val.toLowerCase());
-  }
+  });
   return Array.from(emailSet);
 }
 function verifyFirebaseToken_(idToken) {
@@ -653,9 +676,6 @@ ${formData.message}
 // =================================================
 // ニュースレター & X投稿機能
 // =================================================
-
-const SUPABASE_URL = 'https://ttlttclfovuzafvghvaq.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt';
 
 // Twitter OAuth 1.0a
 const TWITTER_API_KEY = PropertiesService.getScriptProperties().getProperty('TWITTER_API_KEY');
