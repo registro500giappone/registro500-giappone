@@ -474,11 +474,18 @@
   };
 
   window.addEventListener('DOMContentLoaded', () => {
+    console.log('🔍 DOMContentLoaded: Firebaseセットアップ開始');
     initFromCache();
     fetchEvents();
     firebase.auth().onAuthStateChanged(user => {
+      console.log('🔐 onAuthStateChanged:', user ? `${user.email} でログイン中` : 'ログインしていません');
       currentUser = user;
-      if(user) checkMyCar(user);
+      if(user) {
+        console.log('🔄 checkMyCarを実行します...');
+        checkMyCar(user);
+      } else {
+        console.log('⚠️ ログイン状態: ユーザーがログインしていません');
+      }
     });
     document.getElementById('inputDate').addEventListener('change', function() {
       if(this.value) {
