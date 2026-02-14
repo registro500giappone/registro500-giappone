@@ -17,9 +17,11 @@ const CACHE_KEY_ALL_CARS = 'all_cars_json_v7'; // キャッシュキー更新
 const FIREBASE_API_KEY = "AIzaSyCNCNsu61S3DIQ2pcmK2Ic_vqCINlZB9nk";
 const FIREBASE_STORAGE_BASE_URL = 'https://firebasestorage.googleapis.com/v0/b/registro500giappone-93f98.firebasestorage.app/o/';
 
-// Brevo設定
-const BREVO_API_KEY = "***REMOVED***"; 
-const SENDER_EMAIL = "registro500giappone@gmail.com"; 
+// Brevo設定（APIキーはプロパティストアから取得）
+function getBrevoApiKey_() {
+  return PropertiesService.getScriptProperties().getProperty('BREVO_API_KEY');
+}
+const SENDER_EMAIL = "registro500giappone@gmail.com";
 const SENDER_NAME = "Registro500 Giappone";
 
 const ADMIN_EMAILS = ['registro500giappone@gmail.com'];
@@ -42,10 +44,7 @@ function doGet(e) {
     else if (mode === 'edit_init') resultData = docId ? getCarForEdit(docId) : {};
     else if (mode === 'events') resultData = getEventsData();
     else if (mode === 'mycars') resultData = getMyCarsList(params.idToken);
-    else if (mode === 'spots') resultData = getSpots(params);
-    else if (mode === 'spot_detail') resultData = getSpotDetail(params.spot_id);
-    else if (mode === 'my_favorites') resultData = getMyFavorites(params.owner_document_id);
-    else if (mode === 'schedules') resultData = getSchedules(params);
+    // spot機能はSupabase直接アクセスのため、GAS経由のルーティングは削除
     else throw new Error('Unknown mode');
     return createJsonOutput({ success: true, data: resultData });
   } catch (err) { return createJsonOutput({ success: false, error: err.toString() }); }
@@ -57,7 +56,6 @@ function doPost(e) {
     const requestData = JSON.parse(e.postData.contents);
     const action = requestData.action;
     const formData = requestData.formData;
-    const data = requestData.data;
     let result = {};
 
     if (action === 'save') result = saveCarFromForm(formData);
@@ -66,20 +64,18 @@ function doPost(e) {
     else if (action === 'save_event') result = saveEventFromForm(formData);
     else if (action === 'delete_event') result = deleteEvent(formData);
     else if (action === 'toggle_participation') result = toggleEventParticipation(formData);
-    else if (action === 'createSpot') result = createSpot(data || formData);
-    else if (action === 'addFavoriteSpot') result = addFavoriteSpot(data || formData);
-    else if (action === 'updateFavoriteSpot') result = updateFavoriteSpot(data || formData);
-    else if (action === 'deleteFavoriteSpot') result = deleteFavoriteSpot(data || formData);
-    else if (action === 'createSchedule') result = createSchedule(data || formData);
-    else if (action === 'deleteSchedule') result = deleteSchedule(data || formData);
-    else if (action === 'findNearbySpots') { const d = data || formData; result = findNearbySpots(d.latitude, d.longitude, d.radius); }
+    // spot機能はSupabase直接アクセスのため、GAS経由のルーティングは削除
     else throw new Error('Unknown action');
     return createJsonOutput({ success: true, data: result });
   } catch (err) { return createJsonOutput({ success: false, error: err.message }); }
 }
 
 function createJsonOutput(data) {
-  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON)
+    .setHeader('Access-Control-Allow-Origin', '*')
+    .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    .setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 function doOptions(e) {
   return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
@@ -433,7 +429,7 @@ function sendBroadcastViaBrevo(bccEmailList, subject, textBody) {
     "bcc": bccObjects, "subject": subject, "textContent": textBody
   };
   const options = {
-    "method": "post", "headers": { "api-key": BREVO_API_KEY, "Content-Type": "application/json", "accept": "application/json" },
+    "method": "post", "headers": { "api-key": getBrevoApiKey_(), "Content-Type": "application/json", "accept": "application/json" },
     "payload": JSON.stringify(payload), "muteHttpExceptions": true
   };
   UrlFetchApp.fetch(url, options);
