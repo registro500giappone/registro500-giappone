@@ -474,18 +474,11 @@
   };
 
   window.addEventListener('DOMContentLoaded', () => {
-    console.log('🔍 DOMContentLoaded: Firebaseセットアップ開始');
     initFromCache();
     fetchEvents();
     firebase.auth().onAuthStateChanged(user => {
-      console.log('🔐 onAuthStateChanged:', user ? `${user.email} でログイン中` : 'ログインしていません');
       currentUser = user;
-      if(user) {
-        console.log('🔄 checkMyCarを実行します...');
-        checkMyCar(user);
-      } else {
-        console.log('⚠️ ログイン状態: ユーザーがログインしていません');
-      }
+      if(user) checkMyCar(user);
     });
     document.getElementById('inputDate').addEventListener('change', function() {
       if(this.value) {
@@ -534,11 +527,8 @@
 
       if(cars && cars.length > 0) myCarId = cars[0].document_id;
       else myCarId = "ADMIN";
-      console.log('✅ checkMyCar完了:', { currentUser: currentUser?.email, myCarId, carsCount: cars?.length });
       renderEvents();
-    } catch(e) {
-      console.error('❌ checkMyCar エラー:', e);
-    }
+    } catch(e) {}
   }
 
   async function fetchEvents() {
