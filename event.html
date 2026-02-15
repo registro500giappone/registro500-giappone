@@ -98,12 +98,13 @@
     .event-card.past { border-left-color: #999; opacity: 0.8; background: #f9f9f9; }
     
     .ev-admin-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; }
-    .btn-edit, .btn-delete {
+    .btn-edit, .btn-delete, .btn-share {
       background: #f0f0f0; border: 1px solid #ccc; color: #555;
       padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;
     }
     .btn-edit:hover { background: #e0e0e0; color: var(--accent); }
     .btn-delete:hover { background: #ffebeb; color: var(--danger); border-color: var(--danger); }
+    .btn-share:hover { background: #e7f3ff; color: #0066cc; border-color: #0066cc; }
 
     .ev-date { font-weight: bold; color: var(--accent); font-size: 1.1rem; }
     .ev-title { margin: 5px 0 15px; font-size: 1.3rem; font-weight: bold; line-height: 1.4; }
@@ -331,9 +332,10 @@
       .ev-info-row { color: #e2e8f0; }
       .ev-label { color: #94a3b8; }
       .ev-desc { border-top-color: #334155; color: #94a3b8; }
-      .btn-edit, .btn-delete { background: #334155; border-color: #475569; color: #94a3b8; }
+      .btn-edit, .btn-delete, .btn-share { background: #334155; border-color: #475569; color: #94a3b8; }
       .btn-edit:hover { background: #475569; }
       .btn-delete:hover { background: #3b1c22; }
+      .btn-share:hover { background: #1e3a5f; border-color: #60a5fa; color: #60a5fa; }
       .participation-area { background: #172340; }
       .btn-join { background: #1e293b; }
       .btn-join.joined { background: #60a5fa; color: #fff; }
@@ -679,6 +681,7 @@
 function createEventCard(ev, isPast, dateObj) {
     const div = document.createElement('div');
     div.className = 'event-card' + (isPast ? ' past' : '');
+    div.id = 'event-' + ev.EventID; // パーマリンク用ID
 
     // 有効な参加者のみ抽出
     const participants = (ev.Participants || []).filter(p => p.OwnerID && p.HandleName && p.OwnerID !== 'undefined');
@@ -724,7 +727,10 @@ function createEventCard(ev, isPast, dateObj) {
 
     let adminHtml = '';
     if (currentUser && (ev.OwnerID === myCarId || myCarId === 'ADMIN')) {
-      adminHtml = `<div class="ev-admin-row"><button class="btn-edit" onclick="openEdit('${ev.EventID}')">✏️ 編集</button><button class="btn-delete" onclick="deleteEvent('${ev.EventID}')">🗑️ 削除</button></div>`;
+      adminHtml = `<div class="ev-admin-row"><button class="btn-edit" onclick="openEdit('${ev.EventID}')">✏️ 編集</button><button class="btn-delete" onclick="deleteEvent('${ev.EventID}')">🗑️ 削除</button><button class="btn-share" onclick="shareEvent('${ev.EventID}')">🔗 シェア</button></div>`;
+    } else {
+      // 管理者でなくてもシェアボタンは表示
+      adminHtml = `<div class="ev-admin-row"><button class="btn-share" onclick="shareEvent('${ev.EventID}')">🔗 シェア</button></div>`;
     }
 
     div.innerHTML = `
@@ -1183,6 +1189,36 @@ window.submitEvent = async () => {
     });
     container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
+
+  // パーマリンク機能
+  window.shareEvent = function(eventId) {
+    const url = window.location.origin + window.location.pathname + '#event-' + eventId;
+    navigator.clipboard.writeText(url).then(() => {
+      alert('リンクをコピーしました！\n' + url + '\n\nSNSで共有できます。');
+    }).catch(err => {
+      // フォールバック: プロンプトで表示
+      prompt('このリンクをコピーしてください:', url);
+    });
+  };
+
+  // ページ読み込み時: URLハッシュで該当イベントにスクロール
+  window.addEventListener('load', () => {
+    if (window.location.hash) {
+      setTimeout(() => {
+        const targetId = window.location.hash.substring(1);
+        const targetElement = document.getElementById(targetId);
+        if (targetElement) {
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // ハイライト効果
+          targetElement.style.backgroundColor = '#fff3cd';
+          setTimeout(() => {
+            targetElement.style.transition = 'background-color 2s';
+            targetElement.style.backgroundColor = '';
+          }, 1000);
+        }
+      }, 500); // イベント一覧が表示されるまで少し待つ
+    }
+  });
 </script>
 </body>
 </html>
