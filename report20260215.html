@@ -309,6 +309,14 @@
   <button class="btn-login" id="loginBtn">Googleでログイン</button>
 </div>
 
+<!-- アクセス拒否画面 -->
+<div id="deniedScreen" style="display:none; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; gap:16px; text-align:center; padding:24px;">
+  <div style="font-size:2.5rem">🚫</div>
+  <h2 style="color:var(--accent)">閲覧権限がありません</h2>
+  <p style="color:var(--muted); font-size:0.95rem">このページはイベント参加者限定です。</p>
+  <a href="event.html" style="color:var(--accent); font-size:0.9rem">← イベント掲示板に戻る</a>
+</div>
+
 <!-- メインコンテンツ -->
 <div id="mainContent">
 
@@ -415,15 +423,40 @@
     await loadReport(user);
   });
 
+  function showDenied() {
+    document.getElementById('mainContent').style.display = 'none';
+    document.getElementById('loading').style.display = 'none';
+    const d = document.getElementById('deniedScreen');
+    d.style.display = 'flex';
+  }
+
   async function loadReport(user) {
     _isAdmin = user.email === ADMIN_EMAIL;
 
-    // 自分のcar_id取得（IDありメンバー判定）
+    // 自分のcar_id取得
     const { data: cars } = await supabaseClient
       .from('cars').select('document_id, handle_name').eq('owner_email', user.email.toLowerCase());
     if (cars && cars.length > 0) {
       _myCarId = cars[0].document_id;
       _myHandleName = cars[0].handle_name;
+    }
+
+    // アクセス権チェック（管理者 or イベント参加者のみ）
+    if (!_isAdmin) {
+      if (!_myCarId) {
+        // carsに未登録 → 拒否
+        showDenied(); return;
+      }
+      const { data: participation } = await supabaseClient
+        .from('event_participants')
+        .select('car_id')
+        .eq('event_id', EVENT_ID)
+        .eq('car_id', _myCarId)
+        .maybeSingle();
+      if (!participation) {
+        // event_participantsに未登録 → 拒否
+        showDenied(); return;
+      }
     }
 
     const { data: events } = await supabaseClient
