@@ -11,12 +11,13 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0"></script>
   <style>
     :root {
-      --accent: #c0392b;
-      --bg: #f8f4f0;
+      --accent: #2cb89a;
+      --accent-dark: #1e9e83;
+      --bg: #f0faf7;
       --card: #fff;
-      --text: #2c2c2c;
-      --muted: #888;
-      --border: #e0d8d0;
+      --text: #1d3d35;
+      --muted: #6b9e94;
+      --border: #c5e8e0;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -38,6 +39,7 @@
       padding: 12px 30px; border-radius: 8px; font-size: 1rem;
       cursor: pointer; font-weight: bold;
     }
+    .btn-login:hover { background: var(--accent-dark); }
 
     /* メインコンテンツ */
     #mainContent { display: none; }
@@ -65,20 +67,20 @@
     /* 管理者ツールバー */
     #adminToolbar {
       display: none;
-      background: #fff8e1; border: 1px solid #ffe082;
+      background: #e8f8f4; border: 1px solid var(--border);
       border-radius: 8px; padding: 14px; margin-bottom: 24px;
     }
-    #adminToolbar h4 { font-size: 0.9rem; color: #b8860b; margin-bottom: 10px; }
+    #adminToolbar h4 { font-size: 0.9rem; color: var(--accent-dark); margin-bottom: 10px; }
     .add-form { display: flex; gap: 8px; flex-wrap: wrap; }
     .add-form input {
       flex: 1; min-width: 120px; padding: 6px 10px;
-      border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;
+      border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem;
     }
     .btn-add {
-      background: #b8860b; color: #fff; border: none;
+      background: var(--accent); color: #fff; border: none;
       padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.9rem;
     }
-    .btn-add:hover { background: #8b6508; }
+    .btn-add:hover { background: var(--accent-dark); }
     .add-form small { width: 100%; color: var(--muted); font-size: 0.8rem; }
 
     /* 参加者グリッド */
@@ -101,15 +103,15 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      box-shadow: 0 2px 8px rgba(44,184,154,0.08);
       transition: box-shadow 0.2s;
     }
-    .member-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+    .member-card:hover { box-shadow: 0 4px 16px rgba(44,184,154,0.18); }
     .member-card.excluded { opacity: 0.3; }
 
     /* カード名前部分 */
     .member-name {
-      padding: 10px 10px 10px;
+      padding: 10px 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -122,7 +124,7 @@
       padding: 5px 12px; border-radius: 20px;
       transition: background 0.15s;
     }
-    .member-name a:hover { background: #a93226; }
+    .member-name a:hover { background: var(--accent-dark); }
     .member-name span {
       font-size: 0.85rem; font-weight: bold; color: var(--muted);
     }
@@ -139,7 +141,7 @@
       position: relative;
       width: 100%;
       aspect-ratio: 4/3;
-      background: #f0ebe5;
+      background: #e0f5ef;
     }
     .photo-slot + .photo-slot {
       border-top: 1px solid var(--border);
@@ -148,6 +150,7 @@
       width: 100%; height: 100%;
       object-fit: cover;
       display: block;
+      cursor: zoom-in;
     }
     .photo-placeholder {
       width: 100%; height: 100%;
@@ -157,27 +160,18 @@
     }
     .photo-placeholder-icon { font-size: 1.8rem; opacity: 0.4; }
 
-    /* アップロードオーバーレイ（管理者） */
-    .upload-overlay {
-      display: none;
-      position: absolute; inset: 0;
-      background: rgba(0,0,0,0.45);
-      align-items: center; justify-content: center;
-      flex-direction: column; gap: 8px;
-    }
-    .admin-mode .photo-slot:hover .upload-overlay { display: flex; }
-    .upload-overlay.uploading { display: flex !important; }
-
-    .btn-upload {
-      background: #fff; color: var(--text);
+    /* アップロードボタン（管理者専用・右下固定） */
+    .btn-upload-corner {
+      position: absolute; bottom: 6px; right: 6px;
+      background: rgba(44,184,154,0.9); color: #fff;
       border: none; border-radius: 6px;
-      padding: 6px 14px; font-size: 0.85rem;
+      padding: 4px 10px; font-size: 0.75rem;
       cursor: pointer; font-weight: bold;
+      transition: background 0.15s;
+      z-index: 10;
     }
-    .btn-upload:hover { background: #f0f0f0; }
-    .upload-spinner {
-      color: #fff; font-size: 0.85rem;
-    }
+    .btn-upload-corner:hover { background: var(--accent-dark); }
+    .btn-upload-corner:disabled { background: rgba(0,0,0,0.3); cursor: default; }
     .upload-input { display: none; }
 
     /* ローディング */
@@ -213,9 +207,6 @@
       background: none; border: none; color: #fff;
       font-size: 2rem; cursor: pointer; line-height: 1;
     }
-
-    /* 写真クリック可能なカーソル */
-    .photo-slot img { cursor: zoom-in; }
 
     @media (max-width: 480px) {
       .members-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
@@ -285,7 +276,6 @@
 
   const STORAGE_KEY = 'report_' + EVENT_ID;
 
-  // Firebase / Supabase 初期化
   if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
   const auth = firebase.auth();
   const storage = firebase.storage();
@@ -294,7 +284,6 @@
   let _isAdmin = false;
   let _baseList = [];
 
-  // --- ログイン ---
   document.getElementById('loginBtn').addEventListener('click', () => {
     auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
   });
@@ -310,7 +299,6 @@
     await loadReport(user);
   });
 
-  // --- 状態管理（LocalStorage） ---
   function loadState() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { excluded: [], added: [] }; }
     catch { return { excluded: [], added: [] }; }
@@ -319,15 +307,12 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
-  // --- メイン読み込み ---
   async function loadReport(user) {
-    // car_id取得
     const { data: cars } = await supabaseClient
       .from('cars').select('document_id').eq('owner_uid', user.uid);
     const myCarId = (cars && cars.length > 0) ? cars[0].document_id : 'ADMIN';
     _isAdmin = myCarId === 'ADMIN';
 
-    // イベント情報取得
     const { data: events } = await supabaseClient
       .from('events')
       .select(`
@@ -348,19 +333,16 @@
     }
     document.getElementById('loading').style.display = 'none';
 
-    // ヘッダー
     const d = new Date(events.EventDate);
     const w = ['日','月','火','水','木','金','土'][d.getDay()];
     document.getElementById('eventTitle').textContent = events.EventName;
     document.getElementById('eventMeta').textContent =
       `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 (${w})  ${events.Location}`;
 
-    // 管理者ツールバー表示
     if (_isAdmin) document.getElementById('adminToolbar').style.display = 'block';
 
     _baseList = events.Participants || [];
 
-    // 写真URLをSupabaseから取得
     const { data: photos } = await supabaseClient
       .from('event_report_photos')
       .select('car_id, photo_index, photo_url')
@@ -376,7 +358,6 @@
     renderMembers(photoMap);
   }
 
-  // --- 参加者カード描画 ---
   function renderMembers(photoMap) {
     const state = loadState();
     const grid = document.getElementById('membersGrid');
@@ -390,15 +371,11 @@
     const activeCount = allParticipants.filter(p => !state.excluded.includes(p.OwnerID)).length;
     document.getElementById('countBadge').textContent = activeCount + '名';
 
-    if (_isAdmin) grid.classList.add('admin-mode');
-    else grid.classList.remove('admin-mode');
-
     allParticipants.forEach(p => {
       const isExcluded = state.excluded.includes(p.OwnerID);
       const card = document.createElement('div');
       card.className = 'member-card' + (isExcluded ? ' excluded' : '');
 
-      // 名前部分
       const nameDiv = document.createElement('div');
       nameDiv.className = 'member-name';
       const nameLink = p.OwnerID === 'ADMIN'
@@ -416,21 +393,17 @@
       }
       card.appendChild(nameDiv);
 
-      // 写真スロット x2
       [1, 2].forEach(idx => {
-        const slot = createPhotoSlot(p.OwnerID, idx, (photoMap[p.OwnerID] || {})[idx]);
-        card.appendChild(slot);
+        card.appendChild(createPhotoSlot(p.OwnerID, idx, (photoMap[p.OwnerID] || {})[idx]));
       });
 
       grid.appendChild(card);
     });
   }
 
-  // --- 写真スロット生成 ---
   function createPhotoSlot(carId, photoIndex, photoUrl) {
     const slot = document.createElement('div');
     slot.className = 'photo-slot';
-    slot.id = `slot-${carId}-${photoIndex}`;
 
     if (photoUrl) {
       const img = document.createElement('img');
@@ -448,34 +421,33 @@
 
     if (_isAdmin) {
       const inputId = `upload-${carId}-${photoIndex}`;
-      const overlay = document.createElement('div');
-      overlay.className = 'upload-overlay';
-      overlay.innerHTML = `
-        <label class="btn-upload" for="${inputId}">
-          ${photoUrl ? '写真を変更' : '写真をアップロード'}
-        </label>
-        <div class="upload-spinner" style="display:none">アップロード中...</div>
-        <input type="file" id="${inputId}" class="upload-input" accept="image/*">
-      `;
-      slot.appendChild(overlay);
+      const btn = document.createElement('button');
+      btn.className = 'btn-upload-corner';
+      btn.textContent = photoUrl ? '変更' : '追加';
+      btn.title = `写真${photoIndex}をアップロード`;
+      btn.onclick = () => document.getElementById(inputId).click();
 
-      overlay.querySelector(`#${inputId}`).addEventListener('change', (e) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.id = inputId;
+      input.className = 'upload-input';
+      input.accept = 'image/*';
+      input.addEventListener('change', (e) => {
         const file = e.target.files[0];
-        if (file) uploadPhoto(carId, photoIndex, file, slot, overlay);
+        if (file) uploadPhoto(carId, photoIndex, file, slot, btn);
         e.target.value = '';
       });
+
+      slot.appendChild(btn);
+      slot.appendChild(input);
     }
 
     return slot;
   }
 
-  // --- Firebase Storage アップロード ---
-  async function uploadPhoto(carId, photoIndex, file, slot, overlay) {
-    const label = overlay.querySelector('.btn-upload');
-    const spinner = overlay.querySelector('.upload-spinner');
-    overlay.classList.add('uploading');
-    label.style.display = 'none';
-    spinner.style.display = 'block';
+  async function uploadPhoto(carId, photoIndex, file, slot, btn) {
+    btn.disabled = true;
+    btn.textContent = '...';
 
     try {
       const ext = file.name.split('.').pop().toLowerCase() || 'jpg';
@@ -484,7 +456,6 @@
       await ref.put(file);
       const url = await ref.getDownloadURL();
 
-      // Supabaseに保存（upsert）
       const { error } = await supabaseClient
         .from('event_report_photos')
         .upsert({
@@ -496,56 +467,42 @@
 
       if (error) throw error;
 
-      // スロットを更新
-      slot.innerHTML = '';
+      // 写真を差し替え
+      const oldImg = slot.querySelector('img');
+      const oldPh = slot.querySelector('.photo-placeholder');
+      if (oldImg) oldImg.remove();
+      if (oldPh) oldPh.remove();
+
       const img = document.createElement('img');
       img.src = url;
       img.alt = `写真${photoIndex}`;
       img.onclick = () => openModal(url);
-      slot.appendChild(img);
+      slot.insertBefore(img, slot.firstChild);
 
-      // オーバーレイ再生成
-      const newOverlay = document.createElement('div');
-      const inputId = `upload-${carId}-${photoIndex}`;
-      newOverlay.className = 'upload-overlay';
-      newOverlay.innerHTML = `
-        <label class="btn-upload" for="${inputId}">写真を変更</label>
-        <div class="upload-spinner" style="display:none">アップロード中...</div>
-        <input type="file" id="${inputId}" class="upload-input" accept="image/*">
-      `;
-      slot.appendChild(newOverlay);
-      newOverlay.querySelector(`#${inputId}`).addEventListener('change', (e) => {
-        const f = e.target.files[0];
-        if (f) uploadPhoto(carId, photoIndex, f, slot, newOverlay);
-        e.target.value = '';
-      });
+      btn.textContent = '変更';
+      btn.disabled = false;
 
     } catch (err) {
       console.error('アップロードエラー:', err);
       alert('アップロードに失敗しました: ' + err.message);
-      overlay.classList.remove('uploading');
-      label.style.display = '';
-      spinner.style.display = 'none';
+      btn.textContent = '追加';
+      btn.disabled = false;
     }
   }
 
-  // --- 除外トグル ---
   function toggleExclude(ownerId) {
     const state = loadState();
     const idx = state.excluded.indexOf(ownerId);
     if (idx === -1) state.excluded.push(ownerId);
     else state.excluded.splice(idx, 1);
     saveState(state);
-    // 写真データを再取得せずに再描画（photoMapを保持）
     location.reload();
   }
 
-  // --- 当日参加者追加 ---
   window.addParticipant = function() {
     const carId = document.getElementById('addCarId').value.trim();
     const handleName = document.getElementById('addHandleName').value.trim();
     if (!carId || !handleName) return alert('car_idとハンドルネームを入力してください');
-
     const state = loadState();
     if (state.added.some(p => p.OwnerID === carId)) return alert('すでに追加済みです');
     state.added.push({ OwnerID: carId, HandleName: handleName });
@@ -553,7 +510,6 @@
     location.reload();
   };
 
-  // --- 写真モーダル ---
   function openModal(url) {
     document.getElementById('modalImg').src = url;
     document.getElementById('photoModal').classList.add('open');
