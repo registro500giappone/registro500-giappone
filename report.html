@@ -276,7 +276,7 @@
   const EVENT_ID = 'EVT_1767547600299';
   // ============================================================
 
-  const STORAGE_KEY = 'report_' + EVENT_ID;
+  const ADMIN_EMAIL = 'registro500giappone@gmail.com';
 
   if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
   const auth = firebase.auth();
@@ -300,16 +300,6 @@
     document.getElementById('mainContent').style.display = 'block';
     await loadReport(user);
   });
-
-  function loadState() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { excluded: [], added: [] }; }
-    catch { return { excluded: [], added: [] }; }
-  }
-  function saveState(state) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }
-
-  const ADMIN_EMAIL = 'registro500giappone@gmail.com';
 
   async function loadReport(user) {
     _isAdmin = user.email === ADMIN_EMAIL;
@@ -344,10 +334,13 @@
 
     _baseList = events.Participants || [];
 
-    const { data: photos } = await supabaseClient
-      .from('event_report_photos')
-      .select('car_id, photo_index, photo_url')
-      .eq('event_id', EVENT_ID);
+    // 写真・参加者overrides を並列取得
+    const [{ data: photos }, { data: overrides }] = await Promise.all([
+      supabaseClient.from('event_report_photos')
+        .select('car_id, photo_index, photo_url').eq('event_id', EVENT_ID),
+      supabaseClient.from('event_report_overrides')
+        .select('type, car_id, handle_name').eq('event_id', EVENT_ID)
+    ]);
 
     const photoMap = {};
     (photos || []).forEach(p => {
@@ -355,22 +348,24 @@
       photoMap[p.car_id][p.photo_index] = p.photo_url;
     });
 
+    const excludedIds = (overrides || []).filter(o => o.type === 'exclude').map(o => o.car_id);
+    const addedMembers = (overrides || []).filter(o => o.type === 'add')
+      .map(o => ({ OwnerID: o.car_id, HandleName: o.handle_name }));
+
     document.getElementById('membersSection').style.display = 'block';
-    renderMembers(photoMap);
+    renderMembers(photoMap, excludedIds, addedMembers);
   }
 
-  function renderMembers(photoMap) {
-    const state = loadState();
+  function renderMembers(photoMap, excludedIds, addedMembers) {
     const grid = document.getElementById('membersGrid');
     grid.innerHTML = '';
 
     const allParticipants = [
       ..._baseList.filter(p => p.OwnerID && p.HandleName && p.OwnerID !== 'undefined'),
-      ...state.added
+      ...addedMembers
     ];
 
-    // 除外済みを除いたリスト（管理者も非表示）
-    const visibleParticipants = allParticipants.filter(p => !state.excluded.includes(p.OwnerID));
+    const visibleParticipants = allParticipants.filter(p => !excludedIds.includes(p.OwnerID));
     document.getElementById('countBadge').textContent = visibleParticipants.length + '名';
 
     visibleParticipants.forEach(p => {
@@ -493,23 +488,22 @@
     }
   }
 
-  function toggleExclude(ownerId) {
-    const state = loadState();
-    const idx = state.excluded.indexOf(ownerId);
-    if (idx === -1) state.excluded.push(ownerId);
-    else state.excluded.splice(idx, 1);
-    saveState(state);
+  async function toggleExclude(ownerId) {
+    await supabaseClient.from('event_report_overrides').insert({
+      event_id: EVENT_ID, type: 'exclude', car_id: ownerId
+    });
     location.reload();
   }
 
-  window.addParticipant = function() {
+  window.addParticipant = async function() {
     const handleName = document.getElementById('addHandleName').value.trim();
     if (!handleName) return alert('ハンドルネームを入力してください');
     const carId = document.getElementById('addCarId').value.trim() || ('MANUAL_' + Date.now());
-    const state = loadState();
-    if (state.added.some(p => p.OwnerID === carId)) return alert('すでに追加済みです');
-    state.added.push({ OwnerID: carId, HandleName: handleName });
-    saveState(state);
+
+    const { error } = await supabaseClient.from('event_report_overrides').insert({
+      event_id: EVENT_ID, type: 'add', car_id: carId, handle_name: handleName
+    });
+    if (error) return alert('追加に失敗しました: ' + error.message);
     location.reload();
   };
 
