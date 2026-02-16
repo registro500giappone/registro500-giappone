@@ -309,11 +309,10 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
+  const ADMIN_EMAIL = 'registro500giappone@gmail.com';
+
   async function loadReport(user) {
-    const { data: cars } = await supabaseClient
-      .from('cars').select('document_id').eq('owner_uid', user.uid);
-    const myCarId = (cars && cars.length > 0) ? cars[0].document_id : 'ADMIN';
-    _isAdmin = myCarId === 'ADMIN';
+    _isAdmin = user.email === ADMIN_EMAIL;
 
     const { data: events } = await supabaseClient
       .from('events')
