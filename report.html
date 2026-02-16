@@ -140,20 +140,25 @@
     .photo-slot {
       position: relative;
       width: 100%;
-      aspect-ratio: 4/3;
+      max-height: 240px;
       background: #e0f5ef;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
     }
     .photo-slot + .photo-slot {
       border-top: 1px solid var(--border);
     }
     .photo-slot img {
-      width: 100%; height: 100%;
-      object-fit: cover;
+      width: 100%;
+      max-height: 240px;
+      object-fit: contain;
       display: block;
       cursor: zoom-in;
     }
     .photo-placeholder {
-      width: 100%; height: 100%;
+      width: 100%; height: 120px;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       color: var(--muted); font-size: 0.8rem; gap: 6px;
@@ -244,10 +249,10 @@
     <div id="adminToolbar">
       <h4>管理者メニュー</h4>
       <div class="add-form">
-        <input type="text" id="addCarId" placeholder="car_id（例: CAR_123）">
-        <input type="text" id="addHandleName" placeholder="ハンドルネーム">
+        <input type="text" id="addHandleName" placeholder="ハンドルネーム（必須）">
+        <input type="text" id="addCarId" placeholder="car_id（任意・なければ空欄）">
         <button class="btn-add" onclick="addParticipant()">＋ 当日参加者を追加</button>
-        <small>※ カードの名前欄右の ✕ で欠席者を除外できます（ブラウザに保存）</small>
+        <small>※ car_idが空の場合はIDを自動付与します。カードの ✕ で除外（完全非表示）できます。</small>
       </div>
     </div>
 
@@ -368,17 +373,18 @@
       ...state.added
     ];
 
-    const activeCount = allParticipants.filter(p => !state.excluded.includes(p.OwnerID)).length;
-    document.getElementById('countBadge').textContent = activeCount + '名';
+    // 除外済みを除いたリスト（管理者も非表示）
+    const visibleParticipants = allParticipants.filter(p => !state.excluded.includes(p.OwnerID));
+    document.getElementById('countBadge').textContent = visibleParticipants.length + '名';
 
-    allParticipants.forEach(p => {
-      const isExcluded = state.excluded.includes(p.OwnerID);
+    visibleParticipants.forEach(p => {
       const card = document.createElement('div');
-      card.className = 'member-card' + (isExcluded ? ' excluded' : '');
+      card.className = 'member-card';
 
       const nameDiv = document.createElement('div');
       nameDiv.className = 'member-name';
-      const nameLink = p.OwnerID === 'ADMIN'
+      const isManual = p.OwnerID && p.OwnerID.startsWith('MANUAL_');
+      const nameLink = (p.OwnerID === 'ADMIN' || isManual)
         ? `<span>${esc(p.HandleName)}</span>`
         : `<a href="detail.html?doc=${p.OwnerID}" target="_blank">${esc(p.HandleName)}</a>`;
       nameDiv.innerHTML = nameLink;
@@ -386,8 +392,8 @@
       if (_isAdmin) {
         const btn = document.createElement('button');
         btn.className = 'btn-exclude';
-        btn.title = isExcluded ? '除外解除' : '除外（欠席）';
-        btn.textContent = isExcluded ? '↩' : '✕';
+        btn.title = '除外（欠席）';
+        btn.textContent = '✕';
         btn.onclick = () => toggleExclude(p.OwnerID);
         nameDiv.appendChild(btn);
       }
@@ -500,9 +506,9 @@
   }
 
   window.addParticipant = function() {
-    const carId = document.getElementById('addCarId').value.trim();
     const handleName = document.getElementById('addHandleName').value.trim();
-    if (!carId || !handleName) return alert('car_idとハンドルネームを入力してください');
+    if (!handleName) return alert('ハンドルネームを入力してください');
+    const carId = document.getElementById('addCarId').value.trim() || ('MANUAL_' + Date.now());
     const state = loadState();
     if (state.added.some(p => p.OwnerID === carId)) return alert('すでに追加済みです');
     state.added.push({ OwnerID: carId, HandleName: handleName });
