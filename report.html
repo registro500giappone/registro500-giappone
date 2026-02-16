@@ -210,8 +210,87 @@
       font-size: 2rem; cursor: pointer; line-height: 1;
     }
 
+    /* 集合写真・主催者メッセージ */
+    #headerSection { margin-bottom: 32px; }
+    .group-photo-wrap {
+      position: relative;
+      width: 100%; background: #e0f5ef;
+      border-radius: 12px; overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .group-photo-wrap img {
+      width: 100%; display: block;
+      cursor: zoom-in; border-radius: 12px;
+    }
+    .group-photo-placeholder {
+      width: 100%; height: 200px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-size: 0.9rem; gap: 8px;
+      border: 2px dashed var(--border); border-radius: 12px;
+    }
+    .organizer-message {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px 20px;
+      font-size: 0.95rem; line-height: 1.8; white-space: pre-wrap;
+      color: var(--text);
+    }
+    .organizer-message-placeholder {
+      color: var(--muted); font-size: 0.9rem; font-style: italic;
+    }
+    /* 管理者編集エリア */
+    .header-edit-area {
+      display: none;
+      background: #e8f8f4; border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px; margin-bottom: 16px;
+    }
+    .header-edit-area h4 { font-size: 0.9rem; color: var(--accent-dark); margin-bottom: 10px; }
+    .header-edit-area textarea {
+      width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+      border-radius: 6px; font-size: 0.9rem; resize: vertical;
+      min-height: 80px; font-family: inherit;
+    }
+    .header-edit-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
+    /* コミュニティ投稿 */
+    #communitySection { margin-top: 40px; }
+    .community-upload-area {
+      background: var(--card); border: 2px dashed var(--border);
+      border-radius: 12px; padding: 20px; text-align: center;
+      margin-bottom: 20px; cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .community-upload-area:hover { border-color: var(--accent); }
+    .community-upload-area p { color: var(--muted); font-size: 0.9rem; margin-top: 6px; }
+    .community-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .community-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+      box-shadow: 0 2px 8px rgba(44,184,154,0.08);
+    }
+    .community-card img {
+      width: 100%; display: block; cursor: zoom-in;
+      max-height: 260px; object-fit: contain; background: #e0f5ef;
+    }
+    .community-card-footer {
+      padding: 8px 12px; display: flex;
+      align-items: center; justify-content: space-between;
+      border-top: 1px solid var(--border);
+    }
+    .community-card-footer a { color: var(--accent); text-decoration: underline; font-size: 0.85rem; font-weight: bold; }
+    .community-card-footer span { color: var(--muted); font-size: 0.8rem; }
+    .btn-delete-photo {
+      background: none; border: none; color: #ccc;
+      cursor: pointer; font-size: 0.8rem; padding: 2px 4px;
+    }
+    .btn-delete-photo:hover { color: #e74c3c; }
+
     @media (max-width: 480px) {
       .members-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .community-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
     }
   </style>
 </head>
@@ -242,6 +321,30 @@
   <div class="container">
     <div id="loading">データを読み込み中...</div>
 
+    <!-- 集合写真・主催者メッセージ -->
+    <div id="headerSection" style="display:none">
+      <div class="section-title">集合写真・主催者より</div>
+      <!-- 管理者編集エリア -->
+      <div class="header-edit-area" id="headerEditArea">
+        <h4>集合写真・メッセージを編集</h4>
+        <div class="header-edit-row">
+          <button class="btn-add" onclick="document.getElementById('groupPhotoInput').click()">集合写真をアップロード</button>
+          <input type="file" id="groupPhotoInput" class="upload-input" accept="image/*">
+          <span id="groupPhotoStatus" style="color:var(--muted);font-size:0.85rem;align-self:center"></span>
+        </div>
+        <textarea id="messageInput" placeholder="主催者メッセージを入力..." style="margin-top:10px"></textarea>
+        <div class="header-edit-row">
+          <button class="btn-add" onclick="saveHeaderMessage()">メッセージを保存</button>
+        </div>
+      </div>
+      <!-- 集合写真表示 -->
+      <div class="group-photo-wrap" id="groupPhotoWrap">
+        <div class="group-photo-placeholder" id="groupPhotoPlaceholder">📷 集合写真準備中</div>
+      </div>
+      <!-- 主催者メッセージ -->
+      <div id="organizerMessage" class="organizer-message" style="display:none"></div>
+    </div>
+
     <!-- 管理者ツールバー -->
     <div id="adminToolbar">
       <h4>管理者メニュー</h4>
@@ -260,6 +363,16 @@
         <span class="count-badge" id="countBadge">0名</span>
       </div>
       <div class="members-grid" id="membersGrid"></div>
+    </div>
+    <!-- コミュニティ投稿 -->
+    <div id="communitySection" style="display:none">
+      <div class="section-title">みんなの写真</div>
+      <div class="community-upload-area" id="communityUploadArea" style="display:none">
+        <div style="font-size:2rem">📷</div>
+        <p>クリックして写真を投稿する</p>
+        <input type="file" id="communityPhotoInput" class="upload-input" accept="image/*">
+      </div>
+      <div class="community-grid" id="communityGrid"></div>
     </div>
   </div>
 
@@ -285,6 +398,8 @@
 
   let _isAdmin = false;
   let _baseList = [];
+  let _myCarId = null;
+  let _myHandleName = null;
 
   document.getElementById('loginBtn').addEventListener('click', () => {
     auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
@@ -303,6 +418,14 @@
 
   async function loadReport(user) {
     _isAdmin = user.email === ADMIN_EMAIL;
+
+    // 自分のcar_id取得（IDありメンバー判定）
+    const { data: cars } = await supabaseClient
+      .from('cars').select('document_id, handle_name').eq('owner_uid', user.uid);
+    if (cars && cars.length > 0) {
+      _myCarId = cars[0].document_id;
+      _myHandleName = cars[0].handle_name;
+    }
 
     const { data: events } = await supabaseClient
       .from('events')
@@ -334,12 +457,22 @@
 
     _baseList = events.Participants || [];
 
-    // 写真・参加者overrides を並列取得
-    const [{ data: photos }, { data: overrides }] = await Promise.all([
+    // 全データ並列取得
+    const [
+      { data: photos },
+      { data: overrides },
+      { data: headerData },
+      { data: communityPhotos }
+    ] = await Promise.all([
       supabaseClient.from('event_report_photos')
         .select('car_id, photo_index, photo_url').eq('event_id', EVENT_ID),
       supabaseClient.from('event_report_overrides')
-        .select('type, car_id, handle_name').eq('event_id', EVENT_ID)
+        .select('type, car_id, handle_name').eq('event_id', EVENT_ID),
+      supabaseClient.from('event_report_header')
+        .select('group_photo_urls, organizer_message').eq('event_id', EVENT_ID).maybeSingle(),
+      supabaseClient.from('event_community_photos')
+        .select('id, car_id, handle_name, photo_url, uploaded_at')
+        .eq('event_id', EVENT_ID).order('uploaded_at', { ascending: false })
     ]);
 
     const photoMap = {};
@@ -352,8 +485,154 @@
     const addedMembers = (overrides || []).filter(o => o.type === 'add')
       .map(o => ({ OwnerID: o.car_id, HandleName: o.handle_name }));
 
+    renderHeader(headerData);
     document.getElementById('membersSection').style.display = 'block';
     renderMembers(photoMap, excludedIds, addedMembers);
+    renderCommunityPhotos(communityPhotos || []);
+  }
+
+  // --- 集合写真・メッセージ ---
+  function renderHeader(data) {
+    document.getElementById('headerSection').style.display = 'block';
+    if (_isAdmin) document.getElementById('headerEditArea').style.display = 'block';
+
+    const groupUrl = data && data.group_photo_urls && data.group_photo_urls[0];
+    if (groupUrl) {
+      const wrap = document.getElementById('groupPhotoWrap');
+      wrap.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = groupUrl;
+      img.alt = '集合写真';
+      img.onclick = () => openModal(groupUrl);
+      wrap.appendChild(img);
+      if (_isAdmin) {
+        const btn = document.createElement('button');
+        btn.className = 'btn-upload-corner';
+        btn.textContent = '変更';
+        btn.onclick = () => document.getElementById('groupPhotoInput').click();
+        wrap.appendChild(btn);
+      }
+    } else {
+      if (_isAdmin) {
+        document.getElementById('groupPhotoPlaceholder').textContent = '集合写真をアップロードしてください';
+      }
+    }
+
+    const msg = data && data.organizer_message;
+    const msgEl = document.getElementById('organizerMessage');
+    if (msg) {
+      msgEl.textContent = msg;
+      msgEl.style.display = 'block';
+      if (_isAdmin) document.getElementById('messageInput').value = msg;
+    }
+
+    // 集合写真アップロード
+    document.getElementById('groupPhotoInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const status = document.getElementById('groupPhotoStatus');
+      status.textContent = 'アップロード中...';
+      try {
+        const ext = file.name.split('.').pop().toLowerCase() || 'jpg';
+        const ref = storage.ref(`event_reports/${EVENT_ID}/group.${ext}`);
+        await ref.put(file);
+        const url = await ref.getDownloadURL();
+        await supabaseClient.from('event_report_header').upsert({
+          event_id: EVENT_ID,
+          group_photo_urls: [url],
+          organizer_message: document.getElementById('messageInput').value || null
+        }, { onConflict: 'event_id' });
+        status.textContent = '完了！';
+        location.reload();
+      } catch (err) {
+        status.textContent = 'エラー: ' + err.message;
+      }
+      e.target.value = '';
+    });
+  }
+
+  window.saveHeaderMessage = async function() {
+    const msg = document.getElementById('messageInput').value.trim();
+    if (!msg) return alert('メッセージを入力してください');
+    const { error } = await supabaseClient.from('event_report_header').upsert({
+      event_id: EVENT_ID,
+      organizer_message: msg
+    }, { onConflict: 'event_id' });
+    if (error) return alert('保存失敗: ' + error.message);
+    location.reload();
+  };
+
+  // --- コミュニティ投稿 ---
+  function renderCommunityPhotos(photos) {
+    document.getElementById('communitySection').style.display = 'block';
+
+    // IDありメンバーのみ投稿エリア表示
+    if (_myCarId) {
+      const uploadArea = document.getElementById('communityUploadArea');
+      uploadArea.style.display = 'block';
+      uploadArea.querySelector('p').textContent = `${_myHandleName || 'あなた'} として写真を投稿する`;
+      uploadArea.onclick = () => document.getElementById('communityPhotoInput').click();
+      document.getElementById('communityPhotoInput').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        uploadArea.querySelector('p').textContent = 'アップロード中...';
+        try {
+          const ext = file.name.split('.').pop().toLowerCase() || 'jpg';
+          const ref = storage.ref(`event_community/${EVENT_ID}/${_myCarId}_${Date.now()}.${ext}`);
+          await ref.put(file);
+          const url = await ref.getDownloadURL();
+          const { error } = await supabaseClient.from('event_community_photos').insert({
+            event_id: EVENT_ID,
+            car_id: _myCarId,
+            handle_name: _myHandleName || _myCarId,
+            photo_url: url
+          });
+          if (error) throw error;
+          location.reload();
+        } catch (err) {
+          alert('投稿失敗: ' + err.message);
+          uploadArea.querySelector('p').textContent = `${_myHandleName || 'あなた'} として写真を投稿する`;
+        }
+        e.target.value = '';
+      });
+    }
+
+    const grid = document.getElementById('communityGrid');
+    grid.innerHTML = '';
+    if (photos.length === 0) {
+      grid.innerHTML = '<p style="color:var(--muted);font-size:0.9rem">まだ投稿がありません</p>';
+      return;
+    }
+    photos.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'community-card';
+
+      const img = document.createElement('img');
+      img.src = p.photo_url;
+      img.alt = p.handle_name;
+      img.loading = 'lazy';
+      img.onclick = () => openModal(p.photo_url);
+      card.appendChild(img);
+
+      const footer = document.createElement('div');
+      footer.className = 'community-card-footer';
+      footer.innerHTML = `<a href="detail.html?doc=${p.car_id}" target="_blank">${esc(p.handle_name)}</a>`;
+
+      // 自分の投稿or管理者は削除可
+      if (p.car_id === _myCarId || _isAdmin) {
+        const del = document.createElement('button');
+        del.className = 'btn-delete-photo';
+        del.textContent = '削除';
+        del.onclick = async () => {
+          if (!confirm('この写真を削除しますか？')) return;
+          await supabaseClient.from('event_community_photos').delete().eq('id', p.id);
+          location.reload();
+        };
+        footer.appendChild(del);
+      }
+      card.appendChild(footer);
+      grid.appendChild(card);
+    });
   }
 
   function renderMembers(photoMap, excludedIds, addedMembers) {
