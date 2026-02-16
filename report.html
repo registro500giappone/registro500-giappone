@@ -109,16 +109,23 @@
 
     /* カード名前部分 */
     .member-name {
-      padding: 12px 14px 10px;
-      font-weight: bold;
-      font-size: 0.95rem;
+      padding: 10px 10px 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid var(--border);
     }
-    .member-name a { color: var(--text); text-decoration: none; }
-    .member-name a:hover { color: var(--accent); }
+    .member-name a {
+      display: inline-block;
+      background: var(--accent); color: #fff;
+      text-decoration: none; font-size: 0.85rem; font-weight: bold;
+      padding: 5px 12px; border-radius: 20px;
+      transition: background 0.15s;
+    }
+    .member-name a:hover { background: #a93226; }
+    .member-name span {
+      font-size: 0.85rem; font-weight: bold; color: var(--muted);
+    }
 
     /* 除外ボタン */
     .btn-exclude {
@@ -187,12 +194,41 @@
     }
     footer a { color: var(--accent); text-decoration: none; }
 
+    /* 写真モーダル */
+    #photoModal {
+      display: none;
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.85);
+      align-items: center; justify-content: center;
+    }
+    #photoModal.open { display: flex; }
+    #photoModal img {
+      max-width: 92vw; max-height: 88vh;
+      border-radius: 8px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+      object-fit: contain;
+    }
+    #photoModal .modal-close {
+      position: fixed; top: 16px; right: 20px;
+      background: none; border: none; color: #fff;
+      font-size: 2rem; cursor: pointer; line-height: 1;
+    }
+
+    /* 写真クリック可能なカーソル */
+    .photo-slot img { cursor: zoom-in; }
+
     @media (max-width: 480px) {
       .members-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
     }
   </style>
 </head>
 <body>
+
+<!-- 写真モーダル -->
+<div id="photoModal">
+  <button class="modal-close" onclick="closeModal()">✕</button>
+  <img id="modalImg" src="" alt="">
+</div>
 
 <!-- ログイン画面 -->
 <div id="loginScreen">
@@ -401,6 +437,7 @@
       img.src = photoUrl;
       img.alt = `写真${photoIndex}`;
       img.loading = 'lazy';
+      img.onclick = () => openModal(photoUrl);
       slot.appendChild(img);
     } else {
       const ph = document.createElement('div');
@@ -464,6 +501,7 @@
       const img = document.createElement('img');
       img.src = url;
       img.alt = `写真${photoIndex}`;
+      img.onclick = () => openModal(url);
       slot.appendChild(img);
 
       // オーバーレイ再生成
@@ -514,6 +552,22 @@
     saveState(state);
     location.reload();
   };
+
+  // --- 写真モーダル ---
+  function openModal(url) {
+    document.getElementById('modalImg').src = url;
+    document.getElementById('photoModal').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('photoModal').classList.remove('open');
+    document.getElementById('modalImg').src = '';
+  }
+  document.getElementById('photoModal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  });
 
   function esc(str) {
     return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
