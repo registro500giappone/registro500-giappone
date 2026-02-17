@@ -135,6 +135,13 @@
         <input type="hidden" id="DocumentID" name="DocumentID">
 
         <h2 class="rg-section-title">基本情報</h2>
+
+        <label>車両タイプ <span class="badge-required">必須</span></label>
+        <div class="radio-group">
+          <label><input type="radio" name="CarType" value="500" checked> FIAT 500</label>
+          <label><input type="radio" name="CarType" value="126"> FIAT 126</label>
+        </div>
+
         <label>ハンドルネーム <span class="badge-required">必須</span></label>
         <input type="text" name="HandleName" required>
         
@@ -153,8 +160,26 @@
         <label>車両モデル <span class="badge-required">必須</span></label>
         <select name="ModelSelectA" id="ModelSelectA" required>
           <option value="">選択してください</option>
-          <option value="Nuova500">Nuova500</option>
-          <option value="FIAT ABARTH">FIAT ABARTH</option>
+          <!-- 500の選択肢 -->
+          <option value="Nuova500" data-car-type="500">Nuova500</option>
+          <option value="FIAT ABARTH" data-car-type="500">FIAT ABARTH</option>
+          <!-- 126の選択肢 -->
+          <option value="Fiat 126 (594cc)" data-car-type="126">Fiat 126 (594cc)</option>
+          <option value="Fiat 126 (650cc)" data-car-type="126">Fiat 126 (650cc)</option>
+          <option value="Fiat 126E" data-car-type="126">Fiat 126E</option>
+          <option value="Fiat 126 DeLuxe" data-car-type="126">Fiat 126 DeLuxe</option>
+          <option value="Fiat 126 Personal" data-car-type="126">Fiat 126 Personal</option>
+          <option value="Fiat 126 Personal 4" data-car-type="126">Fiat 126 Personal 4</option>
+          <option value="Polski Fiat 126p" data-car-type="126">Polski Fiat 126p</option>
+          <option value="Polski Fiat 126p FL" data-car-type="126">Polski Fiat 126p FL</option>
+          <option value="Fiat 126 BIS" data-car-type="126">Fiat 126 BIS</option>
+          <option value="Fiat 126 EL" data-car-type="126">Fiat 126 EL</option>
+          <option value="Fiat 126 ELX" data-car-type="126">Fiat 126 ELX</option>
+          <option value="Fiat 126 Maluch" data-car-type="126">Fiat 126 Maluch</option>
+          <option value="Fiat 126 Cabriolet" data-car-type="126">Fiat 126 Cabriolet</option>
+          <option value="Steyr-Puch 126" data-car-type="126">Steyr-Puch 126</option>
+          <option value="Nikki 126" data-car-type="126">Nikki 126</option>
+          <!-- 共通 -->
           <option value="その他">その他</option>
         </select>
         <div id="ModelSelectAWrapper" style="display:none;"><input type="text" name="ModelTextA" placeholder="車種名を入力"></div>
@@ -481,7 +506,7 @@
 
       function fillForm(data) {
         const mapping = {
-          document_id: 'DocumentID', handle_name: 'HandleName', prefecture: 'Prefecture',
+          document_id: 'DocumentID', car_type: 'CarType', handle_name: 'HandleName', prefecture: 'Prefecture',
           model_select_a: 'ModelSelectA', model_text_a: 'ModelTextA', model_select_b: 'ModelSelectB', model_text_b: 'ModelTextB',
           year: 'Year', body_color: 'BodyColor', length_cm: 'Length_cm', capacity: 'Capacity', steering: 'Steering',
           engine_cc: 'EngineCC', engine_type_select: 'EngineTypeSelect', engine_type_text: 'EngineTypeText',
@@ -582,7 +607,7 @@
           // ★差分検知ロジック
           let updatedFields = [];
           const fieldMapping = {
-            HandleName: 'handle_name', Prefecture: 'prefecture', ModelSelectA: 'model_select_a', ModelTextA: 'model_text_a', ModelSelectB: 'model_select_b', ModelTextB: 'model_text_b',
+            CarType: 'car_type', HandleName: 'handle_name', Prefecture: 'prefecture', ModelSelectA: 'model_select_a', ModelTextA: 'model_text_a', ModelSelectB: 'model_select_b', ModelTextB: 'model_text_b',
             Year: 'year', BodyColor: 'body_color', Length_cm: 'length_cm', Capacity: 'capacity', Steering: 'steering', EngineCC: 'engine_cc', EngineTypeSelect: 'engine_type_select',
             EngineTypeText: 'engine_type_text', IgnitionType: 'ignition_type', IgnitionSubType: 'ignition_sub_type', DistributionType: 'distribution_type', CoilName: 'coil_name', PlugName: 'plug_name',
             FuelInjection: 'fuel_injection', CarburetorName: 'carburetor_name', FuelPump: 'fuel_pump', ElectricPumpName: 'electric_pump_name', Generator: 'generator', OilCooler: 'oil_cooler',
@@ -604,7 +629,7 @@
           }
 
           const dbData = {
-            owner_email: userEmail, handle_name: raw.HandleName, prefecture: raw.Prefecture,
+            owner_email: userEmail, car_type: raw.CarType || '500', handle_name: raw.HandleName, prefecture: raw.Prefecture,
             model_select_a: raw.ModelSelectA, model_text_a: raw.ModelTextA, model_select_b: raw.ModelSelectB, model_text_b: raw.ModelTextB,
             year: raw.Year, body_color: raw.BodyColor, length_cm: raw.Length_cm || null, capacity: raw.Capacity, steering: raw.Steering,
             engine_cc: raw.EngineCC, engine_type_select: raw.EngineTypeSelect, engine_type_text: raw.EngineTypeText,
@@ -635,6 +660,36 @@
         const el = document.getElementById(id);
         if(el) el.onchange = (e) => { document.getElementById(id + 'Wrapper').style.display = (e.target.value === 'その他') ? 'block' : 'none'; };
       });
+
+      // 車両タイプ切り替え時にModelSelectAの選択肢をフィルタ
+      function updateModelOptions() {
+        const carType = document.querySelector('input[name="CarType"]:checked').value;
+        const modelSelect = document.getElementById('ModelSelectA');
+        const allOptions = modelSelect.querySelectorAll('option');
+
+        allOptions.forEach(opt => {
+          if (!opt.value || opt.value === 'その他') {
+            opt.style.display = ''; // 空欄と「その他」は常に表示
+          } else {
+            const optType = opt.dataset.carType;
+            opt.style.display = (optType === carType) ? '' : 'none';
+          }
+        });
+
+        // 現在選択されているオプションが非表示になった場合、選択をクリア
+        const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+        if (selectedOption && selectedOption.style.display === 'none') {
+          modelSelect.value = '';
+        }
+      }
+
+      document.querySelectorAll('input[name="CarType"]').forEach(radio => {
+        radio.addEventListener('change', updateModelOptions);
+      });
+
+      // 初期表示時にもフィルタを適用
+      updateModelOptions();
+
       document.getElementById('googleLoginBtn').onclick = () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
       document.getElementById('logoutBtn').onclick = () => auth.signOut().then(() => location.reload());
     })();
