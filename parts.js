@@ -1,4 +1,4 @@
-// parts.js - 5店舗パーツ価格比較ツール
+// parts.js - 8店舗パーツ価格比較ツール
 
 // --- 同義語グループ（日本語・英語・イタリア語） ---
 // どの言語で検索しても、同じグループの全言語で検索される
@@ -1392,3 +1392,58 @@ document.addEventListener('click', (e) => {
         closeCompareModal();
     }
 });
+
+// ========================================
+// データ更新日時取得機能
+// ========================================
+
+// 各ショップの最終更新日時を取得して表示
+async function loadShopUpdateTimes() {
+    const shops = Object.keys(CONFIG.shops);
+    const updateTimesElem = document.getElementById('update-times');
+
+    if (!updateTimesElem) return;
+
+    try {
+        const results = [];
+
+        for (const shop of shops) {
+            const { data, error } = await supabase
+                .from('parts')
+                .select('updated_at')
+                .eq('shop_name', shop)
+                .order('updated_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (data && data.updated_at) {
+                const date = new Date(data.updated_at);
+                results.push({
+                    shop,
+                    date,
+                    formatted: `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+                });
+            }
+        }
+
+        // 最新の更新日時順にソート
+        results.sort((a, b) => b.date - a.date);
+
+        // HTML生成
+        const html = results.map(r =>
+            `<div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                <span style="color:#374151;">${r.shop}</span>
+                <span style="color:#10b981; font-weight:600;">${r.formatted}</span>
+            </div>`
+        ).join('');
+
+        updateTimesElem.innerHTML = html || '<span style="color:#9ca3af;">データ取得中...</span>';
+
+    } catch (e) {
+        console.error('Error loading shop update times:', e);
+        updateTimesElem.innerHTML = '<span style="color:#ef4444;">読込エラー</span>';
+    }
+}
+
+// ページ読み込み時に実行
+loadShopUpdateTimes();

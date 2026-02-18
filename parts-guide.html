@@ -138,6 +138,16 @@
             color: #6b7280;
             line-height: 1.4;
         }
+        .update-time {
+            display: inline-block;
+            margin-left: 8px;
+            font-size: 0.8rem;
+            color: #9ca3af;
+            font-weight: 400;
+        }
+        .update-time.loaded {
+            color: #10b981;
+        }
         .back-link {
             display: inline-block;
             margin-bottom: 20px;
@@ -185,8 +195,8 @@
             </div>
             <div class="feature-card">
                 <div class="icon">🔍</div>
-                <strong>5店舗横断検索</strong>
-                <span>欧州の主要パーツショップを一括検索</span>
+                <strong>8店舗横断検索</strong>
+                <span>欧州・英国・米国のパーツショップを一括検索</span>
             </div>
             <div class="feature-card">
                 <div class="icon">💰</div>
@@ -213,13 +223,19 @@
 
     <!-- 対応ショップ -->
     <div class="guide-section">
-        <h2>対応ショップ（5店舗）</h2>
-        <ul>
-            <li><strong>FD Ricambi</strong>（イタリア）- 税抜き価格表示</li>
-            <li><strong>Axel Gerstl</strong>（ドイツ）- 税込み価格 → 19%VAT除去して表示</li>
-            <li><strong>EuroItalia500</strong>（イタリア）- 税込み価格 → 22%VAT除去して表示</li>
-            <li><strong>Passione 500</strong>（イタリア）- 税込み価格 → 22%VAT除去して表示</li>
-            <li><strong>D'Angelo Motori</strong>（イタリア）- 税抜き価格表示</li>
+        <h2>対応ショップ（8店舗）</h2>
+        <p style="color:#6b7280; font-size:0.9rem; margin-bottom:16px;">
+            各ショップの最終データ取得日時を表示しています。
+        </p>
+        <ul id="shopList">
+            <li><strong>FD Ricambi</strong>（イタリア）- 税抜き価格表示 <span id="update-FD Ricambi" class="update-time">読込中...</span></li>
+            <li><strong>Axel Gerstl</strong>（ドイツ）- 税込み価格 → 19%VAT除去して表示 <span id="update-Axel Gerstl" class="update-time">読込中...</span></li>
+            <li><strong>EuroItalia500</strong>（イタリア）- 税込み価格 → 22%VAT除去して表示 <span id="update-EuroItalia500" class="update-time">読込中...</span></li>
+            <li><strong>Passione 500</strong>（イタリア）- 税込み価格 → 22%VAT除去して表示 <span id="update-Passione 500" class="update-time">読込中...</span></li>
+            <li><strong>D'Angelo Motori</strong>（イタリア）- 税抜き価格表示 <span id="update-D'Angelo Motori" class="update-time">読込中...</span></li>
+            <li><strong>AutoBella Parts</strong>（英国）- 税込み価格 → 20%VAT除去して表示 <span id="update-AutoBella Parts" class="update-time">読込中...</span></li>
+            <li><strong>Ricambio</strong>（英国）- 税込み価格 → 20%VAT除去して表示 <span id="update-Ricambio" class="update-time">読込中...</span></li>
+            <li><strong>Mr Fiat</strong>（米国）- 税抜き価格表示 <span id="update-Mr Fiat" class="update-time">読込中...</span></li>
         </ul>
         <div class="tip-box">
             <strong>なぜ税抜きで比較？</strong><br>
@@ -335,6 +351,64 @@
     </div>
 
 </div>
+
+<!-- Supabase & 更新日時取得スクリプト -->
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0"></script>
+<script>
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // 各ショップの最終更新日時を取得
+    async function loadShopUpdates() {
+        const shops = [
+            'FD Ricambi',
+            'Axel Gerstl',
+            'EuroItalia500',
+            'Passione 500',
+            "D'Angelo Motori",
+            'AutoBella Parts',
+            'Ricambio',
+            'Mr Fiat'
+        ];
+
+        for (const shop of shops) {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('parts')
+                    .select('updated_at')
+                    .eq('shop_name', shop)
+                    .order('updated_at', { ascending: false })
+                    .limit(1)
+                    .single();
+
+                if (data && data.updated_at) {
+                    const date = new Date(data.updated_at);
+                    const formatted = `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+
+                    const elem = document.getElementById(`update-${shop}`);
+                    if (elem) {
+                        elem.textContent = `(最終更新: ${formatted})`;
+                        elem.classList.add('loaded');
+                    }
+                } else {
+                    const elem = document.getElementById(`update-${shop}`);
+                    if (elem) {
+                        elem.textContent = '(データなし)';
+                    }
+                }
+            } catch (e) {
+                console.error(`Error loading update time for ${shop}:`, e);
+                const elem = document.getElementById(`update-${shop}`);
+                if (elem) {
+                    elem.textContent = '(読込失敗)';
+                }
+            }
+        }
+    }
+
+    // ページ読み込み時に実行
+    loadShopUpdates();
+</script>
 
 </body>
 </html>

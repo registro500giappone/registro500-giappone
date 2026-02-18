@@ -59,6 +59,21 @@ const CONFIG = {
             is_price_ex_vat: true,   // 税抜き価格
             vat_rate: 0,
             base_url: "https://www.dangelomotori.it"
+        },
+        "AutoBella Parts": {
+            is_price_ex_vat: false,  // 税込み価格
+            vat_rate: 0.20,          // 英国VAT 20%
+            base_url: "https://autobellaparts.com"
+        },
+        "Ricambio": {
+            is_price_ex_vat: false,  // 税込み価格
+            vat_rate: 0.20,          // 英国VAT 20%
+            base_url: "https://www.ricambio.co.uk"
+        },
+        "Mr Fiat": {
+            is_price_ex_vat: true,   // 税抜き価格（米国・州税なし）
+            vat_rate: 0,
+            base_url: "https://mrfiat.com"
         }
     }
 };
