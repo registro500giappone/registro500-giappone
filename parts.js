@@ -386,6 +386,8 @@ async function executeSearch() {
             console.error(`${shopName}のクエリエラー:`, error);
             return [];
         }
+        console.log(`[DEBUG] ${shopName}: ${data?.length || 0}件取得`);
+        console.log(`[DEBUG] クエリ条件 - category: ${selectedCategory}, keyword: ${keyword || 'なし'}`);
         return data || [];
     });
 
