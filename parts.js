@@ -508,6 +508,47 @@ function loadSearchConditions() {
     }
 }
 
+// --- 検索条件をすべてリセット ---
+function clearSearchConditions() {
+    // キーワード入力欄をクリア
+    const keywordInput = document.getElementById('keyword-input');
+    if (keywordInput) keywordInput.value = '';
+
+    // カテゴリをクリア
+    clearCategory();
+
+    // 車種チェックボックス: 500系は全選択、その他は閉じる
+    const parent = document.getElementById('car-500-all');
+    if (parent) {
+        parent.checked = true;
+        parent.indeterminate = false;
+        document.querySelectorAll('.car-sub').forEach(c => c.checked = true);
+    }
+    // その他車種エリアを閉じる
+    const othersArea = document.getElementById('others-area');
+    const othersBtn = document.getElementById('toggle-others-btn');
+    if (othersArea) othersArea.style.display = 'none';
+    if (othersBtn) othersBtn.innerText = '+ その他の車種を表示';
+    // その他車種チェックボックスを全解除
+    document.querySelectorAll('#others-area input[name="car"]').forEach(c => c.checked = false);
+
+    // ショップチェックボックス: 全選択
+    document.querySelectorAll('input[name="shop"]').forEach(cb => cb.checked = true);
+
+    // 検索結果エリアをクリア
+    const resultsArea = document.getElementById('results-area');
+    if (resultsArea) resultsArea.innerHTML = '';
+    const resultCountEl = document.getElementById('result-count');
+    if (resultCountEl) resultCountEl.innerText = '- 件';
+
+    // グローバル変数をリセット
+    lastSearchResults = [];
+    lastTargetShops = [];
+
+    // sessionStorage のキャッシュを削除
+    sessionStorage.removeItem('fiat500_search_conditions');
+}
+
 // --- 結果表示 (ショップ別アコーディオン) ---
 function displayResultsByShop(parts, targetShops, container) {
     container.innerHTML = "";
