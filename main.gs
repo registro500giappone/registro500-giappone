@@ -19,7 +19,7 @@ const FIREBASE_STORAGE_BASE_URL = 'https://firebasestorage.googleapis.com/v0/b/r
 
 // Supabase設定
 const SUPABASE_URL = 'https://ttlttclfovuzafvghvaq.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0bHR0Y2xmb3Z1emFmdmdodmFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU1Mzk0NzYsImV4cCI6MjA1MTExNTQ3Nn0.sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt';
+const SUPABASE_ANON_KEY = 'sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt';
 
 // Brevo設定（APIキーはプロパティストアから取得）
 function getBrevoApiKey_() {
@@ -74,17 +74,21 @@ function doPost(e) {
   } catch (err) { return createJsonOutput({ success: false, error: err.message }); }
 }
 
+// 許可されたオリジン（本番環境のみ）
+const ALLOWED_ORIGIN = 'https://www.registro500.com';
+
 function createJsonOutput(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON)
-    .setHeader('Access-Control-Allow-Origin', '*')
+    .setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
     .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     .setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
+
 function doOptions(e) {
   return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
     .setMimeType(ContentService.MimeType.JSON)
-    .setHeader('Access-Control-Allow-Origin', '*')
+    .setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
     .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     .setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
@@ -336,8 +340,20 @@ function supabaseQuery_(table, select, filters) {
     },
     muteHttpExceptions: true
   };
+
+  Logger.log('Supabase Query URL: ' + url);
   const response = UrlFetchApp.fetch(url, options);
-  return JSON.parse(response.getContentText());
+  const responseText = response.getContentText();
+  const statusCode = response.getResponseCode();
+
+  Logger.log('Supabase Response Code: ' + statusCode);
+  Logger.log('Supabase Response: ' + responseText);
+
+  if (statusCode !== 200) {
+    throw new Error('Supabase API Error: ' + responseText);
+  }
+
+  return JSON.parse(responseText);
 }
 
 function supabaseUpdate_(table, id, data) {
@@ -360,19 +376,27 @@ function supabaseUpdate_(table, id, data) {
 // 通知機能 (Daily Digest: 新車 + イベント)
 // =================================================
 function sendDailyDigest() {
-  // 過去24時間の基準時刻（ISO 8601形式）
-  const now = new Date();
-  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const yesterdayISO = yesterday.toISOString();
+  try {
+    // 過去24時間の基準時刻（ISO 8601形式）
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const yesterdayISO = yesterday.toISOString();
 
-  // 1. 新車チェック（Supabase）
-  const newCarsData = supabaseQuery_('cars', 'id,document_id,handle_name,model_display_c,notification_sent,created_at', {
-    'notification_sent': 'eq.false',
-    'created_at': `gte.${yesterdayISO}`,
-    'order': 'created_at.asc'
-  });
+    Logger.log('sendDailyDigest 開始: ' + now);
+    Logger.log('基準時刻（過去24時間）: ' + yesterdayISO);
 
-  const newCars = newCarsData.map(car => ({
+    // 1. 新車チェック（Supabase）
+    const newCarsData = supabaseQuery_('cars', 'id,document_id,handle_name,model_display_c,notification_sent,created_at', {
+      'notification_sent': 'eq.false',
+      'created_at': `gte.${yesterdayISO}`,
+      'order': 'created_at.asc'
+    });
+
+    if (!Array.isArray(newCarsData)) {
+      throw new Error('newCarsData が配列ではありません: ' + JSON.stringify(newCarsData));
+    }
+
+    const newCars = newCarsData.map(car => ({
     ID: car.document_id,
     Name: car.handle_name,
     Model: car.model_display_c || 'FIAT 500',
@@ -443,7 +467,12 @@ function sendDailyDigest() {
     try { supabaseUpdate_('events', evt.DbId, { notification_sent: true }); } catch (e) {}
   });
 
-  Logger.log(`メール配信完了: 車両${newCars.length}台、イベント${newEvents.length}件`);
+    Logger.log(`メール配信完了: 車両${newCars.length}台、イベント${newEvents.length}件`);
+  } catch (error) {
+    Logger.log('❌ sendDailyDigest エラー: ' + error);
+    Logger.log('スタックトレース: ' + error.stack);
+    throw error;
+  }
 }
 
 // Brevo & Utils
@@ -1022,4 +1051,53 @@ function logDelivery(type, count, newsTitle, status) {
   } catch (e) {
     console.error('logDelivery error:', e);
   }
+}
+
+// =================================================
+// アンケートリマインダー（2026/02/20 締切）
+// ※GASエディタから手動実行すること
+// =================================================
+function sendSurveyReminder() {
+  const subject = '【本日締切】パーツ調達アンケートへのご協力をお願いします';
+  const body = `Registro500 Giappone オーナーのみなさま
+
+2/12にご案内した「パーツ調達の知恵袋アンケート」の締切が
+本日（2/20・金）となっております。
+
+まだご回答いただいていない方は、ぜひこの機会にお声をお聞かせください！
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔗 アンケートはこちら（所要時間：約5分）
+https://forms.gle/1NEuj8ym6RoZhHNy6
+
+⏰ 締切：本日 2026年2月20日（金）中
+
+【ご回答特典】
+欧州パーツ通販サイトの横断価格比較ツール
+「Fiat 500 パーツ価格比較」ベータ版への優先招待
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+お一人おひとりの小さな工夫が、
+誰かの500を救う大きな力になります。
+どうぞよろしくお願いいたします。
+
+Registro500 Giappone 運営事務局
+https://www.registro500.com/`;
+
+  const recipients = getAllExistingOwnerEmails_();
+  if (recipients.length === 0) {
+    Logger.log('送信先なし');
+    return;
+  }
+
+  const chunkSize = 90;
+  for (let i = 0; i < recipients.length; i += chunkSize) {
+    const chunk = recipients.slice(i, i + chunkSize);
+    sendBroadcastViaBrevo(chunk, subject, body);
+    Utilities.sleep(1000);
+  }
+
+  Logger.log(`アンケートリマインダー送信完了: ${recipients.length}件`);
 }
