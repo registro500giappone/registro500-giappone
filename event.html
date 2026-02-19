@@ -617,6 +617,7 @@
           Description:description,
           OwnerID:owner_id,
           OwnerName:owner_name,
+          TargetCarType:target_car_type,
           Participants:event_participants(
             OwnerID:car_id,
             HandleName:handle_name
@@ -733,10 +734,19 @@ function createEventCard(ev, isPast, dateObj) {
       adminHtml = `<div class="ev-admin-row"><button class="btn-share" onclick="shareEvent('${ev.EventID}')">🔗 シェア</button></div>`;
     }
 
+    // 車両タイプバッジ
+    let carTypeBadge = '';
+    if (ev.TargetCarType === '500') {
+      carTypeBadge = '<span style="display:inline-block; margin-left:8px; padding:2px 8px; background:#e0f2fe; color:#0369a1; border-radius:4px; font-size:0.75rem; font-weight:600;">500</span>';
+    } else if (ev.TargetCarType === '126') {
+      carTypeBadge = '<span style="display:inline-block; margin-left:8px; padding:2px 8px; background:#ffedd5; color:#9a3412; border-radius:4px; font-size:0.75rem; font-weight:600;">126</span>';
+    }
+    // 'both'の場合はバッジなし（デフォルト）
+
     div.innerHTML = `
       ${adminHtml}
       <div class="ev-date">${esc(dateDisplay)}</div>
-      <h3 class="ev-title">${esc(ev.EventName)}</h3>
+      <h3 class="ev-title">${esc(ev.EventName)}${carTypeBadge}</h3>
       <div class="ev-info-row"><span class="ev-label">開催場所</span><div class="ev-info-val">${esc(ev.Location)}</div></div>
       ${ev.Fee ? `<div class="ev-info-row"><span class="ev-label">費用</span><div class="ev-info-val">${esc(ev.Fee)}</div></div>` : ''}
       <div class="ev-desc">${linkify(ev.Description)}</div>
@@ -929,13 +939,15 @@ window.submitEvent = async () => {
         .single();
 
       if (existing) {
-        await supabaseClient.from('event_participants').delete().eq('id', existing.id);
+        const { error: delError } = await supabaseClient.from('event_participants').delete().eq('id', existing.id);
+        if (delError) throw delError;
         alert("参加を取り消しました");
       } else {
         const { data: myCar } = await supabaseClient.from('cars').select('handle_name').eq('document_id', myCarId).single();
-        await supabaseClient.from('event_participants').insert([
+        const { error: insError } = await supabaseClient.from('event_participants').insert([
           { event_id: eventId, car_id: myCarId, handle_name: myCar ? myCar.handle_name : 'オーナー' }
         ]);
+        if (insError) throw insError;
         alert("参加表明しました！");
       }
       fetchEvents();
