@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ホーム画面に追加する方法 | Registro500 Giappone</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-27SHHC4JYH');
+  </script>
+  <style>
+    body { padding: 20px 16px 96px; line-height: 1.8; }
+    .rg-page { max-width: 860px; margin: 0 auto; }
+    .rg-back { margin-bottom: 20px; font-size: 0.9rem; }
+    .rg-back a { text-decoration: none; color: var(--rg-accent); font-weight: 600; }
+    .rg-card { padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    h1 { margin-top: 0; margin-bottom: 8px; font-size: 1.6rem; color: var(--rg-accent); font-weight: 800; text-align: center; }
+    .page-subtitle { text-align: center; color: #666; margin-bottom: 36px; font-size: 0.95rem; }
+    h2 { margin-top: 48px; margin-bottom: 20px; font-size: 1.15rem; border-left: 5px solid var(--rg-accent); padding-left: 12px; font-weight: 700; }
+
+    /* ===== ステップグリッド ===== */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 680px) {
+      .steps-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    }
+
+    .step-item { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+    .step-label {
+      font-size: 0.8rem; font-weight: 700; color: var(--rg-accent);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .step-num {
+      background: var(--rg-accent); color: white;
+      width: 20px; height: 20px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 800; flex-shrink: 0;
+    }
+    .step-desc { font-size: 0.82rem; color: #555; text-align: center; line-height: 1.5; }
+
+    /* ===== スマホフレーム共通 ===== */
+    .phone {
+      width: 100%;
+      max-width: 160px;
+      background: #1c1c1e;
+      border-radius: 24px;
+      padding: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+      position: relative;
+    }
+    .phone-screen {
+      background: #fff;
+      border-radius: 18px;
+      overflow: hidden;
+      height: 300px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== ステータスバー ===== */
+    .status-bar {
+      background: #fff;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 12px 2px;
+      font-size: 9px; font-weight: 700; color: #000; flex-shrink: 0;
+    }
+    .status-icons { display: flex; gap: 3px; align-items: center; }
+    .battery { font-size: 9px; }
+
+    /* ===== Safari UI ===== */
+    .safari-content {
+      flex: 1; overflow: hidden;
+      background: #f2f2f7;
+      display: flex; flex-direction: column;
+    }
+    .site-preview {
+      flex: 1;
+      background: linear-gradient(135deg, #1e3a8a 0%, #2856a8 60%, #3b82f6 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 8px; gap: 4px;
+    }
+    .site-preview-logo {
+      background: white; border-radius: 8px; padding: 5px 10px;
+      font-size: 9px; font-weight: 800; color: #2856a8; letter-spacing: 0.5px;
+    }
+    .site-preview-sub { font-size: 8px; color: rgba(255,255,255,0.85); }
+
+    /* Safari アドレスバー（上部） */
+    .safari-addr-bar {
+      background: #f2f2f7; padding: 6px 8px 4px;
+      display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+    }
+    .addr-field {
+      flex: 1; background: #e5e5ea; border-radius: 8px;
+      padding: 3px 8px; font-size: 8px; color: #333; text-align: center;
+    }
+
+    /* Safari 下部ツールバー */
+    .safari-toolbar {
+      background: #f2f2f7; border-top: 1px solid #d1d1d6;
+      padding: 6px 8px; display: flex; justify-content: space-around;
+      align-items: center; flex-shrink: 0;
+    }
+    .tb-btn { font-size: 14px; opacity: 0.4; cursor: pointer; }
+    .tb-btn.active { opacity: 1; }
+    .tb-btn.pulse {
+      opacity: 1;
+      animation: pulse-scale 1s ease-in-out infinite;
+    }
+    @keyframes pulse-scale {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0px #2856a8); }
+      50% { transform: scale(1.3); filter: drop-shadow(0 0 4px #2856a8); }
+    }
+
+    /* ===== iOSアクションシート ===== */
+    .action-sheet-overlay {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex; flex-direction: column; justify-content: flex-end;
+      border-radius: 18px;
+    }
+    .action-sheet {
+      background: #f2f2f7; border-radius: 14px 14px 0 0;
+      padding: 8px 0 4px;
+    }
+    .action-sheet-title {
+      text-align: center; font-size: 7.5px; color: #888;
+      padding: 0 10px 6px; border-bottom: 1px solid #d1d1d6;
+      margin-bottom: 4px;
+    }
+    /* アプリアイコン横スクロール */
+    .share-apps {
+      display: flex; gap: 8px; padding: 4px 10px 8px;
+      overflow: hidden;
+    }
+    .share-app {
+      display: flex; flex-direction: column; align-items: center; gap: 2px; flex-shrink: 0;
+    }
+    .share-app-icon {
+      width: 28px; height: 28px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; font-size: 14px;
+    }
+    .share-app-label { font-size: 6px; color: #333; white-space: nowrap; }
+    /* メニューアイテム */
+    .action-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 12px; font-size: 9px; color: #333;
+      border-top: 1px solid #d1d1d6;
+    }
+    .action-item.highlighted {
+      background: #e8f0ff;
+      color: #2856a8; font-weight: 700;
+    }
+    .action-icon {
+      width: 22px; height: 22px; border-radius: 6px;
+      background: #e5e5ea; display: flex; align-items: center;
+      justify-content: center; font-size: 12px; flex-shrink: 0;
+    }
+    .action-item.highlighted .action-icon {
+      background: #2856a8;
+    }
+
+    /* ===== iOS 追加確認画面 ===== */
+    .add-confirm {
+      position: absolute; inset: 0;
+      background: #f2f2f7; border-radius: 18px;
+      display: flex; flex-direction: column;
+    }
+    .confirm-nav {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 12px; border-bottom: 1px solid #d1d1d6;
+      background: #f9f9f9;
+    }
+    .confirm-cancel { font-size: 9px; color: #2856a8; }
+    .confirm-title { font-size: 9px; font-weight: 700; }
+    .confirm-add {
+      font-size: 9px; color: white; background: #2856a8;
+      padding: 3px 8px; border-radius: 6px; font-weight: 700;
+      animation: pulse-glow 1s ease-in-out infinite;
+    }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 0px rgba(40,86,168,0.5); }
+      50% { box-shadow: 0 0 6px rgba(40,86,168,0.8); }
+    }
+    .confirm-body {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      padding: 16px 12px;
+    }
+    .confirm-icon-preview {
+      width: 52px; height: 52px; border-radius: 12px;
+      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      font-size: 10px; font-weight: 800; color: white; text-align: center;
+      line-height: 1.2;
+    }
+    .confirm-name-field {
+      width: 100%; background: white; border: 1px solid #d1d1d6;
+      border-radius: 8px; padding: 5px 8px; font-size: 9px;
+      text-align: center; box-sizing: border-box;
+    }
+    .confirm-url { font-size: 7px; color: #888; margin-top: 4px; }
+
+    /* ===== iOS 完了画面 ===== */
+    .homescreen-result {
+      background: linear-gradient(160deg, #1c84e4 0%, #5ca8f0 100%);
+      flex: 1; padding: 12px 8px; display: flex; flex-direction: column;
+    }
+    .hs-dock-area {
+      flex: 1; display: grid; grid-template-columns: repeat(4, 1fr);
+      align-content: start; gap: 6px; padding-top: 4px;
+    }
+    .hs-app {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .hs-app-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+    }
+    .hs-app-label { font-size: 6.5px; color: white; text-align: center; line-height: 1.2; }
+    .hs-app.new-icon .hs-app-icon {
+      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+      box-shadow: 0 0 0 3px white, 0 0 0 5px #fbbf24;
+      font-size: 9px; font-weight: 800; color: white; text-align: center;
+    }
+
+    /* ===== Chrome UI ===== */
+    .chrome-addr-bar {
+      background: #fff; padding: 5px 8px;
+      display: flex; align-items: center; gap: 4px;
+      border-bottom: 1px solid #e5e7eb; flex-shrink: 0;
+    }
+    .chrome-addr-field {
+      flex: 1; background: #f1f3f4; border-radius: 20px;
+      padding: 3px 8px; font-size: 8px; color: #333;
+    }
+    .chrome-menu-btn {
+      font-size: 13px; color: #555; font-weight: 900;
+      line-height: 1; letter-spacing: -1px;
+    }
+    .chrome-menu-btn.pulse { animation: pulse-scale 1s ease-in-out infinite; color: #2856a8; }
+
+    /* Chrome ドロップダウンメニュー */
+    .chrome-dropdown-overlay {
+      position: absolute; inset: 0;
+      border-radius: 18px; overflow: hidden;
+    }
+    .chrome-dropdown {
+      position: absolute; top: 28px; right: 4px;
+      background: white; border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      width: 120px; overflow: hidden;
+      z-index: 10;
+    }
+    .chrome-dd-item {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 10px; font-size: 8px; color: #333;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .chrome-dd-item:last-child { border-bottom: none; }
+    .chrome-dd-item.highlighted {
+      background: #e8f0ff; color: #2856a8; font-weight: 700;
+    }
+    .chrome-dd-icon { font-size: 11px; width: 14px; text-align: center; flex-shrink: 0; }
+
+    /* Chrome 確認ダイアログ */
+    .chrome-dialog-overlay {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.4); border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .chrome-dialog {
+      background: white; border-radius: 12px;
+      padding: 14px; width: 100%;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .chrome-dialog-title { font-size: 9px; font-weight: 700; margin-bottom: 6px; color: #111; }
+    .chrome-dialog-icon-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .chrome-dialog-icon {
+      width: 30px; height: 30px; border-radius: 8px;
+      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; font-weight: 800; color: white; text-align: center;
+      flex-shrink: 0;
+    }
+    .chrome-dialog-name { font-size: 8px; color: #333; }
+    .chrome-dialog-btn-row {
+      display: flex; justify-content: flex-end; gap: 6px;
+    }
+    .chrome-btn {
+      font-size: 8px; padding: 4px 10px; border-radius: 4px; font-weight: 700;
+    }
+    .chrome-btn-cancel { background: none; color: #555; border: none; }
+    .chrome-btn-add {
+      background: #2856a8; color: white; border: none;
+      animation: pulse-glow 1s ease-in-out infinite;
+    }
+
+    /* ===== 完了バッジ ===== */
+    .done-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #dcfce7; color: #166534;
+      padding: 6px 14px; border-radius: 20px;
+      font-size: 0.82rem; font-weight: 700; margin: 12px auto 0;
+    }
+
+    /* ===== ヒントボックス ===== */
+    .hint-box {
+      background: #fffbeb; border-left: 4px solid #f59e0b;
+      border-radius: 0 8px 8px 0; padding: 12px 16px;
+      font-size: 0.88rem; color: #78350f; margin-top: 32px; line-height: 1.6;
+    }
+    .hint-box strong { color: #92400e; }
+
+    /* ダークモード */
+    @media (prefers-color-scheme: dark) {
+      .page-subtitle { color: #94a3b8; }
+      .step-desc { color: #94a3b8; }
+      .hint-box { background: #1c1a10; border-color: #f59e0b; color: #fcd34d; }
+      .hint-box strong { color: #fde68a; }
+      .done-badge { background: #14532d; color: #86efac; }
+    }
+  </style>
+</head>
+<body>
+<div class="rg-page">
+  <div class="rg-back"><a href="index.html">← ガレージに戻る</a></div>
+
+  <div class="rg-card">
+    <h1>📱 ホーム画面に追加する方法</h1>
+    <p class="page-subtitle">アプリのようにワンタップでアクセスできるようになります</p>
+
+    <!-- ======== iOS ======== -->
+    <h2>🍎 iPhone / iPad（Safari）</h2>
+    <div class="steps-grid">
+
+      <!-- Step 1 -->
+      <div class="step-item">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="status-bar">
+              <span>9:41</span>
+              <div class="status-icons"><span>●●●</span><span>WiFi</span><span class="battery">🔋</span></div>
+            </div>
+            <div class="safari-addr-bar">
+              <div class="addr-field">registro500.com</div>
+            </div>
+            <div class="safari-content">
+              <div class="site-preview">
+                <div class="site-preview-logo">Registro500</div>
+                <div class="site-preview-sub">Giappone</div>
+              </div>
+            </div>
+            <div class="safari-toolbar">
+              <span class="tb-btn active">←</span>
+              <span class="tb-btn">→</span>
+              <span class="tb-btn pulse" title="共有ボタン">⬜↑</span>
+              <span class="tb-btn active">☆</span>
+              <span class="tb-btn active">⬜⬜</span>
+            </div>
+          </div>
+        </div>
+        <div class="step-label"><span class="step-num">1</span>Safari でサイトを開く</div>
+        <div class="step-desc">画面下部の<br><strong>共有ボタン（⬜↑）</strong>をタップ</div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step-item">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="status-bar">
+              <span>9:41</span>
+              <div class="status-icons"><span>●●●</span><span>WiFi</span><span class="battery">🔋</span></div>
+            </div>
+            <div class="safari-addr-bar">
+              <div class="addr-field">registro500.com</div>
+            </div>
+            <div class="safari-content" style="position:relative;">
+              <div class="site-preview" style="filter:brightness(0.5);"></div>
+              <div class="action-sheet-overlay">
+                <div class="action-sheet">
+                  <div class="action-sheet-title">registro500.com</div>
+                  <div class="share-apps">
+                    <div class="share-app">
+                      <div class="share-app-icon" style="background:#34c759;">📨</div>
+                      <div class="share-app-label">メッセージ</div>
+                    </div>
+                    <div class="share-app">
+                      <div class="share-app-icon" style="background:#007aff;">✉️</div>
+                      <div class="share-app-label">メール</div>
+                    </div>
+                    <div class="share-app">
+                      <div class="share-app-icon" style="background:#555;">🔗</div>
+                      <div class="share-app-label">コピー</div>
+                    </div>
+                  </div>
+                  <div class="action-item highlighted">
+                    <div class="action-icon">
+                      <span style="color:white;font-size:11px;">➕</span>
+                    </div>
+                    ホーム画面に追加
+                  </div>
+                  <div class="action-item">
+                    <div class="action-icon">☆</div>
+                    ブックマークを追加
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="step-label"><span class="step-num">2</span>メニューが開く</div>
+        <div class="step-desc"><strong>「ホーム画面に追加」</strong>をタップ</div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step-item">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="add-confirm">
+              <div class="status-bar" style="background:#f9f9f9;">
+                <span>9:41</span>
+                <div class="status-icons"><span>●●●</span><span>WiFi</span><span class="battery">🔋</span></div>
+              </div>
+              <div class="confirm-nav">
+                <span class="confirm-cancel">キャンセル</span>
+                <span class="confirm-title">ホーム画面に追加</span>
+                <span class="confirm-add">追加</span>
+              </div>
+              <div class="confirm-body">
+                <div class="confirm-icon-preview">R500</div>
+                <div class="confirm-name-field">Registro500</div>
+                <div class="confirm-url">registro500.com</div>
+                <div style="font-size:7.5px; color:#888; margin-top:10px; text-align:center; line-height:1.5;">
+                  このWebサイトのショートカットが<br>ホーム画面に追加されます
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="step-label"><span class="step-num">3</span>確認画面</div>
+        <div class="step-desc">名前を確認して<br>右上の<strong>「追加」</strong>をタップ</div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="step-item">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="status-bar" style="background:transparent; color:white; position:absolute; top:0; left:0; right:0; z-index:1;">
+              <span>9:41</span>
+              <div class="status-icons"><span>●●●</span><span>WiFi</span><span class="battery">🔋</span></div>
+            </div>
+            <div class="homescreen-result">
+              <div class="hs-dock-area">
+                <div class="hs-app">
+                  <div class="hs-app-icon" style="background:#007aff; border-radius:8px;">📷</div>
+                  <div class="hs-app-label">カメラ</div>
+                </div>
+                <div class="hs-app">
+                  <div class="hs-app-icon" style="background:#34c759; border-radius:8px;">📱</div>
+                  <div class="hs-app-label">電話</div>
+                </div>
+                <div class="hs-app">
+                  <div class="hs-app-icon" style="background:#ff9500; border-radius:8px;">⚙️</div>
+                  <div class="hs-app-label">設定</div>
+                </div>
+                <div class="hs-app new-icon">
+                  <div class="hs-app-icon">R500</div>
+                  <div class="hs-app-label">Registro500</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="step-label"><span class="step-num">4</span>完了！</div>
+        <div class="step-desc">ホーム画面に<br>アイコンが追加されました🎉</div>
+      </div>
+
+    </div>
+    <div style="text-align:center;"><span class="done-badge">✅ これでワンタップでアクセスできます</span></div>
+
+
+    <!-- ======== Android ======== -->
+    <h2>🤖 Android（Chrome）</h2>
+    <div class="steps-grid">
+
+      <!-- Step 1 -->
+      <div class="step-item">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="status-bar">
+              <span>9:41</span>
+              <div class="status-icons"><span>●●●</span><span>WiFi</span><span class="battery">🔋</span></div>
+            </div>
+            <div class="chrome-addr-bar">
+              <div class="chrome-addr-field">registro500.com</div>
+              <div class="chrome-menu-btn pulse">⋮</div>
+            </div>
+            <div class="site-preview" style="flex:1;">
+              <div class="site-preview-logo">Registro500</div>
+              <div class="site-preview-sub">Giappone</div>
+            </div>
+          </div>
+        </div>
+        <div class="step-label"><span class="step-num">1</span>Chrome でサイトを開く</div>
+        <div class="step-desc">右上の<br><strong>「⋮」メニュー</strong>をタップ</div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step-item">
+        <div class="phone">
+          <div class="phone-screen" style="position:relative;">
+            <div class="status-bar">
+              <span>9:41</span>
+              <div class="status-icons"><span>●●●</span><span>WiFi</span><span class="battery">🔋</span></div>
+            </div>
+            <div class="chrome-addr-bar">
+              <div class="chrome-addr-field">registro500.com</div>
+              <div class="chrome-menu-btn">⋮</div>
+            </div>
+            <div class="site-preview" style="flex:1; filter:brightness(0.6);"></div>
+            <div class="chrome-dropdown-overlay">
+              <div class="chrome-dropdown">
+                <div class="chrome-dd-item">
+                  <span class="chrome-dd-icon">⭐</span>ブックマーク
+                </div>
+                <div class="chrome-dd-item highlighted">
+                  <span class="chrome-dd-icon">➕</span>ホーム画面に追加
+                </div>
+                <div class="chrome-dd-item">
+                  <span class="chrome-dd-icon">🖨️</span>印刷
+                </div>
+                <div class="chrome-dd-item">
+                  <span class="chrome-dd-icon">⚙️</span>設定
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="step-label"><span class="step-num">2</span>メニューが開く</div>
+        <div class="step-desc"><strong>「ホーム画面に追加」</strong>をタップ</div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step-item">
+        <div class="phone">
+          <div class="phone-screen" style="position:relative;">
+            <div class="status-bar">
+              <span>9:41</span>
+              <div class="status-icons"><span>●●●</span><span>WiFi</span><span class="battery">🔋</span></div>
+            </div>
+            <div class="chrome-addr-bar">
+              <div class="chrome-addr-field">registro500.com</div>
+              <div class="chrome-menu-btn">⋮</div>
+            </div>
+            <div class="site-preview" style="flex:1; filter:brightness(0.5);"></div>
+            <div class="chrome-dialog-overlay">
+              <div class="chrome-dialog">
+                <div class="chrome-dialog-title">ホーム画面に追加</div>
+                <div class="chrome-dialog-icon-row">
+                  <div class="chrome-dialog-icon">R500</div>
+                  <div class="chrome-dialog-name">Registro500<br><span style="color:#888;">registro500.com</span></div>
+                </div>
+                <div class="chrome-dialog-btn-row">
+                  <span class="chrome-btn chrome-btn-cancel">キャンセル</span>
+                  <span class="chrome-btn chrome-btn-add">追加</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="step-label"><span class="step-num">3</span>確認ダイアログ</div>
+        <div class="step-desc">名前を確認して<br><strong>「追加」</strong>をタップ</div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="step-item">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="status-bar" style="background:#1a1a2e; color:white;">
+              <span>9:41</span>
+              <div class="status-icons"><span>●●●</span><span>WiFi</span><span class="battery">🔋</span></div>
+            </div>
+            <div style="background: linear-gradient(160deg,#1a1a2e 0%,#16213e 100%); flex:1; display:flex; flex-direction:column; padding:10px 8px;">
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px;">
+                <div class="hs-app">
+                  <div class="hs-app-icon" style="background:#ea4335; border-radius:8px;">📧</div>
+                  <div class="hs-app-label">Gmail</div>
+                </div>
+                <div class="hs-app">
+                  <div class="hs-app-icon" style="background:#4285f4; border-radius:8px;">🌐</div>
+                  <div class="hs-app-label">Chrome</div>
+                </div>
+                <div class="hs-app">
+                  <div class="hs-app-icon" style="background:#fbbc05; border-radius:8px;">🗺️</div>
+                  <div class="hs-app-label">Maps</div>
+                </div>
+                <div class="hs-app new-icon">
+                  <div class="hs-app-icon">R500</div>
+                  <div class="hs-app-label">Registro500</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="step-label"><span class="step-num">4</span>完了！</div>
+        <div class="step-desc">ホーム画面に<br>アイコンが追加されました🎉</div>
+      </div>
+
+    </div>
+    <div style="text-align:center;"><span class="done-badge">✅ これでワンタップでアクセスできます</span></div>
+
+    <!-- ヒント -->
+    <div class="hint-box">
+      <strong>⚠️ ご注意</strong><br>
+      すでに古いアイコンを登録している方は、一度削除してから再度追加してください。
+      キャッシュが残っていると古いアイコンのまま表示されることがあります。
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
