@@ -345,8 +345,11 @@ async function executeSearch() {
     }
 
     // 車種条件を構築
+    // target_cars が NULL または空文字のパーツは「車種不明 = 全車種向け」として常に含める
     let carConditions = [];
     if (checkedCars.length > 0 || all500Checked) {
+        carConditions.push(`target_cars.is.null`);
+        carConditions.push(`target_cars.eq.`);
         if (all500Checked) {
             carConditions.push(`target_cars.ilike.%500%`);
         }
