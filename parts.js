@@ -27,7 +27,7 @@ const synonymGroups = [
     ["ドア", "door", "porta"],
     ["ウィンドウ", "window", "vetro", "finestrino"],
     ["ワイパー", "wiper", "tergicristallo"],
-    ["キャブレター", "carburetor", "carburatore"],
+    ["キャブレター", "carburetor", "carburettor", "carburatore"],
     ["マフラー", "muffler", "marmitta"],
     ["ラジエーター", "radiator", "radiatore"],
     ["スターター", "starter", "motorino"],
@@ -374,7 +374,9 @@ async function executeSearch() {
         }
 
         // カテゴリ絞り込み
-        if (selectedCategory) {
+        // キーワードがある場合はカテゴリフィルターを適用しない
+        // （例: サブカテゴリ「キャブレター」クリック時はキーワード検索を優先）
+        if (selectedCategory && !keyword) {
             query = query.eq('category', selectedCategory);
         }
 
