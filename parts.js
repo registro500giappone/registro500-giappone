@@ -350,7 +350,9 @@ async function executeSearch() {
     if (checkedCars.length > 0 || all500Checked) {
         carConditions.push(`target_cars.is.null`);
         carConditions.push(`target_cars.eq.`);
-        if (all500Checked) {
+        // 500全体チェック、または500系サブ車種（500 F等）が1つでも選択されていれば500系を対象に含める
+        const has500Sub = checkedCars.some(car => car.startsWith('500'));
+        if (all500Checked || has500Sub) {
             carConditions.push(`target_cars.ilike.%500%`);
         }
         checkedCars.forEach(car => {
@@ -391,8 +393,6 @@ async function executeSearch() {
             console.error(`${shopName}のクエリエラー:`, error);
             return [];
         }
-        console.log(`[DEBUG] ${shopName}: ${data?.length || 0}件取得`);
-        console.log(`[DEBUG] クエリ条件 - category: ${selectedCategory}, keyword: ${keyword || 'なし'}`);
         return data || [];
     });
 
