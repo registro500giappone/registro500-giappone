@@ -80,9 +80,9 @@
 <body>
 
 <div class="page">
-  <a href="index.html" class="back-link">← ガレージに戻る</a>
+  <a id="backLink" href="index.html" class="back-link">← ガレージに戻る</a>
   <div class="header">
-    <h1>Registro500 Statistics</h1>
+    <h1 id="pageTitle">Registro500 Statistics</h1>
     <p>現在の登録車両: <span id="totalCount">-</span> 台</p>
     <div class="note">※未記入を除いた有効回答のみ集計</div>
   </div>
@@ -159,6 +159,14 @@
   const chartTextColor = isDark ? '#94a3b8' : '#666';
   const chartLabelColor = isDark ? '#cbd5e1' : '#444';
 
+  // URLパラメータで500/126を切り替え
+  const urlCarType = new URLSearchParams(window.location.search).get('type') || '500';
+  if (urlCarType === '126') {
+    document.getElementById('pageTitle').textContent = 'Registro126 Statistics';
+    document.getElementById('backLink').href = '126/index.html';
+    document.title = '統計データ | Registro126 Giappone';
+  }
+
   window.addEventListener('DOMContentLoaded', () => {
     Chart.register(ChartDataLabels);
     Chart.defaults.color = chartTextColor;
@@ -202,7 +210,7 @@
           RimDiameter_in:rim_diameter_in,
           RimWidth_in:rim_width_in
         `)
-        .eq('car_type', '500');
+        .eq('car_type', urlCarType);
 
       if (error) throw error;
 

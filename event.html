@@ -367,10 +367,11 @@
 <body>
 
 <div class="page">
-  <a href="index.html" class="back-link">← ガレージに戻る</a>
+  <a id="evBackLink" href="index.html" class="back-link">← ガレージに戻る</a>
   <div class="header">
     <h1>Eventi</h1>
-    <p>FIAT 500 イベント・ミーティング情報</p>
+    <!-- 126公開時: "FIAT 500 & 126" に変更 -->
+    <p id="evSubtitle">FIAT 500 イベント・ミーティング情報</p>
   </div>
 
   <div class="guide-box">
@@ -545,6 +546,13 @@
   };
 
   window.addEventListener('DOMContentLoaded', () => {
+    // 126公開時: urlType === '126' のとき表記を更新
+    const urlType = new URLSearchParams(window.location.search).get('type');
+    if (urlType === '126') {
+      document.getElementById('evSubtitle').textContent = 'FIAT 500 & 126 イベント・ミーティング情報';
+      document.getElementById('evBackLink').href = '126/index.html';
+      document.title = 'イベント情報 | Registro500 & 126 Giappone';
+    }
     initFromCache();
     fetchEvents();
     firebase.auth().onAuthStateChanged(user => {

@@ -124,8 +124,8 @@
 <body>
 
 <header>
-    <h1>REGISTRO MAPPA</h1>
-    <a href="index.html" class="back-link">← ガレージに戻る</a>
+    <h1 id="pageTitle">REGISTRO MAPPA</h1>
+    <a id="backLink" href="index.html" class="back-link">← ガレージに戻る</a>
 </header>
 
 <div class="container">
@@ -170,6 +170,14 @@
         'HIROSHIMA':'広島県', 'OKAYAMA':'岡山県', 'NARA':'奈良県', 'SHIGA':'滋賀県'
     };
 
+    // URLパラメータで500/126を切り替え
+    const urlCarType = new URLSearchParams(window.location.search).get('type') || '500';
+    if (urlCarType === '126') {
+      document.getElementById('pageTitle').textContent = 'REGISTRO126 MAPPA';
+      document.getElementById('backLink').href = '126/index.html';
+      document.title = 'Registro126 - Mappa';
+    }
+
     async function init() {
         try {
             const mapRes = await fetch(MAP_FILE_URL);
@@ -190,7 +198,7 @@
                 Model_DisplayC:model_display_c,
                 PhotoMain:photo_main
               `)
-              .eq('car_type', '500');
+              .eq('car_type', urlCarType);
 
             if (error) throw error;
             
