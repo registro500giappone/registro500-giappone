@@ -8,13 +8,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## MCPサーバー構成
 
-このプロジェクトでは以下のMCPサーバーを利用可能（.mcp.json で管理）：
+このプロジェクトでは以下のMCPサーバーを利用可能（`C:\Users\akayu\.claude.json` で管理）：
 
 | MCPサーバー | 用途 | 認証 |
 |------------|------|------|
 | `supabase` | DB直接クエリ・テーブル確認 | SUPABASE_ACCESS_TOKEN |
-| `github` | PR作成・コミット・Issue管理 | GITHUB_TOKEN |
+| `github` | PR作成・コミット・Issue管理 | GITHUB_PERSONAL_ACCESS_TOKEN |
 | `playwright` | ブラウザ自動操作・サイト確認 | 不要 |
+
+> ⚠️ `.mcp.json`（プロジェクトルート）はgitignore済み。トークンが入っているため**絶対にgit addしない**。
 
 ---
 
@@ -50,6 +52,32 @@ Claude Code の Task ツールを活用した自動化パターン：
 
 ---
 
+## コスト最適化方針
+
+### 専用サブエージェント（`.claude/agents/`）
+軽量タスクは専用エージェントに委譲してトークン消費を削減：
+
+| エージェント | 用途 | モデル |
+|-------------|------|-------|
+| `batch-runner` | クローラー・AI翻訳実行 | haiku |
+| `db-checker` | DB件数確認・統計クエリ | haiku |
+| `git-ops` | コミット・プッシュ | haiku |
+
+呼び出し方: 「batch-runnerエージェントでrun_all.pyを実行して」
+
+### Taskツール直接呼び出し
+```
+model: "haiku"  // 軽量タスクはこれを指定
+```
+
+| タスク | 使うモデル |
+|--------|-----------|
+| DB件数確認・単純検索 | `haiku` |
+| ファイル調査・コードベース探索 | `haiku` |
+| コーディング・バグ修正・設計 | `sonnet`（メイン） |
+
+---
+
 ## プロジェクト固有のコマンド
 
 ```bash
@@ -73,3 +101,19 @@ git push origin main           # Vercel自動デプロイがトリガーされ�
 - `.mcp.json.example` → トークンなしのテンプレート（gitに含む）
 - `py/` → クローラースクリプト群（ローカルのみ、git未管理）
 - `126/index.html` → Fiat 126姉妹サイトのトップページ
+- `.claude/agents/` → 専用サブエージェント定義（Haikuモデル）
+
+---
+
+## コンテキスト圧縮ヒント（/compact 実行時に優先保持）
+
+コンテキストが圧縮される場合、以下を優先して保持してください：
+- パーツクローラーの8ショップ構成とPIDリスト
+- Supabaseのparts/cars/eventsテーブルスキーマ
+- 現在進行中のクローラー状態と残タスク
+- orchestrator.pyの完了状況
+
+削除してよいもの：
+- クローラーの詳細ログ出力
+- wmicプロセスリスト全体
+- 完了済みタスクの詳細

@@ -1,0 +1,83 @@
+name: Daily Parts Update
+
+on:
+  schedule:
+    - cron: '0 18 * * *'  # 毎日 03:00 JST (18:00 UTC)
+  workflow_dispatch:       # 手動実行ボタン
+
+jobs:
+  # ================================
+  # Job 1: Shopify API 3ショップ（並列）
+  # ================================
+  autobella:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 依存関係インストール
+        run: pip install requests supabase python-dotenv
+      - name: .env 作成
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
+      - name: AutoBella クロール
+        run: python py/autobella_crawler.py
+
+  ricambio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 依存関係インストール
+        run: pip install requests supabase python-dotenv
+      - name: .env 作成
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
+      - name: Ricambio クロール
+        run: python py/ricambio_crawler.py
+
+  mrfiat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 依存関係インストール
+        run: pip install requests supabase python-dotenv
+      - name: .env 作成
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
+      - name: MrFiat クロール
+        run: python py/mrfiat_crawler.py
+
+  # ================================
+  # Job 2: AI翻訳（3ショップ完了後）
+  # ================================
+  ai-translation:
+    runs-on: ubuntu-latest
+    needs: [autobella, ricambio, mrfiat]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 依存関係インストール
+        run: pip install google-generativeai supabase python-dotenv
+      - name: .env 作成
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> py/.env
+      - name: AI翻訳実行（新規レコードのみ）
+        run: python py/ai_marathon_final_v9.py
