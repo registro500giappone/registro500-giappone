@@ -1101,3 +1101,145 @@ https://www.registro500.com/`;
 
   Logger.log(`アンケートリマインダー送信完了: ${recipients.length}件`);
 }
+
+// =================================================
+// アンケート結果公開通知（全オーナー宛）
+// GASエディタから手動実行すること
+// =================================================
+function sendSurveyResultsNotification() {
+  const subject = 'アンケート結果を公開しました';
+  const body =
+`登録オーナー各位
+
+平素より Registro500 Giappone をご利用いただきありがとうございます。
+
+先週末より実施しておりました「日本のFiat 500オーナー実態調査」に
+33件のご回答をいただきました。誠にありがとうございました。
+
+アンケート結果を下記ページにてご覧いただけます。
+
+▼ アンケート結果
+https://www.registro500.com/survey-results.html
+（ログインが必要です）
+
+今後ともよろしくお願いいたします。
+
+Registro500 Giappone 運営チーム`;
+
+  const recipients = getAllExistingOwnerEmails_();
+  if (recipients.length === 0) {
+    Logger.log('送信先なし');
+    return;
+  }
+  Logger.log(`アンケート結果通知 送信先: ${recipients.length}件`);
+
+  const chunkSize = 90;
+  for (let i = 0; i < recipients.length; i += chunkSize) {
+    const chunk = recipients.slice(i, i + chunkSize);
+    sendBroadcastViaBrevo(chunk, subject, body);
+    Utilities.sleep(1000);
+  }
+
+  Logger.log(`アンケート結果通知送信完了: ${recipients.length}件`);
+}
+
+// =================================================
+// βテスト招待メール（アンケート希望者宛）
+// GASエディタから手動実行すること
+// フォームの回答スプレッドシートから自動取得
+// =================================================
+function sendBetaTestInvitation() {
+  const subject = '【Registro500】パーツ価格比較ツール βテストのご案内';
+  const body =
+`βテスト希望者各位
+
+平素より Registro500 Giappone をご利用いただきありがとうございます。
+
+アンケートにてパーツ価格比較ツールのβテストご希望をいただき
+ありがとうございました。
+
+このたび、「どっちが安いか比べ太郎」のβ版をご利用いただける
+ようになりました。
+
+▼ パーツ価格比較 β版
+https://www.registro500.com/parts.html
+（ログインするとご利用いただけます）
+
+現在は海外8ショップのパーツ価格を比較できます。
+ご意見・ご要望がございましたらお気軽にお知らせください。
+
+今後ともよろしくお願いいたします。
+
+Registro500 Giappone 運営チーム`;
+
+  const recipients = getBetaTestOptInEmails_();
+  if (recipients.length === 0) {
+    Logger.log('βテスト希望者なし');
+    return;
+  }
+  Logger.log(`βテスト招待メール 送信先: ${recipients.length}件`);
+
+  const chunkSize = 90;
+  for (let i = 0; i < recipients.length; i += chunkSize) {
+    const chunk = recipients.slice(i, i + chunkSize);
+    sendBroadcastViaBrevo(chunk, subject, body);
+    Utilities.sleep(1000);
+  }
+
+  Logger.log(`βテスト招待メール送信完了: ${recipients.length}件`);
+}
+
+function getBetaTestOptInEmails_() {
+  try {
+    // アンケートフォームに紐づいたスプレッドシートを自動取得
+    const FORM_ID = '1Ect20oaaxoiWkINY1UT4Ew6TqDrSmBCm5rHXIjMG1FM';
+    const form = FormApp.openById(FORM_ID);
+    const spreadsheetId = form.getDestinationId();
+    if (!spreadsheetId) {
+      Logger.log('スプレッドシートが見つかりません。フォームにスプレッドシートが紐づいているか確認してください。');
+      return [];
+    }
+
+    const ss = SpreadsheetApp.openById(spreadsheetId);
+    const sheet = ss.getSheets()[0];
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) return [];
+
+    const headers = data[0].map(h => String(h));
+    Logger.log('ヘッダー: ' + JSON.stringify(headers));
+
+    // メールアドレス列を探す（B列が通常メールアドレス）
+    let emailIdx = 1;
+    headers.forEach((h, i) => {
+      if (h.includes('メールアドレス') || h.toLowerCase().includes('email')) emailIdx = i;
+    });
+
+    // βテスト希望列を探す
+    let betaIdx = -1;
+    headers.forEach((h, i) => {
+      if (h.includes('βテスト') || h.includes('ベータ') || h.toLowerCase().includes('beta') || h.includes('価格比較')) betaIdx = i;
+    });
+
+    Logger.log(`メール列: ${emailIdx}, βテスト列: ${betaIdx}`);
+
+    const emailSet = new Set();
+    for (let i = 1; i < data.length; i++) {
+      const email = String(data[i][emailIdx] || '').trim().toLowerCase();
+      if (!email || !email.includes('@')) continue;
+
+      if (betaIdx !== -1) {
+        const betaVal = String(data[i][betaIdx] || '').trim();
+        // 「いいえ」「No」「否」の場合は除外
+        if (betaVal.includes('いいえ') || betaVal.includes('否') || betaVal.toLowerCase() === 'no') continue;
+      }
+
+      emailSet.add(email);
+    }
+
+    Logger.log(`βテスト希望者: ${emailSet.size}件`);
+    return Array.from(emailSet);
+  } catch (e) {
+    Logger.log('getBetaTestOptInEmails_ エラー: ' + e);
+    return [];
+  }
+}
