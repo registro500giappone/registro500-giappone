@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-27SHHC4JYH');
+  </script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>パーツ調達の知恵袋 - Registro500 Giappone</title>
+  <meta name="description" content="登録オーナーによるパーツ調達アンケート結果">
+  <meta name="robots" content="noindex">
+
+  <link rel="icon" href="logo_horizontal.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+
+  <script src="config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+
+  <script>
+    if (!firebase.apps.length) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+    }
+    const auth = firebase.auth();
+  </script>
+
+  <style>
+    :root {
+      --bg-main: #f4f4f7;
+      --card-bg: #ffffff;
+      --border-soft: #e5e7eb;
+      --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.08);
+      --text-main: #111827;
+      --text-sub: #6b7280;
+      --accent: #2856a8;
+      --accent-soft: #e6efff;
+      --radius-lg: 12px;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { font-size: 16px; max-width: 100%; overflow-x: hidden; }
+    @media (min-width: 1025px) { html { font-size: 17px; } }
+
+    body {
+      font-family: var(--font-sans); margin: 0; padding: 20px 16px 60px;
+      background-color: var(--bg-main); color: var(--text-main); line-height: 1.6;
+    }
+    .page { max-width: 800px; margin: 0 auto; }
+
+    /* ===== ヘッダー ===== */
+    .page-header { text-align: center; margin-bottom: 32px; }
+    .page-header img { height: 48px; width: auto; mix-blend-mode: multiply; margin-bottom: 12px; }
+    .page-header h1 { font-size: 1.4rem; font-weight: 700; margin: 0 0 6px; color: var(--text-main); }
+    .page-header p { font-size: 0.85rem; color: var(--text-sub); margin: 0; }
+
+    /* ===== ログインゲート ===== */
+    #login-gate {
+      background: var(--card-bg); border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft); padding: 48px 24px; text-align: center;
+    }
+    #login-gate p { color: var(--text-sub); margin-bottom: 20px; }
+    .btn-login {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent); color: #fff; border: none; border-radius: 8px;
+      padding: 12px 24px; font-size: 1rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-login:hover { background: #1d3f8a; }
+
+    /* ===== コンテンツエリア ===== */
+    #content { display: none; }
+
+    .badge-members {
+      display: inline-block; background: var(--accent-soft); color: var(--accent);
+      border: 1px solid #c2d4ff; border-radius: 20px; font-size: 0.78rem;
+      font-weight: 600; padding: 3px 12px; margin-bottom: 24px;
+    }
+
+    /* ===== セクション共通 ===== */
+    .section {
+      background: var(--card-bg); border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft); padding: 24px; margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: 1rem; font-weight: 700; color: var(--accent);
+      margin: 0 0 16px; padding-bottom: 10px;
+      border-bottom: 2px solid var(--accent-soft);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-title .icon { font-size: 1.1rem; }
+
+    /* ===== 統計バー ===== */
+    .stat-summary { font-size: 0.9rem; color: var(--text-sub); margin-bottom: 16px; }
+    .stat-item { margin-bottom: 12px; }
+    .stat-label { font-size: 0.9rem; margin-bottom: 4px; display: flex; justify-content: space-between; }
+    .stat-pct { font-weight: 700; color: var(--accent); }
+    .bar-track { background: #e5e7eb; border-radius: 4px; height: 10px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.6s ease; }
+    .bar-fill.orange { background: #f97316; }
+    .bar-fill.green { background: #22c55e; }
+
+    /* ===== リスト ===== */
+    .shop-list { list-style: none; margin: 0; padding: 0; }
+    .shop-list li {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid var(--border-soft);
+      font-size: 0.95rem;
+    }
+    .shop-list li:last-child { border-bottom: none; }
+    .shop-list a { color: var(--text-main); text-decoration: none; }
+    .shop-list a:hover { color: var(--accent); text-decoration: underline; }
+    .rank-num {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--accent-soft); color: var(--accent);
+      font-size: 0.78rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .rank-num.gold { background: #fef3c7; color: #d97706; }
+    .rank-num.silver { background: #f1f5f9; color: #64748b; }
+    .rank-num.bronze { background: #fef0e6; color: #c2410c; }
+    .shop-note { font-size: 0.78rem; color: var(--text-sub); }
+
+    /* ===== コメントカード ===== */
+    .comment-list { display: flex; flex-direction: column; gap: 10px; }
+    .comment-card {
+      background: #f8faff; border-left: 3px solid var(--accent);
+      border-radius: 0 8px 8px 0; padding: 10px 14px;
+      font-size: 0.9rem; line-height: 1.6;
+    }
+    .comment-tag {
+      display: inline-block; background: var(--accent); color: #fff;
+      border-radius: 4px; font-size: 0.72rem; font-weight: 600;
+      padding: 1px 8px; margin-bottom: 6px;
+    }
+    .comment-tag.orange { background: #f97316; }
+    .comment-tag.green { background: #16a34a; }
+
+    /* ===== β案内バナー ===== */
+    .beta-banner {
+      background: linear-gradient(135deg, #1d3f8a 0%, #2856a8 100%);
+      color: #fff; border-radius: var(--radius-lg); padding: 24px;
+      text-align: center; margin-bottom: 20px;
+    }
+    .beta-banner h2 { margin: 0 0 8px; font-size: 1.1rem; }
+    .beta-banner p { margin: 0 0 16px; font-size: 0.9rem; opacity: 0.9; }
+    .btn-beta {
+      display: inline-block; background: #fff; color: var(--accent);
+      border-radius: 8px; padding: 10px 24px; font-weight: 700;
+      font-size: 0.95rem; text-decoration: none;
+    }
+    .btn-beta:hover { background: #e6efff; }
+
+    /* ===== フッター ===== */
+    .page-footer { text-align: center; margin-top: 40px; }
+    .page-footer a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+
+    /* ===== ユーザーバー ===== */
+    .user-bar {
+      display: flex; justify-content: flex-end; align-items: center;
+      gap: 8px; margin-bottom: 20px; font-size: 0.82rem; color: var(--text-sub);
+    }
+    .user-bar img { width: 28px; height: 28px; border-radius: 50%; }
+    .btn-logout {
+      background: none; border: 1px solid var(--border-soft); border-radius: 6px;
+      padding: 3px 10px; font-size: 0.78rem; color: var(--text-sub); cursor: pointer;
+    }
+    .btn-logout:hover { background: #f3f4f6; }
+  </style>
+</head>
+
+<body>
+<div class="page">
+
+  <!-- ヘッダー -->
+  <div class="page-header">
+    <a href="index.html"><img src="logo_horizontal.png" alt="Registro500 Giappone"></a>
+    <h1>パーツ調達の知恵袋</h1>
+    <p>登録オーナーによるアンケート結果レポート（2026年2月）</p>
+  </div>
+
+  <!-- ログインゲート -->
+  <div id="login-gate">
+    <p>このページは登録オーナー限定です。<br>Googleアカウントでログインしてください。</p>
+    <button class="btn-login" onclick="loginWithGoogle()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#fff" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#fff" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#fff" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#fff" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
+      Googleでログイン
+    </button>
+  </div>
+
+  <!-- コンテンツ（ログイン後に表示） -->
+  <div id="content">
+    <div class="user-bar">
+      <img id="user-photo" src="" alt="">
+      <span id="user-name"></span>
+      <button class="btn-logout" onclick="auth.signOut()">ログアウト</button>
+    </div>
+
+    <div style="text-align:center; margin-bottom: 24px;">
+      <span class="badge-members">登録オーナー限定公開</span>
+      <p style="font-size:0.85rem; color:var(--text-sub); margin:6px 0 0;">
+        33名のオーナーにご回答いただきました。ありがとうございます。
+      </p>
+    </div>
+
+    <!-- Q1 手配方法 -->
+    <div class="section">
+      <div class="section-title"><span class="icon">🔧</span> 普段のパーツ手配方法</div>
+      <p class="stat-summary">33件の回答</p>
+      <div class="stat-item">
+        <div class="stat-label"><span>自分で探して購入することが多い</span><span class="stat-pct">60.6%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:60.6%"></div></div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label"><span>基本はショップ任せ、特定パーツは探す</span><span class="stat-pct">30.3%</span></div>
+        <div class="bar-track"><div class="bar-fill orange" style="width:30.3%"></div></div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label"><span>これから自分で探してみたい</span><span class="stat-pct">6.1%</span></div>
+        <div class="bar-track"><div class="bar-fill green" style="width:6.1%"></div></div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label"><span>その他</span><span class="stat-pct">3.0%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:3.0%; background:#9ca3af"></div></div>
+      </div>
+    </div>
+
+    <!-- Q2 国内購入先 -->
+    <div class="section">
+      <div class="section-title"><span class="icon">🏪</span> 国内パーツ購入先</div>
+      <p class="stat-summary">30件の回答（複数回答可）</p>
+      <ul class="shop-list">
+        <li><a href="https://www.nuova500.com/standard-speed/parts.html" target="_blank" rel="noopener">スタンダードスピード</a></li>
+        <li>ヤフオク<span class="shop-note">（出品者の評価・商品説明の丁寧さで信頼性を判断）</span></li>
+        <li><a href="http://www.ontario.co.jp/" target="_blank" rel="noopener">オンタリオ</a><span class="shop-note">（板橋）</span></li>
+        <li><a href="http://www.garage-little.com/" target="_blank" rel="noopener">ガレージリトル</a></li>
+        <li><a href="https://serio.hp4u.jp/" target="_blank" rel="noopener">セーリオ</a></li>
+        <li><a href="https://www.catalan.co.jp/" target="_blank" rel="noopener">ミニカーショップカタラン</a><span class="shop-note">（実車パーツも扱う）</span></li>
+        <li><a href="https://www.piccolo-spa.com/index.html" target="_blank" rel="noopener">Piccolo S.p.A</a><span class="shop-note">（<a href="mailto:info@piccolo-spa.com" style="color:inherit;">info@piccolo-spa.com</a>）</span></li>
+        <li><a href="https://mago1shop.com/" target="_blank" rel="noopener">孫市屋</a><span class="shop-note">（LED球・リレー）</span></li>
+        <li><a href="https://style-basic.jp/" target="_blank" rel="noopener">style basic</a></li>
+        <li><a href="https://www.i-love-fiat.net/" target="_blank" rel="noopener">Flower Parts</a><span class="shop-note">（フィアット・ランチアパーツ専門）</span></li>
+        <li><a href="https://garagemm.com/" target="_blank" rel="noopener">ガレージMM</a></li>
+        <li><a href="https://ciao-datacomm500.ssl-lolipop.jp/cinquecento/" target="_blank" rel="noopener">データコミュニケート</a><span class="shop-note">（横浜市都筑区）</span></li>
+      </ul>
+      <p style="font-size:0.78rem; color:var(--text-sub); margin: 12px 0 0;">
+        ※ 言及数の多い順。各ショップの優劣を示すものではありません。
+      </p>
+    </div>
+
+    <!-- Q3 購入のコツ -->
+    <div class="section">
+      <div class="section-title"><span class="icon">💡</span> 国内調達のコツ・選ぶ理由</div>
+      <div class="comment-list">
+        <div class="comment-card">
+          <div class="comment-tag">スタンダードスピード</div>
+          500を熟知されているから。在庫がなければ海外から取り寄せてくれる。メールで部品の有無や取り寄せの相談も可。誠実な対応で信頼がおける。
+        </div>
+        <div class="comment-card">
+          <div class="comment-tag">オンタリオ</div>
+          パーツの交換方法・修正方法、作業のコツまで丁寧に教えてくれる。
+        </div>
+        <div class="comment-card">
+          <div class="comment-tag">ガレージリトル</div>
+          大阪の老舗専門店。親切丁寧で在庫のない部品の取り寄せも対応。ステアリング修復なども受けてもらえる。
+        </div>
+        <div class="comment-card">
+          <div class="comment-tag">ミニカーショップカタラン</div>
+          FIATパーツをヤフオク等より安価に確実に入手できる。500関連グッズも豊富で見るだけでも楽しい。
+        </div>
+        <div class="comment-card">
+          <div class="comment-tag">ガレージMM</div>
+          お宝パーツが豊富。MM宮ちゃんを頼れ、とのこと。
+        </div>
+        <div class="comment-card">
+          <div class="comment-tag orange">ヤフオク</div>
+          出品者の評価・紹介文の言葉遣い・質問への回答の的確さで信頼性を判断。maluchさん、菅田さんなど指名利用するオーナーも多い。送料の柔軟対応や、在庫がなくても調達してくれる出品者も。
+        </div>
+      </div>
+    </div>
+
+    <!-- Q4 海外購入先 -->
+    <div class="section">
+      <div class="section-title"><span class="icon">✈️</span> 実績のある海外パーツ購入先</div>
+      <p class="stat-summary">複数回答可 / 言及の多い順</p>
+      <ul class="shop-list">
+        <li><a href="https://www.axel-gerstl.de/" target="_blank" rel="noopener">Axel Gerstl</a><span class="shop-note">（ドイツ）</span></li>
+        <li><a href="https://www.autobella.co.uk/" target="_blank" rel="noopener">Auto Bella Parts</a><span class="shop-note">（英国）</span></li>
+        <li><a href="https://www.fdricambi.com/" target="_blank" rel="noopener">FD Ricambi</a><span class="shop-note">（イタリア）</span></li>
+        <li>eBay<span class="shop-note">（各国出品者）</span></li>
+        <li><a href="https://www.passione500.it/" target="_blank" rel="noopener">Passione 500</a><span class="shop-note">（イタリア）</span></li>
+        <li><a href="https://www.ricambio.co.uk/" target="_blank" rel="noopener">Ricambio.co.uk</a><span class="shop-note">（英国）</span></li>
+        <li><a href="https://euroitalia500-commerce.it" target="_blank" rel="noopener">EuroItalia500</a><span class="shop-note">（イタリア / JULCAR）</span></li>
+        <li><a href="https://www.mrfiat.com/" target="_blank" rel="noopener">mrfiat.com</a><span class="shop-note">（米国）</span></li>
+      </ul>
+    </div>
+
+    <!-- Q5 海外通販のコツ -->
+    <div class="section">
+      <div class="section-title"><span class="icon">🛡️</span> 海外通販のコツ・トラブル対策</div>
+      <div class="comment-list">
+        <div class="comment-card">
+          <div class="comment-tag">決済</div>
+          PayPal経由が基本。万が一のとき購入者保護が使える。クレジットカードでも異議申し立てが可能。
+        </div>
+        <div class="comment-card">
+          <div class="comment-tag">配送追跡</div>
+          UPSやDHLの追跡番号をこまめに確認。発送から2週間音沙汰なければショップへ問い合わせ。発送後のお知らせが来ないまま突然届く場合もある。
+        </div>
+        <div class="comment-card">
+          <div class="comment-tag orange">言語</div>
+          Google翻訳・生成AIを活用。問い合わせメールも英語でほぼ対応してもらえる。イタリア語のショップでもGoogle翻訳で注文可能。
+        </div>
+        <div class="comment-card">
+          <div class="comment-tag">関税・消費税</div>
+          一定金額を超えると通関時に関税・消費税が発生する。取られたり取られなかったりするが、高額注文は事前にシミュレーションを。為替レートの変動にも注意。
+        </div>
+        <div class="comment-card">
+          <div class="comment-tag">返品・トラブル</div>
+          返品送料は相手のミスでも自分持ちにする、という経験者も。持続可能な取引関係のために。住所記載不備で商品が返送されたトラブルも——日本郵便に問い合わせて無事回収できた例あり。
+        </div>
+        <div class="comment-card">
+          <div class="comment-tag">慎重に</div>
+          初めて利用するサイトは少額から試す。ショップレビューを必ず確認。eBayのイタリア出品者は支払い後に発送されないケースも報告されている。
+        </div>
+      </div>
+    </div>
+
+    <!-- Q6 他車流用アイデア -->
+    <div class="section">
+      <div class="section-title"><span class="icon">🔄</span> 他車流用・汎用品の活用アイデア</div>
+      <div class="comment-list">
+        <div class="comment-card">
+          <div class="comment-tag green">電装</div>
+          原付用ハザードスイッチ＋汎用フラッシャーリレーで自作ハザード回路。端子アダプターで汎用バッテリーに換装。
+        </div>
+        <div class="comment-card">
+          <div class="comment-tag green">エンジン</div>
+          デスビコンデンサ・オイルプレッシャースイッチを国産品に。ベアリング・オイルシールも国産メーカー品で代替可能。
+        </div>
+        <div class="comment-card">
+          <div class="comment-tag orange">ネット活用</div>
+          アリエク（AliExpress）で内径・外径・厚みで検索してオイルシールを入手。モノタロウでグロメット・スペーサーを流用。
+        </div>
+        <div class="comment-card">
+          <div class="comment-tag">ホームセンター</div>
+          汎用ゴム・ボルト・ナット類はホームセンターで代替品が見つかることも。
+        </div>
+        <div class="comment-card">
+          <div class="comment-tag">他車種流用</div>
+          国産旧車・原付のゴム部品・シール類が寸法一致することがある。ヤフオクの旧車部品出品もチェック。
+        </div>
+        <div class="comment-card">
+          <div class="comment-tag green">情報収集</div>
+          みんカラで他のオーナーの流用アイデアを日々チェック。SNSの先人の知恵が一番の近道。
+        </div>
+      </div>
+    </div>
+
+    <!-- パーツ価格比較 案内（最後に） -->
+    <div class="beta-banner">
+      <h2>パーツ価格比較 β版 先行テスト</h2>
+      <p>8店舗・約3万点のパーツを一括検索・価格比較できます。<br>
+      アンケートでご希望いただいた方には、別途ご案内します。</p>
+    </div>
+
+    <!-- フッターナビ -->
+    <div class="page-footer">
+      <a href="index.html">← トップページへ戻る</a>
+    </div>
+
+  </div><!-- /#content -->
+</div><!-- /.page -->
+
+<script>
+  // ===== Firebase Auth =====
+  // ?preview=1 でローカル確認用（認証スキップ）
+  const isPreview = new URLSearchParams(location.search).get('preview') === '1';
+  if (isPreview) {
+    document.getElementById('login-gate').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+  }
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      document.getElementById('login-gate').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+      document.getElementById('user-name').textContent = user.displayName || user.email;
+      if (user.photoURL) {
+        document.getElementById('user-photo').src = user.photoURL;
+      }
+    } else if (!isPreview) {
+      document.getElementById('login-gate').style.display = 'block';
+      document.getElementById('content').style.display = 'none';
+    }
+  });
+
+  function loginWithGoogle() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(err => {
+      alert('ログインに失敗しました。もう一度お試しください。');
+      console.error(err);
+    });
+  }
+</script>
+
+</body>
+</html>
