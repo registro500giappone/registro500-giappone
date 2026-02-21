@@ -513,8 +513,9 @@
 
       window.handleCancel = function() {
         const docId = document.getElementById('DocumentID').value;
+        const carType = document.getElementById('CarType').value;
         if (docId) window.location.href = `detail.html?doc=${docId}`;
-        else window.location.href = "index.html";
+        else window.location.href = (carType === '126') ? '126/index.html' : 'index.html';
       };
 
       function fillForm(data) {
@@ -702,6 +703,39 @@
       if (typeParam === '126' || typeParam === '500') {
         document.getElementById('CarType').value = typeParam;
         document.getElementById('CarTypeDisplay').textContent = `FIAT ${typeParam}`;
+      }
+
+      // 126サイト用のUI切り替え
+      const is126 = document.getElementById('CarType').value === '126';
+      if (is126) {
+        // タイトル
+        document.title = 'マイガレージ - Registro126 Giappone';
+        // ヘッダーロゴ
+        const logoImg = document.querySelector('.rg-header-logo img');
+        if (logoImg) { logoImg.src = 'logo_horizontal126.png'; logoImg.alt = 'Registro126'; }
+        // 「ガレージに戻る」リンク
+        const backLink = document.querySelector('.rg-back-link a');
+        if (backLink) backLink.href = '126/index.html';
+        // ModelSelectB を126用に差し替え（500専用の選択肢を非表示・126用を追加）
+        const selB = document.getElementById('ModelSelectB');
+        if (selB) {
+          selB.innerHTML = `
+            <option value="">選択してください</option>
+            <option value="標準">標準</option>
+            <option value="その他">その他</option>`;
+        }
+        // エンジン形式を126Aシリーズのみ表示
+        const selE = document.getElementById('EngineTypeSelect');
+        if (selE) {
+          selE.innerHTML = `
+            <option value="">選択してください</option>
+            <option value="126A.000">126A.000</option>
+            <option value="126A1.000">126A1.000</option>
+            <option value="126A1.048">126A1.048</option>
+            <option value="126A5.000">126A5.000</option>
+            <option value="不明">不明</option>
+            <option value="その他">その他</option>`;
+        }
       }
 
       // 初期表示時にもフィルタを適用
