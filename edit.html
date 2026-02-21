@@ -246,6 +246,15 @@
         </select>
         <div id="EngineTypeSelectWrapper" style="display:none;"><input type="text" name="EngineTypeText" placeholder="型式を入力"></div>
 
+        <!-- 冷却方式（126のみ表示） -->
+        <div id="coolingTypeSection" style="display:none;">
+          <label>冷却方式</label>
+          <div class="radio-group">
+            <label><input type="radio" name="CoolingType" value="空冷">空冷</label>
+            <label><input type="radio" name="CoolingType" value="水冷">水冷（BIS 704cc）</label>
+          </div>
+        </div>
+
         <label>点火形式</label>
         <div class="radio-group">
           <label><input type="radio" name="IgnitionType" value="ポイント">ポイント</label>
@@ -531,6 +540,7 @@
           rim_diameter_in: 'RimDiameter_in', rim_width_in: 'RimWidth_in', tire_type: 'TireType', tire_size: 'TireSize', tire_brand_name: 'TireBrandName',
           engine_oil: 'EngineOil', engine_oil_interval: 'EngineOilInterval',
           transmission_oil: 'TransmissionOil', transmission_oil_interval: 'TransmissionOilInterval',
+          cooling_type: 'CoolingType',
           battery: 'Battery', highlights: 'Highlights',
           x_twitter: 'X_Twitter', instagram: 'Instagram', youtube: 'YouTube', minkara: 'Minkara',
           facebook: 'Facebook', threads: 'Threads', blog_or_website: 'BlogOrWebsite',
@@ -621,7 +631,7 @@
           // ★差分検知ロジック
           let updatedFields = [];
           const fieldMapping = {
-            CarType: 'car_type', HandleName: 'handle_name', Prefecture: 'prefecture', ModelSelectA: 'model_select_a', ModelTextA: 'model_text_a', ModelSelectB: 'model_select_b', ModelTextB: 'model_text_b',
+            CarType: 'car_type', HandleName: 'handle_name', Prefecture: 'prefecture', ModelSelectA: 'model_select_a', ModelTextA: 'model_text_a', ModelSelectB: 'model_select_b', ModelTextB: 'model_text_b', CoolingType: 'cooling_type',
             Year: 'year', BodyColor: 'body_color', Length_cm: 'length_cm', Capacity: 'capacity', Steering: 'steering', EngineCC: 'engine_cc', EngineTypeSelect: 'engine_type_select',
             EngineTypeText: 'engine_type_text', IgnitionType: 'ignition_type', IgnitionSubType: 'ignition_sub_type', DistributionType: 'distribution_type', CoilName: 'coil_name', PlugName: 'plug_name',
             FuelInjection: 'fuel_injection', CarburetorName: 'carburetor_name', FuelPump: 'fuel_pump', ElectricPumpName: 'electric_pump_name', Generator: 'generator', OilCooler: 'oil_cooler',
@@ -653,6 +663,7 @@
             transmission: raw.Transmission, synchro: raw.Synchro, joint: raw.Joint, wheel: raw.Wheel,
             rim_diameter_in: raw.RimDiameter_in || null, rim_width_in: raw.RimWidth_in || null, tire_type: raw.TireType, tire_size: raw.TireSize, tire_brand_name: raw.TireBrandName,
             engine_oil: raw.EngineOil, engine_oil_interval: raw.EngineOilInterval, transmission_oil: raw.TransmissionOil, transmission_oil_interval: raw.TransmissionOilInterval,
+            cooling_type: raw.CoolingType || null,
             battery: raw.Battery, highlights: raw.Highlights, x_twitter: raw.X_Twitter, instagram: raw.Instagram, youtube: raw.YouTube, minkara: raw.Minkara,
             facebook: raw.Facebook, threads: raw.Threads, blog_or_website: raw.BlogOrWebsite,
             photo_main: raw.PhotoMain, photo_front: raw.PhotoFront, photo_side: raw.PhotoSide, photo_rear: raw.PhotoRear,
@@ -724,18 +735,20 @@
             <option value="標準">標準</option>
             <option value="その他">その他</option>`;
         }
-        // エンジン形式を126Aシリーズのみ表示
+        // エンジン形式を126用に差し替え
         const selE = document.getElementById('EngineTypeSelect');
         if (selE) {
           selE.innerHTML = `
             <option value="">選択してください</option>
-            <option value="126A.000">126A.000</option>
-            <option value="126A1.000">126A1.000</option>
-            <option value="126A1.048">126A1.048</option>
-            <option value="126A5.000">126A5.000</option>
+            <option value="126A1.048（594cc・空冷）">126A1.048（594cc・空冷）</option>
+            <option value="126A1.048（652cc・空冷）">126A1.048（652cc・空冷）</option>
+            <option value="BIS（704cc・水冷）">BIS（704cc・水冷）</option>
             <option value="不明">不明</option>
             <option value="その他">その他</option>`;
         }
+        // 冷却方式セクションを表示
+        const coolingSection = document.getElementById('coolingTypeSection');
+        if (coolingSection) coolingSection.style.display = '';
       }
 
       // 初期表示時にもフィルタを適用
