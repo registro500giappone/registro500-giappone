@@ -574,10 +574,13 @@ async function fetchCars() {
 
 async function checkNewsBadge() {
       try {
+        const today = new Date().toISOString().split('T')[0];
         const { data, error } = await supabaseClient
           .from('news')
           .select('date')
           .or('target_car_type.eq.126,target_car_type.eq.both')
+          .not('date', 'is', null)
+          .lte('date', today)
           .order('date', { ascending: false })
           .limit(1);
 

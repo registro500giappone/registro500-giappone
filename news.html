@@ -104,10 +104,14 @@ async function fetchNews() {
       const listEl = document.getElementById('newsList');
       try {
         // target_car_type が 'both'・該当car_type・null のものを表示
+        // date が今日以前かつ NULL でないもののみ（先付け・空欄は未公開扱い）
+        const today = new Date().toISOString().split('T')[0];
         const { data, error } = await supabaseClient
           .from('news')
           .select('Date:date, Title:title, Content:content')
           .or(`target_car_type.eq.both,target_car_type.eq.${urlCarType},target_car_type.is.null`)
+          .not('date', 'is', null)
+          .lte('date', today)
           .order('date', { ascending: false });
 
         if (error) throw error;
