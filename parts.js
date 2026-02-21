@@ -408,6 +408,13 @@ async function executeSearch() {
     const totalCount = dbResults.length;
     resultCountEl.innerText = `${totalCount} 件`;
 
+    // 500件上限警告
+    const limitWarningEl = document.getElementById('limit-warning');
+    if (limitWarningEl) {
+        const hitLimit = results.some(r => r.length >= LIMIT_PER_SHOP);
+        limitWarningEl.style.display = hitLimit ? 'block' : 'none';
+    }
+
     resultsArea.innerHTML = "";
     displayResultsByShop(dbResults, checkedShops, resultsArea);
 
