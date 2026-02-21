@@ -136,10 +136,13 @@
 
         <h2 class="rg-section-title">基本情報</h2>
 
-        <label>車両タイプ <span class="badge-required">必須</span></label>
-        <div class="radio-group">
-          <label><input type="radio" name="CarType" value="500" checked> FIAT 500</label>
-          <label><input type="radio" name="CarType" value="126"> FIAT 126</label>
+        <!-- 車両タイプは入り口（index）で確定済み -->
+        <input type="hidden" id="CarType" name="CarType" value="500">
+
+        <label>車両タイプ</label>
+        <div class="info-box" style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 20px;">
+          <strong id="CarTypeDisplay">FIAT 500</strong>
+          <p style="margin: 5px 0 0 0; font-size: 13px; color: #6b7280;">※ 車両タイプは入り口で選択済みです</p>
         </div>
 
         <label>ハンドルネーム <span class="badge-required">必須</span></label>
@@ -163,22 +166,32 @@
           <!-- 500の選択肢 -->
           <option value="Nuova500" data-car-type="500">Nuova500</option>
           <option value="FIAT ABARTH" data-car-type="500">FIAT ABARTH</option>
-          <!-- 126の選択肢 -->
+          <!-- 126の選択肢（完全版：20種類） -->
+          <!-- 基本モデル（Fiat本家・イタリア） -->
           <option value="Fiat 126 (594cc)" data-car-type="126">Fiat 126 (594cc)</option>
           <option value="Fiat 126 (650cc)" data-car-type="126">Fiat 126 (650cc)</option>
-          <option value="Fiat 126E" data-car-type="126">Fiat 126E</option>
-          <option value="Fiat 126 DeLuxe" data-car-type="126">Fiat 126 DeLuxe</option>
           <option value="Fiat 126 Personal" data-car-type="126">Fiat 126 Personal</option>
-          <option value="Fiat 126 Personal 4" data-car-type="126">Fiat 126 Personal 4</option>
+          <!-- ポーランド製 -->
           <option value="Polski Fiat 126p" data-car-type="126">Polski Fiat 126p</option>
           <option value="Polski Fiat 126p FL" data-car-type="126">Polski Fiat 126p FL</option>
           <option value="Fiat 126 BIS" data-car-type="126">Fiat 126 BIS</option>
           <option value="Fiat 126 EL" data-car-type="126">Fiat 126 EL</option>
           <option value="Fiat 126 ELX" data-car-type="126">Fiat 126 ELX</option>
           <option value="Fiat 126 Maluch" data-car-type="126">Fiat 126 Maluch</option>
-          <option value="Fiat 126 Cabriolet" data-car-type="126">Fiat 126 Cabriolet</option>
+          <!-- ライセンス生産版 -->
+          <option value="Zastava 126 (126 PGL)" data-car-type="126">Zastava 126 (126 PGL)</option>
           <option value="Steyr-Puch 126" data-car-type="126">Steyr-Puch 126</option>
-          <option value="Nikki 126" data-car-type="126">Nikki 126</option>
+          <option value="FSM Niki" data-car-type="126">FSM Niki</option>
+          <!-- 特別仕様・地域限定 -->
+          <option value="Fiat 126 Bambino" data-car-type="126">Fiat 126 Bambino</option>
+          <option value="Fiat 126 Happy End" data-car-type="126">Fiat 126 Happy End</option>
+          <!-- パフォーマンス・コーチビルド -->
+          <option value="Giannini 126 GP" data-car-type="126">Giannini 126 GP</option>
+          <option value="Fiat 126 Cabriolet" data-car-type="126">Fiat 126 Cabriolet</option>
+          <option value="Fiat 126 Bis Cabriolet de Plage" data-car-type="126">Fiat 126 Bis Cabriolet de Plage</option>
+          <option value="Savio Jungla" data-car-type="126">Savio Jungla</option>
+          <option value="Malubats Cabriolet" data-car-type="126">Malubats Cabriolet</option>
+          <option value="Moretti Minimaxi" data-car-type="126">Moretti Minimaxi</option>
           <!-- 共通 -->
           <option value="その他">その他</option>
         </select>
@@ -661,9 +674,9 @@
         if(el) el.onchange = (e) => { document.getElementById(id + 'Wrapper').style.display = (e.target.value === 'その他') ? 'block' : 'none'; };
       });
 
-      // 車両タイプ切り替え時にModelSelectAの選択肢をフィルタ
+      // 車両タイプに応じてModelSelectAの選択肢をフィルタ
       function updateModelOptions() {
-        const carType = document.querySelector('input[name="CarType"]:checked').value;
+        const carType = document.getElementById('CarType').value;
         const modelSelect = document.getElementById('ModelSelectA');
         const allOptions = modelSelect.querySelectorAll('option');
 
@@ -683,9 +696,13 @@
         }
       }
 
-      document.querySelectorAll('input[name="CarType"]').forEach(radio => {
-        radio.addEventListener('change', updateModelOptions);
-      });
+      // URLパラメータから車両タイプを取得して設定
+      const urlParams = new URLSearchParams(window.location.search);
+      const typeParam = urlParams.get('type');
+      if (typeParam === '126' || typeParam === '500') {
+        document.getElementById('CarType').value = typeParam;
+        document.getElementById('CarTypeDisplay').textContent = `FIAT ${typeParam}`;
+      }
 
       // 初期表示時にもフィルタを適用
       updateModelOptions();

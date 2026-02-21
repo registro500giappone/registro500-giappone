@@ -121,9 +121,11 @@
           <ul class="rg-dropdown-menu">
             <li><h6 class="rg-dropdown-header">車両管理</h6></li>
             <li><a class="rg-dropdown-item is-bold" href="#" id="editLink">✏️ この車両を編集</a></li>
-            <li><a class="rg-dropdown-item" href="edit.html?mode=new">➕ 2台目を登録する</a></li>
+            <li><a class="rg-dropdown-item" href="edit.html?mode=new" id="newCarLink">➕ 2台目を登録する</a></li>
             <li><hr class="rg-dropdown-divider"></li>
-            <li><a class="rg-dropdown-item is-muted" href="edit.html">🏠 管理車両一覧へ</a></li>
+            <li><a class="rg-dropdown-item is-muted" href="edit.html" id="carListLink">🏠 管理車両一覧へ</a></li>
+            <li><hr class="rg-dropdown-divider"></li>
+            <li><a class="rg-dropdown-item" href="#" id="deleteLink" style="color:#dc2626;" onclick="confirmDelete(); return false;">🗑️ この車両を削除</a></li>
           </ul>
         </div>
      </div>
@@ -136,8 +138,11 @@
         <div>
           <section class="rg-card">
             <div class="rg-photo-square" id="photoMainContainer"><img id="photoMain" src="" data-rg-zoomable onerror="this.src=NO_IMAGE_URL"></div>
-            <div style="margin-top:1rem; font-size:1.4rem; font-weight:800;">
-                <span id="year" data-field="year"></span> 
+            <div style="margin-top:0.8rem; font-size:0.95rem; color:#6b7280; font-weight:600;">
+                <span id="carType" data-field="car_type"></span>
+            </div>
+            <div style="margin-top:0.3rem; font-size:1.4rem; font-weight:800;">
+                <span id="year" data-field="year"></span>
                 <span id="modelMain" data-field="model_select_a,model_text_a,model_display_c"></span>
             </div>
             <div class="rg-owner-row">
@@ -216,6 +221,8 @@
 
     function renderDetail(car) {
       document.getElementById('loading').style.display = 'none'; document.getElementById('content').style.display = 'block';
+      const carTypeDisplay = car.car_type === '126' ? 'FIAT 126' : 'FIAT 500';
+      document.getElementById('carType').textContent = carTypeDisplay;
       document.getElementById('year').textContent = car.year ? car.year + '年' : '';
       document.getElementById('modelMain').textContent = (car.model_display_c || '').replace(/\(\d{4}\)/, '');
       document.getElementById('handleName').textContent = car.handle_name;
@@ -335,8 +342,11 @@
       if(!currentCar) return;
       const isOwner = currentUser && currentUser.email.toLowerCase() === (currentCar.owner_email || '').toLowerCase();
       if(isOwner) {
+        const carType = currentCar.car_type || '500';
         document.getElementById('ownerMenuArea').style.display = 'block';
-        document.getElementById('editLink').href = `edit.html?doc=${currentCar.document_id}`;
+        document.getElementById('editLink').href = `edit.html?doc=${currentCar.document_id}&type=${carType}`;
+        document.getElementById('newCarLink').href = `edit.html?mode=new&type=${carType}`;
+        document.getElementById('carListLink').href = `edit.html?type=${carType}`;
       } else {
         if(currentCar.accept_inquiry !== false) document.getElementById('contactArea').style.display = 'block';
       }
@@ -429,6 +439,37 @@
     }
     document.addEventListener('click', function(e) { if (!e.target.closest('.rg-dropdown')) toggleOwnerMenu(true); });
     document.addEventListener('keydown', function(e) { if (e.key === 'Escape') toggleOwnerMenu(true); });
+
+    // 車両削除機能
+    window.confirmDelete = function() {
+      if (!currentCar) return;
+      const carName = currentCar.model_display_c || '車両';
+      const confirmed = confirm(`本当にこの車両（${carName}）を削除しますか？\n\nこの操作は取り消せません。`);
+      if (confirmed) {
+        deleteCurrentCar();
+      }
+    };
+
+    async function deleteCurrentCar() {
+      if (!currentCar || !currentUser) return;
+      try {
+        const { error } = await supabaseClient
+          .from('cars')
+          .delete()
+          .eq('document_id', currentCar.document_id)
+          .eq('owner_email', currentUser.email); // 安全のため、オーナーメールも確認
+
+        if (error) {
+          alert('削除に失敗しました: ' + error.message);
+        } else {
+          alert('車両を削除しました。');
+          const carType = currentCar.car_type || '500';
+          window.location.href = `edit.html?type=${carType}`;
+        }
+      } catch (e) {
+        alert('削除処理でエラーが発生しました: ' + e.message);
+      }
+    }
 
     fetchDetail();
   </script>
