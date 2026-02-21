@@ -1456,7 +1456,7 @@ async function loadShopUpdateTimes() {
         const results = [];
 
         for (const shop of shops) {
-            const { data, error } = await supabase
+            const { data, error } = await window.supabaseClient
                 .from('parts')
                 .select('updated_at')
                 .eq('shop_name', shop)
