@@ -157,7 +157,7 @@
             <dt data-field="body_color">ボディカラー</dt><dd id="val_BodyColor"></dd><dt data-field="length_cm">全長(cm)</dt><dd id="val_Length_cm"></dd><dt data-field="capacity">乗車定員</dt><dd id="val_Capacity"></dd><dt data-field="steering">ハンドル</dt><dd id="val_Steering"></dd>
           </dl></section>
           <section class="rg-card"><h2 class="rg-section-title">エンジン関係</h2><dl class="rg-spec-grid js-auto-hide">
-            <dt data-field="engine_cc">排気量(cc)</dt><dd id="val_EngineCC"></dd><dt data-field="engine_type_select,engine_type_text">エンジン形式</dt><dd id="val_Engine_Display"></dd><dt data-field="ignition_type">点火形式</dt><dd id="val_IgnitionType"></dd><dt data-field="ignition_sub_type">点火製品名</dt><dd id="val_IgnitionSubType"></dd><dt data-field="distribution_type,plug_name">配電/プラグ</dt><dd id="val_DistPlug"></dd><dt data-field="coil_name">コイル</dt><dd id="val_CoilName"></dd><dt data-field="fuel_injection">供給装置</dt><dd id="val_FuelInjection"></dd><dt data-field="carburetor_name">キャブ</dt><dd id="val_CarburetorName"></dd><dt data-field="fuel_pump">燃ポン</dt><dd id="val_FuelPump"></dd><dt data-field="electric_pump_name">電ポン名</dt><dd id="val_ElectricPumpName"></dd><dt data-field="generator">発電機</dt><dd id="val_Generator"></dd><dt data-field="oil_cooler">オイルクーラー</dt><dd id="val_OilCooler"></dd>
+            <dt data-field="engine_cc">排気量(cc)</dt><dd id="val_EngineCC"></dd><dt data-field="engine_type_select,engine_type_text">エンジン形式</dt><dd id="val_Engine_Display"></dd><dt data-field="cooling_type">冷却方式</dt><dd id="val_CoolingType"></dd><dt data-field="ignition_type">点火形式</dt><dd id="val_IgnitionType"></dd><dt data-field="ignition_sub_type">点火製品名</dt><dd id="val_IgnitionSubType"></dd><dt data-field="distribution_type,plug_name">配電/プラグ</dt><dd id="val_DistPlug"></dd><dt data-field="coil_name">コイル</dt><dd id="val_CoilName"></dd><dt data-field="fuel_injection">供給装置</dt><dd id="val_FuelInjection"></dd><dt data-field="carburetor_name">キャブ</dt><dd id="val_CarburetorName"></dd><dt data-field="fuel_pump">燃ポン</dt><dd id="val_FuelPump"></dd><dt data-field="electric_pump_name">電ポン名</dt><dd id="val_ElectricPumpName"></dd><dt data-field="generator">発電機</dt><dd id="val_Generator"></dd><dt data-field="oil_cooler">オイルクーラー</dt><dd id="val_OilCooler"></dd>
           </dl></section>
           <section class="rg-card"><h2 class="rg-section-title">駆動系・足回り</h2><dl class="rg-spec-grid js-auto-hide">
             <dt data-field="transmission">ミッション</dt><dd id="val_Transmission"></dd><dt data-field="synchro">シンクロ</dt><dd id="val_Synchro"></dd><dt data-field="joint">ジョイント</dt><dd id="val_Joint"></dd><dt data-field="wheel">ホイール</dt><dd id="val_Wheel"></dd><dt data-field="rim_diameter_in">リム径</dt><dd id="val_RimDiameter_in"></dd><dt data-field="rim_width_in">リム幅</dt><dd id="val_RimWidth_in"></dd><dt data-field="tire_type">タイヤ形式</dt><dd id="val_TireType"></dd><dt data-field="tire_size">タイヤサイズ</dt><dd id="val_TireSize"></dd><dt data-field="tire_brand_name">メーカー</dt><dd id="val_TireBrandName"></dd>
@@ -209,8 +209,10 @@
     }
 
     function updateOGP(car) {
-      const title = (car.handle_name || '') + 'さんの' + (car.model_display_c || 'FIAT 500') + ' - Registro500';
-      const desc = (car.handle_name || '') + 'さんの' + (car.model_display_c || 'FIAT 500') + '。車両スペック・写真を公開中。';
+      const siteName = car.car_type === '126' ? 'Registro126' : 'Registro500';
+      const carLabel = car.car_type === '126' ? 'FIAT 126' : 'FIAT 500';
+      const title = (car.handle_name || '') + 'さんの' + (car.model_display_c || carLabel) + ' - ' + siteName;
+      const desc = (car.handle_name || '') + 'さんの' + (car.model_display_c || carLabel) + '。車両スペック・写真を公開中。';
       document.title = title;
       const setMeta = (attr, key, val) => { const el = document.querySelector(`meta[${attr}="${key}"]`); if (el) el.setAttribute('content', val); };
       setMeta('property', 'og:title', title);
@@ -229,9 +231,17 @@
       document.getElementById('prefecture').textContent = car.prefecture;
       document.getElementById('photoMain').src = car.photo_main || NO_IMAGE_URL;
 
+      // 126車の場合: 戻るリンクとロゴを切り替え
+      if (car.car_type === '126') {
+        const backLink = document.querySelector('.rg-back-link a');
+        if (backLink) backLink.href = '126/index.html';
+        const logoImg = document.querySelector('.rg-header-logo img');
+        if (logoImg) { logoImg.src = 'logo_horizontal126.png'; logoImg.alt = 'Registro126'; }
+      }
+
       const map = {
         'val_BodyColor': car.body_color, 'val_Length_cm': car.length_cm, 'val_Capacity': car.capacity, 'val_Steering': car.steering,
-        'val_EngineCC': car.engine_cc, 'val_Engine_Display': car.engine_display, 'val_IgnitionType': car.ignition_type, 'val_IgnitionSubType': car.ignition_sub_type,
+        'val_EngineCC': car.engine_cc, 'val_Engine_Display': car.engine_display, 'val_CoolingType': car.cooling_type, 'val_IgnitionType': car.ignition_type, 'val_IgnitionSubType': car.ignition_sub_type,
         'val_CoilName': car.coil_name, 'val_FuelInjection': car.fuel_injection, 'val_CarburetorName': car.carburetor_name, 'val_FuelPump': car.fuel_pump,
         'val_ElectricPumpName': car.electric_pump_name, 'val_Generator': car.generator, 'val_OilCooler': car.oil_cooler, 'val_Transmission': car.transmission,
         'val_Synchro': car.synchro, 'val_Joint': car.joint, 'val_Wheel': car.wheel, 'val_RimDiameter_in': car.rim_diameter_in, 'val_RimWidth_in': car.rim_width_in,
