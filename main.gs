@@ -427,24 +427,24 @@ function sendDailyDigest() {
   }
 
   // 3. メール本文作成
-  const subject = `【Registro500】新着情報のお知らせ（車両・イベント）`;
-  let body = `Registro500 Giappone オーナーの皆様\n\nおはようございます。\n新たに登録された車両・イベントのお知らせです。\n`;
+  const subject = `【Registro500/126 Giappone】新着情報のお知らせ（車両・イベント）`;
+  let body = `Registro500 / Registro126 Giappone オーナーの皆様\n\nおはようございます。\n新たに登録された車両・イベントのお知らせです。\n`;
 
   if (newEvents.length > 0) {
     body += `\n■ 📅 新しいイベント (${newEvents.length}件)\n`;
     newEvents.forEach(e => {
-      body += `・${e.Date}開催: ${e.Name} (by ${e.Owner}様)\n　場所: ${e.Loc}\n　詳細: https://registro500-giappone.vercel.app/event.html\n`;
+      body += `・${e.Date}開催: ${e.Name} (by ${e.Owner}様)\n　場所: ${e.Loc}\n　詳細: https://www.registro500.com/event.html\n`;
     });
   }
 
   if (newCars.length > 0) {
     body += `\n■ 🚗 新しい仲間 (${newCars.length}台)\n`;
     newCars.forEach(c => {
-      body += `・${c.Model} (${c.Name}様)\n　https://registro500-giappone.vercel.app/detail.html?doc=${c.ID}\n`;
+      body += `・${c.Model} (${c.Name}様)\n　https://www.registro500.com/detail.html?doc=${c.ID}\n`;
     });
   }
 
-  body += `\n---------------------------------------------------------\nRegistro500 Giappone\nhttps://registro500-giappone.vercel.app/\n※このメールは新着があった日の午前6時に配信されます。`;
+  body += `\n---------------------------------------------------------\nRegistro500 / Registro126 Giappone\nhttps://www.registro500.com/\n※このメールは新着があった日の午前6時に配信されます。`;
 
   // 4. 一斉送信
   const recipients = getAllExistingOwnerEmails_();
