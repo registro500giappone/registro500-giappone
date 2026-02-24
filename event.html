@@ -370,8 +370,7 @@
   <a id="evBackLink" href="index.html" class="back-link">← ガレージに戻る</a>
   <div class="header">
     <h1>Eventi</h1>
-    <!-- 126公開時: "FIAT 500 & 126" に変更 -->
-    <p id="evSubtitle">FIAT 500 イベント・ミーティング情報</p>
+    <p id="evSubtitle">FIAT 500 & 126 イベント・ミーティング情報</p>
   </div>
 
   <div class="guide-box">
@@ -441,6 +440,15 @@
       <div class="form-group">
         <label class="form-label">投稿するオーナー <span style="color:red">*</span></label>
         <select id="ownerCarSelect" class="form-select" required><option value="">読み込み中...</option></select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">対象車種</label>
+        <select id="targetCarTypeSelect" class="form-select">
+          <option value="both">500 & 126（両方）</option>
+          <option value="500">500 のみ</option>
+          <option value="126">126 のみ</option>
+        </select>
       </div>
 
       <div class="form-group">
@@ -546,12 +554,9 @@
   };
 
   window.addEventListener('DOMContentLoaded', () => {
-    // 126公開時: urlType === '126' のとき表記を更新
     const urlType = new URLSearchParams(window.location.search).get('type');
     if (urlType === '126') {
-      document.getElementById('evSubtitle').textContent = 'FIAT 500 & 126 イベント・ミーティング情報';
       document.getElementById('evBackLink').href = '126/index.html';
-      document.title = 'イベント情報 | Registro500 & 126 Giappone';
     }
     initFromCache();
     fetchEvents();
@@ -812,6 +817,7 @@ window.openEdit = async (eventId) => {
     form.Fee.value = ev.Fee;
     form.URL.value = ev.URL;
     form.Description.value = ev.Description;
+    document.getElementById('targetCarTypeSelect').value = ev.TargetCarType || 'both';
     document.getElementById('modalTitle').innerText = "イベント編集";
     document.getElementById('postModal').style.display = 'flex';
   };
@@ -908,7 +914,7 @@ window.submitEvent = async () => {
         fee: form.Fee.value,
         url: form.URL.value,
         description: form.Description.value,
-        target_car_type: 'both'
+        target_car_type: document.getElementById('targetCarTypeSelect').value || 'both'
       };
 
       const { error } = await supabaseClient.from('events').upsert(eventData);

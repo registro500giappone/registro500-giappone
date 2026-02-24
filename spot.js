@@ -417,10 +417,18 @@ function loadSpots() {
 // =================================================
 function applySortAndFilter() {
   var category = document.getElementById('filterCategory').value;
+  var carType = document.getElementById('filterCarType').value;
   var viewportOnly = document.getElementById('filterViewport').checked;
 
-  // カテゴリフィルタ
+  // 車種フィルタ
   var spots = allSpots;
+  if (carType) {
+    spots = spots.filter(function(s) {
+      return s.car_type === carType || s.car_type === 'both' || !s.car_type;
+    });
+  }
+
+  // カテゴリフィルタ
   if (category) {
     spots = spots.filter(function(s) { return s.category === category; });
   }
@@ -451,10 +459,15 @@ function applySortAndFilter() {
   // ページネーション付きリスト描画
   renderSpotListPaginated(spots);
 
-  // マーカー描画（カテゴリフィルタ適用済みの全スポット、ビューポートフィルタは無関係）
+  // マーカー描画（カテゴリ・車種フィルタ適用済み、ビューポートフィルタは無関係）
   var markerSpots = allSpots;
+  if (carType) {
+    markerSpots = markerSpots.filter(function(s) {
+      return s.car_type === carType || s.car_type === 'both' || !s.car_type;
+    });
+  }
   if (category) {
-    markerSpots = allSpots.filter(function(s) { return s.category === category; });
+    markerSpots = markerSpots.filter(function(s) { return s.category === category; });
   }
   renderSpotMarkers(markerSpots);
 }
@@ -515,10 +528,15 @@ function renderSpotMarkers(spots) {
   var newMarkers = [];
   spots.forEach(function(s) {
     if (!s.latitude || !s.longitude) return;
+    var emoji = CATEGORY_ICONS[s.category] || '📍';
+    var bg = s.car_type === '500' ? '#3B82F6'
+           : s.car_type === '126' ? '#D4541A'
+           : '#6B7280';
     var icon = L.divIcon({
       className: 'spot-marker-icon',
-      html: CATEGORY_ICONS[s.category] || '📍',
-      iconSize: [30, 30]
+      html: '<div style="background:' + bg + ';border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 4px rgba(0,0,0,0.35)">' + emoji + '</div>',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
     });
     var marker = L.marker([s.latitude, s.longitude], { icon: icon })
       .bindPopup('<b>' + escapeHtml(s.name) + '</b><br>'
@@ -1066,10 +1084,13 @@ function submitNewSpot() {
   btn.disabled = true;
   btn.textContent = '登録中...';
 
+  var carType = document.getElementById('inputCarType').value || 'both';
+
   apiPost('createSpot', {
     name: name, category: category,
     latitude: parseFloat(lat), longitude: parseFloat(lng),
-    address: address || null
+    address: address || null,
+    car_type: carType
   }).then(function(res) {
     if (!res.success) throw new Error(res.error);
     var spotId = res.data.spot_id;
@@ -1100,6 +1121,7 @@ function submitNewSpot() {
 
 function resetForm() {
   document.getElementById('inputName').value = '';
+  document.getElementById('inputCarType').value = 'both';
   document.getElementById('inputCategory').value = '';
   document.getElementById('inputLat').value = '';
   document.getElementById('inputLng').value = '';
