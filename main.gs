@@ -888,14 +888,13 @@ function sendNewsletterEmail() {
     const emails = getOwnerEmails();
     if (emails.length === 0) return { success: false, count: 0, newsTitle: news.title, error: 'オーナーのメールアドレスがありません' };
     const subject = `【Registro500 Giappone】${news.title}`;
-    const body = `Registro500 Giappone ニュースレター\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📅 日付: ${news.date}\n📰 タイトル: ${news.title}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${news.content}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nこのメールはRegistro500 Giappone登録オーナーに自動送信されています。\n詳細はこちら: https://registro500-giappone.vercel.app/news.html`;
-    emails.forEach(email => {
-      try {
-        MailApp.sendEmail(email, subject, body);
-      } catch (e) {
-        console.error('Failed to send to ' + email + ':', e);
-      }
-    });
+    const body = `Registro500 Giappone ニュースレター\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📅 日付: ${news.date}\n📰 タイトル: ${news.title}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${news.content}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nこのメールはRegistro500 Giappone登録オーナーに自動送信されています。\n詳細はこちら: https://www.registro500.com/news.html`;
+    const chunkSize = 90;
+    for (let i = 0; i < emails.length; i += chunkSize) {
+      const chunk = emails.slice(i, i + chunkSize);
+      sendBroadcastViaBrevo(chunk, subject, body);
+      Utilities.sleep(1000);
+    }
     return { success: true, count: emails.length, newsTitle: news.title, timestamp: new Date().toLocaleString('ja-JP') };
   } catch (e) {
     return { success: false, count: 0, newsTitle: '', error: e.toString() };
@@ -909,14 +908,13 @@ function sendToMissingRecipients() {
     const missingEmails = getMissingOwnerEmails();
     if (missingEmails.length === 0) return { success: false, count: 0, newsTitle: news.title, error: '未送信者がいません' };
     const subject = `【Registro500 Giappone】${news.title}`;
-    const body = `Registro500 Giappone ニュースレター\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📅 日付: ${news.date}\n📰 タイトル: ${news.title}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${news.content}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nこのメールはRegistro500 Giappone登録オーナーに自動送信されています。\n詳細はこちら: https://registro500-giappone.vercel.app/news.html`;
-    missingEmails.forEach(email => {
-      try {
-        MailApp.sendEmail(email, subject, body);
-      } catch (e) {
-        console.error('Failed to send to ' + email + ':', e);
-      }
-    });
+    const body = `Registro500 Giappone ニュースレター\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📅 日付: ${news.date}\n📰 タイトル: ${news.title}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${news.content}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nこのメールはRegistro500 Giappone登録オーナーに自動送信されています。\n詳細はこちら: https://www.registro500.com/news.html`;
+    const chunkSize = 90;
+    for (let i = 0; i < missingEmails.length; i += chunkSize) {
+      const chunk = missingEmails.slice(i, i + chunkSize);
+      sendBroadcastViaBrevo(chunk, subject, body);
+      Utilities.sleep(1000);
+    }
     return { success: true, count: missingEmails.length, newsTitle: news.title, timestamp: new Date().toLocaleString('ja-JP') };
   } catch (e) {
     return { success: false, count: 0, newsTitle: '', error: e.toString() };
