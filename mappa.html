@@ -59,6 +59,17 @@
         .active-pref { fill: #2856a8 !important; stroke: #1e4285 !important; }
         .selected-pref { fill: #e11d48 !important; stroke: #9f1239 !important; }
 
+        /* 126カラー */
+        body.type-126 .active-pref { fill: #D4541A !important; stroke: #B8421A !important; }
+        body.type-126 .pref-label { stroke: #D4541A; }
+        body.type-126 #info-panel { border-left-color: #D4541A; }
+
+        /* 車種切り替えボタン */
+        .type-toggle { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
+        .toggle-btn { padding: 4px 14px; border-radius: 20px; border: 1px solid #ddd; text-decoration: none; font-size: 0.8rem; color: #666; }
+        .toggle-btn.active-500 { background: #2856a8; color: #fff; border-color: #2856a8; }
+        .toggle-btn.active-126 { background: #D4541A; color: #fff; border-color: #D4541A; }
+
         /* 数字を大きく、白抜きにして視認性を向上 */
         .pref-label {
             fill: #fff; 
@@ -126,6 +137,10 @@
 <header>
     <h1 id="pageTitle">REGISTRO MAPPA</h1>
     <a id="backLink" href="index.html" class="back-link">← ガレージに戻る</a>
+    <div class="type-toggle">
+        <a href="mappa.html" class="toggle-btn" id="btn500">Fiat 500</a>
+        <a href="mappa.html?type=126" class="toggle-btn" id="btn126">Fiat 126</a>
+    </div>
 </header>
 
 <div class="container">
@@ -173,9 +188,13 @@
     // URLパラメータで500/126を切り替え
     const urlCarType = new URLSearchParams(window.location.search).get('type') || '500';
     if (urlCarType === '126') {
+      document.body.classList.add('type-126');
       document.getElementById('pageTitle').textContent = 'REGISTRO126 MAPPA';
       document.getElementById('backLink').href = '126/index.html';
       document.title = 'Registro126 - Mappa';
+      document.getElementById('btn126').classList.add('active-126');
+    } else {
+      document.getElementById('btn500').classList.add('active-500');
     }
 
     async function init() {
@@ -308,7 +327,7 @@
             const item = document.createElement('div');
             item.className = 'garage-item';
             item.innerHTML = `<img src="${car.PhotoMain || 'https://placehold.co/100x100?text=No+Img'}" class="garage-icon-lg" loading="lazy"><div class="garage-name">${esc(car.HandleName || "No Name")}</div>`;
-            item.onclick = () => window.location.href = `detail.html?doc=${car.DocumentID}`;
+            item.onclick = () => window.location.href = `${urlCarType === '126' ? '126/' : ''}detail.html?doc=${car.DocumentID}`;
             list.appendChild(item);
         });
         setTimeout(() => { area.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
