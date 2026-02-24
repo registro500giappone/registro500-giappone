@@ -727,22 +727,26 @@ function onOpen() {
 function menuSendNewsletter() {
   const result = sendNewsletterEmail();
   if (result.success) {
-    SpreadsheetApp.getUi().alert(`✅ メール送信完了！\n\n${result.count}人のオーナーに送信しました。`);
+    Logger.log(`✅ メール送信完了！ ${result.count}人のオーナーに送信しました。`);
     logDelivery('email', result.count, result.newsTitle, '成功');
+    try { SpreadsheetApp.getUi().alert(`✅ メール送信完了！\n\n${result.count}人のオーナーに送信しました。`); } catch(e) {}
   } else {
-    SpreadsheetApp.getUi().alert(`❌ エラー: ${result.error}`);
+    Logger.log(`❌ エラー: ${result.error}`);
     logDelivery('email', 0, '（エラー）', result.error);
+    try { SpreadsheetApp.getUi().alert(`❌ エラー: ${result.error}`); } catch(e) {}
   }
 }
 
 function menuSendToMissing() {
   const result = sendToMissingRecipients();
   if (result.success) {
-    SpreadsheetApp.getUi().alert(`✅ 未送信者へのメール送信完了！\n\n${result.count}人のオーナーに送信しました。`);
+    Logger.log(`✅ 未送信者へのメール送信完了！ ${result.count}人のオーナーに送信しました。`);
     logDelivery('email（補送）', result.count, result.newsTitle, '成功');
+    try { SpreadsheetApp.getUi().alert(`✅ 未送信者へのメール送信完了！\n\n${result.count}人のオーナーに送信しました。`); } catch(e) {}
   } else {
-    SpreadsheetApp.getUi().alert(`❌ エラー: ${result.error}`);
+    Logger.log(`❌ エラー: ${result.error}`);
     logDelivery('email（補送）', 0, '（エラー）', result.error);
+    try { SpreadsheetApp.getUi().alert(`❌ エラー: ${result.error}`); } catch(e) {}
   }
 }
 
