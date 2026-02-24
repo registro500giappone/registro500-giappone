@@ -105,7 +105,7 @@ async function fetchNews() {
       try {
         // target_car_type が 'both'・該当car_type・null のものを表示
         // date が今日以前かつ NULL でないもののみ（先付け・空欄は未公開扱い）
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date(Date.now() + 9*60*60*1000).toISOString().split('T')[0]; // JST基準
         const { data, error } = await supabaseClient
           .from('news')
           .select('Date:date, Title:title, Content:content')
