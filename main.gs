@@ -48,7 +48,10 @@ function doGet(e) {
     else if (mode === 'edit_init') resultData = docId ? getCarForEdit(docId) : {};
     else if (mode === 'events') resultData = getEventsData();
     else if (mode === 'mycars') resultData = getMyCarsList(params.idToken);
-    // spot機能はSupabase直接アクセスのため、GAS経由のルーティングは削除
+    else if (mode === 'spots') resultData = getSpots(params);
+    else if (mode === 'spot_detail') resultData = getSpotDetail(params.spot_id);
+    else if (mode === 'my_favorites') resultData = getMyFavorites(params.owner_document_id);
+    else if (mode === 'schedules') resultData = getSchedules(params);
     else throw new Error('Unknown mode');
     return createJsonOutput({ success: true, data: resultData });
   } catch (err) { return createJsonOutput({ success: false, error: err.toString() }); }
@@ -74,23 +77,14 @@ function doPost(e) {
   } catch (err) { return createJsonOutput({ success: false, error: err.message }); }
 }
 
-// 許可されたオリジン（本番環境のみ）
-const ALLOWED_ORIGIN = 'https://www.registro500.com';
-
 function createJsonOutput(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
-    .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    .setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function doOptions(e) {
   return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
-    .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    .setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 // =================================================
