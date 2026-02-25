@@ -478,10 +478,13 @@
 
       async function detectUserCars(email) {
         try {
+          const params = new URLSearchParams(window.location.search);
+          const carType = params.get('type') || '500';
           const { data: cars, error } = await supabaseClient
             .from('cars')
             .select('document_id, handle_name, model_display_c')
-            .eq('owner_email', email.toLowerCase());
+            .eq('owner_email', email.toLowerCase())
+            .eq('car_type', carType);
 
           pageLoading.style.display = 'none';
           if (!cars || cars.length === 0) { 
