@@ -3,7 +3,7 @@
 // ============================================================
 
 // GAS API URL (Backend)
-const API_URL = "https://script.google.com/macros/s/AKfycbyVjKG4uB8ZYI6cXHsWajO2egyysGJrFPUQYGs-8CZObeXEWWdpJ3xSJ_U2dmb_2WVZNg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzm0urePBqj-t06ZMQFzZu3yqyXEW40Zxr3nMVBBc4OWYnX5LzlUeR30oVYOsa9LMD8aw/exec";
 
 // 画像設定
 // 読み込みエラー時や画像なしの場合のプレースホルダー (Placehold.co)
