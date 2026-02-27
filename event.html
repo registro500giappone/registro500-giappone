@@ -29,7 +29,6 @@
   </script>
 
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 
   <style>
@@ -560,7 +559,8 @@
     }
     initFromCache();
     fetchEvents();
-    firebase.auth().onAuthStateChanged(user => {
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      const user = session?.user ?? null;
       currentUser = user;
       if(user) checkMyCar(user);
     });
@@ -1015,7 +1015,7 @@ window.submitEvent = async () => {
           event_id: eventId,
           image_url: imageUrl,
           uploaded_by: handleName,
-          user_id: currentUser.uid
+          user_id: currentUser.id
         }]);
 
         if (error) throw error;

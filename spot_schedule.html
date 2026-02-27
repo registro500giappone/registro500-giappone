@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-27SHHC4JYH');
+  </script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>出没予報 - Registro500 Giappone</title>
+  <meta name="description" content="FIAT 500オーナーの出没予報。いつ、どこで会えるかチェックしよう。">
+  <link rel="icon" href="logo_horizontal.png">
+
+  <link rel="stylesheet" href="spot.css">
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0"
+    integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
+  <script>
+    var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  </script>
+
+  <style>
+    .sched-container { max-width: 900px; margin: 0 auto; padding: 20px 16px; }
+
+    /* 週間カレンダー */
+    .week-nav { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 20px; }
+    .week-nav button { background: none; border: 1px solid var(--border-soft); border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: 0.85rem; }
+    .week-nav button:hover { background: var(--accent-soft); }
+    .week-label { font-weight: 700; font-size: 1rem; min-width: 200px; text-align: center; }
+
+    .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 24px; }
+    .day-cell {
+      background: var(--card-bg); border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg); padding: 10px 8px; min-height: 120px;
+      cursor: pointer; transition: border-color 0.2s;
+    }
+    .day-cell:hover { border-color: var(--accent-border); }
+    .day-cell.today { border-color: var(--accent); border-width: 2px; }
+    .day-header { font-size: 0.75rem; color: var(--text-sub); text-align: center; margin-bottom: 4px; }
+    .day-number { font-size: 1.1rem; font-weight: 700; text-align: center; margin-bottom: 6px; }
+    .day-number.today { color: var(--accent); }
+    .day-number.sun { color: #dc2626; }
+    .day-number.sat { color: #2563eb; }
+
+    .day-schedule {
+      background: var(--accent-soft); border-radius: 4px; padding: 3px 6px;
+      font-size: 0.7rem; margin-bottom: 3px; overflow: hidden;
+      white-space: nowrap; text-overflow: ellipsis;
+    }
+
+    /* 予定一覧 */
+    .sched-list-title { font-size: 1rem; font-weight: 700; margin: 0 0 12px; }
+
+    @media (max-width: 767px) {
+      .week-grid { grid-template-columns: repeat(7, 1fr); gap: 4px; }
+      .day-cell { min-height: 80px; padding: 6px 4px; }
+      .day-schedule { font-size: 0.65rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<header class="spot-header">
+  <a href="spot.html" class="back-link">← スポット</a>
+  <h1>出没予報</h1>
+  <span id="authStatus" style="font-size:0.78rem;color:var(--text-sub)"></span>
+  <button id="btnLogin" class="btn-secondary" onclick="schedDoLogin()" style="display:none;font-size:0.78rem">ログイン</button>
+  <button id="btnLogout" class="btn-secondary" onclick="schedDoLogout()" style="display:none;font-size:0.78rem">ログアウト</button>
+</header>
+
+<div class="sched-container">
+  <!-- 週ナビ -->
+  <div class="week-nav">
+    <button onclick="changeWeek(-1)">&lt; 前の週</button>
+    <div class="week-label" id="weekLabel"></div>
+    <button onclick="changeWeek(1)">次の週 &gt;</button>
+  </div>
+
+  <!-- 週間カレンダー -->
+  <div class="week-grid" id="weekGrid"></div>
+
+  <!-- 今後の予定一覧 -->
+  <h3 class="sched-list-title">今後の出没予定</h3>
+  <div id="scheduleList">
+    <div class="loading-spinner">読み込み中...</div>
+  </div>
+</div>
+
+<!-- 予定登録モーダル -->
+<div id="schedModal" class="spot-modal-overlay" onclick="if(event.target===this)closeSchedModal()">
+  <div class="spot-modal">
+    <button class="spot-modal-close" onclick="closeSchedModal()">&times;</button>
+    <h2>出没予定を登録</h2>
+    <div class="spot-form">
+      <label>日付</label>
+      <input type="date" id="schedDate">
+
+      <label>スポット *</label>
+      <select id="schedSpot">
+        <option value="">選択してください</option>
+      </select>
+
+      <label>時間帯</label>
+      <select id="schedTimeSlot">
+        <option value="">未定</option>
+        <option value="morning">朝 (6:00-11:00)</option>
+        <option value="afternoon">昼 (11:00-17:00)</option>
+        <option value="evening">夕方 (17:00-20:00)</option>
+        <option value="night">夜 (20:00-)</option>
+      </select>
+
+      <label>時間の補足</label>
+      <input type="text" id="schedTimeComment" placeholder="例: 10時頃到着予定" maxlength="50">
+
+      <label>予定滞在時間（分）</label>
+      <input type="number" id="schedDuration" placeholder="例: 120" min="0" max="1440">
+
+      <label>コメント</label>
+      <textarea id="schedComment" placeholder="例: 参加者募集中！" rows="2"></textarea>
+
+      <button class="btn-primary" onclick="submitSchedule()" id="btnSubmitSched">予定を登録</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =================================================
+// グローバル
+// =================================================
+var currentWeekStart = getMonday(new Date());
+var schedules = [];
+var currentUser = null;
+var myFavorites = [];
+
+var CATEGORY_ICONS = {
+  cafe: '☕', parking: '🅿️', photo: '📷',
+  workshop: '🔧', meeting: '🤝', drive: '🛣️', other: '📍'
+};
+var DAY_NAMES = ['月', '火', '水', '木', '金', '土', '日'];
+
+// =================================================
+// 初期化
+// =================================================
+document.addEventListener('DOMContentLoaded', function() {
+  initSchedAuth();
+  renderWeek();
+  loadSchedules();
+});
+
+function getMonday(d) {
+  var day = d.getDay();
+  var diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  var mon = new Date(d);
+  mon.setDate(diff);
+  mon.setHours(0,0,0,0);
+  return mon;
+}
+
+function formatDate(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+// =================================================
+// 認証
+// =================================================
+function initSchedAuth() {
+  if (!supabaseClient) return;
+  supabaseClient.auth.onAuthStateChange(function(event, session) {
+    var user = session ? session.user : null;
+    if (user) {
+      currentUser = { uid: user.id, email: user.email, documentId: null };
+      document.getElementById('authStatus').textContent = user.email;
+      document.getElementById('btnLogin').style.display = 'none';
+      document.getElementById('btnLogout').style.display = 'inline-block';
+      lookupDocId(user.email);
+    } else {
+      currentUser = null;
+      document.getElementById('authStatus').textContent = '';
+      document.getElementById('btnLogin').style.display = 'inline-block';
+      document.getElementById('btnLogout').style.display = 'none';
+    }
+  });
+}
+
+function lookupDocId(email) {
+  fetch(API_URL + '?mode=index').then(function(r){return r.json();}).then(function(res) {
+    if (!res.success) return;
+    var car = res.data.find(function(c){return c.OwnerEmail === email;});
+    if (car && car.DocumentID) {
+      currentUser.documentId = car.DocumentID;
+      loadMyFavoritesForSelect();
+    }
+  }).catch(function(){});
+}
+
+function loadMyFavoritesForSelect() {
+  if (!currentUser || !currentUser.documentId) return;
+  fetch(API_URL + '?mode=my_favorites&owner_document_id=' + encodeURIComponent(currentUser.documentId))
+    .then(function(r){return r.json();}).then(function(res) {
+      if (!res.success) return;
+      myFavorites = res.data || [];
+      var sel = document.getElementById('schedSpot');
+      sel.innerHTML = '<option value="">選択してください</option>';
+      myFavorites.forEach(function(f) {
+        var s = f.spot || {};
+        var opt = document.createElement('option');
+        opt.value = f.spot_id;
+        opt.textContent = (CATEGORY_ICONS[s.category]||'📍') + ' ' + (s.name || f.spot_id);
+        sel.appendChild(opt);
+      });
+    }).catch(function(){});
+}
+
+function schedDoLogin() {
+  supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+}
+function schedDoLogout() {
+  supabaseClient.auth.signOut();
+  currentUser = null; myFavorites = [];
+}
+
+// =================================================
+// 週間カレンダー
+// =================================================
+function changeWeek(delta) {
+  currentWeekStart.setDate(currentWeekStart.getDate() + delta * 7);
+  renderWeek();
+  loadSchedules();
+}
+
+function renderWeek() {
+  var end = new Date(currentWeekStart);
+  end.setDate(end.getDate() + 6);
+  document.getElementById('weekLabel').textContent =
+    (currentWeekStart.getMonth()+1) + '/' + currentWeekStart.getDate()
+    + ' 〜 ' + (end.getMonth()+1) + '/' + end.getDate();
+
+  var grid = document.getElementById('weekGrid');
+  var today = formatDate(new Date());
+  var html = '';
+
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(currentWeekStart);
+    d.setDate(d.getDate() + i);
+    var ds = formatDate(d);
+    var isToday = ds === today;
+    var dayClass = (i === 6) ? 'sun' : (i === 5 ? 'sat' : '');
+
+    html += '<div class="day-cell' + (isToday ? ' today' : '') + '" onclick="openScheduleModal(\'' + ds + '\')">'
+      + '<div class="day-header">' + DAY_NAMES[i] + '</div>'
+      + '<div class="day-number ' + dayClass + (isToday ? ' today' : '') + '">' + d.getDate() + '</div>'
+      + '<div id="day-' + ds + '"></div>'
+      + '</div>';
+  }
+  grid.innerHTML = html;
+}
+
+function fillCalendarSchedules() {
+  schedules.forEach(function(sc) {
+    var cell = document.getElementById('day-' + sc.visit_date);
+    if (!cell) return;
+    var icon = CATEGORY_ICONS[sc.spot_category] || '📍';
+    cell.innerHTML += '<div class="day-schedule">'
+      + icon + ' ' + escapeHtml(sc.spot_name || sc.spot_id)
+      + '</div>';
+  });
+}
+
+// =================================================
+// 予定読み込み
+// =================================================
+function loadSchedules() {
+  var dateFrom = formatDate(currentWeekStart);
+  var dateTo = formatDate(new Date(currentWeekStart.getTime() + 6*86400000));
+
+  fetch(API_URL + '?mode=schedules&date_from=' + dateFrom + '&date_to=' + dateTo)
+    .then(function(r){return r.json();}).then(function(res) {
+      if (!res.success) throw new Error(res.error);
+      schedules = res.data || [];
+
+      // スポット名を取得して結合
+      enrichSchedulesWithSpotNames(function() {
+        fillCalendarSchedules();
+        renderScheduleList();
+      });
+    }).catch(function(err) {
+      document.getElementById('scheduleList').innerHTML =
+        '<div class="empty-state"><div class="empty-state-text">読み込みエラー: ' + err.message + '</div></div>';
+    });
+}
+
+function enrichSchedulesWithSpotNames(callback) {
+  var ids = [];
+  schedules.forEach(function(sc) {
+    if (ids.indexOf(sc.spot_id) === -1) ids.push(sc.spot_id);
+  });
+  if (ids.length === 0) { callback(); return; }
+
+  fetch(API_URL + '?mode=spots').then(function(r){return r.json();}).then(function(res) {
+    if (!res.success) { callback(); return; }
+    var map = {};
+    (res.data||[]).forEach(function(s) { map[s.spot_id] = s; });
+    schedules.forEach(function(sc) {
+      var s = map[sc.spot_id];
+      if (s) { sc.spot_name = s.name; sc.spot_category = s.category; }
+    });
+    callback();
+  }).catch(function() { callback(); });
+}
+
+function renderScheduleList() {
+  var container = document.getElementById('scheduleList');
+  if (schedules.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div>'
+      + '<div class="empty-state-text">この週の出没予定はありません</div></div>';
+    return;
+  }
+  container.innerHTML = schedules.map(function(sc) {
+    var icon = CATEGORY_ICONS[sc.spot_category] || '📍';
+    var canDelete = currentUser && currentUser.documentId === sc.owner_document_id;
+    return '<div class="schedule-card">'
+      + '<div class="schedule-date">' + sc.visit_date + ' ' + (sc.visit_time_slot || '') + '</div>'
+      + '<div style="font-weight:600;margin:2px 0">' + icon + ' ' + escapeHtml(sc.spot_name || sc.spot_id) + '</div>'
+      + '<div class="schedule-meta">' + escapeHtml(sc.owner_document_id)
+      + (sc.visit_time_comment ? ' — ' + escapeHtml(sc.visit_time_comment) : '')
+      + (sc.comment ? '<br>' + escapeHtml(sc.comment) : '') + '</div>'
+      + (canDelete ? '<button class="btn-danger" style="margin-top:6px;font-size:0.72rem;padding:4px 10px" onclick="deleteSchedule(\'' + sc.schedule_id + '\')">削除</button>' : '')
+      + '</div>';
+  }).join('');
+}
+
+// =================================================
+// 予定登録
+// =================================================
+function openScheduleModal(dateStr) {
+  if (!currentUser || !currentUser.documentId) {
+    alert('予定を登録するにはログインが必要です');
+    return;
+  }
+  document.getElementById('schedDate').value = dateStr || formatDate(new Date());
+  document.getElementById('schedModal').classList.add('show');
+}
+function closeSchedModal() {
+  document.getElementById('schedModal').classList.remove('show');
+}
+
+function submitSchedule() {
+  var spotId = document.getElementById('schedSpot').value;
+  var date = document.getElementById('schedDate').value;
+  if (!spotId) { alert('スポットを選択してください'); return; }
+  if (!date) { alert('日付を選択してください'); return; }
+
+  var btn = document.getElementById('btnSubmitSched');
+  btn.disabled = true; btn.textContent = '登録中...';
+
+  var data = {
+    owner_document_id: currentUser.documentId,
+    spot_id: spotId,
+    visit_date: date,
+    visit_time_slot: document.getElementById('schedTimeSlot').value || null,
+    visit_time_comment: document.getElementById('schedTimeComment').value || null,
+    expected_duration_minutes: parseInt(document.getElementById('schedDuration').value) || null,
+    comment: document.getElementById('schedComment').value || null
+  };
+
+  fetch(API_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ action: 'createSchedule', data: data })
+  }).then(function(r){return r.json();}).then(function(res) {
+    if (!res.success) throw new Error(res.error);
+    alert('出没予定を登録しました！');
+    closeSchedModal();
+    loadSchedules();
+  }).catch(function(err) {
+    alert('エラー: ' + err.message);
+  }).finally(function() {
+    btn.disabled = false; btn.textContent = '予定を登録';
+  });
+}
+
+function deleteSchedule(scheduleId) {
+  if (!confirm('この予定を削除しますか？')) return;
+  fetch(API_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ action: 'deleteSchedule', data: {
+      schedule_id: scheduleId,
+      owner_document_id: currentUser.documentId
+    }})
+  }).then(function(r){return r.json();}).then(function(res) {
+    if (!res.success) throw new Error(res.error);
+    loadSchedules();
+  }).catch(function(err) { alert('エラー: ' + err.message); });
+}
+
+// =================================================
+// ユーティリティ
+// =================================================
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+
+</body>
+</html>
