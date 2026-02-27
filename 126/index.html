@@ -633,11 +633,6 @@ async function checkNewsBadge() {
         currentUser.uid = user.id;
         currentUser.email = user.email;
 
-        // RLS用: user_idヘッダー付きでSupabaseクライアント再作成
-        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-          global: { headers: { 'x-user-id': user.id } }
-        });
-        
         // メニュー表示更新
         if(loginBtn) loginBtn.style.display = 'none';
         if(logoutBtn) logoutBtn.style.display = 'block';
@@ -652,9 +647,6 @@ async function checkNewsBadge() {
         currentUser = { uid: null, docId: null };
         userRelations = {};
 
-        // ヘッダーなしのSupabaseクライアントに戻す
-        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
         // メニュー表示更新
         if(loginBtn) loginBtn.style.display = 'block';
         if(logoutBtn) logoutBtn.style.display = 'none';
