@@ -14,8 +14,6 @@
   <meta name="twitter:card" content="summary">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" integrity="sha384-HLJUgAQ2oo6rdMC4QW+Oz2qQfPOtu/lzncKG4sZiq8+2W9uOa3K0b3UGpckKqv7H" crossorigin="anonymous"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js" integrity="sha384-+/4lqMnmLqwbdHXshvGDmBTeWlNoPRdjXi4ZsiBj10EhQXaTBe3RF5JZktdSjug6" crossorigin="anonymous"></script>
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>  
@@ -191,8 +189,7 @@
       return '';
     }
 
-    if (firebase.apps.length === 0) firebase.initializeApp(FIREBASE_CONFIG);
-    firebase.auth().onAuthStateChanged(user => { currentUser = user; if(currentCar) updateOwnerUI(); });
+    supabaseClient.auth.onAuthStateChange((event, session) => { currentUser = session?.user ?? null; if(currentCar) updateOwnerUI(); });
 
     async function fetchDetail() {
       if (!docId) return;

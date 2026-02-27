@@ -301,10 +301,11 @@ function headerToggleSchedule() {
 // 認証
 // =================================================
 function initAuth() {
-  if (typeof firebase === 'undefined' || !firebase.auth) return;
-  firebase.auth().onAuthStateChanged(function(user) {
+  if (!supabaseClient) return;
+  supabaseClient.auth.onAuthStateChange(function(event, session) {
+    var user = session ? session.user : null;
     if (user) {
-      currentUser = { uid: user.uid, email: user.email, documentId: null, prefecture: null };
+      currentUser = { uid: user.id, email: user.email, documentId: null, prefecture: null };
       lookupDocumentId(user.email);
       document.getElementById('authStatus').textContent = user.email;
       document.getElementById('btnLogin').style.display = 'none';
@@ -1141,16 +1142,13 @@ function resetForm() {
 // ログイン/ログアウト
 // =================================================
 function doLogin() {
-  if (typeof firebase === 'undefined') return;
-  var provider = new firebase.auth.GoogleAuthProvider();
-  firebase.auth().signInWithPopup(provider).catch(function(err) {
-    alert('ログインエラー: ' + err.message);
-  });
+  if (!supabaseClient) return;
+  supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
 }
 
 function doLogout() {
-  if (typeof firebase === 'undefined') return;
-  firebase.auth().signOut();
+  if (!supabaseClient) return;
+  supabaseClient.auth.signOut();
   currentUser = null;
   myFavorites = [];
   renderMyFavorites();

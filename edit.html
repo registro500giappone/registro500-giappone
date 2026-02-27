@@ -14,7 +14,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js" integrity="sha384-r+ljwOAhwY4/kdyzMnuBg7MEVoWpTMp5EYUDntB/E9qzNwL9dAEcNrb2XaV+mJc2" crossorigin="anonymous"></script>
 
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" integrity="sha384-HLJUgAQ2oo6rdMC4QW+Oz2qQfPOtu/lzncKG4sZiq8+2W9uOa3K0b3UGpckKqv7H" crossorigin="anonymous"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js" integrity="sha384-+/4lqMnmLqwbdHXshvGDmBTeWlNoPRdjXi4ZsiBj10EhQXaTBe3RF5JZktdSjug6" crossorigin="anonymous"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js" integrity="sha384-oFrOL1TiREYNET0lsYF3LjQuyi2gL7vhjH1X8vFr+umcmzAdPELopeSgbcrv4uRm" crossorigin="anonymous"></script>
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
@@ -451,14 +450,17 @@
   <script>
     (function() {
       if (firebase.apps.length === 0) firebase.initializeApp(FIREBASE_CONFIG);
-      const auth = firebase.auth(), storage = firebase.storage();
+      const storage = firebase.storage();
       const overlay = document.getElementById('loginOverlay'), submitBtn = document.getElementById('submitButton'), carForm = document.getElementById('carForm'), pageLoading = document.getElementById('pageLoading'), formContent = document.getElementById('formContent'), carSelectionArea = document.getElementById('carSelectionArea'), myCarList = document.getElementById('myCarList'), fileInput = document.getElementById('globalFileInput');
-      
+
       let originalData = null; // ★比較用の元データを保持
       let activeTarget = null;
       let cropper = null;
+      let currentAuthUser = null; // Supabase Authユーザー
 
-      auth.onAuthStateChanged(async (user) => {
+      supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        const user = session?.user ?? null;
+        currentAuthUser = user;
         if (user) {
           overlay.classList.add('hidden');
           document.getElementById('userEmailDisplay').textContent = user.email;
@@ -611,7 +613,7 @@
         document.getElementById('cropDoneBtn').disabled = true;
         canvas.toBlob(async (blob) => {
           try {
-            const path = `images/${auth.currentUser.uid}/${Date.now()}_${activeTarget}.jpg`;
+            const path = `images/${currentAuthUser.id}/${Date.now()}_${activeTarget}.jpg`;
             const ref = storage.ref().child(path);
             await ref.put(blob);
             const url = await ref.getDownloadURL();
@@ -628,7 +630,7 @@
         }
         submitBtn.disabled = true; submitBtn.textContent = "保存中...";
         try {
-          const isNew = !raw.DocumentID; const userEmail = auth.currentUser.email.toLowerCase();
+          const isNew = !raw.DocumentID; const userEmail = currentAuthUser.email.toLowerCase();
 
           // ★差分検知ロジック
           let updatedFields = [];
@@ -756,8 +758,8 @@
       // 初期表示時にもフィルタを適用
       updateModelOptions();
 
-      document.getElementById('googleLoginBtn').onclick = () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-      document.getElementById('logoutBtn').onclick = () => auth.signOut().then(() => location.reload());
+      document.getElementById('googleLoginBtn').onclick = () => supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+      document.getElementById('logoutBtn').onclick = () => supabaseClient.auth.signOut().then(() => location.reload());
     })();
   </script>
 </body>
