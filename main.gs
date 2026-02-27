@@ -1246,3 +1246,79 @@ function getBetaTestOptInEmails_() {
     return [];
   }
 }
+
+// =====================================================
+// パーツ比較ツール アンケート送付（2026-02-27）
+// βテスト参加者スプレッドシートからメールアドレスを取得して送付
+// =====================================================
+function sendPartsSurveyToBetaTesters() {
+  const BETA_SPREADSHEET_ID = '1pTOchp4PecVxSr6t7mPSkQCke_P1gtHEzSIGQFjBvb4';
+
+  // メールアドレス取得
+  const ss = SpreadsheetApp.openById(BETA_SPREADSHEET_ID);
+  const sheet = ss.getSheets()[0];
+  const data = sheet.getDataRange().getValues();
+  Logger.log('ヘッダー: ' + JSON.stringify(data[0]));
+  Logger.log('総行数: ' + (data.length - 1));
+
+  const headers = data[0].map(h => String(h));
+  let emailIdx = -1;
+  headers.forEach((h, i) => {
+    if (h.includes('メールアドレス') || h.toLowerCase().includes('email')) emailIdx = i;
+  });
+  if (emailIdx === -1) {
+    Logger.log('メールアドレス列が見つかりません。ヘッダーを確認してください。');
+    return;
+  }
+
+  const emailSet = new Set();
+  for (let i = 1; i < data.length; i++) {
+    const email = String(data[i][emailIdx] || '').trim().toLowerCase();
+    if (email && email.includes('@')) emailSet.add(email);
+  }
+  const recipients = Array.from(emailSet);
+  Logger.log(`送付先 ${recipients.length}件:\n` + recipients.join('\n'));
+
+  // メール送付
+  const subject = '【Registro500】パーツ価格比較ツール アンケートご協力のお願い';
+  const body = `βテスト参加者の皆さま
+
+いつもRegistro500をご利用いただきありがとうございます。
+
+このたびβテスト期間中にリリースした新機能「どっちが安いか比べ太郎」（パーツ価格比較ツール）について、皆さまのご意見・ご感想をお聞かせください。
+
+今後の改善に直接反映させていただきます。ぜひ率直なご意見をお願いします！
+
+▼ アンケートはこちら（所要時間：約3分）
+https://docs.google.com/forms/d/e/1FAIpQLSfP1pXcELg1J5vZbeJU4LSZQpZJiYGu23FImMGKROYpHFiWXw/viewform
+
+⏰ 回答締め切り：3月2日（月）中
+
+どうぞよろしくお願いいたします。
+
+Registro500管理人
+https://www.registro500.com/parts.html`;
+
+  const url = "https://api.brevo.com/v3/smtp/email";
+  const bccObjects = recipients.map(email => ({ "email": email }));
+  const payload = {
+    "sender": { "name": "Registro500管理人", "email": SENDER_EMAIL },
+    "to": [{ "email": SENDER_EMAIL }],
+    "bcc": bccObjects,
+    "subject": subject,
+    "textContent": body
+  };
+  const options = {
+    "method": "post",
+    "headers": {
+      "api-key": getBrevoApiKey_(),
+      "Content-Type": "application/json",
+      "accept": "application/json"
+    },
+    "payload": JSON.stringify(payload),
+    "muteHttpExceptions": true
+  };
+  const response = UrlFetchApp.fetch(url, options);
+  Logger.log('Brevo応答: ' + response.getContentText());
+  Logger.log(`アンケートメール送付完了: ${recipients.length}件`);
+}
