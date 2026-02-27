@@ -63,6 +63,7 @@ function doPost(e) {
     const requestData = JSON.parse(e.postData.contents);
     const action = requestData.action;
     const formData = requestData.formData;
+    const data = requestData.data;
     let result = {};
 
     if (action === 'save') result = saveCarFromForm(formData);
@@ -71,7 +72,13 @@ function doPost(e) {
     else if (action === 'save_event') result = saveEventFromForm(formData);
     else if (action === 'delete_event') result = deleteEvent(formData);
     else if (action === 'toggle_participation') result = toggleEventParticipation(formData);
-    // spot機能はSupabase直接アクセスのため、GAS経由のルーティングは削除
+    else if (action === 'createSpot') result = createSpot(data);
+    else if (action === 'addFavoriteSpot') result = addFavoriteSpot(data);
+    else if (action === 'updateFavoriteSpot') result = updateFavoriteSpot(data);
+    else if (action === 'deleteFavoriteSpot') result = deleteFavoriteSpot(data);
+    else if (action === 'findNearbySpots') result = findNearbySpots(data.latitude, data.longitude, data.radius);
+    else if (action === 'createSchedule') result = createSchedule(data);
+    else if (action === 'deleteSchedule') result = deleteSchedule(data);
     else throw new Error('Unknown action');
     return createJsonOutput({ success: true, data: result });
   } catch (err) { return createJsonOutput({ success: false, error: err.message }); }
