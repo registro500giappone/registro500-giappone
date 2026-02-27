@@ -32,19 +32,9 @@
   <link rel="stylesheet" href="style.css">
 
   <script src="config.js"></script>
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>
-    // Firebase初期化
-    if (!firebase.apps.length) {
-      firebase.initializeApp(FIREBASE_CONFIG);
-    }
-    const auth = firebase.auth();
-    
-    // Supabase初期化（認証後にヘッダー付きで再作成される）
+    // Supabase初期化
     let supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   </script>
   
@@ -597,12 +587,13 @@ async function checkNewsBadge() {
     let userRelations = {}; // { "DOC_123": "want", "DOC_456": "met" }
     let isAuthInitialized = false; // 認証初期化完了フラグ
 
-    // 認証初期化 (Firebase Auth)
+    // 認証初期化 (Supabase Auth)
     async function initAuth() {
-      console.log("initAuth started (Firebase)");
+      console.log("initAuth started (Supabase)");
       try {
-        auth.onAuthStateChanged(async (user) => {
-          console.log("AuthStateChanged:", user ? "Logged in" : "Logged out");
+        supabaseClient.auth.onAuthStateChange(async (event, session) => {
+          console.log("AuthStateChanged:", session ? "Logged in" : "Logged out");
+          const user = session?.user ?? null;
           await setSession(user);
           isAuthInitialized = true;
         });
@@ -613,19 +604,21 @@ async function checkNewsBadge() {
     }
 
     // ログイン処理
-    function loginWithGoogle() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider).catch(error => {
+    async function loginWithGoogle() {
+      const { error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.href }
+      });
+      if (error) {
         console.error("Login failed:", error);
         alert("ログインに失敗しました: " + error.message);
-      });
+      }
     }
 
     // ログアウト処理
-    function logout() {
-      auth.signOut().then(() => {
-        location.reload();
-      });
+    async function logout() {
+      await supabaseClient.auth.signOut();
+      location.reload();
     }
 
     async function setSession(user) {
@@ -634,13 +627,13 @@ async function checkNewsBadge() {
       const userInfo = document.getElementById('menuUserInfo');
 
       if (user) {
-        console.log("User logged in:", user.uid);
-        currentUser.uid = user.uid;
+        console.log("User logged in:", user.id);
+        currentUser.uid = user.id;
         currentUser.email = user.email;
 
         // RLS用: user_idヘッダー付きでSupabaseクライアント再作成
         supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-          global: { headers: { 'x-user-id': user.uid } }
+          global: { headers: { 'x-user-id': user.id } }
         });
         
         // メニュー表示更新
