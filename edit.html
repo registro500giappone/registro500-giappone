@@ -983,6 +983,7 @@
 
       window.resetMask = function() {
         _plates = []; _selIdx = -1; _blurApplied = false; _drag = null;
+        canvas.style.touchAction = 'none';  // 再編集モードに戻す
         document.getElementById('maskAdjBar').style.display = 'none';
         document.getElementById('maskBtnsEdit').style.display = 'flex';
         document.getElementById('maskBtnsAfter').style.display = 'none';
@@ -1030,26 +1031,30 @@
         // 1. 元画像を描画
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(_origImg, 0, 0);
-        // 2. ぼかし版の一時キャンバス
-        const bc = document.createElement('canvas');
-        bc.width = canvas.width; bc.height = canvas.height;
-        const bctx = bc.getContext('2d');
-        bctx.filter = `blur(${BLUR_CSS}px)`;
-        bctx.drawImage(_origImg, 0, 0);
-        bctx.filter = 'none';
-        // 3. 内側領域だけぼかし版から貼り付け（輪郭BORDER_PX保持）
+        // 2. 各プレート領域をモザイク処理（iOS Safari含む全ブラウザ対応）
         _plates.forEach(p => {
-          const x1b = p.x + BORDER_PX, y1b = p.y + BORDER_PX;
-          const wb = Math.max(1, p.w - BORDER_PX * 2), hb = Math.max(1, p.h - BORDER_PX * 2);
-          if (wb > 0 && hb > 0) ctx.drawImage(bc, x1b, y1b, wb, hb, x1b, y1b, wb, hb);
+          const x1 = Math.max(0, p.x + BORDER_PX), y1 = Math.max(0, p.y + BORDER_PX);
+          const w = Math.min(canvas.width - x1, Math.max(1, p.w - BORDER_PX * 2));
+          const h = Math.min(canvas.height - y1, Math.max(1, p.h - BORDER_PX * 2));
+          if (w <= 0 || h <= 0) return;
+          const MOSAIC = Math.max(6, Math.round(Math.min(w, h) / 5));
+          const imageData = ctx.getImageData(x1, y1, w, h);
+          for (let px = 0; px < w; px += MOSAIC) {
+            for (let py = 0; py < h; py += MOSAIC) {
+              const i = (py * w + px) * 4;
+              ctx.fillStyle = `rgb(${imageData.data[i]},${imageData.data[i+1]},${imageData.data[i+2]})`;
+              ctx.fillRect(x1 + px, y1 + py, Math.min(MOSAIC, w - px), Math.min(MOSAIC, h - py));
+            }
+          }
         });
         _blurApplied = true; _selIdx = -1;
+        canvas.style.touchAction = 'auto';  // ぼかし後はピンチズームで確認可能に
         document.getElementById('maskAdjBar').style.display = 'none';
         document.getElementById('maskBtnsEdit').style.display = 'none';
         document.getElementById('maskBtnsAfter').style.display = 'flex';
         const dl = document.getElementById('btnDownloadMask');
         dl.href = canvas.toDataURL('image/jpeg', 0.9);
-        _setStatus('ぼかし適用済み。ダウンロードするか、アップロードして保存してください');
+        _setStatus('モザイク適用済み。ピンチで拡大して確認できます');
       };
 
       // ── 内部関数 ────────────────────────────────────────
@@ -1102,14 +1107,17 @@
 
       function _onDown(e) {
         if (_blurApplied) return;
-        e.preventDefault();
-        if (e.touches && e.touches.length === 2) {
+        if (e.touches && e.touches.length >= 2) {
+          // ピンチ操作：進行中の描画をキャンセルして新しい枠が追加されないようにする
+          _drawing = false; _drawStart = null; _drag = null;
           if (_selIdx >= 0) {
             const t1 = e.touches[0], t2 = e.touches[1];
             _pinch = { dist: Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY), origW: _plates[_selIdx].w, origH: _plates[_selIdx].h };
+            e.preventDefault();
           }
           return;
         }
+        e.preventDefault();
         const { x, y } = _sc(e);
         if (_selIdx >= 0) {
           const ht = _hitHandle(_plates[_selIdx], x, y);
