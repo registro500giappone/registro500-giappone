@@ -539,9 +539,10 @@
 
   const CACHE_KEY_EVENTS = 'registro500_event_data_v4';
   let currentUser = null;
-  let myCarId = null; 
-  let allEventsData = []; 
+  let myCarId = null;
+  let allEventsData = [];
   let currentRegion = 'all';
+  const urlType = new URLSearchParams(window.location.search).get('type') || '500';
 
   const REGION_MAP = {
     '北海道・東北': ['北海道','青森','岩手','宮城','秋田','山形','福島'],
@@ -553,9 +554,11 @@
   };
 
   window.addEventListener('DOMContentLoaded', () => {
-    const urlType = new URLSearchParams(window.location.search).get('type');
     if (urlType === '126') {
       document.getElementById('evBackLink').href = '126/index.html';
+      document.documentElement.style.setProperty('--accent', '#D4541A');
+      document.title = 'イベント情報 | Registro126 Giappone';
+      document.getElementById('evSubtitle').textContent = 'FIAT 126 イベント・ミーティング情報';
     }
     initFromCache();
     fetchEvents();
@@ -659,6 +662,8 @@
     futureEl.innerHTML = ''; pastEl.innerHTML = '';
 
     const filtered = allEventsData.filter(ev => {
+      if (urlType === '126' && ev.TargetCarType === '500') return false;
+      if (urlType !== '126' && ev.TargetCarType === '126') return false;
       if(currentRegion === 'all') return true;
       const targets = REGION_MAP[currentRegion] || [];
       return targets.some(pref => ev.Location.includes(pref));
@@ -1127,6 +1132,8 @@ window.submitEvent = async () => {
     // イベントを日付ごとにマッピング
     const eventsByDate = {};
     const filtered = allEventsData.filter(ev => {
+      if (urlType === '126' && ev.TargetCarType === '500') return false;
+      if (urlType !== '126' && ev.TargetCarType === '126') return false;
       if (currentRegion === 'all') return true;
       const targets = REGION_MAP[currentRegion] || [];
       return targets.some(pref => ev.Location.includes(pref));
