@@ -398,19 +398,24 @@ function apiPost(action, data) {
 // =================================================
 // スポット読み込み
 // =================================================
-function loadSpots() {
-  var params = { mode: 'spots', limit: 500 };
-
+async function loadSpots() {
   document.getElementById('spotList').innerHTML = '<div class="loading-spinner">読み込み中...</div>';
-
-  apiGet(params).then(function(res) {
-    if (!res.success) throw new Error(res.error);
-    allSpots = res.data || [];
+  showLoading();
+  try {
+    var result = await supabaseClient
+      .from('spots')
+      .select('*')
+      .order('registration_count', { ascending: false })
+      .order('created_at', { ascending: false });
+    if (result.error) throw result.error;
+    allSpots = result.data || [];
     applySortAndFilter();
-  }).catch(function(err) {
+  } catch(err) {
     document.getElementById('spotList').innerHTML =
       '<div class="empty-state"><div class="empty-state-text">読み込みエラー: ' + err.message + '</div></div>';
-  });
+  } finally {
+    hideLoading();
+  }
 }
 
 // =================================================
@@ -724,25 +729,33 @@ function applySearchResult(lat, lng, address, name) {
 // =================================================
 function showNearbyCheck(lat, lng) {
   var nearbyDiv = document.getElementById('nearbyResults');
-  nearbyDiv.innerHTML = '<div class="loading-spinner">近くのスポットを確認中...</div>';
   nearbyDiv.style.display = 'block';
 
-  apiPost('findNearbySpots', { latitude: lat, longitude: lng, radius: 500 })
-    .then(function(res) {
-      if (!res.success || !res.data || res.data.length === 0) {
-        nearbyDiv.innerHTML = '<p style="font-size:0.82rem;color:green">近くに重複スポットはありません</p>';
-        return;
-      }
-      nearbyDiv.innerHTML = '<p style="font-size:0.82rem;color:#d97706;font-weight:600">近くに既存スポットがあります:</p>'
-        + res.data.map(function(s) {
-          return '<div style="font-size:0.82rem;padding:4px 0">'
-            + (CATEGORY_ICONS[s.category] || '📍') + ' ' + escapeHtml(s.name)
-            + ' (' + s.registration_count + '人登録)'
-            + '</div>';
-        }).join('');
-    }).catch(function() {
-      nearbyDiv.innerHTML = '';
-    });
+  function haversineM(lat1, lng1, lat2, lng2) {
+    var R = 6371000;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLng = (lng2 - lng1) * Math.PI / 180;
+    var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+      Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  var nearby = allSpots.filter(function(s) {
+    if (!s.latitude || !s.longitude) return false;
+    return haversineM(lat, lng, parseFloat(s.latitude), parseFloat(s.longitude)) <= 500;
+  }).slice(0, 5);
+
+  if (nearby.length === 0) {
+    nearbyDiv.innerHTML = '<p style="font-size:0.82rem;color:green">近くに重複スポットはありません</p>';
+  } else {
+    nearbyDiv.innerHTML = '<p style="font-size:0.82rem;color:#d97706;font-weight:600">近くに既存スポットがあります:</p>'
+      + nearby.map(function(s) {
+        return '<div style="font-size:0.82rem;padding:4px 0">'
+          + (CATEGORY_ICONS[s.category] || '📍') + ' ' + escapeHtml(s.name)
+          + ' (' + (s.registration_count || 0) + '人登録)'
+          + '</div>';
+      }).join('');
+  }
 }
 
 // =================================================
@@ -765,9 +778,16 @@ async function showSpotDetail(spotId) {
   detailEl.innerHTML = '<div class="loading-spinner">読み込み中...</div>';
 
   try {
-    var res = await apiGet({ mode: 'spot_detail', spot_id: spotId });
-    if (!res.success) throw new Error(res.error);
-    var s = res.data;
+    var today = new Date().toISOString().split('T')[0];
+    var results = await Promise.all([
+      supabaseClient.from('spots').select('*').eq('spot_id', spotId).single(),
+      supabaseClient.from('favorite_spots').select('*').eq('spot_id', spotId).eq('visibility', 'public').order('created_at', { ascending: false }),
+      supabaseClient.from('spot_schedules').select('*').eq('spot_id', spotId).eq('visibility', 'public').gte('visit_date', today).order('visit_date', { ascending: true }).limit(20)
+    ]);
+    if (results[0].error) throw results[0].error;
+    var s = results[0].data;
+    s.favorites = results[1].data || [];
+    s.schedules = results[2].data || [];
     var icon = CATEGORY_ICONS[s.category] || '📍';
     var label = CATEGORY_LABELS[s.category] || s.category;
 
@@ -808,7 +828,7 @@ async function showSpotDetail(spotId) {
     var searchQuery = encodeURIComponent(s.name + (s.address ? ' ' + s.address : ''));
 
     // 自分の登録かチェック
-    var myFav = currentUser && currentUser.documentId
+    var myFav = currentUser && currentUser.uid
       ? myFavorites.find(function(f) { return f.spot_id === spotId; })
       : null;
 
@@ -832,7 +852,7 @@ async function showSpotDetail(spotId) {
       + '</div>';
 
     // マイ出没に登録ボタン（未登録の場合のみ）
-    if (currentUser && currentUser.documentId && !myFav) {
+    if (currentUser && currentUser.uid && !myFav) {
       html += '<button class="btn-primary" style="margin-bottom:12px;font-size:0.82rem;padding:8px 16px" onclick="addFavorite(\'' + spotId + '\')">マイ出没に登録</button>';
     }
 
@@ -952,9 +972,9 @@ function editMyFavorite(spotId) {
   detailEl.innerHTML = html;
 }
 
-function saveMyFavorite(spotId) {
+async function saveMyFavorite(spotId) {
   var fav = myFavorites.find(function(f) { return f.spot_id === spotId; });
-  if (!fav) return;
+  if (!fav || !currentUser || !currentUser.uid) return;
 
   var timeSlots = [];
   document.querySelectorAll('.editFavTimeSlot:checked').forEach(function(cb) { timeSlots.push(cb.value); });
@@ -962,23 +982,27 @@ function saveMyFavorite(spotId) {
   document.querySelectorAll('.editFavWeekday:checked').forEach(function(cb) { weekdays.push(cb.value); });
 
   var payload = {
-    favorite_id: fav.favorite_id,
-    owner_document_id: currentUser.documentId,
     comment: document.getElementById('editFavComment').value.trim(),
     time_slots: timeSlots,
-    time_comment: document.getElementById('editFavTimeComment').value.trim(),
+    time_comment: document.getElementById('editFavTimeComment').value.trim() || null,
     weekdays: weekdays,
-    frequency: document.getElementById('editFavFrequency').value,
+    frequency: document.getElementById('editFavFrequency').value || null,
     duration_minutes: document.getElementById('editFavDuration').value ? Number(document.getElementById('editFavDuration').value) : null,
-    visibility: document.getElementById('editFavVisibility').value
+    visibility: document.getElementById('editFavVisibility').value,
+    updated_at: new Date().toISOString()
   };
 
-  apiPost('updateFavoriteSpot', payload).then(function(res) {
-    if (!res.success) throw new Error(res.error);
+  try {
+    var result = await supabaseClient
+      .from('favorite_spots')
+      .update(payload)
+      .eq('favorite_id', fav.favorite_id)
+      .eq('owner_user_id', currentUser.uid);
+    if (result.error) throw result.error;
     alert('マイ出没を更新しました！');
     loadMyFavorites();
     showSpotDetail(spotId);
-  }).catch(function(err) { alert('エラー: ' + err.message); });
+  } catch(err) { alert('エラー: ' + err.message); }
 }
 
 function confirmDeleteFavorite(spotId) {
@@ -993,15 +1017,35 @@ function closeDetailModal() {
 // =================================================
 // 出没スポット操作
 // =================================================
-function loadMyFavorites() {
-  if (!currentUser || !currentUser.documentId) return;
-  apiGet({ mode: 'my_favorites', owner_document_id: currentUser.documentId })
-    .then(function(res) {
-      if (!res.success) return;
-      myFavorites = res.data || [];
+async function loadMyFavorites() {
+  if (!currentUser || !currentUser.uid) return;
+  try {
+    var favResult = await supabaseClient
+      .from('favorite_spots')
+      .select('*')
+      .eq('owner_user_id', currentUser.uid)
+      .order('created_at', { ascending: false });
+    if (favResult.error) throw favResult.error;
+    var favs = favResult.data || [];
+    if (favs.length === 0) {
+      myFavorites = [];
       renderMyFavorites();
       schedUpdateSpotDropdown();
-    }).catch(function() {});
+      return;
+    }
+    var spotIds = favs.map(function(f) { return f.spot_id; })
+      .filter(function(v, i, a) { return a.indexOf(v) === i; });
+    var spotsResult = await supabaseClient.from('spots').select('*').in('spot_id', spotIds);
+    var spotMap = {};
+    (spotsResult.data || []).forEach(function(s) { spotMap[s.spot_id] = s; });
+    myFavorites = favs.map(function(fav) {
+      return Object.assign({}, fav, { spot: spotMap[fav.spot_id] || null });
+    });
+    renderMyFavorites();
+    schedUpdateSpotDropdown();
+  } catch(e) {
+    console.error('loadMyFavorites error:', e);
+  }
 }
 
 function renderMyFavorites() {
@@ -1023,44 +1067,48 @@ function renderMyFavorites() {
   }).join('');
 }
 
-function addFavorite(spotId) {
-  if (!currentUser || !currentUser.documentId) { alert('ログインが必要です'); return; }
-  apiPost('addFavoriteSpot', {
-    owner_document_id: currentUser.documentId,
-    spot_id: spotId
-  }).then(function(res) {
-    if (!res.success) {
-      if (res.error && res.error.indexOf('23505') !== -1) {
+async function addFavorite(spotId) {
+  if (!currentUser || !currentUser.uid) { alert('ログインが必要です'); return; }
+  try {
+    var payload = {
+      owner_user_id: currentUser.uid,
+      spot_id: spotId,
+      visibility: 'public'
+    };
+    if (currentUser.documentId) payload.owner_document_id = currentUser.documentId;
+    var result = await supabaseClient.from('favorite_spots').insert(payload);
+    if (result.error) {
+      if (result.error.code === '23505') {
         alert('既にマイ出没に登録済みです');
         loadMyFavorites();
-        closeDetailModal();
         return;
       }
-      throw new Error(res.error);
+      throw result.error;
     }
     alert('マイ出没に登録しました！');
     loadMyFavorites();
     // 重要: スポット一覧をリロード（registration_count を更新）
     setTimeout(function() { loadSpots(); }, 500);
-    closeDetailModal();
-  }).catch(function(err) { alert('エラー: ' + err.message); });
+  } catch(err) { alert('エラー: ' + err.message); }
 }
 
-function removeFavorite(spotId) {
-  if (!currentUser || !currentUser.documentId) return;
+async function removeFavorite(spotId) {
+  if (!currentUser || !currentUser.uid) return;
   var fav = myFavorites.find(function(f) { return f.spot_id === spotId; });
   if (!fav) return;
-  apiPost('deleteFavoriteSpot', {
-    favorite_id: fav.favorite_id,
-    owner_document_id: currentUser.documentId
-  }).then(function(res) {
-    if (!res.success) throw new Error(res.error);
+  try {
+    var result = await supabaseClient
+      .from('favorite_spots')
+      .delete()
+      .eq('favorite_id', fav.favorite_id)
+      .eq('owner_user_id', currentUser.uid);
+    if (result.error) throw result.error;
     alert('マイ出没から削除しました');
     loadMyFavorites();
     // 重要: スポット一覧をリロード（registration_count を更新）
     setTimeout(function() { loadSpots(); }, 500);
     closeSpotDetail();
-  }).catch(function(err) { alert('エラー: ' + err.message); });
+  } catch(err) { alert('エラー: ' + err.message); }
 }
 
 function switchToSpotsTab() {
@@ -1070,7 +1118,7 @@ function switchToSpotsTab() {
 // =================================================
 // 新規スポット登録
 // =================================================
-function submitNewSpot() {
+async function submitNewSpot() {
   var name = document.getElementById('inputName').value.trim();
   var category = document.getElementById('inputCategory').value;
   var lat = document.getElementById('inputLat').value;
@@ -1087,37 +1135,37 @@ function submitNewSpot() {
 
   var carType = document.getElementById('inputCarType').value || 'both';
 
-  apiPost('createSpot', {
-    name: name, category: category,
-    latitude: parseFloat(lat), longitude: parseFloat(lng),
-    address: address || null,
-    car_type: carType
-  }).then(function(res) {
-    if (!res.success) throw new Error(res.error);
-    var spotId = res.data.spot_id;
+  try {
+    var insertResult = await supabaseClient
+      .from('spots')
+      .insert({
+        name: name, category: category,
+        latitude: parseFloat(lat), longitude: parseFloat(lng),
+        address: address || null,
+        car_type: carType
+      })
+      .select()
+      .single();
+    if (insertResult.error) throw insertResult.error;
+    var spotId = insertResult.data.spot_id;
     // 自分で登録したスポットはマイ出没にも自動追加
-    if (currentUser && currentUser.documentId && spotId) {
-      return apiPost('addFavoriteSpot', {
-        owner_document_id: currentUser.documentId,
-        spot_id: spotId
-      }).then(function() {
-        loadMyFavorites();
-      }).catch(function() {
-        // マイ出没追加が失敗してもスポット登録自体は成功
-      });
+    if (currentUser && currentUser.uid && spotId) {
+      var favPayload = { owner_user_id: currentUser.uid, spot_id: spotId, visibility: 'public' };
+      if (currentUser.documentId) favPayload.owner_document_id = currentUser.documentId;
+      await supabaseClient.from('favorite_spots').insert(favPayload).catch(function() {});
+      loadMyFavorites();
     }
-  }).then(function() {
     alert('スポット「' + name + '」を登録しました！');
     resetForm();
     // トリガーがregistration_countを更新するまで少し待ってからリロード
     setTimeout(function() { loadSpots(); }, 300);
-  }).catch(function(err) {
+  } catch(err) {
     console.error('createSpot error:', err);
     alert('登録エラー: ' + err.message);
-  }).finally(function() {
+  } finally {
     btn.disabled = false;
     btn.textContent = 'スポットを登録';
-  });
+  }
 }
 
 function resetForm() {
@@ -1222,10 +1270,17 @@ function schedLoadData() {
   var dateFrom = schedFormatDate(schedWeekStart);
   var dateTo = schedFormatDate(new Date(schedWeekStart.getTime() + 6 * 86400000));
 
-  apiGet({ mode: 'schedules', date_from: dateFrom, date_to: dateTo })
-    .then(function(res) {
-      if (!res.success) throw new Error(res.error);
-      schedData = res.data || [];
+  showLoading();
+  supabaseClient
+    .from('spot_schedules')
+    .select('*')
+    .gte('visit_date', dateFrom)
+    .lte('visit_date', dateTo)
+    .eq('visibility', 'public')
+    .order('visit_date', { ascending: true })
+    .then(function(result) {
+      if (result.error) throw result.error;
+      schedData = result.data || [];
       schedEnrichWithSpotNames(function() {
         schedFillCalendar();
         schedRenderList();
@@ -1233,34 +1288,24 @@ function schedLoadData() {
     }).catch(function(err) {
       document.getElementById('scheduleList').innerHTML =
         '<div class="empty-state"><div class="empty-state-text">読み込みエラー: ' + err.message + '</div></div>';
-    });
+    }).finally(function() { hideLoading(); });
 }
 
 async function schedEnrichWithSpotNames(callback) {
-  // スポット名を取得
-  var spotIds = [];
-  schedData.forEach(function(sc) {
-    if (spotIds.indexOf(sc.spot_id) === -1) spotIds.push(sc.spot_id);
-  });
-  if (spotIds.length > 0) {
-    try {
-      var res = await apiGet({ mode: 'spots' });
-      if (res.success) {
-        var spotMap = {};
-        (res.data || []).forEach(function(s) { spotMap[s.spot_id] = s; });
-        schedData.forEach(function(sc) {
-          var s = spotMap[sc.spot_id];
-          if (s) { sc.spot_name = s.name; sc.spot_category = s.category; }
-        });
-      }
-    } catch(e) {}
+  // スポット名: allSpots（既ロード済み）から引く
+  if (allSpots.length > 0) {
+    var spotMap = {};
+    allSpots.forEach(function(s) { spotMap[s.spot_id] = s; });
+    schedData.forEach(function(sc) {
+      var s = spotMap[sc.spot_id];
+      if (s) { sc.spot_name = s.name; sc.spot_category = s.category; }
+    });
   }
 
-  // ハンドルネームを取得（Supabase carsテーブルから）
-  var ownerIds = [];
-  schedData.forEach(function(sc) {
-    if (ownerIds.indexOf(sc.owner_document_id) === -1) ownerIds.push(sc.owner_document_id);
-  });
+  // ハンドルネームを取得（Supabase carsテーブルから owner_document_id）
+  var ownerIds = schedData
+    .map(function(sc) { return sc.owner_document_id; })
+    .filter(function(id, i, a) { return id && a.indexOf(id) === i; });
   if (supabaseClient && ownerIds.length > 0) {
     try {
       var carsResult = await supabaseClient
@@ -1302,7 +1347,8 @@ function schedRenderList() {
   }
   container.innerHTML = schedData.map(function(sc) {
     var icon = CATEGORY_ICONS[sc.spot_category] || '📍';
-    var canDelete = currentUser && currentUser.documentId === sc.owner_document_id;
+    var canDelete = currentUser && currentUser.uid &&
+      (currentUser.uid === sc.owner_user_id || (currentUser.documentId && currentUser.documentId === sc.owner_document_id));
     var dateLabel = formatDateWithDay(sc.visit_date);
     var timeLabel = formatTimeSlot(sc.visit_time_slot);
     return '<div class="schedule-card">'
@@ -1318,7 +1364,7 @@ function schedRenderList() {
 
 // --- 予定登録モーダル ---
 function openScheduleModal(dateStr) {
-  if (!currentUser || !currentUser.documentId) {
+  if (!currentUser || !currentUser.uid) {
     alert('予定を登録するにはログインが必要です');
     return;
   }
@@ -1344,50 +1390,58 @@ function schedUpdateSpotDropdown() {
   });
 }
 
-function submitSchedule() {
+async function submitSchedule() {
   var spotId = document.getElementById('schedSpot').value;
   var date = document.getElementById('schedDate').value;
   if (!spotId) { alert('スポットを選択してください'); return; }
   if (!date) { alert('日付を選択してください'); return; }
+  if (!currentUser || !currentUser.uid) { alert('ログインが必要です'); return; }
 
   var btn = document.getElementById('btnSubmitSched');
   btn.disabled = true;
   btn.textContent = '登録中...';
 
-  apiPost('createSchedule', {
-    owner_document_id: currentUser.documentId,
-    spot_id: spotId,
-    visit_date: date,
-    visit_time_slot: document.getElementById('schedTimeSlot').value || null,
-    visit_time_comment: document.getElementById('schedTimeComment').value || null,
-    expected_duration_minutes: parseInt(document.getElementById('schedDuration').value) || null,
-    comment: document.getElementById('schedComment').value || null
-  }).then(function(res) {
-    if (!res.success) throw new Error(res.error);
+  try {
+    var payload = {
+      owner_user_id: currentUser.uid,
+      spot_id: spotId,
+      visit_date: date,
+      visit_time_slot: document.getElementById('schedTimeSlot').value || null,
+      visit_time_comment: document.getElementById('schedTimeComment').value || null,
+      expected_duration_minutes: parseInt(document.getElementById('schedDuration').value) || null,
+      comment: document.getElementById('schedComment').value || null,
+      visibility: 'public'
+    };
+    if (currentUser.documentId) payload.owner_document_id = currentUser.documentId;
+    var result = await supabaseClient.from('spot_schedules').insert(payload);
+    if (result.error) throw result.error;
     alert('出没予定を登録しました！');
     closeSchedModal();
     // リロード
     schedRenderWeek();
     schedLoadData();
-  }).catch(function(err) {
+  } catch(err) {
     alert('エラー: ' + err.message);
-  }).finally(function() {
+  } finally {
     btn.disabled = false;
     btn.textContent = '予定を登録';
-  });
+  }
 }
 
-function deleteSchedule(scheduleId) {
+async function deleteSchedule(scheduleId) {
   if (!confirm('この予定を削除しますか？')) return;
-  apiPost('deleteSchedule', {
-    schedule_id: scheduleId,
-    owner_document_id: currentUser.documentId
-  }).then(function(res) {
-    if (!res.success) throw new Error(res.error);
+  if (!currentUser || !currentUser.uid) return;
+  try {
+    var result = await supabaseClient
+      .from('spot_schedules')
+      .delete()
+      .eq('schedule_id', scheduleId)
+      .eq('owner_user_id', currentUser.uid);
+    if (result.error) throw result.error;
     alert('出没予定を削除しました');
     schedRenderWeek();
     schedLoadData();
-  }).catch(function(err) { alert('エラー: ' + err.message); });
+  } catch(err) { alert('エラー: ' + err.message); }
 }
 
 // =================================================

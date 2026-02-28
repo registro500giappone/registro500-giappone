@@ -48,10 +48,6 @@ function doGet(e) {
     else if (mode === 'edit_init') resultData = docId ? getCarForEdit(docId) : {};
     else if (mode === 'events') resultData = getEventsData();
     else if (mode === 'mycars') resultData = getMyCarsList(params.idToken);
-    else if (mode === 'spots') resultData = getSpots(params);
-    else if (mode === 'spot_detail') resultData = getSpotDetail(params.spot_id);
-    else if (mode === 'my_favorites') resultData = getMyFavorites(params.owner_document_id);
-    else if (mode === 'schedules') resultData = getSchedules(params);
     else throw new Error('Unknown mode');
     return createJsonOutput({ success: true, data: resultData });
   } catch (err) { return createJsonOutput({ success: false, error: err.toString() }); }
@@ -66,19 +62,10 @@ function doPost(e) {
     const data = requestData.data;
     let result = {};
 
-    if (action === 'save') result = saveCarFromForm(formData);
-    else if (action === 'update') result = updateCarFromForm(formData);
-    else if (action === 'inquiry') result = sendOwnerInquiry(formData);
+    if (action === 'inquiry') result = sendOwnerInquiry(formData);
     else if (action === 'save_event') result = saveEventFromForm(formData);
     else if (action === 'delete_event') result = deleteEvent(formData);
     else if (action === 'toggle_participation') result = toggleEventParticipation(formData);
-    else if (action === 'createSpot') result = createSpot(data);
-    else if (action === 'addFavoriteSpot') result = addFavoriteSpot(data);
-    else if (action === 'updateFavoriteSpot') result = updateFavoriteSpot(data);
-    else if (action === 'deleteFavoriteSpot') result = deleteFavoriteSpot(data);
-    else if (action === 'findNearbySpots') result = findNearbySpots(data.latitude, data.longitude, data.radius);
-    else if (action === 'createSchedule') result = createSchedule(data);
-    else if (action === 'deleteSchedule') result = deleteSchedule(data);
     else throw new Error('Unknown action');
     return createJsonOutput({ success: true, data: result });
   } catch (err) { return createJsonOutput({ success: false, error: err.message }); }
@@ -571,8 +558,6 @@ function hasEditPermission(docId, activeEmail) { if (!docId || !activeEmail) ret
   const header = data[0]; const docIdx = header.indexOf(DOCUMENT_ID_COLUMN_NAME); const ownerIdx = header.indexOf('OwnerEmail');
   for (let i = 1; i < data.length; i++) { if (String(data[i][docIdx]) === docId) { const owner = String(data[i][ownerIdx] || '').toLowerCase().trim(); return owner === activeEmail; } } return false;
 }
-function saveCarFromForm(formData) { const activeEmail = getAuthEmailFromFormData_(formData); if (!activeEmail) throw new Error('ログイン情報が見つかりません。'); const lock = LockService.getScriptLock(); try { lock.waitLock(30000); } catch (e) { throw new Error('サーバー混雑中'); } try { const ss = SpreadsheetApp.getActiveSpreadsheet(); const sheet = ss.getSheetByName(SHEET_NAME_MASTER); const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]; const colIdx = {}; headers.forEach((h, i) => { colIdx[h] = i; }); const lastRow = sheet.getLastRow(); if (lastRow > 1) { /*重複チェック略*/ } let nextNumber = 1; if (lastRow > 1) { const idValues = sheet.getRange(2, colIdx[DOCUMENT_ID_COLUMN_NAME] + 1, lastRow - 1, 1).getValues().flat(); idValues.forEach(id => { const m = /^DOC_(\d+)$/.exec(String(id)); if (m && Number(m[1]) >= nextNumber) nextNumber = Number(m[1]) + 1; }); } const newDocId = 'DOC_' + nextNumber; const now = new Date(); const record = {}; headers.forEach(col => { if (col === DOCUMENT_ID_COLUMN_NAME) record[col] = newDocId; else if (col === 'OwnerEmail') record[col] = activeEmail; else if (col === 'createdAt' || col === 'updatedAt') record[col] = now; else record[col] = (formData[col] !== undefined) ? formData[col] : ''; }); buildModelDisplays(record); buildEngineDisplay(record); sheet.appendRow(headers.map(col => record[col] !== undefined ? record[col] : '')); clearCache(newDocId); sendNotifications(record); sendAdminNotification(record); return { ok: true, DocumentID: newDocId }; } finally { lock.releaseLock(); } }
-function updateCarFromForm(formData) { const docId = formData.DocumentID; if (!docId) throw new Error('DocumentID がありません'); const activeEmail = getAuthEmailFromFormData_(formData); if (!activeEmail) throw new Error('ログイン情報が見つかりません'); if (!hasEditPermission(docId, activeEmail)) throw new Error('編集権限がありません'); const lock = LockService.getScriptLock(); try { lock.waitLock(10000); } catch(e) {} try { const ss = SpreadsheetApp.getActiveSpreadsheet(); const sheet = ss.getSheetByName(SHEET_NAME_MASTER); const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]; const colIdx = {}; headers.forEach((h, i) => { colIdx[h] = i; }); const data = sheet.getDataRange().getValues(); let targetRow = -1; for (let i = 1; i < data.length; i++) { if (String(data[i][colIdx[DOCUMENT_ID_COLUMN_NAME]]) === docId) { targetRow = i + 1; break; } } if (targetRow === -1) throw new Error('対象データが見つかりません'); const ownerEmail = String(data[targetRow - 1][colIdx['OwnerEmail']] || '').trim(); const now = new Date(); const record = {}; headers.forEach((col, idx) => { let val = data[targetRow - 1][idx]; if (col === 'OwnerEmail') val = ownerEmail; else if (col === 'updatedAt') val = now; else if (col !== 'createdAt' && col !== DOCUMENT_ID_COLUMN_NAME && formData[col] !== undefined) val = formData[col]; record[col] = val; }); buildModelDisplays(record); buildEngineDisplay(record); sheet.getRange(targetRow, 1, 1, headers.length).setValues([headers.map(col => record[col])]); clearCache(docId); return { ok: true, DocumentID: docId }; } finally { lock.releaseLock(); } }
 function sendNotifications(record) { const currentOwnerEmail = (record.OwnerEmail || '').toLowerCase(); if (currentOwnerEmail) { try { MailApp.sendEmail({ to: currentOwnerEmail, subject: `【Registro500】愛車の登録が完了しました`, body: `${record.HandleName} 様\n\n登録ありがとうございます。\nhttps://registro500-giappone.vercel.app/detail.html?doc=${record.DocumentID}\n`, name: SENDER_NAME }); } catch (e) {} } }
 
 function sendAdminNotification(record) {
