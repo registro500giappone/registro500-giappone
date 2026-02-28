@@ -631,15 +631,7 @@
       fileInput.onchange = (e) => {
         const file = e.target.files[0]; if (!file || !activeTarget) return;
         const reader = new FileReader();
-        reader.onload = (ev) => {
-          // 車外写真（ナンバー映り込みリスクあり）はマスクモーダルを先に表示
-          const maskTargets = ['PhotoMain', 'PhotoFront', 'PhotoSide', 'PhotoRear'];
-          if (maskTargets.includes(activeTarget)) {
-            openMaskingModal(ev.target.result);
-          } else {
-            openCropper(ev.target.result);
-          }
-        };
+        reader.onload = (ev) => openCropper(ev.target.result);
         reader.readAsDataURL(file);
       };
 
