@@ -529,6 +529,7 @@
       fetchCars();
       checkNewsBadge();
       initAuth();
+      prefetch126Data();
     }
 
 async function fetchCars() {
@@ -551,7 +552,7 @@ async function fetchCars() {
 
       if (data) {
         carsData = data;
-        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch(e) {}
         renderCars(document.getElementById('sortSelect').value);
         updateCarCount();
       }
@@ -560,6 +561,29 @@ async function fetchCars() {
       console.error("Supabase読込エラー:", e);
       document.getElementById('loading').innerText = "エラー: データの取得に失敗しました。";
     }
+  }
+
+  function prefetch126Data() {
+    try {
+      supabaseClient
+        .from('cars')
+        .select(`
+          PhotoMain:photo_main,
+          Model_DisplayC:model_display_c,
+          Year:year,
+          Prefecture:prefecture,
+          HandleName:handle_name,
+          DocumentID:document_id,
+          updatedAt:updated_at,
+          last_update_date
+        `)
+        .eq('car_type', '126')
+        .then(function(result) {
+          if (!result.error && result.data) {
+            try { localStorage.setItem('registro126_local_data', JSON.stringify(result.data)); } catch(e) {}
+          }
+        });
+    } catch(e) {}
   }
 
 async function checkNewsBadge() {

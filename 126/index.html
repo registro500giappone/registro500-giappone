@@ -532,6 +532,11 @@
       initAuth();
     }
 
+    // bfcache対策: ブラウザの戻るボタンで復元された場合にデータを再取得
+    window.addEventListener('pageshow', function(event) {
+      if (event.persisted) { fetchCars(); }
+    });
+
 async function fetchCars() {
     try {
       const { data, error } = await supabaseClient
@@ -552,7 +557,7 @@ async function fetchCars() {
 
       if (data) {
         carsData = data;
-        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch(e) {}
         renderCars(document.getElementById('sortSelect').value);
         updateCarCount();
       }
