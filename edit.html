@@ -87,6 +87,21 @@
       .car-select-item:hover { background: var(--rg-accent-soft); }
       .risk-note { background: #2d1a1e; border-color: #5c2830; }
     }
+
+    /* ─── ナンバーマスキングモーダル ─── */
+    #maskingModal { position: fixed; inset: 0; background: #000; z-index: 2500; display: none; flex-direction: column; }
+    .mask-header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; background: #111; color: white; font-size: 0.9rem; font-weight: bold; flex-shrink: 0; }
+    .mask-body { flex: 1; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #222; min-height: 0; }
+    #maskCanvas { max-width: 100%; max-height: 100%; touch-action: none; cursor: crosshair; display: block; }
+    .mask-footer { padding: 10px 12px; background: #111; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; flex-shrink: 0; }
+    .mask-adj-bar { display: none; flex-wrap: wrap; gap: 5px; justify-content: center; padding: 6px 10px; background: #1a1a1a; flex-shrink: 0; }
+    .btn-adj { background: #374151; color: #e2e8f0; border: none; border-radius: 4px; padding: 9px 11px; font-size: 0.78rem; cursor: pointer; }
+    .btn-mask { padding: 9px 14px; border-radius: 999px; border: none; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
+    .btn-mask-primary { background: var(--rg-primary-red); color: white; }
+    .btn-mask-secondary { background: #374151; color: white; }
+    .btn-mask-outline { background: none; border: 1px solid #666; color: #ccc; padding: 8px 14px; border-radius: 999px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
+    .btn-mask-green { background: #16a34a; color: white; display: inline-block; text-align: center; }
+    .mask-status { color: #94a3b8; font-size: 0.78rem; text-align: center; width: 100%; line-height: 1.4; }
   </style>
 </head>
 <body>
@@ -428,6 +443,36 @@
     </section>
   </div>
 
+  <!-- ナンバーマスキングモーダル（車外写真のみ表示） -->
+  <div id="maskingModal">
+    <div class="mask-header">
+      <span>📷 ナンバーをぼかす（任意）</span>
+      <button class="btn-mask-outline" onclick="skipMasking()">スキップ →</button>
+    </div>
+    <div class="mask-body">
+      <canvas id="maskCanvas"></canvas>
+    </div>
+    <div class="mask-adj-bar" id="maskAdjBar">
+      <button class="btn-adj" onclick="maskAdjust(-5,0,0,0)">← 左へ</button>
+      <button class="btn-adj" onclick="maskAdjust(5,0,0,0)">→ 右へ</button>
+      <button class="btn-adj" onclick="maskAdjust(0,-5,0,0)">↑ 上へ</button>
+      <button class="btn-adj" onclick="maskAdjust(0,5,0,0)">↓ 下へ</button>
+      <button class="btn-adj" onclick="maskAdjust(0,0,-10,0)">W縮小</button>
+      <button class="btn-adj" onclick="maskAdjust(0,0,10,0)">W拡大</button>
+      <button class="btn-adj" onclick="maskAdjust(0,0,0,-5)">H縮小</button>
+      <button class="btn-adj" onclick="maskAdjust(0,0,0,5)">H拡大</button>
+    </div>
+    <div class="mask-footer">
+      <div class="mask-status" id="maskStatus">「自動検出」でナンバープレートを検出、または直接ドラッグで範囲を指定</div>
+      <button class="btn-mask btn-mask-secondary" id="btnDetect" onclick="detectPlates()">🔍 自動検出</button>
+      <button class="btn-mask btn-mask-secondary" id="btnAddPlate" onclick="addNewPlate()">＋ 手動追加</button>
+      <button class="btn-mask btn-mask-secondary" id="btnResetMask" onclick="resetMask()">↺ リセット</button>
+      <button class="btn-mask btn-mask-primary" id="btnApplyBlur" onclick="applyBlur()">ぼかしを適用</button>
+      <a id="btnDownloadMask" class="btn-mask btn-mask-green" style="display:none;text-decoration:none;" download="masked.jpg">⬇ 保存</a>
+      <button class="btn-mask btn-mask-secondary" id="btnMaskDone" onclick="proceedToCropper()">クロップへ進む →</button>
+    </div>
+  </div>
+
   <div id="cropperModal">
     <div class="cropper-header">
       <span>写真をトリミング</span>
@@ -464,6 +509,9 @@
         if (user) {
           overlay.classList.add('hidden');
           document.getElementById('userEmailDisplay').textContent = user.email;
+          // owner_user_id が未設定の自分の車に UUID を自動補完（バックグラウンド実行）
+          supabaseClient.from('cars').update({ owner_user_id: user.id })
+            .eq('owner_email', user.email.toLowerCase()).is('owner_user_id', null).then(() => {});
           const params = new URLSearchParams(window.location.search);
           const docId = params.get('doc');
           const mode = params.get('mode');
@@ -583,7 +631,15 @@
       fileInput.onchange = (e) => {
         const file = e.target.files[0]; if (!file || !activeTarget) return;
         const reader = new FileReader();
-        reader.onload = (ev) => openCropper(ev.target.result);
+        reader.onload = (ev) => {
+          // 車外写真（ナンバー映り込みリスクあり）はマスクモーダルを先に表示
+          const maskTargets = ['PhotoMain', 'PhotoFront', 'PhotoSide', 'PhotoRear'];
+          if (maskTargets.includes(activeTarget)) {
+            openMaskingModal(ev.target.result);
+          } else {
+            openCropper(ev.target.result);
+          }
+        };
         reader.readAsDataURL(file);
       };
 
@@ -760,6 +816,284 @@
 
       document.getElementById('googleLoginBtn').onclick = () => supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
       document.getElementById('logoutBtn').onclick = () => supabaseClient.auth.signOut().then(() => location.reload());
+    })();
+
+    // ─── ナンバーマスキングモーダル ───────────────────────────
+    (function() {
+      const BORDER_PX = 4;       // 輪郭保持ピクセル
+      const BLUR_CSS = 20;       // CSS blur px (≒ Gaussian r=20)
+      const HANDLE_R = 28;       // タッチハンドル半径（canvas px）
+      const SNAP_PX = 20;        // 磁石スナップ距離
+
+      let _origDataURL = null;
+      let _origImg = null;
+      let _plates = [];          // [{x,y,w,h}]  canvas座標
+      let _selIdx = -1;
+      let _blurApplied = false;
+      let _drag = null;
+      let _pinch = null;
+      let _drawing = false;
+      let _drawStart = null;
+
+      const canvas = document.getElementById('maskCanvas');
+      const ctx = canvas.getContext('2d');
+
+      // ── 公開 API ────────────────────────────────────────
+      window.openMaskingModal = function(dataURL) {
+        _origDataURL = dataURL; _blurApplied = false; _plates = []; _selIdx = -1; _drag = null;
+        document.getElementById('maskingModal').style.display = 'flex';
+        document.getElementById('maskAdjBar').style.display = 'none';
+        document.getElementById('btnDownloadMask').style.display = 'none';
+        document.getElementById('btnApplyBlur').disabled = false;
+        _setStatus('「自動検出」でナンバープレートを検出、または直接ドラッグで範囲を指定');
+        const img = new Image();
+        img.onload = () => { _origImg = img; canvas.width = img.width; canvas.height = img.height; _render(); };
+        img.src = dataURL;
+      };
+
+      window.skipMasking = function() {
+        _close();
+        openCropper(_origDataURL);
+      };
+
+      window.proceedToCropper = function() {
+        const dataURL = _blurApplied ? canvas.toDataURL('image/jpeg', 0.92) : _origDataURL;
+        _close();
+        openCropper(dataURL);
+      };
+
+      window.maskAdjust = function(dx, dy, dw, dh) {
+        if (_selIdx < 0 || _blurApplied) return;
+        const p = _plates[_selIdx];
+        p.x += dx; p.y += dy;
+        p.w = Math.max(20, p.w + dw);
+        p.h = Math.max(10, p.h + dh);
+        _render();
+      };
+
+      window.addNewPlate = function() {
+        if (_blurApplied) return;
+        const w = Math.round(canvas.width * 0.3), h = Math.round(canvas.height * 0.1);
+        _plates.push({ x: Math.round((canvas.width - w) / 2), y: Math.round((canvas.height - h) / 2), w, h });
+        _selIdx = _plates.length - 1;
+        document.getElementById('maskAdjBar').style.display = 'flex';
+        _render();
+        _setStatus('追加した枠をドラッグで移動、四隅の●でリサイズできます');
+      };
+
+      window.resetMask = function() {
+        _plates = []; _selIdx = -1; _blurApplied = false; _drag = null;
+        document.getElementById('maskAdjBar').style.display = 'none';
+        document.getElementById('btnDownloadMask').style.display = 'none';
+        document.getElementById('btnApplyBlur').disabled = false;
+        if (_origImg) { canvas.width = _origImg.width; canvas.height = _origImg.height; }
+        _render();
+        _setStatus('リセットしました。再度検出するか手動で範囲を指定してください');
+      };
+
+      window.detectPlates = async function() {
+        if (!_origImg) return;
+        const btn = document.getElementById('btnDetect');
+        btn.disabled = true; btn.textContent = '🔍 検出中...';
+        _setStatus('ナンバープレートを検出しています...');
+        try {
+          const tmp = document.createElement('canvas');
+          tmp.width = _origImg.width; tmp.height = _origImg.height;
+          tmp.getContext('2d').drawImage(_origImg, 0, 0);
+          const b64 = tmp.toDataURL('image/jpeg', 0.85).split(',')[1];
+          const resp = await fetch(`${SUPABASE_URL}/functions/v1/detect-license-plate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageBase64: b64, width: _origImg.width, height: _origImg.height })
+          });
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const data = await resp.json();
+          if (data.plates && data.plates.length > 0) {
+            _plates = data.plates.map(p => ({ x: p.x, y: p.y, w: p.width, h: p.height }));
+            _selIdx = 0;
+            document.getElementById('maskAdjBar').style.display = 'flex';
+            _setStatus(`${data.plates.length} 件検出。枠をドラッグで位置・サイズを調整できます`);
+          } else {
+            _setStatus('検出できませんでした。「手動追加」で範囲を指定するか、スキップしてください');
+          }
+          _render();
+        } catch(e) {
+          _setStatus(`検出エラー: ${e.message}。手動で範囲を指定してください`);
+        } finally {
+          btn.disabled = false; btn.textContent = '🔍 自動検出';
+        }
+      };
+
+      window.applyBlur = function() {
+        if (_plates.length === 0) { _setStatus('ぼかす範囲がありません。枠を追加してください'); return; }
+        // 1. 元画像を描画
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(_origImg, 0, 0);
+        // 2. ぼかし版の一時キャンバス
+        const bc = document.createElement('canvas');
+        bc.width = canvas.width; bc.height = canvas.height;
+        const bctx = bc.getContext('2d');
+        bctx.filter = `blur(${BLUR_CSS}px)`;
+        bctx.drawImage(_origImg, 0, 0);
+        bctx.filter = 'none';
+        // 3. 内側領域だけぼかし版から貼り付け（輪郭BORDER_PX保持）
+        _plates.forEach(p => {
+          const x1b = p.x + BORDER_PX, y1b = p.y + BORDER_PX;
+          const wb = Math.max(1, p.w - BORDER_PX * 2), hb = Math.max(1, p.h - BORDER_PX * 2);
+          if (wb > 0 && hb > 0) ctx.drawImage(bc, x1b, y1b, wb, hb, x1b, y1b, wb, hb);
+        });
+        _blurApplied = true; _selIdx = -1;
+        document.getElementById('btnApplyBlur').disabled = true;
+        document.getElementById('maskAdjBar').style.display = 'none';
+        const dl = document.getElementById('btnDownloadMask');
+        dl.href = canvas.toDataURL('image/jpeg', 0.9); dl.style.display = '';
+        _setStatus('ぼかしを適用しました。「クロップへ進む」をタップしてください');
+      };
+
+      // ── 内部関数 ────────────────────────────────────────
+      function _close() { document.getElementById('maskingModal').style.display = 'none'; }
+      function _setStatus(t) { document.getElementById('maskStatus').textContent = t; }
+
+      function _render() {
+        if (!_origImg) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(_origImg, 0, 0);
+        _plates.forEach((p, i) => {
+          const sel = i === _selIdx;
+          ctx.fillStyle = 'rgba(220,38,38,0.3)';
+          ctx.fillRect(p.x, p.y, p.w, p.h);
+          ctx.strokeStyle = sel ? '#ff6b6b' : '#dc2626';
+          ctx.lineWidth = sel ? 3 : 2;
+          ctx.strokeRect(p.x, p.y, p.w, p.h);
+          if (sel) {
+            _handles(p).forEach(h => {
+              ctx.beginPath(); ctx.arc(h.x, h.y, HANDLE_R, 0, Math.PI * 2);
+              ctx.fillStyle = '#fff'; ctx.fill();
+              ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 2; ctx.stroke();
+            });
+          }
+        });
+      }
+
+      function _handles(p) {
+        return [
+          { x: p.x,       y: p.y,       t: 'tl' },
+          { x: p.x + p.w, y: p.y,       t: 'tr' },
+          { x: p.x,       y: p.y + p.h, t: 'bl' },
+          { x: p.x + p.w, y: p.y + p.h, t: 'br' },
+        ];
+      }
+
+      function _sc(e) { // screenCoords → canvasCoords
+        const r = canvas.getBoundingClientRect();
+        const sx = canvas.width / r.width, sy = canvas.height / r.height;
+        const src = e.touches ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : e);
+        return { x: (src.clientX - r.left) * sx, y: (src.clientY - r.top) * sy };
+      }
+
+      function _hitHandle(p, cx, cy) {
+        for (const h of _handles(p)) {
+          if ((cx - h.x) ** 2 + (cy - h.y) ** 2 <= (HANDLE_R * 2) ** 2) return h.t;
+        }
+        return null;
+      }
+
+      function _onDown(e) {
+        if (_blurApplied) return;
+        e.preventDefault();
+        if (e.touches && e.touches.length === 2) {
+          if (_selIdx >= 0) {
+            const t1 = e.touches[0], t2 = e.touches[1];
+            _pinch = { dist: Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY), origW: _plates[_selIdx].w, origH: _plates[_selIdx].h };
+          }
+          return;
+        }
+        const { x, y } = _sc(e);
+        if (_selIdx >= 0) {
+          const ht = _hitHandle(_plates[_selIdx], x, y);
+          if (ht) {
+            const p = _plates[_selIdx];
+            _drag = { type: 'resize', handle: ht, sx: x, sy: y, ox: p.x, oy: p.y, ow: p.w, oh: p.h };
+            return;
+          }
+        }
+        let found = -1;
+        for (let i = _plates.length - 1; i >= 0; i--) {
+          const p = _plates[i];
+          if (x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h) { found = i; break; }
+        }
+        if (found >= 0) {
+          _selIdx = found;
+          _drag = { type: 'move', sx: x, sy: y, ox: _plates[found].x, oy: _plates[found].y };
+          document.getElementById('maskAdjBar').style.display = 'flex';
+        } else {
+          _selIdx = -1; _drawing = true; _drawStart = { x, y };
+          document.getElementById('maskAdjBar').style.display = 'none';
+        }
+        _render();
+      }
+
+      function _onMove(e) {
+        if (_blurApplied) return;
+        e.preventDefault();
+        if (e.touches && e.touches.length === 2 && _pinch && _selIdx >= 0) {
+          const t1 = e.touches[0], t2 = e.touches[1];
+          const scale = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY) / _pinch.dist;
+          _plates[_selIdx].w = Math.max(20, Math.round(_pinch.origW * scale));
+          _plates[_selIdx].h = Math.max(10, Math.round(_pinch.origH * scale));
+          _render(); return;
+        }
+        const { x, y } = _sc(e);
+        if (_drag) {
+          const p = _plates[_selIdx];
+          if (_drag.type === 'move') {
+            p.x = Math.round(_drag.ox + (x - _drag.sx));
+            p.y = Math.round(_drag.oy + (y - _drag.sy));
+            if (p.x < SNAP_PX) p.x = 0;
+            if (p.y < SNAP_PX) p.y = 0;
+            if (p.x + p.w > canvas.width - SNAP_PX) p.x = canvas.width - p.w;
+            if (p.y + p.h > canvas.height - SNAP_PX) p.y = canvas.height - p.h;
+          } else {
+            const dx = x - _drag.sx, dy = y - _drag.sy, h = _drag.handle;
+            if (h === 'tl') { p.x = Math.round(_drag.ox + dx); p.y = Math.round(_drag.oy + dy); p.w = Math.max(20, Math.round(_drag.ow - dx)); p.h = Math.max(10, Math.round(_drag.oh - dy)); }
+            if (h === 'tr') { p.y = Math.round(_drag.oy + dy); p.w = Math.max(20, Math.round(_drag.ow + dx)); p.h = Math.max(10, Math.round(_drag.oh - dy)); }
+            if (h === 'bl') { p.x = Math.round(_drag.ox + dx); p.w = Math.max(20, Math.round(_drag.ow - dx)); p.h = Math.max(10, Math.round(_drag.oh + dy)); }
+            if (h === 'br') { p.w = Math.max(20, Math.round(_drag.ow + dx)); p.h = Math.max(10, Math.round(_drag.oh + dy)); }
+          }
+          _render();
+        } else if (_drawing && _drawStart) {
+          _render();
+          const x1 = Math.min(_drawStart.x, x), y1 = Math.min(_drawStart.y, y);
+          ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 2;
+          ctx.strokeRect(x1, y1, Math.abs(x - _drawStart.x), Math.abs(y - _drawStart.y));
+        }
+      }
+
+      function _onUp(e) {
+        if (_blurApplied) return;
+        if (_drag) { _drag = null; }
+        else if (_drawing && _drawStart) {
+          const { x, y } = _sc(e);
+          const x1 = Math.round(Math.min(_drawStart.x, x)), y1 = Math.round(Math.min(_drawStart.y, y));
+          const w = Math.round(Math.abs(x - _drawStart.x)), h = Math.round(Math.abs(y - _drawStart.y));
+          if (w > 10 && h > 5) {
+            _plates.push({ x: x1, y: y1, w, h });
+            _selIdx = _plates.length - 1;
+            document.getElementById('maskAdjBar').style.display = 'flex';
+            _setStatus('枠を追加しました。「ぼかしを適用」をタップしてください');
+          }
+          _drawing = false; _drawStart = null;
+        }
+        _pinch = null;
+        _render();
+      }
+
+      canvas.addEventListener('mousedown',  _onDown);
+      canvas.addEventListener('mousemove',  _onMove);
+      canvas.addEventListener('mouseup',    _onUp);
+      canvas.addEventListener('touchstart', _onDown, { passive: false });
+      canvas.addEventListener('touchmove',  _onMove, { passive: false });
+      canvas.addEventListener('touchend',   _onUp,   { passive: false });
     })();
   </script>
 </body>
