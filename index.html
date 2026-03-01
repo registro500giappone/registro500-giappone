@@ -643,9 +643,9 @@ async function checkNewsBadge() {
     }
 
     // ログアウト処理
-    async function logout() {
-      console.log("logout() called");
-      try { await supabaseClient.auth.signOut({ scope: 'global' }); } catch(e) { console.error("signOut error:", e); }
+    function logout() {
+      // signOut を待たずに即座にセッション削除 → リロード
+      supabaseClient.auth.signOut({ scope: 'global' }).catch(() => {});
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('sb-')) localStorage.removeItem(key);
       });

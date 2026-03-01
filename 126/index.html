@@ -623,8 +623,8 @@ async function checkNewsBadge() {
     }
 
     // ログアウト処理
-    async function logout() {
-      try { await supabaseClient.auth.signOut({ scope: 'global' }); } catch(e) {}
+    function logout() {
+      supabaseClient.auth.signOut({ scope: 'global' }).catch(() => {});
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('sb-')) localStorage.removeItem(key);
       });
