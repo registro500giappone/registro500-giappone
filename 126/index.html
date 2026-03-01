@@ -624,8 +624,11 @@ async function checkNewsBadge() {
 
     // ログアウト処理
     async function logout() {
-      await supabaseClient.auth.signOut();
-      await setSession(null);
+      try { await supabaseClient.auth.signOut(); } catch(e) {}
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith('sb-')) localStorage.removeItem(key);
+      }
+      location.reload();
     }
 
     async function setSession(user) {
