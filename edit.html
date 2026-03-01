@@ -15,6 +15,7 @@
 
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" integrity="sha384-HLJUgAQ2oo6rdMC4QW+Oz2qQfPOtu/lzncKG4sZiq8+2W9uOa3K0b3UGpckKqv7H" crossorigin="anonymous"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js" integrity="sha384-oFrOL1TiREYNET0lsYF3LjQuyi2gL7vhjH1X8vFr+umcmzAdPELopeSgbcrv4uRm" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
@@ -496,6 +497,7 @@
     (function() {
       if (firebase.apps.length === 0) firebase.initializeApp(FIREBASE_CONFIG);
       const storage = firebase.storage();
+      firebase.auth().signInAnonymously().catch(() => {});
       const overlay = document.getElementById('loginOverlay'), submitBtn = document.getElementById('submitButton'), carForm = document.getElementById('carForm'), pageLoading = document.getElementById('pageLoading'), formContent = document.getElementById('formContent'), carSelectionArea = document.getElementById('carSelectionArea'), myCarList = document.getElementById('myCarList'), fileInput = document.getElementById('globalFileInput');
 
       let originalData = null; // ★比較用の元データを保持
@@ -667,7 +669,7 @@
             const url = await ref.getDownloadURL();
             setPhotoPreview(activeTarget, url);
             closeCropper();
-          } catch (err) { alert("アップロード失敗: " + err.code + " / " + err.message); } finally { document.getElementById('cropDoneBtn').innerText = "この範囲で確定"; document.getElementById('cropDoneBtn').disabled = false; }
+          } catch (err) { alert("アップロードに失敗しました。時間をおいて再度お試しください。"); } finally { document.getElementById('cropDoneBtn').innerText = "この範囲で確定"; document.getElementById('cropDoneBtn').disabled = false; }
         }, 'image/jpeg', 0.85);
       };
 
