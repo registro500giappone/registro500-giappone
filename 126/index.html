@@ -624,11 +624,12 @@ async function checkNewsBadge() {
 
     // ログアウト処理
     async function logout() {
-      try { await supabaseClient.auth.signOut(); } catch(e) {}
-      for (const key of Object.keys(localStorage)) {
+      try { await supabaseClient.auth.signOut({ scope: 'global' }); } catch(e) {}
+      Object.keys(localStorage).forEach(key => {
         if (key.startsWith('sb-')) localStorage.removeItem(key);
-      }
-      location.reload();
+      });
+      sessionStorage.clear();
+      window.location.href = window.location.pathname;
     }
 
     async function setSession(user) {
