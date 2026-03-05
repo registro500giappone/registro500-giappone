@@ -514,7 +514,12 @@
       });
     })();
 
-    function forceReload() { window.location.reload(true); }
+    async function forceReload() {
+      // iOSのSafari PWAではreload()が効かないため、localStorageをクリアしてfetchCars()を直接呼ぶ
+      localStorage.removeItem(CACHE_KEY);
+      document.getElementById('loading').style.display = 'block';
+      await fetchCars();
+    }
 
     function shareSite() {
       const shareData = { title: 'Registro500 Giappone', text: '日本のチンクエチェント・オーナー名鑑。', url: 'https://www.registro500.com/' };
