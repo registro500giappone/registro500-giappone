@@ -545,7 +545,10 @@
 
 async function fetchCars() {
     try {
-      const { data, error } = await supabaseClient
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('接続タイムアウト（15秒）')), 15000)
+      );
+      const query = supabaseClient
         .from('cars')
         .select(`
           PhotoMain:photo_main,
@@ -559,6 +562,8 @@ async function fetchCars() {
         `)
         .eq('car_type', '500');
 
+      const { data, error } = await Promise.race([query, timeout]);
+
       if (error) throw error;
 
       if (data) {
@@ -570,7 +575,9 @@ async function fetchCars() {
       document.getElementById('loading').style.display = 'none';
     } catch (e) {
       console.error("Supabase読込エラー:", e);
-      document.getElementById('loading').innerText = "エラー: データの取得に失敗しました。";
+      const loadingEl = document.getElementById('loading');
+      loadingEl.style.display = 'block';
+      loadingEl.innerText = "エラー: " + (e?.message || 'データの取得に失敗しました');
     }
   }
 
