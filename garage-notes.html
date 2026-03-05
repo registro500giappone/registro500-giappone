@@ -373,34 +373,32 @@
   const ADMIN_EMAIL = 'registro500giappone@gmail.com';
 
   // ===== 認証状態 =====
-  supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    try {
-      const user = session?.user ?? null;
-      currentUser = user;
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    const user = session?.user ?? null;
+    currentUser = user;
 
-      // 固定ボトムバー（未ログイン時のみ表示）
-      document.getElementById('cta-floating-loggedout').style.display = user ? 'none' : 'block';
+    // 固定ボトムバー（未ログイン時のみ表示）
+    document.getElementById('cta-floating-loggedout').style.display = user ? 'none' : 'block';
 
-      // フォーム表示切り替え
-      document.getElementById('note-form-area').style.display    = user ? 'block' : 'none';
-      document.getElementById('note-login-prompt').style.display = user ? 'none'  : 'block';
+    // フォーム表示切り替え
+    document.getElementById('note-form-area').style.display    = user ? 'block' : 'none';
+    document.getElementById('note-login-prompt').style.display = user ? 'none'  : 'block';
 
-      if (user) {
-        const { data } = await supabaseClient
-          .from('cars')
-          .select('handle_name')
-          .eq('owner_user_id', user.id)
-          .limit(1)
-          .maybeSingle();
-        currentHandleName = data?.handle_name || null;
-      } else {
-        currentHandleName = null;
-      }
-    } catch (e) {
-      console.error('onAuthStateChange error:', e);
-    } finally {
-      loadNotes();
+    // ハンドルネーム取得はonAuthStateChangeの外で非同期実行
+    // （コールバック内でawait supabaseClientを使うとデッドロックになる）
+    if (user) {
+      supabaseClient
+        .from('cars')
+        .select('handle_name')
+        .eq('owner_user_id', user.id)
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => { currentHandleName = data?.handle_name || null; });
+    } else {
+      currentHandleName = null;
     }
+
+    loadNotes();
   });
 
   // ページロード時に即座に投稿を表示（認証完了を待たない）
@@ -409,7 +407,6 @@
   // ===== 投稿読み込み =====
   async function loadNotes() {
     const listEl = document.getElementById('note-list');
-    console.log('[GN] loadNotes start, listEl=', listEl);
     try {
       const { data, error } = await supabaseClient
         .from('garage_notes')
@@ -417,17 +414,15 @@
         .eq('theme', 'parts_purchase')
         .order('created_at', { ascending: false });
 
-      console.log('[GN] loadNotes result: data=', data, 'error=', error);
       if (error) {
-        console.error('[GN] loadNotes error:', error);
+        console.error('loadNotes error:', error);
         listEl.innerHTML = '<div class="note-empty">読み込みに失敗しました。</div>';
         return;
       }
       allNotes = data || [];
-      console.log('[GN] renderNotes, count=', allNotes.length);
       renderNotes();
     } catch (e) {
-      console.error('[GN] loadNotes exception:', e);
+      console.error('loadNotes exception:', e);
       if (listEl) listEl.innerHTML = '<div class="note-empty">読み込みに失敗しました。</div>';
     }
   }
