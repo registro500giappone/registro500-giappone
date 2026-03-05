@@ -404,18 +404,25 @@
 
   // ===== 投稿読み込み =====
   async function loadNotes() {
-    const { data, error } = await supabaseClient
-      .from('garage_notes')
-      .select('*')
-      .eq('theme', 'parts_purchase')
-      .order('created_at', { ascending: false });
+    const listEl = document.getElementById('note-list');
+    try {
+      const { data, error } = await supabaseClient
+        .from('garage_notes')
+        .select('*')
+        .eq('theme', 'parts_purchase')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      document.getElementById('note-list').innerHTML = '<div class="note-empty">読み込みに失敗しました。</div>';
-      return;
+      if (error) {
+        console.error('loadNotes error:', error);
+        listEl.innerHTML = '<div class="note-empty">読み込みに失敗しました。</div>';
+        return;
+      }
+      allNotes = data || [];
+      renderNotes();
+    } catch (e) {
+      console.error('loadNotes exception:', e);
+      if (listEl) listEl.innerHTML = '<div class="note-empty">読み込みに失敗しました。</div>';
     }
-    allNotes = data || [];
-    renderNotes();
   }
 
   // ===== フィルター =====
