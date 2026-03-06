@@ -1,0 +1,37 @@
+name: クロール EuroItalia500（週3回）
+
+on:
+  schedule:
+    - cron: '0 12 * * 1,3,5'  # 月・水・金 JST 21:00 (UTC 12:00)
+  workflow_dispatch:            # 手動実行ボタン
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180  # 137.7分の実績 + 余裕
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Chrome インストール
+        uses: browser-actions/setup-chrome@v1
+
+      - name: 依存関係インストール
+        run: pip install -r py/requirements.txt
+
+      - name: .env 作成
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> py/.env
+
+      - name: EuroItalia500 クロール
+        run: python py/euro_search.py
+
+      - name: AI翻訳（新規レコードのみ）
+        if: success()
+        run: python py/ai_marathon_final_v9.py
