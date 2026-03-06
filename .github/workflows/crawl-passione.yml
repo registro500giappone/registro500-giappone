@@ -1,0 +1,34 @@
+name: クロール Passione 500（週2回）
+
+on:
+  schedule:
+    - cron: '0 12 * * 1,4'  # 月・木 JST 21:00 (UTC 12:00)
+  workflow_dispatch:          # 手動実行ボタン
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240  # 実績約100〜150分 + 余裕
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 依存関係インストール
+        run: pip install -r py/requirements.txt
+
+      - name: .env 作成
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> py/.env
+
+      - name: Passione 500 クロール
+        run: python py/passione_recon.py
+
+      - name: AI翻訳（新規レコードのみ）
+        if: success()
+        run: python py/ai_marathon_final_v9.py
