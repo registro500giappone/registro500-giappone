@@ -604,9 +604,12 @@ async function fetchCars() {
       document.getElementById('loading').style.display = 'none';
     } catch (e) {
       console.error("Supabase読込エラー:", e);
-      const loadingEl = document.getElementById('loading');
-      loadingEl.style.display = 'block';
-      loadingEl.innerText = "エラー: " + (e?.message || 'データの取得に失敗しました');
+      // キャッシュデータが表示されている場合はエラーオーバーレイを出さない
+      if (carsData.length === 0) {
+        const loadingEl = document.getElementById('loading');
+        loadingEl.style.display = 'block';
+        loadingEl.innerText = "エラー: " + (e?.message || 'データの取得に失敗しました');
+      }
     }
   }
 
