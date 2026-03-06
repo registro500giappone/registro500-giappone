@@ -711,6 +711,26 @@ function onOpen() {
 }
 
 function menuSendNewsletter() {
+  const news = getLatestNews();
+  if (!news) {
+    SpreadsheetApp.getUi().alert('❌ 未送信のニュースがありません。\n\nすべてのニュースは送信済みです。');
+    return;
+  }
+  const preview = news.content ? news.content.substring(0, 150) + (news.content.length > 150 ? '...' : '') : '（本文なし）';
+  const ui = SpreadsheetApp.getUi();
+  const confirm = ui.alert(
+    `📧 以下のニュースをメール送信します。よろしいですか？\n\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `ID: ${news.id}\n` +
+    `タイトル: ${news.title}\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `${preview}`,
+    ui.ButtonSet.YES_NO
+  );
+  if (confirm !== ui.Button.YES) {
+    ui.alert('送信をキャンセルしました。');
+    return;
+  }
   const result = sendNewsletterEmail();
   if (result.success) {
     Logger.log(`✅ メール送信完了！ ${result.count}人のオーナーに送信しました。`);
@@ -797,7 +817,8 @@ function showDeliveryLog() {
 
 function getLatestNews() {
   try {
-    const url = SUPABASE_URL + '/rest/v1/news?order=date.desc&limit=1';
+    // sent_at IS NULL（未送信）のニュースのみ取得。再送防止。
+    const url = SUPABASE_URL + '/rest/v1/news?sent_at=is.null&order=id.desc&limit=1';
     const headers = {
       'apikey': SUPABASE_ANON_KEY,
       'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
@@ -811,6 +832,22 @@ function getLatestNews() {
   } catch (e) {
     console.error('getLatestNews error:', e);
     return null;
+  }
+}
+
+function markNewsAsSent_(newsId) {
+  try {
+    const url = SUPABASE_URL + '/rest/v1/news?id=eq.' + newsId;
+    const headers = {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    };
+    const options = { method: 'patch', headers: headers, payload: JSON.stringify({ sent_at: new Date().toISOString() }), muteHttpExceptions: true };
+    UrlFetchApp.fetch(url, options);
+  } catch (e) {
+    console.error('markNewsAsSent_ error:', e);
   }
 }
 
@@ -874,7 +911,7 @@ function getMissingOwnerEmails() {
 function sendNewsletterEmail() {
   try {
     const news = getLatestNews();
-    if (!news) return { success: false, count: 0, newsTitle: '', error: 'ニュースがありません' };
+    if (!news) return { success: false, count: 0, newsTitle: '', error: '未送信のニュースがありません' };
     const emails = getOwnerEmails();
     if (emails.length === 0) return { success: false, count: 0, newsTitle: news.title, error: 'オーナーのメールアドレスがありません' };
     const subject = `【Registro500 Giappone】${news.title}`;
@@ -885,6 +922,7 @@ function sendNewsletterEmail() {
       sendBroadcastViaBrevo(chunk, subject, body);
       Utilities.sleep(1000);
     }
+    markNewsAsSent_(news.id);
     return { success: true, count: emails.length, newsTitle: news.title, timestamp: new Date().toLocaleString('ja-JP') };
   } catch (e) {
     return { success: false, count: 0, newsTitle: '', error: e.toString() };
@@ -894,7 +932,7 @@ function sendNewsletterEmail() {
 function sendToMissingRecipients() {
   try {
     const news = getLatestNews();
-    if (!news) return { success: false, count: 0, newsTitle: '', error: 'ニュースがありません' };
+    if (!news) return { success: false, count: 0, newsTitle: '', error: '未送信のニュースがありません' };
     const missingEmails = getMissingOwnerEmails();
     if (missingEmails.length === 0) return { success: false, count: 0, newsTitle: news.title, error: '未送信者がいません' };
     const subject = `【Registro500 Giappone】${news.title}`;
@@ -905,6 +943,7 @@ function sendToMissingRecipients() {
       sendBroadcastViaBrevo(chunk, subject, body);
       Utilities.sleep(1000);
     }
+    markNewsAsSent_(news.id);
     return { success: true, count: missingEmails.length, newsTitle: news.title, timestamp: new Date().toLocaleString('ja-JP') };
   } catch (e) {
     return { success: false, count: 0, newsTitle: '', error: e.toString() };
