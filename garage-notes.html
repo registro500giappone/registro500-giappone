@@ -464,7 +464,7 @@
             <span class="note-type-badge ${note.post_type}">${typeLabels[note.post_type] || note.post_type}</span>
             ${ratingBadge}${shopBadge}
           </div>
-          <div class="note-card-body">${escapeHtml(note.body)}</div>
+          <div class="note-card-body">${linkifyBody(note.body)}</div>
           <div class="note-card-footer">
             ${tags}
             <span class="note-meta">${escapeHtml(note.display_name)} ・ ${date}</span>
@@ -477,6 +477,14 @@
   function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/\n/g,'<br>');
+  }
+
+  // 本文用：HTMLエスケープ後にURLをリンク化
+  function linkifyBody(str) {
+    if (!str) return '';
+    const escaped = str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/\n/g,'<br>');
+    return escaped.replace(/(https?:\/\/[^\s<&]+)/g,
+      '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:var(--accent);word-break:break-all;">$1</a>');
   }
 
   // ===== フォーム操作 =====
