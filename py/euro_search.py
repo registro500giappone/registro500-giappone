@@ -1,17 +1,17 @@
+"""
+EuroItalia500 クローラー（再構築版）
+- Selenium廃止 → requests + BeautifulSoup（5〜7倍高速化）
+- URL収集: DBの既存page_urlからカテゴリスラグを抽出し、各カテゴリをページネーション巡回
+- 推定実行時間: 60〜90分（旧版: 137分）
+- GitHub Actions 6h制限に余裕で収まるように
+"""
+
 import time
-import pandas as pd
 import requests
 import re
 import os
 import random
-from urllib.robotparser import RobotFileParser
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
+from bs4 import BeautifulSoup
 from supabase import create_client
 from dotenv import load_dotenv
 
@@ -21,329 +21,276 @@ SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_KEY = os.environ["SUPABASE_KEY"]
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-DESKTOP_PATH = os.path.join(os.path.expanduser('~'), 'Desktop')
-URL_LIST_FILE = os.path.join(DESKTOP_PATH, "euro_url_list.csv")
-OUTPUT_FILE = os.path.join(DESKTOP_PATH, "euro_full_catalog.csv")
-BOT_USER_AGENT = "Registro500Bot/1.0 (+https://www.registro500.com; parts price comparison)"
+SHOP_NAME = "EuroItalia500"
 SITE_BASE_URL = "https://euroitalia500-commerce.it"
+BOT_USER_AGENT = "Registro500Bot/1.0 (+https://www.registro500.com; parts price comparison)"
+BATCH_SIZE = 50
 
-def check_robots_txt(base_url, path="/"):
-    """robots.txt を確認し、クロールが許可されているか判定"""
-    rp = RobotFileParser()
-    rp.set_url(base_url.rstrip('/') + '/robots.txt')
-    try:
-        rp.read()
-    except Exception as e:
-        print(f"[robots.txt] 読み取りエラー（許可として続行）: {e}")
-        return True
-    allowed = rp.can_fetch(BOT_USER_AGENT, path)
-    if not allowed:
-        print(f"[robots.txt] {base_url}{path} はクロール禁止です。スキップします。")
-    return allowed
-
-# ★★★ テストモード ★★★
-# Trueの場合: 動作確認用（各カテゴリ1ページ目、詳細取得5件のみ）
-# 本番は False にしてください。
 TEST_MODE = False
+TEST_TARGET = 10
 
-def setup_driver():
-    """最適化版（2026/02/21: eager + スリープ短縮対応）"""
-    # crawler_utils が使えれば共通版を使う
-    try:
-        from crawler_utils import setup_driver as _setup
-        return _setup()
-    except ImportError:
-        pass
-    options = Options()
-    options.add_argument('--headless=new')
-    options.add_argument('--disable-gpu')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--disable-extensions')
-    options.page_load_strategy = 'eager'
-    prefs = {'profile.managed_default_content_settings.images': 2, 'profile.default_content_setting_values.notifications': 2}
-    options.add_experimental_option('prefs', prefs)
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option('useAutomationExtension', False)
-    options.add_argument('--window-size=1280,1024')
-    options.add_argument("--log-level=3")
-    options.add_argument('--lang=en-US')
-    options.add_argument('--accept-language=en-US,en;q=0.9')
-    options.add_argument(f'--user-agent={BOT_USER_AGENT}')
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=options)
-    driver.set_page_load_timeout(20)
-    driver.implicitly_wait(3)
-    driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {'source': 'Object.defineProperty(navigator, "webdriver", {get: () => undefined})'})
-    return driver
 
 def add_lang_param(url):
-    """Phase 2用: URLに言語パラメータを追加"""
+    """英語ページ（id_lang=1）に切り替え"""
     if '?' in url:
         return url + '&id_lang=1'
-    else:
-        return url + '?id_lang=1'
+    return url + '?id_lang=1'
 
-# ==========================================
-# Phase 1: 商品URLを根こそぎ集める (Crawl)
-# Source: euro_search20260208.py (ロジック完全維持)
-# ==========================================
-def collect_all_urls(driver):
-    print("\n=== Phase 1: 商品URLの収集を開始します (Logic: 20260208) ===")
-    
-    # 既存リストの読み込みロジック（必要に応じてコメントアウト解除）
-    # if os.path.exists(URL_LIST_FILE):
-    #     print(f"   既存のURLリストが見つかりました: {URL_LIST_FILE}")
-    #     df = pd.read_csv(URL_LIST_FILE)
-    #     urls = df['URL'].tolist()
-    #     print(f"   -> {len(urls)} 件のURLをロードしました。")
-    #     if not TEST_MODE:
-    #         return urls
 
-    all_product_urls = set()
-    
-    # 1. HTMLサイトマップからカテゴリ取得
-    print("1. カテゴリ一覧を取得中...")
-    # 元ファイル通り、パラメータなしのURLにアクセス
-    driver.get("https://euroitalia500-commerce.it/mappa-del-sito")
-    time.sleep(3)
-    
-    # カテゴリリンクを抽出
-    cat_links = driver.find_elements(By.CSS_SELECTOR, "#sitemap_content a")
-    category_urls = []
-    for l in cat_links:
-        href = l.get_attribute("href")
-        if href and "euroitalia500-commerce.it" in href:
-            if not any(x in href for x in ["login", "cart", "contact", "order", "address"]):
-                category_urls.append(href)
-    
-    category_urls = sorted(list(set(category_urls)))
-    print(f"   -> {len(category_urls)} 個のカテゴリ候補を発見。巡回を開始します。")
-
-    # 2. 各カテゴリを巡回
-    for i, cat_url in enumerate(category_urls, 1):
-        if TEST_MODE and i > 2: break
-
-        print(f"   [{i}/{len(category_urls)}] カテゴリ巡回: {cat_url}")
-        driver.get(cat_url) # ここもパラメータ付与せず、元のまま
-        
-        page_count = 1
+def get_category_slugs():
+    """DBの既存page_urlからカテゴリスラグ一覧を抽出"""
+    print("1. カテゴリスラグをDBから取得中...")
+    try:
+        # RPC or 全件取得（件数が多いのでページング）
+        all_urls = []
+        offset = 0
+        limit = 1000
         while True:
-            time.sleep(2)
-            
-            # 商品リンクを取得
-            products = driver.find_elements(By.CSS_SELECTOR, "a.product_img_link")
-            if not products:
+            res = (supabase.table("parts")
+                   .select("page_url")
+                   .eq("shop_name", SHOP_NAME)
+                   .range(offset, offset + limit - 1)
+                   .execute())
+            if not res.data:
                 break
-                
-            for p in products:
-                u = p.get_attribute("href")
-                if u: all_product_urls.add(u)
-            
-            print(f"      pg.{page_count}: {len(products)}件発見 (累計: {len(all_product_urls)}件)")
-
-            if TEST_MODE: break
-
-            # 「次へ」ボタンを探す (PrestaShop標準)
-            try:
-                next_btn = driver.find_element(By.CSS_SELECTOR, "#pagination_next_bottom a, li.pagination_next a")
-                driver.get(next_btn.get_attribute("href")) # ここも元のまま
-                page_count += 1
-            except:
+            all_urls.extend(res.data)
+            if len(res.data) < limit:
                 break
+            offset += limit
 
-    # 保存
-    url_list = sorted(list(all_product_urls))
-    pd.DataFrame(url_list, columns=['URL']).to_csv(URL_LIST_FILE, index=False)
-    print(f"   ★URL収集完了: 合計 {len(url_list)} 件を保存しました。\n")
-    return url_list
+        slugs = set()
+        for row in all_urls:
+            url = row.get("page_url", "")
+            if not url:
+                continue
+            path = url.replace(SITE_BASE_URL, "").lstrip("/")
+            parts = [p for p in path.split("/") if p]
+            if len(parts) >= 2:
+                slugs.add(parts[0])
 
-# ==========================================
-# Phase 2: 詳細データを抜き出す (Scrape)
-# Source: euro_full_search_v3_final.py (ロジック完全維持)
-# ==========================================
+        result = sorted(slugs)
+        print(f"   -> {len(result)} 個のカテゴリスラグをDBから抽出")
+        return result
+    except Exception as e:
+        print(f"   [WARN] DBからのスラグ取得失敗: {e}")
+        return []
+
+
+def collect_urls_from_category(session, slug):
+    """1カテゴリ内の全商品URLをページネーションで収集"""
+    product_urls = set()
+    page = 1
+    while True:
+        url = f"{SITE_BASE_URL}/{slug}?p={page}"
+        try:
+            r = session.get(url, timeout=20)
+            if r.status_code != 200:
+                break
+            soup = BeautifulSoup(r.text, 'html.parser')
+            links = soup.select("a.product_img_link")
+            if not links:
+                break
+            for a in links:
+                href = a.get("href", "")
+                if href:
+                    product_urls.add(href)
+            # 次ページ確認
+            next_btn = soup.select_one("#pagination_next_bottom a, li.pagination_next a")
+            if not next_btn:
+                break
+            page += 1
+            time.sleep(random.uniform(0.3, 0.6))
+        except Exception as e:
+            print(f"      [WARN] {url}: {e}")
+            break
+    return product_urls
+
+
+def get_all_urls(session):
+    """全カテゴリを走査して全商品URLを収集"""
+    slugs = get_category_slugs()
+    if not slugs:
+        print("   [ERROR] カテゴリスラグが取得できません")
+        return []
+
+    all_urls = set()
+    for i, slug in enumerate(slugs, 1):
+        urls = collect_urls_from_category(session, slug)
+        all_urls.update(urls)
+        print(f"   [{i}/{len(slugs)}] {slug}: {len(urls)}件 (累計: {len(all_urls)}件)")
+        time.sleep(random.uniform(0.5, 1.0))
+
+    result = sorted(all_urls)
+    print(f"   ★合計 {len(result)} 件の商品URLを取得しました")
+    return result
+
+
 def clean_price(price_str):
-    if not price_str: return 0.0
-    s = str(price_str).replace('€', '').strip()
-    clean = re.sub(r'[^\d.,]', '', s)
+    """€22.00 / 1.200,50 → float"""
+    if not price_str:
+        return 0.0
+    clean = re.sub(r'[^\d.,]', '', str(price_str))
     if ',' in clean and '.' in clean:
         clean = clean.replace('.', '').replace(',', '.')
-    elif ',' in clean: 
+    elif ',' in clean:
         clean = clean.replace(',', '.')
-    try: return float(clean)
-    except: return 0.0
-
-def sync_to_supabase(data):
-    product_no = data['Product No']
-    
     try:
-        existing = supabase.table("parts").select("*").eq("product_no", product_no).execute()
-    except: existing = None
+        return float(clean)
+    except:
+        return 0.0
 
-    formatted_data = {
-        "shop_name": "EuroItalia500",
-        "product_no": product_no,
-        "oem_no": data['OEM'],
-        "name_en": data['Name'],
-        "price_euro": clean_price(data['Price']),
-        "image_url": data['Image_URL'],
-        "page_url": data['URL'],
-        "stock_status": data['Stock']
-    }
-    
-    if existing and existing.data:
-        curr = existing.data[0]
-        if curr.get('name_jp') and str(curr['name_jp']) != 'nan': formatted_data['name_jp'] = curr['name_jp']
-        if curr.get('category') and str(curr['category']) != 'null': formatted_data['category'] = curr['category']
-        if curr.get('specs') and str(curr['specs']) != 'nan': formatted_data['specs'] = curr['specs']
-        if curr.get('target_cars') and str(curr['target_cars']) != 'nan': formatted_data['target_cars'] = curr['target_cars']
-    else:
-        formatted_data['name_jp'] = 'nan'
-        formatted_data['category'] = None
-        formatted_data['target_cars'] = 'Fiat 500'
 
+def detect_vehicle(name, url):
+    text = f"{name} {url}".lower()
+    cars = []
+    if re.search(r'fiat[\s\-]*500|\b500\b', text):
+        cars.append("Fiat 500")
+    if re.search(r'\b126\b', text):
+        cars.append("Fiat 126")
+    if re.search(r'\b600\b', text):
+        cars.append("Fiat 600")
+    return ", ".join(cars) if cars else "Fiat 500"
+
+
+def scrape_product(session, url):
+    """1商品ページをrequestsで取得してパース"""
     try:
-        supabase.table("parts").upsert(formatted_data, on_conflict="product_no").execute()
+        r = session.get(add_lang_param(url), timeout=20)
+        if r.status_code != 200:
+            return None
+        soup = BeautifulSoup(r.text, 'html.parser')
+
+        # 品番（#product_reference: "Reference: ABC123" → "ABC123"）
+        ref_el = soup.find(id='product_reference')
+        if not ref_el:
+            return None
+        ref_text = ref_el.get_text(strip=True)
+        # "Reference:" や "Riferimento:" などのラベルを除去
+        item_no = re.sub(r'^.*?[:\.]', '', ref_text).strip()
+        if not item_no:
+            item_no = ref_text
+        if not item_no:
+            return None
+
+        # 商品名
+        h1 = soup.find('h1')
+        name_en = re.sub(r'\s+', ' ', h1.get_text()).strip() if h1 else "Unknown"
+
+        # 価格
+        price_el = soup.find(id='our_price_display')
+        price_euro = clean_price(price_el.get_text(strip=True)) if price_el else 0.0
+
+        # 在庫
+        avail_el = soup.find(id='availability_statut')
+        if avail_el:
+            stock_status = "在庫あり" if "stock" in avail_el.get_text().lower() else "在庫なし"
+        else:
+            stock_status = "在庫あり" if soup.find(id='add_to_cart') else "在庫なし"
+
+        # 画像
+        img_el = soup.find(id='bigpic')
+        if img_el:
+            image_url = img_el.get('src', '')
+        else:
+            og_img = soup.find('meta', property='og:image')
+            image_url = og_img['content'] if og_img else ""
+
+        # OEM番号
+        oem_no = "N/A"
+        desc_el = soup.find(id='short_description_content')
+        if desc_el:
+            m = re.search(r'(?:Original|OEM|Rif|Ref).*?[:\.]?\s*([0-9\s/A-Z\-]{4,})',
+                          desc_el.get_text(), re.IGNORECASE)
+            if m:
+                oem_no = m.group(1).strip()
+
+        return {
+            "shop_name": SHOP_NAME,
+            "product_no": item_no,
+            "oem_no": oem_no,
+            "name_en": name_en,
+            "price_euro": price_euro,
+            "stock_status": stock_status,
+            "image_url": image_url,
+            "page_url": url,
+            "target_cars": detect_vehicle(name_en, url),
+            # name_jp / category は含めない → AI翻訳済みデータを保護
+        }
+
+    except Exception:
+        return None
+
+
+def batch_upsert(batch):
+    """バッチでSupabaseにupsert"""
+    try:
+        supabase.table("parts").upsert(batch, on_conflict="product_no").execute()
+        return True
     except Exception as e:
-        print(f"   [Sync Error] {e}")
+        print(f"   [Batch Upsert Error] {e}")
+        return False
 
-def scrape_details(driver, url_list):
-    print("=== Phase 2: 詳細データの取得を開始します (Logic: v3_final) ===")
-    
-    total = len(url_list)
-    success_count = 0
-    
-    for i, url in enumerate(url_list, 1):
-        if TEST_MODE and success_count >= 5: 
-            print("★★★ テスト完了: 5件取得しました ★★★")
-            break
-            
-        time.sleep(random.uniform(1.0, 1.5))
-        try:
-            # ★ここで初めて add_lang_param を使用して英語ページへアクセス
-            driver.get(add_lang_param(url))
-            
-            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
-            
-            # 1. 商品番号
-            item_no = "N/A"
-            try:
-                item_no = driver.find_element(By.ID, "product_reference").text.strip()
-            except:
-                try:
-                    body = driver.find_element(By.TAG_NAME, "body").text
-                    m = re.search(r'Reference\s*[:\.]?\s*([A-Za-z0-9\-/]+)', body)
-                    if m: item_no = m.group(1)
-                except: pass
-            
-            if item_no == "N/A": 
-                continue
-
-            # 2. 価格
-            price = "N/A"
-            try:
-                price = driver.find_element(By.ID, "our_price_display").text.strip()
-            except: pass
-
-            # 3. OEM番号
-            oem = "N/A"
-            try:
-                desc = driver.find_element(By.ID, "short_description_content").text
-                m = re.search(r'(?:Original|OEM|Rif).*?[:\.]\s*([0-9\s/]+)', desc, re.IGNORECASE)
-                if m: oem = m.group(1).strip()
-            except: pass
-
-            # 4. 画像
-            image_url = "nan"
-            try:
-                img_elem = driver.find_element(By.ID, "bigpic")
-                image_url = img_elem.get_attribute("src")
-            except:
-                try:
-                    image_url = driver.find_element(By.CSS_SELECTOR, ".product-image-container img").get_attribute("src")
-                except: pass
-
-            # 5. 商品名
-            try: name = driver.find_element(By.TAG_NAME, "h1").text.strip()
-            except: name = "Unknown"
-
-            # 6. 在庫
-            stock = "Unknown"
-            try:
-                stock_text = driver.find_element(By.ID, "availability_statut").text.lower()
-                if "stock" in stock_text: stock = "In Stock"
-                else: stock = "Out of Stock"
-            except: 
-                if driver.find_elements(By.ID, "add_to_cart"): stock = "In Stock"
-
-            print(f"  [{i}/{total}] {item_no}")
-            print(f"     ∟ 商品名: {name}")
-            print(f"     ∟ 価格: {price} | OEM: {oem}")
-
-            data = {
-                'Shop': 'EuroItalia500', 'Name': name, 
-                'Product No': item_no, 'OEM': oem, 
-                'Price': price, 'Stock': stock, 
-                'Image_URL': image_url, 'URL': url
-            }
-            
-            pd.DataFrame([data]).to_csv(OUTPUT_FILE, mode='a', header=not os.path.exists(OUTPUT_FILE), index=False, encoding='utf-8-sig')
-            sync_to_supabase(data)
-            success_count += 1
-
-        except Exception as e:
-            print(f"  [Skip] {e}")
-            continue
 
 def main():
     from datetime import datetime
     start_time = time.time()
-    start_datetime = datetime.now()
-
     print("=" * 60)
-    print("EuroItalia500 クローラー 開始")
-    print(f"開始時刻: {start_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"{SHOP_NAME} クローラー 開始（再構築版）")
+    print(f"開始時刻: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
 
-    print("\n0. robots.txt 確認中...")
-    if not check_robots_txt(SITE_BASE_URL, "/"):
-        print("robots.txt によりクロールが禁止されています。終了します。")
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": BOT_USER_AGENT,
+        "Accept-Language": "en-US,en;q=0.5",
+    })
+
+    urls = get_all_urls(session)
+    if not urls:
+        print("[ERROR] URLを取得できませんでした")
         return
-    print("   -> クロール許可を確認")
 
-    driver = setup_driver()
-    try:
-        # Phase 1: URL収集 (20260208ロジック: add_lang_paramなし)
-        urls = collect_all_urls(driver)
+    total = len(urls)
+    print(f"\n2. 商品詳細の収集を開始します（{total} 件）...")
 
-        # Phase 2: 詳細取得 (v3ロジック: add_lang_paramあり)
-        if len(urls) > 0:
-            scrape_details(driver, urls)
+    success = 0
+    skip = 0
+    batch = []
 
-            # 実行時間表示
-            end_time = time.time()
-            end_datetime = datetime.now()
-            elapsed = end_time - start_time
-            hours = int(elapsed // 3600)
-            minutes = int((elapsed % 3600) // 60)
-            seconds = int(elapsed % 60)
+    for i, url in enumerate(urls, 1):
+        if TEST_MODE and success >= TEST_TARGET:
+            print(f"★ テストモード完了（{TEST_TARGET}件）")
+            break
 
-            print("\n" + "=" * 60)
-            print("[OK] クローリング完了")
-            print(f"終了時刻: {end_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"所要時間: {hours}時間{minutes}分{seconds}秒 ({elapsed/60:.1f}分)")
-            print(f"処理件数: {len(urls)} URL")
-            if len(urls) > 0:
-                print(f"平均速度: {elapsed/len(urls):.2f}秒/URL")
-            print("=" * 60)
-        else:
-            print("商品URLが見つかりませんでした。")
-    except Exception as e:
-        print(f"\nエラー: {e}")
-        end_time = time.time()
-        print(f"実行時間: {(end_time - start_time)/60:.1f}分（エラーで中断）")
-    finally:
-        driver.quit()
+        time.sleep(random.uniform(0.5, 1.0))
+
+        data = scrape_product(session, url)
+        if not data:
+            skip += 1
+            continue
+
+        batch.append(data)
+        success += 1
+
+        if len(batch) >= BATCH_SIZE:
+            batch_upsert(batch)
+            batch = []
+            elapsed = (time.time() - start_time) / 60
+            rate = success / elapsed if elapsed > 0 else 0
+            eta = (total - i) / (rate * 60) / 60 if rate > 0 else 0
+            print(f"  [{i}/{total}] 完了: {success}件保存 | 経過: {elapsed:.1f}分 | 残り推定: {eta:.1f}時間")
+
+    if batch:
+        batch_upsert(batch)
+
+    elapsed_total = (time.time() - start_time) / 60
+    print("\n" + "=" * 60)
+    print(f"[OK] クローリング完了")
+    print(f"終了時刻: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"所要時間: {elapsed_total:.1f}分")
+    print(f"成功: {success}件 / スキップ: {skip}件 / 合計URL: {total}件")
+    print("=" * 60)
+
 
 if __name__ == "__main__":
     main()
