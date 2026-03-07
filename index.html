@@ -544,6 +544,11 @@
       });
     })();
 
+    // bfcache対策: ブラウザの戻るボタンで復元された場合にデータを再取得
+    window.addEventListener('pageshow', function(event) {
+      if (event.persisted) { fetchCars(); }
+    });
+
     async function forceReload() {
       // iOSのSafari PWAではreload()が効かないため、fetchCars()を直接呼ぶ
       document.getElementById('loading').style.display = 'block';
@@ -604,11 +609,13 @@ async function fetchCars() {
       document.getElementById('loading').style.display = 'none';
     } catch (e) {
       console.error("Supabase読込エラー:", e);
-      // キャッシュデータが表示されている場合はエラーオーバーレイを出さない
+      const loadingEl = document.getElementById('loading');
       if (carsData.length === 0) {
-        const loadingEl = document.getElementById('loading');
         loadingEl.style.display = 'block';
         loadingEl.innerText = "エラー: " + (e?.message || 'データの取得に失敗しました');
+      } else {
+        // キャッシュデータが表示されている場合はloadingを隠す（固まり防止）
+        loadingEl.style.display = 'none';
       }
     }
   }

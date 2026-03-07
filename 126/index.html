@@ -512,7 +512,11 @@
       });
     })();
 
-    function forceReload() { window.location.reload(true); }
+    async function forceReload() {
+      // iOSのSafari PWAではreload()が効かないため、fetchCars()を直接呼ぶ
+      document.getElementById('loading').style.display = 'block';
+      await fetchCars();
+    }
 
     function shareSite() {
       const shareData = { title: 'Registro126 Giappone', text: '日本のFIAT 126・Maluch・オーナー名鑑。', url: 'https://www.registro500.com/126/' };
@@ -542,7 +546,10 @@
 
 async function fetchCars() {
     try {
-      const { data, error } = await supabaseClient
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('接続タイムアウト（15秒）')), 15000)
+      );
+      const query = supabaseClient
         .from('cars')
         .select(`
           PhotoMain:photo_main,
@@ -556,6 +563,8 @@ async function fetchCars() {
         `)
         .eq('car_type', '126');
 
+      const { data, error } = await Promise.race([query, timeout]);
+
       if (error) throw error;
 
       if (data) {
@@ -567,7 +576,14 @@ async function fetchCars() {
       document.getElementById('loading').style.display = 'none';
     } catch (e) {
       console.error("Supabase読込エラー:", e);
-      document.getElementById('loading').innerText = "エラー: データの取得に失敗しました。";
+      const loadingEl = document.getElementById('loading');
+      if (carsData.length === 0) {
+        loadingEl.style.display = 'block';
+        loadingEl.innerText = "エラー: " + (e?.message || 'データの取得に失敗しました');
+      } else {
+        // キャッシュデータが表示されている場合はloadingを隠す（固まり防止）
+        loadingEl.style.display = 'none';
+      }
     }
   }
 
