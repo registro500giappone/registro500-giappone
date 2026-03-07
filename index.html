@@ -526,23 +526,20 @@
   <script>
     let carsData = [];
     const CACHE_KEY = 'registro500_local_data';
+    let lastFetchTime = 0;
 
     function esc(s) {
       if (!s) return '';
       return s.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
-    (function() {
-      const RELOAD_THRESHOLD = 10 * 60 * 1000;
-      let lastVisibilityChange = new Date().getTime();
-      document.addEventListener('visibilitychange', function() {
-        if (document.visibilityState === 'visible') {
-          const now = new Date().getTime();
-          if (now - lastVisibilityChange > RELOAD_THRESHOLD) { window.location.reload(true); }
-          lastVisibilityChange = now;
-        }
-      });
-    })();
+    // バックグラウンドから前面復帰時に最新データを取得（30秒デバウンス付き）
+    // iPhoneのPWAではreload()が効かないためfetchCars()を直接呼ぶ
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') {
+        if (Date.now() - lastFetchTime > 30 * 1000) { fetchCars(); }
+      }
+    });
 
     // bfcache対策: ブラウザの戻るボタンで復元された場合にデータを再取得
     window.addEventListener('pageshow', function(event) {
@@ -578,6 +575,7 @@
     }
 
 async function fetchCars() {
+    lastFetchTime = Date.now();
     try {
       const timeout = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('接続タイムアウト（15秒）')), 15000)

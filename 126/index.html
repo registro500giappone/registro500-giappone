@@ -500,17 +500,15 @@
       return s.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
-    (function() {
-      const RELOAD_THRESHOLD = 10 * 60 * 1000;
-      let lastVisibilityChange = new Date().getTime();
-      document.addEventListener('visibilitychange', function() {
-        if (document.visibilityState === 'visible') {
-          const now = new Date().getTime();
-          if (now - lastVisibilityChange > RELOAD_THRESHOLD) { window.location.reload(true); }
-          lastVisibilityChange = now;
-        }
-      });
-    })();
+    let lastFetchTime = 0;
+
+    // バックグラウンドから前面復帰時に最新データを取得（30秒デバウンス付き）
+    // iPhoneのPWAではreload()が効かないためfetchCars()を直接呼ぶ
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') {
+        if (Date.now() - lastFetchTime > 30 * 1000) { fetchCars(); }
+      }
+    });
 
     async function forceReload() {
       // iOSのSafari PWAではreload()が効かないため、fetchCars()を直接呼ぶ
@@ -545,6 +543,7 @@
     });
 
 async function fetchCars() {
+    lastFetchTime = Date.now();
     try {
       const timeout = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('接続タイムアウト（15秒）')), 15000)
