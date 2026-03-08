@@ -361,105 +361,141 @@ function supabaseUpdate_(table, id, data) {
 }
 
 // =================================================
-// 通知機能 (Daily Digest: 新車 + イベント)
+// 通知機能 (Daily Digest: お知らせ + 新車 + イベント)
 // =================================================
 function sendDailyDigest() {
   try {
-    // 過去24時間の基準時刻（ISO 8601形式）
     const now = new Date();
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const yesterdayISO = yesterday.toISOString();
 
     Logger.log('sendDailyDigest 開始: ' + now);
-    Logger.log('基準時刻（過去24時間）: ' + yesterdayISO);
 
-    // 1. 新車チェック（Supabase）
+    // 1. 未送信お知らせ（sent_at IS NULL を全件）
+    const unsentNews = getUnsentNewsAll_();
+
+    // 2. 新車チェック
     const newCarsData = supabaseQuery_('cars', 'id,document_id,handle_name,model_display_c,notification_sent,created_at', {
       'notification_sent': 'eq.false',
       'created_at': `gte.${yesterdayISO}`,
       'order': 'created_at.asc'
     });
-
     if (!Array.isArray(newCarsData)) {
       throw new Error('newCarsData が配列ではありません: ' + JSON.stringify(newCarsData));
     }
-
     const newCars = newCarsData.map(car => ({
-    ID: car.document_id,
-    Name: car.handle_name,
-    Model: car.model_display_c || 'FIAT 500',
-    DbId: car.id
-  }));
+      ID: car.document_id,
+      Name: car.handle_name,
+      Model: car.model_display_c || 'FIAT 500',
+      DbId: car.id
+    }));
 
-  // 2. 新規イベントチェック（Supabase）
-  const newEventsData = supabaseQuery_('events', 'id,event_name,event_date,owner_name,location,notification_sent,created_at', {
-    'notification_sent': 'eq.false',
-    'created_at': `gte.${yesterdayISO}`,
-    'order': 'created_at.asc'
-  });
-
-  const newEvents = newEventsData.map(evt => {
-    const d = new Date(evt.event_date);
-    return {
-      Name: evt.event_name,
-      Date: `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`,
-      Owner: evt.owner_name,
-      Loc: evt.location,
-      DbId: evt.id
-    };
-  });
-
-  if (newCars.length === 0 && newEvents.length === 0) {
-    Logger.log("配信対象なし");
-    return;
-  }
-
-  // 3. メール本文作成
-  const subject = `【Registro500/126 Giappone】新着情報のお知らせ（車両・イベント）`;
-  let body = `Registro500 / Registro126 Giappone オーナーの皆様\n\nおはようございます。\n新たに登録された車両・イベントのお知らせです。\n`;
-
-  if (newEvents.length > 0) {
-    body += `\n■ 📅 新しいイベント (${newEvents.length}件)\n`;
-    newEvents.forEach(e => {
-      body += `・${e.Date}開催: ${e.Name} (by ${e.Owner}様)\n　場所: ${e.Loc}\n　詳細: https://www.registro500.com/event.html\n`;
+    // 3. 新規イベントチェック
+    const newEventsData = supabaseQuery_('events', 'id,event_name,event_date,owner_name,location,notification_sent,created_at', {
+      'notification_sent': 'eq.false',
+      'created_at': `gte.${yesterdayISO}`,
+      'order': 'created_at.asc'
     });
-  }
-
-  if (newCars.length > 0) {
-    body += `\n■ 🚗 新しい仲間 (${newCars.length}台)\n`;
-    newCars.forEach(c => {
-      body += `・${c.Model} (${c.Name}様)\n　https://www.registro500.com/detail.html?doc=${c.ID}\n`;
+    const newEvents = newEventsData.map(evt => {
+      const d = new Date(evt.event_date);
+      return {
+        Name: evt.event_name,
+        Date: `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`,
+        Owner: evt.owner_name,
+        Loc: evt.location,
+        DbId: evt.id
+      };
     });
-  }
 
-  body += `\n---------------------------------------------------------\nRegistro500 / Registro126 Giappone\nhttps://www.registro500.com/\n※このメールは新着があった日の午前6時に配信されます。`;
-
-  // 4. 一斉送信
-  const recipients = getAllExistingOwnerEmails_();
-  if (recipients.length > 0) {
-    const chunkSize = 90;
-    for (let i = 0; i < recipients.length; i += chunkSize) {
-      const chunk = recipients.slice(i, i + chunkSize);
-      try {
-        sendBroadcastViaBrevo(chunk, subject, body);
-        Utilities.sleep(1000);
-      } catch (e) { Logger.log('メール送信エラー: ' + e); }
+    if (unsentNews.length === 0 && newCars.length === 0 && newEvents.length === 0) {
+      Logger.log('配信対象なし');
+      return;
     }
-  }
 
-  // 5. Supabase の notification_sent フラグを更新
-  newCars.forEach(car => {
-    try { supabaseUpdate_('cars', car.DbId, { notification_sent: true }); } catch (e) {}
-  });
-  newEvents.forEach(evt => {
-    try { supabaseUpdate_('events', evt.DbId, { notification_sent: true }); } catch (e) {}
-  });
+    // 4. 件名・本文作成（順番: 新しい仲間 → 新しいイベント → お知らせ）
+    const subjectParts = [];
+    if (newCars.length > 0) subjectParts.push(`新着車両${newCars.length}台`);
+    if (newEvents.length > 0) subjectParts.push(`新着イベント${newEvents.length}件`);
+    if (unsentNews.length > 0) subjectParts.push('お知らせ');
+    const subject = `【Registro500/126 Giappone】${subjectParts.join('・')}`;
 
-    Logger.log(`メール配信完了: 車両${newCars.length}台、イベント${newEvents.length}件`);
+    let body = `Registro500 / Registro126 Giappone オーナーの皆様\n\nおはようございます。\n`;
+
+    if (newCars.length > 0) {
+      body += `\n■ 🚗 新しい仲間 (${newCars.length}台)\n`;
+      newCars.forEach(c => {
+        body += `・${c.Model} (${c.Name}様)\n　https://www.registro500.com/detail.html?doc=${c.ID}\n`;
+      });
+    }
+
+    if (newEvents.length > 0) {
+      body += `\n■ 📅 新しいイベント (${newEvents.length}件)\n`;
+      newEvents.forEach(e => {
+        body += `・${e.Date}開催: ${e.Name} (by ${e.Owner}様)\n　場所: ${e.Loc}\n　詳細: https://www.registro500.com/event.html\n`;
+      });
+    }
+
+    if (unsentNews.length > 0) {
+      body += `\n■ 📢 お知らせ\n`;
+      unsentNews.forEach(n => {
+        body += `\n【${n.title}】\n${n.content}\n`;
+      });
+      body += `\n詳細: https://www.registro500.com/news.html\n`;
+    }
+
+    body += `\n---------------------------------------------------------\nRegistro500 / Registro126 Giappone\nhttps://www.registro500.com/\n※このメールは毎朝6時に自動配信されます。`;
+
+    // 5. 一斉送信
+    const recipients = getAllExistingOwnerEmails_();
+    if (recipients.length > 0) {
+      const chunkSize = 90;
+      for (let i = 0; i < recipients.length; i += chunkSize) {
+        const chunk = recipients.slice(i, i + chunkSize);
+        try {
+          sendBroadcastViaBrevo(chunk, subject, body);
+          Utilities.sleep(1000);
+        } catch (e) { Logger.log('メール送信エラー: ' + e); }
+      }
+    }
+
+    // 6. フラグ更新
+    newCars.forEach(car => {
+      try { supabaseUpdate_('cars', car.DbId, { notification_sent: true }); } catch (e) {}
+    });
+    newEvents.forEach(evt => {
+      try { supabaseUpdate_('events', evt.DbId, { notification_sent: true }); } catch (e) {}
+    });
+    unsentNews.forEach(n => {
+      try { markNewsAsSent_(n.id); } catch (e) {}
+    });
+
+    Logger.log(`メール配信完了: お知らせ${unsentNews.length}件、車両${newCars.length}台、イベント${newEvents.length}件`);
   } catch (error) {
     Logger.log('❌ sendDailyDigest エラー: ' + error);
     Logger.log('スタックトレース: ' + error.stack);
     throw error;
+  }
+}
+
+// 未送信のお知らせを取得（直近14日以内 かつ 最大5件）
+// ※ 古い積み残しが一気に送信されないよう日付フィルター＋上限を設ける
+function getUnsentNewsAll_() {
+  try {
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+    const url = SUPABASE_URL + '/rest/v1/news?sent_at=is.null'
+      + '&created_at=gte.' + encodeURIComponent(fourteenDaysAgo)
+      + '&order=id.asc&limit=5';
+    const headers = {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json'
+    };
+    const response = UrlFetchApp.fetch(url, { method: 'get', headers: headers, muteHttpExceptions: true });
+    const data = JSON.parse(response.getContentText());
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    Logger.log('getUnsentNewsAll_ error: ' + e);
+    return [];
   }
 }
 
@@ -558,7 +594,6 @@ function hasEditPermission(docId, activeEmail) { if (!docId || !activeEmail) ret
   const header = data[0]; const docIdx = header.indexOf(DOCUMENT_ID_COLUMN_NAME); const ownerIdx = header.indexOf('OwnerEmail');
   for (let i = 1; i < data.length; i++) { if (String(data[i][docIdx]) === docId) { const owner = String(data[i][ownerIdx] || '').toLowerCase().trim(); return owner === activeEmail; } } return false;
 }
-function sendNotifications(record) { const currentOwnerEmail = (record.OwnerEmail || '').toLowerCase(); if (currentOwnerEmail) { try { MailApp.sendEmail({ to: currentOwnerEmail, subject: `【Registro500】愛車の登録が完了しました`, body: `${record.HandleName} 様\n\n登録ありがとうございます。\nhttps://registro500-giappone.vercel.app/detail.html?doc=${record.DocumentID}\n`, name: SENDER_NAME }); } catch (e) {} } }
 
 function sendAdminNotification(record) {
   const subject = `【新着】Registro500に登録がありました！`;
@@ -701,47 +736,38 @@ const TWITTER_ACCESS_SECRET = PropertiesService.getScriptProperties().getPropert
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('📮 ニュースレター')
-    .addItem('📧 メール送信', 'menuSendNewsletter')
+    .addItem('📧 今日のまとめを今すぐ送信（緊急用）', 'menuSendDailyDigestNow')
     .addItem('📧 未送信者に補送信', 'menuSendToMissing')
     .addItem('𝕏 X投稿', 'menuPostToTwitter')
     .addItem('📋 配信ログを表示', 'showDeliveryLog')
     .addSeparator()
     .addItem('⚙️ 設定を確認', 'showSettings')
+    .addSeparator()
+    .addItem('【一時】お詫びメール送信', 'sendApologyEmail')
     .addToUi();
 }
 
-function menuSendNewsletter() {
-  const news = getLatestNews();
-  if (!news) {
-    SpreadsheetApp.getUi().alert('❌ 未送信のニュースがありません。\n\nすべてのニュースは送信済みです。');
-    return;
-  }
-  const preview = news.content ? news.content.substring(0, 150) + (news.content.length > 150 ? '...' : '') : '（本文なし）';
+// 緊急時の手動実行（お知らせ＋新着車両＋イベントを今すぐまとめ送信）
+function menuSendDailyDigestNow() {
   const ui = SpreadsheetApp.getUi();
   const confirm = ui.alert(
-    `📧 以下のニュースをメール送信します。よろしいですか？\n\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `ID: ${news.id}\n` +
-    `タイトル: ${news.title}\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `${preview}`,
+    '📧 まとめメールを今すぐ送信します\n\n未送信のお知らせ＋新着車両＋新着イベントをまとめて全オーナーに送信します。\n\n※通常は毎朝6時に自動送信されます。緊急時のみ使用してください。\n\nよろしいですか？',
     ui.ButtonSet.YES_NO
   );
   if (confirm !== ui.Button.YES) {
-    ui.alert('送信をキャンセルしました。');
+    ui.alert('キャンセルしました。');
     return;
   }
-  const result = sendNewsletterEmail();
-  if (result.success) {
-    Logger.log(`✅ メール送信完了！ ${result.count}人のオーナーに送信しました。`);
-    logDelivery('email', result.count, result.newsTitle, '成功');
-    try { SpreadsheetApp.getUi().alert(`✅ メール送信完了！\n\n${result.count}人のオーナーに送信しました。`); } catch(e) {}
-  } else {
-    Logger.log(`❌ エラー: ${result.error}`);
-    logDelivery('email', 0, '（エラー）', result.error);
-    try { SpreadsheetApp.getUi().alert(`❌ エラー: ${result.error}`); } catch(e) {}
+  try {
+    sendDailyDigest();
+    logDelivery('email（手動）', '-', 'まとめ送信', '成功');
+    ui.alert('✅ 送信完了しました。');
+  } catch (e) {
+    logDelivery('email（手動）', 0, 'まとめ送信', 'エラー: ' + e);
+    ui.alert('❌ エラー: ' + e);
   }
 }
+
 
 function menuSendToMissing() {
   const result = sendToMissingRecipients();
@@ -908,26 +934,6 @@ function getMissingOwnerEmails() {
   }
 }
 
-function sendNewsletterEmail() {
-  try {
-    const news = getLatestNews();
-    if (!news) return { success: false, count: 0, newsTitle: '', error: '未送信のニュースがありません' };
-    const emails = getOwnerEmails();
-    if (emails.length === 0) return { success: false, count: 0, newsTitle: news.title, error: 'オーナーのメールアドレスがありません' };
-    const subject = `【Registro500 Giappone】${news.title}`;
-    const body = `Registro500 Giappone ニュースレター\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📅 日付: ${news.date}\n📰 タイトル: ${news.title}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${news.content}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nこのメールはRegistro500 Giappone登録オーナーに自動送信されています。\n詳細はこちら: https://www.registro500.com/news.html`;
-    const chunkSize = 90;
-    for (let i = 0; i < emails.length; i += chunkSize) {
-      const chunk = emails.slice(i, i + chunkSize);
-      sendBroadcastViaBrevo(chunk, subject, body);
-      Utilities.sleep(1000);
-    }
-    markNewsAsSent_(news.id);
-    return { success: true, count: emails.length, newsTitle: news.title, timestamp: new Date().toLocaleString('ja-JP') };
-  } catch (e) {
-    return { success: false, count: 0, newsTitle: '', error: e.toString() };
-  }
-}
 
 function sendToMissingRecipients() {
   try {
@@ -1081,339 +1087,59 @@ function logDelivery(type, count, newsTitle, status) {
 }
 
 // =================================================
-// アンケートリマインダー（2026/02/20 締切）
-// ※GASエディタから手動実行すること
+// 【一時】お詫びメール送信（実行後に削除すること）
 // =================================================
-function sendSurveyReminder() {
-  const subject = '【本日締切】パーツ調達アンケートへのご協力をお願いします';
-  const body = `Registro500 Giappone オーナーのみなさま
+function sendApologyEmail() {
+  const subject = '【お詫びと再送】昨日お送りしたメールについて';
+  const body = `Registro500 / Registro126 Giappone オーナーの皆様
 
-2/12にご案内した「パーツ調達の知恵袋アンケート」の締切が
-本日（2/20・金）となっております。
+おはようございます。
 
-まだご回答いただいていない方は、ぜひこの機会にお声をお聞かせください！
+昨日（3月8日）朝にお送りしたメールについてお詫び申し上げます。
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+メールシステムの不具合により、過去のお知らせが大量に積み重なった状態で
+1通のメールとして配信されてしまいました。
+非常に長く読みにくいメールをお送りしてしまい、大変失礼いたしました。
 
-🔗 アンケートはこちら（所要時間：約5分）
-https://forms.gle/1NEuj8ym6RoZhHNy6
+今後は同様の事態が起きないよう対処いたしました。
 
-⏰ 締切：本日 2026年2月20日（金）中
+---
 
-【ご回答特典】
-欧州パーツ通販サイトの横断価格比較ツール
-「Fiat 500 パーツ価格比較」ベータ版への優先招待
+※ 以下は誤メールに紛れてしまった最新情報です
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ 📢 お知らせ
 
-お一人おひとりの小さな工夫が、
-誰かの500を救う大きな力になります。
-どうぞよろしくお願いいたします。
+【ガレージノートをはじめました】
 
-Registro500 Giappone 運営事務局
+送料・関税の実績、通関の手順、見つけた代替品、国内での入手先——
+オーナーの生きた経験は、次に同じ道を歩く人にとって何より頼りになる情報です。
+
+そういった記録をオーナー同士で積み重ねていく場所をつくりました。
+その名も「ガレージノート」。
+
+第1弾のテーマは「パーツ購入の記録」です。
+ハンドルネームで、あなたの記録をぜひ残してください。
+
+→ https://www.registro500.com/garage-notes.html
+
+---------------------------------------------------------
+Registro500 / Registro126 Giappone
 https://www.registro500.com/`;
 
-  const recipients = getAllExistingOwnerEmails_();
-  if (recipients.length === 0) {
-    Logger.log('送信先なし');
-    return;
-  }
-
-  const chunkSize = 90;
-  for (let i = 0; i < recipients.length; i += chunkSize) {
-    const chunk = recipients.slice(i, i + chunkSize);
-    sendBroadcastViaBrevo(chunk, subject, body);
-    Utilities.sleep(1000);
-  }
-
-  Logger.log(`アンケートリマインダー送信完了: ${recipients.length}件`);
-}
-
-// =================================================
-// アンケート結果公開通知（全オーナー宛）
-// GASエディタから手動実行すること
-// =================================================
-function sendSurveyResultsNotification() {
-  const subject = 'アンケート結果を公開しました';
-  const body =
-`登録オーナー各位
-
-平素より Registro500 Giappone をご利用いただきありがとうございます。
-
-先週末より実施しておりました「日本のFiat 500オーナー実態調査」に
-33件のご回答をいただきました。誠にありがとうございました。
-
-アンケート結果を下記ページにてご覧いただけます。
-
-▼ アンケート結果
-https://www.registro500.com/survey-results.html
-（ログインが必要です）
-
-今後ともよろしくお願いいたします。
-
-Registro500 Giappone 運営チーム`;
-
-  const recipients = getAllExistingOwnerEmails_();
-  if (recipients.length === 0) {
-    Logger.log('送信先なし');
-    return;
-  }
-  Logger.log(`アンケート結果通知 送信先: ${recipients.length}件`);
-
-  const chunkSize = 90;
-  for (let i = 0; i < recipients.length; i += chunkSize) {
-    const chunk = recipients.slice(i, i + chunkSize);
-    sendBroadcastViaBrevo(chunk, subject, body);
-    Utilities.sleep(1000);
-  }
-
-  Logger.log(`アンケート結果通知送信完了: ${recipients.length}件`);
-}
-
-// =================================================
-// βテスト招待メール（アンケート希望者宛）
-// GASエディタから手動実行すること
-// フォームの回答スプレッドシートから自動取得
-// =================================================
-function sendBetaTestInvitation() {
-  const subject = '【Registro500】パーツ価格比較ツール βテストのご案内';
-  const body =
-`βテスト希望者各位
-
-平素より Registro500 Giappone をご利用いただきありがとうございます。
-
-アンケートにてパーツ価格比較ツールのβテストご希望をいただき
-ありがとうございました。
-
-このたび、「どっちが安いか比べ太郎」のβ版をご利用いただける
-ようになりました。
-
-▼ パーツ価格比較 β版
-https://www.registro500.com/parts.html
-（ログインするとご利用いただけます）
-
-現在は海外8ショップのパーツ価格を比較できます。
-ご意見・ご要望がございましたらお気軽にお知らせください。
-
-今後ともよろしくお願いいたします。
-
-Registro500 Giappone 運営チーム`;
-
-  const recipients = getBetaTestOptInEmails_();
-  if (recipients.length === 0) {
-    Logger.log('βテスト希望者なし');
-    return;
-  }
-  Logger.log(`βテスト招待メール 送信先: ${recipients.length}件`);
-
-  const chunkSize = 90;
-  for (let i = 0; i < recipients.length; i += chunkSize) {
-    const chunk = recipients.slice(i, i + chunkSize);
-    sendBroadcastViaBrevo(chunk, subject, body);
-    Utilities.sleep(1000);
-  }
-
-  Logger.log(`βテスト招待メール送信完了: ${recipients.length}件`);
-}
-
-function getBetaTestOptInEmails_() {
   try {
-    // アンケートフォームに紐づいたスプレッドシートを自動取得
-    const FORM_ID = '1Ect20oaaxoiWkINY1UT4Ew6TqDrSmBCm5rHXIjMG1FM';
-    const form = FormApp.openById(FORM_ID);
-    const spreadsheetId = form.getDestinationId();
-    if (!spreadsheetId) {
-      Logger.log('スプレッドシートが見つかりません。フォームにスプレッドシートが紐づいているか確認してください。');
-      return [];
+    const recipients = getAllExistingOwnerEmails_();
+    const chunkSize = 90;
+    for (let i = 0; i < recipients.length; i += chunkSize) {
+      sendBroadcastViaBrevo(recipients.slice(i, i + chunkSize), subject, body);
+      Utilities.sleep(1000);
     }
 
-    const ss = SpreadsheetApp.openById(spreadsheetId);
-    const sheet = ss.getSheets()[0];
-    const data = sheet.getDataRange().getValues();
-    if (data.length < 2) return [];
-
-    const headers = data[0].map(h => String(h));
-    Logger.log('ヘッダー: ' + JSON.stringify(headers));
-
-    // メールアドレス列を探す（B列が通常メールアドレス）
-    let emailIdx = 1;
-    headers.forEach((h, i) => {
-      if (h.includes('メールアドレス') || h.toLowerCase().includes('email')) emailIdx = i;
-    });
-
-    // βテスト希望列を探す
-    let betaIdx = -1;
-    headers.forEach((h, i) => {
-      if (h.includes('βテスト') || h.includes('ベータ') || h.toLowerCase().includes('beta') || h.includes('価格比較')) betaIdx = i;
-    });
-
-    Logger.log(`メール列: ${emailIdx}, βテスト列: ${betaIdx}`);
-
-    const emailSet = new Set();
-    for (let i = 1; i < data.length; i++) {
-      const email = String(data[i][emailIdx] || '').trim().toLowerCase();
-      if (!email || !email.includes('@')) continue;
-
-      if (betaIdx !== -1) {
-        const betaVal = String(data[i][betaIdx] || '').trim();
-        // 「いいえ」「No」「否」の場合は除外
-        if (betaVal.includes('いいえ') || betaVal.includes('否') || betaVal.toLowerCase() === 'no') continue;
-      }
-
-      emailSet.add(email);
-    }
-
-    Logger.log(`βテスト希望者: ${emailSet.size}件`);
-    return Array.from(emailSet);
+    logDelivery('email（お詫び）', recipients.length, 'お詫びと再送', '成功');
+    Logger.log('✅ お詫びメール送信完了: ' + recipients.length + '人に送信しました。');
   } catch (e) {
-    Logger.log('getBetaTestOptInEmails_ エラー: ' + e);
-    return [];
+    logDelivery('email（お詫び）', 0, 'お詫びと再送', 'エラー: ' + e);
+    Logger.log('❌ エラー: ' + e);
+    throw e;
   }
 }
 
-// =====================================================
-// パーツ比較ツール アンケート送付（2026-02-27）
-// βテスト参加者スプレッドシートからメールアドレスを取得して送付
-// =====================================================
-function sendPartsSurveyToBetaTesters() {
-  const BETA_SPREADSHEET_ID = '1pTOchp4PecVxSr6t7mPSkQCke_P1gtHEzSIGQFjBvb4';
-
-  // メールアドレス取得
-  const ss = SpreadsheetApp.openById(BETA_SPREADSHEET_ID);
-  const sheet = ss.getSheets()[0];
-  const data = sheet.getDataRange().getValues();
-  Logger.log('ヘッダー: ' + JSON.stringify(data[0]));
-  Logger.log('総行数: ' + (data.length - 1));
-
-  const headers = data[0].map(h => String(h));
-  let emailIdx = -1;
-  headers.forEach((h, i) => {
-    if (h.includes('メールアドレス') || h.toLowerCase().includes('email')) emailIdx = i;
-  });
-  if (emailIdx === -1) {
-    Logger.log('メールアドレス列が見つかりません。ヘッダーを確認してください。');
-    return;
-  }
-
-  const emailSet = new Set();
-  for (let i = 1; i < data.length; i++) {
-    const email = String(data[i][emailIdx] || '').trim().toLowerCase();
-    if (email && email.includes('@')) emailSet.add(email);
-  }
-  const recipients = Array.from(emailSet);
-  Logger.log(`送付先 ${recipients.length}件:\n` + recipients.join('\n'));
-
-  // メール送付
-  const subject = '【Registro500】パーツ価格比較ツール アンケートご協力のお願い';
-  const body = `βテスト参加者の皆さま
-
-いつもRegistro500をご利用いただきありがとうございます。
-
-このたびβテスト期間中にリリースした新機能「どっちが安いか比べ太郎」（パーツ価格比較ツール）について、皆さまのご意見・ご感想をお聞かせください。
-
-今後の改善に直接反映させていただきます。ぜひ率直なご意見をお願いします！
-
-▼ アンケートはこちら（所要時間：約3分）
-https://docs.google.com/forms/d/e/1FAIpQLSfP1pXcELg1J5vZbeJU4LSZQpZJiYGu23FImMGKROYpHFiWXw/viewform
-
-⏰ 回答締め切り：3月2日（月）中
-
-どうぞよろしくお願いいたします。
-
-Registro500管理人
-https://www.registro500.com/parts.html`;
-
-  const url = "https://api.brevo.com/v3/smtp/email";
-  const bccObjects = recipients.map(email => ({ "email": email }));
-  const payload = {
-    "sender": { "name": "Registro500管理人", "email": SENDER_EMAIL },
-    "to": [{ "email": SENDER_EMAIL }],
-    "bcc": bccObjects,
-    "subject": subject,
-    "textContent": body
-  };
-  const options = {
-    "method": "post",
-    "headers": {
-      "api-key": getBrevoApiKey_(),
-      "Content-Type": "application/json",
-      "accept": "application/json"
-    },
-    "payload": JSON.stringify(payload),
-    "muteHttpExceptions": true
-  };
-  const response = UrlFetchApp.fetch(url, options);
-  Logger.log('Brevo応答: ' + response.getContentText());
-  Logger.log(`アンケートメール送付完了: ${recipients.length}件`);
-}
-
-// パーツ比較ツール アンケート 締切リマインダー（2026-03-02）
-// =====================================================
-function sendPartsSurveyReminder() {
-  const BETA_SPREADSHEET_ID = '1pTOchp4PecVxSr6t7mPSkQCke_P1gtHEzSIGQFjBvb4';
-
-  const ss = SpreadsheetApp.openById(BETA_SPREADSHEET_ID);
-  const sheet = ss.getSheets()[0];
-  const data = sheet.getDataRange().getValues();
-
-  const headers = data[0].map(h => String(h));
-  let emailIdx = -1;
-  headers.forEach((h, i) => {
-    if (h.includes('メールアドレス') || h.toLowerCase().includes('email')) emailIdx = i;
-  });
-  if (emailIdx === -1) {
-    Logger.log('メールアドレス列が見つかりません。');
-    return;
-  }
-
-  const emailSet = new Set();
-  for (let i = 1; i < data.length; i++) {
-    const email = String(data[i][emailIdx] || '').trim().toLowerCase();
-    if (email && email.includes('@')) emailSet.add(email);
-  }
-  const recipients = Array.from(emailSet);
-  Logger.log(`リマインダー送付先 ${recipients.length}件:\n` + recipients.join('\n'));
-
-  const subject = '【本日締切】パーツ価格比較ツール アンケートへのご協力をお願いします';
-  const body = `βテスト参加者の皆さま
-
-いつもRegistro500をご利用いただきありがとうございます。
-
-先日ご案内した「どっちが安いか比べ太郎」アンケートについて、
-本日（3月2日）が回答の締め切りとなっております。
-
-まだご回答いただいていない方は、ぜひご協力をお願いします！
-
-▼ アンケートはこちら（所要時間：約3分）
-https://docs.google.com/forms/d/e/1FAIpQLSfP1pXcELg1J5vZbeJU4LSZQpZJiYGu23FImMGKROYpHFiWXw/viewform
-
-⏰ 回答締め切り：本日（3月2日）中
-
-どうぞよろしくお願いいたします。
-
-Registro500管理人
-https://www.registro500.com/parts.html`;
-
-  const url = "https://api.brevo.com/v3/smtp/email";
-  const bccObjects = recipients.map(email => ({ "email": email }));
-  const payload = {
-    "sender": { "name": "Registro500管理人", "email": SENDER_EMAIL },
-    "to": [{ "email": SENDER_EMAIL }],
-    "bcc": bccObjects,
-    "subject": subject,
-    "textContent": body
-  };
-  const options = {
-    "method": "post",
-    "headers": {
-      "api-key": getBrevoApiKey_(),
-      "Content-Type": "application/json",
-      "accept": "application/json"
-    },
-    "payload": JSON.stringify(payload),
-    "muteHttpExceptions": true
-  };
-  const response = UrlFetchApp.fetch(url, options);
-  Logger.log('Brevo応答: ' + response.getContentText());
-  Logger.log(`アンケートリマインダー送信完了: ${recipients.length}件`);
-}
