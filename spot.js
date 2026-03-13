@@ -795,9 +795,13 @@ async function showSpotDetail(spotId) {
     if (s.latitude && s.longitude) {
       var targetMarker = markers[spotId];
       if (targetMarker && markerClusterGroup) {
-        markerClusterGroup.zoomToShowLayer(targetMarker, function() {
-          targetMarker.openPopup();
-        });
+        try {
+          markerClusterGroup.zoomToShowLayer(targetMarker, function() {
+            targetMarker.openPopup();
+          });
+        } catch(e) {
+          map.setView([s.latitude, s.longitude], 16);
+        }
       } else {
         map.setView([s.latitude, s.longitude], 16);
       }
@@ -831,13 +835,17 @@ async function showSpotDetail(spotId) {
     var myFav = currentUser && currentUser.uid
       ? myFavorites.find(function(f) { return f.spot_id === spotId; })
       : null;
+    var isSpotOwner = currentUser && currentUser.uid && s.owner_user_id === currentUser.uid;
 
-    // ヘッダー（戻るボタン + 編集ボタン）
-    var html = '<div style="display:flex;align-items:center;margin-bottom:8px">'
+    // ヘッダー（戻るボタン + 編集・削除ボタン）
+    var html = '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">'
       + '<a href="#" onclick="closeSpotDetail();return false" style="color:var(--accent);font-size:0.82rem;text-decoration:none">← 一覧に戻る</a>'
       + '<span style="flex:1"></span>';
     if (myFav) {
       html += '<button class="btn-secondary" style="font-size:0.72rem;padding:4px 10px" onclick="editMyFavorite(\'' + spotId + '\')">編集</button>';
+    }
+    if (isSpotOwner) {
+      html += '<button class="btn-danger" style="font-size:0.72rem;padding:4px 10px" onclick="confirmDeleteSpot(\'' + spotId + '\')">削除</button>';
     }
     html += '</div>';
 
@@ -1010,6 +1018,23 @@ function confirmDeleteFavorite(spotId) {
   removeFavorite(spotId);
 }
 
+async function confirmDeleteSpot(spotId) {
+  if (!confirm('このスポット自体を削除しますか？\n登録者全員の出没登録も削除されます。')) return;
+  if (!currentUser || !currentUser.uid) return;
+  try {
+    var result = await supabaseClient
+      .from('spots')
+      .delete()
+      .eq('spot_id', spotId)
+      .eq('owner_user_id', currentUser.uid);
+    if (result.error) throw result.error;
+    alert('スポットを削除しました');
+    closeSpotDetail();
+    loadMyFavorites();
+    setTimeout(function() { loadSpots(); }, 300);
+  } catch(err) { alert('エラー: ' + err.message); }
+}
+
 function closeDetailModal() {
   document.getElementById('detailModal').classList.remove('show');
 }
@@ -1142,7 +1167,8 @@ async function submitNewSpot() {
         name: name, category: category,
         latitude: parseFloat(lat), longitude: parseFloat(lng),
         address: address || null,
-        car_type: carType
+        car_type: carType,
+        owner_user_id: (currentUser && currentUser.uid) || null
       })
       .select()
       .single();
