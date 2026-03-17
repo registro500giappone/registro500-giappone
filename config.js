@@ -25,6 +25,9 @@ const FIREBASE_CONFIG = {
 const SUPABASE_URL = "https://ttlttclfovuzafvghvaq.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt";
 
+// 管理者メールアドレス（管理者判定に使用）
+const ADMIN_EMAIL = "registro500giappone@gmail.com";
+
 // アプリ全体の計算・リンク設定
 const CONFIG = {
     // 1. 為替レート設定（無料API）
