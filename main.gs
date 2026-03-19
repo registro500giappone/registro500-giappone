@@ -463,7 +463,7 @@ function sendDailyDigest() {
       try { supabaseUpdate_('cars', car.DbId, { notification_sent: true }); } catch (e) {}
     });
     newEvents.forEach(evt => {
-      try { supabaseUpdate_('events', evt.DbId, { notification_sent: true }); } catch (e) {}
+      try { markEventNotificationSent_(evt.DbId); } catch (e) { Logger.log('events フラグ更新エラー: ' + e); }
     });
     unsentNews.forEach(n => {
       try { markNewsAsSent_(n.id); } catch (e) {}
@@ -874,6 +874,22 @@ function markNewsAsSent_(newsId) {
     UrlFetchApp.fetch(url, options);
   } catch (e) {
     console.error('markNewsAsSent_ error:', e);
+  }
+}
+
+// SECURITY DEFINER RPC経由でeventsのnotification_sentをtrueに更新（RLSバイパス）
+function markEventNotificationSent_(eventId) {
+  try {
+    const url = SUPABASE_URL + '/rest/v1/rpc/mark_event_notification_sent';
+    const headers = {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json'
+    };
+    const options = { method: 'post', headers: headers, payload: JSON.stringify({ p_event_id: eventId }), muteHttpExceptions: true };
+    UrlFetchApp.fetch(url, options);
+  } catch (e) {
+    Logger.log('markEventNotificationSent_ error: ' + e);
   }
 }
 
