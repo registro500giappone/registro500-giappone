@@ -6,6 +6,7 @@ D'Angelo Motori クローラー（再構築版）
 - GitHub Actions 6h制限に余裕で収まるように
 """
 
+import sys
 import time
 import requests
 import re
@@ -23,7 +24,17 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 SHOP_NAME = "D'Angelo Motori"
 SITE_BASE_URL = "https://www.dangelomotori.it"
-BOT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+BOT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+BOT_HEADERS = {
+    "User-Agent": BOT_USER_AGENT,
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "it-IT,it;q=0.9,en;q=0.8",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Cache-Control": "max-age=0",
+    "Referer": "https://www.google.com/",
+}
 BATCH_SIZE = 50
 
 TEST_MODE = False
@@ -33,10 +44,9 @@ TEST_TARGET = 10
 def get_all_urls():
     """XMLサイトマップから英語商品URLを取得"""
     print("1. サイトマップを読み込み中...")
-    headers = {"User-Agent": BOT_USER_AGENT}
     all_urls = set()
     try:
-        res = requests.get(f"{SITE_BASE_URL}/sitemap_index.xml", timeout=30, headers=headers)
+        res = requests.get(f"{SITE_BASE_URL}/sitemap_index.xml", timeout=30, headers=BOT_HEADERS)
         sitemaps = re.findall(r'<loc>(.*?)</loc>', res.text)
         # product カテゴリサイトマップのみ（product_cat は商品URLを含まないため除外）
         target_sitemaps = [u for u in sitemaps
@@ -46,7 +56,7 @@ def get_all_urls():
 
         for sm in target_sitemaps:
             try:
-                sub = requests.get(sm, timeout=30, headers=headers)
+                sub = requests.get(sm, timeout=30, headers=BOT_HEADERS)
                 urls = [u for u in re.findall(r'<loc>(.*?)</loc>', sub.text)
                         if '/en/' in u and u != f"{SITE_BASE_URL}/en/shop/"]
                 all_urls.update(urls)
@@ -180,13 +190,13 @@ def main():
     urls = get_all_urls()
     if not urls:
         print("[ERROR] URLを取得できませんでした")
-        return
+        sys.exit(1)
 
     total = len(urls)
     print(f"\n2. 商品詳細の収集を開始します（{total} 件）...")
 
     session = requests.Session()
-    session.headers.update({"User-Agent": BOT_USER_AGENT, "Accept-Language": "en-US,en;q=0.5"})
+    session.headers.update(BOT_HEADERS)
 
     success = 0
     skip = 0
