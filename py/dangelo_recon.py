@@ -189,8 +189,8 @@ def main():
 
     urls = get_all_urls()
     if not urls:
-        print("[ERROR] URLを取得できませんでした")
-        sys.exit(1)
+        print("[SKIP] サイトマップからURLを取得できませんでした（サイト障害の可能性）。スキップします。")
+        sys.exit(0)
 
     total = len(urls)
     print(f"\n2. 商品詳細の収集を開始します（{total} 件）...")
