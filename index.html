@@ -548,8 +548,15 @@
 
     async function forceReload() {
       // iOSのSafari PWAではreload()が効かないため、fetchCars()を直接呼ぶ
-      document.getElementById('loading').style.display = 'block';
-      await fetchCars();
+      const loadingEl = document.getElementById('loading');
+      loadingEl.innerText = '読み込んでいます...';
+      loadingEl.style.display = 'block';
+      const success = await fetchCars();
+      if (!success && carsData.length > 0) {
+        loadingEl.innerText = '更新に失敗しました。もう一度お試しください。';
+        loadingEl.style.display = 'block';
+        setTimeout(() => { loadingEl.style.display = 'none'; }, 3000);
+      }
     }
 
     function shareSite() {
@@ -578,7 +585,7 @@ async function fetchCars() {
     lastFetchTime = Date.now();
     try {
       const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('接続タイムアウト（15秒）')), 15000)
+        setTimeout(() => reject(new Error('接続タイムアウト（10秒）')), 10000)
       );
       const query = supabaseClient
         .from('cars')
@@ -605,6 +612,7 @@ async function fetchCars() {
         updateCarCount();
       }
       document.getElementById('loading').style.display = 'none';
+      return true;
     } catch (e) {
       console.error("Supabase読込エラー:", e);
       const loadingEl = document.getElementById('loading');
@@ -615,6 +623,7 @@ async function fetchCars() {
         // キャッシュデータが表示されている場合はloadingを隠す（固まり防止）
         loadingEl.style.display = 'none';
       }
+      return false;
     }
   }
 
