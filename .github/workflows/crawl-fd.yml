@@ -6,12 +6,9 @@ on:
   workflow_dispatch:          # 手動実行ボタン
 
 jobs:
-  # ================================
-  # Fiat 500 カテゴリ（並列実行）
-  # ================================
-  crawl-fiat500:
+  crawl:
     runs-on: ubuntu-latest
-    timeout-minutes: 120  # カテゴリ絞り込みにより大幅短縮
+    timeout-minutes: 30  # Store API版: 推定2〜5分で完了
 
     steps:
       - uses: actions/checkout@v4
@@ -28,58 +25,11 @@ jobs:
           echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
           echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
 
-      - name: FD Ricambi クロール（Fiat 500）
-        run: python py/parts_search_v2.py --model fiat-500
+      - name: FD Ricambi クロール
+        run: python py/parts_search_v2.py
 
-  # ================================
-  # Fiat 126 カテゴリ（並列実行）
-  # ================================
-  crawl-fiat126:
-    runs-on: ubuntu-latest
-    timeout-minutes: 120  # カテゴリ絞り込みにより大幅短縮
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: 依存関係インストール
-        run: pip install -r py/requirements.txt
-
-      - name: .env 作成
+      - name: AI翻訳（新規レコードのみ）
+        if: success()
         run: |
-          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
-          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
-
-      - name: FD Ricambi クロール（Fiat 126）
-        run: python py/parts_search_v2.py --model fiat-126
-
-  # ================================
-  # AI翻訳（両ジョブ完了後）
-  # ================================
-  ai-translation:
-    runs-on: ubuntu-latest
-    needs: [crawl-fiat500, crawl-fiat126]
-    if: always() && (needs.crawl-fiat500.result == 'success' || needs.crawl-fiat126.result == 'success')
-    timeout-minutes: 60
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: 依存関係インストール
-        run: pip install -r py/requirements.txt
-
-      - name: .env 作成
-        run: |
-          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
-          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
           echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> py/.env
-
-      - name: AI翻訳実行（新規レコードのみ）
-        run: python py/ai_marathon_final_v9.py
+          python py/ai_marathon_final_v9.py
