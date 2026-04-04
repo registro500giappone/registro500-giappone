@@ -12,6 +12,7 @@ Shopware Store API:
 - ページネーション: limit=100, p=1,2,3...
 """
 
+import sys
 import time
 import requests
 import re
@@ -68,6 +69,7 @@ def fetch_products_page(session, page):
     }
     try:
         resp = session.post(STORE_API_URL, json=payload, timeout=30)
+        print(f"  [DEBUG] ページ {page} HTTPステータス: {resp.status_code}")
         resp.raise_for_status()
         return resp.json()
     except Exception as e:
@@ -159,8 +161,8 @@ def main():
     print("\n1. 商品総数を確認中...")
     first_page = fetch_products_page(session, 1)
     if not first_page:
-        print("[ERROR] APIアクセス失敗")
-        return
+        print("[ERROR] APIアクセス失敗 - Store APIが応答しませんでした")
+        sys.exit(1)
 
     total = first_page.get("total") or 0
     total_pages = (total + PAGE_LIMIT - 1) // PAGE_LIMIT
