@@ -448,9 +448,9 @@
           <span>｜</span>
           <a href="news.html">お知らせ<span id="newsBadge" class="news-badge" style="display:none;"></span></a>
           <span>｜</span>
-          <a href="policy.html">ポリシー</a>
+          <a href="policy.html" data-updated="2026-04-05">ポリシー<span class="news-badge page-badge" style="display:none;"></span></a>
           <span>｜</span>
-          <a href="howto.html">初めての方へ</a>
+          <a href="howto.html" data-updated="2026-04-05">初めての方へ<span class="news-badge page-badge" style="display:none;"></span></a>
         </nav>
       </div>
     </header>
@@ -580,6 +580,7 @@
       }
       fetchCars();
       checkNewsBadge();
+      checkPageBadges();
       initAuth();
       prefetch126Data();
     }
@@ -673,6 +674,16 @@ async function checkNewsBadge() {
           if (diff <= 7) document.getElementById('newsBadge').style.display = 'inline-block';
         }
       } catch (e) {}
+    }
+    function checkPageBadges() {
+      document.querySelectorAll('.header-nav a[data-updated]').forEach(link => {
+        const updated = new Date(link.dataset.updated + 'T00:00:00+09:00');
+        const diff = Math.ceil((Date.now() - updated.getTime()) / (1000 * 60 * 60 * 24));
+        if (diff <= 7) {
+          const badge = link.querySelector('.page-badge');
+          if (badge) badge.style.display = 'inline-block';
+        }
+      });
     }
     function parseDocNumber(id) { const m = /^DOC_(\d+)$/.exec(String(id)); return m ? parseInt(m[1], 10) : 0; }
 
