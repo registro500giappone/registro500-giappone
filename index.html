@@ -193,8 +193,9 @@
     .header-nav a { color: var(--text-sub); text-decoration: none; position: relative; display: flex; align-items: center; }
     .header-nav a:hover { text-decoration: underline; }
     .news-badge {
-      position: absolute; top: -2px; right: -10px; width: 8px; height: 8px;
+      position: relative; top: -3px; display: inline-block; width: 8px; height: 8px;
       background-color: #e11d48; border-radius: 50%; border: 1px solid white;
+      flex-shrink: 0; margin-left: 3px;
     }
     .x-icon-link svg { width: 16px; height: 16px; fill: currentColor; }
 
@@ -654,7 +655,9 @@ async function fetchCars() {
 
 async function checkNewsBadge() {
       try {
-        const today = new Date().toISOString().split('T')[0];
+        // JST (UTC+9) で今日の日付を取得（UTC使用だと0〜9時台に前日扱いになるバグを防ぐ）
+        const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+        const today = jstNow.toISOString().split('T')[0];
         const { data, error } = await supabaseClient
           .from('news')
           .select('date')
@@ -664,9 +667,10 @@ async function checkNewsBadge() {
           .limit(1);
 
         if (!error && data && data.length > 0) {
-          const latestDate = new Date(data[0].date);
-          const diff = Math.ceil((new Date() - latestDate) / (1000 * 60 * 60 * 24));
-          if (diff <= 7) document.getElementById('newsBadge').style.display = 'block';
+          const latestDate = new Date(data[0].date + 'T00:00:00+09:00');
+          const diffMs = Date.now() - latestDate.getTime();
+          const diff = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+          if (diff <= 7) document.getElementById('newsBadge').style.display = 'inline-block';
         }
       } catch (e) {}
     }
