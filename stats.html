@@ -348,27 +348,45 @@
   function getBrandJa(t) {
     if (!t) return null;
     let v = String(t).toLowerCase().trim();
-    if (v.match(/不明|未記入|無し|メーカー不定/)) return null;
+    // 無効データ
+    if (v.match(/不明|未記入|無し|メーカー不定|不定|普通|わからない|不定期|知らん/)) return null;
+    // ---- オイルブランド ----
     if (v.match(/motul|モチュール/)) return 'モチュール';
-    if (v.match(/michelin|ミシュラン/)) return 'ミシュラン';
-    if (v.match(/pirelli|ピレリ|cinturato|チンチュラート/)) return 'ピレリ';
-    if (v.match(/bridgestone|ブリヂストン|ブリジストン|bs|sneaker|スニーカー/)) return 'ブリヂストン';
-    if (v.match(/yokohama|ヨコハマ|横浜|advan|アドバン/)) return 'ヨコハマ';
-    if (v.match(/dunlop|ダンロップ|digityer|dunlpop/)) return 'ダンロップ';
     if (v.match(/lubross|ルブロス/)) return 'ルブロス';
-    if (v.match(/meister|マイスター/)) return 'マイスター';
+    if (v.match(/automaister|オートマイスター/)) return 'オートマイスター';
+    if (v.match(/kendall|ケンドル/)) return 'ケンドル';
+    if (v.match(/amalie|アマリー/)) return 'アマリー';
+    if (v.match(/spectro|スペクトロ/)) return 'スペクトロ';
+    if (v.match(/sunoco|スノコ/)) return 'スノコ';
+    if (v.match(/liquimol|リキモリ/)) return 'リキモリ';
+    if (v.match(/chevron|シェブロン/)) return 'シェブロン';
+    if (v.match(/\belf\b/)) return 'elf';
+    if (v.match(/unil.?opal|ユニルオパール|ユニルオパル/)) return 'ユニルオパール';
     if (v.match(/castrol|カストロール/)) return 'カストロール';
     if (v.match(/wako|ワコーズ/)) return 'ワコーズ';
     if (v.match(/agip|eni|アジップ/)) return 'Agip / eni';
     if (v.match(/gulf|ガルフ/)) return 'ガルフ';
     if (v.match(/nutec|ニューテック/)) return 'NUTEC';
-    if (v.match(/ash|a\.s\.h|アッシュ/)) return 'A.S.H';
+    if (v.match(/\ba\.s\.h\b|ash oil|アッシュ/)) return 'A.S.H';
     if (v.match(/pennzoil|ペンズオイル|ペンズ/)) return 'ペンズオイル';
     if (v.match(/valvoline|バルボリン/)) return 'バルボリン';
     if (v.match(/revtech|レブテック/)) return 'RevTech';
-    if (v.match(/polo/)) return 'POLO Lubricants';
+    if (v.match(/polo lubr|polo turbo|polo classic/)) return 'POLO Lubricants';
     if (v.match(/ontario|オンタリオ/)) return 'オンタリオSS';
     if (v.match(/tcガレージ|tcgarage/)) return 'TCガレージ';
+    if (v.match(/omega|オメガ/)) return 'オメガ';
+    if (v.match(/bp |bp$/)) return 'BP';
+    // ---- タイヤブランド ----
+    if (v.match(/michelin|ミシュラン/)) return 'ミシュラン';
+    if (v.match(/pirelli|ピレリ|cinturato|チンチュラート/)) return 'ピレリ';
+    if (v.match(/bridgestone|ブリヂストン|ブリジストン|sneaker|スニーカー/)) return 'ブリヂストン';
+    if (v.match(/yokohama|ヨコハマ|横浜|advan|アドバン/)) return 'ヨコハマ';
+    if (v.match(/dunlop|ダンロップ|digityer|dunlpop/)) return 'ダンロップ';
+    if (v.match(/toyo|トーヨー/)) return 'トーヨー';
+    if (v.match(/falken|ファルケン/)) return 'ファルケン';
+    if (v.match(/hankook|ハンコック/)) return 'ハンコック';
+    if (v.match(/continental|コンチネンタル/)) return 'コンチネンタル';
+    if (v.match(/meister|マイスター/)) return 'マイスター';
     return t.charAt(0).toUpperCase() + t.slice(1);
   }
 
@@ -400,17 +418,16 @@
 
   function getCycleDistJa(t) {
     if (!t) return null;
-    let v = String(t).replace(/,/g, '').toLowerCase(); 
+    let v = String(t).replace(/,/g, '').toLowerCase();
     if (v.match(/不明|未記入/)) return null;
     if (v.match(/10000|１万/)) return '10,000km';
     if (v.match(/5000/)) return '5,000km';
-    if (v.match(/3000|2000|2500|2800/)) return '3,000km以下';
-    if (v.match(/km|キロ|00/)) {
-        let m = v.match(/[0-9]+/);
-        if (m) {
-            let n = parseInt(m[0]);
-            return n.toLocaleString() + 'km';
-        }
+    if (v.match(/3[0-9]{3}|2500|2800/)) return '3,000km前後';
+    if (v.match(/2000|2[0-4][0-9]{2}/)) return '2,000km前後';
+    if (v.match(/1[0-9]{3}|1500/)) return '1,500km以下';
+    if (v.match(/km|キロ/)) {
+      let m = v.match(/[0-9]+/);
+      if (m) { let n = parseInt(m[0]); return n.toLocaleString() + 'km'; }
     }
     return null;
   }
@@ -418,12 +435,12 @@
   function getCycleTimeJa(t) {
     if (!t) return null;
     let v = String(t).toLowerCase();
-    if (v.match(/不明|未記入/)) return null;
-    if (v.match(/半年|6ヶ月|6ケ月|6ヵ月|6か月/)) return '半年/6ヶ月ごと';
-    if (v.match(/1年|１年|12ヶ月|12ヶ月/)) return '1年ごと';
-    if (v.match(/車検|2年|２年/) && !v.includes('半年')) return '車検/2年ごと';
-    if (v.match(/随時|不定期|気分|足す|減ったら/)) return '随時・足し油';
-    if (!v.match(/[0-9]00/)) return t; 
+    if (v.match(/不明|未記入|適当|適宜|気まぐれ|気分/)) return null;
+    if (v.match(/半年|6ヶ月|6ケ月|6ヵ月|6か月|６か月|６ヶ月/)) return '半年/6ヶ月ごと';
+    if (v.match(/1年|１年|12ヶ月|1年ごと/)) return '1年ごと';
+    if (v.match(/車検|2年|２年/) && !v.match(/半年/)) return '車検/2年ごと';
+    if (v.match(/随時|不定期|足す|減ったら|継足|継ぎ足|足し/)) return '随時・足し油';
+    if (!v.match(/[0-9０-９]0{2}/)) return t;
     return null;
   }
 
@@ -504,6 +521,7 @@
   }
 </script>
 <footer style="margin-top:48px;padding:20px 16px;border-top:1px solid #e5e7eb;text-align:center;">
+  <a href="goods.html" style="font-size:0.82rem;color:#6b7280;text-decoration:none;">📦 チンクと暮らす道具帖（PR）</a>
 </footer>
 </body>
 </html>
