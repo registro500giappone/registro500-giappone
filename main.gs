@@ -364,6 +364,12 @@ function supabaseUpdate_(table, id, data) {
 // 通知機能 (Daily Digest: お知らせ + 新車 + イベント)
 // =================================================
 function sendDailyDigest() {
+  // 二重実行防止: スクリプトロックを取得（10秒待って取れなければスキップ）
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    Logger.log('⚠️ sendDailyDigest: 別のインスタンスが実行中のためスキップ');
+    return;
+  }
   try {
     const now = new Date();
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -466,7 +472,7 @@ function sendDailyDigest() {
       try { markEventNotificationSent_(evt.DbId); } catch (e) { Logger.log('events フラグ更新エラー: ' + e); }
     });
     unsentNews.forEach(n => {
-      try { markNewsAsSent_(n.id); } catch (e) {}
+      try { markNewsAsSent_(n.id); } catch (e) { Logger.log('❌ markNewsAsSent_ エラー (id=' + n.id + '): ' + e); }
     });
 
     Logger.log(`メール配信完了: お知らせ${unsentNews.length}件、車両${newCars.length}台、イベント${newEvents.length}件`);
@@ -474,6 +480,8 @@ function sendDailyDigest() {
     Logger.log('❌ sendDailyDigest エラー: ' + error);
     Logger.log('スタックトレース: ' + error.stack);
     throw error;
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -1154,6 +1162,45 @@ https://www.registro500.com/`;
     Logger.log('✅ お詫びメール送信完了: ' + recipients.length + '人に送信しました。');
   } catch (e) {
     logDelivery('email（お詫び）', 0, 'お詫びと再送', 'エラー: ' + e);
+    Logger.log('❌ エラー: ' + e);
+    throw e;
+  }
+}
+
+// =================================================
+// グッズアンケート リマインダー（2026/03/28 締切）
+// ※GASエディタから手動実行すること
+// =================================================
+function sendGoodsSurveyReminder() {
+  const subject = '【締め切り2日前】グッズアンケートのお願い';
+  const body = `Registro500/126をご利用のみなさんへ
+
+先日お送りしたアンケートの締め切りが 3月28日（土） に迫っています。
+
+まだご回答いただいていない方は、ぜひご協力をお願いします！
+
+▼ アンケートはこちら（2分で終わります）
+https://forms.gle/8R6HJYDbukWQvTau6
+
+みなさんのご意見をもとに、サイトで役立つグッズ紹介ページを作る予定です。
+
+---------------------------------------------------------
+Registro500/126 Giappone
+https://www.registro500.com/`;
+
+  try {
+    const recipients = getAllExistingOwnerEmails_();
+    if (recipients.length === 0) {
+      Logger.log('送信先なし');
+      return;
+    }
+    const chunkSize = 90;
+    for (let i = 0; i < recipients.length; i += chunkSize) {
+      sendBroadcastViaBrevo(recipients.slice(i, i + chunkSize), subject, body);
+      Utilities.sleep(1000);
+    }
+    Logger.log('✅ グッズアンケートリマインダー送信完了: ' + recipients.length + '件');
+  } catch (e) {
     Logger.log('❌ エラー: ' + e);
     throw e;
   }
