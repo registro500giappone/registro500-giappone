@@ -99,7 +99,6 @@
       overflow: hidden;
     }
 
-    /* 背景の薄い緑の雰囲気 */
     .hero::before {
       content: '';
       position: absolute;
@@ -110,7 +109,6 @@
       pointer-events: none;
     }
 
-    /* ===== HERO PHOTO ===== */
     .hero-photo {
       width: 100%;
       aspect-ratio: 3 / 1;
@@ -254,6 +252,17 @@
     }
 
     /* ===== STORY ===== */
+    .series-concept {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.05rem, 2.5vw, 1.2rem);
+      font-style: italic;
+      line-height: 2;
+      color: var(--forest);
+      border-left: 2px solid var(--forest);
+      padding-left: 20px;
+      margin-bottom: 36px;
+    }
+
     .story-text {
       font-size: 1rem;
       line-height: 2.2;
@@ -263,6 +272,15 @@
     }
     .story-text p + p { margin-top: 1.6em; }
     .story-text strong { color: var(--ink); font-weight: 500; }
+
+    .affiliate-note {
+      margin-top: 2em;
+      font-size: 0.78rem !important;
+      color: var(--ink-faint) !important;
+      line-height: 1.8 !important;
+      border-top: 1px solid var(--border);
+      padding-top: 1em;
+    }
 
     .story-links {
       display: flex;
@@ -290,12 +308,11 @@
       border-bottom: 1px solid #E0DDD5;
     }
 
-    /* 商品カード */
     .product {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 52px;
-      align-items: stretch;
+      align-items: start;
       padding-bottom: 72px;
       margin-bottom: 72px;
       border-bottom: 1px solid var(--border);
@@ -320,130 +337,97 @@
       }
     }
 
-    /* Instagram埋め込みラッパー */
-    .product-embed {
-      overflow: hidden;
-      border-radius: 4px;
+    /* ===== 写真ギャラリー ===== */
+    .product-gallery {
+      position: relative;
     }
-    .product-embed .instagram-media {
-      min-width: 0 !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      margin: 0 !important;
-    }
-
-    /* X（Twitter）埋め込み - 商品内 */
-    .product-tweet {
-      margin-top: auto;
-      padding-top: 20px;
-      border-top: 1px solid var(--border);
-      overflow: hidden;
-    }
-    .product-tweet .twitter-tweet {
-      margin: 0 !important;
-    }
-
-    /* ブログレビューカード */
-    .product-blog-card {
-      display: block;
-      text-decoration: none;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      overflow: hidden;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .product-blog-card:hover {
-      border-color: var(--forest);
-      box-shadow: 0 4px 16px rgba(77,107,60,0.12);
-    }
-    .product-blog-img {
+    .gallery-main {
       width: 100%;
-      display: block;
       aspect-ratio: 4 / 3;
       object-fit: cover;
-    }
-    .product-blog-caption {
-      padding: 16px 18px;
-      background: #fff;
-      border-top: 1px solid var(--border);
-    }
-    .product-blog-label {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 0.68rem;
-      letter-spacing: 0.38em;
-      text-transform: uppercase;
-      color: var(--tan);
+      border-radius: 4px;
+      cursor: zoom-in;
       display: block;
-      margin-bottom: 8px;
+      transition: opacity 0.18s;
     }
-    .product-blog-title {
-      font-family: 'Noto Serif JP', serif;
-      font-size: 0.92rem;
-      color: var(--ink);
-      line-height: 1.65;
-      margin-bottom: 8px;
-      font-style: italic;
-    }
-    .product-blog-by {
-      font-size: 0.72rem;
-      color: var(--ink-faint);
+    .gallery-main:hover { opacity: 0.93; }
+    .gallery-thumbs {
       display: flex;
+      gap: 5px;
+      margin-top: 5px;
+      flex-wrap: wrap;
+    }
+    .gallery-thumb {
+      flex: 0 0 calc(25% - 4px);
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: 2px;
+      cursor: pointer;
+      opacity: 0.62;
+      transition: opacity 0.18s;
+      border: 1.5px solid transparent;
+    }
+    .gallery-thumb:hover { opacity: 1; }
+    .gallery-thumb.active { opacity: 1; border-color: var(--forest); }
+
+    /* ===== ライトボックス ===== */
+    #lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.93);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+    }
+    #lightbox.open { display: flex; }
+    #lightbox-img {
+      max-width: 92vw;
+      max-height: 88vh;
+      object-fit: contain;
+      border-radius: 2px;
+      cursor: default;
+      display: block;
+    }
+    #lightbox-close {
+      position: absolute;
+      top: 18px;
+      right: 26px;
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.65);
+      font-size: 2.2rem;
+      cursor: pointer;
+      line-height: 1;
+      transition: color 0.2s;
+      font-weight: 300;
+    }
+    #lightbox-close:hover { color: #fff; }
+
+    /* ===== ブログレビューリンク（商品内） ===== */
+    .product-blog-link {
+      display: inline-flex;
       align-items: center;
       gap: 6px;
-    }
-    .product-blog-by::after {
-      content: '記事を読む →';
-      color: var(--forest);
-      font-size: 0.7rem;
-      letter-spacing: 0.05em;
-      margin-left: auto;
-    }
-
-    /* 引用ブロック（写真代替）*/
-    .product-feature-quote {
-      background: var(--ink);
-      border-radius: 4px;
-      padding: 48px 40px 40px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      min-height: 280px;
-    }
-    .feature-quote {
-      margin: 0;
-    }
-    .feature-quote p {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: clamp(1.35rem, 3vw, 1.75rem);
-      font-style: italic;
-      font-weight: 300;
-      color: #fff;
-      line-height: 1.7;
-      margin-bottom: 20px;
-    }
-    .feature-quote cite {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 0.75rem;
-      letter-spacing: 0.25em;
-      color: rgba(255,255,255,0.45);
-      font-style: normal;
-    }
-    .feature-blog-link {
-      font-family: 'Cormorant Garamond', serif;
       font-size: 0.78rem;
-      letter-spacing: 0.2em;
-      color: rgba(255,255,255,0.5);
+      color: var(--forest);
       text-decoration: none;
-      border-bottom: 1px solid rgba(255,255,255,0.2);
-      padding-bottom: 3px;
-      align-self: flex-start;
-      margin-top: 32px;
-      transition: color 0.2s, border-color 0.2s;
+      border-bottom: 1px solid var(--forest-light);
+      padding-bottom: 2px;
+      margin-top: 10px;
+      transition: border-color 0.2s;
     }
-    .feature-blog-link:hover {
-      color: #fff;
-      border-color: rgba(255,255,255,0.6);
+    .product-blog-link:hover { border-color: var(--forest); }
+
+    /* X 埋め込み（商品内） */
+    .product-tweet {
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      overflow: hidden;
     }
+    .product-tweet .twitter-tweet { margin: 0 !important; }
 
     .product-number {
       font-family: 'Cormorant Garamond', serif;
@@ -476,6 +460,10 @@
       margin-bottom: 6px;
       font-weight: 400;
     }
+    .product-price.sold {
+      color: var(--ink-faint);
+      text-decoration: line-through;
+    }
     .product-price-note {
       font-size: 0.82rem;
       color: var(--ink-light);
@@ -494,6 +482,39 @@
       text-transform: uppercase;
     }
     .product-dm:hover { border-color: var(--rust); }
+
+    /* ===== INTRO (napdesign紹介) ===== */
+    .intro-text {
+      font-size: 1rem;
+      line-height: 2.2;
+      color: var(--ink);
+      max-width: 640px;
+      margin-bottom: 52px;
+    }
+    .intro-sub-label {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.45em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin-bottom: 14px;
+      margin-top: 52px;
+    }
+    .intro-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 6px;
+    }
+    .intro-gallery img {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      border-radius: 3px;
+      cursor: zoom-in;
+      transition: opacity 0.18s;
+      display: block;
+    }
+    .intro-gallery img:hover { opacity: 0.88; }
 
     /* ===== VOICE ===== */
     .voice-intro {
@@ -647,6 +668,12 @@
 </head>
 <body>
 
+<!-- ライトボックス -->
+<div id="lightbox" onclick="closeLightbox()">
+  <button id="lightbox-close" onclick="closeLightbox()">&#215;</button>
+  <img id="lightbox-img" src="" alt="" onclick="event.stopPropagation()">
+</div>
+
   <!-- NAV -->
   <nav class="page-nav">
     <a href="parts-shops.html" class="nav-back">← パーツ調達ガイド</a>
@@ -655,7 +682,7 @@
 
   <!-- HERO -->
   <section class="hero">
-    <span class="hero-kicker">Owner's Brand Feature &nbsp;·&nbsp; Vol. 01</span>
+    <span class="hero-kicker">オーナーズ・オリジナル・クリエーション &nbsp;·&nbsp; Vol. 01</span>
     <div class="hero-logo-wrap">
       <img src="napdesign-logo.png" alt="napdesign" class="hero-logo">
       <p class="hero-brand-name">napdesign</p>
@@ -683,6 +710,10 @@
     <h2 class="section-title">広告ではなく、<br><em>仲間の口コミ</em>から知った</h2>
     <div class="divider"></div>
     <div class="story-text">
+      <p class="series-concept">
+        チンクに乗り、チンクを愛し、そしてチンクのために何かを作る人がいる。<br>
+        このシリーズは、そんなオーナーたちの仕事を紹介する。
+      </p>
       <p>
         「nap姉さん」を知ったのは、タイムラインだった。
         チンクオーナーの誰かが写真を投稿して、別の誰かが「これ最高」と引用する。
@@ -700,6 +731,9 @@
         使い込むほどに手に馴染み、チンクの内装と一体になっていく。
         ホームページには多くを語らないが、
         コミュニティの中の評判がすべてを語っている。
+      </p>
+      <p class="affiliate-note">
+        ※ このページはアフィリエイト広告ではありません。掲載料・報酬等は一切受け取っていません。純粋な応援として紹介しています。
       </p>
     </div>
     <div class="story-links">
@@ -719,10 +753,17 @@
 
       <!-- 01: スマホホルダー -->
       <div class="product">
-        <div class="product-embed">
-          <blockquote class="twitter-tweet" data-lang="ja" data-dnt="true" style="margin:0;">
-            <a href="https://twitter.com/aba75097444/status/2030175602586833323"></a>
-          </blockquote>
+        <div class="product-gallery" id="gallery-01">
+          <img class="gallery-main"
+            src="napdesign-photos/smartphone-holder-1.jpg"
+            data-src="napdesign-photos/smartphone-holder-1.jpg"
+            alt="napdesign レザースマホホルダー"
+            onclick="openLightbox(this.dataset.src)">
+          <div class="gallery-thumbs">
+            <img class="gallery-thumb active" src="napdesign-photos/smartphone-holder-1.jpg" alt="" onclick="setMain(this,'gallery-01')">
+            <img class="gallery-thumb" src="napdesign-photos/smartphone-holder-2.jpg" alt="" onclick="setMain(this,'gallery-01')">
+            <img class="gallery-thumb" src="napdesign-photos/smartphone-holder-3.jpg" alt="" onclick="setMain(this,'gallery-01')">
+          </div>
         </div>
         <div class="product-info">
           <p class="product-number">01 &mdash; Smartphone Holder</p>
@@ -737,15 +778,28 @@
           <p class="product-price">¥5,500</p>
           <p class="product-price-note">全国一律・送料込み / ご相談はDMへ</p>
           <a href="https://x.com/p500panda" target="_blank" rel="noopener" class="product-dm">X @p500panda へ DM ›</a>
+          <div class="product-tweet">
+            <blockquote class="twitter-tweet" data-lang="ja" data-dnt="true" data-conversation="none">
+              <a href="https://twitter.com/aba75097444/status/2030175602586833323"></a>
+            </blockquote>
+          </div>
         </div>
       </div>
 
       <!-- 02: サイドブレーキカバー -->
       <div class="product reverse">
-        <div class="product-embed">
-          <blockquote class="twitter-tweet" data-lang="ja" data-dnt="true" style="margin:0;">
-            <a href="https://twitter.com/mk_uchi/status/2035165334056181978"></a>
-          </blockquote>
+        <div class="product-gallery" id="gallery-02">
+          <img class="gallery-main"
+            src="napdesign-photos/sidebrake-1.jpg"
+            data-src="napdesign-photos/sidebrake-1.jpg"
+            alt="napdesign サイドブレーキレザーカバー"
+            onclick="openLightbox(this.dataset.src)">
+          <div class="gallery-thumbs">
+            <img class="gallery-thumb active" src="napdesign-photos/sidebrake-1.jpg" alt="" onclick="setMain(this,'gallery-02')">
+            <img class="gallery-thumb" src="napdesign-photos/sidebrake-2.jpg" alt="" onclick="setMain(this,'gallery-02')">
+            <img class="gallery-thumb" src="napdesign-photos/sidebrake-3.jpg" alt="" onclick="setMain(this,'gallery-02')">
+            <img class="gallery-thumb" src="napdesign-photos/sidebrake-4.jpg" alt="" onclick="setMain(this,'gallery-02')">
+          </div>
         </div>
         <div class="product-info">
           <p class="product-number">02 &mdash; Side Brake Cover</p>
@@ -759,15 +813,28 @@
           <p class="product-price">¥4,200</p>
           <p class="product-price-note">送料込み / カラーオーダー可 / 詳細はDMへ</p>
           <a href="https://x.com/p500panda" target="_blank" rel="noopener" class="product-dm">X @p500panda へ DM ›</a>
+          <div class="product-tweet">
+            <blockquote class="twitter-tweet" data-lang="ja" data-dnt="true" data-conversation="none">
+              <a href="https://twitter.com/mk_uchi/status/2035165334056181978"></a>
+            </blockquote>
+          </div>
         </div>
       </div>
 
       <!-- 03: ドアハンドルストラップ -->
       <div class="product">
-        <div class="product-embed">
-          <blockquote class="twitter-tweet" data-lang="ja" data-dnt="true" style="margin:0;">
-            <a href="https://twitter.com/p500panda/status/2041016859760509194"></a>
-          </blockquote>
+        <div class="product-gallery" id="gallery-03">
+          <img class="gallery-main"
+            src="napdesign-photos/doorstrap-1.jpg"
+            data-src="napdesign-photos/doorstrap-1.jpg"
+            alt="napdesign レザードアハンドルストラップ"
+            onclick="openLightbox(this.dataset.src)">
+          <div class="gallery-thumbs">
+            <img class="gallery-thumb active" src="napdesign-photos/doorstrap-1.jpg" alt="" onclick="setMain(this,'gallery-03')">
+            <img class="gallery-thumb" src="napdesign-photos/doorstrap-2.jpg" alt="" onclick="setMain(this,'gallery-03')">
+            <img class="gallery-thumb" src="napdesign-photos/doorstrap-3.jpg" alt="" onclick="setMain(this,'gallery-03')">
+            <img class="gallery-thumb" src="napdesign-photos/doorstrap-4.jpg" alt="" onclick="setMain(this,'gallery-03')">
+          </div>
         </div>
         <div class="product-info">
           <p class="product-number">03 &mdash; Door Handle Strap</p>
@@ -781,15 +848,32 @@
           <p class="product-price">¥2,000 / 本 &nbsp;｜&nbsp; 2本セット ¥3,800</p>
           <p class="product-price-note">税・送料込み / Color: ヌメ（生成り）・レッド・ブラック</p>
           <a href="https://x.com/p500panda" target="_blank" rel="noopener" class="product-dm">X @p500panda へ DM ›</a>
+          <div class="product-tweet">
+            <blockquote class="twitter-tweet" data-lang="ja" data-dnt="true" data-conversation="none">
+              <a href="https://twitter.com/p500panda/status/2041016859760509194"></a>
+            </blockquote>
+          </div>
         </div>
       </div>
 
       <!-- 04: バイザーカバー -->
       <div class="product reverse">
-        <div class="product-embed">
-          <blockquote class="twitter-tweet" data-lang="ja" data-dnt="true" style="margin:0;">
-            <a href="https://twitter.com/500_syndrome/status/2030420576515559788"></a>
-          </blockquote>
+        <div class="product-gallery" id="gallery-04">
+          <img class="gallery-main"
+            src="napdesign-photos/visorcov-1.jpg"
+            data-src="napdesign-photos/visorcov-1.jpg"
+            alt="napdesign レザーバイザーカバー"
+            onclick="openLightbox(this.dataset.src)">
+          <div class="gallery-thumbs">
+            <img class="gallery-thumb active" src="napdesign-photos/visorcov-1.jpg" alt="" onclick="setMain(this,'gallery-04')">
+            <img class="gallery-thumb" src="napdesign-photos/visorcov-2.jpg" alt="" onclick="setMain(this,'gallery-04')">
+            <img class="gallery-thumb" src="napdesign-photos/visorcov-3.jpg" alt="" onclick="setMain(this,'gallery-04')">
+            <img class="gallery-thumb" src="napdesign-photos/visorcov-4.jpg" alt="" onclick="setMain(this,'gallery-04')">
+            <img class="gallery-thumb" src="napdesign-photos/visorcov-5.jpg" alt="" onclick="setMain(this,'gallery-04')">
+            <img class="gallery-thumb" src="napdesign-photos/visorcov-6.jpg" alt="" onclick="setMain(this,'gallery-04')">
+            <img class="gallery-thumb" src="napdesign-photos/visorcov-7.jpg" alt="" onclick="setMain(this,'gallery-04')">
+            <img class="gallery-thumb" src="napdesign-photos/visorcov-8.jpg" alt="" onclick="setMain(this,'gallery-04')">
+          </div>
         </div>
         <div class="product-info">
           <p class="product-number">04 &mdash; Visor Cover</p>
@@ -803,19 +887,33 @@
           <p class="product-price">詳細はDMでお問い合わせください</p>
           <p class="product-price-note">カラーオーダー可 / 左右2枚セット推奨</p>
           <a href="https://x.com/p500panda" target="_blank" rel="noopener" class="product-dm">X @p500panda へ DM ›</a>
+          <div class="product-tweet">
+            <blockquote class="twitter-tweet" data-lang="ja" data-dnt="true" data-conversation="none">
+              <a href="https://twitter.com/500_syndrome/status/2030420576515559788"></a>
+            </blockquote>
+          </div>
         </div>
       </div>
 
       <!-- 05: シフトブーツ -->
       <div class="product">
-        <a href="https://ameblo.jp/500raven/entry-12346586071.html" target="_blank" rel="noopener" class="product-blog-card">
-          <img src="napdesign-shiftboot.jpg" alt="napdesignレザーシフトブーツ（MEXさんレビュー）" class="product-blog-img">
-          <div class="product-blog-caption">
-            <span class="product-blog-label">Blog Review</span>
-            <p class="product-blog-title">「質素なチンクエチェントに品良く納まった」</p>
-            <span class="product-blog-by">MEX / Memory and Experience ~Cinquecento syndrome~</span>
+        <div class="product-gallery" id="gallery-05">
+          <img class="gallery-main"
+            src="napdesign-photos/shiftboot-1.jpg"
+            data-src="napdesign-photos/shiftboot-1.jpg"
+            alt="napdesign レザーシフトブーツ"
+            onclick="openLightbox(this.dataset.src)">
+          <div class="gallery-thumbs">
+            <img class="gallery-thumb active" src="napdesign-photos/shiftboot-1.jpg" alt="" onclick="setMain(this,'gallery-05')">
+            <img class="gallery-thumb" src="napdesign-photos/shiftboot-2.jpg" alt="" onclick="setMain(this,'gallery-05')">
+            <img class="gallery-thumb" src="napdesign-photos/shiftboot-3.jpg" alt="" onclick="setMain(this,'gallery-05')">
+            <img class="gallery-thumb" src="napdesign-photos/shiftboot-4.jpg" alt="" onclick="setMain(this,'gallery-05')">
+            <img class="gallery-thumb" src="napdesign-photos/shiftboot-5.jpg" alt="" onclick="setMain(this,'gallery-05')">
+            <img class="gallery-thumb" src="napdesign-photos/shiftboot-6.jpg" alt="" onclick="setMain(this,'gallery-05')">
+            <img class="gallery-thumb" src="napdesign-photos/shiftboot-7.jpg" alt="" onclick="setMain(this,'gallery-05')">
+            <img class="gallery-thumb" src="napdesign-photos/shiftboot-8.jpg" alt="" onclick="setMain(this,'gallery-05')">
           </div>
-        </a>
+        </div>
         <div class="product-info">
           <p class="product-number">05 &mdash; Shift Boot</p>
           <h3 class="product-name">レザー<br>シフトブーツ</h3>
@@ -823,16 +921,221 @@
             旧FIAT500専用に設計されたハンドメイドのシフトブーツ。
             スムースレザーに赤ステッチ、革紐で縛るデザイン。
             使い込むほどに革が手に馴染んでくる。
-            MEXさんのレビューブログでは実際の装着写真と感想が詳しく紹介されている。
           </p>
           <p class="product-price">詳細はDMでお問い合わせください</p>
           <p class="product-price-note">ご購入・ご相談はDMへ</p>
           <a href="https://x.com/p500panda" target="_blank" rel="noopener" class="product-dm">X @p500panda へ DM ›</a>
+          <a href="https://ameblo.jp/500raven/entry-12346586071.html" target="_blank" rel="noopener" class="product-blog-link">
+            ブログレビュー「質素なチンクエチェントに品良く納まった」MEX →
+          </a>
         </div>
       </div>
 
+      <!-- 06: 指示器延長カバー -->
+      <div class="product reverse">
+        <div class="product-gallery" id="gallery-06">
+          <img class="gallery-main"
+            src="napdesign-photos/turnsignal.jpg"
+            data-src="napdesign-photos/turnsignal.jpg"
+            alt="napdesign 指示器延長カバー"
+            onclick="openLightbox(this.dataset.src)">
+        </div>
+        <div class="product-info">
+          <p class="product-number">06 &mdash; Turn Signal Cover</p>
+          <h3 class="product-name">指示器<br>延長カバー</h3>
+          <p class="product-desc">
+            旧FIAT500のウインカーレバーに取り付ける革のカバー。
+            操作のたびに手に触れる部分だけに、素材の差が体感できる一品。
+          </p>
+          <p class="product-price">¥4,000</p>
+          <p class="product-price-note">送料込み / 詳細はDMへ</p>
+          <a href="https://x.com/p500panda" target="_blank" rel="noopener" class="product-dm">X @p500panda へ DM ›</a>
+        </div>
+      </div>
 
+      <!-- 07: コイン小物ケース -->
+      <div class="product">
+        <div class="product-gallery" id="gallery-07">
+          <img class="gallery-main"
+            src="napdesign-photos/coincase.jpg"
+            data-src="napdesign-photos/coincase.jpg"
+            alt="napdesign コイン小物ケース"
+            onclick="openLightbox(this.dataset.src)">
+        </div>
+        <div class="product-info">
+          <p class="product-number">07 &mdash; Coin Case</p>
+          <h3 class="product-name">コイン<br>小物ケース</h3>
+          <p class="product-desc">
+            ダッシュボードや小物入れに置ける革製のミニケース。
+            チンクの車内に馴染む素朴な質感が魅力。
+          </p>
+          <p class="product-price">¥3,500</p>
+          <p class="product-price-note">送料込み / 詳細はDMへ</p>
+          <a href="https://x.com/p500panda" target="_blank" rel="noopener" class="product-dm">X @p500panda へ DM ›</a>
+        </div>
+      </div>
 
+      <!-- 08: ペンケース -->
+      <div class="product reverse">
+        <div class="product-gallery" id="gallery-08">
+          <img class="gallery-main"
+            src="napdesign-photos/pencase-1.jpg"
+            data-src="napdesign-photos/pencase-1.jpg"
+            alt="napdesign レザーペンケース"
+            onclick="openLightbox(this.dataset.src)">
+          <div class="gallery-thumbs">
+            <img class="gallery-thumb active" src="napdesign-photos/pencase-1.jpg" alt="" onclick="setMain(this,'gallery-08')">
+            <img class="gallery-thumb" src="napdesign-photos/pencase-2.jpg" alt="" onclick="setMain(this,'gallery-08')">
+          </div>
+        </div>
+        <div class="product-info">
+          <p class="product-number">08 &mdash; Pen Case</p>
+          <h3 class="product-name">レザー<br>ペンケース</h3>
+          <p class="product-desc">
+            車のグローブボックスや鞄に入れておきたい、
+            ハンドメイドの革ペンケース。napdesignらしい
+            丁寧な縫製と素材感が日常使いの道具を特別にしてくれる。
+          </p>
+          <p class="product-price">¥3,200</p>
+          <p class="product-price-note">送料込み / 詳細はDMへ</p>
+          <a href="https://x.com/p500panda" target="_blank" rel="noopener" class="product-dm">X @p500panda へ DM ›</a>
+        </div>
+      </div>
+
+      <!-- 09: カードケース -->
+      <div class="product">
+        <div class="product-gallery" id="gallery-09">
+          <img class="gallery-main"
+            src="napdesign-photos/cardcase.jpg"
+            data-src="napdesign-photos/cardcase.jpg"
+            alt="napdesign レザーカードケース"
+            onclick="openLightbox(this.dataset.src)">
+        </div>
+        <div class="product-info">
+          <p class="product-number">09 &mdash; Card Case</p>
+          <h3 class="product-name">レザー<br>カードケース</h3>
+          <p class="product-desc">
+            革のカードケース。
+            シンプルな作りの中に napdesign らしい素材感と縫製が光る。
+          </p>
+          <p class="product-price">価格はDMでご相談ください</p>
+          <p class="product-price-note">ご購入・サイズ・カラーのご相談はDMへ</p>
+          <a href="https://x.com/p500panda" target="_blank" rel="noopener" class="product-dm">X @p500panda へ DM ›</a>
+        </div>
+      </div>
+
+      <!-- 10: fiat500 × whiskey label -->
+      <div class="product reverse">
+        <div class="product-gallery" id="gallery-10">
+          <img class="gallery-main"
+            src="napdesign-photos/whiskeylabel.jpg"
+            data-src="napdesign-photos/whiskeylabel.jpg"
+            alt="napdesign fiat500 × whiskey label"
+            onclick="openLightbox(this.dataset.src)">
+        </div>
+        <div class="product-info">
+          <p class="product-number">10 &mdash; Art Work</p>
+          <h3 class="product-name">fiat500<br>&times; whiskey label</h3>
+          <p class="product-desc">
+            チンクをモチーフにしたウィスキーラベルのアート作品。
+            napdesignのもうひとつの顔——デザイナーとしての仕事が凝縮された一点もの。
+          </p>
+          <p class="product-price">¥90,000</p>
+          <p class="product-price-note">一点もの / お問い合わせはDMへ</p>
+          <a href="https://x.com/p500panda" target="_blank" rel="noopener" class="product-dm">X @p500panda へ DM ›</a>
+        </div>
+      </div>
+
+      <!-- 11: アバルト × beercan -->
+      <div class="product">
+        <div class="product-gallery" id="gallery-11">
+          <img class="gallery-main"
+            src="napdesign-photos/beercan-abarth-1.jpg"
+            data-src="napdesign-photos/beercan-abarth-1.jpg"
+            alt="napdesign アバルト × beercan art"
+            onclick="openLightbox(this.dataset.src)">
+          <div class="gallery-thumbs">
+            <img class="gallery-thumb active" src="napdesign-photos/beercan-abarth-1.jpg" alt="" onclick="setMain(this,'gallery-11')">
+            <img class="gallery-thumb" src="napdesign-photos/beercan-abarth-2.jpg" alt="" onclick="setMain(this,'gallery-11')">
+          </div>
+        </div>
+        <div class="product-info">
+          <p class="product-number">11 &mdash; Art Work</p>
+          <h3 class="product-name">アバルト<br>&times; beercan</h3>
+          <p class="product-desc">
+            アバルトをモチーフにしたビア缶デザインのアート作品。
+            コレクターズアイテムとして、またインテリアとして。
+          </p>
+          <p class="product-price">¥60,000</p>
+          <p class="product-price-note">一点もの / お問い合わせはDMへ</p>
+          <a href="https://x.com/p500panda" target="_blank" rel="noopener" class="product-dm">X @p500panda へ DM ›</a>
+        </div>
+      </div>
+
+      <!-- 12: ビア缶アート（売却済） -->
+      <div class="product reverse">
+        <div class="product-gallery" id="gallery-12">
+          <img class="gallery-main"
+            src="napdesign-photos/beercan-sold-1.jpg"
+            data-src="napdesign-photos/beercan-sold-1.jpg"
+            alt="napdesign ビア缶アート（売却済）"
+            onclick="openLightbox(this.dataset.src)">
+          <div class="gallery-thumbs">
+            <img class="gallery-thumb active" src="napdesign-photos/beercan-sold-1.jpg" alt="" onclick="setMain(this,'gallery-12')">
+            <img class="gallery-thumb" src="napdesign-photos/beercan-sold-2.jpg" alt="" onclick="setMain(this,'gallery-12')">
+          </div>
+        </div>
+        <div class="product-info">
+          <p class="product-number">12 &mdash; Art Work</p>
+          <h3 class="product-name">ビア缶<br>アート</h3>
+          <p class="product-desc">
+            チンクをモチーフにしたビア缶デザインのアート作品。
+            こちらは既に売却済み。napdesignの過去作として紹介。
+          </p>
+          <p class="product-price sold">売却済み</p>
+          <p class="product-price-note">新作のご相談はDMへ</p>
+          <a href="https://x.com/p500panda" target="_blank" rel="noopener" class="product-dm">X @p500panda へ DM ›</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- NAPDESIGN 紹介 -->
+  <div class="section">
+    <span class="section-label">About napdesign</span>
+    <h2 class="section-title">もうひとつの顔——<br><em>フラワーショップのデザイナー</em></h2>
+    <div class="divider"></div>
+    <p class="intro-text">
+      大阪・高槻を拠点に、フラワーショップのデザインを手がけるデザイナー。
+      ウェディングフラワー、ディスプレイ、サイン、イベントの企画・制作——
+      その手が革小物も縫う。チンクのオーナーが作るものは、チンクを知る人間にしか
+      わからない細部への気遣いを持っている。
+      公式サイト <a href="http://www.napdesignjob.com/" target="_blank" rel="noopener" style="color:var(--forest);">napdesignjob.com</a> ではフラワーデザイン事業を紹介している。
+    </p>
+
+    <p class="intro-sub-label">雑誌掲載</p>
+    <div class="intro-gallery">
+      <img src="napdesign-photos/intro-magazine-1.jpg" alt="napdesign 雑誌掲載" onclick="openLightbox(this.src)">
+      <img src="napdesign-photos/intro-magazine-2.jpg" alt="napdesign 雑誌掲載" onclick="openLightbox(this.src)">
+      <img src="napdesign-photos/intro-magazine-3.jpg" alt="napdesign 雑誌掲載" onclick="openLightbox(this.src)">
+      <img src="napdesign-photos/intro-magazine-4.jpg" alt="napdesign 雑誌掲載" onclick="openLightbox(this.src)">
+      <img src="napdesign-photos/intro-magazine-5.jpg" alt="napdesign 雑誌掲載" onclick="openLightbox(this.src)">
+      <img src="napdesign-photos/intro-magazine-6.jpg" alt="napdesign 雑誌掲載" onclick="openLightbox(this.src)">
+      <img src="napdesign-photos/intro-magazine-7.jpg" alt="napdesign 雑誌掲載" onclick="openLightbox(this.src)">
+      <img src="napdesign-photos/intro-magazine-8.jpg" alt="napdesign 雑誌掲載" onclick="openLightbox(this.src)">
+    </div>
+
+    <p class="intro-sub-label">壁画アート</p>
+    <div class="intro-gallery">
+      <img src="napdesign-photos/intro-mural-1.jpg" alt="napdesign 壁画アート" onclick="openLightbox(this.src)">
+      <img src="napdesign-photos/intro-mural-2.jpg" alt="napdesign 壁画アート" onclick="openLightbox(this.src)">
+      <img src="napdesign-photos/intro-mural-3.jpg" alt="napdesign 壁画アート" onclick="openLightbox(this.src)">
+    </div>
+
+    <p class="intro-sub-label">nap号イラスト</p>
+    <div class="intro-gallery" style="grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));">
+      <img src="napdesign-photos/intro-nap-illustration.jpg" alt="nap号イラスト" onclick="openLightbox(this.src)">
     </div>
   </div>
 
@@ -917,16 +1220,41 @@
   <!-- FOOTER -->
   <footer class="page-footer">
     <p>
-      <a href="parts-shops.html">← パーツ調達ガイドに戻る</a>
-      &nbsp;|&nbsp;
       <a href="index.html">Registro500 Giappone</a>
     </p>
     <p style="margin-top:10px;">
       napdesignの作品・写真はすべて napdesign (@p500panda) に帰属します。
     </p>
+    <p style="margin-top:6px;">
+      このページはアフィリエイト広告ではありません。純粋な応援として掲載しています。
+    </p>
   </footer>
 
   <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+  <script>
+    function openLightbox(src) {
+      document.getElementById('lightbox-img').src = src;
+      document.getElementById('lightbox').classList.add('open');
+    }
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('open');
+      document.getElementById('lightbox-img').src = '';
+    }
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeLightbox();
+    });
+    function setMain(thumb, galleryId) {
+      var gallery = document.getElementById(galleryId);
+      var main = gallery.querySelector('.gallery-main');
+      gallery.querySelectorAll('.gallery-thumb').forEach(function(t) {
+        t.classList.remove('active');
+      });
+      thumb.classList.add('active');
+      main.src = thumb.src;
+      main.dataset.src = thumb.src;
+    }
+  </script>
 
 </body>
 </html>
