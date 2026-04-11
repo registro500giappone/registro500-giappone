@@ -166,10 +166,11 @@ def main():
         ("passione_recon.py", "Passione 500"),
         ("autobella_crawler.py", "AutoBella Parts"),
         ("ricambio_crawler.py", "Ricambio"),
-        ("mrfiat_crawler.py", "Mr Fiat")
+        ("mrfiat_crawler.py", "Mr Fiat"),
+        ("500line_crawler.py", "500Line")
     ]
 
-    log(f"\n8ショップを並列で実行します...\n")
+    log(f"\n9ショップを並列で実行します...\n")
 
     # subprocess並列実行
     processes = {}

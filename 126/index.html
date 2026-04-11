@@ -395,6 +395,7 @@
               <a href="../event.html?type=126">📅 イベント掲示板</a>
               <a href="../spot-guide.html?type=126">🗺️ 出没スポット</a>
               <a href="../parts-shops.html">🏪 パーツ調達ガイド</a>
+              <a href="../parts-shops.html#owners-original">✦ オーナーズ・オリジナル・クリエーション</a>
               <a href="../goods.html">📦 チンクと暮らす道具帖（PR）</a>
               <a href="../garage-notes.html">📓 ガレージノート</a>
               <a href="../parts-guide.html" id="menuPartsBtn" style="display:none;">🔧 比べ太郎（価格比較）</a>
@@ -414,11 +415,11 @@
             <svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
           </a>
           <span>｜</span>
-          <a href="../news.html?type=126">お知らせ<span id="newsBadge" class="news-badge" style="display:none;"></span></a>
+          <a href="../news.html?type=126" data-updated="2026-04-11">お知らせ<span id="newsBadge" class="news-badge page-badge" style="display:none;"></span></a>
           <span>｜</span>
-          <a href="../policy.html?from=126">ポリシー</a>
+          <a href="../policy.html?from=126" data-updated="2026-04-05">ポリシー<span class="news-badge page-badge" style="display:none;"></span></a>
           <span>｜</span>
-          <a href="../howto.html?from=126">初めての方へ</a>
+          <a href="../howto.html?from=126" data-updated="2026-04-05">初めての方へ<span class="news-badge page-badge" style="display:none;"></span></a>
         </nav>
       </div>
     </header>
@@ -544,12 +545,13 @@
       }
       fetchCars();
       checkNewsBadge();
+      checkPageBadges();
       initAuth();
     }
 
     // bfcache対策: ブラウザの戻るボタンで復元された場合にデータを再取得
     window.addEventListener('pageshow', function(event) {
-      if (event.persisted) { fetchCars(); }
+      if (event.persisted) { fetchCars(); checkNewsBadge(); }
     });
 
 async function fetchCars() {
@@ -600,7 +602,8 @@ async function fetchCars() {
 
 async function checkNewsBadge() {
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+        const today = jstNow.toISOString().split('T')[0];
         const { data, error } = await supabaseClient
           .from('news')
           .select('date')
@@ -611,11 +614,22 @@ async function checkNewsBadge() {
           .limit(1);
 
         if (!error && data && data.length > 0) {
-          const latestDate = new Date(data[0].date);
-          const diff = Math.ceil((new Date() - latestDate) / (1000 * 60 * 60 * 24));
-          if (diff <= 7) document.getElementById('newsBadge').style.display = 'block';
+          const latestDate = new Date(data[0].date + 'T00:00:00+09:00');
+          const diffMs = Date.now() - latestDate.getTime();
+          const diff = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+          if (diff <= 7) document.getElementById('newsBadge').style.display = 'inline-block';
         }
       } catch (e) {}
+    }
+    function checkPageBadges() {
+      document.querySelectorAll('.header-nav a[data-updated]').forEach(link => {
+        const updated = new Date(link.dataset.updated + 'T00:00:00+09:00');
+        const diff = Math.ceil((Date.now() - updated.getTime()) / (1000 * 60 * 60 * 24));
+        if (diff <= 7) {
+          const badge = link.querySelector('.page-badge');
+          if (badge) badge.style.display = 'inline-block';
+        }
+      });
     }
     function parseDocNumber(id) { const m = /^DOC_(\d+)$/.exec(String(id)); return m ? parseInt(m[1], 10) : 0; }
 
