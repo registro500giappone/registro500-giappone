@@ -12,6 +12,7 @@
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://www.registro500.com/logo_horizontal.png">
   <meta name="twitter:card" content="summary">
+  <link rel="canonical" id="canonicalTag" href="https://www.registro500.com/detail">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
@@ -201,8 +202,17 @@
           updateOwnerUI();
           applyNewBadges(data);
           updateOGP(data);
+        } else {
+          const meta = document.createElement('meta');
+          meta.name = 'robots'; meta.content = 'noindex';
+          document.head.appendChild(meta);
         }
-      } catch(e) { document.getElementById('loading').textContent = '読込エラー'; }
+      } catch(e) {
+        document.getElementById('loading').textContent = '読込エラー';
+        const meta = document.createElement('meta');
+        meta.name = 'robots'; meta.content = 'noindex';
+        document.head.appendChild(meta);
+      }
     }
 
     function updateOGP(car) {
@@ -216,6 +226,8 @@
       setMeta('property', 'og:description', desc);
       setMeta('name', 'description', desc);
       if (car.photo_main) setMeta('property', 'og:image', car.photo_main);
+      const canon = document.getElementById('canonicalTag');
+      if (canon && docId) canon.href = `https://www.registro500.com/detail?doc=${docId}`;
     }
 
     function renderDetail(car) {
