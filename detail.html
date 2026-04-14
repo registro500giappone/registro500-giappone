@@ -566,23 +566,18 @@
       const label = EPISODE_TYPE_LABELS[ep.type] || ep.type;
       const color = EPISODE_TYPE_COLORS[ep.type] || '#64748b';
       const dateStr = ep.episode_date ? ep.episode_date.replace(/-/g, '.') : '';
+      const excerpt = ep.content ? (ep.content.length > 100 ? ep.content.slice(0, 100) + '…' : ep.content) : '';
+      const readHref = `episode.html?ep=${encodeURIComponent(ep.id)}`;
       let html = `<div class="rg-episode-acquisition">`;
       html += `<div class="rg-episode-date">${esc(dateStr)} <span class="rg-episode-type-badge" style="background:${color}">${esc(label)}</span></div>`;
       html += `<h3 style="margin:0.4rem 0 0.75rem;font-size:1.05rem;">${esc(ep.title)}</h3>`;
       if (ep.cover_url) {
         html += `<img class="rg-ep-cover" src="${esc(safeUrl(ep.cover_url))}" loading="lazy" onerror="this.style.display='none'">`;
       }
-      if (ep.content) {
-        html += `<p class="rg-ep-content">${esc(ep.content)}</p>`;
+      if (excerpt) {
+        html += `<p style="font-size:0.92rem;color:var(--rg-muted);line-height:1.75;margin-bottom:0.75rem;">${esc(excerpt)}</p>`;
       }
-      const photos = Array.isArray(ep.photo_urls) ? ep.photo_urls.filter(Boolean) : [];
-      if (photos.length > 0) {
-        html += `<div class="rg-ep-photos">`;
-        photos.forEach(url => {
-          html += `<div class="rg-ep-photo-cell"><img src="${esc(safeUrl(url))}" loading="lazy" onerror="this.parentNode.style.display='none'" onclick="openModal('${esc(safeUrl(url))}')"></div>`;
-        });
-        html += `</div>`;
-      }
+      html += `<a href="${readHref}" style="font-size:0.88rem;color:var(--rg-accent);text-decoration:none;font-weight:600;">続きを読む →</a>`;
       html += `</div>`;
       return html;
     }

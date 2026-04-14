@@ -280,16 +280,14 @@
         const car     = ep.car;
         const owner   = car ? (car.handle_name || '') : '';
         const carName = car ? ((car.year ? car.year + '年 ' : '') + (car.model_display_c || '')) : '';
-        const blocks  = Array.isArray(ep.blocks) ? ep.blocks : [];
-        const firstImg  = blocks.find(b => b.type === 'image' && b.url);
-        const firstText = blocks.find(b => b.type === 'text');
-        const excerpt   = firstText ? (firstText.content.length > 120 ? firstText.content.slice(0,120) + '…' : firstText.content) : '';
-        const href      = `detail.html?doc=${esc(ep.car_id)}#stories`;
+        const coverImg  = ep.cover_url || null;
+        const excerpt   = ep.content ? (ep.content.length > 120 ? ep.content.slice(0,120) + '…' : ep.content) : '';
+        const href      = `episode.html?ep=${esc(ep.id)}`;
 
         if (i === 0) {
           // フィーチャー（最初の1件）
-          const imgHtml = firstImg
-            ? `<img class="st-feature-img" src="${esc(firstImg.url)}" loading="lazy" onerror="this.outerHTML='<div class=st-feature-img-placeholder>🚗</div>'">`
+          const imgHtml = coverImg
+            ? `<img class="st-feature-img" src="${esc(coverImg)}" loading="lazy" onerror="this.outerHTML='<div class=st-feature-img-placeholder>🚗</div>'">`
             : `<div class="st-feature-img-placeholder">🚗</div>`;
           html += `<a class="st-feature" href="${href}">
             ${imgHtml}
@@ -303,10 +301,10 @@
           </a>`;
         } else {
           // 通常記事（横並び）
-          const imgHtml = firstImg
-            ? `<img class="st-article-img" src="${esc(firstImg.url)}" loading="lazy" onerror="this.outerHTML='<div class=st-article-img-placeholder>🚗</div>'">`
+          const imgHtml = coverImg
+            ? `<img class="st-article-img" src="${esc(coverImg)}" loading="lazy" onerror="this.outerHTML='<div class=st-article-img-placeholder>🚗</div>'">`
             : `<div class="st-article-img-placeholder">🚗</div>`;
-          const shortExcerpt = firstText ? (firstText.content.length > 80 ? firstText.content.slice(0,80) + '…' : firstText.content) : '';
+          const shortExcerpt = ep.content ? (ep.content.length > 80 ? ep.content.slice(0,80) + '…' : ep.content) : '';
           html += `<a class="st-article" href="${href}">
             ${imgHtml}
             <div>

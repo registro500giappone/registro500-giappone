@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-27SHHC4JYH');</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title id="pageTitle">ストーリー - Registro500 Giappone</title>
+  <meta name="description" id="pageDesc" content="チンクオーナーの愛車ストーリー - Registro500 Giappone">
+  <meta property="og:title" id="ogTitle" content="ストーリー - Registro500 Giappone">
+  <meta property="og:description" id="ogDesc" content="チンクオーナーの愛車ストーリー">
+  <meta property="og:type" content="article">
+  <meta property="og:image" id="ogImage" content="https://www.registro500.com/logo_horizontal.png">
+  <meta name="robots" content="noindex"><!-- 本番公開時にnoindexを外す -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Noto+Serif+JP:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
+  <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
+  <style>
+    :root {
+      --cream:     #FAFAF7;
+      --ink:       #1A1A18;
+      --ink-light: #484844;
+      --ink-faint: #888880;
+      --border:    #DDD8CE;
+      --accent:    #4D6B3C;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { background: var(--cream); }
+    body { font-family: 'Noto Serif JP', Georgia, serif; color: var(--ink); line-height: 1.9; background: var(--cream); }
+
+    /* ── ナビ ── */
+    .ep-nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--ink);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 24px; gap: 12px;
+    }
+    .ep-nav-back {
+      font-size: 0.75rem; letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.75); text-decoration: none;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .ep-nav-back:hover { color: #fff; }
+    .ep-nav-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.72rem; letter-spacing: 0.3em;
+      color: rgba(255,255,255,0.55); text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    /* ── ヒーロー ── */
+    .ep-hero {
+      width: 100%; aspect-ratio: 16/7; overflow: hidden;
+      background: #1A1A18;
+    }
+    .ep-hero img {
+      width: 100%; height: 100%; object-fit: cover;
+      display: block; opacity: 0.92;
+    }
+    .ep-hero-placeholder {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 4rem; color: rgba(255,255,255,0.15);
+    }
+
+    /* ── 記事本体 ── */
+    .ep-article {
+      max-width: 720px; margin: 0 auto;
+      padding: 56px 24px 80px;
+    }
+
+    .ep-meta {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 24px;
+    }
+    .ep-type-badge {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.68rem; letter-spacing: 0.4em;
+      text-transform: uppercase; color: var(--accent);
+    }
+    .ep-meta-sep { color: var(--border); }
+    .ep-date {
+      font-size: 0.8rem; color: var(--ink-faint);
+      letter-spacing: 0.08em;
+    }
+
+    .ep-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      font-weight: 400; line-height: 1.3;
+      letter-spacing: 0.03em;
+      margin-bottom: 28px;
+    }
+
+    .ep-byline {
+      display: flex; align-items: center; gap: 10px;
+      padding: 20px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      margin-bottom: 48px;
+    }
+    .ep-byline-owner {
+      font-size: 0.88rem; font-weight: 500; color: var(--ink-light);
+    }
+    .ep-byline-car {
+      font-size: 0.82rem; color: var(--ink-faint);
+    }
+    .ep-byline-sep { color: var(--border); font-size: 0.8rem; }
+    .ep-byline-link {
+      margin-left: auto; font-size: 0.78rem; letter-spacing: 0.1em;
+      color: var(--accent); text-decoration: none; white-space: nowrap;
+    }
+    .ep-byline-link:hover { text-decoration: underline; }
+
+    .ep-body {
+      font-size: 1rem; line-height: 2.0;
+      color: var(--ink-light);
+      white-space: pre-wrap;
+      margin-bottom: 48px;
+    }
+
+    /* ── 写真グリッド ── */
+    .ep-photos-heading {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.68rem; letter-spacing: 0.4em;
+      text-transform: uppercase; color: var(--ink-faint);
+      margin-bottom: 16px;
+    }
+    .ep-photos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px;
+      margin-bottom: 56px;
+    }
+    .ep-photo-cell {
+      aspect-ratio: 1; overflow: hidden; border-radius: 4px;
+      background: #e8e4dc;
+    }
+    .ep-photo-cell img {
+      width: 100%; height: 100%; object-fit: cover;
+      display: block; cursor: zoom-in;
+      transition: opacity 0.2s;
+    }
+    .ep-photo-cell img:hover { opacity: 0.88; }
+
+    /* ── フッター ── */
+    .ep-footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0 0;
+      display: flex; gap: 12px; align-items: center;
+    }
+    .ep-footer-back {
+      font-size: 0.82rem; letter-spacing: 0.1em;
+      color: var(--ink-faint); text-decoration: none;
+    }
+    .ep-footer-back:hover { color: var(--ink); }
+    .ep-footer-sep { color: var(--border); }
+    .ep-footer-garage {
+      font-size: 0.82rem; letter-spacing: 0.1em;
+      color: var(--accent); text-decoration: none;
+    }
+    .ep-footer-garage:hover { text-decoration: underline; }
+
+    /* ── ローディング ── */
+    .ep-loading {
+      text-align: center; padding: 80px 24px;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.1rem; color: var(--ink-faint);
+      letter-spacing: 0.2em;
+    }
+
+    /* ── モーダル（写真拡大）── */
+    .ep-modal {
+      position: fixed; inset: 0; background: rgba(15,15,12,0.92);
+      display: none; align-items: center; justify-content: center;
+      z-index: 9999; cursor: zoom-out;
+    }
+    .ep-modal.open { display: flex; }
+    .ep-modal img { max-width: 92vw; max-height: 88vh; object-fit: contain; border-radius: 2px; }
+    .ep-modal-close {
+      position: absolute; top: 16px; right: 20px;
+      background: none; border: none; color: rgba(255,255,255,0.6);
+      font-size: 1.8rem; cursor: pointer; line-height: 1;
+    }
+
+    @media (max-width: 600px) {
+      .ep-article { padding: 36px 20px 60px; }
+      .ep-byline { flex-wrap: wrap; }
+      .ep-byline-link { margin-left: 0; }
+      .ep-photos-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="ep-nav">
+    <a class="ep-nav-back" href="stories.html">← ストーリー一覧</a>
+    <a class="ep-nav-logo" href="index.html">Registro500</a>
+  </nav>
+
+  <div id="epHero" class="ep-hero">
+    <div class="ep-hero-placeholder">🚗</div>
+  </div>
+
+  <article class="ep-article">
+    <div id="epLoading" class="ep-loading">Loading...</div>
+    <div id="epBody" style="display:none;">
+      <div class="ep-meta">
+        <span class="ep-type-badge" id="epTypeBadge"></span>
+        <span class="ep-meta-sep">·</span>
+        <span class="ep-date" id="epDate"></span>
+      </div>
+      <h1 class="ep-title" id="epTitle"></h1>
+      <div class="ep-byline">
+        <div>
+          <div class="ep-byline-owner" id="epOwner"></div>
+          <div class="ep-byline-car" id="epCar"></div>
+        </div>
+        <a class="ep-byline-link" id="epGarageLink" href="#">マイガレージを見る →</a>
+      </div>
+      <p class="ep-body" id="epContent"></p>
+      <div id="epPhotosSection" style="display:none;">
+        <p class="ep-photos-heading">Photos</p>
+        <div class="ep-photos-grid" id="epPhotosGrid"></div>
+      </div>
+      <div class="ep-footer">
+        <a class="ep-footer-back" href="stories.html">← ストーリー一覧に戻る</a>
+        <span class="ep-footer-sep">·</span>
+        <a class="ep-footer-garage" id="epFooterGarageLink" href="#">マイガレージ</a>
+      </div>
+    </div>
+  </article>
+
+  <!-- 写真拡大モーダル -->
+  <div class="ep-modal" id="epModal" onclick="closeModal()">
+    <button class="ep-modal-close" onclick="closeModal()">×</button>
+    <img id="epModalImg" src="" alt="">
+  </div>
+
+  <script>
+  (function() {
+    const params = new URLSearchParams(location.search);
+    const epId = params.get('ep');
+
+    function esc(s) {
+      if (!s) return '';
+      return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    const TYPE_LABELS = {
+      acquisition: '入手ストーリー',
+      trouble:     'トラブル',
+      tuning:      'チューン・カスタム',
+      drive:       'ドライブ・旅',
+      event:       'イベント',
+      other:       'その他'
+    };
+
+    async function load() {
+      if (!epId) { showError('エピソードIDが指定されていません。'); return; }
+
+      const { data: ep, error } = await supabaseClient
+        .from('car_episodes')
+        .select('*')
+        .eq('id', epId)
+        .eq('is_published', true)
+        .single();
+
+      if (error || !ep) { showError('ストーリーが見つかりませんでした。'); return; }
+
+      // 車両・オーナー情報
+      const { data: car } = await supabaseClient
+        .from('cars')
+        .select('document_id, handle_name, model_display_c, year')
+        .eq('document_id', ep.car_id)
+        .single();
+
+      render(ep, car);
+    }
+
+    function render(ep, car) {
+      const label   = TYPE_LABELS[ep.type] || ep.type;
+      const dateStr = ep.episode_date ? ep.episode_date.replace(/-/g, '.') : ep.created_at.slice(0,10).replace(/-/g,'.');
+      const owner   = car ? (car.handle_name || '') : '';
+      const carName = car ? ((car.year ? car.year + '年式 ' : '') + (car.model_display_c || '')) : '';
+      const garageHref = car ? `detail.html?doc=${encodeURIComponent(car.document_id)}` : '#';
+
+      // ヒーロー
+      if (ep.cover_url) {
+        document.getElementById('epHero').innerHTML = `<img src="${esc(ep.cover_url)}" alt="${esc(ep.title)}" loading="eager">`;
+      }
+
+      // OGP
+      document.getElementById('pageTitle').textContent = ep.title + ' - Registro500 Giappone';
+      document.getElementById('ogTitle').content = ep.title + ' - Registro500 Giappone';
+      if (ep.content) {
+        const desc = ep.content.slice(0, 100).replace(/\n/g, ' ');
+        document.getElementById('pageDesc').content = desc;
+        document.getElementById('ogDesc').content = desc;
+      }
+      if (ep.cover_url) document.getElementById('ogImage').content = ep.cover_url;
+
+      // メタ・タイトル
+      document.getElementById('epTypeBadge').textContent = label;
+      document.getElementById('epDate').textContent = dateStr;
+      document.getElementById('epTitle').textContent = ep.title;
+
+      // バイライン
+      document.getElementById('epOwner').textContent = owner;
+      document.getElementById('epCar').textContent = carName;
+      document.getElementById('epGarageLink').href = garageHref;
+      document.getElementById('epFooterGarageLink').href = garageHref;
+
+      // 本文
+      document.getElementById('epContent').textContent = ep.content || '';
+
+      // 追加写真
+      const photos = Array.isArray(ep.photo_urls) ? ep.photo_urls.filter(Boolean) : [];
+      if (photos.length > 0) {
+        const grid = document.getElementById('epPhotosGrid');
+        grid.innerHTML = photos.map(url =>
+          `<div class="ep-photo-cell"><img src="${esc(url)}" loading="lazy" onerror="this.parentNode.style.display='none'" onclick="openModal('${esc(url)}')"></div>`
+        ).join('');
+        document.getElementById('epPhotosSection').style.display = 'block';
+      }
+
+      document.getElementById('epLoading').style.display = 'none';
+      document.getElementById('epBody').style.display = 'block';
+    }
+
+    function showError(msg) {
+      document.getElementById('epLoading').textContent = msg;
+    }
+
+    // モーダル
+    window.openModal = function(url) {
+      document.getElementById('epModalImg').src = url;
+      document.getElementById('epModal').classList.add('open');
+    };
+    window.closeModal = function() {
+      document.getElementById('epModal').classList.remove('open');
+      document.getElementById('epModalImg').src = '';
+    };
+
+    load();
+  })();
+  </script>
+</body>
+</html>
