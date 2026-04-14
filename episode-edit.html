@@ -29,7 +29,7 @@
     textarea { min-height: 10em; resize: vertical; }
 
     /* カバー写真 */
-    .ep-cover-area { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 0.6rem; overflow: hidden; background: var(--rg-surface-sub); border: 2px dashed var(--rg-border); cursor: pointer; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; }
+    .ep-cover-area { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 0.6rem; overflow: hidden; background: var(--rg-surface-sub); border: 2px dashed var(--rg-border); cursor: pointer; display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem; }
     .ep-cover-area.has-image { border-style: solid; }
     .ep-cover-area img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
     .ep-cover-placeholder { text-align: center; color: var(--rg-muted); font-size: 0.9rem; pointer-events: none; }
@@ -37,11 +37,11 @@
     .ep-cover-change { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: #fff; font-size: 0.8rem; padding: 4px 10px; border-radius: 4px; border: none; cursor: pointer; }
 
     /* 追加写真グリッド */
-    .ep-photos-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 1rem; }
-    .ep-photo-cell { position: relative; aspect-ratio: 1; border-radius: 0.5rem; overflow: hidden; background: var(--rg-surface-sub); border: 1px solid var(--rg-border); }
-    .ep-photo-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .ep-photo-del { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
-    .ep-photo-add { display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--rg-muted); font-size: 1.5rem; border: 2px dashed var(--rg-border); border-radius: 0.5rem; aspect-ratio: 1; background: none; }
+    .ep-photos-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem; }
+    .ep-photo-cell { position: relative; border-radius: 0.5rem; overflow: hidden; background: var(--rg-surface-sub); border: 1px solid var(--rg-border); line-height: 0; }
+    .ep-photo-cell img { width: 100%; height: auto; display: block; }
+    .ep-photo-del { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.6); color: #fff; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+    .ep-photo-add { display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--rg-muted); font-size: 1rem; border: 2px dashed var(--rg-border); border-radius: 0.5rem; padding: 0.75rem; background: none; width: 100%; gap: 0.5rem; }
     .ep-photo-add:hover { border-color: var(--rg-accent); color: var(--rg-accent); }
     .ep-photos-hint { font-size: 0.8rem; color: var(--rg-muted); margin-bottom: 0.5rem; }
 
@@ -115,6 +115,7 @@
           <button class="ep-cover-change" id="coverChangeBtn" style="display:none;" onclick="event.stopPropagation();document.getElementById('coverInput').click()">写真を変更</button>
         </div>
         <input type="file" id="coverInput" accept="image/*" style="display:none;">
+        <p style="font-size:0.78rem;color:var(--rg-muted);margin-bottom:0.75rem;">📐 横向き（16:9）の写真が綺麗に表示されます。縦向き写真は上下が切れる場合があります。</p>
         <div id="coverUploading" class="ep-uploading" style="display:none;">アップロード中...</div>
       </div>
 
@@ -127,7 +128,7 @@
       <!-- 追加写真 -->
       <div class="ep-card">
         <label>写真を追加（最大7枚）</label>
-        <p class="ep-photos-hint">カバー写真以外に見せたい写真を追加できます。</p>
+        <p class="ep-photos-hint">カバー写真以外に見せたい写真を追加できます。縦・横どちらでも元の比率のまま表示されます。</p>
         <div class="ep-photos-grid" id="photosGrid"></div>
         <div id="photosUploading" class="ep-uploading" style="display:none;">アップロード中...</div>
         <input type="file" id="photoInput" accept="image/*" style="display:none;">
