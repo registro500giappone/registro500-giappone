@@ -86,6 +86,19 @@
     .rg-modal-note { font-size: 0.875rem; color: var(--rg-muted); margin-bottom: 1rem; }
     .rg-modal-label { font-size: 0.875rem; font-weight: 700; }
 
+    /* エピソード */
+    .rg-episode-acquisition { border-left: 3px solid var(--rg-accent); padding-left: 1rem; }
+    .rg-episode-type-badge { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px; color: #fff; margin-right: 0.3rem; }
+    .rg-episode-block-text { white-space: pre-wrap; margin: 0.6rem 0; line-height: 1.8; font-size: 0.95rem; }
+    .rg-episode-block-image { width: 100%; border-radius: 0.6rem; margin: 0.75rem 0; display: block; }
+    .rg-episode-block-caption { font-size: 0.8rem; color: var(--rg-muted); text-align: center; margin: -0.4rem 0 0.75rem; }
+    .rg-episode-timeline-item { border-bottom: 1px solid var(--rg-border); padding: 0.75rem 0; }
+    .rg-episode-timeline-item:last-child { border-bottom: none; }
+    .rg-episode-date { font-size: 0.8rem; color: var(--rg-muted); margin-bottom: 0.2rem; }
+    .rg-episodes-more { display: block; text-align: center; padding: 0.75rem; font-size: 0.9rem; color: var(--rg-accent); text-decoration: none; margin-top: 0.25rem; }
+    .rg-btn-add-episode { width: 100%; padding: 0.75rem; margin-top: 0.75rem; border: 1px dashed var(--rg-border); background: none; color: var(--rg-muted); border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+    .rg-btn-add-episode:hover { border-color: var(--rg-accent); color: var(--rg-accent); }
+
     /* ダークモード */
     @media (prefers-color-scheme: dark) {
       .rg-gallery-thumb { background: #334155; }
@@ -120,6 +133,7 @@
           <ul class="rg-dropdown-menu">
             <li><h6 class="rg-dropdown-header">車両管理</h6></li>
             <li><a class="rg-dropdown-item is-bold" href="#" id="editLink">✏️ この車両を編集</a></li>
+            <li><a class="rg-dropdown-item" href="episode-edit.html" id="addEpisodeLink">📖 ストーリーを追加</a></li>
             <li><a class="rg-dropdown-item" href="edit.html?mode=new" id="newCarLink">➕ 2台目を登録する</a></li>
             <li><hr class="rg-dropdown-divider"></li>
             <li><a class="rg-dropdown-item is-muted" href="edit.html" id="carListLink">🏠 管理車両一覧へ</a></li>
@@ -165,6 +179,16 @@
             <dt data-field="engine_oil">エンジンオイル</dt><dd id="val_EngineOil"></dd><dt data-field="engine_oil_interval">周期</dt><dd id="val_EngineOilInterval"></dd><dt data-field="transmission_oil">ミッションオイル</dt><dd id="val_TransmissionOil"></dd><dt data-field="transmission_oil_interval">周期</dt><dd id="val_TransmissionOilInterval"></dd><dt data-field="battery">バッテリー</dt><dd id="val_Battery"></dd>
           </dl></section>
           <section class="rg-card" id="highlightsSection" style="display:none;"><h2 class="rg-section-title" id="highlightsTitle" data-field="highlights">こだわり</h2><p id="val_Highlights" style="white-space:pre-wrap;"></p></section>
+          <section class="rg-card" id="acquisitionSection" style="display:none;">
+            <h2 class="rg-section-title" id="stories">この車との出会い</h2>
+            <div id="acquisitionContent"></div>
+          </section>
+          <section class="rg-card" id="episodesSection" style="display:none;">
+            <h2 class="rg-section-title">出来事タイムライン</h2>
+            <div id="episodesList"></div>
+            <a id="episodesMoreLink" class="rg-episodes-more" style="display:none;" href="#">すべてのエピソードを見る →</a>
+            <button id="addEpisodeBtn" class="rg-btn-add-episode" style="display:none;">＋ エピソードを追加</button>
+          </section>
           <section class="rg-card" id="snsSection" style="display:none;"><h2 class="rg-section-title">SNS</h2><dl class="rg-spec-grid" id="snsGrid"></dl></section>
           <section class="rg-card"><h2 class="rg-section-title">共有・連絡</h2>
             <div class="rg-action-row"><button class="rg-btn rg-btn-dark" onclick="showQRCode()">QR表示</button><a id="shareX" class="rg-btn rg-btn-black" target="_blank">Xでシェア</a><a id="shareLINE" class="rg-btn" style="background:#06C755;color:#fff;" target="_blank">LINEで送る</a></div>
@@ -299,6 +323,7 @@
       const carLabel2 = car.car_type === '126' ? 'FIAT 126' : 'FIAT 500';
       document.getElementById('shareX').href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(car.handle_name + 'さんの' + carLabel2)}&url=${encodeURIComponent(location.href)}`;
       document.getElementById('shareLINE').href = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(location.href)}`;
+      fetchEpisodes(car.document_id);
     }
 
     // ★ 更新バッジの適用ロジック
@@ -365,8 +390,11 @@
         const carType = currentCar.car_type || '500';
         document.getElementById('ownerMenuArea').style.display = 'block';
         document.getElementById('editLink').href = `edit.html?doc=${currentCar.document_id}&type=${carType}`;
+        document.getElementById('addEpisodeLink').href = `episode-edit.html?car=${currentCar.document_id}`;
         document.getElementById('newCarLink').href = `edit.html?mode=new&type=${carType}`;
         document.getElementById('carListLink').href = `edit.html?type=${carType}`;
+        const addBtn = document.getElementById('addEpisodeBtn');
+        if (addBtn) { addBtn.style.display = 'block'; addBtn.onclick = () => location.href = `episode-edit.html?car=${currentCar.document_id}`; }
       } else {
         if(currentCar.accept_inquiry !== false) document.getElementById('contactArea').style.display = 'block';
       }
@@ -489,6 +517,65 @@
       } catch (e) {
         alert('削除処理でエラーが発生しました: ' + e.message);
       }
+    }
+
+    // ─── マイチンクストーリー ───
+    const EPISODE_TYPE_LABELS = { acquisition:'入手', trouble:'トラブル', tuning:'チューン', drive:'ドライブ', event:'イベント', other:'その他' };
+    const EPISODE_TYPE_COLORS = { acquisition:'#e11d48', trouble:'#f97316', tuning:'#2563eb', drive:'#16a34a', event:'#7c3aed', other:'#64748b' };
+
+    async function fetchEpisodes(carDocId) {
+      try {
+        const { data } = await supabaseClient.from('car_episodes').select('*').eq('car_id', carDocId).eq('is_published', true).order('created_at', { ascending: false });
+        if (!data || data.length === 0) return;
+        const acquisition = data.find(e => e.type === 'acquisition');
+        const others = data.filter(e => e.type !== 'acquisition');
+        if (acquisition) {
+          document.getElementById('acquisitionSection').style.display = 'block';
+          document.getElementById('acquisitionContent').innerHTML = renderEpisodeFull(acquisition);
+        }
+        if (others.length > 0) {
+          document.getElementById('episodesSection').style.display = 'block';
+          document.getElementById('episodesList').innerHTML = others.slice(0, 3).map(renderEpisodeTimelineItem).join('');
+          if (others.length > 3) {
+            const more = document.getElementById('episodesMoreLink');
+            more.style.display = 'block';
+            more.href = `stories.html?car=${encodeURIComponent(carDocId)}`;
+          }
+        } else if (acquisition) {
+          // 入手ストーリーのみの場合はepisodesSection不要
+        }
+      } catch(e) { /* エピソード取得失敗は無視 */ }
+    }
+
+    function renderEpisodeFull(ep) {
+      const label = EPISODE_TYPE_LABELS[ep.type] || ep.type;
+      const color = EPISODE_TYPE_COLORS[ep.type] || '#64748b';
+      const dateStr = ep.episode_date ? ep.episode_date.replace(/-/g, '.') : '';
+      let html = `<div class="rg-episode-acquisition">`;
+      html += `<div class="rg-episode-date">${esc(dateStr)} <span class="rg-episode-type-badge" style="background:${color}">${esc(label)}</span></div>`;
+      html += `<h3 style="margin:0.4rem 0 0.75rem;font-size:1.05rem;">${esc(ep.title)}</h3>`;
+      (ep.blocks || []).forEach(b => {
+        if (b.type === 'text') html += `<p class="rg-episode-block-text">${esc(b.content)}</p>`;
+        else if (b.type === 'image' && b.url) {
+          html += `<img class="rg-episode-block-image" src="${esc(safeUrl(b.url))}" loading="lazy" onerror="this.style.display='none'">`;
+          if (b.caption) html += `<p class="rg-episode-block-caption">${esc(b.caption)}</p>`;
+        }
+      });
+      html += `</div>`;
+      return html;
+    }
+
+    function renderEpisodeTimelineItem(ep) {
+      const label = EPISODE_TYPE_LABELS[ep.type] || ep.type;
+      const color = EPISODE_TYPE_COLORS[ep.type] || '#64748b';
+      const dateStr = ep.episode_date ? ep.episode_date.replace(/-/g, '.') : '';
+      const firstText = (ep.blocks || []).find(b => b.type === 'text');
+      const excerpt = firstText ? (firstText.content.length > 60 ? firstText.content.slice(0, 60) + '…' : firstText.content) : '';
+      return `<div class="rg-episode-timeline-item">
+        <div class="rg-episode-date">${esc(dateStr)} <span class="rg-episode-type-badge" style="background:${color}">${esc(label)}</span></div>
+        <div style="font-weight:700;margin:0.2rem 0;">${esc(ep.title)}</div>
+        ${excerpt ? `<div style="font-size:0.88rem;color:var(--rg-muted);">${esc(excerpt)}</div>` : ''}
+      </div>`;
     }
 
     fetchDetail();

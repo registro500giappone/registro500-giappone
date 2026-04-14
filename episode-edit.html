@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-27SHHC4JYH');</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ストーリーを書く - Registro500 Giappone</title>
+  <meta name="robots" content="noindex">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" integrity="sha384-HLJUgAQ2oo6rdMC4QW+Oz2qQfPOtu/lzncKG4sZiq8+2W9uOa3K0b3UGpckKqv7H" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js" integrity="sha384-oFrOL1TiREYNET0lsYF3LjQuyi2gL7vhjH1X8vFr+umcmzAdPELopeSgbcrv4uRm" crossorigin="anonymous"></script>
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
+  <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
+  <style>
+    body { line-height: 1.7; padding-top: 85px; padding-bottom: 120px; }
+    .ep-page { max-width: 680px; margin: 0 auto; padding: 0 1rem; }
+    .ep-card { background: var(--rg-surface); border-radius: var(--rg-radius-card); border: 1px solid var(--rg-border); padding: 1.5rem; margin-bottom: 1rem; }
+    .ep-title { font-size: 1.3rem; font-weight: 700; margin: 0 0 1.2rem; }
+    label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.3rem; }
+    .badge-required { background: #e11d48; color: #fff; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 4px; font-weight: normal; }
+    input[type="text"], input[type="date"], select, textarea { width: 100%; padding: 0.65rem 0.75rem; border-radius: 0.5rem; border: 1px solid #d1d5db; font-size: 1rem; box-sizing: border-box; margin-bottom: 0.75rem; background: var(--rg-surface); color: var(--rg-text); }
+    textarea { min-height: 7em; resize: vertical; }
+
+    /* ブロック */
+    .ep-blocks { margin-top: 0.5rem; }
+    .ep-block { border: 1px solid var(--rg-border); border-radius: 0.6rem; padding: 1rem; margin-bottom: 0.75rem; position: relative; background: var(--rg-surface); }
+    .ep-block-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 0.8rem; font-weight: 700; color: var(--rg-muted); }
+    .ep-block-actions { margin-left: auto; display: flex; gap: 0.3rem; }
+    .ep-block-btn { background: none; border: 1px solid var(--rg-border); border-radius: 4px; padding: 2px 8px; font-size: 0.8rem; cursor: pointer; color: var(--rg-muted); }
+    .ep-block-btn:hover { color: var(--rg-text); border-color: var(--rg-text); }
+    .ep-block-btn.del { color: #dc2626; border-color: #fca5a5; }
+    .ep-block-btn.del:hover { background: #fee2e2; }
+    .ep-block textarea { margin-bottom: 0; }
+    .ep-img-preview { width: 100%; border-radius: 0.4rem; margin-bottom: 0.5rem; display: none; }
+    .ep-img-upload-area { border: 2px dashed var(--rg-border); border-radius: 0.5rem; padding: 1.5rem; text-align: center; cursor: pointer; font-size: 0.9rem; color: var(--rg-muted); }
+    .ep-img-upload-area:hover { border-color: var(--rg-accent); color: var(--rg-accent); }
+    .ep-img-uploading { font-size: 0.85rem; color: var(--rg-muted); text-align: center; padding: 0.5rem; }
+
+    /* 追加ボタン */
+    .ep-add-row { display: flex; gap: 0.75rem; margin-top: 0.25rem; }
+    .ep-add-btn { flex: 1; padding: 0.75rem; border: 1px dashed var(--rg-border); background: none; color: var(--rg-muted); border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+    .ep-add-btn:hover { border-color: var(--rg-accent); color: var(--rg-accent); }
+
+    /* 保存ボタン */
+    .ep-save-row { display: flex; gap: 0.75rem; margin-top: 1rem; }
+    .ep-btn { flex: 1; padding: 0.85rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; border: none; }
+    .ep-btn-draft { background: #f1f5f9; color: #475569; }
+    .ep-btn-publish { background: var(--rg-accent); color: #fff; }
+    .ep-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ログインオーバーレイ */
+    .ep-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.85); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+    .ep-overlay-box { background: var(--rg-surface); border-radius: 12px; padding: 2rem; max-width: 320px; width: 90%; text-align: center; }
+    .ep-overlay.hidden { display: none; }
+
+    @media (prefers-color-scheme: dark) {
+      input[type="text"], input[type="date"], select, textarea { border-color: #334155; background: #1e293b; }
+      .ep-block { background: #1e293b; }
+      .ep-btn-draft { background: #334155; color: #94a3b8; }
+    }
+  </style>
+</head>
+<body>
+  <header class="rg-header-bar">
+    <div class="rg-back-link"><a href="#" id="backLink"><div>←</div><div class="back-text">ガレージ<br class="back-br">に戻る</div></a></div>
+    <div class="rg-header-logo"><img src="logo_horizontal.png" alt="Registro500"></div>
+    <div class="rg-header-right"></div>
+  </header>
+
+  <div id="loginOverlay" class="ep-overlay">
+    <div class="ep-overlay-box">
+      <p style="font-weight:700;margin-bottom:1rem;">ストーリーを書くにはログインが必要です</p>
+      <button class="ep-btn ep-btn-publish" onclick="loginWithGoogle()" style="flex:none;width:100%;">Googleでログイン</button>
+    </div>
+  </div>
+
+  <main>
+    <div class="ep-page">
+      <div class="ep-card">
+        <h1 class="ep-title">ストーリーを書く</h1>
+
+        <label>タイトル <span class="badge-required">必須</span></label>
+        <input type="text" id="epTitle" placeholder="例：フリマで一目惚れした1968年式の話">
+
+        <label>日付（出来事の日付）</label>
+        <input type="date" id="epDate">
+
+        <label>種類 <span class="badge-required">必須</span></label>
+        <select id="epType">
+          <option value="acquisition">入手ストーリー</option>
+          <option value="trouble">トラブル</option>
+          <option value="tuning">チューン・カスタム</option>
+          <option value="drive">ドライブ・旅</option>
+          <option value="event">イベント</option>
+          <option value="other">その他</option>
+        </select>
+      </div>
+
+      <div class="ep-card">
+        <div style="font-weight:700;margin-bottom:0.75rem;">コンテンツ</div>
+        <div class="ep-blocks" id="blockList"></div>
+        <div class="ep-add-row">
+          <button class="ep-add-btn" onclick="addTextBlock()">＋ テキストを追加</button>
+          <button class="ep-add-btn" onclick="addImageBlock()">＋ 写真を追加</button>
+        </div>
+      </div>
+
+      <div class="ep-card" style="padding: 1rem 1.5rem;">
+        <div class="ep-save-row">
+          <button class="ep-btn ep-btn-draft" id="draftBtn" onclick="saveEpisode(false)">下書き保存</button>
+          <button class="ep-btn ep-btn-publish" id="publishBtn" onclick="saveEpisode(true)">公開する</button>
+        </div>
+        <div id="saveMsg" style="font-size:0.85rem;text-align:center;margin-top:0.5rem;color:var(--rg-muted);"></div>
+      </div>
+    </div>
+  </main>
+
+  <input type="file" id="imgFileInput" accept="image/*" style="display:none;">
+
+  <script>
+  (function() {
+    if (firebase.apps.length === 0) firebase.initializeApp(FIREBASE_CONFIG);
+    const storage = firebase.storage();
+
+    const params = new URLSearchParams(location.search);
+    const carId = params.get('car');
+    const epId  = params.get('ep');   // 編集時
+    let currentUser = null;
+    let blocks = [];       // { type:'text'|'image', content?:'', url?:'', caption?:'' }
+    let activeImgBlockIdx = null;
+
+    function esc(s) {
+      if (!s) return '';
+      return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── 認証 ──
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+      currentUser = session?.user ?? null;
+      if (currentUser) {
+        document.getElementById('loginOverlay').classList.add('hidden');
+        if (epId) loadEpisode();
+        else if (!blocks.length) addTextBlock();
+        updateBackLink();
+      } else {
+        document.getElementById('loginOverlay').classList.remove('hidden');
+      }
+    });
+
+    window.loginWithGoogle = async () => {
+      await supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href } });
+    };
+
+    function updateBackLink() {
+      if (carId) document.getElementById('backLink').href = `detail.html?doc=${encodeURIComponent(carId)}`;
+    }
+
+    // ── 既存エピソード読み込み（編集モード）──
+    async function loadEpisode() {
+      const { data } = await supabaseClient.from('car_episodes').select('*').eq('id', epId).single();
+      if (!data) return;
+      document.getElementById('epTitle').value = data.title || '';
+      document.getElementById('epDate').value  = data.episode_date || '';
+      document.getElementById('epType').value  = data.type || 'other';
+      blocks = Array.isArray(data.blocks) ? data.blocks : [];
+      renderBlocks();
+    }
+
+    // ── ブロック管理 ──
+    window.addTextBlock = function() {
+      blocks.push({ type: 'text', content: '' });
+      renderBlocks();
+      // 追加したブロックのtextareaにフォーカス
+      const textareas = document.querySelectorAll('#blockList .ep-text-input');
+      if (textareas.length) textareas[textareas.length - 1].focus();
+    };
+
+    window.addImageBlock = function() {
+      blocks.push({ type: 'image', url: '', caption: '' });
+      renderBlocks();
+      // 追加した画像ブロックのアップロードをすぐ開く
+      activeImgBlockIdx = blocks.length - 1;
+      document.getElementById('imgFileInput').click();
+    };
+
+    window.moveBlock = function(idx, dir) {
+      syncBlocks();
+      const target = idx + dir;
+      if (target < 0 || target >= blocks.length) return;
+      [blocks[idx], blocks[target]] = [blocks[target], blocks[idx]];
+      renderBlocks();
+    };
+
+    window.deleteBlock = function(idx) {
+      syncBlocks();
+      blocks.splice(idx, 1);
+      renderBlocks();
+    };
+
+    window.openImageUpload = function(idx) {
+      activeImgBlockIdx = idx;
+      document.getElementById('imgFileInput').click();
+    };
+
+    function syncBlocks() {
+      document.querySelectorAll('#blockList .ep-block').forEach((el, i) => {
+        if (blocks[i].type === 'text') {
+          blocks[i].content = el.querySelector('.ep-text-input').value;
+        } else if (blocks[i].type === 'image') {
+          blocks[i].caption = el.querySelector('.ep-caption-input')?.value || '';
+        }
+      });
+    }
+
+    function renderBlocks() {
+      const list = document.getElementById('blockList');
+      list.innerHTML = blocks.map((b, i) => {
+        const isFirst = i === 0, isLast = i === blocks.length - 1;
+        const moveUp   = `<button class="ep-block-btn" onclick="moveBlock(${i},-1)" ${isFirst ? 'disabled' : ''}>↑</button>`;
+        const moveDown = `<button class="ep-block-btn" onclick="moveBlock(${i},1)"  ${isLast  ? 'disabled' : ''}>↓</button>`;
+        const del      = `<button class="ep-block-btn del" onclick="deleteBlock(${i})">削除</button>`;
+        if (b.type === 'text') {
+          return `<div class="ep-block" data-idx="${i}">
+            <div class="ep-block-header">📝 テキスト<div class="ep-block-actions">${moveUp}${moveDown}${del}</div></div>
+            <textarea class="ep-text-input" placeholder="テキストを入力...">${esc(b.content)}</textarea>
+          </div>`;
+        } else {
+          const preview = b.url ? `<img class="ep-img-preview" src="${esc(b.url)}" style="display:block;">` : '';
+          const upload  = b.url ? '' : `<div class="ep-img-upload-area" onclick="openImageUpload(${i})">タップして写真を選択</div>`;
+          const change  = b.url ? `<button class="ep-block-btn" onclick="openImageUpload(${i})" style="margin-bottom:0.5rem;">写真を変更</button>` : '';
+          return `<div class="ep-block" data-idx="${i}">
+            <div class="ep-block-header">🖼 写真<div class="ep-block-actions">${moveUp}${moveDown}${del}</div></div>
+            ${preview}${upload}${change}
+            <input type="text" class="ep-caption-input" placeholder="キャプション（任意）" value="${esc(b.caption)}" style="margin-bottom:0;">
+          </div>`;
+        }
+      }).join('');
+    }
+
+    // ── 画像アップロード ──
+    document.getElementById('imgFileInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file || activeImgBlockIdx === null) return;
+      const idx = activeImgBlockIdx;
+      activeImgBlockIdx = null;
+
+      // アップロード中表示
+      syncBlocks();
+      const blockEl = document.querySelectorAll('#blockList .ep-block')[idx];
+      if (blockEl) {
+        blockEl.querySelector('.ep-img-upload-area')?.remove();
+        const uploading = document.createElement('div');
+        uploading.className = 'ep-img-uploading'; uploading.textContent = 'アップロード中...';
+        blockEl.appendChild(uploading);
+      }
+
+      try {
+        const epIdForPath = epId || ('new_' + Date.now());
+        const path = `episodes/${carId}/${epIdForPath}/${Date.now()}_${idx}.jpg`;
+        const ref = storage.ref().child(path);
+        // Canvasでリサイズ（最大1200px）
+        const url_result = await new Promise((resolve, reject) => {
+          const img = new Image();
+          const reader = new FileReader();
+          reader.onload = e => { img.src = e.target.result; };
+          img.onload = () => {
+            const MAX = 1200;
+            let w = img.width, h = img.height;
+            if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            canvas.toBlob(async blob => {
+              try {
+                await ref.put(blob);
+                resolve(await ref.getDownloadURL());
+              } catch(err) { reject(err); }
+            }, 'image/jpeg', 0.85);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        blocks[idx].url = url_result;
+      } catch(err) {
+        alert('写真のアップロードに失敗しました。再度お試しください。');
+      }
+      renderBlocks();
+    });
+
+    // ── 保存 ──
+    window.saveEpisode = async function(publish) {
+      syncBlocks();
+      const title = document.getElementById('epTitle').value.trim();
+      const type  = document.getElementById('epType').value;
+      const date  = document.getElementById('epDate').value || null;
+      if (!title) { alert('タイトルを入力してください。'); return; }
+      if (!carId)  { alert('車両IDが取得できません。マイガレージからやり直してください。'); return; }
+
+      const draftBtn = document.getElementById('draftBtn'), publishBtn = document.getElementById('publishBtn');
+      draftBtn.disabled = publishBtn.disabled = true;
+      const msg = document.getElementById('saveMsg');
+      msg.textContent = '保存中...';
+
+      const payload = {
+        car_id: carId,
+        type,
+        title,
+        blocks,
+        episode_date: date,
+        is_published: publish,
+        updated_at: new Date().toISOString()
+      };
+
+      try {
+        let error;
+        if (epId) {
+          ({ error } = await supabaseClient.from('car_episodes').update(payload).eq('id', epId));
+        } else {
+          ({ error } = await supabaseClient.from('car_episodes').insert(payload));
+        }
+        if (error) throw error;
+        msg.textContent = publish ? '公開しました！' : '下書きを保存しました。';
+        setTimeout(() => {
+          location.href = `detail.html?doc=${encodeURIComponent(carId)}`;
+        }, 1000);
+      } catch(e) {
+        msg.textContent = '保存に失敗しました: ' + e.message;
+        draftBtn.disabled = publishBtn.disabled = false;
+      }
+    };
+
+    updateBackLink();
+  })();
+  </script>
+</body>
+</html>

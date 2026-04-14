@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-27SHHC4JYH');</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>マイチンクストーリー - Registro500 Giappone</title>
+  <meta name="description" content="チンクオーナーたちの愛車にまつわるストーリー。入手のきっかけ、トラブル、チューン、ドライブ記録。">
+  <meta property="og:title" content="マイチンクストーリー - Registro500 Giappone">
+  <meta property="og:description" content="チンクオーナーたちの愛車にまつわるストーリー。">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://www.registro500.com/stories.html">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
+  <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
+  <style>
+    body { line-height: 1.7; padding-top: 85px; padding-bottom: 80px; }
+    .st-page { max-width: 1140px; margin: 0 auto; padding: 0 1rem; }
+    .st-heading { font-size: 1.4rem; font-weight: 700; margin: 1.5rem 0 0.25rem; }
+    .st-sub { font-size: 0.9rem; color: var(--rg-muted); margin-bottom: 1.2rem; }
+
+    /* フィルター */
+    .st-filter { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .st-filter-btn { padding: 0.35rem 0.9rem; border-radius: 999px; font-size: 0.85rem; border: 1px solid var(--rg-border); background: none; cursor: pointer; color: var(--rg-text); }
+    .st-filter-btn.active { background: var(--rg-accent); color: #fff; border-color: var(--rg-accent); }
+
+    /* カードグリッド */
+    .st-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+    .st-card { background: var(--rg-surface); border: 1px solid var(--rg-border); border-radius: var(--rg-radius-card); overflow: hidden; text-decoration: none; color: var(--rg-text); display: flex; flex-direction: column; transition: box-shadow 0.15s; }
+    .st-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+    .st-card-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--rg-surface-sub); display: block; }
+    .st-card-img-placeholder { width: 100%; aspect-ratio: 16/9; background: var(--rg-surface-sub); display: flex; align-items: center; justify-content: center; font-size: 2rem; color: var(--rg-border); }
+    .st-card-body { padding: 0.9rem 1rem 1rem; flex: 1; display: flex; flex-direction: column; }
+    .st-card-meta { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem; }
+    .st-type-badge { font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px; color: #fff; flex-shrink: 0; }
+    .st-card-date { font-size: 0.78rem; color: var(--rg-muted); }
+    .st-card-title { font-weight: 700; font-size: 0.97rem; margin: 0 0 0.4rem; line-height: 1.4; }
+    .st-card-owner { font-size: 0.82rem; color: var(--rg-muted); margin-top: auto; padding-top: 0.5rem; }
+    .st-card-excerpt { font-size: 0.85rem; color: var(--rg-muted); line-height: 1.5; flex: 1; }
+
+    .st-loading { text-align: center; padding: 3rem 0; color: var(--rg-muted); }
+    .st-empty { text-align: center; padding: 3rem 0; color: var(--rg-muted); }
+  </style>
+</head>
+<body>
+  <header class="rg-header-bar">
+    <div class="rg-back-link">
+      <a href="index.html">
+        <div>←</div>
+        <div class="back-text">ガレージ<br class="back-br">に戻る</div>
+      </a>
+    </div>
+    <div class="rg-header-logo"><img src="logo_horizontal.png" alt="Registro500"></div>
+    <div class="rg-header-right"></div>
+  </header>
+
+  <main>
+    <div class="st-page">
+      <h1 class="st-heading">マイチンクストーリー</h1>
+      <p class="st-sub">オーナーたちの愛車にまつわる物語</p>
+
+      <div class="st-filter" id="filterRow">
+        <button class="st-filter-btn active" data-type="">すべて</button>
+        <button class="st-filter-btn" data-type="acquisition">入手</button>
+        <button class="st-filter-btn" data-type="trouble">トラブル</button>
+        <button class="st-filter-btn" data-type="tuning">チューン</button>
+        <button class="st-filter-btn" data-type="drive">ドライブ</button>
+        <button class="st-filter-btn" data-type="event">イベント</button>
+        <button class="st-filter-btn" data-type="other">その他</button>
+      </div>
+
+      <div id="stLoading" class="st-loading">読み込み中...</div>
+      <div class="st-grid" id="stGrid"></div>
+      <div id="stEmpty" class="st-empty" style="display:none;">まだストーリーがありません。</div>
+    </div>
+  </main>
+
+  <script>
+    const TYPE_LABELS = { acquisition:'入手', trouble:'トラブル', tuning:'チューン', drive:'ドライブ', event:'イベント', other:'その他' };
+    const TYPE_COLORS = { acquisition:'#e11d48', trouble:'#f97316', tuning:'#2563eb', drive:'#16a34a', event:'#7c3aed', other:'#64748b' };
+
+    function esc(s) {
+      if (!s) return '';
+      return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    let allEpisodes = [];
+    let activeFilter = '';
+
+    // URLパラメータで特定の車をフィルター（detail.htmlの「すべて見る」から来た場合）
+    const params = new URLSearchParams(location.search);
+    const carFilter = params.get('car') || '';
+
+    async function fetchStories() {
+      let query = supabaseClient
+        .from('car_episodes')
+        .select('id, car_id, type, title, blocks, episode_date, created_at')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (carFilter) query = query.eq('car_id', carFilter);
+
+      const { data, error } = await query;
+      document.getElementById('stLoading').style.display = 'none';
+      if (error || !data) { document.getElementById('stEmpty').style.display = 'block'; return; }
+
+      // car情報を取得（ハンドル名・車種）
+      const carIds = [...new Set(data.map(e => e.car_id))];
+      const { data: cars } = await supabaseClient.from('cars').select('document_id, handle_name, model_display_c, year').in('document_id', carIds);
+      const carMap = {};
+      (cars || []).forEach(c => { carMap[c.document_id] = c; });
+
+      allEpisodes = data.map(ep => ({ ...ep, car: carMap[ep.car_id] || null }));
+      renderCards(allEpisodes);
+    }
+
+    function renderCards(episodes) {
+      const grid = document.getElementById('stGrid');
+      const empty = document.getElementById('stEmpty');
+      if (!episodes.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+      grid.innerHTML = episodes.map(ep => {
+        const label = TYPE_LABELS[ep.type] || ep.type;
+        const color = TYPE_COLORS[ep.type] || '#64748b';
+        const dateStr = ep.episode_date ? ep.episode_date.replace(/-/g, '.') : ep.created_at.slice(0,10).replace(/-/g,'.');
+        const car = ep.car;
+        const ownerName = car ? (car.handle_name || '') : '';
+        const carName = car ? ((car.year ? car.year + '年 ' : '') + (car.model_display_c || '')) : '';
+
+        // ファーストイメージ
+        const blocks = Array.isArray(ep.blocks) ? ep.blocks : [];
+        const firstImg = blocks.find(b => b.type === 'image' && b.url);
+        const firstText = blocks.find(b => b.type === 'text');
+        const excerpt = firstText ? (firstText.content.length > 70 ? firstText.content.slice(0,70) + '…' : firstText.content) : '';
+
+        const imgHtml = firstImg
+          ? `<img class="st-card-img" src="${esc(firstImg.url)}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=st-card-img-placeholder>🚗</div>'">`
+          : `<div class="st-card-img-placeholder">🚗</div>`;
+
+        return `<a class="st-card" href="detail.html?doc=${esc(ep.car_id)}#stories">
+          ${imgHtml}
+          <div class="st-card-body">
+            <div class="st-card-meta">
+              <span class="st-type-badge" style="background:${color}">${esc(label)}</span>
+              <span class="st-card-date">${esc(dateStr)}</span>
+            </div>
+            <div class="st-card-title">${esc(ep.title)}</div>
+            ${excerpt ? `<div class="st-card-excerpt">${esc(excerpt)}</div>` : ''}
+            <div class="st-card-owner">${esc(ownerName)}${carName ? ' · ' + esc(carName) : ''}</div>
+          </div>
+        </a>`;
+      }).join('');
+    }
+
+    // フィルター
+    document.getElementById('filterRow').addEventListener('click', e => {
+      const btn = e.target.closest('.st-filter-btn');
+      if (!btn) return;
+      activeFilter = btn.dataset.type;
+      document.querySelectorAll('.st-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+      const filtered = activeFilter ? allEpisodes.filter(ep => ep.type === activeFilter) : allEpisodes;
+      renderCards(filtered);
+    });
+
+    fetchStories();
+  </script>
+</body>
+</html>
