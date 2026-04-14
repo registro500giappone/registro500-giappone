@@ -213,12 +213,18 @@
 
   <header class="st-header">
     <span class="st-header-kicker">Owner's Stories</span>
-    <h1 class="st-header-title">マイチンクストーリー</h1>
-    <p class="st-header-sub">オーナーたちの愛車にまつわる物語</p>
+    <h1 class="st-header-title" id="stPageTitle">オーナーズストーリー</h1>
+    <p class="st-header-sub">チンク &amp; 126オーナーたちの愛車にまつわる物語</p>
   </header>
 
-  <div class="st-filter-wrap" id="filterRow">
-    <button class="st-filter-btn active" data-type="">All</button>
+  <div class="st-filter-wrap" id="carFilterRow">
+    <button class="st-filter-btn active" data-car="">All</button>
+    <button class="st-filter-btn" data-car="500">FIAT 500</button>
+    <button class="st-filter-btn" data-car="126">FIAT 126</button>
+  </div>
+
+  <div class="st-filter-wrap" id="filterRow" style="padding-top: 12px;">
+    <button class="st-filter-btn active" data-type="">すべて</button>
     <button class="st-filter-btn" data-type="acquisition">入手</button>
     <button class="st-filter-btn" data-type="trouble">トラブル</button>
     <button class="st-filter-btn" data-type="tuning">チューン</button>
@@ -243,7 +249,24 @@
 
     let allEpisodes = [];
     const params = new URLSearchParams(location.search);
-    const carFilter = params.get('car') || '';
+    const carFilter  = params.get('car')  || '';   // 特定の車両IDで絞り込み
+    const typeParam  = params.get('type') || '';   // '500' or '126' で車種絞り込み
+
+    // URLパラメータによる初期フィルター設定
+    let activeCarType = typeParam; // '' / '500' / '126'
+    let activeEpType  = '';
+
+    function initFilters() {
+      // car_typeフィルターの初期選択
+      if (typeParam) {
+        document.querySelectorAll('#carFilterRow .st-filter-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.car === typeParam);
+        });
+        // ページタイトル変更
+        if (typeParam === '500') document.getElementById('stPageTitle').textContent = 'マイチンクストーリー';
+        if (typeParam === '126') document.getElementById('stPageTitle').textContent = 'マイ126ストーリー';
+      }
+    }
 
     async function fetchStories() {
       let query = supabaseClient
@@ -259,12 +282,19 @@
       if (error || !data) { document.getElementById('stEmpty').style.display = 'block'; return; }
 
       const carIds = [...new Set(data.map(e => e.car_id))];
-      const { data: cars } = await supabaseClient.from('cars').select('document_id, handle_name, model_display_c, year').in('document_id', carIds);
+      const { data: cars } = await supabaseClient.from('cars').select('document_id, handle_name, model_display_c, year, car_type').in('document_id', carIds);
       const carMap = {};
       (cars || []).forEach(c => { carMap[c.document_id] = c; });
 
       allEpisodes = data.map(ep => ({ ...ep, car: carMap[ep.car_id] || null }));
-      renderStories(allEpisodes);
+      applyFilters();
+    }
+
+    function applyFilters() {
+      let filtered = allEpisodes;
+      if (activeCarType) filtered = filtered.filter(ep => (ep.car?.car_type || '500') === activeCarType);
+      if (activeEpType)  filtered = filtered.filter(ep => ep.type === activeEpType);
+      renderStories(filtered);
     }
 
     function renderStories(episodes) {
@@ -275,11 +305,15 @@
 
       let html = '';
       episodes.forEach((ep, i) => {
-        const label   = TYPE_LABELS[ep.type] || ep.type;
-        const dateStr = (ep.episode_date || ep.created_at.slice(0,10)).replace(/-/g, '.');
-        const car     = ep.car;
-        const owner   = car ? (car.handle_name || '') : '';
-        const carName = car ? ((car.year ? car.year + '年 ' : '') + (car.model_display_c || '')) : '';
+        const label    = TYPE_LABELS[ep.type] || ep.type;
+        const dateStr  = (ep.episode_date || ep.created_at.slice(0,10)).replace(/-/g, '.');
+        const car      = ep.car;
+        const owner    = car ? (car.handle_name || '') : '';
+        const carName  = car ? ((car.year ? car.year + '年 ' : '') + (car.model_display_c || '')) : '';
+        const carType  = car?.car_type || '500';
+        const carBadge = carType === '126'
+          ? `<span style="font-family:'Cormorant Garamond',serif;font-size:0.62rem;letter-spacing:0.2em;color:var(--ink-faint);border:1px solid var(--border);padding:1px 6px;">126</span>`
+          : '';
         const coverImg  = ep.cover_url || null;
         const excerpt   = ep.content ? (ep.content.length > 120 ? ep.content.slice(0,120) + '…' : ep.content) : '';
         const href      = `episode.html?ep=${esc(ep.id)}`;
@@ -292,6 +326,7 @@
           html += `<a class="st-feature" href="${href}">
             ${imgHtml}
             <div class="st-feature-meta">
+              ${carBadge}
               <span class="st-type-label">${esc(label)}</span>
               <span class="st-date">${esc(dateStr)}</span>
             </div>
@@ -309,6 +344,7 @@
             ${imgHtml}
             <div>
               <div class="st-article-meta">
+                ${carBadge}
                 <span class="st-type-label">${esc(label)}</span>
                 <span class="st-date">${esc(dateStr)}</span>
               </div>
@@ -322,14 +358,30 @@
       content.innerHTML = html;
     }
 
+    // 車種フィルター
+    document.getElementById('carFilterRow').addEventListener('click', e => {
+      const btn = e.target.closest('.st-filter-btn');
+      if (!btn) return;
+      activeCarType = btn.dataset.car;
+      document.querySelectorAll('#carFilterRow .st-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+      // タイトル変更
+      const titleEl = document.getElementById('stPageTitle');
+      if (activeCarType === '500') titleEl.textContent = 'マイチンクストーリー';
+      else if (activeCarType === '126') titleEl.textContent = 'マイ126ストーリー';
+      else titleEl.textContent = 'オーナーズストーリー';
+      applyFilters();
+    });
+
+    // 種類フィルター
     document.getElementById('filterRow').addEventListener('click', e => {
       const btn = e.target.closest('.st-filter-btn');
       if (!btn) return;
-      const type = btn.dataset.type;
-      document.querySelectorAll('.st-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
-      renderStories(type ? allEpisodes.filter(ep => ep.type === type) : allEpisodes);
+      activeEpType = btn.dataset.type;
+      document.querySelectorAll('#filterRow .st-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+      applyFilters();
     });
 
+    initFilters();
     fetchStories();
   </script>
 </body>
