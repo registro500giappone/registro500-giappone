@@ -98,6 +98,12 @@
     .rg-episodes-more { display: block; text-align: center; padding: 0.75rem; font-size: 0.9rem; color: var(--rg-accent); text-decoration: none; margin-top: 0.25rem; }
     .rg-btn-add-episode { width: 100%; padding: 0.75rem; margin-top: 0.75rem; border: 1px dashed var(--rg-border); background: none; color: var(--rg-muted); border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
     .rg-btn-add-episode:hover { border-color: var(--rg-accent); color: var(--rg-accent); }
+    /* エピソード写真グリッド */
+    .rg-ep-cover { width: 100%; border-radius: 0.6rem; margin: 0.75rem 0 1rem; display: block; aspect-ratio: 16/9; object-fit: cover; }
+    .rg-ep-content { white-space: pre-wrap; line-height: 1.85; font-size: 0.95rem; margin: 0.5rem 0 1rem; }
+    .rg-ep-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-top: 0.75rem; }
+    .rg-ep-photo-cell { position: relative; aspect-ratio: 1; border-radius: 0.5rem; overflow: hidden; background: var(--rg-surface-sub); border: 1px solid var(--rg-border); }
+    .rg-ep-photo-cell img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
 
     /* ダークモード */
     @media (prefers-color-scheme: dark) {
@@ -563,13 +569,20 @@
       let html = `<div class="rg-episode-acquisition">`;
       html += `<div class="rg-episode-date">${esc(dateStr)} <span class="rg-episode-type-badge" style="background:${color}">${esc(label)}</span></div>`;
       html += `<h3 style="margin:0.4rem 0 0.75rem;font-size:1.05rem;">${esc(ep.title)}</h3>`;
-      (ep.blocks || []).forEach(b => {
-        if (b.type === 'text') html += `<p class="rg-episode-block-text">${esc(b.content)}</p>`;
-        else if (b.type === 'image' && b.url) {
-          html += `<img class="rg-episode-block-image" src="${esc(safeUrl(b.url))}" loading="lazy" onerror="this.style.display='none'">`;
-          if (b.caption) html += `<p class="rg-episode-block-caption">${esc(b.caption)}</p>`;
-        }
-      });
+      if (ep.cover_url) {
+        html += `<img class="rg-ep-cover" src="${esc(safeUrl(ep.cover_url))}" loading="lazy" onerror="this.style.display='none'">`;
+      }
+      if (ep.content) {
+        html += `<p class="rg-ep-content">${esc(ep.content)}</p>`;
+      }
+      const photos = Array.isArray(ep.photo_urls) ? ep.photo_urls.filter(Boolean) : [];
+      if (photos.length > 0) {
+        html += `<div class="rg-ep-photos">`;
+        photos.forEach(url => {
+          html += `<div class="rg-ep-photo-cell"><img src="${esc(safeUrl(url))}" loading="lazy" onerror="this.parentNode.style.display='none'" onclick="openModal('${esc(safeUrl(url))}')"></div>`;
+        });
+        html += `</div>`;
+      }
       html += `</div>`;
       return html;
     }
@@ -578,8 +591,7 @@
       const label = EPISODE_TYPE_LABELS[ep.type] || ep.type;
       const color = EPISODE_TYPE_COLORS[ep.type] || '#64748b';
       const dateStr = ep.episode_date ? ep.episode_date.replace(/-/g, '.') : '';
-      const firstText = (ep.blocks || []).find(b => b.type === 'text');
-      const excerpt = firstText ? (firstText.content.length > 60 ? firstText.content.slice(0, 60) + '…' : firstText.content) : '';
+      const excerpt = ep.content ? (ep.content.length > 60 ? ep.content.slice(0, 60) + '…' : ep.content) : '';
       return `<div class="rg-episode-timeline-item">
         <div class="rg-episode-date">${esc(dateStr)} <span class="rg-episode-type-badge" style="background:${color}">${esc(label)}</span></div>
         <div style="font-weight:700;margin:0.2rem 0;">${esc(ep.title)}</div>
