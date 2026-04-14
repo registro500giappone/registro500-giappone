@@ -8,79 +8,233 @@
   <title>マイチンクストーリー - Registro500 Giappone</title>
   <meta name="description" content="チンクオーナーたちの愛車にまつわるストーリー。入手のきっかけ、トラブル、チューン、ドライブ記録。">
   <meta property="og:title" content="マイチンクストーリー - Registro500 Giappone">
-  <meta property="og:description" content="チンクオーナーたちの愛車にまつわるストーリー。">
+  <meta property="og:description" content="チンクオーナーたちの愛車にまつわる物語。">
   <meta property="og:type" content="website">
   <link rel="canonical" href="https://www.registro500.com/stories.html">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Noto+Serif+JP:wght@300;400;500&display=swap" rel="stylesheet">
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
   <style>
-    body { line-height: 1.7; padding-top: 85px; padding-bottom: 80px; }
-    .st-page { max-width: 1140px; margin: 0 auto; padding: 0 1rem; }
-    .st-heading { font-size: 1.4rem; font-weight: 700; margin: 1.5rem 0 0.25rem; }
-    .st-sub { font-size: 0.9rem; color: var(--rg-muted); margin-bottom: 1.2rem; }
+    :root {
+      --cream:      #FAFAF7;
+      --warm-white: #F4F6F1;
+      --ink:        #1A1A18;
+      --ink-light:  #484844;
+      --ink-faint:  #888880;
+      --border:     #DDD8CE;
+      --accent:     #4D6B3C;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { background: var(--cream); scroll-behavior: smooth; }
+    body { font-family: 'Noto Serif JP', 'Georgia', serif; color: var(--ink); line-height: 1.9; background: var(--cream); }
+
+    /* ナビ */
+    .st-nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--ink);
+      display: grid; grid-template-columns: 1fr auto 1fr;
+      align-items: center; padding: 14px 24px; gap: 12px;
+    }
+    .st-nav-back {
+      font-size: 0.75rem; letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.8); text-decoration: none;
+    }
+    .st-nav-back:hover { color: #fff; }
+    .st-nav-series {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.68rem; letter-spacing: 0.3em;
+      color: rgba(255,255,255,0.45); text-align: center; white-space: nowrap;
+    }
+    .st-nav-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.72rem; letter-spacing: 0.3em;
+      color: rgba(255,255,255,0.65); text-decoration: none;
+      text-transform: uppercase; text-align: right;
+    }
+    @media (max-width: 600px) { .st-nav-series { display: none; } .st-nav { grid-template-columns: 1fr 1fr; } }
+
+    /* ページヘッダー */
+    .st-header {
+      text-align: center;
+      padding: 72px 24px 56px;
+      border-bottom: 1px solid var(--border);
+    }
+    .st-header-kicker {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.7rem; letter-spacing: 0.5em;
+      text-transform: uppercase; color: var(--accent);
+      display: block; margin-bottom: 20px;
+    }
+    .st-header-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2rem, 6vw, 3.2rem);
+      font-weight: 300; letter-spacing: 0.1em;
+      line-height: 1.2; margin-bottom: 16px;
+    }
+    .st-header-sub {
+      font-size: 0.88rem; color: var(--ink-faint);
+      letter-spacing: 0.08em; font-weight: 300;
+    }
 
     /* フィルター */
-    .st-filter { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
-    .st-filter-btn { padding: 0.35rem 0.9rem; border-radius: 999px; font-size: 0.85rem; border: 1px solid var(--rg-border); background: none; cursor: pointer; color: var(--rg-text); }
-    .st-filter-btn.active { background: var(--rg-accent); color: #fff; border-color: var(--rg-accent); }
+    .st-filter-wrap {
+      max-width: 860px; margin: 0 auto;
+      padding: 28px 28px 0;
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+    }
+    .st-filter-btn {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.78rem; letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 0.3rem 0.9rem;
+      border: 1px solid var(--border);
+      background: none; cursor: pointer;
+      color: var(--ink-faint); border-radius: 0;
+      transition: all 0.15s;
+    }
+    .st-filter-btn:hover { color: var(--ink); border-color: var(--ink-faint); }
+    .st-filter-btn.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
 
-    /* カードグリッド */
-    .st-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
-    .st-card { background: var(--rg-surface); border: 1px solid var(--rg-border); border-radius: var(--rg-radius-card); overflow: hidden; text-decoration: none; color: var(--rg-text); display: flex; flex-direction: column; transition: box-shadow 0.15s; }
-    .st-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
-    .st-card-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--rg-surface-sub); display: block; }
-    .st-card-img-placeholder { width: 100%; aspect-ratio: 16/9; background: var(--rg-surface-sub); display: flex; align-items: center; justify-content: center; font-size: 2rem; color: var(--rg-border); }
-    .st-card-body { padding: 0.9rem 1rem 1rem; flex: 1; display: flex; flex-direction: column; }
-    .st-card-meta { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem; }
-    .st-type-badge { font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px; color: #fff; flex-shrink: 0; }
-    .st-card-date { font-size: 0.78rem; color: var(--rg-muted); }
-    .st-card-title { font-weight: 700; font-size: 0.97rem; margin: 0 0 0.4rem; line-height: 1.4; }
-    .st-card-owner { font-size: 0.82rem; color: var(--rg-muted); margin-top: auto; padding-top: 0.5rem; }
-    .st-card-excerpt { font-size: 0.85rem; color: var(--rg-muted); line-height: 1.5; flex: 1; }
+    /* 記事リスト */
+    .st-list {
+      max-width: 860px; margin: 0 auto;
+      padding: 0 28px 100px;
+    }
 
-    .st-loading { text-align: center; padding: 3rem 0; color: var(--rg-muted); }
-    .st-empty { text-align: center; padding: 3rem 0; color: var(--rg-muted); }
+    /* フィーチャー（最初の1件） */
+    .st-feature {
+      padding: 56px 0 48px;
+      border-bottom: 1px solid var(--border);
+      text-decoration: none; color: inherit;
+      display: block;
+    }
+    .st-feature:hover .st-feature-title { text-decoration: underline; text-decoration-color: var(--border); }
+    .st-feature-img {
+      width: 100%; aspect-ratio: 16/7;
+      object-fit: cover; display: block;
+      margin-bottom: 28px;
+    }
+    .st-feature-img-placeholder {
+      width: 100%; aspect-ratio: 16/7;
+      background: var(--warm-white);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 3rem; color: var(--border);
+      margin-bottom: 28px;
+    }
+    .st-feature-meta {
+      display: flex; align-items: center; gap: 0.75rem;
+      margin-bottom: 14px;
+    }
+    .st-type-label {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.68rem; letter-spacing: 0.35em;
+      text-transform: uppercase; color: var(--accent);
+    }
+    .st-date {
+      font-size: 0.78rem; color: var(--ink-faint);
+      font-family: 'Cormorant Garamond', serif; letter-spacing: 0.1em;
+    }
+    .st-feature-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      font-weight: 400; line-height: 1.35;
+      letter-spacing: 0.04em; margin-bottom: 14px;
+    }
+    .st-feature-excerpt {
+      font-size: 0.92rem; color: var(--ink-light);
+      line-height: 1.9; font-weight: 300;
+      max-width: 600px;
+    }
+    .st-feature-owner {
+      margin-top: 18px;
+      font-size: 0.78rem; color: var(--ink-faint);
+      font-family: 'Cormorant Garamond', serif; letter-spacing: 0.1em;
+    }
+
+    /* 通常記事（横並び） */
+    .st-article {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 28px;
+      padding: 40px 0;
+      border-bottom: 1px solid var(--border);
+      text-decoration: none; color: inherit;
+      align-items: start;
+    }
+    .st-article:hover .st-article-title { text-decoration: underline; text-decoration-color: var(--border); }
+    @media (max-width: 600px) {
+      .st-article { grid-template-columns: 1fr; gap: 16px; }
+    }
+    .st-article-img {
+      width: 100%; aspect-ratio: 4/3;
+      object-fit: cover; display: block;
+    }
+    .st-article-img-placeholder {
+      width: 100%; aspect-ratio: 4/3;
+      background: var(--warm-white);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem; color: var(--border);
+    }
+    .st-article-meta {
+      display: flex; align-items: center; gap: 0.6rem;
+      margin-bottom: 10px;
+    }
+    .st-article-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+      font-weight: 400; line-height: 1.4;
+      letter-spacing: 0.03em; margin-bottom: 10px;
+    }
+    .st-article-excerpt {
+      font-size: 0.85rem; color: var(--ink-light);
+      line-height: 1.8; font-weight: 300;
+    }
+    .st-article-owner {
+      margin-top: 12px;
+      font-size: 0.75rem; color: var(--ink-faint);
+      font-family: 'Cormorant Garamond', serif; letter-spacing: 0.1em;
+    }
+
+    .st-loading { text-align: center; padding: 5rem 0; color: var(--ink-faint); font-family: 'Cormorant Garamond', serif; letter-spacing: 0.2em; font-size: 0.85rem; }
+    .st-empty  { text-align: center; padding: 5rem 0; color: var(--ink-faint); font-size: 0.9rem; }
   </style>
 </head>
 <body>
-  <header class="rg-header-bar">
-    <div class="rg-back-link">
-      <a href="index.html">
-        <div>←</div>
-        <div class="back-text">ガレージ<br class="back-br">に戻る</div>
-      </a>
-    </div>
-    <div class="rg-header-logo"><img src="logo_horizontal.png" alt="Registro500"></div>
-    <div class="rg-header-right"></div>
+
+  <nav class="st-nav">
+    <a class="st-nav-back" href="index.html">← ガレージに戻る</a>
+    <span class="st-nav-series">Registro500 Giappone</span>
+    <a class="st-nav-logo" href="index.html">Registro500</a>
+  </nav>
+
+  <header class="st-header">
+    <span class="st-header-kicker">Owner's Stories</span>
+    <h1 class="st-header-title">マイチンクストーリー</h1>
+    <p class="st-header-sub">オーナーたちの愛車にまつわる物語</p>
   </header>
 
-  <main>
-    <div class="st-page">
-      <h1 class="st-heading">マイチンクストーリー</h1>
-      <p class="st-sub">オーナーたちの愛車にまつわる物語</p>
+  <div class="st-filter-wrap" id="filterRow">
+    <button class="st-filter-btn active" data-type="">All</button>
+    <button class="st-filter-btn" data-type="acquisition">入手</button>
+    <button class="st-filter-btn" data-type="trouble">トラブル</button>
+    <button class="st-filter-btn" data-type="tuning">チューン</button>
+    <button class="st-filter-btn" data-type="drive">ドライブ</button>
+    <button class="st-filter-btn" data-type="event">イベント</button>
+    <button class="st-filter-btn" data-type="other">その他</button>
+  </div>
 
-      <div class="st-filter" id="filterRow">
-        <button class="st-filter-btn active" data-type="">すべて</button>
-        <button class="st-filter-btn" data-type="acquisition">入手</button>
-        <button class="st-filter-btn" data-type="trouble">トラブル</button>
-        <button class="st-filter-btn" data-type="tuning">チューン</button>
-        <button class="st-filter-btn" data-type="drive">ドライブ</button>
-        <button class="st-filter-btn" data-type="event">イベント</button>
-        <button class="st-filter-btn" data-type="other">その他</button>
-      </div>
-
-      <div id="stLoading" class="st-loading">読み込み中...</div>
-      <div class="st-grid" id="stGrid"></div>
-      <div id="stEmpty" class="st-empty" style="display:none;">まだストーリーがありません。</div>
-    </div>
+  <main class="st-list">
+    <div id="stLoading" class="st-loading">Loading…</div>
+    <div id="stContent"></div>
+    <div id="stEmpty" class="st-empty" style="display:none;">まだストーリーがありません。</div>
   </main>
 
   <script>
     const TYPE_LABELS = { acquisition:'入手', trouble:'トラブル', tuning:'チューン', drive:'ドライブ', event:'イベント', other:'その他' };
-    const TYPE_COLORS = { acquisition:'#e11d48', trouble:'#f97316', tuning:'#2563eb', drive:'#16a34a', event:'#7c3aed', other:'#64748b' };
 
     function esc(s) {
       if (!s) return '';
@@ -88,9 +242,6 @@
     }
 
     let allEpisodes = [];
-    let activeFilter = '';
-
-    // URLパラメータで特定の車をフィルター（detail.htmlの「すべて見る」から来た場合）
     const params = new URLSearchParams(location.search);
     const carFilter = params.get('car') || '';
 
@@ -101,69 +252,84 @@
         .eq('is_published', true)
         .order('created_at', { ascending: false })
         .limit(100);
-
       if (carFilter) query = query.eq('car_id', carFilter);
 
       const { data, error } = await query;
       document.getElementById('stLoading').style.display = 'none';
       if (error || !data) { document.getElementById('stEmpty').style.display = 'block'; return; }
 
-      // car情報を取得（ハンドル名・車種）
       const carIds = [...new Set(data.map(e => e.car_id))];
       const { data: cars } = await supabaseClient.from('cars').select('document_id, handle_name, model_display_c, year').in('document_id', carIds);
       const carMap = {};
       (cars || []).forEach(c => { carMap[c.document_id] = c; });
 
       allEpisodes = data.map(ep => ({ ...ep, car: carMap[ep.car_id] || null }));
-      renderCards(allEpisodes);
+      renderStories(allEpisodes);
     }
 
-    function renderCards(episodes) {
-      const grid = document.getElementById('stGrid');
-      const empty = document.getElementById('stEmpty');
-      if (!episodes.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+    function renderStories(episodes) {
+      const content = document.getElementById('stContent');
+      const empty   = document.getElementById('stEmpty');
+      if (!episodes.length) { content.innerHTML = ''; empty.style.display = 'block'; return; }
       empty.style.display = 'none';
-      grid.innerHTML = episodes.map(ep => {
-        const label = TYPE_LABELS[ep.type] || ep.type;
-        const color = TYPE_COLORS[ep.type] || '#64748b';
-        const dateStr = ep.episode_date ? ep.episode_date.replace(/-/g, '.') : ep.created_at.slice(0,10).replace(/-/g,'.');
-        const car = ep.car;
-        const ownerName = car ? (car.handle_name || '') : '';
+
+      let html = '';
+      episodes.forEach((ep, i) => {
+        const label   = TYPE_LABELS[ep.type] || ep.type;
+        const dateStr = (ep.episode_date || ep.created_at.slice(0,10)).replace(/-/g, '.');
+        const car     = ep.car;
+        const owner   = car ? (car.handle_name || '') : '';
         const carName = car ? ((car.year ? car.year + '年 ' : '') + (car.model_display_c || '')) : '';
-
-        // ファーストイメージ
-        const blocks = Array.isArray(ep.blocks) ? ep.blocks : [];
-        const firstImg = blocks.find(b => b.type === 'image' && b.url);
+        const blocks  = Array.isArray(ep.blocks) ? ep.blocks : [];
+        const firstImg  = blocks.find(b => b.type === 'image' && b.url);
         const firstText = blocks.find(b => b.type === 'text');
-        const excerpt = firstText ? (firstText.content.length > 70 ? firstText.content.slice(0,70) + '…' : firstText.content) : '';
+        const excerpt   = firstText ? (firstText.content.length > 120 ? firstText.content.slice(0,120) + '…' : firstText.content) : '';
+        const href      = `detail.html?doc=${esc(ep.car_id)}#stories`;
 
-        const imgHtml = firstImg
-          ? `<img class="st-card-img" src="${esc(firstImg.url)}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=st-card-img-placeholder>🚗</div>'">`
-          : `<div class="st-card-img-placeholder">🚗</div>`;
-
-        return `<a class="st-card" href="detail.html?doc=${esc(ep.car_id)}#stories">
-          ${imgHtml}
-          <div class="st-card-body">
-            <div class="st-card-meta">
-              <span class="st-type-badge" style="background:${color}">${esc(label)}</span>
-              <span class="st-card-date">${esc(dateStr)}</span>
+        if (i === 0) {
+          // フィーチャー（最初の1件）
+          const imgHtml = firstImg
+            ? `<img class="st-feature-img" src="${esc(firstImg.url)}" loading="lazy" onerror="this.outerHTML='<div class=st-feature-img-placeholder>🚗</div>'">`
+            : `<div class="st-feature-img-placeholder">🚗</div>`;
+          html += `<a class="st-feature" href="${href}">
+            ${imgHtml}
+            <div class="st-feature-meta">
+              <span class="st-type-label">${esc(label)}</span>
+              <span class="st-date">${esc(dateStr)}</span>
             </div>
-            <div class="st-card-title">${esc(ep.title)}</div>
-            ${excerpt ? `<div class="st-card-excerpt">${esc(excerpt)}</div>` : ''}
-            <div class="st-card-owner">${esc(ownerName)}${carName ? ' · ' + esc(carName) : ''}</div>
-          </div>
-        </a>`;
-      }).join('');
+            <h2 class="st-feature-title">${esc(ep.title)}</h2>
+            ${excerpt ? `<p class="st-feature-excerpt">${esc(excerpt)}</p>` : ''}
+            <div class="st-feature-owner">${esc(owner)}${carName ? ' &nbsp;·&nbsp; ' + esc(carName) : ''}</div>
+          </a>`;
+        } else {
+          // 通常記事（横並び）
+          const imgHtml = firstImg
+            ? `<img class="st-article-img" src="${esc(firstImg.url)}" loading="lazy" onerror="this.outerHTML='<div class=st-article-img-placeholder>🚗</div>'">`
+            : `<div class="st-article-img-placeholder">🚗</div>`;
+          const shortExcerpt = firstText ? (firstText.content.length > 80 ? firstText.content.slice(0,80) + '…' : firstText.content) : '';
+          html += `<a class="st-article" href="${href}">
+            ${imgHtml}
+            <div>
+              <div class="st-article-meta">
+                <span class="st-type-label">${esc(label)}</span>
+                <span class="st-date">${esc(dateStr)}</span>
+              </div>
+              <h3 class="st-article-title">${esc(ep.title)}</h3>
+              ${shortExcerpt ? `<p class="st-article-excerpt">${esc(shortExcerpt)}</p>` : ''}
+              <div class="st-article-owner">${esc(owner)}${carName ? ' · ' + esc(carName) : ''}</div>
+            </div>
+          </a>`;
+        }
+      });
+      content.innerHTML = html;
     }
 
-    // フィルター
     document.getElementById('filterRow').addEventListener('click', e => {
       const btn = e.target.closest('.st-filter-btn');
       if (!btn) return;
-      activeFilter = btn.dataset.type;
+      const type = btn.dataset.type;
       document.querySelectorAll('.st-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
-      const filtered = activeFilter ? allEpisodes.filter(ep => ep.type === activeFilter) : allEpisodes;
-      renderCards(filtered);
+      renderStories(type ? allEpisodes.filter(ep => ep.type === type) : allEpisodes);
     });
 
     fetchStories();

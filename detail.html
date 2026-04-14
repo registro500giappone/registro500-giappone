@@ -544,7 +544,16 @@
         } else if (acquisition) {
           // 入手ストーリーのみの場合はepisodesSection不要
         }
-      } catch(e) { /* エピソード取得失敗は無視 */ }
+      // #stories ハッシュで来た場合はエピソードセクションにスクロール
+      if (location.hash === '#stories') {
+        const target = document.getElementById('acquisitionSection').style.display !== 'none'
+          ? document.getElementById('acquisitionSection')
+          : document.getElementById('episodesSection');
+        if (target && target.style.display !== 'none') {
+          setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+        }
+      }
+    } catch(e) { /* エピソード取得失敗は無視 */ }
     }
 
     function renderEpisodeFull(ep) {
