@@ -587,11 +587,12 @@
       const color = EPISODE_TYPE_COLORS[ep.type] || '#64748b';
       const dateStr = ep.episode_date ? ep.episode_date.replace(/-/g, '.') : '';
       const excerpt = ep.content ? (ep.content.length > 60 ? ep.content.slice(0, 60) + '…' : ep.content) : '';
-      return `<div class="rg-episode-timeline-item">
+      const href = `episode.html?ep=${encodeURIComponent(ep.id)}`;
+      return `<a href="${href}" class="rg-episode-timeline-item" style="text-decoration:none;color:inherit;display:block;">
         <div class="rg-episode-date">${esc(dateStr)} <span class="rg-episode-type-badge" style="background:${color}">${esc(label)}</span></div>
         <div style="font-weight:700;margin:0.2rem 0;">${esc(ep.title)}</div>
         ${excerpt ? `<div style="font-size:0.88rem;color:var(--rg-muted);">${esc(excerpt)}</div>` : ''}
-      </div>`;
+      </a>`;
     }
 
     fetchDetail();
