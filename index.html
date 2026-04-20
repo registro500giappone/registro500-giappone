@@ -556,7 +556,14 @@
       const loadingEl = document.getElementById('loading');
       loadingEl.innerText = '読み込んでいます...';
       loadingEl.style.display = 'block';
-      const success = await fetchCars();
+      let success = await fetchCars();
+      // 失敗した場合は2秒後にリトライ
+      if (!success) {
+        await new Promise(r => setTimeout(r, 2000));
+        loadingEl.innerText = '再試行しています...';
+        loadingEl.style.display = 'block';
+        success = await fetchCars();
+      }
       if (!success && carsData.length > 0) {
         loadingEl.innerText = '更新に失敗しました。もう一度お試しください。';
         loadingEl.style.display = 'block';
@@ -584,14 +591,15 @@
       checkNewsBadge();
       checkPageBadges();
       initAuth();
-      prefetch126Data();
+      // fetchCars()との競合を避けるため5秒遅延してから実行
+      setTimeout(() => prefetch126Data(), 5000);
     }
 
 async function fetchCars() {
     lastFetchTime = Date.now();
     try {
       const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('接続タイムアウト（10秒）')), 10000)
+        setTimeout(() => reject(new Error('接続タイムアウト（20秒）')), 20000)
       );
       const query = supabaseClient
         .from('cars')
