@@ -744,14 +744,19 @@ async function fetchCars() {
 
         const isTimeout = /タイムアウト/.test(e?.message || '');
         if (attempt === 1 && isTimeout) {
-          // stale session 疑い: sb-* を削除して次試行は匿名で実行
-          console.warn('[Auth] タイムアウトのため認証セッションを削除して再試行します');
+          // stale session 疑い:
+          // 1) localStorage の sb-* を削除
+          // 2) supabaseClient を作り直して SDK メモリ上の古い状態もリセット
+          //    （localStorage だけ消しても SDK のメモリ内セッションは残るため）
+          console.warn('[Auth] タイムアウトのため認証セッションを完全リセットして再試行します');
           try {
             Object.keys(localStorage)
               .filter(k => k.startsWith('sb-'))
               .forEach(k => localStorage.removeItem(k));
+            // SDK を新しいインスタンスに置き換え（古い認証メモリを破棄）
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
           } catch (clearErr) {
-            console.error('セッション削除失敗:', clearErr);
+            console.error('セッションリセット失敗:', clearErr);
           }
           continue; // 次の試行へ
         }
