@@ -1320,7 +1320,27 @@ async function checkNewsBadge() {
         btn.onclick = function() {
           btn.disabled = true;
           btn.textContent = '更新中...';
-          worker.postMessage({ type: 'SKIP_WAITING' });
+          try {
+            worker.postMessage({ type: 'SKIP_WAITING' });
+          } catch (e) {
+            console.warn('SKIP_WAITING送信失敗:', e);
+          }
+          // 10秒経っても controllerchange が来ない場合は手動リロードに切り替え
+          // （SW更新は稀にスタックするため、ユーザーを無限待機させない）
+          setTimeout(function() {
+            if (refreshing) return; // 既にリロード開始
+            btn.disabled = false;
+            btn.textContent = '手動で再読込';
+            btn.onclick = function() {
+              // キャッシュも念のため更新して強制リロード
+              try {
+                if (navigator.serviceWorker.controller) {
+                  navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+                }
+              } catch(e) {}
+              window.location.reload();
+            };
+          }, 10000);
         };
       }
     })();
