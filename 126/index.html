@@ -3,6 +3,10 @@
 
 <head>
   <meta charset="UTF-8">
+  <!-- iOS PWAキャッシュ対策: HTTPヘッダと二重で古いHTMLを掴ませない -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <link rel="canonical" href="https://www.registro500.com/126/">
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
@@ -36,6 +40,30 @@
   <script src="../config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>
+    // ========== Supabase stale session 対策 ==========
+    // 古い期限切れセッションが localStorage に残っていると、
+    // SDK がトークンリフレッシュで詰まって全クエリがハングする既知の挙動がある。
+    // createClient の前に、7日以上前に期限切れになったセッションを削除しておく。
+    (function pruneStaleSupabaseSessions() {
+      try {
+        const sevenDaysAgoSec = Math.floor(Date.now() / 1000) - (7 * 24 * 60 * 60);
+        Object.keys(localStorage)
+          .filter(k => k.startsWith('sb-') && k.includes('auth-token'))
+          .forEach(key => {
+            try {
+              const raw = localStorage.getItem(key);
+              if (!raw) return;
+              const data = JSON.parse(raw);
+              const expiresAt = data?.expires_at || data?.currentSession?.expires_at;
+              if (expiresAt && expiresAt < sevenDaysAgoSec) {
+                localStorage.removeItem(key);
+                console.warn('[Auth] 期限切れセッション削除:', key);
+              }
+            } catch (e) { /* パース失敗は無視 */ }
+          });
+      } catch (e) { /* 環境依存の失敗は無視 */ }
+    })();
+
     // Supabase初期化
     let supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   </script>
@@ -451,6 +479,76 @@
 
   <button class="refresh-button" onclick="forceReload()">↻ 更新</button>
 
+  <!-- データ取得エラーバナー（Supabase通信失敗時に上部に表示） -->
+  <div id="dataErrorBanner" role="alert" style="
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    background:#dc2626;
+    color:#fff;
+    padding:10px 16px;
+    z-index:10000;
+    text-align:center;
+    font-size:0.9rem;
+    box-shadow:0 2px 8px rgba(0,0,0,0.2);
+  ">
+    <span id="dataErrorMsg">最新データの取得に失敗しました</span>
+    <button onclick="retryFetchCars()" style="
+      margin-left:12px;
+      background:#fff;
+      color:#dc2626;
+      border:none;
+      padding:4px 12px;
+      border-radius:999px;
+      font-weight:700;
+      cursor:pointer;
+      font-size:0.85rem;
+    ">再試行</button>
+    <button onclick="clearSessionAndReload()" style="
+      margin-left:8px;
+      background:transparent;
+      color:#fff;
+      border:1px solid #fff;
+      padding:4px 12px;
+      border-radius:999px;
+      cursor:pointer;
+      font-size:0.85rem;
+    ">セッション削除</button>
+  </div>
+
+  <!-- Service Worker 更新バナー -->
+  <div id="swUpdateBanner" role="status" aria-live="polite" style="
+    display:none;
+    position:fixed;
+    left:50%;
+    bottom:20px;
+    transform:translateX(-50%);
+    background:#D4541A;
+    color:#fff;
+    padding:12px 20px;
+    border-radius:999px;
+    box-shadow:0 6px 20px rgba(15,23,42,0.25);
+    font-size:0.9rem;
+    z-index:9999;
+    max-width:92vw;
+    text-align:center;
+  ">
+    <span>新しいバージョンが利用できます</span>
+    <button id="swUpdateBtn" style="
+      margin-left:12px;
+      background:#fff;
+      color:#D4541A;
+      border:none;
+      padding:6px 14px;
+      border-radius:999px;
+      font-weight:700;
+      cursor:pointer;
+      font-size:0.85rem;
+    ">今すぐ更新</button>
+  </div>
+
   <button id="scrollTopBtn" class="scroll-top-button" onclick="window.scrollTo({top: 0, behavior: 'smooth'});" aria-label="トップへ戻る">
     <svg viewBox="0 0 24 24"><path d="M12 4l-8 8h6v8h4v-8h6z"></path></svg>
   </button>
@@ -556,48 +654,117 @@
 
 async function fetchCars() {
     lastFetchTime = Date.now();
-    try {
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('接続タイムアウト（10秒）')), 10000)
-      );
-      const query = supabaseClient
-        .from('cars')
-        .select(`
-          PhotoMain:photo_main,
-          Model_DisplayC:model_display_c,
-          Year:year,
-          Prefecture:prefecture,
-          HandleName:handle_name,
-          DocumentID:document_id,
-          updatedAt:updated_at,
-          last_update_date
-        `)
-        .eq('car_type', '126');
+    const TIMEOUT_MS = 5000;
 
-      const { data, error } = await Promise.race([query, timeout]);
+    // 最大2回試行。1回目がタイムアウトしたら stale session を疑って
+    // sb-* を削除してから匿名状態で再試行する。
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const timeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('接続タイムアウト（' + (TIMEOUT_MS/1000) + '秒）')), TIMEOUT_MS)
+        );
+        const query = supabaseClient
+          .from('cars')
+          .select(`
+            PhotoMain:photo_main,
+            Model_DisplayC:model_display_c,
+            Year:year,
+            Prefecture:prefecture,
+            HandleName:handle_name,
+            DocumentID:document_id,
+            updatedAt:updated_at,
+            last_update_date
+          `)
+          .eq('car_type', '126');
 
-      if (error) throw error;
+        const { data, error } = await Promise.race([query, timeout]);
 
-      if (data) {
-        carsData = data;
-        try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch(e) {}
-        renderCars(document.getElementById('sortSelect').value);
-        updateCarCount();
+        if (error) throw error;
+
+        if (data) {
+          carsData = data;
+          try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch(e) {}
+          renderCars(document.getElementById('sortSelect').value);
+          updateCarCount();
+        }
+        document.getElementById('loading').style.display = 'none';
+        hideDataErrorBanner();
+        if (attempt === 2) {
+          console.info('[Auth] セッションクリア後の再取得に成功しました');
+        }
+        return true;
+      } catch (e) {
+        console.error(`Supabase読込エラー (試行${attempt}/2):`, e);
+
+        const isTimeout = /タイムアウト/.test(e?.message || '');
+        if (attempt === 1 && isTimeout) {
+          // stale session 疑い:
+          // 1) localStorage の sb-* を削除
+          // 2) supabaseClient を作り直して SDK メモリ上の古い状態もリセット
+          console.warn('[Auth] タイムアウトのため認証セッションを完全リセットして再試行します');
+          try {
+            Object.keys(localStorage)
+              .filter(k => k.startsWith('sb-'))
+              .forEach(k => localStorage.removeItem(k));
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+          } catch (clearErr) {
+            console.error('セッションリセット失敗:', clearErr);
+          }
+          continue;
+        }
+
+        // 最終失敗
+        const loadingEl = document.getElementById('loading');
+        if (carsData.length === 0) {
+          loadingEl.style.display = 'block';
+          loadingEl.innerText = "エラー: " + (e?.message || 'データの取得に失敗しました');
+        } else {
+          loadingEl.style.display = 'none';
+        }
+        showDataErrorBanner(e);
+        return false;
       }
-      document.getElementById('loading').style.display = 'none';
-      return true;
-    } catch (e) {
-      console.error("Supabase読込エラー:", e);
-      const loadingEl = document.getElementById('loading');
-      if (carsData.length === 0) {
-        loadingEl.style.display = 'block';
-        loadingEl.innerText = "エラー: " + (e?.message || 'データの取得に失敗しました');
-      } else {
-        // キャッシュデータが表示されている場合はloadingを隠す（固まり防止）
-        loadingEl.style.display = 'none';
-      }
-      return false;
     }
+    return false;
+  }
+
+  // ========== データ取得エラーバナー制御 ==========
+  function showDataErrorBanner(err) {
+    const banner = document.getElementById('dataErrorBanner');
+    const msg = document.getElementById('dataErrorMsg');
+    if (!banner) return;
+    if (msg) {
+      const reason = (err && err.message) ? err.message : '通信に失敗しました';
+      msg.textContent = '最新データ取得失敗: ' + reason;
+    }
+    banner.style.display = 'block';
+  }
+
+  function hideDataErrorBanner() {
+    const banner = document.getElementById('dataErrorBanner');
+    if (banner) banner.style.display = 'none';
+  }
+
+  async function retryFetchCars() {
+    hideDataErrorBanner();
+    const loadingEl = document.getElementById('loading');
+    if (loadingEl) {
+      loadingEl.innerText = '再取得中...';
+      loadingEl.style.display = 'block';
+    }
+    await fetchCars();
+  }
+
+  function clearSessionAndReload() {
+    try {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('sb-') || k === CACHE_KEY)
+        .forEach(k => localStorage.removeItem(k));
+      sessionStorage.clear();
+    } catch (e) {
+      console.error('セッション削除失敗:', e);
+    }
+    window.location.reload();
   }
 
 async function checkNewsBadge() {
@@ -1020,6 +1187,78 @@ async function checkNewsBadge() {
       if (countEl) countEl.textContent = carsData.filter(c => c.DocumentID).length;
     }
     initApp();
+  </script>
+
+  <!-- Service Worker 登録＋更新バナー制御 -->
+  <script>
+    (function() {
+      if (!('serviceWorker' in navigator)) return;
+
+      let refreshing = false;
+      // 新SWが activate → controllerchange 発火 → 1度だけリロード
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js').then(function(reg) {
+          // 既に waiting がいれば即バナー表示
+          if (reg.waiting && navigator.serviceWorker.controller) {
+            showUpdateBanner(reg.waiting);
+          }
+
+          // 新しい SW のインストール開始を検知
+          reg.addEventListener('updatefound', function() {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener('statechange', function() {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                showUpdateBanner(newWorker);
+              }
+            });
+          });
+
+          // 1時間ごとに更新チェック（常駐PWA対策）
+          setInterval(function() {
+            reg.update().catch(function() {});
+          }, 60 * 60 * 1000);
+        }).catch(function(err) {
+          console.warn('SW registration failed:', err);
+        });
+      });
+
+      function showUpdateBanner(worker) {
+        const banner = document.getElementById('swUpdateBanner');
+        const btn = document.getElementById('swUpdateBtn');
+        if (!banner || !btn) return;
+        banner.style.display = 'block';
+        btn.onclick = function() {
+          btn.disabled = true;
+          btn.textContent = '更新中...';
+          try {
+            worker.postMessage({ type: 'SKIP_WAITING' });
+          } catch (e) {
+            console.warn('SKIP_WAITING送信失敗:', e);
+          }
+          // 10秒経っても controllerchange が来ない場合は手動リロードに切り替え
+          setTimeout(function() {
+            if (refreshing) return;
+            btn.disabled = false;
+            btn.textContent = '手動で再読込';
+            btn.onclick = function() {
+              try {
+                if (navigator.serviceWorker.controller) {
+                  navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+                }
+              } catch(e) {}
+              window.location.reload();
+            };
+          }, 10000);
+        };
+      }
+    })();
   </script>
 </body>
 </html>
