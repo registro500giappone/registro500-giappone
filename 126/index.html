@@ -518,38 +518,7 @@
     ">セッション削除</button>
   </div>
 
-  <!-- Service Worker 更新バナー -->
-  <div id="swUpdateBanner" role="status" aria-live="polite" style="
-    display:none;
-    position:fixed;
-    left:50%;
-    bottom:20px;
-    transform:translateX(-50%);
-    background:#D4541A;
-    color:#fff;
-    padding:12px 20px;
-    border-radius:999px;
-    box-shadow:0 6px 20px rgba(15,23,42,0.25);
-    font-size:0.9rem;
-    z-index:9999;
-    max-width:92vw;
-    text-align:center;
-  ">
-    <span>新しいバージョンが利用できます</span>
-    <button id="swUpdateBtn" style="
-      margin-left:12px;
-      background:#fff;
-      color:#D4541A;
-      border:none;
-      padding:6px 14px;
-      border-radius:999px;
-      font-weight:700;
-      cursor:pointer;
-      font-size:0.85rem;
-    ">今すぐ更新</button>
-  </div>
-
-  <button id="scrollTopBtn" class="scroll-top-button" onclick="window.scrollTo({top: 0, behavior: 'smooth'});" aria-label="トップへ戻る">
+<button id="scrollTopBtn" class="scroll-top-button" onclick="window.scrollTo({top: 0, behavior: 'smooth'});" aria-label="トップへ戻る">
     <svg viewBox="0 0 24 24"><path d="M12 4l-8 8h6v8h4v-8h6z"></path></svg>
   </button>
   
@@ -617,6 +586,21 @@
       const loadingEl = document.getElementById('loading');
       loadingEl.innerText = '読み込んでいます...';
       loadingEl.style.display = 'block';
+
+      // SW更新チェック: 待機中の新SWがあればアクティベート
+      // → controllerchange でページが自動リロードされ最新版に
+      try {
+        const reg = window.__swRegistration;
+        if (reg) {
+          await reg.update().catch(() => {});
+          const waiting = reg.waiting;
+          if (waiting && navigator.serviceWorker.controller) {
+            waiting.postMessage({ type: 'SKIP_WAITING' });
+            return;
+          }
+        }
+      } catch (e) { /* SW未対応環境はスキップ */ }
+
       const success = await fetchCars();
       if (!success && carsData.length > 0) {
         loadingEl.innerText = '更新に失敗しました。もう一度お試しください。';
@@ -1204,21 +1188,8 @@ async function checkNewsBadge() {
 
       window.addEventListener('load', function() {
         navigator.serviceWorker.register('/sw.js').then(function(reg) {
-          // 既に waiting がいれば即バナー表示
-          if (reg.waiting && navigator.serviceWorker.controller) {
-            showUpdateBanner(reg.waiting);
-          }
-
-          // 新しい SW のインストール開始を検知
-          reg.addEventListener('updatefound', function() {
-            const newWorker = reg.installing;
-            if (!newWorker) return;
-            newWorker.addEventListener('statechange', function() {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                showUpdateBanner(newWorker);
-              }
-            });
-          });
+          // forceReload() から参照するため公開
+          window.__swRegistration = reg;
 
           // 1時間ごとに更新チェック（常駐PWA対策）
           setInterval(function() {
@@ -1228,36 +1199,6 @@ async function checkNewsBadge() {
           console.warn('SW registration failed:', err);
         });
       });
-
-      function showUpdateBanner(worker) {
-        const banner = document.getElementById('swUpdateBanner');
-        const btn = document.getElementById('swUpdateBtn');
-        if (!banner || !btn) return;
-        banner.style.display = 'block';
-        btn.onclick = function() {
-          btn.disabled = true;
-          btn.textContent = '更新中...';
-          try {
-            worker.postMessage({ type: 'SKIP_WAITING' });
-          } catch (e) {
-            console.warn('SKIP_WAITING送信失敗:', e);
-          }
-          // 10秒経っても controllerchange が来ない場合は手動リロードに切り替え
-          setTimeout(function() {
-            if (refreshing) return;
-            btn.disabled = false;
-            btn.textContent = '手動で再読込';
-            btn.onclick = function() {
-              try {
-                if (navigator.serviceWorker.controller) {
-                  navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
-                }
-              } catch(e) {}
-              window.location.reload();
-            };
-          }, 10000);
-        };
-      }
     })();
   </script>
 </body>
