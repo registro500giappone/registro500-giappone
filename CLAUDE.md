@@ -38,10 +38,10 @@ Claude Code の Task ツールを活用した自動化パターン：
 「py/ai_marathon_final_v9.py を実行してAI翻訳を実行して」
 ```
 
-#### デプロイ（git push → Vercel 自動デプロイ）
+#### デプロイ（git push → Cloudflare Pages 自動デプロイ）
 ```
 「変更をコミットしてGitHubにプッシュして」
-→ Vercel が自動的にデプロイを行う（main ブランチへのプッシュで自動デプロイ）
+→ Cloudflare Pages が自動的にデプロイを行う（main ブランチへのプッシュで自動デプロイ）
 ```
 
 #### サイト確認（Playwright MCP使用）
@@ -89,7 +89,7 @@ python ai_marathon_final_v9.py # AI翻訳のみ（category IS NULL を対象）
 git status                     # 変更確認
 git add -p                     # 変更を選択的にステージング
 git commit -m "メッセージ"      # コミット
-git push origin main           # Vercel自動デプロイがトリガーされる
+git push origin main           # Cloudflare Pages 自動デプロイがトリガーされる
 ```
 
 ---
@@ -99,7 +99,7 @@ git push origin main           # Vercel自動デプロイがトリガーされ�
 - `MEMORY.md` → プロジェクト全体のナレッジベース（自動読み込み）
 - `.mcp.json` → MCPサーバー設定（**gitignore済み・ローカルのみ**、トークンが含まれるためgit管理外）
 - `.mcp.json.example` → トークンなしのテンプレート（gitに含む）
-- `py/` → クローラースクリプト群（ローカルのみ、git未管理）
+- `py/` → クローラースクリプト群（**GitHub Actions用にgit管理対象**、`*.py` / `*.md` はコミット必須。ログ・CSV・機密ファイルは `py/.gitignore` で除外）
 - `126/index.html` → Fiat 126姉妹サイトのトップページ
 - `.claude/agents/` → 専用サブエージェント定義（Haikuモデル）
 
