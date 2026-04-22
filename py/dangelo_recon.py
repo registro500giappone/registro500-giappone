@@ -49,20 +49,32 @@ def detect_target_cars(name, url):
     return ", ".join(cars) if cars else "Fiat 500"
 
 
-def fetch_products_page(session, page):
-    """Store APIで1ページ分の商品を取得"""
-    try:
-        resp = session.get(
-            STORE_API_URL,
-            params={"per_page": PAGE_LIMIT, "page": page},
-            timeout=30
-        )
-        print(f"  [DEBUG] ページ {page} HTTPステータス: {resp.status_code}")
-        resp.raise_for_status()
-        return resp.json(), resp.headers
-    except Exception as e:
-        print(f"  [ERROR] ページ {page} 取得失敗: {e}")
-        return None, {}
+def fetch_products_page(session, page, max_retries=5):
+    """Store APIで1ページ分の商品を取得（202/5xxの一時エラーはリトライ）"""
+    for attempt in range(1, max_retries + 1):
+        try:
+            resp = session.get(
+                STORE_API_URL,
+                params={"per_page": PAGE_LIMIT, "page": page},
+                timeout=30
+            )
+            print(f"  [DEBUG] ページ {page} HTTPステータス: {resp.status_code} (試行 {attempt}/{max_retries})")
+
+            # 202 Accepted = WordPressキャッシュのwarm-up中など。待機してリトライ
+            if resp.status_code == 202 or resp.status_code >= 500:
+                wait = min(2 ** attempt, 30)
+                print(f"  [RETRY] {resp.status_code} を受信。{wait}秒待機してリトライ")
+                time.sleep(wait)
+                continue
+
+            resp.raise_for_status()
+            return resp.json(), resp.headers
+        except Exception as e:
+            print(f"  [ERROR] ページ {page} 取得失敗 (試行 {attempt}/{max_retries}): {e}")
+            if attempt < max_retries:
+                wait = min(2 ** attempt, 30)
+                time.sleep(wait)
+    return None, {}
 
 
 def build_product_data(p):
