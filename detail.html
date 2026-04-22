@@ -208,7 +208,7 @@
   <script>
     const params = new URLSearchParams(window.location.search);
     const docId = params.get('doc');
-    let currentUser = null, currentCar = null;
+    let currentUser = null, currentCar = null, currentEpisodes = null;
 
     function esc(s) {
       if (!s) return '';
@@ -404,6 +404,28 @@
       } else {
         if(currentCar.accept_inquiry !== false) document.getElementById('contactArea').style.display = 'block';
       }
+      updateAcquisitionPrompt();
+    }
+
+    // 入手ストーリー未記入プロンプト（オーナー本人のみ表示）
+    function updateAcquisitionPrompt() {
+      if (!currentCar || currentEpisodes === null) return;
+      const hasAcquisition = currentEpisodes.some(e => e.type === 'acquisition');
+      if (hasAcquisition) return; // 既に表示済み
+      const isOwner = currentUser && currentUser.email.toLowerCase() === (currentCar.owner_email || '').toLowerCase();
+      const section = document.getElementById('acquisitionSection');
+      if (isOwner) {
+        section.style.display = 'block';
+        const href = `episode-edit.html?car=${encodeURIComponent(currentCar.document_id)}&type=acquisition`;
+        document.getElementById('acquisitionContent').innerHTML = `
+          <div style="text-align:center;padding:1.25rem 0.75rem;border:1px dashed var(--rg-border);border-radius:8px;">
+            <p style="font-size:0.95rem;color:var(--rg-muted);margin:0 0 0.9rem;line-height:1.7;">このチンクとの出会いのストーリーは<br>まだ書かれていません。</p>
+            <a href="${href}" style="display:inline-block;text-decoration:none;padding:0.6rem 1.25rem;background:var(--rg-accent);color:#fff;border-radius:6px;font-size:0.9rem;font-weight:600;">＋ 出会いのストーリーを書く</a>
+          </div>
+        `;
+      } else {
+        section.style.display = 'none';
+      }
     }
 
     window.openContactForm = function() {
@@ -532,12 +554,15 @@
     async function fetchEpisodes(carDocId) {
       try {
         const { data } = await supabaseClient.from('car_episodes').select('*').eq('car_id', carDocId).eq('is_published', true).order('created_at', { ascending: false });
-        if (!data || data.length === 0) return;
-        const acquisition = data.find(e => e.type === 'acquisition');
-        const others = data.filter(e => e.type !== 'acquisition');
+        currentEpisodes = data || [];
+        const acquisition = currentEpisodes.find(e => e.type === 'acquisition');
+        const others = currentEpisodes.filter(e => e.type !== 'acquisition');
         if (acquisition) {
           document.getElementById('acquisitionSection').style.display = 'block';
           document.getElementById('acquisitionContent').innerHTML = renderEpisodeFull(acquisition);
+        } else {
+          // 未記入プロンプトはオーナー判定後に updateAcquisitionPrompt() で表示
+          updateAcquisitionPrompt();
         }
         if (others.length > 0) {
           document.getElementById('episodesSection').style.display = 'block';
@@ -547,8 +572,6 @@
             more.style.display = 'block';
             more.href = `stories.html?car=${encodeURIComponent(carDocId)}`;
           }
-        } else if (acquisition) {
-          // 入手ストーリーのみの場合はepisodesSection不要
         }
       // #stories ハッシュで来た場合はエピソードセクションにスクロール
       if (location.hash === '#stories') {

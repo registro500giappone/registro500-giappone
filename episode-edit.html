@@ -154,10 +154,19 @@
     const params = new URLSearchParams(location.search);
     const carId = params.get('car');
     const epId  = params.get('ep');
+    const presetType = params.get('type'); // 'acquisition' 等の事前指定
     let currentUser = null;
     let coverUrl = '';
     let photoUrls = [];   // 追加写真（最大7枚）
     const MAX_PHOTOS = 7;
+
+    // 新規作成時に type を事前選択
+    if (!epId && presetType) {
+      document.addEventListener('DOMContentLoaded', () => {
+        const sel = document.getElementById('epType');
+        if (sel && [...sel.options].some(o => o.value === presetType)) sel.value = presetType;
+      });
+    }
 
     function esc(s) {
       if (!s) return '';
