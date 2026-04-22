@@ -46,10 +46,10 @@
     .ep-draft-banner button { background: #fff; border: 1px solid #d97706; color: #78350f; padding: 0.3rem 0.75rem; border-radius: 4px; font-size: 0.82rem; cursor: pointer; }
     .ep-draft-banner button.danger { border-color: #e5e7eb; color: #6b7280; }
 
-    /* カバー写真 */
-    .ep-cover-area { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 0.6rem; overflow: hidden; background: var(--rg-surface-sub); border: 2px dashed var(--rg-border); cursor: pointer; display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem; }
-    .ep-cover-area.has-image { border-style: solid; }
-    .ep-cover-area img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    /* カバー写真（縦・正方形もそのまま表示） */
+    .ep-cover-area { position: relative; width: 100%; border-radius: 0.6rem; overflow: hidden; background: var(--rg-surface-sub); border: 2px dashed var(--rg-border); cursor: pointer; display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem; min-height: 200px; }
+    .ep-cover-area.has-image { border-style: solid; min-height: 0; }
+    .ep-cover-area img { width: 100%; height: auto; display: block; max-height: 70vh; object-fit: contain; }
     .ep-cover-placeholder { text-align: center; color: var(--rg-muted); font-size: 0.9rem; pointer-events: none; }
     .ep-cover-placeholder span { font-size: 2rem; display: block; margin-bottom: 0.3rem; }
     .ep-cover-change { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: #fff; font-size: 0.8rem; padding: 4px 10px; border-radius: 4px; border: none; cursor: pointer; }
@@ -153,7 +153,7 @@
           <img id="coverPreview" style="display:none;">
           <button class="ep-cover-change" id="coverChangeBtn" style="display:none;" onclick="event.stopPropagation();document.getElementById('coverInput').click()">写真を変更</button>
         </div>
-        <input type="file" id="coverInput" accept="image/*" style="display:none;">
+        <input type="file" id="coverInput" accept="image/*,.heic,.heif,.HEIC,.HEIF" style="display:none;">
         <div class="ep-cover-hint">
           愛車を迎えた頃の、記憶に残っている1枚をどうぞ。<br>
           構図や画質は問いません。昔のフィルム写真のスキャンも歓迎です。
@@ -177,7 +177,7 @@
         <p class="ep-photos-hint">カバー写真以外に見せたい写真を追加できます。縦・横どちらでも元の比率のまま表示されます。</p>
         <div class="ep-photos-grid" id="photosGrid"></div>
         <div id="photosUploading" class="ep-uploading" style="display:none;">アップロード中...</div>
-        <input type="file" id="photoInput" accept="image/*" style="display:none;">
+        <input type="file" id="photoInput" accept="image/*,.heic,.heif,.HEIC,.HEIF" style="display:none;">
       </div>
 
       <!-- 既公開記事へのリンク -->
@@ -468,8 +468,36 @@
       renderPhotosGrid();
     };
 
-    // ── 画像アップロード共通（リサイズ→Firebase Storage）──
+    // ── HEIC/HEIF → JPEG 変換（iPhone写真対策）──
+    let _heic2anyLoading = null;
+    function ensureHeic2any() {
+      if (typeof window.heic2any !== 'undefined') return Promise.resolve();
+      if (_heic2anyLoading) return _heic2anyLoading;
+      _heic2anyLoading = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('HEIC変換ライブラリの読み込みに失敗しました'));
+        document.head.appendChild(s);
+      });
+      return _heic2anyLoading;
+    }
+    async function convertHeicIfNeeded(file) {
+      const name = (file.name || '').toLowerCase();
+      const type = (file.type || '').toLowerCase();
+      const isHeic = name.endsWith('.heic') || name.endsWith('.heif')
+                   || type === 'image/heic' || type === 'image/heif'
+                   || type === 'image/heic-sequence' || type === 'image/heif-sequence';
+      if (!isHeic) return file;
+      await ensureHeic2any();
+      const out = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+      const outBlob = Array.isArray(out) ? out[0] : out;
+      return new File([outBlob], name.replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' });
+    }
+
+    // ── 画像アップロード共通（HEIC変換→リサイズ→Firebase Storage）──
     async function uploadImage(file, suffix) {
+      file = await convertHeicIfNeeded(file);
       const epIdForPath = epId || ('new_' + Date.now());
       const path = `episodes/${carId}/${epIdForPath}/${suffix}.jpg`;
       const ref = storage.ref().child(path);
@@ -478,9 +506,15 @@
         const reader = new FileReader();
         reader.onload = e => { img.src = e.target.result; };
         img.onload = () => {
-          const MAX = 1200;
+          const MAX = 1600;
           let w = img.width, h = img.height;
-          if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+          // 長辺1600pxに収める（縦写真でもOK）
+          const long = Math.max(w, h);
+          if (long > MAX) {
+            const scale = MAX / long;
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+          }
           const canvas = document.createElement('canvas');
           canvas.width = w; canvas.height = h;
           canvas.getContext('2d').drawImage(img, 0, 0, w, h);
@@ -491,6 +525,7 @@
             } catch(err) { reject(err); }
           }, 'image/jpeg', 0.85);
         };
+        img.onerror = () => reject(new Error('画像の読み込みに失敗しました'));
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
