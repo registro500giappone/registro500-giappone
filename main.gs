@@ -484,22 +484,36 @@ function sendDailyDigest() {
       body += `\n詳細: https://www.registro500.com/news.html\n`;
     }
 
-    body += `\n---------------------------------------------------------\nRegistro500 / Registro126 Giappone\nhttps://www.registro500.com/\n※このメールは毎朝6時に自動配信されます。`;
+    body += `\n---------------------------------------------------------\nRegistro500 / Registro126 Giappone\nhttps://www.registro500.com/\n※このメールは毎朝6〜7時頃に自動配信されます。`;
 
-    // 5. 一斉送信
+    // 5. 一斉送信（成功数を記録してフラグ更新の根拠とする）
     const recipients = getAllExistingOwnerEmails_();
+    let sentChunks = 0;
+    let failedChunks = 0;
     if (recipients.length > 0) {
       const chunkSize = 90;
       for (let i = 0; i < recipients.length; i += chunkSize) {
         const chunk = recipients.slice(i, i + chunkSize);
         try {
           sendBroadcastViaBrevo(chunk, subject, body);
+          sentChunks++;
           Utilities.sleep(1000);
-        } catch (e) { Logger.log('メール送信エラー: ' + e); }
+        } catch (e) {
+          failedChunks++;
+          Logger.log('メール送信エラー (chunk ' + i + '): ' + e);
+        }
       }
     }
 
-    // 6. フラグ更新
+    // 6. フラグ更新（1件以上 chunk 送信に成功した場合のみ。全滅ならフラグ据え置きで次回再送を担保）
+    if (sentChunks === 0) {
+      Logger.log('❌ 全chunk送信失敗（成功:0, 失敗:' + failedChunks + '）→ フラグ更新スキップ。次回の定期実行で再送されます。');
+      return;
+    }
+    if (failedChunks > 0) {
+      Logger.log('⚠️ 一部chunk送信失敗（成功:' + sentChunks + ', 失敗:' + failedChunks + '）→ 送信済みフラグを更新します（同一メール重複送信を避けるため）。');
+    }
+
     newCars.forEach(car => {
       try { supabaseUpdate_('cars', car.DbId, { notification_sent: true }); } catch (e) {}
     });
@@ -513,7 +527,7 @@ function sendDailyDigest() {
       try { markNewsAsSent_(n.id); } catch (e) { Logger.log('❌ markNewsAsSent_ エラー (id=' + n.id + '): ' + e); }
     });
 
-    Logger.log(`メール配信完了: お知らせ${unsentNews.length}件、車両${newCars.length}台、イベント${newEvents.length}件、ストーリー${newEpisodes.length}件`);
+    Logger.log(`メール配信完了: お知らせ${unsentNews.length}件、車両${newCars.length}台、イベント${newEvents.length}件、ストーリー${newEpisodes.length}件（送信chunk ${sentChunks}成功/${failedChunks}失敗）`);
   } catch (error) {
     Logger.log('❌ sendDailyDigest エラー: ' + error);
     Logger.log('スタックトレース: ' + error.stack);
@@ -558,7 +572,13 @@ function sendBroadcastViaBrevo(bccEmailList, subject, textBody) {
     "method": "post", "headers": { "api-key": getBrevoApiKey_(), "Content-Type": "application/json", "accept": "application/json" },
     "payload": JSON.stringify(payload), "muteHttpExceptions": true
   };
-  UrlFetchApp.fetch(url, options);
+  const response = UrlFetchApp.fetch(url, options);
+  const code = response.getResponseCode();
+  if (code < 200 || code >= 300) {
+    const bodyText = response.getContentText();
+    throw new Error('Brevo API error: HTTP ' + code + ' / ' + bodyText);
+  }
+  return response;
 }
 function getAllExistingOwnerEmails_() {
   const carsData = supabaseQuery_('cars', 'owner_email', {});
@@ -797,7 +817,7 @@ function onOpen() {
 function menuSendDailyDigestNow() {
   const ui = SpreadsheetApp.getUi();
   const confirm = ui.alert(
-    '📧 まとめメールを今すぐ送信します\n\n未送信のお知らせ＋新着車両＋新着イベントをまとめて全オーナーに送信します。\n\n※通常は毎朝6時に自動送信されます。緊急時のみ使用してください。\n\nよろしいですか？',
+    '📧 まとめメールを今すぐ送信します\n\n未送信のお知らせ＋新着車両＋新着イベント＋新着ストーリーをまとめて全オーナーに送信します。\n\n※通常は毎朝6〜7時頃に自動送信されます。緊急時のみ使用してください。\n\nよろしいですか？',
     ui.ButtonSet.YES_NO
   );
   if (confirm !== ui.Button.YES) {
