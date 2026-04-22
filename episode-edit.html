@@ -223,10 +223,11 @@
       return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
-    // ── 日付セレクトの初期化 ──
+    // ── 日付セレクトの初期化（冪等: 既に生成済みならスキップ）──
     function initDateSelects() {
-      const currentYear = new Date().getFullYear();
       const yearSel = document.getElementById('epYear');
+      if (yearSel.querySelector('option[value]:not([value=""])')) return;
+      const currentYear = new Date().getFullYear();
       for (let y = currentYear; y >= 1950; y--) {
         const opt = document.createElement('option');
         opt.value = y; opt.textContent = y + '年';
@@ -388,8 +389,17 @@
 
     // ── 編集モード読み込み ──
     async function loadEpisode() {
-      const { data } = await supabaseClient.from('car_episodes').select('*').eq('id', epId).single();
-      if (!data) return;
+      // 日付セレクトが未生成だと値を流し込めないので、先に生成しておく（冪等）
+      if (!document.querySelector('#epYear option[value]:not([value=""])')) {
+        initDateSelects();
+      }
+      const { data, error } = await supabaseClient.from('car_episodes').select('*').eq('id', epId).single();
+      if (error) {
+        console.error('[loadEpisode error]', error);
+        alert('ストーリー読み込みに失敗しました: ' + (error.message || JSON.stringify(error)));
+        return;
+      }
+      if (!data) { alert('ストーリーが見つかりませんでした（id: ' + epId + '）'); return; }
       document.getElementById('epTitle').value   = data.title || '';
       setDateInputs(data);
       document.getElementById('epType').value    = data.type || 'other';
