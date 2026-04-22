@@ -54,13 +54,12 @@
 
     /* ── ヒーロー（カバー写真あり時のみ表示・縦/正方形もそのまま表示）── */
     .ep-hero {
-      width: 100%; background: #e8e4dc;
+      width: 100%;
       display: flex; justify-content: center;
     }
     .ep-hero img {
-      width: 100%; height: auto;
-      max-height: 85vh;
-      object-fit: contain;
+      width: auto; max-width: 100%;
+      height: auto; max-height: 85vh;
       display: block;
     }
 
@@ -157,7 +156,7 @@
       font-size: 0.9rem; color: var(--ink-faint);
     }
 
-    /* ── 写真グリッド ── */
+    /* ── 写真ギャラリー ── */
     .ep-photos-heading {
       font-family: 'Cormorant Garamond', serif;
       font-size: 0.68rem; letter-spacing: 0.4em;
@@ -165,22 +164,27 @@
       margin-bottom: 16px;
     }
     .ep-photos-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
       margin-bottom: 56px;
     }
+    @media (max-width: 520px) {
+      .ep-photos-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+    }
     .ep-photo-cell {
-      overflow: hidden; border-radius: 4px;
+      overflow: hidden; border-radius: 3px;
       background: #e8e4dc;
-      line-height: 0;
+      aspect-ratio: 1 / 1;
+      position: relative;
     }
     .ep-photo-cell img {
-      width: 100%; height: auto;
+      width: 100%; height: 100%;
+      object-fit: cover;
       display: block; cursor: zoom-in;
-      transition: opacity 0.2s;
+      transition: transform 0.3s, opacity 0.2s;
     }
-    .ep-photo-cell img:hover { opacity: 0.88; }
+    .ep-photo-cell:hover img { transform: scale(1.03); opacity: 0.92; }
 
     /* ── フッター ── */
     .ep-footer {
@@ -208,18 +212,53 @@
       letter-spacing: 0.2em;
     }
 
-    /* ── モーダル（写真拡大）── */
+    /* ── モーダル（写真拡大・前後ナビ付き）── */
     .ep-modal {
-      position: fixed; inset: 0; background: rgba(15,15,12,0.92);
+      position: fixed; inset: 0; background: rgba(15,15,12,0.94);
       display: none; align-items: center; justify-content: center;
-      z-index: 9999; cursor: zoom-out;
+      z-index: 9999;
     }
     .ep-modal.open { display: flex; }
-    .ep-modal img { max-width: 92vw; max-height: 88vh; object-fit: contain; border-radius: 2px; }
+    .ep-modal-stage {
+      position: relative;
+      max-width: 94vw; max-height: 90vh;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ep-modal img { max-width: 94vw; max-height: 90vh; object-fit: contain; border-radius: 2px; cursor: zoom-out; }
     .ep-modal-close {
       position: absolute; top: 16px; right: 20px;
-      background: none; border: none; color: rgba(255,255,255,0.6);
-      font-size: 1.8rem; cursor: pointer; line-height: 1;
+      background: none; border: none; color: rgba(255,255,255,0.8);
+      font-size: 2rem; cursor: pointer; line-height: 1;
+      z-index: 2;
+    }
+    .ep-modal-close:hover { color: #fff; }
+    .ep-modal-nav {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      font-size: 1.4rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+      z-index: 2;
+    }
+    .ep-modal-nav:hover { background: rgba(255,255,255,0.2); }
+    .ep-modal-nav.prev { left: 20px; }
+    .ep-modal-nav.next { right: 20px; }
+    .ep-modal-nav[disabled] { opacity: 0.25; cursor: default; pointer-events: none; }
+    @media (max-width: 600px) {
+      .ep-modal-nav { width: 42px; height: 42px; font-size: 1.1rem; }
+      .ep-modal-nav.prev { left: 8px; }
+      .ep-modal-nav.next { right: 8px; }
+    }
+    .ep-modal-counter {
+      position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+      color: rgba(255,255,255,0.7);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.82rem; letter-spacing: 0.2em;
+      z-index: 2;
     }
 
     @media (max-width: 600px) {
@@ -276,9 +315,14 @@
   </article>
 
   <!-- 写真拡大モーダル -->
-  <div class="ep-modal" id="epModal" onclick="closeModal()">
-    <button class="ep-modal-close" onclick="closeModal()">×</button>
-    <img id="epModalImg" src="" alt="">
+  <div class="ep-modal" id="epModal">
+    <button class="ep-modal-close" type="button" aria-label="閉じる">×</button>
+    <button class="ep-modal-nav prev" type="button" aria-label="前の写真" id="epModalPrev">‹</button>
+    <div class="ep-modal-stage">
+      <img id="epModalImg" src="" alt="">
+    </div>
+    <button class="ep-modal-nav next" type="button" aria-label="次の写真" id="epModalNext">›</button>
+    <div class="ep-modal-counter" id="epModalCounter"></div>
   </div>
 
   <script>
@@ -407,13 +451,20 @@
         canon.href = ep.source_url;
       }
 
-      // 追加写真
+      // 追加写真（ギャラリー）
       const photos = Array.isArray(ep.photo_urls) ? ep.photo_urls.filter(Boolean) : [];
+      galleryPhotos = photos;
       if (photos.length > 0) {
         const grid = document.getElementById('epPhotosGrid');
-        grid.innerHTML = photos.map(url =>
-          `<div class="ep-photo-cell"><img src="${esc(url)}" loading="lazy" onerror="this.parentNode.style.display='none'" onclick="openModal('${esc(url)}')"></div>`
+        grid.innerHTML = photos.map((url, i) =>
+          `<div class="ep-photo-cell"><img src="${esc(url)}" loading="lazy" onerror="this.parentNode.style.display='none'" data-idx="${i}"></div>`
         ).join('');
+        grid.addEventListener('click', (e) => {
+          const img = e.target.closest('img[data-idx]');
+          if (!img) return;
+          const idx = parseInt(img.dataset.idx, 10);
+          if (!isNaN(idx)) openModal(idx);
+        });
         document.getElementById('epPhotosSection').style.display = 'block';
       }
 
@@ -425,15 +476,64 @@
       document.getElementById('epLoading').textContent = msg;
     }
 
-    // モーダル
-    window.openModal = function(url) {
-      document.getElementById('epModalImg').src = url;
+    // ── 写真ギャラリーモーダル ──
+    let galleryPhotos = [];
+    let galleryIdx = 0;
+
+    function openModal(idx) {
+      if (!galleryPhotos.length) return;
+      galleryIdx = Math.max(0, Math.min(idx, galleryPhotos.length - 1));
+      updateModalImage();
       document.getElementById('epModal').classList.add('open');
-    };
-    window.closeModal = function() {
+      document.body.style.overflow = 'hidden';
+    }
+    function closeModal() {
       document.getElementById('epModal').classList.remove('open');
       document.getElementById('epModalImg').src = '';
-    };
+      document.body.style.overflow = '';
+    }
+    function showPrev() {
+      if (galleryIdx > 0) { galleryIdx--; updateModalImage(); }
+    }
+    function showNext() {
+      if (galleryIdx < galleryPhotos.length - 1) { galleryIdx++; updateModalImage(); }
+    }
+    function updateModalImage() {
+      document.getElementById('epModalImg').src = galleryPhotos[galleryIdx];
+      document.getElementById('epModalCounter').textContent =
+        galleryPhotos.length > 1 ? `${galleryIdx + 1} / ${galleryPhotos.length}` : '';
+      document.getElementById('epModalPrev').disabled = galleryIdx === 0;
+      document.getElementById('epModalNext').disabled = galleryIdx === galleryPhotos.length - 1;
+      document.getElementById('epModalPrev').style.display = galleryPhotos.length > 1 ? '' : 'none';
+      document.getElementById('epModalNext').style.display = galleryPhotos.length > 1 ? '' : 'none';
+    }
+
+    // モーダルのイベント（ナビ・閉じるボタン以外のクリックで閉じる）
+    document.getElementById('epModal').addEventListener('click', (e) => {
+      if (e.target.closest('.ep-modal-nav') || e.target.closest('.ep-modal-close')) return;
+      closeModal();
+    });
+    document.querySelector('.ep-modal-close').addEventListener('click', closeModal);
+    document.getElementById('epModalPrev').addEventListener('click', (e) => { e.stopPropagation(); showPrev(); });
+    document.getElementById('epModalNext').addEventListener('click', (e) => { e.stopPropagation(); showNext(); });
+
+    // キーボード操作（ESC・矢印）
+    document.addEventListener('keydown', (e) => {
+      if (!document.getElementById('epModal').classList.contains('open')) return;
+      if (e.key === 'Escape') closeModal();
+      else if (e.key === 'ArrowLeft') showPrev();
+      else if (e.key === 'ArrowRight') showNext();
+    });
+
+    // スワイプ操作（モバイル）
+    let touchStartX = 0;
+    const modalEl = document.getElementById('epModal');
+    modalEl.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].clientX; }, { passive: true });
+    modalEl.addEventListener('touchend', (e) => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(dx) < 50) return;
+      if (dx > 0) showPrev(); else showNext();
+    }, { passive: true });
 
     load();
   })();
