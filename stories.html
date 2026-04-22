@@ -145,6 +145,13 @@
       font-size: 0.88rem; color: var(--ink-light);
       letter-spacing: 0.04em;
     }
+    .st-new-badge {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.68rem; letter-spacing: 0.2em;
+      background: #e11d48; color: #fff;
+      padding: 2px 8px; border-radius: 10px;
+      font-weight: 500;
+    }
     .st-feature-title {
       font-family: 'Cormorant Garamond', serif;
       font-size: clamp(1.5rem, 4vw, 2rem);
@@ -296,7 +303,7 @@
         .from('car_episodes')
         .select('id, car_id, type, title, content, cover_url, episode_date, date_precision, is_approximate, source_url, source_label, created_at')
         .eq('is_published', true)
-        .order('episode_date', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false, nullsFirst: false })
         .limit(100);
       if (carFilter) query = query.eq('car_id', carFilter);
 
@@ -342,6 +349,9 @@
         const sourceBadge = ep.source_url
           ? `<span style="font-family:'Cormorant Garamond',serif;font-size:0.62rem;letter-spacing:0.15em;color:var(--ink-faint);background:#f1ede4;padding:2px 8px;border-radius:10px;">🔗 外部掲載</span>`
           : '';
+        const isNew = ep.created_at
+          && (Date.now() - new Date(ep.created_at).getTime()) / 86400000 < 7;
+        const newBadge = isNew ? `<span class="st-new-badge">NEW</span>` : '';
         const coverImg  = ep.cover_url || null;
         const excerpt   = ep.content ? (ep.content.length > 120 ? ep.content.slice(0,120) + '…' : ep.content) : '';
         const href      = `episode.html?ep=${esc(ep.id)}`;
@@ -354,6 +364,7 @@
           html += `<a class="st-feature" href="${href}">
             ${imgHtml}
             <div class="st-feature-meta">
+              ${newBadge}
               ${carBadge}
               <span class="st-type-label">${esc(label)}</span>
               <span class="st-date">${esc(dateStr)}</span>
@@ -373,6 +384,7 @@
             ${imgHtml}
             <div>
               <div class="st-article-meta">
+                ${newBadge}
                 ${carBadge}
                 <span class="st-type-label">${esc(label)}</span>
                 <span class="st-date">${esc(dateStr)}</span>

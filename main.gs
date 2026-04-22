@@ -413,15 +413,42 @@ function sendDailyDigest() {
       };
     });
 
-    if (unsentNews.length === 0 && newCars.length === 0 && newEvents.length === 0) {
+    // 4. 新規ストーリー（マイ500/126ストーリー）チェック
+    const newEpisodesData = supabaseQuery_('car_episodes', 'id,car_id,type,title,created_at,notification_sent,is_published', {
+      'notification_sent': 'eq.false',
+      'is_published': 'eq.true',
+      'created_at': `gte.${yesterdayISO}`,
+      'order': 'created_at.asc'
+    });
+    if (!Array.isArray(newEpisodesData)) {
+      throw new Error('newEpisodesData が配列ではありません: ' + JSON.stringify(newEpisodesData));
+    }
+    // ストーリーのハンドル名を取得（car_idからcarsを引く）
+    let epCarMap = {};
+    if (newEpisodesData.length > 0) {
+      const epCarIds = [...new Set(newEpisodesData.map(ep => ep.car_id))];
+      const carsForEps = supabaseQuery_('cars', 'document_id,handle_name,car_type', {
+        'document_id': `in.(${epCarIds.map(id => `"${id}"`).join(',')})`
+      });
+      (carsForEps || []).forEach(c => { epCarMap[c.document_id] = c; });
+    }
+    const newEpisodes = newEpisodesData.map(ep => ({
+      Id: ep.id,
+      Title: ep.title || '(無題)',
+      Owner: (epCarMap[ep.car_id] && epCarMap[ep.car_id].handle_name) || 'オーナー',
+      CarType: (epCarMap[ep.car_id] && epCarMap[ep.car_id].car_type) || '500'
+    }));
+
+    if (unsentNews.length === 0 && newCars.length === 0 && newEvents.length === 0 && newEpisodes.length === 0) {
       Logger.log('配信対象なし');
       return;
     }
 
-    // 4. 件名・本文作成（順番: 新しい仲間 → 新しいイベント → お知らせ）
+    // 5. 件名・本文作成（順番: 新しい仲間 → 新しいイベント → 新しいストーリー → お知らせ）
     const subjectParts = [];
     if (newCars.length > 0) subjectParts.push(`新着車両${newCars.length}台`);
     if (newEvents.length > 0) subjectParts.push(`新着イベント${newEvents.length}件`);
+    if (newEpisodes.length > 0) subjectParts.push(`新着ストーリー${newEpisodes.length}件`);
     if (unsentNews.length > 0) subjectParts.push('お知らせ');
     const subject = `【Registro500/126 Giappone】${subjectParts.join('・')}`;
 
@@ -439,6 +466,14 @@ function sendDailyDigest() {
       newEvents.forEach(e => {
         body += `・${e.Date}開催: ${e.Name} (by ${e.Owner}様)\n　場所: ${e.Loc}\n　詳細: https://www.registro500.com/event.html\n`;
       });
+    }
+
+    if (newEpisodes.length > 0) {
+      body += `\n■ 📖 新しいストーリー (${newEpisodes.length}件)\n`;
+      newEpisodes.forEach(e => {
+        body += `・「${e.Title}」(${e.Owner}様)\n　https://www.registro500.com/episode.html?ep=${e.Id}\n`;
+      });
+      body += `\n一覧: https://www.registro500.com/stories.html\n`;
     }
 
     if (unsentNews.length > 0) {
@@ -471,11 +506,14 @@ function sendDailyDigest() {
     newEvents.forEach(evt => {
       try { markEventNotificationSent_(evt.DbId); } catch (e) { Logger.log('events フラグ更新エラー: ' + e); }
     });
+    newEpisodes.forEach(ep => {
+      try { supabaseUpdate_('car_episodes', ep.Id, { notification_sent: true }); } catch (e) { Logger.log('car_episodes フラグ更新エラー: ' + e); }
+    });
     unsentNews.forEach(n => {
       try { markNewsAsSent_(n.id); } catch (e) { Logger.log('❌ markNewsAsSent_ エラー (id=' + n.id + '): ' + e); }
     });
 
-    Logger.log(`メール配信完了: お知らせ${unsentNews.length}件、車両${newCars.length}台、イベント${newEvents.length}件`);
+    Logger.log(`メール配信完了: お知らせ${unsentNews.length}件、車両${newCars.length}台、イベント${newEvents.length}件、ストーリー${newEpisodes.length}件`);
   } catch (error) {
     Logger.log('❌ sendDailyDigest エラー: ' + error);
     Logger.log('スタックトレース: ' + error.stack);
