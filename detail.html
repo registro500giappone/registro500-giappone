@@ -86,6 +86,25 @@
     .rg-modal-note { font-size: 0.875rem; color: var(--rg-muted); margin-bottom: 1rem; }
     .rg-modal-label { font-size: 0.875rem; font-weight: 700; }
 
+    /* エピソード */
+    .rg-episode-acquisition { border-left: 3px solid var(--rg-accent); padding-left: 1rem; }
+    .rg-episode-type-badge { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px; color: #fff; margin-right: 0.3rem; }
+    .rg-episode-block-text { white-space: pre-wrap; margin: 0.6rem 0; line-height: 1.8; font-size: 0.95rem; }
+    .rg-episode-block-image { width: 100%; border-radius: 0.6rem; margin: 0.75rem 0; display: block; }
+    .rg-episode-block-caption { font-size: 0.8rem; color: var(--rg-muted); text-align: center; margin: -0.4rem 0 0.75rem; }
+    .rg-episode-timeline-item { border-bottom: 1px solid var(--rg-border); padding: 0.75rem 0; }
+    .rg-episode-timeline-item:last-child { border-bottom: none; }
+    .rg-episode-date { font-size: 0.8rem; color: var(--rg-muted); margin-bottom: 0.2rem; }
+    .rg-episodes-more { display: block; text-align: center; padding: 0.75rem; font-size: 0.9rem; color: var(--rg-accent); text-decoration: none; margin-top: 0.25rem; }
+    .rg-btn-add-episode { width: 100%; padding: 0.75rem; margin-top: 0.75rem; border: 1px dashed var(--rg-border); background: none; color: var(--rg-muted); border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+    .rg-btn-add-episode:hover { border-color: var(--rg-accent); color: var(--rg-accent); }
+    /* エピソード写真グリッド */
+    .rg-ep-cover { width: 100%; border-radius: 0.6rem; margin: 0.75rem 0 1rem; display: block; max-height: 70vh; object-fit: contain; background: #f1ede4; }
+    .rg-ep-content { white-space: pre-wrap; line-height: 1.85; font-size: 0.95rem; margin: 0.5rem 0 1rem; }
+    .rg-ep-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-top: 0.75rem; }
+    .rg-ep-photo-cell { position: relative; aspect-ratio: 1; border-radius: 0.5rem; overflow: hidden; background: var(--rg-surface-sub); border: 1px solid var(--rg-border); }
+    .rg-ep-photo-cell img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+
     /* ダークモード */
     @media (prefers-color-scheme: dark) {
       .rg-gallery-thumb { background: #334155; }
@@ -120,6 +139,7 @@
           <ul class="rg-dropdown-menu">
             <li><h6 class="rg-dropdown-header">車両管理</h6></li>
             <li><a class="rg-dropdown-item is-bold" href="#" id="editLink">✏️ この車両を編集</a></li>
+            <li><a class="rg-dropdown-item" href="episode-edit.html" id="addEpisodeLink">📖 ストーリーを追加</a></li>
             <li><a class="rg-dropdown-item" href="edit.html?mode=new" id="newCarLink">➕ 2台目を登録する</a></li>
             <li><hr class="rg-dropdown-divider"></li>
             <li><a class="rg-dropdown-item is-muted" href="edit.html" id="carListLink">🏠 管理車両一覧へ</a></li>
@@ -165,6 +185,16 @@
             <dt data-field="engine_oil">エンジンオイル</dt><dd id="val_EngineOil"></dd><dt data-field="engine_oil_interval">周期</dt><dd id="val_EngineOilInterval"></dd><dt data-field="transmission_oil">ミッションオイル</dt><dd id="val_TransmissionOil"></dd><dt data-field="transmission_oil_interval">周期</dt><dd id="val_TransmissionOilInterval"></dd><dt data-field="battery">バッテリー</dt><dd id="val_Battery"></dd>
           </dl></section>
           <section class="rg-card" id="highlightsSection" style="display:none;"><h2 class="rg-section-title" id="highlightsTitle" data-field="highlights">こだわり</h2><p id="val_Highlights" style="white-space:pre-wrap;"></p></section>
+          <section class="rg-card" id="acquisitionSection" style="display:none;">
+            <h2 class="rg-section-title" id="stories">この車との出会い</h2>
+            <div id="acquisitionContent"></div>
+          </section>
+          <section class="rg-card" id="episodesSection" style="display:none;">
+            <h2 class="rg-section-title">出来事タイムライン</h2>
+            <div id="episodesList"></div>
+            <a id="episodesMoreLink" class="rg-episodes-more" style="display:none;" href="#">すべてのエピソードを見る →</a>
+            <button id="addEpisodeBtn" class="rg-btn-add-episode" style="display:none;">＋ エピソードを追加</button>
+          </section>
           <section class="rg-card" id="snsSection" style="display:none;"><h2 class="rg-section-title">SNS</h2><dl class="rg-spec-grid" id="snsGrid"></dl></section>
           <section class="rg-card"><h2 class="rg-section-title">共有・連絡</h2>
             <div class="rg-action-row"><button class="rg-btn rg-btn-dark" onclick="showQRCode()">QR表示</button><a id="shareX" class="rg-btn rg-btn-black" target="_blank">Xでシェア</a><a id="shareLINE" class="rg-btn" style="background:#06C755;color:#fff;" target="_blank">LINEで送る</a></div>
@@ -178,7 +208,7 @@
   <script>
     const params = new URLSearchParams(window.location.search);
     const docId = params.get('doc');
-    let currentUser = null, currentCar = null;
+    let currentUser = null, currentCar = null, currentEpisodes = null;
 
     function esc(s) {
       if (!s) return '';
@@ -299,6 +329,7 @@
       const carLabel2 = car.car_type === '126' ? 'FIAT 126' : 'FIAT 500';
       document.getElementById('shareX').href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(car.handle_name + 'さんの' + carLabel2)}&url=${encodeURIComponent(location.href)}`;
       document.getElementById('shareLINE').href = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(location.href)}`;
+      fetchEpisodes(car.document_id);
     }
 
     // ★ 更新バッジの適用ロジック
@@ -365,10 +396,35 @@
         const carType = currentCar.car_type || '500';
         document.getElementById('ownerMenuArea').style.display = 'block';
         document.getElementById('editLink').href = `edit.html?doc=${currentCar.document_id}&type=${carType}`;
+        document.getElementById('addEpisodeLink').href = `episode-edit.html?car=${currentCar.document_id}`;
         document.getElementById('newCarLink').href = `edit.html?mode=new&type=${carType}`;
         document.getElementById('carListLink').href = `edit.html?type=${carType}`;
+        const addBtn = document.getElementById('addEpisodeBtn');
+        if (addBtn) { addBtn.style.display = 'block'; addBtn.onclick = () => location.href = `episode-edit.html?car=${currentCar.document_id}`; }
       } else {
         if(currentCar.accept_inquiry !== false) document.getElementById('contactArea').style.display = 'block';
+      }
+      updateAcquisitionPrompt();
+    }
+
+    // 入手ストーリー未記入プロンプト（オーナー本人のみ表示）
+    function updateAcquisitionPrompt() {
+      if (!currentCar || currentEpisodes === null) return;
+      const hasAcquisition = currentEpisodes.some(e => e.type === 'acquisition');
+      if (hasAcquisition) return; // 既に表示済み
+      const isOwner = currentUser && currentUser.email.toLowerCase() === (currentCar.owner_email || '').toLowerCase();
+      const section = document.getElementById('acquisitionSection');
+      if (isOwner) {
+        section.style.display = 'block';
+        const href = `episode-edit.html?car=${encodeURIComponent(currentCar.document_id)}&type=acquisition`;
+        document.getElementById('acquisitionContent').innerHTML = `
+          <div style="text-align:center;padding:1.25rem 0.75rem;border:1px dashed var(--rg-border);border-radius:8px;">
+            <p style="font-size:0.95rem;color:var(--rg-muted);margin:0 0 0.9rem;line-height:1.7;">このチンクとの出会いのストーリーは<br>まだ書かれていません。</p>
+            <a href="${href}" style="display:inline-block;text-decoration:none;padding:0.6rem 1.25rem;background:var(--rg-accent);color:#fff;border-radius:6px;font-size:0.9rem;font-weight:600;">＋ 出会いのストーリーを書く</a>
+          </div>
+        `;
+      } else {
+        section.style.display = 'none';
       }
     }
 
@@ -489,6 +545,98 @@
       } catch (e) {
         alert('削除処理でエラーが発生しました: ' + e.message);
       }
+    }
+
+    // ─── マイ500ストーリー ───
+    const EPISODE_TYPE_LABELS = { acquisition:'入手', trouble:'トラブル', tuning:'チューン', drive:'ドライブ', event:'イベント', other:'その他' };
+    const EPISODE_TYPE_COLORS = { acquisition:'#e11d48', trouble:'#f97316', tuning:'#2563eb', drive:'#16a34a', event:'#7c3aed', other:'#64748b' };
+
+    function formatEpisodeDate(dateStr, precision, approx) {
+      if (!dateStr) return '';
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
+      if (!m) return dateStr;
+      const y = parseInt(m[1], 10);
+      const mo = parseInt(m[2], 10);
+      const d = parseInt(m[3], 10);
+      let base = '';
+      if (precision === 'year') base = `${y}年`;
+      else if (precision === 'month') base = `${y}年${mo}月`;
+      else base = `${y}年${mo}月${d}日`;
+      if (approx && precision !== 'day') base += '頃';
+      return base;
+    }
+
+    async function fetchEpisodes(carDocId) {
+      try {
+        const { data } = await supabaseClient.from('car_episodes').select('*').eq('car_id', carDocId).eq('is_published', true).order('created_at', { ascending: false });
+        currentEpisodes = data || [];
+        const acquisition = currentEpisodes.find(e => e.type === 'acquisition');
+        const others = currentEpisodes.filter(e => e.type !== 'acquisition');
+        if (acquisition) {
+          document.getElementById('acquisitionSection').style.display = 'block';
+          document.getElementById('acquisitionContent').innerHTML = renderEpisodeFull(acquisition);
+        } else {
+          // 未記入プロンプトはオーナー判定後に updateAcquisitionPrompt() で表示
+          updateAcquisitionPrompt();
+        }
+        if (others.length > 0) {
+          document.getElementById('episodesSection').style.display = 'block';
+          document.getElementById('episodesList').innerHTML = others.slice(0, 3).map(renderEpisodeTimelineItem).join('');
+          if (others.length > 3) {
+            const more = document.getElementById('episodesMoreLink');
+            more.style.display = 'block';
+            more.href = `stories.html?car=${encodeURIComponent(carDocId)}`;
+          }
+        }
+      // #stories ハッシュで来た場合はエピソードセクションにスクロール
+      if (location.hash === '#stories') {
+        const target = document.getElementById('acquisitionSection').style.display !== 'none'
+          ? document.getElementById('acquisitionSection')
+          : document.getElementById('episodesSection');
+        if (target && target.style.display !== 'none') {
+          setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+        }
+      }
+    } catch(e) { /* エピソード取得失敗は無視 */ }
+    }
+
+    function renderEpisodeFull(ep) {
+      const label = EPISODE_TYPE_LABELS[ep.type] || ep.type;
+      const color = EPISODE_TYPE_COLORS[ep.type] || '#64748b';
+      const dateStr = ep.episode_date ? formatEpisodeDate(ep.episode_date, ep.date_precision || 'day', !!ep.is_approximate) : '';
+      const excerpt = ep.content ? (ep.content.length > 100 ? ep.content.slice(0, 100) + '…' : ep.content) : '';
+      const readHref = `episode.html?ep=${encodeURIComponent(ep.id)}`;
+      const sourceBadge = ep.source_url
+        ? ` <span style="display:inline-block;background:#f1ede4;color:#6b7280;font-size:0.68rem;letter-spacing:0.08em;padding:2px 8px;border-radius:10px;margin-left:4px;">🔗 外部掲載</span>`
+        : '';
+      let html = `<div class="rg-episode-acquisition">`;
+      html += `<div class="rg-episode-date">${esc(dateStr)} <span class="rg-episode-type-badge" style="background:${color}">${esc(label)}</span>${sourceBadge}</div>`;
+      html += `<h3 style="margin:0.4rem 0 0.75rem;font-size:1.05rem;">${esc(ep.title)}</h3>`;
+      if (ep.cover_url) {
+        html += `<img class="rg-ep-cover" src="${esc(safeUrl(ep.cover_url))}" loading="lazy" onerror="this.style.display='none'">`;
+      }
+      if (excerpt) {
+        html += `<p style="font-size:0.92rem;color:var(--rg-muted);line-height:1.75;margin-bottom:0.75rem;">${esc(excerpt)}</p>`;
+      }
+      html += `<a href="${readHref}" style="font-size:0.88rem;color:var(--rg-accent);text-decoration:none;font-weight:600;">続きを読む →</a>`;
+      html += `</div>`;
+      return html;
+    }
+
+    function renderEpisodeTimelineItem(ep) {
+      const label = EPISODE_TYPE_LABELS[ep.type] || ep.type;
+      const color = EPISODE_TYPE_COLORS[ep.type] || '#64748b';
+      const dateStr = ep.episode_date ? formatEpisodeDate(ep.episode_date, ep.date_precision || 'day', !!ep.is_approximate) : '';
+      const excerpt = ep.content ? (ep.content.length > 60 ? ep.content.slice(0, 60) + '…' : ep.content) : '';
+      const href = `episode.html?ep=${encodeURIComponent(ep.id)}`;
+      const sourceBadge = ep.source_url
+        ? ` <span style="display:inline-block;background:#f1ede4;color:#6b7280;font-size:0.68rem;letter-spacing:0.08em;padding:2px 8px;border-radius:10px;margin-left:4px;">🔗 外部掲載</span>`
+        : '';
+      return `<a href="${href}" class="rg-episode-timeline-item" style="text-decoration:none;color:inherit;display:block;">
+        <div class="rg-episode-date">${esc(dateStr)} <span class="rg-episode-type-badge" style="background:${color}">${esc(label)}</span>${sourceBadge}</div>
+        <div style="font-weight:700;margin:0.2rem 0;">${esc(ep.title)}</div>
+        ${excerpt ? `<div style="font-size:0.88rem;color:var(--rg-muted);">${esc(excerpt)}</div>` : ''}
+      </a>`;
     }
 
     fetchDetail();
