@@ -366,16 +366,32 @@
     }
 
     // ── 認証 ──
-    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    let _loadEpisodeCalled = false;
+    async function handleAuth(session) {
       currentUser = session?.user ?? null;
+      console.log('[auth] user:', currentUser?.email || '(none)', 'epId:', epId);
       if (currentUser) {
         document.getElementById('loginOverlay').classList.add('hidden');
-        if (epId) await loadEpisode();
-        else if (hasDraft()) document.getElementById('draftBanner').style.display = 'flex';
+        if (epId && !_loadEpisodeCalled) {
+          _loadEpisodeCalled = true;
+          await loadEpisode();
+        } else if (!epId && hasDraft()) {
+          document.getElementById('draftBanner').style.display = 'flex';
+        }
         updateBackLink();
       } else {
         document.getElementById('loginOverlay').classList.remove('hidden');
       }
+    }
+    // 初期ロード時に明示的にセッション取得（onAuthStateChangeの初回発火タイミング非依存）
+    supabaseClient.auth.getSession().then(({ data }) => {
+      console.log('[auth] getSession result:', !!data?.session);
+      handleAuth(data?.session);
+    }).catch(err => console.error('[auth] getSession error:', err));
+    // 以後の変更も追随
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      console.log('[auth] onAuthStateChange:', event);
+      handleAuth(session);
     });
 
     window.loginWithGoogle = async () => {
