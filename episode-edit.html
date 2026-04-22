@@ -19,14 +19,32 @@
     .ep-page { max-width: 680px; margin: 0 auto; padding: 0 1rem; }
     .ep-card { background: var(--rg-surface); border-radius: var(--rg-radius-card); border: 1px solid var(--rg-border); padding: 1.5rem; margin-bottom: 1rem; }
     .ep-card-title { font-size: 1.3rem; font-weight: 700; margin: 0 0 1.25rem; }
+    .ep-card-subhead { font-size: 0.95rem; font-weight: 700; margin: 0 0 0.75rem; }
     label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.3rem; }
     .badge-required { background: #e11d48; color: #fff; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 4px; font-weight: normal; }
-    input[type="text"], input[type="date"], select, textarea {
+    input[type="text"], input[type="url"], input[type="date"], select, textarea {
       width: 100%; padding: 0.65rem 0.75rem; border-radius: 0.5rem;
       border: 1px solid #d1d5db; font-size: 1rem; box-sizing: border-box;
       margin-bottom: 1rem; background: var(--rg-surface); color: var(--rg-text);
     }
-    textarea { min-height: 10em; resize: vertical; }
+    textarea { min-height: 10em; resize: vertical; margin-bottom: 0.25rem; }
+
+    /* 日付3セレクト */
+    .ep-date-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .ep-date-row select { flex: 1; margin-bottom: 0; }
+    .ep-approx-label { display: flex; align-items: center; gap: 0.4rem; font-weight: normal; margin-bottom: 1rem; cursor: pointer; font-size: 0.88rem; color: var(--rg-muted); }
+    .ep-approx-label input { width: auto; margin: 0; }
+    .ep-approx-label.disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* 文字数カウンタ */
+    .ep-char-count { font-size: 0.78rem; color: var(--rg-muted); text-align: right; margin-bottom: 0.5rem; }
+    .ep-char-count.ok { color: #16a34a; }
+    .ep-char-count.warn { color: #eab308; }
+
+    /* 下書き復元バナー */
+    .ep-draft-banner { background: #fef3c7; border: 1px solid #fcd34d; color: #78350f; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.88rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+    .ep-draft-banner button { background: #fff; border: 1px solid #d97706; color: #78350f; padding: 0.3rem 0.75rem; border-radius: 4px; font-size: 0.82rem; cursor: pointer; }
+    .ep-draft-banner button.danger { border-color: #e5e7eb; color: #6b7280; }
 
     /* カバー写真 */
     .ep-cover-area { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 0.6rem; overflow: hidden; background: var(--rg-surface-sub); border: 2px dashed var(--rg-border); cursor: pointer; display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem; }
@@ -35,6 +53,8 @@
     .ep-cover-placeholder { text-align: center; color: var(--rg-muted); font-size: 0.9rem; pointer-events: none; }
     .ep-cover-placeholder span { font-size: 2rem; display: block; margin-bottom: 0.3rem; }
     .ep-cover-change { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: #fff; font-size: 0.8rem; padding: 4px 10px; border-radius: 4px; border: none; cursor: pointer; }
+    .ep-cover-hint { font-size: 0.82rem; color: var(--rg-muted); line-height: 1.7; margin-bottom: 0.75rem; }
+    .ep-cover-hint .small { font-size: 0.78rem; display: block; margin-top: 0.35rem; }
 
     /* 追加写真グリッド */
     .ep-photos-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem; }
@@ -47,6 +67,9 @@
 
     /* アップロード中 */
     .ep-uploading { font-size: 0.85rem; color: var(--rg-muted); text-align: center; padding: 0.5rem; }
+
+    /* 補助テキスト */
+    .ep-hint-muted { font-size: 0.78rem; color: var(--rg-muted); margin: 0.25rem 0 0; line-height: 1.65; }
 
     /* 保存ボタン */
     .ep-save-row { display: flex; gap: 0.75rem; }
@@ -61,8 +84,10 @@
     .ep-overlay.hidden { display: none; }
 
     @media (prefers-color-scheme: dark) {
-      input[type="text"], input[type="date"], select, textarea { border-color: #334155; background: #1e293b; }
+      input[type="text"], input[type="url"], input[type="date"], select, textarea { border-color: #334155; background: #1e293b; }
       .ep-btn-draft { background: #334155; color: #94a3b8; }
+      .ep-draft-banner { background: #422006; border-color: #a16207; color: #fde68a; }
+      .ep-draft-banner button { background: #1e293b; color: #fde68a; border-color: #a16207; }
     }
   </style>
 </head>
@@ -83,6 +108,13 @@
   <main>
     <div class="ep-page">
 
+      <!-- 下書き復元バナー -->
+      <div id="draftBanner" class="ep-draft-banner" style="display:none;">
+        <span>📝 前回書きかけの内容があります</span>
+        <button type="button" onclick="restoreDraft()">復元する</button>
+        <button type="button" class="danger" onclick="discardDraft()">破棄する</button>
+      </div>
+
       <!-- 基本情報 -->
       <div class="ep-card">
         <h1 class="ep-card-title">ストーリーを書く</h1>
@@ -91,7 +123,14 @@
         <input type="text" id="epTitle" placeholder="例：専門店で一目惚れした1968年式の話">
 
         <label>日付（出来事の日付）</label>
-        <input type="date" id="epDate">
+        <div class="ep-date-row">
+          <select id="epYear"><option value="">年</option></select>
+          <select id="epMonth"><option value="">月（不明可）</option></select>
+          <select id="epDay"><option value="">日（不明可）</option></select>
+        </div>
+        <label class="ep-approx-label" id="approxLabel">
+          <input type="checkbox" id="epApprox"> おおよその時期（「頃」として表示）
+        </label>
 
         <label>種類 <span class="badge-required">必須</span></label>
         <select id="epType">
@@ -106,7 +145,7 @@
 
       <!-- カバー写真 -->
       <div class="ep-card">
-        <label>カバー写真</label>
+        <label>カバー写真（任意）</label>
         <div class="ep-cover-area" id="coverArea" onclick="document.getElementById('coverInput').click()">
           <div class="ep-cover-placeholder" id="coverPlaceholder">
             <span>📷</span>カバー写真を選択
@@ -115,14 +154,21 @@
           <button class="ep-cover-change" id="coverChangeBtn" style="display:none;" onclick="event.stopPropagation();document.getElementById('coverInput').click()">写真を変更</button>
         </div>
         <input type="file" id="coverInput" accept="image/*" style="display:none;">
-        <p style="font-size:0.78rem;color:var(--rg-muted);margin-bottom:0.75rem;">📐 横向き（16:9）の写真が綺麗に表示されます。縦向き写真は上下が切れる場合があります。</p>
+        <div class="ep-cover-hint">
+          愛車を迎えた頃の、記憶に残っている1枚をどうぞ。<br>
+          構図や画質は問いません。昔のフィルム写真のスキャンも歓迎です。
+          <span class="small">※ 横構図（16:9）で綺麗に表示されます。縦・正方形も使えますが、上下がトリミングされる場合があります。</span>
+          <span class="small">※ 他にも伝えたい写真は、下の「追加写真」枠に最大7枚まで（自然な比率のまま表示されます）</span>
+        </div>
         <div id="coverUploading" class="ep-uploading" style="display:none;">アップロード中...</div>
       </div>
 
       <!-- 本文 -->
       <div class="ep-card">
         <label>本文 <span class="badge-required">必須</span></label>
-        <textarea id="epContent" placeholder="この車との出会いを自由に書いてください。どこで見つけたか、何に惹かれたか、手に入れるまでの経緯など。"></textarea>
+        <textarea id="epContent" placeholder="この1台との出会いの物語を、自由に書いてください。&#10;&#10;例：2021年8月末の日曜日。何気なくのぞいたカーセンサーに、1台のFiat 500 Dが載っていた……"></textarea>
+        <div class="ep-char-count" id="charCount">0 字</div>
+        <p class="ep-hint-muted">💡 URLを本文に書くと、自動的にリンクになります。段落は空行で区切ると読みやすく表示されます。</p>
       </div>
 
       <!-- 追加写真 -->
@@ -132,6 +178,16 @@
         <div class="ep-photos-grid" id="photosGrid"></div>
         <div id="photosUploading" class="ep-uploading" style="display:none;">アップロード中...</div>
         <input type="file" id="photoInput" accept="image/*" style="display:none;">
+      </div>
+
+      <!-- 既公開記事へのリンク -->
+      <div class="ep-card">
+        <h3 class="ep-card-subhead">🔗 既に他のブログ・SNSで公開済みの場合（任意）</h3>
+        <label>元記事のURL</label>
+        <input type="url" id="epSourceUrl" placeholder="https://ameblo.jp/...">
+        <label>掲載元名（任意）</label>
+        <input type="text" id="epSourceLabel" placeholder="Amebaブログ / みんカラ / 個人サイト など">
+        <p class="ep-hint-muted">こちらに入力すると、表示時に「元記事を読む →」ボタンが出ます。本文は短めの導入・要約（100〜500字程度）で構いません。</p>
       </div>
 
       <!-- 保存 -->
@@ -157,20 +213,155 @@
     const presetType = params.get('type'); // 'acquisition' 等の事前指定
     let currentUser = null;
     let coverUrl = '';
-    let photoUrls = [];   // 追加写真（最大7枚）
+    let photoUrls = [];
     const MAX_PHOTOS = 7;
-
-    // 新規作成時に type を事前選択
-    if (!epId && presetType) {
-      document.addEventListener('DOMContentLoaded', () => {
-        const sel = document.getElementById('epType');
-        if (sel && [...sel.options].some(o => o.value === presetType)) sel.value = presetType;
-      });
-    }
+    const DRAFT_KEY = `epEdit_draft_${carId || 'nocar'}_${epId || 'new'}`;
+    let initialized = false;
 
     function esc(s) {
       if (!s) return '';
       return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── 日付セレクトの初期化 ──
+    function initDateSelects() {
+      const currentYear = new Date().getFullYear();
+      const yearSel = document.getElementById('epYear');
+      for (let y = currentYear; y >= 1950; y--) {
+        const opt = document.createElement('option');
+        opt.value = y; opt.textContent = y + '年';
+        yearSel.appendChild(opt);
+      }
+      const monthSel = document.getElementById('epMonth');
+      for (let m = 1; m <= 12; m++) {
+        const opt = document.createElement('option');
+        opt.value = m; opt.textContent = m + '月';
+        monthSel.appendChild(opt);
+      }
+      const daySel = document.getElementById('epDay');
+      for (let d = 1; d <= 31; d++) {
+        const opt = document.createElement('option');
+        opt.value = d; opt.textContent = d + '日';
+        daySel.appendChild(opt);
+      }
+      ['epYear','epMonth','epDay','epApprox'].forEach(id => {
+        document.getElementById(id).addEventListener('change', () => { updateApproxState(); saveDraft(); });
+      });
+      updateApproxState();
+    }
+
+    function updateApproxState() {
+      const month = document.getElementById('epMonth').value;
+      const day = document.getElementById('epDay').value;
+      const approxCheck = document.getElementById('epApprox');
+      const label = document.getElementById('approxLabel');
+      const isDayPrecision = !!(month && day);
+      approxCheck.disabled = isDayPrecision;
+      if (isDayPrecision) approxCheck.checked = false;
+      label.classList.toggle('disabled', isDayPrecision);
+    }
+
+    function readDateInputs() {
+      const y = parseInt(document.getElementById('epYear').value, 10);
+      const m = parseInt(document.getElementById('epMonth').value, 10);
+      const d = parseInt(document.getElementById('epDay').value, 10);
+      const approx = document.getElementById('epApprox').checked;
+      if (!y) return { episode_date: null, date_precision: 'day', is_approximate: false };
+      let precision = 'year';
+      if (m && !isNaN(m)) precision = 'month';
+      if (m && d && !isNaN(m) && !isNaN(d)) precision = 'day';
+      const pad = n => String(n).padStart(2, '0');
+      const episode_date = `${y}-${pad(m || 1)}-${pad(d || 1)}`;
+      return { episode_date, date_precision: precision, is_approximate: precision === 'day' ? false : approx };
+    }
+
+    function setDateInputs(data) {
+      if (!data.episode_date) return;
+      const [y, m, d] = data.episode_date.split('-').map(Number);
+      const precision = data.date_precision || 'day';
+      document.getElementById('epYear').value = y || '';
+      if (precision === 'month' || precision === 'day') {
+        document.getElementById('epMonth').value = m || '';
+      }
+      if (precision === 'day') {
+        document.getElementById('epDay').value = d || '';
+      }
+      document.getElementById('epApprox').checked = !!data.is_approximate;
+      updateApproxState();
+    }
+
+    // ── 文字数カウンタ ──
+    function updateCharCount() {
+      const ta = document.getElementById('epContent');
+      const countEl = document.getElementById('charCount');
+      const n = (ta.value || '').length;
+      countEl.textContent = n + ' 字' + (n >= 100 ? ' ✓' : '');
+      countEl.classList.toggle('ok', n >= 100 && n <= 3000);
+      countEl.classList.toggle('warn', n > 3000);
+    }
+
+    // ── 下書き自動保存 ──
+    let saveDraftTimer = null;
+    function saveDraft() {
+      if (!initialized) return;
+      clearTimeout(saveDraftTimer);
+      saveDraftTimer = setTimeout(() => {
+        try {
+          const draft = {
+            title: document.getElementById('epTitle').value,
+            year: document.getElementById('epYear').value,
+            month: document.getElementById('epMonth').value,
+            day: document.getElementById('epDay').value,
+            approx: document.getElementById('epApprox').checked,
+            type: document.getElementById('epType').value,
+            content: document.getElementById('epContent').value,
+            source_url: document.getElementById('epSourceUrl').value,
+            source_label: document.getElementById('epSourceLabel').value,
+            ts: Date.now()
+          };
+          localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        } catch(e) { /* QuotaExceeded等は無視 */ }
+      }, 500);
+    }
+
+    function hasDraft() {
+      if (epId) return false; // 編集モード時は下書き復元しない
+      try {
+        const s = localStorage.getItem(DRAFT_KEY);
+        if (!s) return false;
+        const d = JSON.parse(s);
+        return !!(d && (d.title || d.content));
+      } catch(e) { return false; }
+    }
+
+    window.restoreDraft = function() {
+      try {
+        const s = localStorage.getItem(DRAFT_KEY);
+        if (!s) return;
+        const draft = JSON.parse(s);
+        document.getElementById('epTitle').value = draft.title || '';
+        document.getElementById('epYear').value = draft.year || '';
+        document.getElementById('epMonth').value = draft.month || '';
+        document.getElementById('epDay').value = draft.day || '';
+        document.getElementById('epApprox').checked = !!draft.approx;
+        if (draft.type) document.getElementById('epType').value = draft.type;
+        document.getElementById('epContent').value = draft.content || '';
+        document.getElementById('epSourceUrl').value = draft.source_url || '';
+        document.getElementById('epSourceLabel').value = draft.source_label || '';
+        updateCharCount();
+        updateApproxState();
+        document.getElementById('draftBanner').style.display = 'none';
+      } catch(e) { alert('下書きの復元に失敗しました'); }
+    };
+
+    window.discardDraft = function() {
+      if (!confirm('書きかけの下書きを破棄しますか？')) return;
+      try { localStorage.removeItem(DRAFT_KEY); } catch(e) {}
+      document.getElementById('draftBanner').style.display = 'none';
+    };
+
+    function clearDraft() {
+      try { localStorage.removeItem(DRAFT_KEY); } catch(e) {}
     }
 
     // ── 認証 ──
@@ -178,7 +369,8 @@
       currentUser = session?.user ?? null;
       if (currentUser) {
         document.getElementById('loginOverlay').classList.add('hidden');
-        if (epId) loadEpisode();
+        if (epId) await loadEpisode();
+        else if (hasDraft()) document.getElementById('draftBanner').style.display = 'flex';
         updateBackLink();
       } else {
         document.getElementById('loginOverlay').classList.remove('hidden');
@@ -199,12 +391,16 @@
       const { data } = await supabaseClient.from('car_episodes').select('*').eq('id', epId).single();
       if (!data) return;
       document.getElementById('epTitle').value   = data.title || '';
-      document.getElementById('epDate').value    = data.episode_date || '';
+      setDateInputs(data);
       document.getElementById('epType').value    = data.type || 'other';
       document.getElementById('epContent').value = data.content || '';
+      document.getElementById('epSourceUrl').value = data.source_url || '';
+      document.getElementById('epSourceLabel').value = data.source_label || '';
       if (data.cover_url) setCoverPreview(data.cover_url);
+      coverUrl = data.cover_url || '';
       photoUrls = Array.isArray(data.photo_urls) ? data.photo_urls : [];
       renderPhotosGrid();
+      updateCharCount();
     }
 
     // ── カバー写真 ──
@@ -266,7 +462,6 @@
       }
       grid.innerHTML = html;
     }
-    renderPhotosGrid();
 
     window.removePhoto = function(idx) {
       photoUrls.splice(idx, 1);
@@ -305,11 +500,18 @@
     window.saveEpisode = async function(publish) {
       const title   = document.getElementById('epTitle').value.trim();
       const type    = document.getElementById('epType').value;
-      const date    = document.getElementById('epDate').value || null;
       const content = document.getElementById('epContent').value.trim();
+      const source_url = document.getElementById('epSourceUrl').value.trim();
+      const source_label = document.getElementById('epSourceLabel').value.trim();
       if (!title)   { alert('タイトルを入力してください。'); return; }
       if (!content) { alert('本文を入力してください。'); return; }
       if (!carId)   { alert('車両IDが取得できません。マイガレージからやり直してください。'); return; }
+      if (source_url && !/^https?:\/\//i.test(source_url)) {
+        alert('元記事のURLはhttp://またはhttps://で始まる必要があります。'); return;
+      }
+      if (publish) {
+        if (!confirm('この内容で公開しますか？')) return;
+      }
 
       const draftBtn = document.getElementById('draftBtn');
       const publishBtn = document.getElementById('publishBtn');
@@ -317,17 +519,23 @@
       const msg = document.getElementById('saveMsg');
       msg.textContent = '保存中...';
 
+      const { episode_date, date_precision, is_approximate } = readDateInputs();
+
       const payload = {
-        car_id:       carId,
+        car_id:         carId,
         type,
         title,
         content,
-        cover_url:    coverUrl || null,
-        photo_urls:   photoUrls,
-        blocks:       [],   // 旧カラム（空で保持）
-        episode_date: date,
-        is_published: publish,
-        updated_at:   new Date().toISOString()
+        cover_url:      coverUrl || null,
+        photo_urls:     photoUrls,
+        blocks:         [],
+        episode_date,
+        date_precision,
+        is_approximate,
+        source_url:     source_url || null,
+        source_label:   source_label || null,
+        is_published:   publish,
+        updated_at:     new Date().toISOString()
       };
 
       try {
@@ -338,6 +546,7 @@
           ({ error } = await supabaseClient.from('car_episodes').insert(payload));
         }
         if (error) throw error;
+        clearDraft();
         msg.textContent = publish ? '公開しました！' : '下書きを保存しました。';
         setTimeout(() => {
           location.href = `detail.html?doc=${encodeURIComponent(carId)}`;
@@ -347,6 +556,25 @@
         draftBtn.disabled = publishBtn.disabled = false;
       }
     };
+
+    // ── 初期化 ──
+    document.addEventListener('DOMContentLoaded', () => {
+      initDateSelects();
+      renderPhotosGrid();
+      if (!epId && presetType) {
+        const sel = document.getElementById('epType');
+        if (sel && [...sel.options].some(o => o.value === presetType)) sel.value = presetType;
+      }
+      // 下書き自動保存用リスナー
+      ['epTitle','epContent','epType','epSourceUrl','epSourceLabel'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', saveDraft);
+        if (el && el.tagName === 'SELECT') el.addEventListener('change', saveDraft);
+      });
+      document.getElementById('epContent').addEventListener('input', updateCharCount);
+      updateCharCount();
+      initialized = true;
+    });
   })();
   </script>
 </body>

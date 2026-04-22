@@ -112,7 +112,46 @@
       font-size: 1rem; line-height: 2.0;
       color: var(--ink-light);
       white-space: pre-wrap;
+      word-break: break-word;
       margin-bottom: 48px;
+    }
+    .ep-body a {
+      color: var(--accent); text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .ep-body a:hover { opacity: 0.75; }
+
+    /* ── 外部記事バナー ── */
+    .ep-source-box {
+      border: 1px solid var(--border);
+      background: #fff;
+      padding: 18px 20px;
+      margin-bottom: 40px;
+      display: flex; align-items: center; gap: 14px;
+      border-radius: 4px;
+    }
+    .ep-source-icon {
+      font-size: 1.2rem; color: var(--accent);
+    }
+    .ep-source-text {
+      flex: 1; min-width: 0;
+    }
+    .ep-source-heading {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.62rem; letter-spacing: 0.3em;
+      text-transform: uppercase; color: var(--ink-faint);
+      margin-bottom: 4px;
+    }
+    .ep-source-link {
+      font-size: 0.9rem; color: var(--ink);
+      text-decoration: none;
+      display: inline-block;
+      max-width: 100%;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .ep-source-link:hover { color: var(--accent); text-decoration: underline; }
+    .ep-source-arrow {
+      font-size: 0.9rem; color: var(--ink-faint);
     }
 
     /* ── 写真グリッド ── */
@@ -213,6 +252,14 @@
         <a class="ep-byline-link" id="epGarageLink" href="#">マイガレージを見る →</a>
       </div>
       <p class="ep-body" id="epContent"></p>
+      <div id="epSourceBox" class="ep-source-box" style="display:none;">
+        <span class="ep-source-icon">🔗</span>
+        <div class="ep-source-text">
+          <div class="ep-source-heading">Originally published</div>
+          <a id="epSourceLink" class="ep-source-link" href="#" target="_blank" rel="noopener"></a>
+        </div>
+        <span class="ep-source-arrow">→</span>
+      </div>
       <div id="epPhotosSection" style="display:none;">
         <p class="ep-photos-heading">Photos</p>
         <div class="ep-photos-grid" id="epPhotosGrid"></div>
@@ -239,6 +286,33 @@
     function esc(s) {
       if (!s) return '';
       return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // 本文のURLを <a> に変換（先にescしてから適用）
+    function linkify(text) {
+      if (!text) return '';
+      const escaped = esc(text);
+      // http(s) URLのみ自動リンク化
+      return escaped.replace(
+        /(https?:\/\/[^\s<]+[^\s<.,;:!?)"'])/g,
+        '<a href="$1" target="_blank" rel="noopener">$1</a>'
+      );
+    }
+
+    // date_precision / is_approximate を踏まえた日付表示
+    function formatEpisodeDate(dateStr, precision, approx) {
+      if (!dateStr) return '';
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
+      if (!m) return dateStr;
+      const y = parseInt(m[1], 10);
+      const mo = parseInt(m[2], 10);
+      const d = parseInt(m[3], 10);
+      let base = '';
+      if (precision === 'year') base = `${y}年`;
+      else if (precision === 'month') base = `${y}年${mo}月`;
+      else base = `${y}年${mo}月${d}日`;
+      if (approx && precision !== 'day') base += '頃';
+      return base;
     }
 
     const TYPE_LABELS = {
@@ -274,7 +348,9 @@
 
     function render(ep, car) {
       const label   = TYPE_LABELS[ep.type] || ep.type;
-      const dateStr = ep.episode_date ? ep.episode_date.replace(/-/g, '.') : ep.created_at.slice(0,10).replace(/-/g,'.');
+      const dateStr = ep.episode_date
+        ? formatEpisodeDate(ep.episode_date, ep.date_precision || 'day', !!ep.is_approximate)
+        : ep.created_at.slice(0,10).replace(/-/g,'.');
       const owner   = car ? (car.handle_name || '') : '';
       const carName = car ? ((car.year ? car.year + '年式 ' : '') + (car.model_display_c || '')) : '';
       const garageHref = car ? `detail.html?doc=${encodeURIComponent(car.document_id)}` : '#';
@@ -307,8 +383,26 @@
       document.getElementById('epGarageLink').href = garageHref;
       document.getElementById('epFooterGarageLink').href = garageHref;
 
-      // 本文
-      document.getElementById('epContent').textContent = ep.content || '';
+      // 本文（URL自動リンク化）
+      document.getElementById('epContent').innerHTML = linkify(ep.content || '');
+
+      // 外部記事（元記事）リンク + canonical
+      if (ep.source_url) {
+        const box = document.getElementById('epSourceBox');
+        const link = document.getElementById('epSourceLink');
+        link.href = ep.source_url;
+        link.textContent = ep.source_label || ep.source_url;
+        box.style.display = 'flex';
+
+        // 重複コンテンツ対策: source_url を canonical として設定
+        let canon = document.querySelector('link[rel="canonical"]');
+        if (!canon) {
+          canon = document.createElement('link');
+          canon.rel = 'canonical';
+          document.head.appendChild(canon);
+        }
+        canon.href = ep.source_url;
+      }
 
       // 追加写真
       const photos = Array.isArray(ep.photo_urls) ? ep.photo_urls.filter(Boolean) : [];

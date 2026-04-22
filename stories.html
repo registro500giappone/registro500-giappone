@@ -247,6 +247,21 @@
       return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
+    function formatEpisodeDate(dateStr, precision, approx) {
+      if (!dateStr) return '';
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
+      if (!m) return dateStr;
+      const y = parseInt(m[1], 10);
+      const mo = parseInt(m[2], 10);
+      const d = parseInt(m[3], 10);
+      let base = '';
+      if (precision === 'year') base = `${y}年`;
+      else if (precision === 'month') base = `${y}年${mo}月`;
+      else base = `${y}年${mo}月${d}日`;
+      if (approx && precision !== 'day') base += '頃';
+      return base;
+    }
+
     let allEpisodes = [];
     const params = new URLSearchParams(location.search);
     const carFilter  = params.get('car')  || '';   // 特定の車両IDで絞り込み
@@ -271,7 +286,7 @@
     async function fetchStories() {
       let query = supabaseClient
         .from('car_episodes')
-        .select('id, car_id, type, title, content, cover_url, episode_date, created_at')
+        .select('id, car_id, type, title, content, cover_url, episode_date, date_precision, is_approximate, source_url, source_label, created_at')
         .eq('is_published', true)
         .order('episode_date', { ascending: false, nullsFirst: false })
         .limit(100);
@@ -306,13 +321,18 @@
       let html = '';
       episodes.forEach((ep, i) => {
         const label    = TYPE_LABELS[ep.type] || ep.type;
-        const dateStr  = (ep.episode_date || ep.created_at.slice(0,10)).replace(/-/g, '.');
+        const dateStr  = ep.episode_date
+          ? formatEpisodeDate(ep.episode_date, ep.date_precision || 'day', !!ep.is_approximate)
+          : (ep.created_at ? ep.created_at.slice(0,10).replace(/-/g,'.') : '');
         const car      = ep.car;
         const owner    = car ? (car.handle_name || '') : '';
         const carName  = car ? ((car.year ? car.year + '年 ' : '') + (car.model_display_c || '')) : '';
         const carType  = car?.car_type || '500';
         const carBadge = carType === '126'
           ? `<span style="font-family:'Cormorant Garamond',serif;font-size:0.62rem;letter-spacing:0.2em;color:var(--ink-faint);border:1px solid var(--border);padding:1px 6px;">126</span>`
+          : '';
+        const sourceBadge = ep.source_url
+          ? `<span style="font-family:'Cormorant Garamond',serif;font-size:0.62rem;letter-spacing:0.15em;color:var(--ink-faint);background:#f1ede4;padding:2px 8px;border-radius:10px;">🔗 外部掲載</span>`
           : '';
         const coverImg  = ep.cover_url || null;
         const excerpt   = ep.content ? (ep.content.length > 120 ? ep.content.slice(0,120) + '…' : ep.content) : '';
@@ -329,6 +349,7 @@
               ${carBadge}
               <span class="st-type-label">${esc(label)}</span>
               <span class="st-date">${esc(dateStr)}</span>
+              ${sourceBadge}
             </div>
             <h2 class="st-feature-title">${esc(ep.title)}</h2>
             ${excerpt ? `<p class="st-feature-excerpt">${esc(excerpt)}</p>` : ''}
@@ -347,6 +368,7 @@
                 ${carBadge}
                 <span class="st-type-label">${esc(label)}</span>
                 <span class="st-date">${esc(dateStr)}</span>
+                ${sourceBadge}
               </div>
               <h3 class="st-article-title">${esc(ep.title)}</h3>
               ${shortExcerpt ? `<p class="st-article-excerpt">${esc(shortExcerpt)}</p>` : ''}

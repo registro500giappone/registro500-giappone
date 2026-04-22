@@ -551,6 +551,21 @@
     const EPISODE_TYPE_LABELS = { acquisition:'入手', trouble:'トラブル', tuning:'チューン', drive:'ドライブ', event:'イベント', other:'その他' };
     const EPISODE_TYPE_COLORS = { acquisition:'#e11d48', trouble:'#f97316', tuning:'#2563eb', drive:'#16a34a', event:'#7c3aed', other:'#64748b' };
 
+    function formatEpisodeDate(dateStr, precision, approx) {
+      if (!dateStr) return '';
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
+      if (!m) return dateStr;
+      const y = parseInt(m[1], 10);
+      const mo = parseInt(m[2], 10);
+      const d = parseInt(m[3], 10);
+      let base = '';
+      if (precision === 'year') base = `${y}年`;
+      else if (precision === 'month') base = `${y}年${mo}月`;
+      else base = `${y}年${mo}月${d}日`;
+      if (approx && precision !== 'day') base += '頃';
+      return base;
+    }
+
     async function fetchEpisodes(carDocId) {
       try {
         const { data } = await supabaseClient.from('car_episodes').select('*').eq('car_id', carDocId).eq('is_published', true).order('created_at', { ascending: false });
@@ -588,11 +603,14 @@
     function renderEpisodeFull(ep) {
       const label = EPISODE_TYPE_LABELS[ep.type] || ep.type;
       const color = EPISODE_TYPE_COLORS[ep.type] || '#64748b';
-      const dateStr = ep.episode_date ? ep.episode_date.replace(/-/g, '.') : '';
+      const dateStr = ep.episode_date ? formatEpisodeDate(ep.episode_date, ep.date_precision || 'day', !!ep.is_approximate) : '';
       const excerpt = ep.content ? (ep.content.length > 100 ? ep.content.slice(0, 100) + '…' : ep.content) : '';
       const readHref = `episode.html?ep=${encodeURIComponent(ep.id)}`;
+      const sourceBadge = ep.source_url
+        ? ` <span style="display:inline-block;background:#f1ede4;color:#6b7280;font-size:0.68rem;letter-spacing:0.08em;padding:2px 8px;border-radius:10px;margin-left:4px;">🔗 外部掲載</span>`
+        : '';
       let html = `<div class="rg-episode-acquisition">`;
-      html += `<div class="rg-episode-date">${esc(dateStr)} <span class="rg-episode-type-badge" style="background:${color}">${esc(label)}</span></div>`;
+      html += `<div class="rg-episode-date">${esc(dateStr)} <span class="rg-episode-type-badge" style="background:${color}">${esc(label)}</span>${sourceBadge}</div>`;
       html += `<h3 style="margin:0.4rem 0 0.75rem;font-size:1.05rem;">${esc(ep.title)}</h3>`;
       if (ep.cover_url) {
         html += `<img class="rg-ep-cover" src="${esc(safeUrl(ep.cover_url))}" loading="lazy" onerror="this.style.display='none'">`;
@@ -608,11 +626,14 @@
     function renderEpisodeTimelineItem(ep) {
       const label = EPISODE_TYPE_LABELS[ep.type] || ep.type;
       const color = EPISODE_TYPE_COLORS[ep.type] || '#64748b';
-      const dateStr = ep.episode_date ? ep.episode_date.replace(/-/g, '.') : '';
+      const dateStr = ep.episode_date ? formatEpisodeDate(ep.episode_date, ep.date_precision || 'day', !!ep.is_approximate) : '';
       const excerpt = ep.content ? (ep.content.length > 60 ? ep.content.slice(0, 60) + '…' : ep.content) : '';
       const href = `episode.html?ep=${encodeURIComponent(ep.id)}`;
+      const sourceBadge = ep.source_url
+        ? ` <span style="display:inline-block;background:#f1ede4;color:#6b7280;font-size:0.68rem;letter-spacing:0.08em;padding:2px 8px;border-radius:10px;margin-left:4px;">🔗 外部掲載</span>`
+        : '';
       return `<a href="${href}" class="rg-episode-timeline-item" style="text-decoration:none;color:inherit;display:block;">
-        <div class="rg-episode-date">${esc(dateStr)} <span class="rg-episode-type-badge" style="background:${color}">${esc(label)}</span></div>
+        <div class="rg-episode-date">${esc(dateStr)} <span class="rg-episode-type-badge" style="background:${color}">${esc(label)}</span>${sourceBadge}</div>
         <div style="font-weight:700;margin:0.2rem 0;">${esc(ep.title)}</div>
         ${excerpt ? `<div style="font-size:0.88rem;color:var(--rg-muted);">${esc(excerpt)}</div>` : ''}
       </a>`;
