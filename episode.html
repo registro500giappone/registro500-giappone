@@ -310,6 +310,7 @@
         <a class="ep-footer-back" href="stories.html">← ストーリー一覧に戻る</a>
         <span class="ep-footer-sep">·</span>
         <a class="ep-footer-garage" id="epFooterGarageLink" href="#">マイガレージ</a>
+        <a class="ep-footer-edit" id="epFooterEditLink" href="#" style="display:none;margin-left:auto;font-size:0.82rem;letter-spacing:0.1em;color:var(--ink-faint);text-decoration:none;">✏️ このストーリーを編集</a>
       </div>
     </div>
   </article>
@@ -386,11 +387,28 @@
       // 車両・オーナー情報
       const { data: car } = await supabaseClient
         .from('cars')
-        .select('document_id, handle_name, model_display_c, year')
+        .select('document_id, handle_name, model_display_c, year, owner_email')
         .eq('document_id', ep.car_id)
         .single();
 
       render(ep, car);
+      await setupOwnerActions(ep, car);
+    }
+
+    async function setupOwnerActions(ep, car) {
+      if (!car) return;
+      try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const user = session?.user;
+        if (!user) return;
+        const isOwner = user.email && car.owner_email
+          && user.email.toLowerCase() === car.owner_email.toLowerCase();
+        if (isOwner) {
+          const editLink = document.getElementById('epFooterEditLink');
+          editLink.href = `episode-edit.html?car=${encodeURIComponent(car.document_id)}&ep=${encodeURIComponent(ep.id)}`;
+          editLink.style.display = 'inline';
+        }
+      } catch (e) { /* 認証未設定時は無視 */ }
     }
 
     function render(ep, car) {
@@ -402,11 +420,11 @@
       const carName = car ? ((car.year ? car.year + '年式 ' : '') + (car.model_display_c || '')) : '';
       const garageHref = car ? `detail.html?doc=${encodeURIComponent(car.document_id)}` : '#';
 
-      // ヒーロー（カバー写真があるときだけ表示）
+      // ヒーロー（カバー写真があるときだけ表示。CSSのflexで中央寄せ）
       if (ep.cover_url) {
         const hero = document.getElementById('epHero');
         hero.innerHTML = `<img src="${esc(ep.cover_url)}" alt="${esc(ep.title)}" loading="eager">`;
-        hero.style.display = 'block';
+        hero.style.display = 'flex';
       }
 
       // OGP

@@ -6,9 +6,9 @@
   <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-27SHHC4JYH');</script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>マイ500ストーリー - Registro500 Giappone</title>
-  <meta name="description" content="チンクオーナーたちの愛車にまつわるストーリー。入手のきっかけ、トラブル、チューン、ドライブ記録。">
+  <meta name="description" content="500 ＆ 126オーナーたちの愛車にまつわるストーリー。入手のきっかけ、トラブル、チューン、ドライブ記録。">
   <meta property="og:title" content="マイ500ストーリー - Registro500 Giappone">
-  <meta property="og:description" content="チンクオーナーたちの愛車にまつわる物語。">
+  <meta property="og:description" content="500 ＆ 126オーナーたちの愛車にまつわる物語。">
   <meta property="og:type" content="website">
   <link rel="canonical" href="https://www.registro500.com/stories.html">
   <link rel="manifest" href="manifest.json">
@@ -113,10 +113,18 @@
       display: block;
     }
     .st-feature:hover .st-feature-title { text-decoration: underline; text-decoration-color: var(--border); }
-    .st-feature-img {
-      width: 100%; aspect-ratio: 16/7;
-      object-fit: cover; display: block;
+    .st-feature-img-wrap {
+      width: 100%;
+      max-height: 520px;
+      overflow: hidden;
+      display: flex; justify-content: center; align-items: center;
+      background: var(--warm-white);
       margin-bottom: 28px;
+    }
+    .st-feature-img {
+      width: auto; max-width: 100%;
+      height: auto; max-height: 520px;
+      display: block;
     }
     .st-feature-img-placeholder {
       width: 100%; aspect-ratio: 16/7;
@@ -167,14 +175,15 @@
     }
     .st-article:hover .st-article-title { text-decoration: underline; text-decoration-color: var(--border); }
     @media (max-width: 600px) {
-      .st-article { grid-template-columns: 1fr; gap: 16px; }
+      .st-article { grid-template-columns: 120px 1fr; gap: 16px; }
     }
     .st-article-img {
-      width: 100%; aspect-ratio: 4/3;
-      object-fit: cover; display: block;
+      width: 100%; aspect-ratio: 1/1;
+      object-fit: cover; object-position: center top;
+      display: block;
     }
     .st-article-img-placeholder {
-      width: 100%; aspect-ratio: 4/3;
+      width: 100%; aspect-ratio: 1/1;
       background: var(--warm-white);
       display: flex; align-items: center; justify-content: center;
       font-size: 1.8rem; color: var(--border);
@@ -214,7 +223,7 @@
   <header class="st-header">
     <span class="st-header-kicker">Owner's Stories</span>
     <h1 class="st-header-title" id="stPageTitle">オーナーズストーリー</h1>
-    <p class="st-header-sub">チンク &amp; 126オーナーたちの愛車にまつわる物語</p>
+    <p class="st-header-sub">500 ＆ 126オーナーたちの愛車にまつわる物語</p>
   </header>
 
   <div class="st-filter-wrap" id="carFilterRow">
@@ -339,9 +348,9 @@
         const href      = `episode.html?ep=${esc(ep.id)}`;
 
         if (i === 0) {
-          // フィーチャー（最初の1件）
+          // フィーチャー（最初の1件・縦/正方形もそのまま表示）
           const imgHtml = coverImg
-            ? `<img class="st-feature-img" src="${esc(coverImg)}" loading="lazy" onerror="this.outerHTML='<div class=st-feature-img-placeholder>🚗</div>'">`
+            ? `<div class="st-feature-img-wrap"><img class="st-feature-img" src="${esc(coverImg)}" loading="lazy" onerror="this.parentNode.outerHTML='<div class=&quot;st-feature-img-placeholder&quot;>🚗</div>'"></div>`
             : `<div class="st-feature-img-placeholder">🚗</div>`;
           html += `<a class="st-feature" href="${href}">
             ${imgHtml}
