@@ -272,8 +272,8 @@
 <body>
 
   <nav class="ep-nav">
-    <a class="ep-nav-back" href="stories.html">← ストーリー一覧</a>
-    <a class="ep-nav-logo" href="index.html">Registro500</a>
+    <a class="ep-nav-back" id="epNavBack" href="stories.html">← ストーリー一覧</a>
+    <a class="ep-nav-logo" id="epNavLogo" href="index.html">Registro500</a>
   </nav>
 
   <article class="ep-article">
@@ -307,7 +307,7 @@
         <div class="ep-photos-grid" id="epPhotosGrid"></div>
       </div>
       <div class="ep-footer">
-        <a class="ep-footer-back" href="stories.html">← ストーリー一覧に戻る</a>
+        <a class="ep-footer-back" id="epFooterBack" href="stories.html">← ストーリー一覧に戻る</a>
         <span class="ep-footer-sep">·</span>
         <a class="ep-footer-garage" id="epFooterGarageLink" href="#">マイガレージ</a>
         <a class="ep-footer-edit" id="epFooterEditLink" href="#" style="display:none;margin-left:auto;font-size:0.82rem;letter-spacing:0.1em;color:var(--ink-faint);text-decoration:none;">✏️ このストーリーを編集</a>
@@ -387,7 +387,7 @@
       // 車両・オーナー情報
       const { data: car } = await supabaseClient
         .from('cars')
-        .select('document_id, handle_name, model_display_c, year, owner_email')
+        .select('document_id, handle_name, model_display_c, year, owner_email, car_type')
         .eq('document_id', ep.car_id)
         .single();
 
@@ -419,6 +419,16 @@
       const owner   = car ? (car.handle_name || '') : '';
       const carName = car ? ((car.year ? car.year + '年式 ' : '') + (car.model_display_c || '')) : '';
       const garageHref = car ? `detail.html?doc=${encodeURIComponent(car.document_id)}` : '#';
+      const isCarType126 = car && car.car_type === '126';
+      const seriesName = isCarType126 ? 'Registro126 Giappone' : 'Registro500 Giappone';
+
+      // 126車両のエピソードならナビとブランドを126側に切り替え
+      if (isCarType126) {
+        document.getElementById('epNavBack').href = 'stories.html?type=126';
+        document.getElementById('epNavLogo').href = '126/index.html';
+        document.getElementById('epNavLogo').textContent = 'Registro126';
+        document.getElementById('epFooterBack').href = 'stories.html?type=126';
+      }
 
       // ヒーロー（カバー写真があるときだけ表示。CSSのflexで中央寄せ）
       if (ep.cover_url) {
@@ -428,8 +438,8 @@
       }
 
       // OGP
-      document.getElementById('pageTitle').textContent = ep.title + ' - Registro500 Giappone';
-      document.getElementById('ogTitle').content = ep.title + ' - Registro500 Giappone';
+      document.getElementById('pageTitle').textContent = ep.title + ' - ' + seriesName;
+      document.getElementById('ogTitle').content = ep.title + ' - ' + seriesName;
       if (ep.content) {
         const desc = ep.content.slice(0, 100).replace(/\n/g, ' ');
         document.getElementById('pageDesc').content = desc;
