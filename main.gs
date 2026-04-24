@@ -25,8 +25,9 @@ const SUPABASE_ANON_KEY = 'sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt';
 function getBrevoApiKey_() {
   return PropertiesService.getScriptProperties().getProperty('BREVO_API_KEY');
 }
-const SENDER_EMAIL = "registro500giappone@gmail.com";
+const SENDER_EMAIL = "news@registro500.com";
 const SENDER_NAME = "Registro500 Giappone";
+const REPLY_TO_EMAIL = "registro500giappone@gmail.com";
 
 const ADMIN_EMAILS = ['registro500giappone@gmail.com'];
 
@@ -565,7 +566,8 @@ function sendBroadcastViaBrevo(bccEmailList, subject, textBody) {
   const bccObjects = bccEmailList.map(email => ({ "email": email }));
   const payload = {
     "sender": { "name": SENDER_NAME, "email": SENDER_EMAIL },
-    "to": [{ "email": SENDER_EMAIL }],
+    "replyTo": { "name": SENDER_NAME, "email": REPLY_TO_EMAIL },
+    "to": [{ "email": REPLY_TO_EMAIL }],
     "bcc": bccObjects, "subject": subject, "textContent": textBody
   };
   const options = {
