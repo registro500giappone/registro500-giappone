@@ -568,7 +568,11 @@ function sendBroadcastViaBrevo(bccEmailList, subject, textBody) {
     "sender": { "name": SENDER_NAME, "email": SENDER_EMAIL },
     "replyTo": { "name": SENDER_NAME, "email": REPLY_TO_EMAIL },
     "to": [{ "email": REPLY_TO_EMAIL }],
-    "bcc": bccObjects, "subject": subject, "textContent": textBody
+    "bcc": bccObjects, "subject": subject,
+    "textContent": textBody,
+    "htmlContent": textToHtml_(textBody),
+    "trackClicks": true,
+    "trackOpens": true
   };
   const options = {
     "method": "post", "headers": { "api-key": getBrevoApiKey_(), "Content-Type": "application/json", "accept": "application/json" },
@@ -581,6 +585,19 @@ function sendBroadcastViaBrevo(bccEmailList, subject, textBody) {
     throw new Error('Brevo API error: HTTP ' + code + ' / ' + bodyText);
   }
   return response;
+}
+
+function textToHtml_(text) {
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  const linked = escaped.replace(
+    /https?:\/\/[^\s<>"]+/g,
+    function(u) { return '<a href="' + u + '" style="color:#c0392b;">' + u + '</a>'; }
+  );
+  const body = linked.replace(/\n/g, '<br>\n');
+  return '<!DOCTYPE html><html><body style="font-family:sans-serif;font-size:14px;line-height:1.8;color:#333;max-width:600px;margin:0 auto;padding:20px;">' + body + '</body></html>';
 }
 function getAllExistingOwnerEmails_() {
   const carsData = supabaseQuery_('cars', 'owner_email', {});
