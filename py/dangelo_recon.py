@@ -144,11 +144,18 @@ def main():
         "Accept": "application/json"
     })
 
-    # 1ページ目で総件数を取得
+    # 1ページ目で総件数を取得（サイト一時不安定に備えた外部リトライ付き）
     print("\n1. 商品総数を確認中...")
-    first_data, first_headers = fetch_products_page(session, 1)
+    first_data, first_headers = None, {}
+    for outer_attempt in range(1, 4):  # 最大3回（3分間隔）
+        first_data, first_headers = fetch_products_page(session, 1)
+        if first_data:
+            break
+        if outer_attempt < 3:
+            print(f"[RETRY] APIアクセス失敗。3分後に再試行 ({outer_attempt}/3)...")
+            time.sleep(180)
     if not first_data:
-        print("[ERROR] APIアクセス失敗")
+        print("[ERROR] APIアクセス失敗（3回試行）")
         sys.exit(1)
 
     total = int(first_headers.get("X-WP-Total", 0))
