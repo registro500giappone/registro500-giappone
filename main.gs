@@ -955,7 +955,7 @@ function markNewsAsSent_(newsId) {
       'Content-Type': 'application/json',
       'Prefer': 'return=minimal'
     };
-    const options = { method: 'patch', headers: headers, payload: JSON.stringify({ sent_at: new Date().toISOString() }), muteHttpExceptions: true };
+    const options = { method: 'patch', headers: headers, payload: JSON.stringify({ sent_at: new Date().toISOString(), email_sent: true }), muteHttpExceptions: true };
     UrlFetchApp.fetch(url, options);
   } catch (e) {
     console.error('markNewsAsSent_ error:', e);
