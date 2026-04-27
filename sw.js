@@ -77,6 +77,12 @@ self.addEventListener('fetch', (event) => {
   // sw.js 自体のリクエストはブラウザに任せる
   if (url.pathname === '/sw.js') return;
 
+  // config.js は NetworkFirst（API_URL等の設定変更を即時反映）
+  if (url.pathname === '/config.js') {
+    event.respondWith(networkFirst(req, RUNTIME_CACHE));
+    return;
+  }
+
   // HTML リクエスト（ナビゲーション or .html）: NetworkFirst
   const isHtml =
     req.mode === 'navigate' ||
