@@ -24,6 +24,22 @@
 
     .rg-photo-square { position: relative; width: 100%; padding-top: 100%; border-radius: 0.9rem; border: 1px solid var(--rg-border); overflow: hidden; background: var(--rg-surface-sub); }
     .rg-photo-square > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+
+    /* 過去所有（手放し済み）の表示 */
+    body.is-sold-page #content { filter: grayscale(0.6); opacity: 0.88; }
+    body.is-sold-page #content .rg-card { background: #f5f5f3; }
+    .is-sold-banner {
+      display: none; background: #6b7280; color: #fff; text-align: center;
+      padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 700;
+      letter-spacing: 0.08em; margin-bottom: 1rem;
+    }
+    body.is-sold-page .is-sold-banner { display: block; }
+    body.is-sold-page .rg-photo-square::after {
+      content: '過去所有'; position: absolute; top: 12px; right: 12px;
+      background: rgba(55, 65, 81, 0.95); color: #fff; padding: 0.3rem 0.8rem;
+      border-radius: 4px; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.05em;
+      z-index: 10; pointer-events: none;
+    }
     .rg-spec-grid { display: grid; grid-template-columns: 8.2rem 1fr; column-gap: 0.5rem; border-top: 1px solid var(--rg-border); border-bottom: 1px solid var(--rg-border); }
     .rg-spec-grid dt, .rg-spec-grid dd { padding: 0.6rem 0.4rem; border-top: 1px solid var(--rg-border); margin: 0; font-size: 0.95rem; }
     .rg-spec-grid dt { font-weight: 700; color: var(--rg-muted); background: rgba(148, 163, 184, 0.05); white-space: nowrap; position: relative; }
@@ -153,6 +169,7 @@
    <main class="rg-container" style="padding-top:1rem;">
      <div id="loading" class="rg-loading">詳細データを読み込んでいます...</div>
      <div id="content" style="display:none;">
+      <div class="is-sold-banner">この車両は過去に登録されていた記録です（現在は別のオーナー、または手放し済み）</div>
       <div class="rg-detail-grid">
         <div>
           <section class="rg-card">
@@ -248,7 +265,8 @@
     function updateOGP(car) {
       const siteName = car.car_type === '126' ? 'Registro126' : 'Registro500';
       const carLabel = car.car_type === '126' ? 'FIAT 126' : 'FIAT 500';
-      const title = (car.handle_name || '') + 'さんの' + (car.model_display_c || carLabel) + ' - ' + siteName;
+      const prefix = car.is_sold ? '【過去所有】' : '';
+      const title = prefix + (car.handle_name || '') + 'さんの' + (car.model_display_c || carLabel) + ' - ' + siteName;
       const desc = (car.handle_name || '') + 'さんの' + (car.model_display_c || carLabel) + '。車両スペック・写真を公開中。';
       document.title = title;
       const setMeta = (attr, key, val) => { const el = document.querySelector(`meta[${attr}="${key}"]`); if (el) el.setAttribute('content', val); };
@@ -262,6 +280,8 @@
 
     function renderDetail(car) {
       document.getElementById('loading').style.display = 'none'; document.getElementById('content').style.display = 'block';
+      // 過去所有表示（class付与のみ。titleはupdateOGPで処理）
+      if (car.is_sold) document.body.classList.add('is-sold-page');
       const carTypeDisplay = car.car_type === '126' ? 'FIAT 126' : 'FIAT 500';
       document.getElementById('carType').textContent = carTypeDisplay;
       document.getElementById('year').textContent = car.year ? car.year + '年' : '';
@@ -402,7 +422,7 @@
         const addBtn = document.getElementById('addEpisodeBtn');
         if (addBtn) { addBtn.style.display = 'block'; addBtn.onclick = () => location.href = `episode-edit.html?car=${currentCar.document_id}`; }
       } else {
-        if(currentCar.accept_inquiry !== false) document.getElementById('contactArea').style.display = 'block';
+        if(currentCar.accept_inquiry !== false && !currentCar.is_sold) document.getElementById('contactArea').style.display = 'block';
       }
       updateAcquisitionPrompt();
     }

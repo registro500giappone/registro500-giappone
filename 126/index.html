@@ -246,6 +246,16 @@
 
     .car-card { background-color: var(--card-bg); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s ease; position: relative; }
     .car-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+    /* 過去所有（手放し済み） */
+    .car-card.is-sold-card .car-image { filter: grayscale(0.8); opacity: 0.75; }
+    .car-card.is-sold-card .car-main { opacity: 0.7; }
+    .car-card.is-sold-card::before {
+      content: '過去所有'; position: absolute; top: 8px; left: 8px;
+      background: rgba(55, 65, 81, 0.92); color: #fff;
+      padding: 0.18rem 0.5rem; border-radius: 3px;
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em;
+      z-index: 5; pointer-events: none;
+    }
     .car-link { text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%; }
     .car-image-wrap { position: relative; width: 100%; padding-top: 100%; background: #f3f4f6; overflow: hidden; }
     .car-image { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
@@ -659,7 +669,8 @@ async function fetchCars() {
             HandleName:handle_name,
             DocumentID:document_id,
             updatedAt:updated_at,
-            last_update_date
+            last_update_date,
+            IsSold:is_sold
           `)
           .eq('car_type', '126');
 
@@ -941,7 +952,7 @@ async function checkNewsBadge() {
       const now = new Date();
       cars.forEach(car => {
         const card = document.createElement('article');
-        card.className = 'car-card';
+        card.className = car.IsSold ? 'car-card is-sold-card' : 'car-card';
 
         // 更新バッジ判定 (7日以内)
         let updateBadgeHtml = '';
@@ -1170,7 +1181,7 @@ async function checkNewsBadge() {
 
     function updateCarCount() {
       const countEl = document.getElementById('carCountValue');
-      if (countEl) countEl.textContent = carsData.filter(c => c.DocumentID).length;
+      if (countEl) countEl.textContent = carsData.filter(c => c.DocumentID && !c.IsSold).length;
     }
     initApp();
   </script>

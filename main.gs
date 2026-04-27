@@ -600,7 +600,8 @@ function textToHtml_(text) {
   return '<!DOCTYPE html><html><body style="font-family:sans-serif;font-size:14px;line-height:1.8;color:#333;max-width:600px;margin:0 auto;padding:20px;">' + body + '</body></html>';
 }
 function getAllExistingOwnerEmails_() {
-  const carsData = supabaseQuery_('cars', 'owner_email', {});
+  // is_sold=true のオーナーは配信対象から除外
+  const carsData = supabaseQuery_('cars', 'owner_email', { is_sold: 'is.false' });
   const emailSet = new Set();
   carsData.forEach(car => {
     const val = String(car.owner_email || '').trim();
@@ -980,7 +981,8 @@ function markEventNotificationSent_(eventId) {
 
 function getOwnerEmails() {
   try {
-    const url = SUPABASE_URL + '/rest/v1/cars?select=owner_email';
+    // is_sold=true のオーナーは配信対象から除外
+    const url = SUPABASE_URL + '/rest/v1/cars?select=owner_email&is_sold=is.false';
     const headers = {
       'apikey': SUPABASE_ANON_KEY,
       'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
