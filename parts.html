@@ -882,14 +882,6 @@
       #ownerGate .gate-sub-link { color: #94a3b8; }
     }
     </style>
-
-    <!-- 認証ライブラリ（オーナー限定ゲート用） -->
-    <script src="config.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0"></script>
-    <script>
-      const _gateSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      // 初期は隠す（ログイン判定後に出すか決定）
-    </script>
 </head>
 <body class="gate-active">
 
@@ -906,24 +898,6 @@
         <p style="margin-top:1.2rem;"><a href="index.html" class="gate-sub-link">← トップページに戻る</a></p>
       </div>
     </div>
-
-    <script>
-      // セッション確認 → ログイン済みならゲートを閉じる
-      _gateSupabase.auth.getSession().then(({ data: { session } }) => {
-        if (session && session.user) {
-          document.body.classList.remove('gate-active');
-          document.getElementById('ownerGate').classList.add('hidden');
-        }
-      });
-      _gateSupabase.auth.onAuthStateChange((event, session) => {
-        if (session && session.user) {
-          document.body.classList.remove('gate-active');
-          document.getElementById('ownerGate').classList.add('hidden');
-        }
-      });
-      document.getElementById('ownerLoginBtn').onclick = () =>
-        _gateSupabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
-    </script>
 
     <!-- ヘッダー (簡易版) -->
     <header style="background: #fff; border-bottom: 1px solid #e5e7eb; padding: 12px 20px;">
@@ -1126,6 +1100,20 @@
         if (typeof supabase !== 'undefined' && typeof SUPABASE_URL !== 'undefined') {
             window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         }
+        // オーナー限定ゲートのログイン判定
+        (function () {
+          const sb = window.supabaseClient;
+          if (!sb) return;
+          const closeGate = () => {
+            document.body.classList.remove('gate-active');
+            const gate = document.getElementById('ownerGate');
+            if (gate) gate.classList.add('hidden');
+          };
+          sb.auth.getSession().then(({ data: { session } }) => { if (session && session.user) closeGate(); });
+          sb.auth.onAuthStateChange((event, session) => { if (session && session.user) closeGate(); });
+          const btn = document.getElementById('ownerLoginBtn');
+          if (btn) btn.onclick = () => sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+        })();
     </script>
     <script src="parts.js"></script>
     <script>
