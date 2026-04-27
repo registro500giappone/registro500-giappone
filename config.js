@@ -77,11 +77,6 @@ const CONFIG = {
             is_price_ex_vat: true,   // 税抜き価格（米国・州税なし）
             vat_rate: 0,
             base_url: "https://mrfiat.com"
-        },
-        "500Line": {
-            is_price_ex_vat: false,  // 税込み価格
-            vat_rate: 0.22,          // イタリアVAT 22%
-            base_url: "https://www.500line.it"
         }
     }
 };
