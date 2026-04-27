@@ -11,7 +11,7 @@
   <meta property="og:description" id="ogDesc" content="チンクオーナーの愛車ストーリー">
   <meta property="og:type" content="article">
   <meta property="og:image" id="ogImage" content="https://www.registro500.com/logo_horizontal.png">
-  <meta name="robots" content="noindex"><!-- 本番公開時にnoindexを外す -->
+  <link rel="canonical" id="canonicalTag" href="https://www.registro500.com/episode">
   <link rel="manifest" href="manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -461,6 +461,14 @@
       // 本文（URL自動リンク化）
       document.getElementById('epContent').innerHTML = linkify(ep.content || '');
 
+      // canonical 設定（source_urlがあればそれを、なければ自身のepIDを含むURLを）
+      let canon = document.querySelector('link[rel="canonical"]');
+      if (!canon) {
+        canon = document.createElement('link');
+        canon.rel = 'canonical';
+        document.head.appendChild(canon);
+      }
+
       // 外部記事（元記事）リンク + canonical
       if (ep.source_url) {
         const box = document.getElementById('epSourceBox');
@@ -470,13 +478,10 @@
         box.style.display = 'flex';
 
         // 重複コンテンツ対策: source_url を canonical として設定
-        let canon = document.querySelector('link[rel="canonical"]');
-        if (!canon) {
-          canon = document.createElement('link');
-          canon.rel = 'canonical';
-          document.head.appendChild(canon);
-        }
         canon.href = ep.source_url;
+      } else {
+        // source_url がない場合は ep ID を含む URL を canonical に
+        canon.href = 'https://www.registro500.com/episode?ep=' + encodeURIComponent(epId);
       }
 
       // 追加写真（ギャラリー）
