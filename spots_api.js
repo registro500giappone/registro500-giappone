@@ -237,24 +237,7 @@ function addFavoriteSpot(data) {
   });
   var row = (result && result.length > 0) ? result[0] : result;
 
-
-  try {
-    var spotData = supabaseRequest_(
-      'spots?spot_id=eq.' + encodeURIComponent(data.spot_id) + '&select=registration_count',
-      'GET', null, null
-    );
-    if (spotData && spotData.length > 0) {
-      var currentCount = spotData[0].registration_count || 0;
-      supabaseRequest_(
-        'spots?spot_id=eq.' + encodeURIComponent(data.spot_id),
-        'PATCH',
-        { registration_count: currentCount + 1 },
-        null
-      );
-    }
-  } catch(e) {
-
-  }
+  // registration_count is now handled by Supabase trigger
 
   return { favorite_id: row.favorite_id };
 }
@@ -309,32 +292,9 @@ function deleteFavoriteSpot(data) {
   var endpoint = 'favorite_spots?favorite_id=eq.' + encodeURIComponent(data.favorite_id)
     + '&owner_document_id=eq.' + encodeURIComponent(data.owner_document_id);
 
-
-  var favData = supabaseRequest_(endpoint + '&select=spot_id', 'GET', null, null);
-  var spotId = favData && favData.length > 0 ? favData[0].spot_id : null;
-
   supabaseRequest_(endpoint, 'DELETE', null, null);
 
-
-  if (spotId) {
-    try {
-      var spotData = supabaseRequest_(
-        'spots?spot_id=eq.' + encodeURIComponent(spotId) + '&select=registration_count',
-        'GET', null, null
-      );
-      if (spotData && spotData.length > 0) {
-        var currentCount = spotData[0].registration_count || 0;
-        supabaseRequest_(
-          'spots?spot_id=eq.' + encodeURIComponent(spotId),
-          'PATCH',
-          { registration_count: Math.max(0, currentCount - 1) },
-          null
-        );
-      }
-    } catch(e) {
-
-    }
-  }
+  // registration_count is now handled by Supabase trigger
 
   return { ok: true };
 }
