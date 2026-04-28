@@ -829,6 +829,7 @@ function onOpen() {
     .addSeparator()
     .addItem('⚙️ 設定を確認', 'showSettings')
     .addSeparator()
+    .addItem('📖 ストーリー紹介許諾依頼を4名に送信', 'sendStoryConsentRequests')
     .addItem('【一時】お詫びメール送信', 'sendApologyEmail')
     .addToUi();
 }
@@ -1283,5 +1284,140 @@ https://www.registro500.com/`;
     Logger.log('❌ エラー: ' + e);
     throw e;
   }
+}
+
+// =================================================
+// ストーリー紹介許諾依頼メール（個別To送信・2026-04-28追加）
+// =================================================
+function sendStoryConsentRequests() {
+  const ui = SpreadsheetApp.getUi();
+
+  const requests = [
+    { handleName: 'fiat_takeshi',  email: 'takeshi.wakao301@gmail.com', episodeTitle: '私と水色FIAT500との出会い♪' },
+    { handleName: 'MEX',           email: 'mex06takemex@gmail.com',     episodeTitle: '『出会えてよかったチンクエチェント』' },
+    { handleName: 'nice guy KENGO', email: '1641ngk@gmail.com',          episodeTitle: '「空冷のチンクが欲しい」' },
+    { handleName: '近江商人',       email: 'kasuzen@gmail.com',          episodeTitle: '愛すべきnap姐さんの作品' }
+  ];
+
+  const list = requests.map(r => `・${r.handleName}（${r.email}）`).join('\n');
+  const confirm = ui.alert(
+    '📖 ストーリー紹介許諾依頼を送信',
+    `以下4名に個別メールを送信します。\n\n${list}\n\n実行しますか？`,
+    ui.ButtonSet.YES_NO
+  );
+  if (confirm !== ui.Button.YES) {
+    ui.alert('キャンセルしました。');
+    return;
+  }
+
+  let success = 0;
+  const failed = [];
+  requests.forEach(req => {
+    try {
+      sendStoryConsentEmailToOne_(req.email, req.handleName, req.episodeTitle);
+      success++;
+      Utilities.sleep(500);
+    } catch (e) {
+      failed.push(`${req.handleName}: ${e}`);
+      Logger.log('❌ ' + req.handleName + ' 送信失敗: ' + e);
+    }
+  });
+
+  const status = failed.length === 0 ? '成功' : `一部失敗(${failed.length}件)`;
+  logDelivery('story-consent', success, '4オーナー宛', status);
+
+  let msg = `✅ 送信完了\n\n成功: ${success} / ${requests.length}`;
+  if (failed.length > 0) msg += `\n\n失敗:\n${failed.join('\n')}`;
+  ui.alert(msg);
+}
+
+// CLI/Apps Script直接実行用（UIなし・ヘッドレス）
+function sendStoryConsentRequestsHeadless() {
+  const requests = [
+    { handleName: 'fiat_takeshi',  email: 'takeshi.wakao301@gmail.com', episodeTitle: '私と水色FIAT500との出会い♪' },
+    { handleName: 'MEX',           email: 'mex06takemex@gmail.com',     episodeTitle: '『出会えてよかったチンクエチェント』' },
+    { handleName: 'nice guy KENGO', email: '1641ngk@gmail.com',          episodeTitle: '「空冷のチンクが欲しい」' },
+    { handleName: '近江商人',       email: 'kasuzen@gmail.com',          episodeTitle: '愛すべきnap姐さんの作品' }
+  ];
+  let success = 0;
+  const failed = [];
+  requests.forEach(req => {
+    try {
+      sendStoryConsentEmailToOne_(req.email, req.handleName, req.episodeTitle);
+      success++;
+      Logger.log('✅ ' + req.handleName + ' (' + req.email + ') 送信成功');
+      Utilities.sleep(500);
+    } catch (e) {
+      failed.push(req.handleName + ': ' + e);
+      Logger.log('❌ ' + req.handleName + ' 送信失敗: ' + e);
+    }
+  });
+  const status = failed.length === 0 ? '成功' : 'failed_' + failed.length;
+  logDelivery('story-consent', success, '4オーナー宛(headless)', status);
+  Logger.log('完了: 成功 ' + success + '/' + requests.length + (failed.length ? ' / 失敗: ' + failed.join('; ') : ''));
+  return { success: success, total: requests.length, failed: failed };
+}
+
+function sendStoryConsentEmailToOne_(toEmail, handleName, episodeTitle) {
+  const subject = '【Registro500】公式Xでのストーリー紹介についてのお願い';
+  const textBody = buildStoryConsentBody_(handleName, episodeTitle);
+  const url = 'https://api.brevo.com/v3/smtp/email';
+  const payload = {
+    sender:  { name: SENDER_NAME, email: SENDER_EMAIL },
+    replyTo: { name: SENDER_NAME, email: REPLY_TO_EMAIL },
+    to:      [{ email: toEmail, name: handleName }],
+    subject: subject,
+    textContent: textBody,
+    htmlContent: textToHtml_(textBody),
+    trackClicks: true,
+    trackOpens: true
+  };
+  const options = {
+    method: 'post',
+    headers: { 'api-key': getBrevoApiKey_(), 'Content-Type': 'application/json', 'accept': 'application/json' },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+  const response = UrlFetchApp.fetch(url, options);
+  const code = response.getResponseCode();
+  if (code < 200 || code >= 300) {
+    throw new Error('Brevo API ' + code + ': ' + response.getContentText());
+  }
+}
+
+function buildStoryConsentBody_(handleName, episodeTitle) {
+  return `${handleName} さま
+
+いつも Registro500 にご登録・ご投稿いただきありがとうございます。
+管理人です。
+
+このたびご投稿いただきました
+「${episodeTitle}」
+を、Registro500 公式X（@registro500）にて紹介させていただきたく、
+ご連絡いたしました。
+
+【紹介イメージ】
+　・タイトルと ${handleName} さんのお名前
+　・本文の冒頭80字程度の引用
+　・カバー写真をX側に直接添付
+　・記事ページへのリンク
+　・ハッシュタグ（#フィアット500 #チンクエチェント #fiat500）
+
+未登録のオーナーや旧車ファンの方々にもストーリーを届けたく、
+ぜひお力をお貸しいただければ幸いです。
+
+ご許諾いただける場合、ご返信は不要です。
+ご都合悪い・修正希望などございましたら、本メールから3日以内に
+ご返信ください。それ以降に投稿を進めさせていただきます。
+
+なお、今後はストーリー投稿時に「公式SNSでの紹介をデフォルト許諾」とし、
+ご希望でないオーナーは設定でオフにできる仕組みを準備中です（数週間以内に
+別途ご案内予定）。
+
+引き続き Registro500 をどうぞよろしくお願いいたします🚗
+
+Registro500 Giappone
+管理人
+news@registro500.com`;
 }
 
