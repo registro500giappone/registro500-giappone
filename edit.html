@@ -7,6 +7,7 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
   <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-27SHHC4JYH');</script>
   <title>マイガレージ - Registro500 Giappone</title>
+  <meta name="robots" content="noindex">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   
   <!-- Cropper.js -->
@@ -451,6 +452,18 @@
             チェックすると自動配信メールの対象から外れ、サイト上では「過去所有」として表示されます。記録は引き続き残ります。後でチェックを外せば元に戻せます。
           </p>
         </div>
+
+        <!-- 公式SNSでの紹介設定（既存編集時のみ表示） -->
+        <div id="snsShareSection" style="display:none; margin-top:1rem; padding:1rem 1.2rem; border:1px solid var(--rg-border); border-radius:8px; background:#fafaf8;">
+          <h2 class="rg-section-title" style="margin-top:0; margin-bottom:0.6rem; font-size:1rem;">公式SNSでの紹介について</h2>
+          <label style="display:flex; align-items:flex-start; gap:0.6rem; cursor:pointer; font-size:0.95rem; padding:0.5rem 0;">
+            <input type="checkbox" id="snsShareOptoutCheckbox" style="width:18px; height:18px; flex-shrink:0; margin-top:2px;">
+            <span>公式SNS（X / Instagram等）での紹介を停止する</span>
+          </label>
+          <p style="font-size:0.8rem; color:var(--rg-muted); margin:0.4rem 0 0; line-height:1.6;">
+            Registro500 公式SNSでは、登録車両の写真やストーリーを紹介させていただく場合があります。紹介を希望されない場合はチェックしてください。後でいつでも変更できます。
+          </p>
+        </div>
       </form>
     </section>
   </div>
@@ -632,6 +645,13 @@
           statusSection.style.display = 'block';
           isSoldCheckbox.checked = !!data.is_sold;
         }
+        // 公式SNS紹介オプトアウト（既存編集時のみ表示）
+        const snsShareSection = document.getElementById('snsShareSection');
+        const snsShareOptoutCheckbox = document.getElementById('snsShareOptoutCheckbox');
+        if (snsShareSection && snsShareOptoutCheckbox && data.document_id) {
+          snsShareSection.style.display = 'block';
+          snsShareOptoutCheckbox.checked = !!data.sns_share_optout;
+        }
       }
 
       function setPhotoPreview(target, url) {
@@ -756,6 +776,38 @@
         const el = document.getElementById(id);
         if(el) el.onchange = (e) => { document.getElementById(id + 'Wrapper').style.display = (e.target.value === 'その他') ? 'block' : 'none'; };
       });
+
+      // 「公式SNSでの紹介を停止する」チェックボックス：即時保存
+      const snsShareOptoutCheckbox = document.getElementById('snsShareOptoutCheckbox');
+      if (snsShareOptoutCheckbox) {
+        snsShareOptoutCheckbox.addEventListener('change', async (e) => {
+          const docId = document.getElementById('DocumentID').value;
+          if (!docId) {
+            alert('保存後に設定を変更できます。');
+            e.target.checked = false;
+            return;
+          }
+          const becomingOptout = e.target.checked;
+          const msg = becomingOptout
+            ? '公式SNS（X / Instagram等）でのご紹介を停止します。\n\n・登録車両の写真やストーリーが、公式SNSで紹介されなくなります\n・サイト本体での表示には影響しません\n・後でいつでも変更できます\n\nよろしいですか？'
+            : '公式SNSでのご紹介を再び許可します。\n\nよろしいですか？';
+          if (!confirm(msg)) {
+            e.target.checked = !becomingOptout;
+            return;
+          }
+          e.target.disabled = true;
+          try {
+            const { error } = await supabaseClient.from('cars').update({ sns_share_optout: becomingOptout }).eq('document_id', docId);
+            if (error) throw error;
+            alert(becomingOptout ? '公式SNSでのご紹介を停止しました。' : '公式SNSでのご紹介を再開しました。');
+          } catch (err) {
+            alert('更新に失敗しました: ' + err.message);
+            e.target.checked = !becomingOptout;
+          } finally {
+            e.target.disabled = false;
+          }
+        });
+      }
 
       // 「手放しました」チェックボックス：即時保存
       const isSoldCheckbox = document.getElementById('isSoldCheckbox');
