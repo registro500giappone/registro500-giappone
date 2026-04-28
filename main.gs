@@ -540,22 +540,37 @@ function sendDailyDigest() {
 
 // 未送信のお知らせを取得（直近14日以内 かつ 最大5件）
 // ※ 古い積み残しが一気に送信されないよう日付フィルター＋上限を設ける
+// ※ 2026-04-29 強化: HTTPコード/応答内容/件数をログ。次回不達時の原因究明用
 function getUnsentNewsAll_() {
+  let url = '';
   try {
     const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
-    const url = SUPABASE_URL + '/rest/v1/news?sent_at=is.null'
+    url = SUPABASE_URL + '/rest/v1/news?sent_at=is.null'
       + '&created_at=gte.' + encodeURIComponent(fourteenDaysAgo)
       + '&order=id.asc&limit=5';
+    Logger.log('getUnsentNewsAll_ Query URL: ' + url);
     const headers = {
       'apikey': SUPABASE_ANON_KEY,
       'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
       'Content-Type': 'application/json'
     };
     const response = UrlFetchApp.fetch(url, { method: 'get', headers: headers, muteHttpExceptions: true });
-    const data = JSON.parse(response.getContentText());
-    return Array.isArray(data) ? data : [];
+    const code = response.getResponseCode();
+    const body = response.getContentText();
+    Logger.log('getUnsentNewsAll_ Response Code: ' + code);
+    if (code < 200 || code >= 300) {
+      Logger.log('❌ getUnsentNewsAll_ HTTP error: ' + code + ' / body: ' + body);
+      return [];
+    }
+    const data = JSON.parse(body);
+    if (!Array.isArray(data)) {
+      Logger.log('❌ getUnsentNewsAll_ unexpected response (not array): ' + body);
+      return [];
+    }
+    Logger.log('getUnsentNewsAll_ 取得件数: ' + data.length + (data.length > 0 ? ' / ids: ' + data.map(n => n.id).join(',') : ''));
+    return data;
   } catch (e) {
-    Logger.log('getUnsentNewsAll_ error: ' + e);
+    Logger.log('❌ getUnsentNewsAll_ exception: ' + e + ' / url: ' + url);
     return [];
   }
 }
