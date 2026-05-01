@@ -1005,14 +1005,26 @@ function getOwnerEmails() {
       'Content-Type': 'application/json'
     };
     const options = { method: 'get', headers: headers, muteHttpExceptions: true };
+    Logger.log('getOwnerEmails Query URL: ' + url);
     const response = UrlFetchApp.fetch(url, options);
-    const data = JSON.parse(response.getContentText());
-    if (!data || data.length === 0) return [];
+    const code = response.getResponseCode();
+    const body = response.getContentText();
+    Logger.log('getOwnerEmails Response Code: ' + code);
+    if (code < 200 || code >= 300) {
+      Logger.log('❌ getOwnerEmails HTTP error: ' + code + ' / body: ' + body);
+      return [];
+    }
+    const data = JSON.parse(body);
+    if (!Array.isArray(data)) {
+      Logger.log('❌ getOwnerEmails unexpected response (not array): ' + body);
+      return [];
+    }
     const emailSet = new Set();
     data.forEach(row => {
       const email = String(row.owner_email || '').trim().toLowerCase();
       if (email && email.includes('@')) emailSet.add(email);
     });
+    Logger.log('getOwnerEmails 取得件数: ' + emailSet.size);
     return Array.from(emailSet);
   } catch (e) {
     console.error('getOwnerEmails error:', e);
