@@ -340,9 +340,13 @@
       ];
       snsList.forEach(s => {
         if(car[s.k]) {
-          let url = car[s.k].startsWith('http') ? car[s.k] : s.b + car[s.k].replace('@','');
+          const raw = car[s.k];
+          const isUrl = /^https?:\/\//i.test(raw);
+          let url = isUrl ? raw : s.b + raw.replace('@','');
           url = safeUrl(url) || '#';
-          snsGrid.innerHTML += `<dt data-field="${esc(s.k)}">${esc(s.l)}</dt><dd><a href="${esc(url)}" target="_blank" rel="noopener">${esc(car[s.k])}</a></dd>`;
+          if (url === '#') return;
+          const linkText = isUrl ? `${s.l} を開く ›` : raw;
+          snsGrid.innerHTML += `<dt data-field="${esc(s.k)}">${esc(s.l)}</dt><dd><a href="${esc(url)}" target="_blank" rel="noopener">${esc(linkText)}</a></dd>`;
           document.getElementById('snsSection').style.display = 'block';
         }
       });
