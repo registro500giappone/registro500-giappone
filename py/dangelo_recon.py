@@ -145,17 +145,22 @@ def main():
     })
 
     # 1ページ目で総件数を取得（サイト一時不安定に備えた外部リトライ付き）
+    # WordPress Store API のキャッシュwarm-upが10分以上続くケースに対応
+    # 待機時間: 3,5,5,10分（合計23分の猶予）
     print("\n1. 商品総数を確認中...")
     first_data, first_headers = None, {}
-    for outer_attempt in range(1, 4):  # 最大3回（3分間隔）
+    RETRY_WAITS_MIN = [3, 5, 5, 10]
+    TOTAL_ATTEMPTS = len(RETRY_WAITS_MIN) + 1  # = 5
+    for attempt in range(1, TOTAL_ATTEMPTS + 1):
         first_data, first_headers = fetch_products_page(session, 1)
         if first_data:
             break
-        if outer_attempt < 3:
-            print(f"[RETRY] APIアクセス失敗。3分後に再試行 ({outer_attempt}/3)...")
-            time.sleep(180)
+        if attempt < TOTAL_ATTEMPTS:
+            wait_min = RETRY_WAITS_MIN[attempt - 1]
+            print(f"[RETRY] APIアクセス失敗。{wait_min}分後に再試行 ({attempt}/{TOTAL_ATTEMPTS})...")
+            time.sleep(wait_min * 60)
     if not first_data:
-        print("[ERROR] APIアクセス失敗（3回試行）")
+        print(f"[ERROR] APIアクセス失敗（{TOTAL_ATTEMPTS}回試行）")
         sys.exit(1)
 
     total = int(first_headers.get("X-WP-Total", 0))
