@@ -19,7 +19,10 @@ const FIREBASE_STORAGE_BASE_URL = 'https://firebasestorage.googleapis.com/v0/b/r
 
 // Supabase設定
 const SUPABASE_URL = 'https://ttlttclfovuzafvghvaq.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt';
+// service_role キー（全権・RLSバイパス）をスクリプトプロパティから取得。
+// GASは完全サーバーサイドのため service_role を使用（ブラウザに露出しない）。
+// 事前にスクリプトプロパティ SUPABASE_SERVICE_ROLE_KEY を設定すること。未設定だと全Supabase呼び出しが失敗する。
+const SUPABASE_KEY = PropertiesService.getScriptProperties().getProperty('SUPABASE_SERVICE_ROLE_KEY');
 
 // Brevo設定（APIキーはプロパティストアから取得）
 function getBrevoApiKey_() {
@@ -324,8 +327,8 @@ function supabaseQuery_(table, select, filters) {
   const options = {
     method: 'get',
     headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`
     },
     muteHttpExceptions: true
   };
@@ -350,8 +353,8 @@ function supabaseUpdate_(table, id, data) {
   const options = {
     method: 'patch',
     headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=minimal'
     },
@@ -550,8 +553,8 @@ function getUnsentNewsAll_() {
       + '&order=id.asc&limit=5';
     Logger.log('getUnsentNewsAll_ Query URL: ' + url);
     const headers = {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
       'Content-Type': 'application/json'
     };
     const response = UrlFetchApp.fetch(url, { method: 'get', headers: headers, muteHttpExceptions: true });
@@ -948,8 +951,8 @@ function getLatestNews() {
     // sent_at IS NULL（未送信）のニュースのみ取得。再送防止。
     const url = SUPABASE_URL + '/rest/v1/news?sent_at=is.null&order=id.desc&limit=1';
     const headers = {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
       'Content-Type': 'application/json'
     };
     const options = { method: 'get', headers: headers, muteHttpExceptions: true };
@@ -967,8 +970,8 @@ function markNewsAsSent_(newsId) {
   try {
     const url = SUPABASE_URL + '/rest/v1/news?id=eq.' + newsId;
     const headers = {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
       'Content-Type': 'application/json',
       'Prefer': 'return=minimal'
     };
@@ -984,8 +987,8 @@ function markEventNotificationSent_(eventId) {
   try {
     const url = SUPABASE_URL + '/rest/v1/rpc/mark_event_notification_sent';
     const headers = {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
       'Content-Type': 'application/json'
     };
     const options = { method: 'post', headers: headers, payload: JSON.stringify({ p_event_id: eventId }), muteHttpExceptions: true };
@@ -1000,8 +1003,8 @@ function getOwnerEmails() {
     // is_sold=true のオーナーは配信対象から除外
     const url = SUPABASE_URL + '/rest/v1/cars?select=owner_email&is_sold=is.false';
     const headers = {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
       'Content-Type': 'application/json'
     };
     const options = { method: 'get', headers: headers, muteHttpExceptions: true };
@@ -1446,5 +1449,56 @@ function buildStoryConsentBody_(handleName, episodeTitle) {
 Registro500 Giappone
 管理人
 news@registro500.com`;
+}
+
+// =================================================
+// service_role キー検証用テスト関数（2026-05-28 追加）
+// =================================================
+// Apps Script エディタで「testServiceRoleConnection」を選択して実行 →
+// 実行ログに「✅ service_role キーは正常に受理されました」が出ればOK。
+// 401/403 が出たらスクリプトプロパティ SUPABASE_SERVICE_ROLE_KEY を確認すること。
+// 読み取り専用なので配信や書込は一切発生しない。
+function testServiceRoleConnection() {
+  if (!SUPABASE_KEY) {
+    Logger.log('❌ SUPABASE_KEY が null です。スクリプトプロパティ SUPABASE_SERVICE_ROLE_KEY を設定してください。');
+    return;
+  }
+  const headers = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY
+  };
+  try {
+    // Test 1: 通常APIで読み取れるか（キー自体が有効か）
+    const res1 = UrlFetchApp.fetch(
+      SUPABASE_URL + '/rest/v1/news?select=id&limit=1',
+      { method: 'get', headers: headers, muteHttpExceptions: true }
+    );
+    const code1 = res1.getResponseCode();
+    Logger.log('Test1 (read /rest/v1/news): code=' + code1);
+    if (code1 !== 200) {
+      Logger.log('❌ キーが受理されていません。スクリプトプロパティ SUPABASE_SERVICE_ROLE_KEY を再確認してください');
+      Logger.log('body: ' + (res1.getContentText() || '').slice(0, 200));
+      return;
+    }
+
+    // Test 2: 管理API（service_role 専用エンドポイント）に到達できるか
+    // → 200 ならservice_role確定 / 401-403 ならanon/publishableなのでNG
+    const res2 = UrlFetchApp.fetch(
+      SUPABASE_URL + '/auth/v1/admin/users?per_page=1',
+      { method: 'get', headers: headers, muteHttpExceptions: true }
+    );
+    const code2 = res2.getResponseCode();
+    Logger.log('Test2 (admin /auth/v1/admin/users): code=' + code2);
+    if (code2 === 200) {
+      Logger.log('✅ 確定：service_role キーです（管理APIアクセス可能・RLSバイパス可）');
+    } else if (code2 === 401 || code2 === 403) {
+      Logger.log('❌ これは anon/publishable キーです。スクリプトプロパティ SUPABASE_SERVICE_ROLE_KEY に "service_role secret" の値を入れ直してください');
+      Logger.log('body: ' + (res2.getContentText() || '').slice(0, 200));
+    } else {
+      Logger.log('⚠️ 想定外のステータス（' + code2 + '）。応答本文: ' + (res2.getContentText() || '').slice(0, 200));
+    }
+  } catch (e) {
+    Logger.log('❌ Exception: ' + e);
+  }
 }
 
