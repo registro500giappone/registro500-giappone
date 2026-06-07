@@ -32,6 +32,18 @@
     
     label { display: block; font-size: 0.9rem; font-weight: 600; margin-top: 0.8rem; margin-bottom: 0.3rem; }
     .badge-required { background: var(--rg-primary-red); color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 4px; font-weight: normal; }
+    /* 任意セクション（折りたたみ） */
+    .opt-section { border:1px solid var(--rg-border,#e5e5e5); border-radius:8px; margin:0.8rem 0; background:#fff; }
+    .opt-summary { cursor:pointer; padding:0.85rem 1rem; font-weight:600; font-size:0.97rem; display:flex; justify-content:space-between; align-items:center; list-style:none; user-select:none; }
+    .opt-summary::-webkit-details-marker { display:none; }
+    .opt-summary::after { content:'＋ 追加'; font-size:0.78rem; font-weight:normal; color:var(--rg-muted,#888); white-space:nowrap; margin-left:0.8rem; }
+    .opt-section[open] > .opt-summary::after { content:'－ 閉じる'; }
+    .opt-section[open] > .opt-summary { border-bottom:1px solid var(--rg-border,#e5e5e5); margin-bottom:0.6rem; }
+    .opt-section > *:not(summary) { margin-left:1rem; margin-right:1rem; }
+    .opt-section[open] > *:last-child { margin-bottom:0.9rem; }
+    /* 「ここまでで登録できます」案内 */
+    .req-note { background:#eef6ee; border:1px solid #cfe6cf; border-radius:8px; padding:0.7rem 0.9rem; font-size:0.85rem; line-height:1.6; color:#2e6b2e; margin:0.5rem 0 1.1rem; }
+    .main-photo-solo { margin:0.3rem 0 0.2rem; max-width:240px; }
     
     input[type="text"], input[type="number"], textarea, select { width: 100%; padding: 0.7rem; border-radius: 0.5rem; border: 1px solid #d1d5db; font-size: 1rem; margin-bottom: 0.5rem; box-sizing: border-box; }
     textarea { min-height: 6em; resize: vertical; }
@@ -149,7 +161,8 @@
       <form id="carForm">
         <input type="hidden" id="DocumentID" name="DocumentID">
 
-        <h2 class="rg-section-title">基本情報</h2>
+        <h2 class="rg-section-title">まずはこれだけ（必須）</h2>
+        <p class="req-note" style="background:#eef4ff; border-color:#cfe0fb; color:#1f4a8a;">登録に必要なのは下の6項目だけ。まずは気軽に登録して、あとから愛車の情報を少しずつ育てていけます。</p>
 
         <!-- 車両タイプは入り口（index）で確定済み -->
         <input type="hidden" id="CarType" name="CarType" value="500">
@@ -223,10 +236,21 @@
         </select>
         <div id="ModelSelectBWrapper" style="display:none;"><input type="text" name="ModelTextB" placeholder="グレード詳細を入力"></div>
 
-        <div class="inline-small">
-          <div><label>年式 <span class="badge-required">必須</span></label><input type="text" name="Year" placeholder="1970等" pattern="[0-9]{4}" title="4桁の西暦で入力してください" required></div>
-          <div><label>ボディカラー</label><input type="text" name="BodyColor"></div>
+        <div><label>年式 <span class="badge-required">必須</span></label><input type="text" name="Year" placeholder="1970等" pattern="[0-9]{4}" title="4桁の西暦で入力してください" required></div>
+
+        <div class="photo-grid main-photo-solo">
+          <div class="photo-upload-box js-photo-upload" data-target="PhotoMain">
+            <span class="photo-label">★メイン写真 <span class="badge-required">必須</span></span>
+            <div class="preview-area"><img class="preview-img"></div>
+            <input type="hidden" name="PhotoMain">
+            <button type="button" class="btn-re-crop" onclick="startReCrop(event, 'PhotoMain')">✂ 範囲調整</button>
+          </div>
         </div>
+        <p class="req-note">✓ ここまで入力すれば、下の「新しく登録する」ボタンで登録できます。詳しい仕様は登録後でも追加できます。</p>
+
+        <details class="opt-section" data-opt>
+        <summary class="opt-summary">車両の詳細（色・サイズ・ハンドルなど・任意）</summary>
+          <label>ボディカラー</label><input type="text" name="BodyColor">
         
         <div class="inline-small">
           <div><label>全長(cm)</label><input type="number" name="Length_cm"></div>
@@ -245,7 +269,10 @@
           <label><input type="radio" name="Steering" value="右">右</label>
         </div>
 
-        <h2 class="rg-section-title">エンジン関係</h2>
+        </details>
+
+        <details class="opt-section" data-opt>
+        <summary class="opt-summary">🔧 エンジン関係（任意・あとででOK）</summary>
         <label>排気量(cc)</label><input type="number" name="EngineCC" min="0" max="9999">
         
         <label>エンジン形式</label>
@@ -316,7 +343,10 @@
           <label><input type="radio" name="OilCooler" value="電気式">電気式</label>
         </div>
 
-        <h2 class="rg-section-title">駆動系・足回り</h2>
+        </details>
+
+        <details class="opt-section" data-opt>
+        <summary class="opt-summary">⚙ 駆動系・足回り（任意）</summary>
         <div class="inline-small">
           <div><label>ミッション</label>
             <div class="radio-group">
@@ -360,7 +390,10 @@
           <div><label>タイヤメーカー</label><input type="text" name="TireBrandName"></div>
         </div>
 
-        <h2 class="rg-section-title">オイル・バッテリー</h2>
+        </details>
+
+        <details class="opt-section" data-opt>
+        <summary class="opt-summary">🛢 オイル・バッテリー（任意）</summary>
         <div class="inline-small">
           <div><label>エンジンオイル</label><input type="text" name="EngineOil"></div>
           <div><label>交換周期</label><input type="text" name="EngineOilInterval"></div>
@@ -371,10 +404,13 @@
         </div>
         <label>バッテリー</label><input type="text" name="Battery">
 
-        <h2 class="rg-section-title">こだわりポイント</h2>
+        </details>
+
+        <h2 class="rg-section-title">こだわりポイント（任意）</h2>
         <textarea name="Highlights" placeholder="愛車の自慢やカスタム内容、整備のこだわりなどをご自由に。"></textarea>
 
-        <h2 class="rg-section-title">SNS / Web</h2>
+        <details class="opt-section" data-opt>
+        <summary class="opt-summary">🔗 SNS / Web（任意）</summary>
         <div class="inline-small">
           <div><label>X (Twitter)</label><input type="text" name="X_Twitter" placeholder="@..."></div>
           <div><label>Instagram</label><input type="text" name="Instagram"></div>
@@ -389,14 +425,11 @@
         </div>
         <label>ブログ・個人サイトURL</label><input type="text" name="BlogOrWebsite">
 
-        <h2 class="rg-section-title">写真登録</h2>
+        </details>
+
+        <details class="opt-section" data-opt>
+        <summary class="opt-summary">📷 他の写真を追加（正面・側面・内装など・任意）</summary>
         <div class="photo-grid">
-          <div class="photo-upload-box js-photo-upload" data-target="PhotoMain">
-            <span class="photo-label">★メイン写真 <span class="badge-required">必須</span></span>
-            <div class="preview-area"><img class="preview-img"></div>
-            <input type="hidden" name="PhotoMain">
-            <button type="button" class="btn-re-crop" onclick="startReCrop(event, 'PhotoMain')">✂ 範囲調整</button>
-          </div>
           <div class="photo-upload-box js-photo-upload" data-target="PhotoFront">
             <span class="photo-label">正面</span>
             <div class="preview-area"><img class="preview-img"></div>
@@ -434,6 +467,7 @@
             <button type="button" class="btn-re-crop" onclick="startReCrop(event, 'PhotoInterior')">✂ 範囲調整</button>
           </div>
         </div>
+        </details>
         <input type="file" id="globalFileInput" accept="image/*" style="display:none;">
 
         <div class="risk-note">
@@ -652,6 +686,14 @@
           snsShareSection.style.display = 'block';
           snsShareOptoutCheckbox.checked = !!data.sns_share_optout;
         }
+        // 値が入っている任意セクションは自動で開く（既存編集時に内容が隠れないように）
+        document.querySelectorAll('details.opt-section').forEach(d => {
+          const hasVal = Array.from(d.querySelectorAll('input, select, textarea')).some(el => {
+            if (el.type === 'radio' || el.type === 'checkbox') return el.checked;
+            return el.value && String(el.value).trim() !== '';
+          });
+          if (hasVal) d.open = true;
+        });
       }
 
       function setPhotoPreview(target, url) {
@@ -712,8 +754,23 @@
 
       submitBtn.onclick = async () => {
         const fd = new FormData(carForm); const raw = {}; fd.forEach((v, k) => raw[k] = v);
-        if (!raw.HandleName || !raw.Prefecture || !raw.Year || !raw.ModelSelectA || !raw.ModelSelectB || !raw.PhotoMain) { 
-          alert("必須項目をすべて入力してください。"); return; 
+        const requiredFields = [
+          ['HandleName', 'ハンドルネーム'], ['Prefecture', '都道府県'],
+          ['ModelSelectA', '車両モデル'], ['ModelSelectB', 'モデル詳細'],
+          ['Year', '年式'], ['PhotoMain', 'メイン写真']
+        ];
+        const missing = requiredFields.find(([k]) => !raw[k] || String(raw[k]).trim() === '');
+        if (missing) {
+          const [key, label] = missing;
+          alert(`「${label}」が未入力です。入力してから登録してください。`);
+          const el = carForm.querySelector(`[name="${key}"]`);
+          const det = el && el.closest('details'); if (det) det.open = true;
+          const focusTarget = (el && el.type !== 'hidden') ? el : carForm.querySelector(`[data-target="${key}"]`);
+          if (focusTarget) {
+            focusTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (el && el.type !== 'hidden' && el.focus) el.focus();
+          }
+          return;
         }
         submitBtn.disabled = true; submitBtn.textContent = "保存中...";
         try {
