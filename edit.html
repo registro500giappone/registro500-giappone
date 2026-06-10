@@ -824,7 +824,11 @@
           const { data: savedData, error } = await supabaseClient.from('cars').upsert(dbData, { onConflict: 'document_id' }).select();
           if (error) throw error;
           const finalDocId = savedData[0].document_id;
-          if (isNew) fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'send_thanks_email', formData: { email: userEmail, handleName: raw.HandleName, docId: finalDocId } }) });
+          if (isNew) {
+            fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'send_thanks_email', formData: { email: userEmail, handleName: raw.HandleName, docId: finalDocId } }) });
+            // GA4: 新規登録完了（獲得ファネルのゴール）。GA4管理画面で「キーイベント」に指定する
+            if (typeof gtag === 'function') gtag('event', 'sign_up', { method: 'web_form', car_type: dbData.car_type });
+          }
           alert("保存しました！"); window.location.href = `detail.html?doc=${finalDocId}`;
         } catch (e) { alert("保存エラー: " + e.message); submitBtn.disabled = false; }
       };
