@@ -17,20 +17,19 @@ import sys
 import time
 import requests
 import re
-import os
-from supabase import create_client
-from dotenv import load_dotenv
+
+from crawler_common import BOT_USER_AGENT, get_supabase
+import crawler_common
 
 # --- 設定 ---
-load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
-SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_KEY"]
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = get_supabase()
 
 SHOP_NAME = "Passione 500"
 SITE_BASE_URL = "https://passione500.it"
 STORE_API_URL = f"{SITE_BASE_URL}/wp-json/wc/store/v1/products"
-BOT_USER_AGENT = "Registro500Bot/1.0 (+https://www.registro500.com; parts price comparison)"
+
+# 注意: detect_target_cars はdangelo版（crawler_common）と正規表現が異なる
+# （`500` に語境界なし）ため、共通化せず本ファイル独自実装を維持している。
 
 BATCH_SIZE = 50
 PAGE_LIMIT = 100
@@ -120,13 +119,8 @@ def build_product_data(p):
 
 
 def batch_upsert(batch):
-    """バッチでSupabaseにupsert"""
-    try:
-        supabase.table("parts").upsert(batch, on_conflict="product_no").execute()
-        return True
-    except Exception as e:
-        print(f"  [Batch Upsert Error] {e}")
-        return False
+    """バッチでSupabaseにupsert（共通モジュールへ委譲）"""
+    return crawler_common.batch_upsert(supabase, batch)
 
 
 def main():
