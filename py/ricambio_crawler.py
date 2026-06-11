@@ -7,14 +7,19 @@ Shopify JSON APIを使用（Selenium不要、高速）
 
 import requests
 import time
-
-from crawler_common import BOT_USER_AGENT_SHORT as BOT_USER_AGENT, get_supabase
+import os
+from supabase import create_client
+from dotenv import load_dotenv
 
 # 設定
-supabase = get_supabase()
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
+SUPABASE_URL = os.environ["SUPABASE_URL"]
+SUPABASE_KEY = os.environ["SUPABASE_KEY"]
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 SHOP_NAME = "Ricambio"
 BASE_URL = "https://www.ricambio.co.uk"
+BOT_USER_AGENT = "Registro500Bot/1.0 (+https://www.registro500.com)"
 
 GBP_TO_EUR_FALLBACK = 1.17
 

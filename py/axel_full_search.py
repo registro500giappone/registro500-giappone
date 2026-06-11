@@ -8,17 +8,21 @@ Axel Gerstl クローラー（再構築版）
 import time
 import requests
 import re
+import os
 import random
 from bs4 import BeautifulSoup
-
-from crawler_common import BOT_USER_AGENT, get_supabase
-import crawler_common
+from supabase import create_client
+from dotenv import load_dotenv
 
 # --- 設定 ---
-supabase = get_supabase()
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
+SUPABASE_URL = os.environ["SUPABASE_URL"]
+SUPABASE_KEY = os.environ["SUPABASE_KEY"]
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 SHOP_NAME = "Axel Gerstl"
 SITE_BASE_URL = "https://webshop.fiat500126.com"
+BOT_USER_AGENT = "Registro500Bot/1.0 (+https://www.registro500.com; parts price comparison)"
 BATCH_SIZE = 50
 
 TEST_MODE = False
@@ -144,8 +148,13 @@ def scrape_product(session, url):
 
 
 def batch_upsert(batch):
-    """バッチでSupabaseにupsert（共通モジュールへ委譲）"""
-    return crawler_common.batch_upsert(supabase, batch)
+    """バッチでSupabaseにupsert"""
+    try:
+        supabase.table("parts").upsert(batch, on_conflict="product_no").execute()
+        return True
+    except Exception as e:
+        print(f"   [Batch Upsert Error] {e}")
+        return False
 
 
 def main():
