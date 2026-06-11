@@ -434,8 +434,9 @@
     _isAdmin = user.email === ADMIN_EMAIL;
 
     // 自分のcar_id取得
+    await supabaseClient.rpc('link_owner_car');
     const { data: cars } = await supabaseClient
-      .from('cars').select('document_id, handle_name').eq('owner_email', user.email.toLowerCase());
+      .from('cars').select('document_id, handle_name').eq('owner_user_id', user.id);
     if (cars && cars.length > 0) {
       _myCarId = cars[0].document_id;
       _myHandleName = cars[0].handle_name;

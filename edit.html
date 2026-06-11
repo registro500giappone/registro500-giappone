@@ -568,9 +568,7 @@
         if (user) {
           overlay.classList.add('hidden');
           document.getElementById('userEmailDisplay').textContent = user.email;
-          // owner_user_id が未設定の自分の車に UUID を自動補完（バックグラウンド実行）
-          supabaseClient.from('cars').update({ owner_user_id: user.id })
-            .eq('owner_email', user.email.toLowerCase()).is('owner_user_id', null).then(() => {});
+          await supabaseClient.rpc('link_owner_car');
           const params = new URLSearchParams(window.location.search);
           const docId = params.get('doc');
           const mode = params.get('mode');
@@ -591,7 +589,7 @@
           const { data: cars, error } = await supabaseClient
             .from('cars')
             .select('document_id, handle_name, model_display_c')
-            .eq('owner_email', email.toLowerCase())
+            .eq('owner_user_id', currentAuthUser.id)
             .eq('car_type', carType);
 
           pageLoading.style.display = 'none';
@@ -620,7 +618,7 @@
 
       async function loadSpecificCar(docId) {
         try {
-          const { data: car, error } = await supabaseClient.from('cars').select('*').eq('document_id', docId).single();
+          const { data: car, error } = await supabaseClient.from('cars').select('id, document_id, handle_name, prefecture, model_select_a, model_text_a, model_select_b, model_text_b, year, body_color, length_cm, capacity, steering, engine_cc, engine_type_select, engine_type_text, ignition_type, ignition_sub_type, distribution_type, coil_name, plug_name, fuel_injection, carburetor_name, fuel_pump, electric_pump_name, generator, oil_cooler, transmission, synchro, joint, wheel, rim_diameter_in, rim_width_in, tire_type, tire_size, tire_brand_name, engine_oil, engine_oil_interval, transmission_oil, transmission_oil_interval, battery, highlights, x_twitter, instagram, youtube, minkara, facebook, threads, blog_or_website, photo_main, photo_front, photo_side, photo_rear, photo_engine, photo_interior, photo_steering_cluster, accept_inquiry, created_at, updated_at, model_display_a, model_display_b, model_display_c, engine_display, notification_sent, last_update_fields, last_update_date, car_type, cooling_type, owner_user_id, is_sold, sold_at, sns_share_optout').eq('document_id', docId).single();
           if (car) {
             originalData = car; // ★ここで元データを保持
             pageLoading.style.display = 'none'; formContent.style.display = 'block';
@@ -801,7 +799,7 @@
           }
 
           const dbData = {
-            owner_email: userEmail, car_type: raw.CarType || '500', handle_name: raw.HandleName, prefecture: raw.Prefecture,
+            owner_email: userEmail, owner_user_id: currentAuthUser.id, car_type: raw.CarType || '500', handle_name: raw.HandleName, prefecture: raw.Prefecture,
             model_select_a: raw.ModelSelectA, model_text_a: raw.ModelTextA, model_select_b: raw.ModelSelectB, model_text_b: raw.ModelTextB,
             year: raw.Year, body_color: raw.BodyColor, length_cm: raw.Length_cm || null, capacity: raw.Capacity, steering: raw.Steering,
             engine_cc: raw.EngineCC, engine_type_select: raw.EngineTypeSelect, engine_type_text: raw.EngineTypeText,
@@ -821,7 +819,7 @@
             accept_inquiry: true, updated_at: new Date().toISOString()
           };
           if (!isNew) dbData.document_id = raw.DocumentID;
-          const { data: savedData, error } = await supabaseClient.from('cars').upsert(dbData, { onConflict: 'document_id' }).select();
+          const { data: savedData, error } = await supabaseClient.from('cars').upsert(dbData, { onConflict: 'document_id' }).select('document_id');
           if (error) throw error;
           const finalDocId = savedData[0].document_id;
           if (isNew) {

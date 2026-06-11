@@ -883,9 +883,7 @@ async function checkNewsBadge() {
           console.log("AuthStateChanged:", session ? "Logged in" : "Logged out");
           const user = session?.user ?? null;
           if (user) {
-            // owner_user_id が未設定の自分の車に UUID を自動補完（バックグラウンド実行）
-            supabaseClient.from('cars').update({ owner_user_id: user.id })
-              .eq('owner_email', user.email.toLowerCase()).is('owner_user_id', null).then(() => {});
+            await supabaseClient.rpc('link_owner_car');
           }
           await setSession(user);
           isAuthInitialized = true;
@@ -986,7 +984,7 @@ async function checkNewsBadge() {
         const { data: myCars, error: carError } = await supabaseClient
           .from('cars')
           .select('document_id')
-          .eq('owner_email', currentUser.email.toLowerCase())
+          .eq('owner_user_id', currentUser.uid)
           .limit(1);
 
         if (myCars && myCars.length > 0) {

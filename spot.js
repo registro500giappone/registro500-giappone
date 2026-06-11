@@ -326,8 +326,8 @@ async function lookupDocumentId(email) {
   try {
     var result = await supabaseClient
       .from('cars')
-      .select('*')
-      .eq('owner_email', email.toLowerCase())
+      .select('document_id, prefecture')
+      .eq('owner_user_id', currentUser.uid)
       .limit(1);
 
     var data = result.data;

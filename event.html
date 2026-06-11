@@ -613,7 +613,7 @@
       const { data: cars, error } = await supabaseClient
         .from('cars')
         .select('document_id')
-        .eq('owner_email', user.email.toLowerCase());
+        .eq('owner_user_id', user.id);
 
       if(cars && cars.length > 0) myCarId = cars[0].document_id;
       else myCarId = "ADMIN";
@@ -838,7 +838,7 @@ window.openEdit = async (eventId) => {
       const { data: cars, error } = await supabaseClient
         .from('cars')
         .select('document_id, handle_name, model_select_a')
-        .eq('owner_email', currentUser.email.toLowerCase());
+        .eq('owner_user_id', currentUser.id);
 
       if (error) throw error;
 
