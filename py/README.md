@@ -26,6 +26,10 @@
 - `run_all.py` — ローカル手動実行用の統合スクリプト（9ショップ並列＋AI翻訳）。
 - `check_all.py` — 健全性チェック（構文＋workflows参照＋crawlersリストの存在確認。ネットワークなし）。
 
+### アーカイブ
+
+- `archive/` — 旧世代スクリプト（run_all_v2.py・orchestrator.py・crawler_utils.py 等）。**歴史的資料であり実行禁止**。workflows・run_all.py からは参照されていない。
+
 ### その他の現役ユーティリティ（ローカル運用）
 
 - `gen_report.py` — 成長レポート生成（2026-06実装）
