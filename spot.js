@@ -368,33 +368,6 @@ function hideLoading() {
   }
 }
 
-function apiGet(params) {
-  showLoading();
-  var qs = Object.keys(params).map(function(k) {
-    return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
-  }).join('&');
-  return fetch(API_URL + '?' + qs)
-    .then(function(r) { return r.json(); })
-    .finally(hideLoading);
-}
-
-function apiPost(action, data) {
-  showLoading();
-  return fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: action, data: data })
-  }).then(function(r) { return r.text(); })
-    .then(function(text) {
-      var json = JSON.parse(text);
-      // GASがsuccessラッパーなしで返す場合の正規化
-      if (json.success === undefined && json.error === undefined) {
-        return { success: true, data: json };
-      }
-      return json;
-    }).finally(hideLoading);
-}
-
 // =================================================
 // スポット読み込み
 // =================================================
