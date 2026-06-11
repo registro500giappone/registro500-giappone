@@ -8,19 +8,14 @@ URL: https://www.500line.it/en
 
 import requests
 import time
-import os
-from supabase import create_client
-from dotenv import load_dotenv
+
+from crawler_common import BOT_USER_AGENT_SHORT as BOT_USER_AGENT, get_supabase
 
 # 設定
-load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
-SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_KEY"]
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = get_supabase()
 
 SHOP_NAME = "500Line"
 BASE_URL = "https://www.500line.it"
-BOT_USER_AGENT = "Registro500Bot/1.0 (+https://www.registro500.com)"
 
 def get_all_products():
     """Shopify JSON APIで全商品取得"""
