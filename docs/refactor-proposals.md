@@ -51,11 +51,21 @@ GASはファイル分割してもグローバルスコープを共有するた�
 
 ---
 
-## P4. クローラー共通化（D2）の検証状況と残タスク
+## P4. クローラー共通化（D2）の状況と残タスク — **指示書Phase 4-3に従い dangelo 1本で停止中**
 
-`crawler_common.py` 新設とアクティブな**クローラー9本すべての移行を完了**（2026-06-11・各1コミット）。
-挙動同一性は py_compile＋importスモークテスト＋diff目視（リトライ秒数・sleep・UA・upsertキー無変更）で確認済み。
-passione の `detect_target_cars` は正規表現が異なる（`500` に語境界なし）ため共通化せず独自実装を保持。
+`crawler_common.py` 新設と `dangelo_recon.py` の移行を実施済み（2026-06-11）。
+実地検証ゲート（workflow_dispatch による service_role 書込成功）が push 前は構造的に満たせないため、
+Phase 4-3「実地検証が得られない場合は dangelo 1本で停止し、残りは提案として報告」に従い、
+**2〜9本目の移行は一度実装・検証した上で revert 済み**（コミット dbc0f5f）。
+
+### 残り8本の再適用手順（提案・ゲート充足後に人間の指示で実施）
+各移行は py_compile＋importスモークテスト＋diff目視（リトライ秒数・sleep・UA・upsertキー無変更）で検証済みの
+コミットとして履歴に残っており、dangelo の workflow_dispatch 成功確認後に以下で再適用できる:
+```
+git cherry-pick 1eca205 3430996 2eec09d e17857a 1e7b1be 04f5c5c a7f3117 3ccfb77
+```
+（euro→passione→axel→parts_search_v2→autobella→ricambio→mrfiat→500line。
+passione の `detect_target_cars` は正規表現が異なる〔`500` に語境界なし〕ため共通化せず独自実装を保持している。）
 
 ### 実地検証の状況
 - **dangelo_recon.py はローカル実地実行済み**: 2310件/24ページを2.1分で取得・パース成功（前回水準2280件以上）。
