@@ -9,21 +9,17 @@ EuroItalia500 クローラー（再構築版）
 import time
 import requests
 import re
-import os
 import random
 from bs4 import BeautifulSoup
-from supabase import create_client
-from dotenv import load_dotenv
+
+from crawler_common import BOT_USER_AGENT, get_supabase
+import crawler_common
 
 # --- 設定 ---
-load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
-SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_KEY"]
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = get_supabase()
 
 SHOP_NAME = "EuroItalia500"
 SITE_BASE_URL = "https://euroitalia500-commerce.it"
-BOT_USER_AGENT = "Registro500Bot/1.0 (+https://www.registro500.com; parts price comparison)"
 BATCH_SIZE = 50
 
 TEST_MODE = False
@@ -222,13 +218,8 @@ def scrape_product(session, url):
 
 
 def batch_upsert(batch):
-    """バッチでSupabaseにupsert"""
-    try:
-        supabase.table("parts").upsert(batch, on_conflict="product_no").execute()
-        return True
-    except Exception as e:
-        print(f"   [Batch Upsert Error] {e}")
-        return False
+    """バッチでSupabaseにupsert（共通モジュールへ委譲）"""
+    return crawler_common.batch_upsert(supabase, batch)
 
 
 def main():
