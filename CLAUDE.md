@@ -108,10 +108,9 @@ git push origin main           # Cloudflare Pages 自動デプロイがトリガ
 ## コンテキスト圧縮ヒント（/compact 実行時に優先保持）
 
 コンテキストが圧縮される場合、以下を優先して保持してください：
-- パーツクローラーの8ショップ構成とPIDリスト
+- パーツクローラーの9ショップ構成（py/README.md参照）
 - Supabaseのparts/cars/eventsテーブルスキーマ
 - 現在進行中のクローラー状態と残タスク
-- orchestrator.pyの完了状況
 
 削除してよいもの：
 - クローラーの詳細ログ出力
