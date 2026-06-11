@@ -70,6 +70,13 @@ GASはファイル分割してもグローバルスコープを共有するた�
 ### main.js（ルート直下・git管理外）— 人間がローカルで削除推奨
 `main.js`（約1400行）は `main.gs` の旧版コピー（anonキー時代）。`.gitignore` 登録済みでgit管理外・HTMLから未参照。紛らわしいため**人間がローカルで削除することを推奨**（実装担当はユーザーローカルファイルに触れない方針のため未削除）。
 
+### 【要回答】D3/D4（spots_api.gs / spots_api.js の削除）は前提矛盾のため未実施
+§5.1-2 で削除承認済みだったが、実行前の再確認で承認根拠の一部が崩れていたため §5.2-5 に従い**削除を見送り、質問とする**。
+
+- 崩れた前提: 「spot_schedule.html は Supabase 直アクセスに移行済みで GAS経由のspot呼び出しはフロントに存在せず」→ 実際には spot_schedule.html が今も GAS に `mode=schedules` / `mode=spots` / `mode=my_favorites` を fetch している。
+- ただし削除の安全性自体は成立している: (1) main.gs（リポジトリ版・デプロイ版とも）は spot系mode をルーティングしておらず、本番GASが「Unknown mode」を返すことをライブ確認済み＝spots_api.gs の関数群は本番でも到達不能、(2) spots_api.gs は未定義の `SUPABASE_ANON_KEY` を参照（main.gs内に定義0件）、(3) `.js` 版は `.gs` 版と完全同一（diff IDENTICAL）でHTML未参照、(4) clasp push しない限りデプロイ済みGASに影響なし。
+- **質問**: この状況を踏まえ、spots_api.gs / spots_api.js を削除してよいか？（削除しても実挙動は変わらないが、spot_schedule.html の扱い〔下記〕とセットで判断するのが自然）
+
 ### spot_schedule.html が壊れている（既存事象・今回のリファクタリングとは無関係）
 - spot_schedule.html は GAS に `mode=schedules` / `mode=spots` / `mode=my_favorites` を fetch しているが、`main.gs` の doGet は index / detail / edit_init / events / mycars しかルーティングしておらず、「読み込みエラー: Error: Unknown mode」が表示される（ローカル検証で確認）。
 - どのページからもリンクされていない孤児ページ（spot.js 内の一致は Supabase の `spot_schedules` テーブル名であり、ページへのリンクではない）。
