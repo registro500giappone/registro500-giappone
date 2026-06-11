@@ -60,7 +60,7 @@ passione の `detect_target_cars` は正規表現が異なる（`500` に語境�
 ### 実地検証の状況
 - **dangelo_recon.py はローカル実地実行済み**: 2310件/24ページを2.1分で取得・パース成功（前回水準2280件以上）。
 - ただし **upsert は全件RLS拒否（42501）** — 2026-05のセキュリティ是正（匿名書込ポリシー削除・書込はCI/GASのservice_roleのみ）により、ローカルの py/.env キーでは parts テーブルに書込不可のため。**コード起因ではなく環境起因**（旧コードでも同結果）。本番データへの副作用なし。
-- **残タスク（push後に人間が実施）**: crawl-dangelo.yml を workflow_dispatch 手動実行し、Actions（service_role）でのupsert成功と件数（約2310件）を確認する。daily-parts-update.yml（autobella/ricambio/mrfiat）は毎日03:00 JSTの定期実行が自動的に検証になる。
+- **残タスク（push後に人間が実施）**: crawl-dangelo.yml を workflow_dispatch 手動実行し、Actions（service_role）でのupsert成功を確認する。**定量基準（2026-06-11時点で記録済み）**: ログの取得件数が約2310件（±数十件）・実行後の parts テーブルの D'Angelo 件数が 2347件以上（upsertは削除しないため減少しない）であれば成功。daily-parts-update.yml（autobella/ricambio/mrfiat）は毎日03:00 JSTの定期実行が自動的に検証になる。
 
 ### 副産物の発見（提案）
 クローラーは upsert が全滅しても exit 0 で「完了」と報告する（dangeloローカル実行で実証）。GAS不達インシデント（2026-04-29）と同型の**サイレント失敗パターン**。upsert失敗数をカウントし、全滅時は exit 1 にする小改修を提案する（挙動変更のため今回は未実装）。
