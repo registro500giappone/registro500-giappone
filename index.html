@@ -879,14 +879,18 @@ async function checkNewsBadge() {
     async function initAuth() {
       console.log("initAuth started (Supabase)");
       try {
-        supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        supabaseClient.auth.onAuthStateChange((event, session) => {
           console.log("AuthStateChanged:", session ? "Logged in" : "Logged out");
           const user = session?.user ?? null;
-          if (user) {
-            await supabaseClient.rpc('link_owner_car');
-          }
-          await setSession(user);
-          isAuthInitialized = true;
+          // onAuthStateChange のコールバック内で supabase 呼び出しを直接 await すると
+          // 認証ロックでデッドロックするため、setTimeout で遅延実行する
+          setTimeout(async () => {
+            if (user) {
+              await supabaseClient.rpc('link_owner_car');
+            }
+            await setSession(user);
+            isAuthInitialized = true;
+          }, 0);
         });
       } catch (e) {
         console.error("initAuth exception:", e);

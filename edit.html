@@ -562,20 +562,24 @@
       let cropper = null;
       let currentAuthUser = null; // Supabase Authユーザー
 
-      supabaseClient.auth.onAuthStateChange(async (event, session) => {
+      supabaseClient.auth.onAuthStateChange((event, session) => {
         const user = session?.user ?? null;
         currentAuthUser = user;
         if (user) {
           overlay.classList.add('hidden');
           document.getElementById('userEmailDisplay').textContent = user.email;
-          await supabaseClient.rpc('link_owner_car');
-          const params = new URLSearchParams(window.location.search);
-          const docId = params.get('doc');
-          const mode = params.get('mode');
+          // onAuthStateChange のコールバック内で supabase 呼び出しを直接 await すると
+          // 認証ロックでデッドロックするため、setTimeout で遅延実行する
+          setTimeout(async () => {
+            await supabaseClient.rpc('link_owner_car');
+            const params = new URLSearchParams(window.location.search);
+            const docId = params.get('doc');
+            const mode = params.get('mode');
 
-          if (docId) { loadSpecificCar(docId); }
-          else if (mode === 'new') { showBlankForm(); }
-          else { detectUserCars(user.email); }
+            if (docId) { loadSpecificCar(docId); }
+            else if (mode === 'new') { showBlankForm(); }
+            else { detectUserCars(user.email); }
+          }, 0);
         } else {
           overlay.classList.remove('hidden');
           pageLoading.style.display = 'none';
