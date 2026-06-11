@@ -387,7 +387,7 @@
       // 車両・オーナー情報
       const { data: car } = await supabaseClient
         .from('cars')
-        .select('document_id, handle_name, model_display_c, year, owner_email, car_type')
+        .select('document_id, handle_name, model_display_c, year, owner_user_id, car_type')
         .eq('document_id', ep.car_id)
         .single();
 
@@ -401,8 +401,8 @@
         const { data: { session } } = await supabaseClient.auth.getSession();
         const user = session?.user;
         if (!user) return;
-        const isOwner = user.email && car.owner_email
-          && user.email.toLowerCase() === car.owner_email.toLowerCase();
+        const isOwner = user.id && car.owner_user_id
+          && car.owner_user_id === user.id;
         if (isOwner) {
           const editLink = document.getElementById('epFooterEditLink');
           editLink.href = `episode-edit.html?car=${encodeURIComponent(car.document_id)}&ep=${encodeURIComponent(ep.id)}`;

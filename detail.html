@@ -242,7 +242,7 @@
     async function fetchDetail() {
       if (!docId) return;
       try {
-        const { data, error } = await supabaseClient.from('cars').select('*').eq('document_id', docId).single();
+        const { data, error } = await supabaseClient.from('cars').select('id, document_id, handle_name, prefecture, model_select_a, model_text_a, model_select_b, model_text_b, year, body_color, length_cm, capacity, steering, engine_cc, engine_type_select, engine_type_text, ignition_type, ignition_sub_type, distribution_type, coil_name, plug_name, fuel_injection, carburetor_name, fuel_pump, electric_pump_name, generator, oil_cooler, transmission, synchro, joint, wheel, rim_diameter_in, rim_width_in, tire_type, tire_size, tire_brand_name, engine_oil, engine_oil_interval, transmission_oil, transmission_oil_interval, battery, highlights, x_twitter, instagram, youtube, minkara, facebook, threads, blog_or_website, photo_main, photo_front, photo_side, photo_rear, photo_engine, photo_interior, photo_steering_cluster, accept_inquiry, created_at, updated_at, model_display_a, model_display_b, model_display_c, engine_display, notification_sent, last_update_fields, last_update_date, car_type, cooling_type, owner_user_id, is_sold, sold_at, sns_share_optout').eq('document_id', docId).single();
         if (data) {
           currentCar = data;
           renderDetail(data);
@@ -416,7 +416,7 @@
 
     function updateOwnerUI() {
       if(!currentCar) return;
-      const isOwner = currentUser && currentUser.email.toLowerCase() === (currentCar.owner_email || '').toLowerCase();
+      const isOwner = currentUser && currentCar.owner_user_id && currentCar.owner_user_id === currentUser.id;
       if(isOwner) {
         const carType = currentCar.car_type || '500';
         document.getElementById('ownerMenuArea').style.display = 'block';
@@ -437,7 +437,7 @@
       if (!currentCar || currentEpisodes === null) return;
       const hasAcquisition = currentEpisodes.some(e => e.type === 'acquisition');
       if (hasAcquisition) return; // 既に表示済み
-      const isOwner = currentUser && currentUser.email.toLowerCase() === (currentCar.owner_email || '').toLowerCase();
+      const isOwner = currentUser && currentCar.owner_user_id && currentCar.owner_user_id === currentUser.id;
       const section = document.getElementById('acquisitionSection');
       if (isOwner) {
         section.style.display = 'block';
