@@ -823,7 +823,11 @@
             accept_inquiry: true, updated_at: new Date().toISOString()
           };
           if (!isNew) dbData.document_id = raw.DocumentID;
-          const { data: savedData, error } = await supabaseClient.from('cars').upsert(dbData, { onConflict: 'document_id' }).select('document_id');
+          // ON CONFLICT DO UPDATE（upsert）は SELECT 権限を要求し owner_email 非公開化と両立しないため、
+          // 新規=insert / 既存=update に分割する
+          const { data: savedData, error } = isNew
+            ? await supabaseClient.from('cars').insert(dbData).select('document_id')
+            : await supabaseClient.from('cars').update(dbData).eq('document_id', raw.DocumentID).select('document_id');
           if (error) throw error;
           const finalDocId = savedData[0].document_id;
           if (isNew) {
