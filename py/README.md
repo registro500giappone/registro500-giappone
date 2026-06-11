@@ -24,6 +24,7 @@
 
 - `ai_marathon_final_v9.py` — AI翻訳（Gemini API）。各クロール後に実行され、`category IS NULL` のレコードを対象に name_ja / category を充足。
 - `run_all.py` — ローカル手動実行用の統合スクリプト（9ショップ並列＋AI翻訳）。
+- `crawler_common.py` — 全クローラー共通のボイラープレート（env読込・Supabaseクライアント・UA・batch_upsert・detect_target_cars）。
 - `check_all.py` — 健全性チェック（構文＋workflows参照＋crawlersリストの存在確認。ネットワークなし）。
 
 ### アーカイブ

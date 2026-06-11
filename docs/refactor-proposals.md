@@ -51,17 +51,19 @@ GASはファイル分割してもグローバルスコープを共有するた�
 
 ---
 
-## P4. クローラー共通化の残り（D2の続き・実地検証待ち）
+## P4. クローラー共通化（D2）の検証状況と残タスク
 
-`crawler_common.py` 新設と `dangelo_recon.py` の移行は実施済み（2026-06-11）。
-**dangelo の workflow_dispatch 実地検証が成功するまで、2本目以降は移行しない。**
+`crawler_common.py` 新設とアクティブな**クローラー9本すべての移行を完了**（2026-06-11・各1コミット）。
+挙動同一性は py_compile＋importスモークテスト＋diff目視（リトライ秒数・sleep・UA・upsertキー無変更）で確認済み。
+passione の `detect_target_cars` は正規表現が異なる（`500` に語境界なし）ため共通化せず独自実装を保持。
 
-成功後の推奨順序（構造が単純な順）:
-1. `euro_search.py`・`passione_recon.py`（dangelo類似のAPI型。ただし passione の `detect_target_cars` は正規表現が異なる＝`500` に語境界なし。**統一せず差異を保持**すること）
-2. `autobella_crawler.py`・`ricambio_crawler.py`・`mrfiat_crawler.py`・`500line_crawler.py`（短形式UA `BOT_USER_AGENT_SHORT` を使用）
-3. `axel_full_search.py`・`parts_search_v2.py`（Selenium型・最後）
+### 実地検証の状況
+- **dangelo_recon.py はローカル実地実行済み**: 2310件/24ページを2.1分で取得・パース成功（前回水準2280件以上）。
+- ただし **upsert は全件RLS拒否（42501）** — 2026-05のセキュリティ是正（匿名書込ポリシー削除・書込はCI/GASのservice_roleのみ）により、ローカルの py/.env キーでは parts テーブルに書込不可のため。**コード起因ではなく環境起因**（旧コードでも同結果）。本番データへの副作用なし。
+- **残タスク（push後に人間が実施）**: crawl-dangelo.yml を workflow_dispatch 手動実行し、Actions（service_role）でのupsert成功と件数（約2310件）を確認する。daily-parts-update.yml（autobella/ricambio/mrfiat）は毎日03:00 JSTの定期実行が自動的に検証になる。
 
-各移行は1本=1コミットとし、py_compile＋diff目視＋workflow_dispatch実地検証（取得件数が前回と同水準）をもって完了とする。
+### 副産物の発見（提案）
+クローラーは upsert が全滅しても exit 0 で「完了」と報告する（dangeloローカル実行で実証）。GAS不達インシデント（2026-04-29）と同型の**サイレント失敗パターン**。upsert失敗数をカウントし、全滅時は exit 1 にする小改修を提案する（挙動変更のため今回は未実装）。
 
 ---
 
