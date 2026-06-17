@@ -76,7 +76,7 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 |---|---|---|---|---|---|
 | FD Ricambi | fdricambi.com | `parts_search_v2.py` | requests+BS4 | 税抜き | - |
 | Axel Gerstl | webshop.fiat500126.com | `axel_full_search.py` | requests+BS4 | 税込み | 19%（独） |
-| EuroItalia500 | euroitalia500-commerce.it | `euro_search.py` | requests+BS4 | 税込み | 22%（伊） |
+| EuroItalia500 | shop.euroitalia500.it | `euroitalia500_recon.py` | WooCommerce Store API | 税込み | 22%（伊） |
 | Passione 500 | passione500.it | `passione_recon.py` | requests+BS4 | 税込み | 22%（伊） |
 | D'Angelo Motori | dangelomotori.it | `dangelo_recon.py` | requests+BS4 | 税抜き | - |
 | AutoBella Parts | autobellaparts.com | `autobella_crawler.py` | Shopify JSON API | 税込み | 20%（英） |
@@ -214,7 +214,7 @@ registro500-giappone/
     ├── axel_full_search.py
     ├── passione_recon.py
     ├── parts_search_v2.py        # FD Ricambi
-    ├── euro_search.py            # EuroItalia500
+    ├── euroitalia500_recon.py    # EuroItalia500
     ├── dangelo_recon.py          # D'Angelo Motori
     ├── autobella_crawler.py
     ├── ricambio_crawler.py

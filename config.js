@@ -51,7 +51,8 @@ const CONFIG = {
         "EuroItalia500": {
             is_price_ex_vat: false,  // 税込み価格
             vat_rate: 0.22,          // イタリアVAT 22%
-            base_url: "https://euroitalia500-commerce.it"
+            base_url: "https://shop.euroitalia500.it",
+            display_name: "EuroItalia500（Julcar）"
         },
         "Passione 500": {
             is_price_ex_vat: false,  // 税込み価格

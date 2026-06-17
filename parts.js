@@ -107,6 +107,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // --- ショップチェックボックスを本サイトリンク付きで生成 ---
+// ショップの表示名を返す（DBキーは shop_name のまま、UI表示のみ display_name を優先）
+function shopDisplayName(name) {
+    const c = CONFIG.shops[name];
+    return (c && c.display_name) ? c.display_name : name;
+}
+
 function renderShopCheckboxes() {
     const container = document.getElementById('shop-checkboxes');
     if (!container) return;
@@ -118,7 +124,7 @@ function renderShopCheckboxes() {
         label.className = 'checkbox-item';
         label.innerHTML = `
             <input type="checkbox" name="shop" value="${shopName}" checked>
-            <a href="${shopConfig.base_url}" target="_blank" rel="noopener noreferrer" class="shop-link" onclick="event.stopPropagation();">${shopName}</a>
+            <a href="${shopConfig.base_url}" target="_blank" rel="noopener noreferrer" class="shop-link" onclick="event.stopPropagation();">${shopDisplayName(shopName)}</a>
         `;
         container.appendChild(label);
     });
@@ -582,7 +588,7 @@ function displayResultsByShop(parts, targetShops, container) {
         header.className = 'shop-header';
         header.innerHTML = `
             <div class="shop-name">
-                <span>${shopName}</span>
+                <span>${shopDisplayName(shopName)}</span>
                 <span class="shop-count">(${shopParts.length}件)</span>
             </div>
             <span class="accordion-icon">▶</span>
@@ -840,7 +846,7 @@ function renderCompareList() {
         groupDiv.className = 'compare-shop-group';
 
         // ショップヘッダー
-        groupDiv.innerHTML = `<div class="compare-shop-header"><span>${shopName}</span><span>${items.length}点</span></div>`;
+        groupDiv.innerHTML = `<div class="compare-shop-header"><span>${shopDisplayName(shopName)}</span><span>${items.length}点</span></div>`;
 
         // アイテム一覧
         items.forEach(item => {
@@ -1048,7 +1054,7 @@ function renderModalCompareList() {
         const groupDiv = document.createElement('div');
         groupDiv.className = 'compare-shop-group';
 
-        groupDiv.innerHTML = `<div class="compare-shop-header"><span>${shopName}</span><span>${items.length}点</span></div>`;
+        groupDiv.innerHTML = `<div class="compare-shop-header"><span>${shopDisplayName(shopName)}</span><span>${items.length}点</span></div>`;
 
         items.forEach(item => {
             const itemDiv = document.createElement('div');
@@ -1338,7 +1344,7 @@ function renderOptimizationSection() {
         html += `
             <div class="optimization-card ${isBest ? 'best' : ''}">
                 <div class="shop-name">
-                    ${shopName}
+                    ${shopDisplayName(shopName)}
                     ${isBest ? '<span class="best-badge">最安</span>' : ''}
                 </div>
                 <div class="items-count">${analysis.items.length}点</div>

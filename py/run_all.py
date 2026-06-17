@@ -162,7 +162,7 @@ def main():
         ("axel_full_search.py", "Axel Gerstl"),
         ("parts_search_v2.py", "FD Ricambi"),
         ("dangelo_recon.py", "D'Angelo Motori"),
-        ("euro_search.py", "EuroItalia500"),
+        ("euroitalia500_recon.py", "EuroItalia500"),
         ("passione_recon.py", "Passione 500"),
         ("autobella_crawler.py", "AutoBella Parts"),
         ("ricambio_crawler.py", "Ricambio"),

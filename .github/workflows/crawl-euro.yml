@@ -11,7 +11,7 @@ env:
 jobs:
   crawl:
     runs-on: ubuntu-latest
-    timeout-minutes: 120  # 再構築後の推定60〜90分 + 余裕（Selenium不要になったため短縮）
+    timeout-minutes: 60  # クロールはStore API化で数分。初回はAI翻訳バックログ(約2,800件)に余裕を持たせる
 
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +30,7 @@ jobs:
           echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> py/.env
 
       - name: EuroItalia500 クロール
-        run: python py/euro_search.py
+        run: python py/euroitalia500_recon.py
 
       - name: AI翻訳（新規レコードのみ）
         if: success()

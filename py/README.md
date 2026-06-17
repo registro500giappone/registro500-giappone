@@ -15,7 +15,7 @@
 | Axel Gerstl (ドイツ) | `axel_full_search.py` | 週1（crawl-axel.yml） |
 | FD Ricambi (イタリア) | `parts_search_v2.py` | 手動のみ（crawl-fd.yml。Actions IPがブロックされるため workflow_dispatch） |
 | D'Angelo Motori (イタリア) | `dangelo_recon.py` | 週2（crawl-dangelo.yml） |
-| EuroItalia500 (イタリア) | `euro_search.py` | 週3（crawl-euro.yml） |
+| EuroItalia500 (イタリア) | `euroitalia500_recon.py` | 週3（crawl-euro.yml） |
 | Passione 500 (イタリア) | `passione_recon.py` | 週2（crawl-passione.yml） |
 | AutoBella Parts | `autobella_crawler.py` | 毎日（daily-parts-update.yml） |
 | Ricambio | `ricambio_crawler.py` | 毎日（daily-parts-update.yml） |
