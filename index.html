@@ -474,13 +474,48 @@
               <a href="parts-guide.html" id="menuPartsBtn" style="display:none;">🔧 比べ太郎</a>
               <button onclick="shareSite()">🔗 サイトをシェア</button>
               <button id="viewToggleBtn" onclick="toggleViewMode()">📋 リスト表示</button>
-              <button id="menuLoginBtn" onclick="loginWithGoogle()">🔑 ログイン</button>
+              <button id="menuLoginBtn" onclick="openLoginModal()">🔑 ログイン</button>
               <a href="126/" id="link126Site">🚗 126サイトへ</a>
               <button id="menuLogoutBtn" onclick="logout()" style="display:none;">🚪 ログアウト</button>
             </div>
           </div>
 
           <a href="edit.html?type=500" class="btn-secondary btn-owner">マイガレージ</a>
+
+          <div id="loginModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;">
+            <div style="background:#fff;padding:28px 24px;border-radius:16px;max-width:340px;width:90%;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.2);">
+              <h3 style="margin-top:0;">ログイン</h3>
+              <p style="font-size:13px;color:#666;margin:0 0 16px;">登録したメールアドレスでログインできます</p>
+              <!-- ステップ1: メールアドレス入力 -->
+              <div id="otpStep1" style="display:flex;flex-direction:column;gap:10px;text-align:left;">
+                <input type="email" id="emailLoginInput" placeholder="登録したメールアドレス" autocomplete="email"
+                       style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:15px;">
+                <button type="button" id="clearEmailBtn" onclick="clearLoginEmail()" style="display:none;background:none;border:0;color:#888;font-size:12px;cursor:pointer;align-self:flex-start;padding:0;">別のアドレスを使う</button>
+                <button id="emailLoginBtn" onclick="sendOtpCode()"
+                        style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">
+                  確認コードを送信
+                </button>
+                <div style="display:flex;align-items:center;gap:8px;color:#aaa;font-size:12px;margin:4px 0;">
+                  <span style="flex:1;height:1px;background:#e0e0e0;"></span>または<span style="flex:1;height:1px;background:#e0e0e0;"></span>
+                </div>
+                <button class="btn-google" onclick="loginWithGoogle()"
+                        style="padding:12px;border:1px solid #ccc;border-radius:8px;background:#fff;cursor:pointer;">Googleでログイン（従来方式）</button>
+              </div>
+              <!-- ステップ2: 確認コード入力 -->
+              <div id="otpStep2" style="display:none;flex-direction:column;gap:10px;text-align:left;">
+                <p style="font-size:13px;color:#2e7d32;margin:0;">✅ <span id="otpSentEmail" style="font-weight:700;"></span> に6桁の確認コードを送信しました。届いたコードを入力してください。</p>
+                <input type="text" id="otpCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"
+                       style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:22px;letter-spacing:8px;text-align:center;">
+                <button id="otpVerifyBtn" onclick="verifyOtpCode()"
+                        style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">
+                  ログイン
+                </button>
+                <button onclick="resendOtpCode()" style="background:none;border:0;color:#2856a8;cursor:pointer;font-size:13px;">確認コードを再送する</button>
+              </div>
+              <p id="otpErrorMsg" style="display:none;font-size:13px;color:#c62828;margin:8px 0 0;"></p>
+              <button onclick="closeLoginModal()" style="margin-top:16px;background:none;border:0;color:#888;cursor:pointer;font-size:13px;">閉じる</button>
+            </div>
+          </div>
         </div>
         
         <nav class="header-nav">
@@ -908,6 +943,70 @@ async function checkNewsBadge() {
         console.error("Login failed:", error);
         alert("ログインに失敗しました: " + error.message);
       }
+    }
+
+    // ログインモーダル（メールOTPコード／Google選択）
+    let otpEmail = '';
+    function openLoginModal() {
+      const m = document.getElementById('loginModal'); if (m) m.style.display = 'flex';
+      // 前回ログインメールのプリフィル
+      const inp = document.getElementById('emailLoginInput'), cb = document.getElementById('clearEmailBtn');
+      const saved = localStorage.getItem('r500_login_email');
+      if (saved && inp) { inp.value = saved; if (cb) cb.style.display = 'block'; }
+    }
+    // 共用端末配慮：プリフィルされたメールをクリア
+    function clearLoginEmail() {
+      const inp = document.getElementById('emailLoginInput'), cb = document.getElementById('clearEmailBtn');
+      if (inp) { inp.value = ''; inp.focus(); }
+      localStorage.removeItem('r500_login_email');
+      if (cb) cb.style.display = 'none';
+    }
+    function closeLoginModal() {
+      const m = document.getElementById('loginModal'); if (m) m.style.display = 'none';
+      // 次回開いたときのためステップ1に戻す
+      const s1 = document.getElementById('otpStep1'), s2 = document.getElementById('otpStep2');
+      if (s1) s1.style.display = 'flex'; if (s2) s2.style.display = 'none';
+      const err = document.getElementById('otpErrorMsg'); if (err) err.style.display = 'none';
+    }
+    function showOtpError(msg) {
+      const el = document.getElementById('otpErrorMsg'); if (!el) return;
+      if (!msg) { el.style.display = 'none'; return; }
+      el.textContent = msg; el.style.display = 'block';
+    }
+    // ステップ1: 確認コード（6桁）を送信
+    async function sendOtpCode() {
+      const email = document.getElementById('emailLoginInput').value.trim();
+      if (!email) { alert('メールアドレスを入力してください'); return; }
+      const btn = document.getElementById('emailLoginBtn');
+      btn.disabled = true; btn.textContent = '送信中…';
+      const { error } = await supabaseClient.auth.signInWithOtp({ email });
+      btn.disabled = false; btn.textContent = '確認コードを送信';
+      if (error) { showOtpError('送信に失敗しました：' + error.message); return; }
+      otpEmail = email;
+      localStorage.setItem('r500_login_email', email);
+      document.getElementById('otpSentEmail').textContent = email;
+      document.getElementById('otpStep1').style.display = 'none';
+      document.getElementById('otpStep2').style.display = 'flex';
+      showOtpError('');
+    }
+    // ステップ2: 確認コードを検証してログイン
+    async function verifyOtpCode() {
+      const code = document.getElementById('otpCodeInput').value.trim();
+      if (!code) { alert('確認コードを入力してください'); return; }
+      const btn = document.getElementById('otpVerifyBtn');
+      btn.disabled = true; btn.textContent = '確認中…';
+      const { error } = await supabaseClient.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
+      btn.disabled = false; btn.textContent = 'ログイン';
+      if (error) { showOtpError('コードが正しくないか、期限切れです。もう一度お試しください。'); return; }
+      // 成功 → onAuthStateChange がログイン処理を実行。モーダルを閉じる
+      closeLoginModal();
+    }
+    // 確認コードの再送
+    async function resendOtpCode() {
+      if (!otpEmail) return;
+      const { error } = await supabaseClient.auth.signInWithOtp({ email: otpEmail });
+      showOtpError(error ? ('再送に失敗しました：' + error.message) : '');
+      if (!error) alert('確認コードを再送しました。');
     }
 
     // ログアウト処理

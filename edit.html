@@ -134,7 +134,36 @@
     <div style="background:white; padding:40px; border-radius:20px; text-align:center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
       <h2 style="margin-top:0;">オーナー認証</h2>
       <p>マイガレージを利用するにはログインが必要です。</p>
-      <button class="btn-google" id="googleLoginBtn">Googleでログイン</button>
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:320px;margin:0 auto;text-align:left;">
+        <!-- ステップ1: メールアドレス入力 -->
+        <div id="otpStep1" style="display:flex;flex-direction:column;gap:10px;">
+          <input type="email" id="emailLoginInput" placeholder="登録したメールアドレス" autocomplete="email"
+                 style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:15px;">
+          <button type="button" id="clearEmailBtn" style="display:none;background:none;border:0;color:#888;font-size:12px;cursor:pointer;align-self:flex-start;padding:0;">別のアドレスを使う</button>
+          <button id="emailLoginBtn"
+                  style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">
+            確認コードを送信
+          </button>
+          <div style="display:flex;align-items:center;gap:8px;color:#aaa;font-size:12px;margin:4px 0;">
+            <span style="flex:1;height:1px;background:#e0e0e0;"></span>または<span style="flex:1;height:1px;background:#e0e0e0;"></span>
+          </div>
+          <button class="btn-google" id="googleLoginBtn"
+                  style="padding:12px;border:1px solid #ccc;border-radius:8px;background:#fff;color:#333;font-weight:normal;cursor:pointer;">Googleでログイン（従来方式）</button>
+          <p style="font-size:12px;color:#888;margin:2px 0 0;">Googleアカウントをお使いの方はこちらが簡単です</p>
+        </div>
+        <!-- ステップ2: 確認コード入力 -->
+        <div id="otpStep2" style="display:none;flex-direction:column;gap:10px;">
+          <p style="font-size:13px;color:#2e7d32;margin:0;">✅ <span id="otpSentEmail" style="font-weight:700;"></span> に6桁の確認コードを送信しました。届いたコードを入力してください。</p>
+          <input type="text" id="otpCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"
+                 style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:22px;letter-spacing:8px;text-align:center;">
+          <button id="otpVerifyBtn"
+                  style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">
+            ログイン
+          </button>
+          <button id="otpResendBtn" style="background:none;border:0;color:#2856a8;cursor:pointer;font-size:13px;">確認コードを再送する</button>
+        </div>
+        <p id="otpErrorMsg" style="display:none;font-size:13px;color:#c62828;margin:8px 0 0;"></p>
+      </div>
     </div>
   </div>
 
@@ -145,6 +174,30 @@
         ログイン中: <span id="userEmailDisplay">確認中...</span>
         <button id="logoutBtn" style="font-size:0.7rem; padding:2px 6px; cursor:pointer; margin-left:10px; border-radius:4px; border:1px solid #ccc; background:#fff;">ログアウト</button>
       </p>
+      <!-- メールアドレス変更（折りたたみ・OTPコード方式） -->
+      <div style="text-align:center; margin-top:8px;">
+        <button type="button" id="emailChangeToggle" style="background:none;border:0;color:#2856a8;cursor:pointer;font-size:0.8rem;text-decoration:underline;">メールアドレスを変更</button>
+      </div>
+      <div id="emailChangePanel" style="display:none; max-width:320px; margin:10px auto 0; text-align:left; background:#f7f9fc; border:1px solid #e0e6f0; border-radius:10px; padding:16px;">
+        <!-- ステップ1: 新しいメールアドレス入力 -->
+        <div id="emailChangeStep1" style="display:flex;flex-direction:column;gap:10px;">
+          <input type="email" id="newEmailInput" placeholder="新しいメールアドレス" autocomplete="email"
+                 style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:15px;">
+          <button id="emailChangeSendBtn"
+                  style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">確認コードを送信</button>
+          <p style="font-size:12px;color:#888;margin:0;">新しいメールアドレスに6桁の確認コードを送ります。届いたコードで変更を確定すると、以降のログインと各種お知らせの宛先が新しいアドレスに切り替わります。</p>
+        </div>
+        <!-- ステップ2: 確認コード入力 -->
+        <div id="emailChangeStep2" style="display:none;flex-direction:column;gap:10px;">
+          <p style="font-size:13px;color:#2e7d32;margin:0;">✅ <span id="emailChangeSentTo" style="font-weight:700;"></span> に6桁の確認コードを送信しました。届いたコードを入力してください。</p>
+          <input type="text" id="emailChangeCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"
+                 style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:22px;letter-spacing:8px;text-align:center;">
+          <button id="emailChangeVerifyBtn"
+                  style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">変更を確定</button>
+          <button id="emailChangeResendBtn" style="background:none;border:0;color:#2856a8;cursor:pointer;font-size:13px;">確認コードを再送する</button>
+        </div>
+        <p id="emailChangeMsg" style="display:none;font-size:13px;margin:8px 0 0;"></p>
+      </div>
     </section>
 
     <div id="pageLoading" style="display:block; text-align:center; padding:3rem; color:#666;">車両情報を確認しています...</div>
@@ -565,6 +618,12 @@
       supabaseClient.auth.onAuthStateChange((event, session) => {
         const user = session?.user ?? null;
         currentAuthUser = user;
+        // メールアドレス変更成功時(USER_UPDATED)は、表示の更新だけ行いフル初期化（link_owner_car/車検出/フォーム描画）は
+        // スキップする。再実行すると detectUserCars が1台所有時に detail.html へ強制遷移し、編集中の画面が飛んでしまうため。
+        if (event === 'USER_UPDATED') {
+          if (user) document.getElementById('userEmailDisplay').textContent = user.email;
+          return;
+        }
         if (user) {
           overlay.classList.add('hidden');
           document.getElementById('userEmailDisplay').textContent = user.email;
@@ -980,7 +1039,137 @@
       updateModelOptions();
 
       document.getElementById('googleLoginBtn').onclick = () => supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+
+      // ── メールOTPコードログイン ──
+      let otpEmail = '';
+      const showOtpError = (msg) => {
+        const el = document.getElementById('otpErrorMsg'); if (!el) return;
+        if (!msg) { el.style.display = 'none'; return; }
+        el.textContent = msg; el.style.display = 'block';
+      };
+      document.getElementById('emailLoginBtn').onclick = async () => {
+        const email = document.getElementById('emailLoginInput').value.trim();
+        if (!email) { alert('メールアドレスを入力してください'); return; }
+        const btn = document.getElementById('emailLoginBtn');
+        btn.disabled = true; btn.textContent = '送信中…';
+        const { error } = await supabaseClient.auth.signInWithOtp({ email });
+        btn.disabled = false; btn.textContent = '確認コードを送信';
+        if (error) { showOtpError('送信に失敗しました：' + error.message); return; }
+        otpEmail = email;
+        localStorage.setItem('r500_login_email', email);
+        document.getElementById('otpSentEmail').textContent = email;
+        document.getElementById('otpStep1').style.display = 'none';
+        document.getElementById('otpStep2').style.display = 'flex';
+        showOtpError('');
+      };
+      document.getElementById('otpVerifyBtn').onclick = async () => {
+        const code = document.getElementById('otpCodeInput').value.trim();
+        if (!code) { alert('確認コードを入力してください'); return; }
+        const btn = document.getElementById('otpVerifyBtn');
+        btn.disabled = true; btn.textContent = '確認中…';
+        const { error } = await supabaseClient.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
+        btn.disabled = false; btn.textContent = 'ログイン';
+        if (error) { showOtpError('コードが正しくないか、期限切れです。もう一度お試しください。'); return; }
+        // 成功 → onAuthStateChange がログイン処理を実行（overlayを隠す）
+      };
+      document.getElementById('otpResendBtn').onclick = async () => {
+        if (!otpEmail) return;
+        const { error } = await supabaseClient.auth.signInWithOtp({ email: otpEmail });
+        showOtpError(error ? ('再送に失敗しました：' + error.message) : '');
+        if (!error) alert('確認コードを再送しました。');
+      };
+      // ── 前回ログインメールのプリフィル（共用端末配慮の「別のアドレスを使う」付き） ──
+      (function() {
+        const emailInput = document.getElementById('emailLoginInput');
+        const clearBtn = document.getElementById('clearEmailBtn');
+        const saved = localStorage.getItem('r500_login_email');
+        if (saved && emailInput) {
+          emailInput.value = saved;
+          if (clearBtn) clearBtn.style.display = 'block';
+        }
+        if (clearBtn) clearBtn.onclick = () => {
+          emailInput.value = '';
+          localStorage.removeItem('r500_login_email');
+          clearBtn.style.display = 'none';
+          emailInput.focus();
+        };
+      })();
       document.getElementById('logoutBtn').onclick = () => supabaseClient.auth.signOut().then(() => { overlay.classList.remove('hidden'); document.getElementById('pageLoading').style.display = 'none'; });
+
+      // ── メールアドレス変更（案2: auth email と owner_email を新メールに統一） ──
+      (function() {
+        const toggle = document.getElementById('emailChangeToggle');
+        const panel = document.getElementById('emailChangePanel');
+        const step1 = document.getElementById('emailChangeStep1');
+        const step2 = document.getElementById('emailChangeStep2');
+        const msgEl = document.getElementById('emailChangeMsg');
+        const showMsg = (msg, ok) => {
+          if (!msg) { msgEl.style.display = 'none'; return; }
+          msgEl.textContent = msg;
+          msgEl.style.color = ok ? '#2e7d32' : '#c62828';
+          msgEl.style.display = 'block';
+        };
+        let changeEmail = '';
+        if (toggle) toggle.onclick = () => {
+          const open = panel.style.display !== 'none';
+          panel.style.display = open ? 'none' : 'block';
+          toggle.textContent = open ? 'メールアドレスを変更' : '変更をやめる';
+        };
+        const sendBtn = document.getElementById('emailChangeSendBtn');
+        if (sendBtn) sendBtn.onclick = async () => {
+          const email = document.getElementById('newEmailInput').value.trim().toLowerCase();
+          if (!email) { showMsg('新しいメールアドレスを入力してください', false); return; }
+          if (currentAuthUser && email === (currentAuthUser.email || '').toLowerCase()) {
+            showMsg('現在ご利用中のメールアドレスと同じです。別のアドレスを入力してください。', false); return;
+          }
+          sendBtn.disabled = true; sendBtn.textContent = '送信中…';
+          const { error } = await supabaseClient.auth.updateUser({ email });
+          sendBtn.disabled = false; sendBtn.textContent = '確認コードを送信';
+          if (error) {
+            const dup = /registered|already|exist/i.test(error.message || '');
+            showMsg(dup ? 'このメールアドレスは既に別のアカウントで使われています。別のアドレスをお試しください。' : ('送信に失敗しました：' + error.message), false);
+            return;
+          }
+          changeEmail = email;
+          document.getElementById('emailChangeSentTo').textContent = email;
+          step1.style.display = 'none'; step2.style.display = 'flex';
+          showMsg('', false);
+        };
+        const verifyBtn = document.getElementById('emailChangeVerifyBtn');
+        if (verifyBtn) verifyBtn.onclick = async () => {
+          const code = document.getElementById('emailChangeCodeInput').value.trim();
+          if (!code) { showMsg('確認コードを入力してください', false); return; }
+          verifyBtn.disabled = true; verifyBtn.textContent = '確認中…';
+          const { error } = await supabaseClient.auth.verifyOtp({ email: changeEmail, token: code, type: 'email_change' });
+          if (error) {
+            verifyBtn.disabled = false; verifyBtn.textContent = '変更を確定';
+            showMsg('コードが正しくないか、期限切れです。もう一度お試しください。', false);
+            return;
+          }
+          // auth email 変更成功 → owner_email を所有全車に同期（owner_user_id一致でUPDATE可・追加GRANT不要）
+          const { error: syncErr } = await supabaseClient
+            .from('cars')
+            .update({ owner_email: changeEmail })
+            .eq('owner_user_id', currentAuthUser.id);
+          verifyBtn.disabled = false; verifyBtn.textContent = '変更を確定';
+          if (syncErr) {
+            showMsg('メールアドレスは変更されましたが、車両情報への反映に失敗しました。お手数ですが時間をおいて再度お試しください。', false);
+            return;
+          }
+          document.getElementById('userEmailDisplay').textContent = changeEmail;
+          localStorage.setItem('r500_login_email', changeEmail);
+          showMsg('✅ メールアドレスを変更しました。次回からは新しいメールアドレスでログインできます。', true);
+          step2.style.display = 'none'; step1.style.display = 'flex';
+          document.getElementById('newEmailInput').value = '';
+          document.getElementById('emailChangeCodeInput').value = '';
+        };
+        const resendBtn = document.getElementById('emailChangeResendBtn');
+        if (resendBtn) resendBtn.onclick = async () => {
+          if (!changeEmail) return;
+          const { error } = await supabaseClient.auth.updateUser({ email: changeEmail });
+          showMsg(error ? ('再送に失敗しました：' + error.message) : '確認コードを再送しました。', !error);
+        };
+      })();
     })();
 
     // ─── ナンバーマスキングモーダル ───────────────────────────

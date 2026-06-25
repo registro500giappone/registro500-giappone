@@ -1,0 +1,94 @@
+<!--
+============================================================================
+ Supabase メールOTPコード用テンプレート（日本語ブランド版）
+============================================================================
+ 貼り付け先：
+   Supabase ダッシュボード
+   → Authentication → Emails → Templates → 「Magic Link」タブ
+   ※ signInWithOtp（コード方式）は "Magic Link" テンプレートを使います。
+
+ 件名（Subject heading）案 ※どれか1つを件名欄に設定：
+   ※このメールは500/126サイト共通（同一Supabaseプロジェクト）。件名も500単独にしない。
+   - 【Registro500/126】ログイン用の確認コード（6桁）
+   - マイガレージ｜確認コード {{ .Token }}
+   - ログイン確認コードのお知らせ｜Registro500/126 Giappone
+
+ 重要な設計意図：
+   - 6桁コード = {{ .Token }} を大きく表示する。
+   - マジックリンク {{ .ConfirmationURL }} は【意図的に使わない】
+     （リンクを踏ませないことでフィッシング耐性を上げる。PWA/モバイルの
+      コンテキスト分断も回避）。
+   - 下の <body>...</body> の中身だけをコピーして貼り付けてOK
+     （この説明コメントは貼り付けても害はないが、不要なら削除可）。
+============================================================================
+-->
+<body style="margin:0;padding:0;background-color:#f4f6f8;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f8;padding:24px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+
+          <!-- ヘッダー（ブランド） -->
+          <tr>
+            <td style="padding:28px 32px 8px;text-align:center;font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;">
+              <div style="font-size:22px;font-weight:bold;">
+                <span style="color:#9b2a2a;">Registro500/126</span> <span style="color:#2e7d32;">Giappone</span>
+              </div>
+              <div style="font-size:12px;color:#888;margin-top:4px;">フィアット500/126</div>
+            </td>
+          </tr>
+
+          <!-- 本文 -->
+          <tr>
+            <td style="padding:8px 32px 0;font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;color:#333;">
+              <p style="font-size:15px;line-height:1.7;margin:16px 0 4px;">
+                マイガレージのログイン用に、確認コードをお送りします。
+              </p>
+              <p style="font-size:13px;line-height:1.7;color:#666;margin:0 0 16px;">
+                サイトのログイン画面に、下の6桁の数字を入力してください。
+              </p>
+            </td>
+          </tr>
+
+          <!-- 6桁コード -->
+          <tr>
+            <td style="padding:0 32px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="background-color:#f0f4fb;border:1px solid #d8e1f0;border-radius:12px;padding:20px 0;">
+                    <div style="font-size:34px;font-weight:bold;letter-spacing:10px;color:#2856a8;font-family:'Courier New',monospace;">{{ .Token }}</div>
+                  </td>
+                </tr>
+              </table>
+              <p style="font-size:12px;color:#999;text-align:center;margin:10px 0 0;font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;">
+                このコードは一定時間（およそ1時間）のみ有効です。
+              </p>
+            </td>
+          </tr>
+
+          <!-- 信頼・安心の注記（層3） -->
+          <tr>
+            <td style="padding:24px 32px 8px;font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;">
+              <div style="border-top:1px solid #eee;padding-top:16px;">
+                <p style="font-size:12px;line-height:1.8;color:#777;margin:0;">
+                  ・このメールは、あなたがマイガレージでログイン手続きをされたためにお送りしています。<br>
+                  ・<strong>心当たりがない場合は、このメールを破棄してください。</strong>何も操作は不要です。<br>
+                  ・このコードは、あなただけがお使いください。運営者を含め、<strong>第三者がこのコードをお尋ねすることは決してありません。</strong>
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- フッター -->
+          <tr>
+            <td style="padding:16px 32px 28px;text-align:center;font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;">
+              <div style="font-size:12px;color:#aaa;">Registro500/126 Giappone</div>
+              <div style="font-size:11px;color:#bbb;margin-top:2px;">https://www.registro500.com</div>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
