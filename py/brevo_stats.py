@@ -99,14 +99,16 @@ def cmd_logs(args, api_key):
 
 
 def cmd_bounces(args, api_key):
-    data = api_get("/smtp/statistics/events", api_key, {
-        "limit": args.limit,
-        "event": "hard_bounces",
-    })
-    events = data.get("events", [])
-    print(f"=== Hard Bounces (count={len(events)}) ===")
-    for ev in events:
-        print(f"  {ev.get('date','')} {ev.get('email','')} reason={ev.get('reason','')}")
+    # Brevoのevent名はキャメルケース（hardBounces / softBounces）
+    for ev_name, label in (("hardBounces", "Hard Bounces"), ("softBounces", "Soft Bounces")):
+        data = api_get("/smtp/statistics/events", api_key, {
+            "limit": args.limit,
+            "event": ev_name,
+        })
+        events = data.get("events", [])
+        print(f"=== {label} (count={len(events)}) ===")
+        for ev in events:
+            print(f"  {ev.get('date','')} {ev.get('email','')} reason={ev.get('reason','')}")
 
 
 def cmd_account(args, api_key):
@@ -132,7 +134,7 @@ def main():
     p_logs.add_argument("--limit", type=int, default=20)
     p_logs.add_argument("--email", type=str, default=None)
 
-    p_bounces = sub.add_parser("bounces", help="ハードバウンス")
+    p_bounces = sub.add_parser("bounces", help="バウンス（hard/soft 両方）")
     p_bounces.add_argument("--limit", type=int, default=50)
 
     sub.add_parser("account", help="アカウント情報")
