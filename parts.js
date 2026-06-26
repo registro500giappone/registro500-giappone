@@ -424,6 +424,17 @@ async function executeSearch() {
     resultsArea.innerHTML = "";
     displayResultsByShop(dbResults, checkedShops, resultsArea);
 
+    // スマホ等の縦積みレイアウト（max-width:1024px）では検索結果が画面外に出るため、
+    // 結果ヘッダー（「検索結果 N件」）を画面上部にスクロールして見せる
+    if (window.innerWidth <= 1024) {
+        const headerEl = document.getElementById('results-header');
+        if (headerEl) {
+            requestAnimationFrame(() => {
+                headerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
+    }
+
     // 検索条件の保存
     saveSearchConditions(keyword, checkedCars, checkedShops, all500Checked, dbResults);
 }
