@@ -1,0 +1,74 @@
+{
+  "_comment": "YouTubeポータル 取得スクリプト設定。HANDOFF.md §4(キーワード)・§5(足切り)が正本。除外語・キーワードはここで追加できる(コード直書きしない)。",
+  "filters": {
+    "min_duration_seconds": 90,
+    "min_view_count": 500,
+    "max_results_per_query": 50,
+    "_comment": "90秒以下=ショート落とし / 再生数下限は低め(ニッチでも良質な整備動画を残す) / search.listは1ページ最大50件"
+  },
+  "search_defaults": {
+    "relevance_language": "it",
+    "_comment": "伊語本命。クエリ自体が多言語なのでrelevanceLanguageは弱い補助。"
+  },
+  "exclusion_words": {
+    "_comment": "タイトル/説明にこれらが含まれたら機械フィルタで落とす。小文字で部分一致判定。126は除外しない(車種タグで扱う)。",
+    "modern_cinquecento": [
+      "twinair", "1.2 8v", "1.4 16v", "1.2 fire", "fire 8v", "firefly", "multiair", "multijet",
+      "t-jet", "variatore", "common rail", "cinghia distribuzione", "cinghia di distribuzione",
+      "lounge", "elettrica", "500e", "500 e",
+      "500x", "500l", "abarth 595 competizione", "abarth 695 biposto",
+      "hybrid", "mild hybrid", "dualogic", "uconnect", "2020", "2021", "2022", "2023", "2024", "2025"
+    ],
+    "_note_modern": "空冷クラシック500/126はタイミングベルト/チェーン式の現行配電(cinghia/catena distribuzione)・FIRE/MultiAir/MultiJet/可変バルブ(variatore)を持たない。これらは現行車の確実な signal なので常に除外。",
+    "other_models": [
+      "fiat 600", "fiat 850", "fiat panda", "fiat uno", "fiat punto", "fiat tipo",
+      "seicento", "ritmo", "vespa", "lancia", "jeep", "alfa", "suzuki", "ypsilon",
+      "compass", "multipla", "iveco", "stralis"
+    ],
+    "_note_other_models": "ただし『500|126|600|850』串刺し動画(FD Ricambi系)は残したいので、500/126を含む場合はother_modelsの除外をスキップする(スクリプト側で制御)。"
+  },
+  "keyword_groups": {
+    "_comment": "箇所タグslug -> 検索クエリ配列。HANDOFF §4 フェーズ1の7箇所をそのまま転記。order=viewCountで上位取得。",
+    "ignition-timing": [
+      "Fiat 500 messa in fase",
+      "Fiat 500 anticipo accensione",
+      "Fiat 500 d'epoca messa in fase",
+      "classic Fiat 500 ignition timing"
+    ],
+    "contact-points": [
+      "Fiat 500 puntine platinate",
+      "Fiat 500 puntine condensatore",
+      "Fiat 500 contatti spinterogeno",
+      "classic Fiat 500 contact points"
+    ],
+    "valve-clearance": [
+      "Fiat 500 registrazione punterie",
+      "Fiat 500 gioco valvole",
+      "Fiat 500 d'epoca punterie",
+      "classic Fiat 500 valve clearance"
+    ],
+    "carb-tuning": [
+      "Fiat 500 d'epoca carburatore regolazione",
+      "Fiat 500 regolazione minimo",
+      "classic Fiat 500 carburetor tuning"
+    ],
+    "carb-rebuild": [
+      "Fiat 500 revisione carburatore Weber",
+      "Fiat 500 pulizia carburatore",
+      "classic Fiat 500 carburetor rebuild"
+    ],
+    "spark-plugs": [
+      "Fiat 500 candele",
+      "classic Fiat 500 spark plugs"
+    ],
+    "wiring-dynamo-belt": [
+      "Fiat 500 cinghia dinamo ventola",
+      "Fiat 500 impianto elettrico",
+      "Fiat 500 dinamo",
+      "classic Fiat 500 dynamo belt"
+    ]
+  },
+  "_phase2_keyword_groups_placeholder": {
+    "_comment": "フェーズ2で有効化。126明示クエリ(例 Fiat 126 registrazione punterie)・アバルト/ジャンニーニ(クラシック期のみ・現行除外)・残り箇所タグ(oil-seals/head-topend/clutch/transmission/brakes/suspension)をここに追加。"
+  }
+}

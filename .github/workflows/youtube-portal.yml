@@ -1,0 +1,39 @@
+name: YouTubeポータル 取得＋AI分類（月次/手動）
+
+on:
+  schedule:
+    - cron: '0 15 1 * *'   # 毎月1日 JST 00:00 (UTC 15:00) — タスク6 新着探索
+  workflow_dispatch:        # 手動実行ボタン
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  fetch-and-classify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 依存関係インストール
+        run: pip install -r py/requirements.txt
+
+      - name: .env 作成
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
+          echo "SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}" >> py/.env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> py/.env
+          echo "YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}" >> py/.env
+
+      - name: YouTube動画 取得（タスク3）
+        run: python py/youtube_fetch.py
+
+      - name: AI分類・日本語化（タスク4）
+        if: success()
+        run: python py/youtube_classify.py
