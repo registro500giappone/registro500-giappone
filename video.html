@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-27SHHC4JYH');</script>
+
+  <title id="pageTitle">動画 | Registro500 動画ガイド</title>
+  <meta name="description" id="pageDesc" content="クラシックFIAT 500/126 の整備動画と日本語解説 - Registro500 動画ガイド">
+  <meta property="og:title" id="ogTitle" content="Registro500 動画ガイド">
+  <meta property="og:description" id="ogDesc" content="クラシックFIAT 500/126 の整備動画と日本語解説">
+  <meta property="og:type" content="video.other">
+  <meta property="og:image" id="ogImage" content="https://www.registro500.com/logo_horizontal.png">
+  <link rel="canonical" id="canonicalTag" href="https://www.registro500.com/videos">
+
+  <link rel="icon" href="logo_horizontal.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
+  <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
+
+  <style>
+    :root{--bg:#f4f4f7;--card:#fff;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#4D6B3C;--accent-soft:#eef3ea;--radius:12px;}
+    *{box-sizing:border-box;}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif;line-height:1.7;}
+    a{color:var(--accent);}
+    .vp-nav{position:sticky;top:0;z-index:50;background:#1A1A18;display:flex;align-items:center;justify-content:space-between;padding:12px 18px;}
+    .vp-nav a{color:rgba(255,255,255,.8);text-decoration:none;font-size:.82rem;letter-spacing:.06em;}
+    .vp-nav a:hover{color:#fff;}
+    .vp-nav .brand{letter-spacing:.25em;text-transform:uppercase;font-size:.72rem;color:rgba(255,255,255,.6);}
+
+    .wrap{max-width:860px;margin:0 auto;padding:18px 16px 80px;}
+    .loading,.errbox{text-align:center;color:var(--muted);padding:60px 20px;}
+
+    .player{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:var(--radius);overflow:hidden;}
+    .player iframe{width:100%;height:100%;border:0;display:block;}
+    .player .fallback{width:100%;height:100%;position:relative;display:block;border:0;padding:0;background:#000;cursor:pointer;}
+    .player .fallback img{width:100%;height:100%;object-fit:cover;display:block;opacity:.85;}
+    .player .poster .play .btn{background:#ff0000;}
+    .player .fallback .play{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#fff;text-decoration:none;background:rgba(0,0,0,.35);}
+    .player .fallback .play .btn{background:#ff0000;color:#fff;padding:10px 20px;border-radius:999px;font-weight:600;font-size:.9rem;}
+
+    h1.title{font-size:clamp(1.2rem,3.6vw,1.55rem);margin:18px 0 4px;line-height:1.4;}
+    .orig{font-size:.8rem;color:var(--muted);margin:0 0 12px;}
+    .meta{display:flex;flex-wrap:wrap;gap:10px 16px;font-size:.82rem;color:var(--muted);margin-bottom:12px;}
+    .badges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+    .badge{font-size:.74rem;padding:3px 10px;border-radius:999px;background:#eef2ff;color:#4338ca;font-weight:600;text-decoration:none;}
+    .badge.cat{background:var(--accent-soft);color:var(--accent);}
+    .badge.veh{background:#fff7ed;color:#c2410c;}
+
+    .ai-box{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin:8px 0 22px;}
+    .ai-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+    .ai-tag{font-size:.68rem;font-weight:700;letter-spacing:.08em;background:#fde68a;color:#92400e;padding:2px 8px;border-radius:6px;}
+    .ai-head h2{font-size:.95rem;margin:0;}
+    .ai-text{font-size:.95rem;color:#1f2937;white-space:pre-wrap;}
+    .ai-note{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);font-size:.76rem;color:var(--muted);line-height:1.6;}
+
+    .open-yt{display:inline-block;font-size:.82rem;margin-bottom:24px;}
+
+    .reco-box{background:#fff;border:1px dashed var(--line);border-radius:var(--radius);padding:16px 18px;margin-bottom:26px;color:var(--muted);font-size:.86rem;}
+    .reco-box .cnt{color:var(--ink);font-weight:600;}
+
+    .rel-label{font-size:.74rem;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:8px 0 12px;}
+    .rel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
+    .rel-card{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.06);text-decoration:none;color:inherit;display:flex;flex-direction:column;}
+    .rel-card:hover{box-shadow:0 6px 14px rgba(0,0,0,.1);}
+    .rel-thumb{aspect-ratio:16/9;background:#e8e8ec;}
+    .rel-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+    .rel-t{font-size:.8rem;font-weight:600;line-height:1.35;padding:8px 9px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+
+    footer{margin-top:40px;padding:22px 16px;border-top:1px solid var(--line);text-align:center;color:var(--muted);font-size:.8rem;}
+  </style>
+</head>
+<body>
+  <nav class="vp-nav">
+    <a href="videos.html">← 動画一覧</a>
+    <a class="brand" href="index.html">Registro500</a>
+  </nav>
+
+  <div class="wrap">
+    <div id="loading" class="loading">読み込み中…</div>
+    <div id="errbox" class="errbox" style="display:none;">動画が見つかりませんでした。<br><a href="videos.html">動画一覧へ戻る</a></div>
+
+    <div id="content" style="display:none;">
+      <div class="player" id="player"></div>
+
+      <h1 class="title" id="vTitle"></h1>
+      <p class="orig" id="vOrig"></p>
+      <div class="meta" id="vMeta"></div>
+      <div class="badges" id="vBadges"></div>
+
+      <div class="ai-box" id="aiBox" style="display:none;">
+        <div class="ai-head"><span class="ai-tag">AI生成</span><h2>日本語ワンポイント解説</h2></div>
+        <div class="ai-text" id="aiText"></div>
+        <div class="ai-note">この解説はAIが動画情報から自動生成しています。実際の作業は元動画と整備書で必ず確認してください。</div>
+      </div>
+
+      <a class="open-yt" id="openYt" href="#" target="_blank" rel="noopener">▶ YouTubeで開く</a>
+
+      <div class="reco-box">
+        👍 サイト内おすすめ <span class="cnt" id="recoCnt">0</span>件 ／ 💬 コメント <span class="cnt" id="commentCnt">0</span>件<br>
+        <span style="font-size:.8rem;">ログインしたオーナーはおすすめ・コメントを投稿できます（準備中）。</span>
+      </div>
+
+      <div id="relSection" style="display:none;">
+        <div class="rel-label">同じ整備箇所の関連動画</div>
+        <div class="rel-grid" id="relGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>© Registro500 Giappone</footer>
+
+  <script>
+  (function(){
+    const sb = supabaseClient;
+    const NOIMG = (typeof NO_IMAGE_URL !== 'undefined') ? NO_IMAGE_URL : 'https://placehold.co/600x338?text=No+Image';
+    const ytId = new URLSearchParams(location.search).get('id');
+
+    function esc(s){return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+    function fmtViews(n){ n=n||0; if(n>=10000)return Math.round(n/1000)/10+'万回'; return n.toLocaleString()+'回'; }
+    function fmtDate(s){ if(!s)return''; const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s); return m?`${m[1]}年${+m[2]}月${+m[3]}日`:''; }
+
+    function showError(){ document.getElementById('loading').style.display='none'; document.getElementById('errbox').style.display='block'; }
+
+    async function load(){
+      if(!ytId){ showError(); return; }
+      const {data:v,error} = await sb.from('videos').select('*').eq('youtube_id',ytId).single();
+      if(error||!v){ showError(); return; }
+
+      // 付随情報（カテゴリ・箇所タグ・車種・おすすめ数）
+      const [cat, ptags, vehs, reco] = await Promise.all([
+        v.category_id ? sb.from('categories').select('slug,name_ja,parent_id').eq('id',v.category_id).single() : Promise.resolve({data:null}),
+        sb.from('video_part_tags').select('part_tags(slug,name_ja)').eq('video_id',v.id),
+        sb.from('video_vehicles').select('vehicles(slug,name_display)').eq('video_id',v.id),
+        sb.from('video_reco_counts').select('reco_count,comment_count').eq('video_id',v.id).single(),
+      ]);
+
+      render(v, cat.data, (ptags.data||[]).map(r=>r.part_tags).filter(Boolean), (vehs.data||[]).map(r=>r.vehicles).filter(Boolean), reco.data);
+      loadRelated(v, (ptags.data||[]).map(r=>r.part_tags&&r.part_tags.slug).filter(Boolean));
+    }
+
+    function render(v, cat, ptags, vehs, reco){
+      const heading = v.title_ja || v.title_original || '(無題)';
+      // プレーヤー（埋め込み可：サムネをクリックで再生＝ユーザー操作後にautoplayで読み込み。
+      //            埋め込み不可：YouTubeへ誘導）
+      const player=document.getElementById('player');
+      const watchUrl='https://www.youtube.com/watch?v='+encodeURIComponent(v.youtube_id);
+      if(v.embeddable!==false){
+        player.innerHTML = `<button class="fallback poster" type="button" aria-label="動画を再生">
+          <img src="${esc(v.thumbnail_url||NOIMG)}" alt="${esc(heading)}" onerror="this.src='${NOIMG}'">
+          <span class="play"><span class="btn">▶ 再生</span></span></button>`;
+        player.querySelector('.poster').addEventListener('click',()=>{
+          player.innerHTML = `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(v.youtube_id)}?autoplay=1&rel=0&playsinline=1&origin=${encodeURIComponent(location.origin)}" title="${esc(heading)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+        });
+      }else{
+        player.innerHTML = `<a class="fallback" href="${watchUrl}" target="_blank" rel="noopener">
+          <img src="${esc(v.thumbnail_url||NOIMG)}" alt="${esc(heading)}" onerror="this.src='${NOIMG}'">
+          <span class="play"><span class="btn">▶ YouTubeで視聴</span><span style="font-size:.78rem;">この動画は埋め込みが許可されていません</span></span></a>`;
+      }
+
+      // タイトル・原題
+      document.getElementById('vTitle').textContent = heading;
+      if(v.title_original && v.title_original!==heading){ document.getElementById('vOrig').textContent='原題: '+v.title_original; }
+      else document.getElementById('vOrig').style.display='none';
+
+      // メタ
+      const meta=[];
+      if(v.channel_name)meta.push(esc(v.channel_name));
+      meta.push('▶ '+fmtViews(v.view_count));
+      if(v.published_at)meta.push(fmtDate(v.published_at));
+      document.getElementById('vMeta').innerHTML = meta.map(m=>`<span>${m}</span>`).join('');
+
+      // バッジ（カテゴリ・箇所・車種）
+      const b=[];
+      if(cat)b.push(`<a class="badge cat" href="videos.html?category=${esc(parentSlug(cat))}">${esc(cat.name_ja)}</a>`);
+      ptags.forEach(t=>b.push(`<a class="badge" href="videos.html?part=${esc(t.slug)}">${esc(t.name_ja)}</a>`));
+      vehs.forEach(ve=>b.push(`<a class="badge veh" href="videos.html?vehicle=${esc(ve.slug)}">${esc(ve.name_display)}</a>`));
+      document.getElementById('vBadges').innerHTML=b.join('');
+
+      // AI解説
+      if(v.description_ja){ document.getElementById('aiText').textContent=v.description_ja; document.getElementById('aiBox').style.display='block'; }
+
+      // YouTubeリンク・おすすめ数
+      document.getElementById('openYt').href='https://www.youtube.com/watch?v='+encodeURIComponent(v.youtube_id);
+      document.getElementById('recoCnt').textContent = reco?reco.reco_count:0;
+      document.getElementById('commentCnt').textContent = reco?reco.comment_count:0;
+
+      // OG / title / canonical
+      const fullTitle = heading+' | Registro500 動画ガイド';
+      document.getElementById('pageTitle').textContent=fullTitle;
+      document.getElementById('ogTitle').content=fullTitle;
+      const desc=(v.description_ja||heading).slice(0,110);
+      document.getElementById('pageDesc').content=desc;
+      document.getElementById('ogDesc').content=desc;
+      if(v.thumbnail_url)document.getElementById('ogImage').content=v.thumbnail_url;
+      document.getElementById('canonicalTag').href='https://www.registro500.com/video?id='+encodeURIComponent(v.youtube_id);
+
+      document.getElementById('loading').style.display='none';
+      document.getElementById('content').style.display='block';
+    }
+
+    // categoriesは中区分。親slugは取得していないので、絞り込みは中区分でなく自身のslugで代用できないため、
+    // 親への絞り込みはvideos側で親slug基準。ここでは中区分カテゴリ名表示のみとし、リンクは中区分slug→videos側は親想定。
+    // 簡易化: カテゴリバッジのリンクは親カテゴリに寄せられないため、中区分slugをそのままcategoryに渡さず、箇所タグ・車種リンクを主導線とする。
+    function parentSlug(cat){ return cat.slug; }
+
+    async function loadRelated(v, partSlugs){
+      if(!partSlugs.length) return;
+      // 同じ箇所タグを持つ動画ID
+      const {data:tagRows} = await sb.from('part_tags').select('id').in('slug',partSlugs);
+      const tagIds=(tagRows||[]).map(r=>r.id);
+      if(!tagIds.length) return;
+      const {data:vpt} = await sb.from('video_part_tags').select('video_id').in('part_tag_id',tagIds);
+      const ids=[...new Set((vpt||[]).map(r=>r.video_id))].filter(id=>id!==v.id);
+      if(!ids.length) return;
+      const {data:rel} = await sb.from('videos').select('youtube_id,title_ja,title_original,thumbnail_url,view_count')
+        .in('id',ids).order('view_count',{ascending:false}).limit(6);
+      if(!rel||!rel.length) return;
+      document.getElementById('relGrid').innerHTML = rel.map(r=>
+        `<a class="rel-card" href="video.html?id=${encodeURIComponent(r.youtube_id)}">
+          <div class="rel-thumb"><img src="${esc(r.thumbnail_url||NOIMG)}" loading="lazy" onerror="this.src='${NOIMG}'"></div>
+          <div class="rel-t">${esc(r.title_ja||r.title_original)}</div>
+        </a>`).join('');
+      document.getElementById('relSection').style.display='block';
+    }
+
+    load().catch(e=>{ console.error(e); showError(); });
+  })();
+  </script>
+</body>
+</html>

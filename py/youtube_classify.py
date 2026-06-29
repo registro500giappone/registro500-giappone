@@ -80,11 +80,19 @@ def build_prompt(records, child_cats, parts, vehs):
 {veh_lines}
 
 【判定ルール】
-- relevant: クラシックFIAT 500/126の整備・レストア・チューニング・走行・歴史・イベント等に関係するなら true。
-  キーワードは一致するが内容が無関係（ミニカー/キーホルダー/BGMだけの走行クリップ/現行新型500）は false。
+- relevant: 「クラシックFIAT 500/126（派生：Giardiniera / クラシック期Abarth / Giannini を含む）そのものが主題」の動画だけ true。
+  ★重要★ 次は必ず false にする（タイトル/チャンネル名で判断）:
+   ・対象車種が特定されない汎用的な整備技術（例「どんなキャブでも」「TUNE ANY CARB」「任意のエンジン」「EASY TUNE」「Single Adjuster Screw」のような汎用ハウツー）
+   ・他車種・他エンジンの整備（芝刈り機/汎用エンジン/V8/アメ車/現行車/ディーゼル/GPL/メタンなど）。技術が500に応用できても false。
+   ・★現行型（新型）FIAT 500★ ＝ 2007年以降の新型500/500C/500e/500X/500L、および
+     リッター排気量表記(1.0 / 1.2 / 1.3 / 1.4 / 1.6 / 0.9 TwinAir 等)・FIRE/MultiAir/MultiJet/cinghia distribuzione(タイミングベルト)を伴うもの。
+     ※クラシック500/126は空冷2気筒 499/594/650cc。タイトルに「1.2」等のリッター表記があれば現行型 → false。
+   ・ミニカー/プラモ/キーホルダー/物販/BGMだけの走行クリップ
+  タイトルやチャンネル名に 500 / 126 / Fiat / Cinquecento / Nuova500 / Giardiniera / Abarth / Giannini 等の手掛かりが無く、内容が汎用的なら false。
+  迷ったら false（このサイトは500/126専門。汎用動画は載せない）。
 - category_slug: 最も適切な中区分を1つ。
 - part_tag_slugs: 動画で実際に扱う整備箇所のみ。確信が持てなければ空配列。
-- vehicle_slugs: 対象車種。500/126両方なら両方。判別不能なら ["fiat-500"]。
+- vehicle_slugs: 動画で実際に扱われている車種のみ。500/126両方が主題なら両方。500/126と明示できない汎用動画には付けない（その場合そもそも relevant=false）。
 - title_ja: 逐語訳でなく「意味が伝わる日本語見出し」(30字以内目安)。
 - description_ja: 日本語ワンポイント解説3〜4行。何の作業/見どころかを具体的に。注意書きは付けない(表示側で付与)。
 - confidence: 分類の自信度 0.0〜1.0。

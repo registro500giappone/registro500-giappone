@@ -209,3 +209,11 @@ YouTube 動画を「整備箇所別・人気順・日本語」で見られるよ
   - 書込は service_role（`SUPABASE_SERVICE_KEY` 優先・無ければ anon フォールバック）。機械フィルタ強化: 現行エンジン名(FIRE/MultiAir/MultiJet/variatore/cinghia distribuzione=現行ベルト)・別車種(Vespa/Lancia/Jeep/Iveco等)を除外。空冷クラシックはタイミングベルト無し＝`cinghia distribuzione`は確実な現行 signal（`catena`=チェーンはクラシックも使うため除外しない）。
   - 初回ローカル実行実績: 25クエリ→ユニーク496件取得→機械フィルタ通過216件→videos upsert→Gemini分類で **無関係62件削除・残154件**（全件 title_ja/category_id/車種付与・箇所タグ付き124件/未分類30件・embeddable 152件）。view_history は videos の on delete cascade で154件に整合。日本語見出し・解説の品質は良好と目視確認。
   - **残: GitHub Secrets に `YOUTUBE_API_KEY` と `SUPABASE_SERVICE_KEY` の登録が必要**（Actions実行の前提・ユーザー手動）。次はタスク7（フロント3画面）/タスク5週次view更新の本実装/タスク8認証連携。
+- **2026-06-29〜30 タスク7（フロント）実装中・レビュー反映中**（画面構成は2ページ統合に変更＝ユーザー承認）。
+  - 作成物: `videos.html`（/videos = 入口＋一覧統合：カテゴリ/検索/車種切替＋人気順10本＋もっと見る・URL駆動フィルタ・`?vehicle=126`対応）／`video.html`（/video?id= = 個別：プレーヤー・AI生成バッジ＋定型注意書き・原題併記・関連動画）。`index.html`メニューに「🎬 動画ガイド」追加・`sitemap.xml`に`/videos`追加。読み取りはanon(RLS public)。
+  - レビュー反映: 字幕ありフィルタ＝デフォルトOFF（手動字幕は11本のみ・自動字幕はAPI非カウント）／日本語解説あり＝デフォルトON／おすすめフィルタは撤去（タスク8まで）／整備箇所チップ＝**車の系統順**（エンジン→燃料→点火電装→駆動→足回り）＋**選択中カテゴリ/車種に動画がある箇所だけ表示**（文脈連動）。プレーヤーは**クリック再生ポスター方式**＋標準`youtube.com/embed`（nocookieから変更）。
+  - **再生エラーはローカル(http://127.0.0.1)特有とほぼ確定**（oEmbed全件200＝埋め込み許可・Playwrightでは正常描画）。本番httpsでの再生確認が未了（CFトークンにPages権限なくプレビューURL自動取得不可）。
+  - **精度の厳格化（重要）**: 当初の relevant 判定が甘く「汎用キャブ動画(TUNE ANY CARB等)」「現行型500(1.2/FIRE等)」が混入。プロンプトを「クラシック500/126が**主題**の動画のみ true・汎用技術/他車種/現行型(リッター排気量1.x表記)は false・迷ったらfalse」に強化し、既存を**2回リセット再分類**。**216→154→115→113本**に収束（全件クラシック500/126・「1.2」等の現行型0件確認）。
+  - **【方針転換の検討中・未決】** ユーザー指摘で、純・人気順だと汎用動画が上位に来て**FD Ricambi等のショップ解説や日本語チャンネルが埋もれる**問題が判明。→「**信頼チャンネルまるごと取得＋ソース優先ティア**（ショップ/日本語/専門→その他人気順）」へのキュレーション再設計を検討中。カテゴリ6分類の存続も再検討対象（113本規模で過剰の懸念）。**この再設計は未確定。決まり次第 Plan mode で計画化する。**
+  - ショップ調査結果(YouTube解説チャンネル有無): **FD Ricambi 'Restore Your Fiat'=51本(英How-to・本命)** / Axel Gerstl=15本(独) / D'Angelo Motori=49本(伊チューニング) / Ricambio=12本(一部) / EuroItalia500・Passione500・AutoBella・Mr Fiat=チャンネル無し。DB既存の良質: The 500 Workshop(8)・OldCars Palermo(11)・Bamboo field🇯🇵(2)。ユーザー提供の追加ショップ群(PBP/Bigatti/Denitto/Motobambino/Pitstop等)は調査スクリプト用意済・未実行。
+  - コードは未コミット→ブランチ `youtube-portal-frontend` に退避（main へは未マージ＝本番未公開）。
