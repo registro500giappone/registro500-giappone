@@ -144,7 +144,7 @@ def main():
 
     while True:
         q = supabase.table("videos").select(
-            "id, youtube_id, title_original, channel_name"
+            "id, youtube_id, title_original, channel_name, source_tier"
         ).is_("title_ja", "null").limit(BATCH_SIZE)
         records = q.execute().data
         if not records:
@@ -164,18 +164,28 @@ def main():
             time.sleep(5)
             continue
 
-        by_yt = {r["youtube_id"]: r["id"] for r in records}
+        rec_by_yt = {r["youtube_id"]: r for r in records}
         resolved_this_batch = 0
         for a in results:
             yt = a.get("youtube_id")
-            vid = by_yt.get(yt)
-            if not vid:
+            rec = rec_by_yt.get(yt)
+            if not rec:
                 continue
+            vid = rec["id"]
             try:
-                # 無関係 → 削除（除外）
+                # 無関係
                 if not a.get("relevant", False):
-                    supabase.table("videos").delete().eq("id", vid).execute()
-                    total_excluded += 1
+                    if int(rec.get("source_tier") or 3) < 3:
+                        # 信頼ソース(tier1/2)は物理削除しない。JA見出しだけ付けてキューから外す。
+                        # カテゴリ/箇所タグは付けない＝系統チップ・一覧で埋もれる（取りこぼし回避）。
+                        supabase.table("videos").update({
+                            "title_ja": a.get("title_ja") or rec.get("title_original") or yt,
+                            "commentary_source": "ai",
+                        }).eq("id", vid).execute()
+                        total_unclassified += 1
+                    else:
+                        supabase.table("videos").delete().eq("id", vid).execute()
+                        total_excluded += 1
                     resolved_this_batch += 1
                     continue
 

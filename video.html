@@ -219,8 +219,8 @@
       const {data:vpt} = await sb.from('video_part_tags').select('video_id').in('part_tag_id',tagIds);
       const ids=[...new Set((vpt||[]).map(r=>r.video_id))].filter(id=>id!==v.id);
       if(!ids.length) return;
-      const {data:rel} = await sb.from('videos').select('youtube_id,title_ja,title_original,thumbnail_url,view_count')
-        .in('id',ids).order('view_count',{ascending:false}).limit(6);
+      const {data:rel} = await sb.from('videos').select('youtube_id,title_ja,title_original,thumbnail_url,view_count,source_tier')
+        .in('id',ids).order('is_howto',{ascending:false}).order('source_tier',{ascending:true,nullsFirst:false}).order('view_count',{ascending:false}).limit(6);
       if(!rel||!rel.length) return;
       document.getElementById('relGrid').innerHTML = rel.map(r=>
         `<a class="rel-card" href="video.html?id=${encodeURIComponent(r.youtube_id)}">

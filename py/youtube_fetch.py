@@ -112,6 +112,32 @@ def fetch_video_details(video_ids):
     return out
 
 
+def fetch_channel_video_ids(channel_id):
+    """信頼チャンネルの全動画IDを取得。
+    channels.list で uploads プレイリストIDを得て、playlistItems を全ページ巡回。1ユニット/50件と安価。"""
+    data = _api_get("channels", {"part": "contentDetails", "id": channel_id})
+    items = data.get("items", [])
+    if not items:
+        return []
+    uploads = items[0]["contentDetails"]["relatedPlaylists"]["uploads"]
+    ids = []
+    page_token = None
+    while True:
+        params = {"part": "contentDetails", "playlistId": uploads, "maxResults": 50}
+        if page_token:
+            params["pageToken"] = page_token
+        pdata = _api_get("playlistItems", params)
+        for it in pdata.get("items", []):
+            vid = it.get("contentDetails", {}).get("videoId")
+            if vid:
+                ids.append(vid)
+        page_token = pdata.get("nextPageToken")
+        if not page_token:
+            break
+        time.sleep(0.1)
+    return ids
+
+
 # ============================================================================
 # パース・フィルタ
 # ============================================================================
@@ -126,27 +152,32 @@ def parse_iso8601_duration(s):
     return h * 3600 + mi * 60 + se
 
 
-def passes_mechanical_filter(item, cfg):
-    """HANDOFF §5 機械フィルタ。通過=True、(False, 理由)で除外。"""
+def passes_mechanical_filter(item, cfg, trusted=False):
+    """HANDOFF §5 機械フィルタ。通過=True、(False, 理由)で除外。
+    trusted=True（信頼チャンネル）は再生数下限のみ trusted_min_view_count(既定0) に緩める。
+    現行車除外語・別車種・短尺フィルタは信頼chにも共通適用（現行Abarth等は弾く）。"""
     sn = item.get("snippet", {})
     title = (sn.get("title") or "").lower()
-    desc = (sn.get("description") or "").lower()
-    text = f"{title} {desc}"
     filters = cfg["filters"]
     excl = cfg["exclusion_words"]
 
-    # 500/126 を含む串刺し動画は other_models 除外をスキップ（FD Ricambi系を残す）
-    has_target = bool(re.search(r"\b500\b|cinquecento|\b126\b", text))
+    # 車種・現行判定はタイトル基準。説明文はショップの定型文（全モデル列挙・年号・URL）で
+    # 誤検出する（例: FDの説明に "500L" 在庫表記 → 中核How-toが誤除外）ため判定に使わない。
+    has_target = bool(re.search(r"\b500\b|cinquecento|\b126\b", title))
 
-    # 現行チンクエチェント除外（常に適用）
+    # 現行チンクエチェント除外（常に適用）。500e/500l/500x 等の英数モデルコードは
+    # 語境界で判定する（伊語 "500 epoca"=クラシック を "500 e" で誤検出しない）。
     for w in excl.get("modern_cinquecento", []):
-        if w in text:
+        if re.fullmatch(r"500[a-z]", w):
+            if re.search(rf"\b{re.escape(w)}\b", title):
+                return False, f"現行車除外語: {w}"
+        elif w in title:
             return False, f"現行車除外語: {w}"
 
     # 別車種除外（500/126串刺しは残す）
     if not has_target:
         for w in excl.get("other_models", []):
-            if w in text:
+            if w in title:
                 return False, f"別車種除外語: {w}"
 
     # 動画長さ下限
@@ -154,16 +185,17 @@ def passes_mechanical_filter(item, cfg):
     if dur is not None and dur <= filters["min_duration_seconds"]:
         return False, f"短尺({dur}s)"
 
-    # 再生数下限
+    # 再生数下限（信頼chは trusted_min_view_count=0 で実質無効）
     vc = int(item.get("statistics", {}).get("viewCount", 0) or 0)
-    if vc < filters["min_view_count"]:
+    floor = filters.get("trusted_min_view_count", 0) if trusted else filters["min_view_count"]
+    if vc < floor:
         return False, f"再生数不足({vc})"
 
     return True, None
 
 
-def to_video_row(item):
-    """videos テーブル行に整形。"""
+def to_video_row(item, source_tier=3):
+    """videos テーブル行に整形。source_tier=1/2:信頼ch, 3:キーワード/その他。"""
     sn = item.get("snippet", {})
     cd = item.get("contentDetails", {})
     st = item.get("status", {})
@@ -174,6 +206,8 @@ def to_video_row(item):
         "youtube_id": item["id"],
         "title_original": sn.get("title"),
         "channel_name": sn.get("channelTitle"),
+        "channel_id": sn.get("channelId"),
+        "source_tier": source_tier,
         "duration_seconds": parse_iso8601_duration(cd.get("duration")),
         "thumbnail_url": thumb,
         "published_at": sn.get("publishedAt"),
@@ -189,7 +223,8 @@ def to_video_row(item):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true", help="DB書込せず取得・フィルタ結果のサマリのみ")
-    ap.add_argument("--limit-queries", type=int, default=0, help="先頭Nクエリのみ実行（テスト用・0=全部）")
+    ap.add_argument("--limit-queries", type=int, default=0, help="先頭Nキーワードクエリのみ実行（テスト用・0=全部）")
+    ap.add_argument("--skip-channels", action="store_true", help="信頼チャンネル取得をスキップ（キーワードのみ）")
     args = ap.parse_args()
 
     with open(CONFIG_PATH, encoding="utf-8") as f:
@@ -208,11 +243,29 @@ def main():
     if args.limit_queries > 0:
         queries = queries[:args.limit_queries]
 
-    print(f"=== YouTube取得開始 {'[DRY-RUN]' if args.dry_run else '[本取得]'} ===")
-    print(f"クエリ数: {len(queries)} / 想定search消費: 約{len(queries) * 100}ユニット\n")
+    trusted = [] if args.skip_channels else cfg.get("trusted_channels", [])
 
-    # 全クエリのID収集（重複排除）
-    all_ids = {}  # youtube_id -> set(part_tag_slug)（取得時のヒント。タスク4の参考用にログ表示のみ）
+    print(f"=== YouTube取得開始 {'[DRY-RUN]' if args.dry_run else '[本取得]'} ===")
+    print(f"信頼チャンネル: {len(trusted)}件 / キーワードクエリ: {len(queries)}件\n")
+
+    # youtube_id -> 最小tier（信頼ch=1/2を優先、キーワード=3）
+    tier_by_id = {}
+    part_hint = {}  # youtube_id -> set(part_tag_slug)（dry-run表示用のヒント）
+
+    # 1) 信頼チャンネルまるごと取得（tier 1/2）
+    for ch in trusted:
+        try:
+            ids = fetch_channel_video_ids(ch["channel_id"])
+        except Exception as e:
+            print(f"  [信頼ch] {ch.get('name')} 取得失敗: {e}")
+            continue
+        t = int(ch.get("tier", 1))
+        for vid in ids:
+            if vid not in tier_by_id or t < tier_by_id[vid]:
+                tier_by_id[vid] = t
+        print(f"  [信頼ch tier{t}] {ch.get('name')} → {len(ids)}本")
+
+    # 2) キーワード検索（tier 3。信頼chに既出ならtierは小さい方を維持）
     for slug, q in queries:
         try:
             ids = search_videos(q, max_results, rel_lang)
@@ -220,20 +273,23 @@ def main():
             print(f"  [{slug}] '{q}' 検索失敗: {e}")
             continue
         for vid in ids:
-            all_ids.setdefault(vid, set()).add(slug)
+            part_hint.setdefault(vid, set()).add(slug)
+            tier_by_id.setdefault(vid, 3)
         print(f"  [{slug}] '{q}' → {len(ids)}件")
         time.sleep(0.2)
 
+    all_ids = list(tier_by_id.keys())
     print(f"\nユニーク動画ID: {len(all_ids)}件。詳細取得中...")
-    items = fetch_video_details(list(all_ids.keys()))
+    items = fetch_video_details(all_ids)
     print(f"詳細取得: {len(items)}件\n")
 
-    # 機械フィルタ
+    # 機械フィルタ（信頼chは再生数下限を緩める）
     passed, dropped = [], []
     for item in items:
-        ok, reason = passes_mechanical_filter(item, cfg)
+        tier = tier_by_id.get(item["id"], 3)
+        ok, reason = passes_mechanical_filter(item, cfg, trusted=(tier < 3))
         if ok:
-            passed.append(item)
+            passed.append((item, tier))
         else:
             dropped.append((item.get("snippet", {}).get("title", "?"), reason))
 
@@ -243,18 +299,24 @@ def main():
         for title, reason in dropped[:10]:
             print(f"  ✗ [{reason}] {title[:60]}")
 
+    # ティア内訳サマリ
+    tier_counts = {}
+    for _item, t in passed:
+        tier_counts[t] = tier_counts.get(t, 0) + 1
+    print("通過ティア内訳: " + " / ".join(f"T{t}:{tier_counts[t]}本" for t in sorted(tier_counts)))
+
     if args.dry_run:
-        print("\n--- 通過サンプル(最大10件) ---")
-        for item in passed[:10]:
-            row = to_video_row(item)
-            tags = ",".join(sorted(all_ids.get(item["id"], [])))
-            print(f"  ✓ {row['view_count']:>9,}回 [{tags}] {row['title_original'][:55]}")
+        print("\n--- 通過サンプル(最大12件) ---")
+        for item, tier in passed[:12]:
+            row = to_video_row(item, tier)
+            tags = ",".join(sorted(part_hint.get(item["id"], [])))
+            print(f"  ✓ T{tier} {row['view_count']:>9,}回 [{tags}] {row['title_original'][:50]}")
         print("\n[DRY-RUN] DB書込はしていません。")
         return
 
     # --- 本取得: videos へ upsert + view_history 追記 ---
     supabase = create_client(SUPABASE_URL, SUPABASE_WRITE_KEY)
-    rows = [to_video_row(item) for item in passed]
+    rows = [to_video_row(item, tier) for item, tier in passed]
     if not rows:
         print("\n投入対象なし。終了。")
         return

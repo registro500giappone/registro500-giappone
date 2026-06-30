@@ -60,6 +60,7 @@
     .vp-cat{padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:.9rem;font-weight:600;text-align:left;transition:.15s;}
     .vp-cat:hover{border-color:var(--accent);background:var(--accent-soft);}
     .vp-cat.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+    .vp-cat .ico{font-size:1.05rem;margin-right:6px;}
     .vp-cat .cnt{display:block;font-weight:400;font-size:.72rem;color:var(--muted);margin-top:2px;}
     .vp-cat.active .cnt{color:rgba(255,255,255,.85);}
 
@@ -89,6 +90,7 @@
     .vp-badges{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px;}
     .vp-badge{font-size:.68rem;padding:2px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600;}
     .vp-badge.cc{background:#eef2ff;color:#4338ca;}
+    .vp-badge.shop{background:#fef3c7;color:#92400e;}
 
     .vp-more{text-align:center;margin:26px 0;}
     .vp-more button{padding:11px 30px;border:1px solid var(--accent);background:#fff;color:var(--accent);border-radius:999px;font-size:.92rem;cursor:pointer;}
@@ -109,7 +111,7 @@
   <div class="wrap">
     <div class="vp-head">
       <h1>🎬 クラシックFIAT 500/126 動画ガイド</h1>
-      <p class="lead">整備・レストア・チューニングの人気YouTube動画を、箇所別・人気順・日本語解説付きで。</p>
+      <p class="lead">整備・レストア・チューニングの人気YouTube動画を、整備箇所別・人気順・日本語解説付きで。</p>
 
       <div class="vp-search">
         <input id="searchInput" type="search" placeholder="動画を検索（例：タペット、キャブ、点火）" />
@@ -122,10 +124,10 @@
         <button data-veh="fiat-126">FIAT 126</button>
       </div>
 
-      <div class="vp-section-label">カテゴリ</div>
-      <div class="vp-cats" id="catGrid"></div>
+      <div class="vp-section-label">整備箇所（系統）で選ぶ</div>
+      <div class="vp-cats" id="sysGrid"></div>
 
-      <div class="vp-section-label">整備箇所で絞る</div>
+      <div class="vp-section-label">さらに作業内容で絞る</div>
       <div class="vp-chips" id="partChips"></div>
 
       <div class="vp-toggles">
@@ -157,10 +159,22 @@
     const sb = supabaseClient;
     const NOIMG = (typeof NO_IMAGE_URL !== 'undefined') ? NO_IMAGE_URL : 'https://placehold.co/600x338?text=No+Image';
 
+    // 整備箇所（系統）= 7区分。整備・チューニングは「区分」では分けず、同じ系統に統合する。
+    // cats には整備の中区分＋対応するチューニング中区分のslugを束ねる（オーバーラップ吸収）。
+    const SYSTEMS = [
+      {key:'engine',             label:'エンジン',          ico:'⚙️', cats:['engine','engine-tuning','engine-swap-126','exhaust']},
+      {key:'fuel-intake',        label:'燃料・吸気',        ico:'⛽', cats:['fuel-intake','head-bigcarb']},
+      {key:'ignition-electrical',label:'点火・電装',        ico:'⚡', cats:['ignition-electrical','electronic-ignition']},
+      {key:'drivetrain',         label:'駆動・ミッション',  ico:'🔩', cats:['drivetrain']},
+      {key:'suspension-brakes',  label:'足回り・ブレーキ',  ico:'🛞', cats:['suspension-brakes']},
+      {key:'body-interior-misc', label:'ボディ・内装',      ico:'🚗', cats:['body-interior-misc']},
+      {key:'general-maintenance',label:'一般メンテ・油脂',  ico:'🛢️', cats:['general-maintenance']},
+    ];
+
     // 状態（URLから初期化）
     const p = new URLSearchParams(location.search);
     let state = {
-      category: p.get('category') || '',
+      system: p.get('system') || '',
       part: p.get('part') || '',
       vehicle: normVeh(p.get('vehicle') || ''),
       q: p.get('q') || '',
@@ -169,11 +183,11 @@
       offset: 0,
     };
 
-    // 整備箇所チップは「車の系統順」で並べる（HANDOFF設計の系統順に準拠）
-    const SYSTEM_ORDER = ['valve-clearance','head-topend','oil-seals','carb-tuning','carb-rebuild','ignition-timing','contact-points','spark-plugs','wiring-dynamo-belt','clutch','transmission','brakes','suspension'];
+    // 作業内容チップは「車の系統順」で並べる（HANDOFF設計の系統順に準拠）
+    const PART_ORDER = ['valve-clearance','head-topend','oil-seals','carb-tuning','carb-rebuild','ignition-timing','contact-points','spark-plugs','wiring-dynamo-belt','clutch','transmission','brakes','suspension'];
 
-    let masters = { cats: [], parents: [], parts: [], vehicles: [] };
-    let catCounts = {};       // 親slug -> 件数
+    let masters = { cats: [], parts: [], vehicles: [] };
+    let sysCounts = {};       // system.key -> 件数
     let currentIds = null;    // フィルタで絞ったid集合（null=制限なし）
 
     function esc(s){return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -183,7 +197,7 @@
 
     function syncUrl(){
       const u = new URLSearchParams();
-      if(state.category)u.set('category',state.category);
+      if(state.system)u.set('system',state.system);
       if(state.part)u.set('part',state.part);
       if(state.vehicle)u.set('vehicle',state.vehicle);
       if(state.q)u.set('q',state.q);
@@ -203,7 +217,6 @@
         sb.from('videos').select('id,category_id'),
       ]);
       masters.cats = cats||[];
-      masters.parents = (cats||[]).filter(c=>!c.parent_id);
       masters.parts = parts||[];
       masters.vehicles = vehs||[];
       masters.vpt = vpt||[];      // video_id -> part_tag_id
@@ -211,11 +224,19 @@
       masters.vmeta = vmeta||[];  // video_id -> category_id
     }
 
-    // 現在のカテゴリ/車種で動画が存在する part_tag_id の集合（チップを文脈連動で出すため）
+    // system.key が束ねる category_id 群（整備中区分＋チューニング中区分）
+    function systemCatIds(key){
+      const sys = SYSTEMS.find(s=>s.key===key);
+      if(!sys) return [];
+      const slugSet = new Set(sys.cats);
+      return masters.cats.filter(c=>slugSet.has(c.slug)).map(c=>c.id);
+    }
+
+    // 現在の系統/車種で動画が存在する part_tag_id の集合（チップを文脈連動で出すため）
     function availablePartTagIds(){
       let vidSet = null; // null=制限なし
-      if(state.category){
-        const cids=new Set(categoryIdsForSlug(state.category));
+      if(state.system){
+        const cids=new Set(systemCatIds(state.system));
         vidSet = new Set(masters.vmeta.filter(v=>cids.has(v.category_id)).map(v=>v.id));
       }
       if(state.vehicle){
@@ -228,18 +249,6 @@
       return present;
     }
 
-    // slug が親なら配下の中区分id群、中区分ならそのid単体を返す（親/子どちらのリンクでも効く）
-    function categoryIdsForSlug(slug){
-      const node = masters.cats.find(c=>c.slug===slug);
-      if(!node) return [];
-      if(node.parent_id) return [node.id]; // 中区分そのもの
-      return masters.cats.filter(c=>c.parent_id===node.id).map(c=>c.id); // 親→配下
-    }
-    function childIdsOfParent(parentSlug){
-      const parent = masters.cats.find(c=>c.slug===parentSlug && !c.parent_id);
-      if(!parent) return [];
-      return masters.cats.filter(c=>c.parent_id===parent.id).map(c=>c.id);
-    }
     function partId(slug){ const t=masters.parts.find(x=>x.slug===slug); return t?t.id:null; }
     function vehId(slug){ const v=masters.vehicles.find(x=>x.slug===slug); return v?v.id:null; }
 
@@ -266,8 +275,8 @@
     }
 
     function buildQuery(forCount){
-      let qy = sb.from('videos').select('id,youtube_id,title_ja,title_original,channel_name,duration_seconds,thumbnail_url,view_count,has_captions,embeddable,description_ja', forCount?{count:'exact',head:true}:{});
-      if(state.category){ const ids=categoryIdsForSlug(state.category); qy=qy.in('category_id', ids.length?ids:['00000000-0000-0000-0000-000000000000']); }
+      let qy = sb.from('videos').select('id,youtube_id,title_ja,title_original,channel_name,duration_seconds,thumbnail_url,view_count,has_captions,embeddable,description_ja,source_tier', forCount?{count:'exact',head:true}:{});
+      if(state.system){ const ids=systemCatIds(state.system); qy=qy.in('category_id', ids.length?ids:['00000000-0000-0000-0000-000000000000']); }
       if(currentIds!==null){ qy=qy.in('id', currentIds.length?currentIds:['00000000-0000-0000-0000-000000000000']); }
       if(state.q){ const t=state.q.replace(/[%,]/g,' ').trim(); qy=qy.or(`title_ja.ilike.%${t}%,title_original.ilike.%${t}%`); }
       if(state.ja){ qy=qy.not('description_ja','is',null); }
@@ -276,30 +285,32 @@
     }
 
     async function renderCounts(){
-      // 親カテゴリの件数（おおまかな器の充実度を見せる）
-      catCounts = {};
-      await Promise.all(masters.parents.map(async pr=>{
-        const ids = childIdsOfParent(pr.slug);
-        if(!ids.length){ catCounts[pr.slug]=0; return; }
+      // 系統ごとの件数（おおまかな器の充実度を見せる）
+      sysCounts = {};
+      await Promise.all(SYSTEMS.map(async sys=>{
+        const ids = systemCatIds(sys.key);
+        if(!ids.length){ sysCounts[sys.key]=0; return; }
         const {count} = await sb.from('videos').select('id',{count:'exact',head:true}).in('category_id',ids);
-        catCounts[pr.slug]=count||0;
+        sysCounts[sys.key]=count||0;
       }));
     }
 
     function renderControls(){
-      // カテゴリタイル
-      document.getElementById('catGrid').innerHTML = masters.parents.map(pr=>
-        `<button class="vp-cat${state.category===pr.slug?' active':''}" data-cat="${esc(pr.slug)}">${esc(pr.name_ja)}<span class="cnt">${catCounts[pr.slug]||0}本</span></button>`
-      ).join('');
-      // 箇所チップ（系統順に並べ、選択中カテゴリ/車種に動画がある箇所だけ表示。選択中の箇所は常に残す）
+      // 系統タイル（0本は出さない。選択中は常に残す）
+      document.getElementById('sysGrid').innerHTML = SYSTEMS
+        .filter(sys=> (sysCounts[sys.key]||0)>0 || state.system===sys.key)
+        .map(sys=>
+          `<button class="vp-cat${state.system===sys.key?' active':''}" data-sys="${esc(sys.key)}"><span class="ico">${sys.ico}</span>${esc(sys.label)}<span class="cnt">${sysCounts[sys.key]||0}本</span></button>`
+        ).join('');
+      // 作業内容チップ（系統順に並べ、選択中の系統/車種に動画がある箇所だけ表示。選択中の箇所は常に残す）
       const present = availablePartTagIds();
-      const ordered = SYSTEM_ORDER.map(slug=>masters.parts.find(p=>p.slug===slug)).filter(Boolean);
-      masters.parts.forEach(p=>{ if(!SYSTEM_ORDER.includes(p.slug)) ordered.push(p); });
+      const ordered = PART_ORDER.map(slug=>masters.parts.find(p=>p.slug===slug)).filter(Boolean);
+      masters.parts.forEach(p=>{ if(!PART_ORDER.includes(p.slug)) ordered.push(p); });
       const visible = ordered.filter(t=> present.has(t.id) || state.part===t.slug);
       const chipsEl = document.getElementById('partChips');
       chipsEl.innerHTML = visible.map(t=>
         `<button class="vp-chip${state.part===t.slug?' active':''}" data-part="${esc(t.slug)}">${esc(t.name_ja)}</button>`
-      ).join('') || '<span style="font-size:.82rem;color:var(--muted);">この条件に該当する整備箇所はありません</span>';
+      ).join('') || '<span style="font-size:.82rem;color:var(--muted);">この条件に該当する作業内容はありません</span>';
       // 車種バー
       document.querySelectorAll('#vehBar button').forEach(b=>b.classList.toggle('active', (b.dataset.veh||'')===state.vehicle));
       // トグル
@@ -308,8 +319,8 @@
       document.getElementById('searchInput').value=state.q;
       // アクティブ表示
       const parts=[];
-      if(state.category){const c=masters.cats.find(x=>x.slug===state.category);if(c)parts.push('カテゴリ：'+c.name_ja);}
-      if(state.part){const t=masters.parts.find(x=>x.slug===state.part);if(t)parts.push('箇所：'+t.name_ja);}
+      if(state.system){const s=SYSTEMS.find(x=>x.key===state.system);if(s)parts.push('箇所：'+s.label);}
+      if(state.part){const t=masters.parts.find(x=>x.slug===state.part);if(t)parts.push('作業：'+t.name_ja);}
       if(state.vehicle){const v=masters.vehicles.find(x=>x.slug===state.vehicle);if(v)parts.push('車種：'+v.name_display);}
       if(state.q)parts.push('検索：'+state.q);
       if(state.cc)parts.push('字幕あり');   // 日本語解説ありは既定ONのためバーには出さない
@@ -320,6 +331,7 @@
 
     function cardHtml(v){
       const badges=[];
+      if(v.source_tier===1)badges.push('<span class="vp-badge shop">ショップ・専門</span>');
       if(v.description_ja)badges.push('<span class="vp-badge">日本語解説</span>');
       if(v.has_captions)badges.push('<span class="vp-badge cc">字幕</span>');
       return `<a class="vp-card" href="video.html?id=${encodeURIComponent(v.youtube_id)}">
@@ -344,10 +356,14 @@
         currentIds = await resolveIdFilter();
         const {count} = await buildQuery(true);
         total = count||0;
-        document.getElementById('countLabel').textContent = total>0?`${total}本（人気順）`:'';
+        document.getElementById('countLabel').textContent = total>0?`${total}本（実践How-to優先・信頼ソース順→人気順）`:'';
       }
 
+      // 並び：①実践How-to(整備/レストア/チューニング=手を動かす系)を最上帯へ → ②見る系(走行/歴史/購入)等カテゴリ有り → ③未分類 → 各帯内は信頼チャンネル優先(source_tier昇順)→人気順
       const {data,error} = await buildQuery(false)
+        .order('is_howto',{ascending:false})
+        .order('is_categorized',{ascending:false})
+        .order('source_tier',{ascending:true,nullsFirst:false})
         .order('view_count',{ascending:false})
         .range(state.offset, state.offset+PAGE-1);
 
@@ -364,14 +380,14 @@
     function setAndReload(patch){ Object.assign(state,patch); syncUrl(); renderControls(); loadList(true); }
 
     // イベント
-    document.getElementById('catGrid').addEventListener('click',e=>{const b=e.target.closest('[data-cat]');if(!b)return;setAndReload({category: state.category===b.dataset.cat?'':b.dataset.cat});});
+    document.getElementById('sysGrid').addEventListener('click',e=>{const b=e.target.closest('[data-sys]');if(!b)return;setAndReload({system: state.system===b.dataset.sys?'':b.dataset.sys, part:''});});
     document.getElementById('partChips').addEventListener('click',e=>{const b=e.target.closest('[data-part]');if(!b)return;setAndReload({part: state.part===b.dataset.part?'':b.dataset.part});});
     document.getElementById('vehBar').addEventListener('click',e=>{const b=e.target.closest('[data-veh]');if(!b)return;setAndReload({vehicle:b.dataset.veh||''});});
     document.getElementById('tglJa').addEventListener('change',e=>setAndReload({ja:e.target.checked}));
     document.getElementById('tglCc').addEventListener('change',e=>setAndReload({cc:e.target.checked}));
     document.getElementById('searchBtn').addEventListener('click',()=>setAndReload({q:document.getElementById('searchInput').value.trim()}));
     document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')setAndReload({q:e.target.value.trim()});});
-    document.getElementById('clearBtn').addEventListener('click',()=>setAndReload({category:'',part:'',vehicle:'',q:'',ja:true,cc:false}));
+    document.getElementById('clearBtn').addEventListener('click',()=>setAndReload({system:'',part:'',vehicle:'',q:'',ja:true,cc:false}));
     document.getElementById('moreBtn').addEventListener('click',()=>loadList(false));
 
     (async function init(){

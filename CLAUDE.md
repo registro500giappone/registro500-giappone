@@ -102,6 +102,21 @@ git push origin main           # Cloudflare Pages 自動デプロイがトリガ
 - `py/` → クローラースクリプト群（**GitHub Actions用にgit管理対象**、`*.py` / `*.md` はコミット必須。ログ・CSV・機密ファイルは `py/.gitignore` で除外）
 - `126/index.html` → Fiat 126姉妹サイトのトップページ
 - `.claude/agents/` → 専用サブエージェント定義（Haikuモデル）
+- `youtube-portal/` → YouTube動画ポータル（クラシックFIAT 500/126動画キュレーション）の確定設計。`HANDOFF.md`（引き継ぎ書・全決定事項）＋`schema.sql`（適用済みスキーマ）
+
+---
+
+## YouTube動画ポータル（進行中の新規テーマ）
+
+registro500.com をクラシックFIAT 500/126ポータル化する施策。YouTube動画を「整備箇所別・人気順・日本語」で見せる。**確定設計は `youtube-portal/HANDOFF.md` ＋ `schema.sql` が正本。確定済みの設計判断を勝手に変えない**（不変条件はHANDOFF §8）。
+
+主要な不変条件: 主分類1つ＋箇所タグ複数（整備/チューニング共通）／車種タグは粗く・エイリアスは細かく・表示は通称／AI解説は監修なしだが「AI生成」明示＋定型注意書き必須／書き込みはログインオーナーのみ・読み取り全員（RLS）／クラシック期のみ（現行車は足切り）／原題は消さない。
+
+実装タスクは HANDOFF §7 の8ステップ（①スキーマ適用 ②初期マスタ投入 ③取得スクリプト ④AI分類・解説生成 ⑤週次再生数更新 ⑥月次新着探索 ⑦フロント3画面 ⑧認証連携）。進捗は HANDOFF §9「実装ログ」に追記する。
+
+- **タスク1（スキーマ適用）= 2026-06-29完了**。8テーブル＋ビュー`video_reco_counts`＋RLSを本番migration適用済（`youtube_portal_schema` / `youtube_portal_harden_set_updated_at`）。
+- **タスク2（初期マスタ投入）= 2026-06-29完了**。vehicles 5・part_tags 13・categories 親6＋中区分29＝計35 を投入（`youtube-portal/seed_master.sql`）。edit.htmlのモデル区分を search_aliases に反映済。
+- **次はタスク3（取得スクリプト）= YouTube Data API キーが前提**。キー所在・実行環境・AI分類用Anthropic APIを確認のうえ、規模が大きいのでPlan modeで計画化を推奨。
 
 ---
 

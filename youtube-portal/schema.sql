@@ -72,12 +72,40 @@ create table videos (
                        check (commentary_source in ('ai','human','hybrid')),
   has_captions       boolean not null default false,
   embeddable         boolean not null default true,
+  channel_id         text,                               -- YouTubeチャンネルID（信頼chまるごと取得・重複判定用）
+  source_tier        smallint not null default 3,        -- 信頼ソースティア: 1=本命ch, 2=条件付きch, 3=キーワード/その他
+  is_categorized     boolean generated always as (category_id is not null) stored,  -- 整備動画と確定したか(並びの帯分け用・generated)
+  is_howto           boolean not null default false,      -- 実践How-to(手を動かす系=整備/レストア/チューニング)か。category_idの親階層で判定しトリガ維持(下記 set_video_is_howto)
   created_at         timestamptz not null default now(),
   updated_at         timestamptz not null default now()
 );
 create index idx_videos_category   on videos(category_id);
 create index idx_videos_viewcount  on videos(view_count desc);
 create index idx_videos_published  on videos(published_at desc);
+create index idx_videos_tier_view  on videos(source_tier, view_count desc);
+
+-- is_howto をカテゴリ親階層から自動維持。フロントの並びは is_howto→is_categorized→source_tier→view_count。
+create or replace function set_video_is_howto()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare root_slug text;
+begin
+  if NEW.category_id is null then
+    NEW.is_howto := false;
+  else
+    select coalesce(p.slug, c.slug) into root_slug
+    from categories c left join categories p on p.id = c.parent_id
+    where c.id = NEW.category_id;
+    NEW.is_howto := coalesce(root_slug in ('manutenzione','restauro','elaborazione'), false);
+  end if;
+  return NEW;
+end;
+$$;
+create trigger trg_video_is_howto
+before insert or update of category_id on videos
+for each row execute function set_video_is_howto();
 
 -- 5. video_part_tags — 動画 ↔ 箇所タグ (多対多)
 create table video_part_tags (
