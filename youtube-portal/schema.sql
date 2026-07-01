@@ -73,9 +73,12 @@ create table videos (
   has_captions       boolean not null default false,
   embeddable         boolean not null default true,
   channel_id         text,                               -- YouTubeチャンネルID（信頼chまるごと取得・重複判定用）
-  source_tier        smallint not null default 3,        -- 信頼ソースティア: 1=本命ch, 2=条件付きch, 3=キーワード/その他
+  source_tier        smallint not null default 3,        -- 信頼ソースティア: 0=手動追加(管理者/オーナー推薦・最上位・自動削除保護), 1=本命ch, 2=条件付きch, 3=キーワード/その他
+  recommended_by_name text,                              -- オーナー推薦の記名（null=無記名/自動取得動画・管理者自発追加）
   is_categorized     boolean generated always as (category_id is not null) stored,  -- 整備動画と確定したか(並びの帯分け用・generated)
   is_howto           boolean not null default false,      -- 実践How-to(手を動かす系=整備/レストア/チューニング)か。category_idの親階層で判定しトリガ維持(下記 set_video_is_howto)
+  steps_ja           jsonb,                               -- AI要約「手順カード」(方法A: Gemini動画視聴→日本語整備手順)。形式 {"steps":[{"t":"見出し","d":"本文(専門用語=日本語+原語併記)"}...最大8],"caution":"注意点1行"}。null=未生成or非対象。is_howto=trueのみ生成(py/youtube_steps.py・夜間cron)
+  has_steps          boolean generated always as (steps_ja is not null) stored,  -- 手順カードありか(一覧を軽く保つ・バッジ用・generated)
   created_at         timestamptz not null default now(),
   updated_at         timestamptz not null default now()
 );

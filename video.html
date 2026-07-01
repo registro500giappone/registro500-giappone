@@ -25,11 +25,14 @@
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
 
   <style>
-    :root{--bg:#f4f4f7;--card:#fff;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#4D6B3C;--accent-soft:#eef3ea;--radius:12px;}
+    :root{--bg:#f4f4f7;--card:#fff;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#4D6B3C;--accent-soft:#eef3ea;--radius:12px;
+      --nav-h:48px;   /* ナビ帯の高さを固定（sticky動画のtopと厳密一致＝帯かぶり防止） */
+      --gap:12px;     /* 動画と帯の間の余白 */
+    }
     *{box-sizing:border-box;}
     body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif;line-height:1.7;}
     a{color:var(--accent);}
-    .vp-nav{position:sticky;top:0;z-index:50;background:#1A1A18;display:flex;align-items:center;justify-content:space-between;padding:12px 18px;}
+    .vp-nav{position:sticky;top:0;z-index:50;height:var(--nav-h);background:#1A1A18;display:flex;align-items:center;justify-content:space-between;padding:0 18px;}
     .vp-nav a{color:rgba(255,255,255,.8);text-decoration:none;font-size:.82rem;letter-spacing:.06em;}
     .vp-nav a:hover{color:#fff;}
     .vp-nav .brand{letter-spacing:.25em;text-transform:uppercase;font-size:.72rem;color:rgba(255,255,255,.6);}
@@ -37,7 +40,7 @@
     .wrap{max-width:860px;margin:0 auto;padding:18px 16px 80px;}
     .loading,.errbox{text-align:center;color:var(--muted);padding:60px 20px;}
 
-    .player{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:var(--radius);overflow:hidden;}
+    .player{position:sticky;top:calc(var(--nav-h) + var(--gap));z-index:10;width:100%;aspect-ratio:16/9;background:#000;border-radius:var(--radius);overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.25);}
     .player iframe{width:100%;height:100%;border:0;display:block;}
     .player .fallback{width:100%;height:100%;position:relative;display:block;border:0;padding:0;background:#000;cursor:pointer;}
     .player .fallback img{width:100%;height:100%;object-fit:cover;display:block;opacity:.85;}
@@ -58,7 +61,16 @@
     .ai-tag{font-size:.68rem;font-weight:700;letter-spacing:.08em;background:#fde68a;color:#92400e;padding:2px 8px;border-radius:6px;}
     .ai-head h2{font-size:.95rem;margin:0;}
     .ai-text{font-size:.95rem;color:#1f2937;white-space:pre-wrap;}
+    .ai-lead{font-size:.9rem;color:var(--muted);margin:0 0 12px;}
     .ai-note{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);font-size:.76rem;color:var(--muted);line-height:1.6;}
+
+    /* AI要約「手順カード」（is_howto動画・番号付きステップ＋注意点） */
+    ol.steps{list-style:none;counter-reset:s;margin:0;padding:0;}
+    ol.steps li{counter-increment:s;position:relative;padding:10px 4px 10px 42px;border-bottom:1px solid #f1f1f4;font-size:.95rem;}
+    ol.steps li:last-child{border-bottom:0;}
+    ol.steps li::before{content:counter(s);position:absolute;left:6px;top:9px;width:26px;height:26px;background:var(--accent);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:700;}
+    ol.steps li b{color:var(--ink);}
+    .caution{margin-top:14px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;font-size:.86rem;color:#991b1b;display:flex;gap:8px;}
 
     .open-yt{display:inline-block;font-size:.82rem;margin-bottom:24px;}
 
@@ -74,6 +86,33 @@
     .rel-t{font-size:.8rem;font-weight:600;line-height:1.35;padding:8px 9px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 
     footer{margin-top:40px;padding:22px 16px;border-top:1px solid var(--line);text-align:center;color:var(--muted);font-size:.8rem;}
+
+    /* ============================================================
+       2カラム（動画=左に固定・付随情報/手順=右でスクロール）
+       グリッドは #content に適用（player・title等は #content の直下）。
+       動画は帯の直下に固定し、高さは画面内に収める。
+       ============================================================ */
+    @media (min-width:900px){
+      .wrap{max-width:1600px;width:calc(100% - 48px);padding:16px 0 80px;}
+      #content{display:grid;grid-template-columns:minmax(0,1fr) 380px;column-gap:26px;align-items:start;}
+      .player{grid-column:1;grid-row:1 / 99;align-self:start;
+              /* 縦が短い画面でも画面内に収める（16:9維持のまま幅で調整） */
+              max-width:calc((100vh - var(--nav-h) - var(--gap)*2) * 16 / 9);}
+      h1.title{grid-column:2;margin-top:0;}
+      .orig,.meta,.badges,.ai-box,.open-yt,.reco-box,#relSection{grid-column:2;}
+    }
+    @media (min-width:1400px){
+      #content{grid-template-columns:minmax(0,1fr) 420px;}
+    }
+    /* スマホ横：縦が短いので動画は高さ基準で画面に収める（幅は自動） */
+    @media (orientation:landscape) and (max-height:600px){
+      .wrap{max-width:none;padding:10px 16px 40px;}
+      #content{display:grid;grid-template-columns:auto 1fr;column-gap:18px;align-items:start;}
+      .player{grid-column:1;grid-row:1 / 99;top:calc(var(--nav-h) + 8px);
+              height:calc(100vh - var(--nav-h) - 20px);width:auto;align-self:start;}
+      h1.title{grid-column:2;margin-top:0;}
+      .orig,.meta,.badges,.ai-box,.open-yt,.reco-box,#relSection{grid-column:2;}
+    }
   </style>
 </head>
 <body>
@@ -96,8 +135,8 @@
 
       <div class="ai-box" id="aiBox" style="display:none;">
         <div class="ai-head"><span class="ai-tag">AI生成</span><h2>AI要約</h2></div>
-        <div class="ai-text" id="aiText"></div>
-        <div class="ai-note">この解説はAIが動画情報から自動生成しています。実際の作業は元動画と整備書で必ず確認してください。</div>
+        <div id="aiInner"></div>
+        <div class="ai-note" id="aiNote"></div>
       </div>
 
       <a class="open-yt" id="openYt" href="#" target="_blank" rel="noopener">▶ YouTubeで開く</a>
@@ -171,6 +210,7 @@
 
       // メタ
       const meta=[];
+      if(v.recommended_by_name)meta.push(`<span style="background:#fce7f3;color:#9d174d;font-weight:600;padding:2px 9px;border-radius:999px;">🙋 ${esc(v.recommended_by_name)}さんの推薦</span>`);
       if(v.channel_name)meta.push(esc(v.channel_name));
       meta.push('▶ '+fmtViews(v.view_count));
       if(v.published_at)meta.push(fmtDate(v.published_at));
@@ -183,8 +223,24 @@
       vehs.forEach(ve=>b.push(`<a class="badge veh" href="videos.html?vehicle=${esc(ve.slug)}">${esc(ve.name_display)}</a>`));
       document.getElementById('vBadges').innerHTML=b.join('');
 
-      // AI解説
-      if(v.description_ja){ document.getElementById('aiText').textContent=v.description_ja; document.getElementById('aiBox').style.display='block'; }
+      // AI要約：is_howto動画は「手順カード」（steps_ja）、それ以外は要約文（description_ja）
+      const steps = (v.steps_ja && Array.isArray(v.steps_ja.steps)) ? v.steps_ja.steps : [];
+      if(steps.length){
+        const lead = v.description_ja ? `<p class="ai-lead">${esc(v.description_ja)}</p>` : '';
+        const ol = '<ol class="steps">'+steps.map(s=>{
+          const t=s&&s.t?`<b>${esc(s.t)}</b>`:''; const d=s&&s.d?esc(s.d):'';
+          return `<li>${t}${t&&d?' — ':''}${d}</li>`;
+        }).join('')+'</ol>';
+        const cau=(v.steps_ja.caution||'').trim();
+        const caution = cau ? `<div class="caution"><span>⚠️</span><span><b>注意点：</b>${esc(cau)}</span></div>` : '';
+        document.getElementById('aiInner').innerHTML = lead+ol+caution;
+        document.getElementById('aiNote').textContent='この手順はAIが動画の映像から自動生成しています。実際の作業は元動画と整備書で必ず確認してください。';
+        document.getElementById('aiBox').style.display='block';
+      }else if(v.description_ja){
+        document.getElementById('aiInner').innerHTML = `<div class="ai-text">${esc(v.description_ja)}</div>`;
+        document.getElementById('aiNote').textContent='この解説はAIが動画情報から自動生成しています。実際の作業は元動画と整備書で必ず確認してください。';
+        document.getElementById('aiBox').style.display='block';
+      }
 
       // YouTubeリンク・おすすめ数
       document.getElementById('openYt').href='https://www.youtube.com/watch?v='+encodeURIComponent(v.youtube_id);
@@ -202,7 +258,8 @@
       document.getElementById('canonicalTag').href='https://www.registro500.com/video?id='+encodeURIComponent(v.youtube_id);
 
       document.getElementById('loading').style.display='none';
-      document.getElementById('content').style.display='block';
+      // 表示。inline display を空にしてCSS(グリッド/ブロック)に委ねる＝PC/スマホ横で2カラムが効く
+      document.getElementById('content').style.display='';
     }
 
     // categoriesは中区分。親slugは取得していないので、絞り込みは中区分でなく自身のslugで代用できないため、

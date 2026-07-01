@@ -1,0 +1,39 @@
+name: YouTubeポータル AI要約「手順カード」生成（夜間/手動）
+
+on:
+  schedule:
+    - cron: '0 17 * * *'   # 毎日 JST 02:00 (UTC 17:00) — is_howto動画の手順を少しずつバックフィル
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: '1回の処理件数上限（Gemini無料枠のトークン上限回避）'
+        required: false
+        default: '30'
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  generate-steps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 依存関係インストール
+        run: pip install -r py/requirements.txt
+
+      - name: .env 作成
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
+          echo "SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}" >> py/.env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> py/.env
+
+      - name: AI要約 手順カード生成
+        run: python py/youtube_steps.py --limit ${{ github.event.inputs.limit || '30' }}

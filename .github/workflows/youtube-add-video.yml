@@ -1,0 +1,58 @@
+name: YouTubeポータル 動画を手動追加（経路②）
+
+# 自動更新（月次 youtube-portal.yml）とは別に、URLを1本ずつ手で足す入口。
+# オーナーからのメール要望を受けて追加する場合は recommended_by に推薦者名を入れると記名される。
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'YouTube動画のURL（または11桁ID）'
+        required: true
+        type: string
+      recommended_by:
+        description: '推薦者名（記名。空欄なら無記名＝管理者自発追加）'
+        required: false
+        type: string
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  add-and-classify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 依存関係インストール
+        run: pip install -r py/requirements.txt
+
+      - name: .env 作成
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
+          echo "SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}" >> py/.env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> py/.env
+          echo "YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}" >> py/.env
+
+      - name: 動画を追加（経路②）
+        working-directory: py
+        env:
+          ADD_URL: ${{ inputs.url }}
+          ADD_BY: ${{ inputs.recommended_by }}
+        run: |
+          if [ -n "$ADD_BY" ]; then
+            python youtube_add.py "$ADD_URL" --by "$ADD_BY"
+          else
+            python youtube_add.py "$ADD_URL"
+          fi
+
+      - name: AI分類・日本語化（追加分を即時に）
+        if: success()
+        working-directory: py
+        run: python youtube_classify.py

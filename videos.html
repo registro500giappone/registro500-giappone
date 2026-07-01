@@ -91,6 +91,12 @@
     .vp-badge{font-size:.68rem;padding:2px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600;}
     .vp-badge.cc{background:#eef2ff;color:#4338ca;}
     .vp-badge.shop{background:#fef3c7;color:#92400e;}
+    .vp-badge.reco{background:#fce7f3;color:#9d174d;}
+
+    /* オーナー推薦の受付導線 */
+    .vp-suggest{margin:22px 0 4px;padding:13px 16px;background:#fff;border:1px dashed var(--line);border-radius:10px;font-size:.86rem;color:var(--muted);}
+    .vp-suggest a{color:var(--accent);font-weight:600;text-decoration:none;}
+    .vp-suggest a:hover{text-decoration:underline;}
 
     .vp-more{text-align:center;margin:26px 0;}
     .vp-more button{padding:11px 30px;border:1px solid var(--accent);background:#fff;color:var(--accent);border-radius:999px;font-size:.92rem;cursor:pointer;}
@@ -131,7 +137,6 @@
       <div class="vp-chips" id="partChips"></div>
 
       <div class="vp-toggles">
-        <label><input type="checkbox" id="tglJa"> AI要約あり</label>
         <label><input type="checkbox" id="tglCc"> 字幕あり</label>
       </div>
 
@@ -146,6 +151,12 @@
     <div class="vp-loading" id="loading">読み込み中…</div>
     <div class="vp-empty" id="empty" style="display:none;">該当する動画が見つかりませんでした。条件を変えてお試しください。</div>
     <div class="vp-more" id="moreWrap" style="display:none;"><button id="moreBtn">もっと見る</button></div>
+
+    <div class="vp-suggest">
+      🙋 役立ったクラシックFIAT 500/126の動画をご存じですか？
+      <a id="suggestLink" href="#">メールで教えてください</a>
+      （管理者が確認して掲載します。掲載時はお名前を添えられます）
+    </div>
   </div>
 
   <footer>
@@ -178,7 +189,6 @@
       part: p.get('part') || '',
       vehicle: normVeh(p.get('vehicle') || ''),
       q: p.get('q') || '',
-      ja: p.has('ja') ? p.get('ja') === '1' : true,   // 既定ON（日本語解説あり）
       cc: p.get('cc') === '1',
       offset: 0,
     };
@@ -201,7 +211,6 @@
       if(state.part)u.set('part',state.part);
       if(state.vehicle)u.set('vehicle',state.vehicle);
       if(state.q)u.set('q',state.q);
-      u.set('ja', state.ja?'1':'0');   // 既定ONのため明示（0で解除を記録）
       if(state.cc)u.set('cc','1');
       const qs=u.toString();
       history.replaceState(null,'',qs?('?'+qs):location.pathname);
@@ -275,11 +284,10 @@
     }
 
     function buildQuery(forCount){
-      let qy = sb.from('videos').select('id,youtube_id,title_ja,title_original,channel_name,duration_seconds,thumbnail_url,view_count,has_captions,embeddable,description_ja,source_tier', forCount?{count:'exact',head:true}:{});
+      let qy = sb.from('videos').select('id,youtube_id,title_ja,title_original,channel_name,duration_seconds,thumbnail_url,view_count,has_captions,embeddable,has_steps,source_tier,recommended_by_name', forCount?{count:'exact',head:true}:{});
       if(state.system){ const ids=systemCatIds(state.system); qy=qy.in('category_id', ids.length?ids:['00000000-0000-0000-0000-000000000000']); }
       if(currentIds!==null){ qy=qy.in('id', currentIds.length?currentIds:['00000000-0000-0000-0000-000000000000']); }
       if(state.q){ const t=state.q.replace(/[%,]/g,' ').trim(); qy=qy.or(`title_ja.ilike.%${t}%,title_original.ilike.%${t}%`); }
-      if(state.ja){ qy=qy.not('description_ja','is',null); }
       if(state.cc){ qy=qy.eq('has_captions',true); }
       return qy;
     }
@@ -314,7 +322,6 @@
       // 車種バー
       document.querySelectorAll('#vehBar button').forEach(b=>b.classList.toggle('active', (b.dataset.veh||'')===state.vehicle));
       // トグル
-      document.getElementById('tglJa').checked=state.ja;
       document.getElementById('tglCc').checked=state.cc;
       document.getElementById('searchInput').value=state.q;
       // アクティブ表示
@@ -331,8 +338,9 @@
 
     function cardHtml(v){
       const badges=[];
+      if(v.recommended_by_name)badges.push(`<span class="vp-badge reco">🙋 ${esc(v.recommended_by_name)}さんの推薦</span>`);
       if(v.source_tier===1)badges.push('<span class="vp-badge shop">ショップ・専門</span>');
-      if(v.description_ja)badges.push('<span class="vp-badge">AI要約</span>');
+      if(v.has_steps)badges.push('<span class="vp-badge">AI要約</span>');
       if(v.has_captions)badges.push('<span class="vp-badge cc">字幕</span>');
       return `<a class="vp-card" href="video.html?id=${encodeURIComponent(v.youtube_id)}">
         <div class="vp-thumb"><img src="${esc(v.thumbnail_url||NOIMG)}" alt="${esc(v.title_ja||v.title_original)}" loading="lazy" onerror="this.src='${NOIMG}'">${v.duration_seconds?`<span class="vp-dur">${fmtDur(v.duration_seconds)}</span>`:''}</div>
@@ -383,12 +391,27 @@
     document.getElementById('sysGrid').addEventListener('click',e=>{const b=e.target.closest('[data-sys]');if(!b)return;setAndReload({system: state.system===b.dataset.sys?'':b.dataset.sys, part:''});});
     document.getElementById('partChips').addEventListener('click',e=>{const b=e.target.closest('[data-part]');if(!b)return;setAndReload({part: state.part===b.dataset.part?'':b.dataset.part});});
     document.getElementById('vehBar').addEventListener('click',e=>{const b=e.target.closest('[data-veh]');if(!b)return;setAndReload({vehicle:b.dataset.veh||''});});
-    document.getElementById('tglJa').addEventListener('change',e=>setAndReload({ja:e.target.checked}));
     document.getElementById('tglCc').addEventListener('change',e=>setAndReload({cc:e.target.checked}));
     document.getElementById('searchBtn').addEventListener('click',()=>setAndReload({q:document.getElementById('searchInput').value.trim()}));
     document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')setAndReload({q:e.target.value.trim()});});
-    document.getElementById('clearBtn').addEventListener('click',()=>setAndReload({system:'',part:'',vehicle:'',q:'',ja:true,cc:false}));
+    document.getElementById('clearBtn').addEventListener('click',()=>setAndReload({system:'',part:'',vehicle:'',q:'',cc:false}));
     document.getElementById('moreBtn').addEventListener('click',()=>loadList(false));
+
+    // オーナー要望の mailto 導線（宛先は config.js の ADMIN_EMAIL・投稿テーブルは持たない軽量方式）
+    (function setupSuggest(){
+      const to = (typeof ADMIN_EMAIL !== 'undefined') ? ADMIN_EMAIL : 'registro500giappone@gmail.com';
+      const subject = 'おすすめ動画の推薦';
+      const body = [
+        'クラシックFIAT 500/126の役立つ動画を教えていただきありがとうございます。',
+        '以下にご記入のうえ送信してください。',
+        '',
+        '■ 動画URL：',
+        '■ どんな整備・内容で役立つか：',
+        '■ 掲載時のお名前（記名希望の場合。空欄なら無記名）：',
+      ].join('\n');
+      const el = document.getElementById('suggestLink');
+      if(el) el.href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    })();
 
     (async function init(){
       try{

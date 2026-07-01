@@ -156,6 +156,9 @@ YouTube 動画を「整備箇所別・人気順・日本語」で見られるよ
 - 初回のみ過去の人気動画を一括取得。
 - 無料枠（1日10,000ユニット）に対し、週次は数十ユニット・月次でも数百〜千ユニット程度。枠は問題にならない。
 - スケジューラは既存構成（GitHub Actions cron / Windows Task Scheduler 等）を流用。
+- **【2026-07-01 決定】週次view更新は月次に集約（専用スクリプト不採用）**。月次 `youtube_fetch.py` が信頼chを playlistItems 全巡回で再upsert＝既存動画の `view_count` も最新化＋`view_history` 追記されるため、週次の独立実行を作らず頻度少なめ運用とする。
+- **【2026-07-01 追加】経路②「管理者が手動追加」＝自動更新とは別の入口**：`py/youtube_add.py <URL> [--by 名前]`＋workflow `youtube-add-video.yml`（URL入力→add→classify即実行）。source_tier=0（手動追加＝最上位・classifyの `source_tier<3` 削除ガードで自動削除されない）。記名は `--by` 指定時のみ `videos.recommended_by_name` に格納。オーナー要望は videos.html の mailto 導線（宛先=ADMIN_EMAIL）で受け、管理者が②で掲載＝投稿テーブル・承認UI・RLSは持たない軽量方式。
+- **【2026-07-01 追加】手順カード生成（AI要約・方法A）＝夜間バッチ**：`py/youtube_steps.py`＋workflow `youtube-steps.yml`（毎日JST02:00・limit30）。is_howto動画のみ対象で `videos.steps_ja` を生成。初回292本はバックフィル後、以後は新規howto動画のみ＝数本/月と安価（Geminiのみ・YouTube APIユニット消費なし）。
 
 ---
 
@@ -217,3 +220,20 @@ YouTube 動画を「整備箇所別・人気順・日本語」で見られるよ
   - **【方針転換の検討中・未決】** ユーザー指摘で、純・人気順だと汎用動画が上位に来て**FD Ricambi等のショップ解説や日本語チャンネルが埋もれる**問題が判明。→「**信頼チャンネルまるごと取得＋ソース優先ティア**（ショップ/日本語/専門→その他人気順）」へのキュレーション再設計を検討中。カテゴリ6分類の存続も再検討対象（113本規模で過剰の懸念）。**この再設計は未確定。決まり次第 Plan mode で計画化する。**
   - ショップ調査結果(YouTube解説チャンネル有無): **FD Ricambi 'Restore Your Fiat'=51本(英How-to・本命)** / Axel Gerstl=15本(独) / D'Angelo Motori=49本(伊チューニング) / Ricambio=12本(一部) / EuroItalia500・Passione500・AutoBella・Mr Fiat=チャンネル無し。DB既存の良質: The 500 Workshop(8)・OldCars Palermo(11)・Bamboo field🇯🇵(2)。ユーザー提供の追加ショップ群(PBP/Bigatti/Denitto/Motobambino/Pitstop等)は調査スクリプト用意済・未実行。
   - コードは未コミット→ブランチ `youtube-portal-frontend` に退避（main へは未マージ＝本番未公開）。
+
+- **2026-07-01 運用機能追加（経路②＋③・ブランチ `youtube-portal-frontend`）**：情報更新の月次集約と、オーナー推薦の受付を実装。
+  - **スキーマ**: `videos.recommended_by_name`（text・null=無記名）を1列追加（本番 migration `youtube_portal_videos_recommended_by`・schema.sql同期済）。投稿テーブル/承認UI/RLSは作らない方針（負担削減）。source_tier に 0=手動追加を追認（DDL変更不要・削除ガード `source_tier<3` で保護）。
+  - **経路②（管理者手動追加）**: `py/youtube_add.py`（youtube_fetch.py の `_api_get`/`fetch_video_details`/`to_video_row` を import流用。URL/11桁ID両対応・`--by 名前`で記名・`--tier`既定0）＋ `.github/workflows/youtube-add-video.yml`（workflow_dispatch inputs=url/recommended_by → add→classify即実行でAI要約まで自動）。PC前なら Claude Code にローカル実行させる運用も可。
+  - **経路③（オーナー要望）**: videos.html 下部に mailto 導線（宛先=config.js の ADMIN_EMAIL・件名/本文テンプレ入り）。テーブルもログインも持たない最軽量方式。
+  - **フロント記名表示**: videos.html カードに「🙋 ○○さんの推薦」バッジ（select列に recommended_by_name 追加）／video.html メタ行に同表示（`select('*')`のため列追加不要）。
+  - **前提（ユーザー手動・未実施）**: GitHub Secrets 登録（`YOUTUBE_API_KEY`/`SUPABASE_SERVICE_KEY`/`GEMINI_API_KEY`/`SUPABASE_URL`/`SUPABASE_KEY`）。未登録の間、②はローカル実行のみ動作。
+  - **残**: 本番https再生確認／main マージで公開（本作業では未実施）。
+
+- **2026-07-01 AI要約「手順カード」本実装（方法A・ブランチ `youtube-portal-frontend`）**：is_howto動画に「番号付きの日本語整備手順（原語併記・注意点付き）」を付け、動画と手順を1画面で見せる。承認済みモック `mock_steps_v2.html`（別セッションscratchpad・PC/スマホ縦/横の3表示検証済み）を移植。
+  - **スキーマ**: `videos.steps_ja jsonb`（形式 `{"steps":[{"t":"見出し","d":"本文(専門用語=日本語+原語併記)"}...最大8],"caution":"注意点1行"}`・null=未生成or非対象）＋ `videos.has_steps boolean generated always as (steps_ja is not null) stored`（一覧を軽く保つバッジ用・is_categorizedと同型）を追加（本番 migration `youtube_portal_videos_steps_ja`・schema.sql同期済）。
+  - **生成スクリプト**: `py/youtube_steps.py`（方法A本体）。`gemini_video_test.py` 実証の **YouTube URL直接入力**（`FileData(file_uri=...)`）を採用し、Gemini に動画を視聴させ整備手順JSONを生成。モデル/接続/429リトライは `youtube_classify.py` と統一（`gemini-flash-lite-latest`・service_role書込）。対象 `is_howto=true and steps_ja is null`（source_tier昇順→view_count降順）。`--limit N`（夜間バッチ）・`--dry-run`（1本表示・書込なし）。steps空（映像から起こせない）は書込せず skip＝次回再挑戦。字幕全文翻訳はせず映像からの手順要約＝安全側。
+  - **夜間バッチ**: `.github/workflows/youtube-steps.yml`（`schedule cron '0 17 * * *'`=JST 02:00 ＋ `workflow_dispatch`〔limit入力・既定30〕）。292本を30本/日×約10日で初回バックフィル（Gemini無料枠のトークン上限回避）。以後は新規howtoのみ＝数本/月。
+  - **video.html**: `render()` を拡張。`steps_ja.steps` 有→「AI要約」カードに番号付き `<ol class="steps">`（t太字＋d本文）＋赤ボックスの注意点＋`description_ja` を lead＋黄「AI生成」ピル＋定型注意書き。steps無→従来どおり `description_ja` 要約文のみ。**帯かぶり修正＋PC大画面**のCSSをモックから移植：`--nav-h:48px`／`.vp-nav{height:var(--nav-h)}`／`.player{position:sticky;top:calc(nav-h+gap)}`（帯に潜らない）／PC(min-width:900px)＝**グリッドは `#content` に適用**（video.htmlは player等が `.wrap` 直下でなく `#content` 直下のため）・`.wrap{max-width:1600px}`・動画左を大きく（`max-width:calc((100vh-nav-gap*2)*16/9)`）／min-width:1400px手順420px／スマホ横(landscape&max-height:600px)は動画高さ基準で画面内。**`content.style.display='block'`→`''` に変更**（inline displayがグリッドを潰すのを回避）。
+  - **videos.html**: 無意味だった「AI要約あり」トグル（`#tglJa`/`state.ja`/`description_ja is not null` 絞り込み・URL同期）を全撤去（`.vp-toggles`は字幕のみ）。カードバッジ `if(description_ja)→AI要約`（321本でほぼ全部＝無意味）を `if(has_steps)→AI要約` に変更。`buildQuery` の select を `description_ja`→`has_steps` に置換（一覧を軽く保つ）。
+  - **ローカル検証（Playwright・python http.server 8765）**: 少数生成2本（`3yfrWcDUuEM` 4手順／`S4IDbuWMPGM` 7手順）でsteps_jaのJSON構造・原語併記を確認。video.html を **PC1600（grid・動画幅1091px・手順7・注意点・スクロール後 player.top=60 ≥ nav.bottom=48＝帯に潜らない）／スマホ縦390（block・sticky・帯かぶり無）／スマホ横844x390（grid・動画高322で画面内・帯かぶり無）** で数値＋スクショ確認。videos.html は tglJa消滅・字幕トグルのみ・AI要約バッジは生成2本のみ・コンソールエラー0。
+  - **残**: 全292本バックフィル（GitHub Secrets登録後に夜間cron運用、または未登録の間はローカル `youtube_steps.py --limit N`）／本番https再生確認／main マージで公開（いずれも本作業では未実施）。**スコープ外**: Phase2＝タイムスタンプ同期で「現在の手順」自動ハイライト＋自動スクロール（精度検証後・別途）。
