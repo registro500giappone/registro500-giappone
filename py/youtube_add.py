@@ -83,7 +83,11 @@ def main():
         {"video_id": video_uuid, "view_count": row["view_count"]}
     ).execute()
 
-    print(f"完了: videos upsert / view_history 追記（view_count={row['view_count']}）")
+    # 除外ID台帳（excluded_videos）に残っていると次回fetchで消える矛盾が起きるため解除する。
+    # 「意図的に追加した＝復活の意思」なので台帳から外すのが整合的。
+    supabase.table("excluded_videos").delete().eq("youtube_id", vid).execute()
+
+    print(f"完了: videos upsert / view_history 追記（view_count={row['view_count']}）/ 除外台帳から解除")
     print("次は: python youtube_classify.py （AI分類・日本語化。title_ja IS NULL を拾う）")
 
 

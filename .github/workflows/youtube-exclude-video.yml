@@ -1,0 +1,55 @@
+name: YouTubeポータル 動画を恒久除外（人手デノリスト）
+
+# AI分類をすり抜けた「クラシックFIAT 500/126でない無関係動画」を、
+# 目視で判断したら恒久除外する入口（youtube-add-video.yml の鏡写し）。
+# videos からの削除と excluded_videos 台帳登録を必ずセットで行うため、
+# 丸ごとフェッチ/月次再取得しても復活しない。
+on:
+  workflow_dispatch:
+    inputs:
+      ids:
+        description: '除外する動画のURLまたは11桁ID（スペース区切りで複数可）'
+        required: true
+        type: string
+      reason:
+        description: '除外理由（台帳に記録・任意）'
+        required: false
+        type: string
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  exclude:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 依存関係インストール
+        run: pip install -r py/requirements.txt
+
+      - name: .env 作成
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
+          echo "SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}" >> py/.env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> py/.env
+          echo "YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}" >> py/.env
+
+      - name: 動画を恒久除外
+        working-directory: py
+        env:
+          EXCLUDE_IDS: ${{ inputs.ids }}
+          EXCLUDE_REASON: ${{ inputs.reason }}
+        run: |
+          if [ -n "$EXCLUDE_REASON" ]; then
+            python youtube_exclude.py $EXCLUDE_IDS --reason "$EXCLUDE_REASON"
+          else
+            python youtube_exclude.py $EXCLUDE_IDS
+          fi

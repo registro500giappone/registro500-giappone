@@ -145,6 +145,20 @@ create table view_history (
 );
 create index idx_viewhistory_video on view_history(video_id, fetched_at desc);
 
+-- 9. excluded_videos — 除外ID台帳（永続デノリスト）
+--   人手で「クラシックFIAT 500/126でない無関係」と判断した動画IDを二度と取り込まないための台帳。
+--   丸ごとフェッチ（信頼chまるごと取得）・月次再取得（search）での復活を防ぐ主装置。
+--   本番migration: youtube_portal_excluded_videos（2026-07-01）。
+--   運用: py/youtube_exclude.py が videos削除＋台帳登録をセットで実行。
+--         youtube_fetch.py が起動時に台帳をロードし取得前に間引く（主防御）。
+--         youtube_add.py は手動追加成功時に当該IDを台帳から解除（復活の意図と整合）。
+create table excluded_videos (
+  youtube_id   text primary key,
+  reason       text,
+  channel_name text,
+  excluded_at  timestamptz not null default now()
+);
+
 -- updated_at 自動更新トリガ (videos)
 create or replace function set_updated_at()
 returns trigger language plpgsql
@@ -180,6 +194,7 @@ alter table video_part_tags  enable row level security;
 alter table video_vehicles   enable row level security;
 alter table recommendations  enable row level security;
 alter table view_history     enable row level security;
+alter table excluded_videos  enable row level security;
 
 create policy "public read categories"      on categories      for select using (true);
 create policy "public read part_tags"       on part_tags       for select using (true);
@@ -189,6 +204,7 @@ create policy "public read video_part_tags" on video_part_tags for select using 
 create policy "public read video_vehicles"  on video_vehicles  for select using (true);
 create policy "public read recommendations" on recommendations for select using (true);
 create policy "public read view_history"    on view_history    for select using (true);
+create policy "public read excluded_videos" on excluded_videos for select using (true);
 
 create policy "insert own recommendation" on recommendations
   for insert with check (auth.uid() = user_id);

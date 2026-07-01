@@ -112,6 +112,23 @@ def fetch_video_details(video_ids):
     return out
 
 
+def load_excluded_ids(supabase):
+    """excluded_videos（除外ID台帳＝人手デノリスト）の youtube_id を全件ロードして set で返す。
+    丸ごとフェッチ/月次再取得で「一度人手で無関係と判断した動画」が復活するのを防ぐ主防御。"""
+    excluded = set()
+    start = 0
+    page = 1000
+    while True:
+        res = supabase.table("excluded_videos").select("youtube_id").range(start, start + page - 1).execute()
+        rows = res.data or []
+        for r in rows:
+            excluded.add(r["youtube_id"])
+        if len(rows) < page:
+            break
+        start += page
+    return excluded
+
+
 def fetch_channel_video_ids(channel_id):
     """信頼チャンネルの全動画IDを取得。
     channels.list で uploads プレイリストIDを得て、playlistItems を全ページ巡回。1ユニット/50件と安価。"""
@@ -245,8 +262,17 @@ def main():
 
     trusted = [] if args.skip_channels else cfg.get("trusted_channels", [])
 
+    # 除外ID台帳ロード（主防御）。dry-runでも読み取りだけは行い間引き効果を確認する。
+    # 読み取りは service_role/anon どちらでも可（RLSで公開読取）。
+    supabase = create_client(SUPABASE_URL, SUPABASE_WRITE_KEY)
+    try:
+        excluded_ids = load_excluded_ids(supabase)
+    except Exception as e:
+        print(f"[WARN] 除外台帳の読み込みに失敗（間引きスキップ）: {e}")
+        excluded_ids = set()
+
     print(f"=== YouTube取得開始 {'[DRY-RUN]' if args.dry_run else '[本取得]'} ===")
-    print(f"信頼チャンネル: {len(trusted)}件 / キーワードクエリ: {len(queries)}件\n")
+    print(f"信頼チャンネル: {len(trusted)}件 / キーワードクエリ: {len(queries)}件 / 除外台帳: {len(excluded_ids)}件\n")
 
     # youtube_id -> 最小tier（信頼ch=1/2を優先、キーワード=3）
     tier_by_id = {}
@@ -279,6 +305,13 @@ def main():
         time.sleep(0.2)
 
     all_ids = list(tier_by_id.keys())
+    # 除外台帳で間引く（fetch_video_details の前＝無駄なAPIユニットも節約）
+    before = len(all_ids)
+    all_ids = [vid for vid in all_ids if vid not in excluded_ids]
+    skipped = before - len(all_ids)
+    if skipped:
+        print(f"除外台帳で {skipped} 件スキップ（{before}→{len(all_ids)}件）")
+
     print(f"\nユニーク動画ID: {len(all_ids)}件。詳細取得中...")
     items = fetch_video_details(all_ids)
     print(f"詳細取得: {len(items)}件\n")
@@ -314,8 +347,7 @@ def main():
         print("\n[DRY-RUN] DB書込はしていません。")
         return
 
-    # --- 本取得: videos へ upsert + view_history 追記 ---
-    supabase = create_client(SUPABASE_URL, SUPABASE_WRITE_KEY)
+    # --- 本取得: videos へ upsert + view_history 追記 ---（supabaseは冒頭で作成済を再利用）
     rows = [to_video_row(item, tier) for item, tier in passed]
     if not rows:
         print("\n投入対象なし。終了。")
