@@ -191,7 +191,7 @@ def main():
         if not steps_ja["steps"]:
             print("   [SKIP] 映像から手順を起こせず（steps空）。DBは更新しない（次回再挑戦）。")
             skipped += 1
-            time.sleep(SLEEP_BETWEN if False else SLEEP_BETWEEN)
+            time.sleep(SLEEP_BETWEEN)
             continue
 
         try:
