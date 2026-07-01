@@ -69,7 +69,8 @@
     .vp-chip:hover{border-color:var(--accent);}
     .vp-chip.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 
-    .vp-toggles{display:flex;gap:14px;flex-wrap:wrap;margin:14px 0 6px;font-size:.85rem;color:var(--muted);}
+    .vp-toggles{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin:14px 0 6px;font-size:.85rem;color:var(--muted);}
+    .vp-chan select{margin-left:4px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font-size:.85rem;max-width:220px;}
     .vp-toggles label{display:flex;align-items:center;gap:6px;cursor:pointer;}
 
     .vp-active{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0;padding:10px 14px;background:var(--accent-soft);border-radius:10px;font-size:.88rem;}
@@ -148,6 +149,7 @@
 
       <div class="vp-toggles">
         <label><input type="checkbox" id="tglCc"> 字幕あり</label>
+        <label class="vp-chan">チャンネル：<select id="chanSelect"><option value="">すべて</option></select></label>
       </div>
 
       <div class="vp-active" id="activeBar" style="display:none;">
@@ -198,6 +200,7 @@
       system: p.get('system') || '',
       part: p.get('part') || '',
       vehicle: normVeh(p.get('vehicle') || ''),
+      channel: p.get('channel') || '',
       q: p.get('q') || '',
       cc: p.get('cc') === '1',
       offset: 0,
@@ -220,6 +223,7 @@
       if(state.system)u.set('system',state.system);
       if(state.part)u.set('part',state.part);
       if(state.vehicle)u.set('vehicle',state.vehicle);
+      if(state.channel)u.set('channel',state.channel);
       if(state.q)u.set('q',state.q);
       if(state.cc)u.set('cc','1');
       const qs=u.toString();
@@ -233,7 +237,7 @@
         sb.from('vehicles').select('id,slug,name_display'),
         sb.from('video_part_tags').select('video_id,part_tag_id'),
         sb.from('video_vehicles').select('video_id,vehicle_id'),
-        sb.from('videos').select('id,category_id'),
+        sb.from('videos').select('id,category_id,channel_name'),
       ]);
       masters.cats = cats||[];
       masters.parts = parts||[];
@@ -297,6 +301,7 @@
       let qy = sb.from('videos').select('id,youtube_id,title_ja,title_original,channel_name,duration_seconds,thumbnail_url,view_count,has_captions,embeddable,has_steps,source_tier,recommended_by_name', forCount?{count:'exact',head:true}:{});
       if(state.system){ const ids=systemCatIds(state.system); qy=qy.in('category_id', ids.length?ids:['00000000-0000-0000-0000-000000000000']); }
       if(currentIds!==null){ qy=qy.in('id', currentIds.length?currentIds:['00000000-0000-0000-0000-000000000000']); }
+      if(state.channel){ qy=qy.eq('channel_name', state.channel); }
       if(state.q){ const t=state.q.replace(/[%,]/g,' ').trim(); qy=qy.or(`title_ja.ilike.%${t}%,title_original.ilike.%${t}%`); }
       if(state.cc){ qy=qy.eq('has_captions',true); }
       return qy;
@@ -311,6 +316,17 @@
         const {count} = await sb.from('videos').select('id',{count:'exact',head:true}).in('category_id',ids);
         sysCounts[sys.key]=count||0;
       }));
+    }
+
+    // チャンネル絞り込みselectを生成（本数の多い順。主軸は箇所別のまま、信頼ショップのカタログ閲覧を補助）
+    function populateChannels(){
+      const counts = new Map();
+      (masters.vmeta||[]).forEach(v=>{ const c=(v.channel_name||'').trim(); if(c) counts.set(c,(counts.get(c)||0)+1); });
+      const list = [...counts.entries()].sort((a,b)=> b[1]-a[1] || a[0].localeCompare(b[0]));
+      const sel = document.getElementById('chanSelect');
+      sel.innerHTML = '<option value="">すべてのチャンネル</option>' +
+        list.map(([c,n])=>`<option value="${esc(c)}">${esc(c)}（${n}）</option>`).join('');
+      sel.value = state.channel;
     }
 
     function renderControls(){
@@ -333,12 +349,14 @@
       document.querySelectorAll('#vehBar button').forEach(b=>b.classList.toggle('active', (b.dataset.veh||'')===state.vehicle));
       // トグル
       document.getElementById('tglCc').checked=state.cc;
+      document.getElementById('chanSelect').value=state.channel;
       document.getElementById('searchInput').value=state.q;
       // アクティブ表示
       const parts=[];
       if(state.system){const s=SYSTEMS.find(x=>x.key===state.system);if(s)parts.push('箇所：'+s.label);}
       if(state.part){const t=masters.parts.find(x=>x.slug===state.part);if(t)parts.push('作業：'+t.name_ja);}
       if(state.vehicle){const v=masters.vehicles.find(x=>x.slug===state.vehicle);if(v)parts.push('車種：'+v.name_display);}
+      if(state.channel)parts.push('チャンネル：'+state.channel);
       if(state.q)parts.push('検索：'+state.q);
       if(state.cc)parts.push('字幕あり');   // 日本語解説ありは既定ONのためバーには出さない
       const bar=document.getElementById('activeBar');
@@ -402,9 +420,10 @@
     document.getElementById('partChips').addEventListener('click',e=>{const b=e.target.closest('[data-part]');if(!b)return;setAndReload({part: state.part===b.dataset.part?'':b.dataset.part});});
     document.getElementById('vehBar').addEventListener('click',e=>{const b=e.target.closest('[data-veh]');if(!b)return;setAndReload({vehicle:b.dataset.veh||''});});
     document.getElementById('tglCc').addEventListener('change',e=>setAndReload({cc:e.target.checked}));
+    document.getElementById('chanSelect').addEventListener('change',e=>setAndReload({channel:e.target.value||''}));
     document.getElementById('searchBtn').addEventListener('click',()=>setAndReload({q:document.getElementById('searchInput').value.trim()}));
     document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')setAndReload({q:e.target.value.trim()});});
-    document.getElementById('clearBtn').addEventListener('click',()=>setAndReload({system:'',part:'',vehicle:'',q:'',cc:false}));
+    document.getElementById('clearBtn').addEventListener('click',()=>setAndReload({system:'',part:'',vehicle:'',channel:'',q:'',cc:false}));
     document.getElementById('moreBtn').addEventListener('click',()=>loadList(false));
 
     // オーナー要望の mailto 導線（宛先は config.js の ADMIN_EMAIL・投稿テーブルは持たない軽量方式）
@@ -427,6 +446,7 @@
       try{
         await loadMasters();
         await renderCounts();
+        populateChannels();
         renderControls();
         await loadList(true);
       }catch(e){
