@@ -79,6 +79,22 @@
     /* リスト */
     .vp-count{font-size:.82rem;color:var(--muted);margin:10px 0 12px;}
     .vp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;}
+
+    /* カテゴリ棚（横スクロール・既定の入口。整備箇所カテゴリ順に縦積み） */
+    .vp-shelf{margin:22px 0 6px;}
+    .vp-shelf-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:9px;}
+    .vp-shelf-head h2{font-size:1.02rem;margin:0;display:flex;align-items:center;gap:7px;}
+    .vp-shelf-head h2 .ico{font-size:1.1rem;}
+    .vp-shelf-head .seeall{flex:0 0 auto;color:var(--accent);text-decoration:none;font-size:.82rem;font-weight:600;white-space:nowrap;}
+    .vp-shelf-head .seeall:hover{text-decoration:underline;}
+    .vp-shelf-row{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 12px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;}
+    .vp-shelf-row::-webkit-scrollbar{height:8px;}
+    .vp-shelf-row::-webkit-scrollbar-thumb{background:#d4d4da;border-radius:8px;}
+    .vp-shelf-row .vp-card{flex:0 0 240px;scroll-snap-align:start;}
+    @media(max-width:600px){
+      .vp-shelf-row .vp-card{flex-basis:200px;}
+      .vp-shelf-head h2{font-size:.95rem;}
+    }
     .vp-card{background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);text-decoration:none;color:inherit;display:flex;flex-direction:column;transition:transform .15s,box-shadow .15s;}
     .vp-card:hover{transform:translateY(-3px);box-shadow:0 8px 18px rgba(0,0,0,.1);}
     .vp-thumb{position:relative;aspect-ratio:16/9;background:#e8e8ec;}
@@ -159,6 +175,7 @@
     </div>
 
     <div class="vp-count" id="countLabel"></div>
+    <div id="shelves"></div>
     <div class="vp-grid" id="grid"></div>
     <div class="vp-loading" id="loading">読み込み中…</div>
     <div class="vp-empty" id="empty" style="display:none;">該当する動画が見つかりませんでした。条件を変えてお試しください。</div>
@@ -381,8 +398,69 @@
       </a>`;
     }
 
+    // 棚モード（既定の入口）＝絞り込みが無いとき。車種のみは許容（棚を車種で絞る）。
+    const SHELF_LIMIT = 12;
+    const VIDEO_COLS = 'id,youtube_id,title_ja,title_original,channel_name,duration_seconds,thumbnail_url,view_count,has_captions,embeddable,has_steps,source_tier,recommended_by_name';
+    function isBrowseMode(){
+      return !state.system && !state.part && !state.q && !state.channel && !state.cc;
+    }
+
+    // 整備箇所（7系統）ごとの横スクロール棚を、整備箇所カテゴリ順（SYSTEMS順）で描画。
+    async function renderShelves(){
+      document.getElementById('grid').style.display='none';
+      document.getElementById('grid').innerHTML='';
+      document.getElementById('moreWrap').style.display='none';
+      document.getElementById('empty').style.display='none';
+      document.getElementById('loading').style.display='block';
+      const shelvesEl = document.getElementById('shelves');
+      shelvesEl.style.display='block';
+
+      // 棚モードでも車種フィルタは適用（part/channel/q/cc は棚モードでは常に空）
+      currentIds = await resolveIdFilter();
+
+      const active = SYSTEMS.filter(sys => (sysCounts[sys.key]||0) > 0);
+      const results = await Promise.all(active.map(async sys=>{
+        const ids = systemCatIds(sys.key);
+        let qy = sb.from('videos').select(VIDEO_COLS)
+          .in('category_id', ids.length?ids:['00000000-0000-0000-0000-000000000000']);
+        if(currentIds!==null){ qy = qy.in('id', currentIds.length?currentIds:['00000000-0000-0000-0000-000000000000']); }
+        const {data} = await qy
+          .order('is_howto',{ascending:false})
+          .order('is_categorized',{ascending:false})
+          .order('source_tier',{ascending:true,nullsFirst:false})
+          .order('view_count',{ascending:false})
+          .limit(SHELF_LIMIT);
+        return { sys, rows: data||[] };
+      }));
+
+      const html = results.filter(r=>r.rows.length).map(({sys,rows})=>
+        `<section class="vp-shelf">
+          <div class="vp-shelf-head">
+            <h2><span class="ico">${sys.ico}</span>${esc(sys.label)}</h2>
+            <a class="seeall" href="#" data-sys="${esc(sys.key)}">すべて見る ›</a>
+          </div>
+          <div class="vp-shelf-row">${rows.map(cardHtml).join('')}</div>
+        </section>`
+      ).join('');
+
+      document.getElementById('loading').style.display='none';
+      shelvesEl.innerHTML = html;
+      document.getElementById('countLabel').textContent =
+        html ? '整備箇所別に表示中（各列は横にスクロールできます）' : '';
+      if(!html){ document.getElementById('empty').style.display='block'; }
+    }
+
     let total=0;
     async function loadList(reset){
+      // 絞り込みが無ければ棚モード（既定の入口）
+      if(isBrowseMode()){
+        await renderShelves();
+        return;
+      }
+      // 以下は従来のフラット一覧（リストモード）
+      document.getElementById('shelves').style.display='none';
+      document.getElementById('shelves').innerHTML='';
+      document.getElementById('grid').style.display='';
       if(reset){ state.offset=0; document.getElementById('grid').innerHTML=''; }
       document.getElementById('loading').style.display='block';
       document.getElementById('empty').style.display='none';
@@ -417,6 +495,7 @@
 
     // イベント
     document.getElementById('sysGrid').addEventListener('click',e=>{const b=e.target.closest('[data-sys]');if(!b)return;setAndReload({system: state.system===b.dataset.sys?'':b.dataset.sys, part:''});});
+    document.getElementById('shelves').addEventListener('click',e=>{const a=e.target.closest('[data-sys]');if(!a)return;e.preventDefault();window.scrollTo({top:0,behavior:'smooth'});setAndReload({system:a.dataset.sys, part:''});});
     document.getElementById('partChips').addEventListener('click',e=>{const b=e.target.closest('[data-part]');if(!b)return;setAndReload({part: state.part===b.dataset.part?'':b.dataset.part});});
     document.getElementById('vehBar').addEventListener('click',e=>{const b=e.target.closest('[data-veh]');if(!b)return;setAndReload({vehicle:b.dataset.veh||''});});
     document.getElementById('tglCc').addEventListener('change',e=>setAndReload({cc:e.target.checked}));
