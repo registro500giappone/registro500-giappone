@@ -242,6 +242,7 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="DB書込せず取得・フィルタ結果のサマリのみ")
     ap.add_argument("--limit-queries", type=int, default=0, help="先頭Nキーワードクエリのみ実行（テスト用・0=全部）")
     ap.add_argument("--skip-channels", action="store_true", help="信頼チャンネル取得をスキップ（キーワードのみ）")
+    ap.add_argument("--channels-only", action="store_true", help="信頼チャンネルのみ取得しキーワード検索をスキップ（丸ごとフェッチ用）")
     args = ap.parse_args()
 
     with open(CONFIG_PATH, encoding="utf-8") as f:
@@ -251,14 +252,16 @@ def main():
     rel_lang = cfg["search_defaults"]["relevance_language"]
 
     # キーワード群を (part_tag_slug, query) のフラット列に展開
+    # --channels-only なら信頼chだけに絞る（--skip-channels が trusted=[] にするのと対称）
     queries = []
-    for slug, qs in cfg["keyword_groups"].items():
-        if slug.startswith("_"):
-            continue
-        for q in qs:
-            queries.append((slug, q))
-    if args.limit_queries > 0:
-        queries = queries[:args.limit_queries]
+    if not args.channels_only:
+        for slug, qs in cfg["keyword_groups"].items():
+            if slug.startswith("_"):
+                continue
+            for q in qs:
+                queries.append((slug, q))
+        if args.limit_queries > 0:
+            queries = queries[:args.limit_queries]
 
     trusted = [] if args.skip_channels else cfg.get("trusted_channels", [])
 
