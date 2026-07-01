@@ -1,8 +1,8 @@
-name: YouTubeポータル AI要約「手順カード」生成（夜間/手動）
+name: YouTubeポータル AI要約 生成（夜間/手動）
 
 on:
   schedule:
-    - cron: '0 17 * * *'   # 毎日 JST 02:00 (UTC 17:00) — is_howto動画の手順を少しずつバックフィル
+    - cron: '0 17 * * *'   # 毎日 JST 02:00 (UTC 17:00) — steps_ja未生成の動画を少しずつバックフィル（手順=howto/要点=見る系）
   workflow_dispatch:
     inputs:
       limit:
@@ -35,5 +35,5 @@ jobs:
           echo "SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}" >> py/.env
           echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> py/.env
 
-      - name: AI要約 手順カード生成
+      - name: AI要約 生成（手順カード＋要点まとめ）
         run: python py/youtube_steps.py --limit ${{ github.event.inputs.limit || '30' }}

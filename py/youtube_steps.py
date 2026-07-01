@@ -1,23 +1,25 @@
 """
-YouTubeポータル AI要約「手順カード」生成スクリプト（方法A・本実装）
+YouTubeポータル AI要約 生成スクリプト（方法A・本実装）
 
-HANDOFF.md §7・§8 が正本。is_howto=true の動画を Gemini に「視聴」させ、
-実際の整備作業を日本語の番号付き手順（原語併記・注意点付き）JSON にして
-videos.steps_ja に書き込む。動画は YouTube URL を直接 Gemini に渡す（方法A）。
+HANDOFF.md §7・§8 が正本。steps_ja IS NULL の全動画を Gemini に「視聴」させ、
+中身の分かる日本語要約（原語併記）JSON にして videos.steps_ja に書き込む。
+動画は YouTube URL を直接 Gemini に渡す（方法A）。is_howto で2種を出し分け：
+  - is_howto=true  → 手順カード（番号付き・工具/部品/数値/コツまで拾う密度）kind="howto"
+  - is_howto=false → 要点まとめ（見る/知る系。事実・数値・結論を箇条書き）    kind="points"
 
 ルール（HANDOFF §8 不変条件）:
-  - 対象は is_howto=true のみ（手を動かす系=整備/レストア/チューニング）。
   - AI生成であることを明示（表示側で「AI生成」ピル＋定型注意書きを付与）。
-  - 字幕全文の翻訳・再配布はしない。映像からの手順要約＝安全側。原題は消さない。
-  - 映像から手順を起こせない場合は steps:[] を返させ、DBは更新せず skip（次回再挑戦）。
+  - 字幕全文の翻訳・再配布はしない。映像からの"要約"＝自分の言葉で再構成＝権利安全側。原題は消さない。
+  - 映像から中身を起こせない（宣伝/BGMのみ等）場合は steps:[] を返させ、DBは更新せず skip（次回再挑戦）。
 
 steps_ja 形式:
-  {"steps":[{"t":"見出し","d":"本文（専門用語=日本語＋原語併記）"}, ...最大8], "caution":"注意点1行"}
+  {"kind":"howto"|"points", "steps":[{"t":"見出し","d":"本文（専門用語=日本語＋原語併記）"}, ...最大12], "caution":"注意点1行"}
 
 使い方:
-    python youtube_steps.py                 # is_howto=true かつ steps_ja IS NULL を全件
+    python youtube_steps.py                 # steps_ja IS NULL を全件（source_tier昇順→再生数降順）
     python youtube_steps.py --limit 30      # 先頭30件だけ（夜間バッチ/テスト）
     python youtube_steps.py --dry-run       # 1本だけ生成しDB書込なしで結果表示
+    python youtube_steps.py --id XXXX --dry-run  # 特定動画で確認（見る系のテスト等）
 
 env (py/.env): GEMINI_API_KEY / SUPABASE_URL / SUPABASE_SERVICE_KEY(無ければSUPABASE_KEY)
 """
@@ -49,34 +51,52 @@ genai.configure(api_key=GEMINI_API_KEY)
 MODEL_NAME = "models/gemini-flash-lite-latest"
 model = genai.GenerativeModel(MODEL_NAME)
 
-MAX_STEPS = 8
+MAX_STEPS = 12
 SLEEP_BETWEEN = 3  # 1本ごとの待機（レート配慮）
 
-PROMPT = f"""あなたはクラシックFIAT 500/126（空冷2気筒 499/594/650cc）専門の整備解説者です。
-次の動画を実際に視聴し、動画の中で行っている整備・作業の手順を日本語でまとめてください。
+# how-to（手を動かす系）＝詳しい手順カード。「読めばほぼ作業できる」密度で工具/部品/数値/コツも拾う。
+PROMPT_HOWTO = f"""あなたはクラシックFIAT 500/126（空冷2気筒 499/594/650cc）専門の整備解説者です。
+次の動画を実際に視聴し、動画で行っている整備・作業を、日本語だけで「読めばほぼ作業できる」密度でまとめてください。
 
 【出力ルール】
-- 動画の映像で実際に行っている作業だけを、行う順に番号付きで並べる（最大{MAX_STEPS}手順）。
-- 各手順は「見出し(t)」＋「本文(d)」。見出しは短く（例：状態を確認する）。本文は1〜2文で具体的に。
-- 専門用語は日本語＋原語（イタリア語/英語）を併記（例：ガラスモール（guarnizioni）／点火時期（anticipo）／タペット（punterie））。
+- 動画で実際に行っている作業を、行う順に番号付きで並べる（最大{MAX_STEPS}手順）。
+- 各手順は「見出し(t)」＋「本文(d)」。本文は具体的に。手順に加え、使う工具・部品名・数値（トルク/隙間/番手/容量など）・コツ・失敗しやすい点も動画から拾って盛り込む。
+- 専門用語は日本語＋原語（伊/英）併記（例：タペット（punterie）／点火時期（anticipo）／隙間ゲージ（spessimetro））。
 - 最後に「注意点(caution)」を1行だけ（安全・破損防止など最も重要なもの）。
 - 動画が整備の実作業でない／映像から手順を起こせない場合は steps を空配列 [] にする（無理に作らない）。
-- 逐語の字幕書き起こしはしない。あくまで作業手順の要約。
+- 逐語の字幕書き起こしはしない。自分の言葉で内容を再構成した要約にする。
 
 【返却形式】JSONオブジェクトのみ（前後に文章を付けない）:
 {{"steps":[{{"t":"見出し","d":"本文"}}],"caution":"注意点1行"}}
 """
 
+# 見る/知る系（解説・比較・試乗・費用・歴史など）＝内容の要点まとめ。手順動画ではない。
+PROMPT_POINTS = f"""あなたはクラシックFIAT 500/126に詳しい編集者です。
+次の動画を実際に視聴し、日本語を読むだけで動画の中身が分かるように「要点」をまとめてください
+（この動画は実作業の手順動画ではなく、解説・比較・試乗・費用・歴史など"見る/知る"系です）。
 
-def call_gemini_video(youtube_id):
-    """動画URLを直接渡して手順JSONを得る。
+【出力ルール】
+- 動画が伝える事実・数値・結論・比較・見どころを、話の流れに沿って自分の言葉で漏れなく箇条書きにする（最大{MAX_STEPS}項目）。
+- 各項目は「見出し(t)」＋「本文(d)」。金額・数値・型式・結論など具体を必ず入れる。
+- 専門用語・固有名詞は日本語＋原語（伊/英）併記。
+- 逐語訳・字幕の書き起こしはしない。あくまで内容の要約。
+- 動画が宣伝/チャンネル告知/BGMのみの走行クリップ等で中身が無ければ steps を空配列 [] にする。
+- caution は該当すれば1行、なければ空文字。
+
+【返却形式】JSONオブジェクトのみ（前後に文章を付けない）:
+{{"steps":[{{"t":"見出し","d":"本文"}}],"caution":""}}
+"""
+
+
+def call_gemini_video(youtube_id, prompt):
+    """動画URLを直接渡してAI要約JSONを得る（prompt=手順 or 要点）。
     返り値: dict(成功) / 'RATE'(分単位レート超過=待って再試行) / 'QUOTA'(日次上限=停止) / None(その他失敗)。"""
     url = f"https://www.youtube.com/watch?v={youtube_id}"
     try:
         resp = model.generate_content(
             genai.protos.Content(parts=[
                 genai.protos.Part(file_data=genai.protos.FileData(file_uri=url)),
-                genai.protos.Part(text=PROMPT),
+                genai.protos.Part(text=prompt),
             ])
         )
         m = re.search(r"\{.*\}", resp.text, re.DOTALL)
@@ -119,25 +139,30 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0, help="処理件数の上限（0=全部）")
     ap.add_argument("--dry-run", action="store_true", help="1本だけ生成しDB書込なしで表示")
+    ap.add_argument("--id", default=None, help="特定のyoutube_idだけ対象（テスト/再生成用。steps_jaの有無を問わず処理）")
     args = ap.parse_args()
 
     supabase = create_client(SUPABASE_URL, SUPABASE_WRITE_KEY)
 
-    fetch_limit = 1 if args.dry_run else (args.limit or 10000)
-    rows = (
-        supabase.table("videos")
-        .select("id, youtube_id, title_original, title_ja, channel_name")
-        .eq("is_howto", True)
-        .is_("steps_ja", "null")
-        .order("source_tier", desc=False)
-        .order("view_count", desc=True)
-        .limit(fetch_limit)
-        .execute()
-        .data
-    )
+    sel = "id, youtube_id, title_original, title_ja, channel_name, is_howto"
+    if args.id:
+        # 指定IDのみ（既存steps_jaがあっても再生成・テスト用）
+        rows = supabase.table("videos").select(sel).eq("youtube_id", args.id).limit(1).execute().data
+    else:
+        fetch_limit = 1 if args.dry_run else (args.limit or 10000)
+        rows = (
+            supabase.table("videos")
+            .select(sel)
+            .is_("steps_ja", "null")
+            .order("source_tier", desc=False)
+            .order("view_count", desc=True)
+            .limit(fetch_limit)
+            .execute()
+            .data
+        )
 
     if not rows:
-        print("[COMPLETE] 対象なし（is_howto=true かつ steps_ja IS NULL は 0 件）。")
+        print("[COMPLETE] 対象なし（steps_ja IS NULL は 0 件）。")
         return
 
     print(f"[START] 対象 {len(rows)}件 / model={MODEL_NAME} / dry_run={args.dry_run}")
@@ -150,12 +175,15 @@ def main():
     for i, r in enumerate(rows, 1):
         yt = r["youtube_id"]
         label = r.get("title_ja") or r.get("title_original") or yt
-        print(f"\n[{i}/{len(rows)}] {yt}  {label[:40]}", flush=True)
+        is_howto = bool(r.get("is_howto"))
+        kind = "howto" if is_howto else "points"
+        prompt = PROMPT_HOWTO if is_howto else PROMPT_POINTS
+        print(f"\n[{i}/{len(rows)}] {yt}  [{kind}]  {label[:40]}", flush=True)
 
         # レート超過は最大2回まで待って再試行。日次上限(QUOTA)は即停止。
         result = None
         for attempt in range(3):
-            result = call_gemini_video(yt)
+            result = call_gemini_video(yt, prompt)
             if result == "QUOTA":
                 print("   [QUOTA] Geminiの日次上限に到達。今日はここまで。未処理は次回（or 夜間cron）で継続。", flush=True)
                 print(f"\n[STOP-QUOTA] 生成 {done}件 / skip {skipped}件 / 失敗 {failed}件（未処理は残す）", flush=True)
@@ -182,6 +210,7 @@ def main():
             time.sleep(SLEEP_BETWEEN)
             continue
         consec_fail = 0
+        steps_ja["kind"] = kind  # howto=手順カード / points=要点まとめ（表示側で出し分け）
 
         if args.dry_run:
             print("   [DRY-RUN] 生成結果:")
@@ -189,7 +218,7 @@ def main():
             return
 
         if not steps_ja["steps"]:
-            print("   [SKIP] 映像から手順を起こせず（steps空）。DBは更新しない（次回再挑戦）。")
+            print("   [SKIP] 映像から要約を起こせず（中身なし＝steps空）。DBは更新しない（次回再挑戦）。")
             skipped += 1
             time.sleep(SLEEP_BETWEEN)
             continue
@@ -197,7 +226,7 @@ def main():
         try:
             supabase.table("videos").update({"steps_ja": steps_ja}).eq("id", r["id"]).execute()
             done += 1
-            print(f"   [OK] steps={len(steps_ja['steps'])} caution={'有' if steps_ja['caution'] else '無'}")
+            print(f"   [OK] {kind} items={len(steps_ja['steps'])} caution={'有' if steps_ja['caution'] else '無'}")
         except Exception as e:
             print(f"   [書込エラー] {yt}: {e}")
             failed += 1

@@ -77,7 +77,7 @@ create table videos (
   recommended_by_name text,                              -- オーナー推薦の記名（null=無記名/自動取得動画・管理者自発追加）
   is_categorized     boolean generated always as (category_id is not null) stored,  -- 整備動画と確定したか(並びの帯分け用・generated)
   is_howto           boolean not null default false,      -- 実践How-to(手を動かす系=整備/レストア/チューニング)か。category_idの親階層で判定しトリガ維持(下記 set_video_is_howto)
-  steps_ja           jsonb,                               -- AI要約「手順カード」(方法A: Gemini動画視聴→日本語整備手順)。形式 {"steps":[{"t":"見出し","d":"本文(専門用語=日本語+原語併記)"}...最大8],"caution":"注意点1行"}。null=未生成or非対象。is_howto=trueのみ生成(py/youtube_steps.py・夜間cron)
+  steps_ja           jsonb,                               -- AI要約(方法A: Gemini動画視聴→日本語要約)。形式 {"kind":"howto"|"points","steps":[{"t":"見出し","d":"本文(専門用語=日本語+原語併記)"}...最大12],"caution":"注意点1行"}。kind=howto:整備手順カード(番号)/points:見る系の要点まとめ(箇条書き)。kind省略=howto扱い。null=未生成or中身なし。全動画対象(py/youtube_steps.py・夜間cron)。逐語訳でなく自分の言葉の要約=権利安全側
   has_steps          boolean generated always as (steps_ja is not null) stored,  -- 手順カードありか(一覧を軽く保つ・バッジ用・generated)
   created_at         timestamptz not null default now(),
   updated_at         timestamptz not null default now()

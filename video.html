@@ -62,6 +62,7 @@
     .ai-head h2{font-size:.95rem;margin:0;}
     .ai-text{font-size:.95rem;color:#1f2937;white-space:pre-wrap;}
     .ai-lead{font-size:.9rem;color:var(--muted);margin:0 0 12px;}
+    .cc-hint{font-size:.78rem;color:var(--muted);margin:8px 2px 0;}
     .ai-note{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);font-size:.76rem;color:var(--muted);line-height:1.6;}
 
     /* AI要約「手順カード」（is_howto動画・番号付きステップ＋注意点） */
@@ -70,6 +71,11 @@
     ol.steps li:last-child{border-bottom:0;}
     ol.steps li::before{content:counter(s);position:absolute;left:6px;top:9px;width:26px;height:26px;background:var(--accent);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:700;}
     ol.steps li b{color:var(--ink);}
+    ul.points{list-style:none;margin:0;padding:0;}
+    ul.points li{position:relative;padding:9px 4px 9px 20px;border-bottom:1px solid #f1f1f4;font-size:.95rem;}
+    ul.points li:last-child{border-bottom:0;}
+    ul.points li::before{content:"";position:absolute;left:4px;top:15px;width:7px;height:7px;background:var(--accent);border-radius:50%;}
+    ul.points li b{color:var(--ink);}
     .caution{margin-top:14px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;font-size:.86rem;color:#991b1b;display:flex;gap:8px;}
 
     .open-yt{display:inline-block;font-size:.82rem;margin-bottom:24px;}
@@ -127,6 +133,7 @@
 
     <div id="content" style="display:none;">
       <div class="player" id="player"></div>
+      <p class="cc-hint" id="ccHint" style="display:none;">💬 再生後、プレーヤーの歯車 → 字幕 で日本語（自動翻訳）を選べます（機械翻訳のため精度は参考程度です）。</p>
 
       <h1 class="title" id="vTitle"></h1>
       <p class="orig" id="vOrig"></p>
@@ -134,7 +141,7 @@
       <div class="badges" id="vBadges"></div>
 
       <div class="ai-box" id="aiBox" style="display:none;">
-        <div class="ai-head"><span class="ai-tag">AI生成</span><h2>AI要約</h2></div>
+        <div class="ai-head"><span class="ai-tag">AI生成</span><h2 id="aiHead">AI要約</h2></div>
         <div id="aiInner"></div>
         <div class="ai-note" id="aiNote"></div>
       </div>
@@ -195,13 +202,17 @@
           <img src="${esc(v.thumbnail_url||NOIMG)}" alt="${esc(heading)}" onerror="this.src='${NOIMG}'">
           <span class="play"><span class="btn">▶ 再生</span></span></button>`;
         player.querySelector('.poster').addEventListener('click',()=>{
-          player.innerHTML = `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(v.youtube_id)}?autoplay=1&rel=0&playsinline=1&origin=${encodeURIComponent(location.origin)}" title="${esc(heading)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+          // cc_lang_pref=ja&cc_load_policy=1 で、字幕トラックがある動画はYouTubeの日本語自動翻訳字幕を既定ON（翻訳・表示はYouTube側＝権利クリア）。字幕が無い動画では何も起きない。
+          player.innerHTML = `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(v.youtube_id)}?autoplay=1&rel=0&playsinline=1&hl=ja&cc_lang_pref=ja&cc_load_policy=1&origin=${encodeURIComponent(location.origin)}" title="${esc(heading)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
         });
       }else{
         player.innerHTML = `<a class="fallback" href="${watchUrl}" target="_blank" rel="noopener">
           <img src="${esc(v.thumbnail_url||NOIMG)}" alt="${esc(heading)}" onerror="this.src='${NOIMG}'">
           <span class="play"><span class="btn">▶ YouTubeで視聴</span><span style="font-size:.78rem;">この動画は埋め込みが許可されていません</span></span></a>`;
       }
+
+      // 字幕ヒント（字幕トラックがある動画のみ＝日本語自動翻訳字幕が使える）
+      if(v.has_captions && v.embeddable!==false){ document.getElementById('ccHint').style.display='block'; }
 
       // タイトル・原題
       document.getElementById('vTitle').textContent = heading;
@@ -223,18 +234,24 @@
       vehs.forEach(ve=>b.push(`<a class="badge veh" href="videos.html?vehicle=${esc(ve.slug)}">${esc(ve.name_display)}</a>`));
       document.getElementById('vBadges').innerHTML=b.join('');
 
-      // AI要約：is_howto動画は「手順カード」（steps_ja）、それ以外は要約文（description_ja）
+      // AI要約カード：steps_ja.kind で出し分け。howto=番号付き手順（ol）／points=要点まとめ（ul・見る/知る系）。
+      // 逐語訳でなく自分の言葉での要約＝権利安全側。無ければ従来の description_ja テキストにフォールバック。
       const steps = (v.steps_ja && Array.isArray(v.steps_ja.steps)) ? v.steps_ja.steps : [];
       if(steps.length){
+        const isPoints = v.steps_ja.kind === 'points';
         const lead = v.description_ja ? `<p class="ai-lead">${esc(v.description_ja)}</p>` : '';
-        const ol = '<ol class="steps">'+steps.map(s=>{
+        const items = steps.map(s=>{
           const t=s&&s.t?`<b>${esc(s.t)}</b>`:''; const d=s&&s.d?esc(s.d):'';
           return `<li>${t}${t&&d?' — ':''}${d}</li>`;
-        }).join('')+'</ol>';
+        }).join('');
+        const list = isPoints ? `<ul class="points">${items}</ul>` : `<ol class="steps">${items}</ol>`;
+        document.getElementById('aiHead').textContent = isPoints ? 'AI要約（この動画の要点）' : 'AI要約';
         const cau=(v.steps_ja.caution||'').trim();
         const caution = cau ? `<div class="caution"><span>⚠️</span><span><b>注意点：</b>${esc(cau)}</span></div>` : '';
-        document.getElementById('aiInner').innerHTML = lead+ol+caution;
-        document.getElementById('aiNote').textContent='この手順はAIが動画の映像から自動生成しています。実際の作業は元動画と整備書で必ず確認してください。';
+        document.getElementById('aiInner').innerHTML = lead+list+caution;
+        document.getElementById('aiNote').textContent = isPoints
+          ? 'この要約はAIが動画から自動生成しています。詳細は元動画でご確認ください。'
+          : 'この手順はAIが動画の映像から自動生成しています。実際の作業は元動画と整備書で必ず確認してください。';
         document.getElementById('aiBox').style.display='block';
       }else if(v.description_ja){
         document.getElementById('aiInner').innerHTML = `<div class="ai-text">${esc(v.description_ja)}</div>`;
