@@ -102,6 +102,16 @@
     .vp-more button{padding:11px 30px;border:1px solid var(--accent);background:#fff;color:var(--accent);border-radius:999px;font-size:.92rem;cursor:pointer;}
     .vp-more button:hover{background:var(--accent-soft);}
 
+    /* 画面右下「トップへ戻る」ボタン（もっと見るで一覧が長くなった時用・スクロールで出現） */
+    .vp-top{position:fixed;right:18px;bottom:18px;z-index:60;width:46px;height:46px;border-radius:50%;
+      border:none;background:var(--accent);color:#fff;font-size:1.3rem;line-height:1;cursor:pointer;
+      box-shadow:0 3px 10px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;
+      opacity:0;visibility:hidden;transform:translateY(8px);transition:opacity .2s,transform .2s,visibility .2s;
+      padding:0;padding-bottom:env(safe-area-inset-bottom,0);}
+    .vp-top.show{opacity:.92;visibility:visible;transform:translateY(0);}
+    .vp-top:hover{opacity:1;}
+    @media(max-width:600px){.vp-top{right:14px;bottom:14px;width:44px;height:44px;}}
+
     .vp-empty{text-align:center;color:var(--muted);padding:50px 20px;}
     .vp-loading{text-align:center;color:var(--muted);padding:40px 20px;}
 
@@ -427,6 +437,23 @@
       }
     })();
   })();
+  </script>
+
+  <button type="button" id="toTop" class="vp-top" aria-label="ページの先頭へ戻る" title="先頭へ戻る">↑</button>
+  <script>
+    (function(){
+      var btn=document.getElementById('toTop');
+      if(!btn)return;
+      function onScroll(){
+        if((window.scrollY||document.documentElement.scrollTop)>400)btn.classList.add('show');
+        else btn.classList.remove('show');
+      }
+      window.addEventListener('scroll',onScroll,{passive:true});
+      onScroll();
+      btn.addEventListener('click',function(){
+        window.scrollTo({top:0,behavior:'smooth'});
+      });
+    })();
   </script>
 </body>
 </html>
