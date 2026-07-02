@@ -267,6 +267,10 @@
     const NOIMG = (typeof NO_IMAGE_URL !== 'undefined') ? NO_IMAGE_URL : 'https://placehold.co/600x338?text=No+Image';
     const ytId = new URLSearchParams(location.search).get('id');
 
+    // GA4 カスタムイベント。gtag未読込でも落ちないようガード。動画特定パラメータを共通で付与。
+    function track(name, params){ try{ if(typeof gtag==='function') gtag('event', name, params||{}); }catch(e){} }
+    function videoParams(v){ return v ? { video_id:v.youtube_id, video_title:(v.title_ja||v.title_original||'').slice(0,100), channel:v.channel_name||'' } : {}; }
+
     function esc(s){return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
     function fmtViews(n){ n=n||0; if(n>=10000)return Math.round(n/1000)/10+'万回'; return n.toLocaleString()+'回'; }
     function fmtDate(s){ if(!s)return''; const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s); return m?`${m[1]}年${+m[2]}月${+m[3]}日`:''; }
@@ -301,6 +305,7 @@
           <img src="${esc(v.thumbnail_url||NOIMG)}" alt="${esc(heading)}" onerror="this.src='${NOIMG}'">
           <span class="play"><span class="btn">▶ 再生</span></span></button>`;
         player.querySelector('.poster').addEventListener('click',()=>{
+          track('video_play', videoParams(v));   // GA4: サイト内で再生開始（要エンゲージメント指標）
           // cc_lang_pref=ja&cc_load_policy=1 で、字幕トラックがある動画はYouTubeの日本語自動翻訳字幕を既定ON（翻訳・表示はYouTube側＝権利クリア）。字幕が無い動画では何も起きない。
           player.innerHTML = `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(v.youtube_id)}?autoplay=1&rel=0&playsinline=1&hl=ja&cc_lang_pref=ja&cc_load_policy=1&origin=${encodeURIComponent(location.origin)}" title="${esc(heading)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
         });
@@ -308,6 +313,8 @@
         player.innerHTML = `<a class="fallback" href="${watchUrl}" target="_blank" rel="noopener">
           <img src="${esc(v.thumbnail_url||NOIMG)}" alt="${esc(heading)}" onerror="this.src='${NOIMG}'">
           <span class="play"><span class="btn">▶ YouTubeで視聴</span><span style="font-size:.78rem;">この動画は埋め込みが許可されていません</span></span></a>`;
+        const flb=player.querySelector('a.fallback');
+        if(flb) flb.addEventListener('click',()=>track('video_open_youtube', Object.assign(videoParams(v),{where:'player'})));  // GA4: 埋め込み不可→YouTubeへ離脱
       }
 
       // 字幕ヒント（字幕トラックがある動画のみ＝日本語自動翻訳字幕が使える）
@@ -359,7 +366,9 @@
       }
 
       // YouTubeリンク・いいね
-      document.getElementById('openYt').href='https://www.youtube.com/watch?v='+encodeURIComponent(v.youtube_id);
+      const openYtEl=document.getElementById('openYt');
+      openYtEl.href='https://www.youtube.com/watch?v='+encodeURIComponent(v.youtube_id);
+      openYtEl.addEventListener('click',()=>track('video_open_youtube', Object.assign(videoParams(v),{where:'link'})));  // GA4: 「YouTubeで開く」リンク
       currentVideo = v;
       setRecoCount(reco ? reco.reco_count : 0); // 初期値（チラつき防止）→ refreshRecoUI で確定
       refreshRecoUI();
@@ -488,11 +497,13 @@
             .eq('video_id',currentVideo.id).eq('user_id',currentUid);
           if(error) throw error;
           applyLiked(false);
+          track('video_like', Object.assign(videoParams(currentVideo),{action:'remove'}));  // GA4: いいね解除
         }else{
           const {error}=await sb.from('recommendations')
             .insert({ video_id:currentVideo.id, user_id:currentUid });
           if(error) throw error;
           applyLiked(true);
+          track('video_like', Object.assign(videoParams(currentVideo),{action:'add'}));  // GA4: いいね付与
         }
         setRecoCount(await fetchRecoCount(currentVideo.id));
       }catch(e){
