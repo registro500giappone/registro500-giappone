@@ -14,6 +14,7 @@
   <meta property="og:type" content="video.other">
   <meta property="og:image" id="ogImage" content="https://www.registro500.com/logo_horizontal.png">
   <link rel="canonical" id="canonicalTag" href="https://www.registro500.com/videos">
+  <script type="application/ld+json" id="ldjson"></script>
 
   <link rel="icon" href="logo_horizontal.png">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -373,6 +374,10 @@
       if(v.thumbnail_url)document.getElementById('ogImage').content=v.thumbnail_url;
       document.getElementById('canonicalTag').href='https://www.registro500.com/video?id='+encodeURIComponent(v.youtube_id);
 
+      // VideoObject 構造化データ（JSON-LD）＝Google動画リッチリザルト狙い。
+      // description は AI要約（description_ja）を採用＝日本語検索に効き、逐語訳でないので権利安全側。
+      injectVideoLd(v, heading);
+
       document.getElementById('loading').style.display='none';
       // 表示。inline display を空にしてCSS(グリッド/ブロック)に委ねる＝PC/スマホ横で2カラムが効く
       document.getElementById('content').style.display='';
@@ -382,6 +387,40 @@
     // 親への絞り込みはvideos側で親slug基準。ここでは中区分カテゴリ名表示のみとし、リンクは中区分slug→videos側は親想定。
     // 簡易化: カテゴリバッジのリンクは親カテゴリに寄せられないため、中区分slugをそのままcategoryに渡さず、箇所タグ・車種リンクを主導線とする。
     function parentSlug(cat){ return cat.slug; }
+
+    // duration_seconds → ISO8601 期間（PT#H#M#S）。0/NULLは空文字。
+    function iso8601Duration(sec){
+      sec = parseInt(sec,10);
+      if(!sec || sec<0) return '';
+      const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
+      return 'PT'+(h?h+'H':'')+(m?m+'M':'')+(s?s+'S':'');
+    }
+
+    // VideoObject 構造化データを #ldjson に差し込む。JSON.stringify で安全に生成（手動エスケープ不要）。
+    function injectVideoLd(v, heading){
+      const el=document.getElementById('ldjson');
+      if(!el) return;
+      const ld={
+        "@context":"https://schema.org",
+        "@type":"VideoObject",
+        "name": heading,
+        "description": (v.description_ja || heading || '').slice(0,300),
+        "thumbnailUrl": v.thumbnail_url || undefined,
+        "uploadDate": v.published_at || undefined,
+        "embedUrl": "https://www.youtube.com/embed/"+encodeURIComponent(v.youtube_id),
+        "url": "https://www.registro500.com/video?id="+encodeURIComponent(v.youtube_id)
+      };
+      const dur=iso8601Duration(v.duration_seconds);
+      if(dur) ld.duration=dur;
+      if(v.view_count){
+        ld.interactionStatistic={
+          "@type":"InteractionCounter",
+          "interactionType":{"@type":"WatchAction"},
+          "userInteractionCount": v.view_count
+        };
+      }
+      el.textContent=JSON.stringify(ld);
+    }
 
     async function loadRelated(v, partSlugs){
       if(!partSlugs.length) return;
