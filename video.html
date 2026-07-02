@@ -80,8 +80,20 @@
 
     .open-yt{display:inline-block;font-size:.82rem;margin-bottom:24px;}
 
-    .reco-box{background:#fff;border:1px dashed var(--line);border-radius:var(--radius);padding:16px 18px;margin-bottom:26px;color:var(--muted);font-size:.86rem;}
-    .reco-box .cnt{color:var(--ink);font-weight:600;}
+    .reco-box{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin-bottom:26px;color:var(--muted);font-size:.86rem;}
+    .reco-box .cnt{color:var(--ink);font-weight:700;}
+    .reco-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+    .like-btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border:1px solid var(--accent);border-radius:999px;background:#fff;color:var(--accent);font-size:.92rem;font-weight:700;cursor:pointer;transition:background .15s,color .15s;}
+    .like-btn:hover:not(:disabled){background:var(--accent-soft);}
+    .like-btn.liked{background:var(--accent);color:#fff;}
+    .like-btn:disabled{opacity:.6;cursor:default;}
+    .reco-hint{margin:10px 2px 0;font-size:.8rem;color:var(--muted);}
+
+    /* ログインモーダル（OTP）*/
+    #loginModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;}
+    #loginModal .box{background:#fff;padding:28px 24px;border-radius:16px;max-width:340px;width:90%;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.2);}
+    #loginModal input{padding:12px;border:1px solid #ccc;border-radius:8px;font-size:15px;width:100%;}
+    #loginModal .pri{padding:12px;border:0;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;width:100%;}
 
     .rel-label{font-size:.74rem;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:8px 0 12px;}
     .rel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
@@ -148,9 +160,11 @@
 
       <a class="open-yt" id="openYt" href="#" target="_blank" rel="noopener">▶ YouTubeで開く</a>
 
-      <div class="reco-box">
-        👍 いいね <span class="cnt" id="recoCnt">0</span>件 ／ 💬 コメント <span class="cnt" id="commentCnt">0</span>件<br>
-        <span style="font-size:.8rem;">ログインしたオーナーはいいね・コメントを投稿できます（準備中）。</span>
+      <div class="reco-box" id="recoBox">
+        <div class="reco-row">
+          <button type="button" class="like-btn" id="likeBtn" disabled>👍 いいね <span class="cnt" id="recoCnt">0</span></button>
+        </div>
+        <p class="reco-hint" id="recoHint">読み込み中…</p>
       </div>
 
       <div id="relSection" style="display:none;">
@@ -160,7 +174,91 @@
     </div>
   </div>
 
+  <!-- ログインモーダル（メールOTPコード方式・本体サイトと共通の認証） -->
+  <div id="loginModal">
+    <div class="box">
+      <h3 style="margin-top:0;">ログイン</h3>
+      <p style="font-size:13px;color:#666;margin:0 0 16px;">登録したメールアドレスにコードを送ってログインします</p>
+      <!-- ステップ1: メールアドレス入力 -->
+      <div id="otpStep1" style="display:flex;flex-direction:column;gap:10px;text-align:left;">
+        <input type="email" id="emailLoginInput" placeholder="登録したメールアドレス" autocomplete="email">
+        <button type="button" id="clearEmailBtn" onclick="clearLoginEmail()" style="display:none;background:none;border:0;color:#888;font-size:12px;cursor:pointer;align-self:flex-start;padding:0;">別のアドレスを使う</button>
+        <button id="emailLoginBtn" class="pri" onclick="sendOtpCode()">確認コードを送信</button>
+      </div>
+      <!-- ステップ2: 確認コード入力 -->
+      <div id="otpStep2" style="display:none;flex-direction:column;gap:10px;text-align:left;">
+        <p style="font-size:13px;color:#2e7d32;margin:0;">✅ <span id="otpSentEmail" style="font-weight:700;"></span> に6桁の確認コードを送信しました。届いたコードを入力してください。</p>
+        <input type="text" id="otpCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"
+               style="font-size:22px;letter-spacing:8px;text-align:center;">
+        <button id="otpVerifyBtn" class="pri" onclick="verifyOtpCode()">ログイン</button>
+        <button onclick="resendOtpCode()" style="background:none;border:0;color:var(--accent);cursor:pointer;font-size:13px;">確認コードを再送する</button>
+      </div>
+      <p id="otpErrorMsg" style="display:none;font-size:13px;color:#c62828;margin:8px 0 0;"></p>
+      <button onclick="closeLoginModal()" style="margin-top:16px;background:none;border:0;color:#888;cursor:pointer;font-size:13px;">閉じる</button>
+    </div>
+  </div>
+
   <footer>© Registro500 Giappone</footer>
+
+  <!-- ログインモーダル（OTP）用のグローバル関数。本体 index.html と同じ signInWithOtp/verifyOtp 方式。 -->
+  <script>
+    let otpEmail = '';
+    function openLoginModal(){
+      const m=document.getElementById('loginModal'); if(m)m.style.display='flex';
+      const inp=document.getElementById('emailLoginInput'), cb=document.getElementById('clearEmailBtn');
+      const saved=localStorage.getItem('r500_login_email');
+      if(saved&&inp){ inp.value=saved; if(cb)cb.style.display='block'; }
+    }
+    function clearLoginEmail(){
+      const inp=document.getElementById('emailLoginInput'), cb=document.getElementById('clearEmailBtn');
+      if(inp){ inp.value=''; inp.focus(); }
+      localStorage.removeItem('r500_login_email');
+      if(cb)cb.style.display='none';
+    }
+    function closeLoginModal(){
+      const m=document.getElementById('loginModal'); if(m)m.style.display='none';
+      const s1=document.getElementById('otpStep1'), s2=document.getElementById('otpStep2');
+      if(s1)s1.style.display='flex'; if(s2)s2.style.display='none';
+      showOtpError('');
+    }
+    function showOtpError(msg){
+      const el=document.getElementById('otpErrorMsg'); if(!el)return;
+      if(!msg){ el.style.display='none'; return; }
+      el.textContent=msg; el.style.display='block';
+    }
+    async function sendOtpCode(){
+      const email=document.getElementById('emailLoginInput').value.trim();
+      if(!email){ alert('メールアドレスを入力してください'); return; }
+      const btn=document.getElementById('emailLoginBtn');
+      btn.disabled=true; btn.textContent='送信中…';
+      const { error } = await supabaseClient.auth.signInWithOtp({ email });
+      btn.disabled=false; btn.textContent='確認コードを送信';
+      if(error){ showOtpError('送信に失敗しました：'+error.message); return; }
+      otpEmail=email;
+      localStorage.setItem('r500_login_email', email);
+      document.getElementById('otpSentEmail').textContent=email;
+      document.getElementById('otpStep1').style.display='none';
+      document.getElementById('otpStep2').style.display='flex';
+      showOtpError('');
+    }
+    async function verifyOtpCode(){
+      const code=document.getElementById('otpCodeInput').value.trim();
+      if(!code){ alert('確認コードを入力してください'); return; }
+      const btn=document.getElementById('otpVerifyBtn');
+      btn.disabled=true; btn.textContent='確認中…';
+      const { error } = await supabaseClient.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
+      btn.disabled=false; btn.textContent='ログイン';
+      if(error){ showOtpError('コードが正しくないか、期限切れです。もう一度お試しください。'); return; }
+      // 成功 → onAuthStateChange が いいねUI を更新。モーダルを閉じる
+      closeLoginModal();
+    }
+    async function resendOtpCode(){
+      if(!otpEmail)return;
+      const { error } = await supabaseClient.auth.signInWithOtp({ email: otpEmail });
+      showOtpError(error ? ('再送に失敗しました：'+error.message) : '');
+      if(!error) alert('確認コードを再送しました。');
+    }
+  </script>
 
   <script>
   (function(){
@@ -259,10 +357,11 @@
         document.getElementById('aiBox').style.display='block';
       }
 
-      // YouTubeリンク・おすすめ数
+      // YouTubeリンク・いいね
       document.getElementById('openYt').href='https://www.youtube.com/watch?v='+encodeURIComponent(v.youtube_id);
-      document.getElementById('recoCnt').textContent = reco?reco.reco_count:0;
-      document.getElementById('commentCnt').textContent = reco?reco.comment_count:0;
+      currentVideo = v;
+      setRecoCount(reco ? reco.reco_count : 0); // 初期値（チラつき防止）→ refreshRecoUI で確定
+      refreshRecoUI();
 
       // OG / title / canonical
       const fullTitle = heading+' | Registro500 動画ガイド';
@@ -303,6 +402,69 @@
         </a>`).join('');
       document.getElementById('relSection').style.display='block';
     }
+
+    // ── いいね（recommendations）：ログインオーナー本人のみ書込・読取は全員 ──
+    let currentVideo = null;   // 表示中の動画（render で設定）
+    let currentUid = null;     // ログイン中ユーザーID（未ログインは null）
+    let recoBusy = false;      // 二重クリック防止
+
+    function setRecoCount(n){ document.getElementById('recoCnt').textContent = (n==null?0:n); }
+    function applyLiked(liked){
+      const btn=document.getElementById('likeBtn');
+      btn.classList.toggle('liked', !!liked);
+      btn.dataset.liked = liked ? '1' : '';
+      btn.firstChild.textContent = liked ? '👍 いいね済み ' : '👍 いいね ';
+    }
+    async function fetchRecoCount(videoId){
+      const {data} = await sb.from('video_reco_counts').select('reco_count').eq('video_id',videoId).single();
+      return data ? data.reco_count : 0;
+    }
+    async function refreshRecoUI(){
+      const v = currentVideo; if(!v) return;
+      const btn=document.getElementById('likeBtn'), hint=document.getElementById('recoHint');
+      const { data:{ session } } = await sb.auth.getSession();
+      currentUid = session ? session.user.id : null;
+      setRecoCount(await fetchRecoCount(v.id));
+      if(!currentUid){
+        applyLiked(false); btn.disabled=false;
+        btn.onclick = openLoginModal;
+        hint.textContent = 'ログインするといいねできます（コメントは準備中）。';
+        return;
+      }
+      const { data:mine } = await sb.from('recommendations').select('video_id')
+        .eq('video_id',v.id).eq('user_id',currentUid).maybeSingle();
+      applyLiked(!!mine); btn.disabled=false;
+      btn.onclick = toggleLike;
+      hint.textContent = 'ボタンでいいねを付けたり外したりできます（コメントは準備中）。';
+    }
+    async function toggleLike(){
+      if(recoBusy || !currentUid || !currentVideo) return;
+      recoBusy=true;
+      const btn=document.getElementById('likeBtn');
+      const wasLiked = btn.dataset.liked==='1';
+      btn.disabled=true;
+      try{
+        if(wasLiked){
+          const {error}=await sb.from('recommendations').delete()
+            .eq('video_id',currentVideo.id).eq('user_id',currentUid);
+          if(error) throw error;
+          applyLiked(false);
+        }else{
+          const {error}=await sb.from('recommendations')
+            .insert({ video_id:currentVideo.id, user_id:currentUid });
+          if(error) throw error;
+          applyLiked(true);
+        }
+        setRecoCount(await fetchRecoCount(currentVideo.id));
+      }catch(e){
+        console.error(e);
+        alert('いいねの更新に失敗しました。時間をおいて再度お試しください。');
+      }finally{
+        btn.disabled=false; recoBusy=false;
+      }
+    }
+    // ログイン/ログアウトを検知して いいねUI を更新（コールバック内で直接 await しない＝Supabaseの注意点）
+    sb.auth.onAuthStateChange(()=>{ setTimeout(refreshRecoUI, 0); });
 
     load().catch(e=>{ console.error(e); showError(); });
   })();
