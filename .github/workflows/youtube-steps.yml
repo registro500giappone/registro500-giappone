@@ -17,6 +17,8 @@ jobs:
   generate-steps:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    permissions:
+      contents: write   # 動画sitemapを再生成してコミットするため
 
     steps:
       - uses: actions/checkout@v4
@@ -37,3 +39,18 @@ jobs:
 
       - name: AI要約 生成（手順カード＋要点まとめ）
         run: python py/youtube_steps.py --limit ${{ github.event.inputs.limit || '30' }}
+
+      - name: 動画sitemap 再生成
+        run: python py/gen_video_sitemap.py
+
+      - name: sitemap-videos.xml に差分があればコミット
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add sitemap-videos.xml
+          if git diff --cached --quiet; then
+            echo "sitemap 変更なし — スキップ"
+          else
+            git commit -m "chore(sitemap): 動画sitemap再生成 [skip ci]"
+            git push
+          fi
