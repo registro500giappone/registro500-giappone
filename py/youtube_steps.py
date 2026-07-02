@@ -48,23 +48,29 @@ SUPABASE_WRITE_KEY = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ["SUPAB
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 
 genai.configure(api_key=GEMINI_API_KEY)
-MODEL_NAME = "models/gemini-flash-lite-latest"
+MODEL_NAME = "models/gemini-flash-latest"  # 詳細度優先で flash（lite から昇格）。無料枠は lite より渋く、超過は QUOTA で自動停止＝課金は発生しない
 model = genai.GenerativeModel(MODEL_NAME)
 
-MAX_STEPS = 12
+MAX_STEPS = 20
 SLEEP_BETWEEN = 3  # 1本ごとの待機（レート配慮）
+
+# steps_ja のスキーマ世代。プロンプト/モデルを更新して全動画を作り直すたびに +1 する。
+# --regenerate 時は「steps_ja が無い or v がこの値未満」の動画だけを対象にする＝
+# 途中で止まっても再開でき、既に新版化された動画は二度打ちしない。旧要約は差し替わるまで残す（無料枠で数週間かけて自然置換）。
+STEPS_VERSION = 2  # v2 = flash + 粒度重視プロンプト（v1 = flash-lite + 旧プロンプト）
 
 # how-to（手を動かす系）＝詳しい手順カード。「読めばほぼ作業できる」密度で工具/部品/数値/コツも拾う。
 PROMPT_HOWTO = f"""あなたはクラシックFIAT 500/126（空冷2気筒 499/594/650cc）専門の整備解説者です。
 次の動画を実際に視聴し、動画で行っている整備・作業を、日本語だけで「読めばほぼ作業できる」密度でまとめてください。
 
 【出力ルール】
-- 動画で実際に行っている作業を、行う順に番号付きで並べる（最大{MAX_STEPS}手順）。
-- 各手順は「見出し(t)」＋「本文(d)」。本文は具体的に。手順に加え、使う工具・部品名・数値（トルク/隙間/番手/容量など）・コツ・失敗しやすい点も動画から拾って盛り込む。
+- 動画で実際に行っている作業を、手を動かした順に細かく分解して並べる（最大{MAX_STEPS}手順）。動画が短く操作が少なければ手順数は少なくてよい（水増ししない）。
+- 【重要】複数の操作を1手順にまとめない。「〜を外して〜を確認する」のように別々の操作が続く場合は、原則それぞれを独立した手順に分ける。動画がわざわざ映して/語っている中間操作（仮組み・位置合わせ・確認・清掃・印付け・締め直し等）を省略しない。
+- 各手順の本文(d)は、その操作を「どの部品を・どちら向きに・どの程度・何を見ながら・どうなったら次へ」まで、動画で語られている範囲で具体的に書く。使う工具・部品名・数値（トルク/隙間/番手/容量など）・コツ・失敗しやすい点も動画から拾って盛り込む（動画が言っていない数値は創作しない）。
 - 専門用語は日本語＋原語（伊/英）併記（例：タペット（punterie）／点火時期（anticipo）／隙間ゲージ（spessimetro））。
 - 最後に「注意点(caution)」を1行だけ（安全・破損防止など最も重要なもの）。
 - 動画が整備の実作業でない／映像から手順を起こせない場合は steps を空配列 [] にする（無理に作らない）。
-- 逐語の字幕書き起こしはしない。自分の言葉で内容を再構成した要約にする。
+- 逐語の字幕書き起こしはしない。自分の言葉で内容を再構成した要約にする（ただし操作の粒度は落とさない）。
 
 【返却形式】JSONオブジェクトのみ（前後に文章を付けない）:
 {{"steps":[{{"t":"見出し","d":"本文"}}],"caution":"注意点1行"}}
@@ -140,6 +146,8 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="処理件数の上限（0=全部）")
     ap.add_argument("--dry-run", action="store_true", help="1本だけ生成しDB書込なしで表示")
     ap.add_argument("--id", default=None, help="特定のyoutube_idだけ対象（テスト/再生成用。steps_jaの有無を問わず処理）")
+    ap.add_argument("--regenerate", action="store_true",
+                    help=f"全動画を作り直す（steps_ja が無い or v<{STEPS_VERSION} を対象。既に v{STEPS_VERSION} 済みは飛ばす＝再開可）")
     args = ap.parse_args()
 
     supabase = create_client(SUPABASE_URL, SUPABASE_WRITE_KEY)
@@ -148,6 +156,30 @@ def main():
     if args.id:
         # 指定IDのみ（既存steps_jaがあっても再生成・テスト用）
         rows = supabase.table("videos").select(sel).eq("youtube_id", args.id).limit(1).execute().data
+    elif args.regenerate:
+        # 全動画の作り直し。steps_ja(と v)も取得し、「未生成 or 旧世代(v<STEPS_VERSION)」だけを
+        # Python側で絞る（jsonbのPostgREST絞り込みは脆いので全件取得→フィルタが確実）。source_tier昇順→再生数降順。
+        limit = 1 if args.dry_run else (args.limit or 10000)
+        all_rows = []
+        offset = 0
+        while True:
+            batch = (
+                supabase.table("videos")
+                .select(sel + ", steps_ja")
+                .order("source_tier", desc=False)
+                .order("view_count", desc=True)
+                .range(offset, offset + 999)
+                .execute()
+                .data
+            )
+            all_rows.extend(batch)
+            if len(batch) < 1000:
+                break
+            offset += 1000
+        pending = [r for r in all_rows
+                   if not r.get("steps_ja") or (r["steps_ja"] or {}).get("v", 1) < STEPS_VERSION]
+        print(f"[REGEN] 全{len(all_rows)}本中 未v{STEPS_VERSION}={len(pending)}本（このバッチ上限{limit}）", flush=True)
+        rows = [{k: v for k, v in r.items() if k != "steps_ja"} for r in pending[:limit]]
     else:
         fetch_limit = 1 if args.dry_run else (args.limit or 10000)
         rows = (
@@ -162,7 +194,7 @@ def main():
         )
 
     if not rows:
-        print("[COMPLETE] 対象なし（steps_ja IS NULL は 0 件）。")
+        print(f"[COMPLETE] 対象なし（{'全動画がv'+str(STEPS_VERSION)+'済み' if args.regenerate else 'steps_ja IS NULL は 0 件'}）。")
         return
 
     print(f"[START] 対象 {len(rows)}件 / model={MODEL_NAME} / dry_run={args.dry_run}")
@@ -211,6 +243,7 @@ def main():
             continue
         consec_fail = 0
         steps_ja["kind"] = kind  # howto=手順カード / points=要点まとめ（表示側で出し分け）
+        steps_ja["v"] = STEPS_VERSION  # スキーマ世代。--regenerate の再開判定に使う（表示側は無視）
 
         if args.dry_run:
             print("   [DRY-RUN] 生成結果:")
