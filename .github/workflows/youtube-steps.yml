@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       limit:
-        description: '1回の処理件数上限（Gemini無料枠のトークン上限回避）'
+        description: '1回の処理件数上限（0=全部。無料枠1500 RPD内で一気に処理）'
         required: false
-        default: '30'
+        default: '800'
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
@@ -16,7 +16,7 @@ env:
 jobs:
   generate-steps:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 350   # 682本を順次処理で約4時間。無料枠1500 RPDに収まるので1ジョブで完走を狙う（GH上限は6時間）
     permissions:
       contents: write   # 動画sitemapを再生成してコミットするため
 
