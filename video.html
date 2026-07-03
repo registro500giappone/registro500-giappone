@@ -93,6 +93,29 @@
     .like-btn:disabled{opacity:.6;cursor:default;}
     .reco-hint{margin:10px 2px 0;font-size:.8rem;color:var(--muted);}
 
+    /* コメント（車種＋一言）投稿フォーム・一覧 */
+    .cmt-form{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px;}
+    .cmt-form .cmt-label{font-size:.78rem;color:var(--muted);font-weight:600;}
+    .cmt-veh-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .cmt-form select,.cmt-form input[type=text]{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:.9rem;font-family:inherit;color:var(--ink);}
+    .cmt-form .cmt-veh{max-width:200px;}
+    #cmtInput{width:100%;}
+    .cmt-actions{display:flex;gap:12px;align-items:center;margin-top:2px;}
+    .cmt-save{padding:8px 20px;border:0;border-radius:999px;background:var(--accent);color:#fff;font-weight:700;font-size:.88rem;cursor:pointer;}
+    .cmt-save:disabled{opacity:.5;cursor:default;}
+    .cmt-del{background:none;border:0;color:#b91c1c;font-size:.8rem;cursor:pointer;}
+    .cmt-list-label{font-size:.74rem;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin:20px 0 10px;}
+    .cmt-list{display:flex;flex-direction:column;gap:12px;}
+    .cmt-item{border-top:1px solid #f1f1f4;padding-top:12px;}
+    .cmt-item:first-child{border-top:0;}
+    .cmt-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;}
+    .cmt-veh-badge{font-size:.72rem;font-weight:700;background:#fce7f3;color:#9d174d;padding:2px 9px;border-radius:999px;}
+    .cmt-name{font-size:.82rem;color:var(--ink);font-weight:600;}
+    .cmt-date{font-size:.72rem;color:var(--muted);}
+    .cmt-mine-edit{margin-left:auto;font-size:.74rem;color:var(--accent);background:none;border:0;cursor:pointer;text-decoration:underline;}
+    .cmt-body{font-size:.92rem;color:var(--ink);line-height:1.6;white-space:pre-wrap;word-break:break-word;}
+    .cmt-empty{font-size:.82rem;color:var(--muted);margin:0;}
+
     /* ログインモーダル（OTP）*/
     #loginModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;}
     #loginModal .box{background:#fff;padding:28px 24px;border-radius:16px;max-width:340px;width:90%;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.2);}
@@ -177,6 +200,23 @@
           <button type="button" class="like-btn" id="likeBtn" disabled>👍 いいね <span class="cnt" id="recoCnt">0</span></button>
         </div>
         <p class="reco-hint" id="recoHint">読み込み中…</p>
+
+        <!-- コメント投稿フォーム（ログイン＆いいね済みのときだけ表示） -->
+        <div class="cmt-form" id="cmtForm" style="display:none;">
+          <div class="cmt-veh-row">
+            <span class="cmt-label">車種</span>
+            <span id="cmtVehWrap"></span>
+          </div>
+          <input type="text" id="cmtInput" maxlength="140" placeholder="一言（例：うちのL型でもできた／126は〜に注意）">
+          <div class="cmt-actions">
+            <button type="button" class="cmt-save" id="cmtSaveBtn">保存</button>
+            <button type="button" class="cmt-del" id="cmtDelBtn" style="display:none;">コメントを削除</button>
+          </div>
+        </div>
+
+        <!-- コメント一覧（全員に表示） -->
+        <div class="cmt-list-label">みんなの一言</div>
+        <div class="cmt-list" id="cmtList"></div>
       </div>
 
       <div id="relSection" style="display:none;">
@@ -462,10 +502,14 @@
       document.getElementById('relSection').style.display='block';
     }
 
-    // ── いいね（recommendations）：ログインオーナー本人のみ書込・読取は全員 ──
+    // ── いいね＋コメント（recommendations）：ログインオーナー本人のみ書込・読取は全員 ──
     let currentVideo = null;   // 表示中の動画（render で設定）
     let currentUid = null;     // ログイン中ユーザーID（未ログインは null）
-    let recoBusy = false;      // 二重クリック防止
+    let recoBusy = false;      // いいねの二重クリック防止
+    let cmtBusy = false;       // コメント保存/削除の二重実行防止
+    let myCars = null;         // 本人の登録車（handle_name/車種のプリフィル用）
+    let myCarsUid = null;      // myCars をどのユーザーで読んだか（ユーザー切替時に再読込）
+    let selectedCar = null;    // 投稿者名の出所として選択中の車（0台は null＝一覧で「オーナー」表示）
 
     function setRecoCount(n){ document.getElementById('recoCnt').textContent = (n==null?0:n); }
     function applyLiked(liked){
@@ -487,14 +531,23 @@
       if(!currentUid){
         applyLiked(false); btn.disabled=false;
         btn.onclick = openLoginModal;
-        hint.textContent = 'ログインするといいねできます（コメントは準備中）。';
+        hint.textContent = 'ログインするといいね・一言コメントができます。';
+        hideCommentForm();
+        await loadComments();
         return;
       }
-      const { data:mine } = await sb.from('recommendations').select('video_id')
+      const { data:mine } = await sb.from('recommendations').select('video_id, comment, author_vehicle')
         .eq('video_id',v.id).eq('user_id',currentUid).maybeSingle();
       applyLiked(!!mine); btn.disabled=false;
       btn.onclick = toggleLike;
-      hint.textContent = 'ボタンでいいねを付けたり外したりできます（コメントは準備中）。';
+      if(mine){
+        hint.textContent = 'いいねを付けた動画に「車種＋一言」を残せます。';
+        await showCommentForm(mine);
+      }else{
+        hint.textContent = 'いいねを付けると「車種＋一言」を書けます。';
+        hideCommentForm();
+      }
+      await loadComments();
     }
     async function toggleLike(){
       if(recoBusy || !currentUid || !currentVideo) return;
@@ -508,15 +561,18 @@
             .eq('video_id',currentVideo.id).eq('user_id',currentUid);
           if(error) throw error;
           applyLiked(false);
+          hideCommentForm();  // いいね解除で行ごと消える＝コメントフォームも閉じる
           track('video_like', Object.assign(videoParams(currentVideo),{action:'remove'}));  // GA4: いいね解除
         }else{
           const {error}=await sb.from('recommendations')
             .insert({ video_id:currentVideo.id, user_id:currentUid });
           if(error) throw error;
           applyLiked(true);
+          await showCommentForm(null);  // いいね付与でコメント入力を開放
           track('video_like', Object.assign(videoParams(currentVideo),{action:'add'}));  // GA4: いいね付与
         }
         setRecoCount(await fetchRecoCount(currentVideo.id));
+        await loadComments();
       }catch(e){
         console.error(e);
         alert('いいねの更新に失敗しました。時間をおいて再度お試しください。');
@@ -524,7 +580,131 @@
         btn.disabled=false; recoBusy=false;
       }
     }
-    // ログイン/ログアウトを検知して いいねUI を更新（コールバック内で直接 await しない＝Supabaseの注意点）
+
+    // ── コメント（車種＋一言）：いいね行に紐づく（複合PK video_id,user_id）──
+    function vehLabel(c){ return c ? (c.model_display_c || ('FIAT '+(c.car_type||'500'))) : ''; }
+    async function loadMyCars(){
+      if(myCarsUid===currentUid && myCars) return myCars;
+      if(!currentUid){ myCars=[]; myCarsUid=null; return myCars; }
+      const { data } = await sb.from('cars')
+        .select('handle_name, car_type, model_display_c').eq('owner_user_id', currentUid);
+      myCars = data || []; myCarsUid = currentUid;
+      return myCars;
+    }
+    // 車種欄を組む：複数台=車を選ぶ select＋自由入力text / 単数=textプリフィル / 0台=text空（C案）
+    function buildVehField(mine){
+      const wrap=document.getElementById('cmtVehWrap'); wrap.innerHTML='';
+      const cars=myCars||[];
+      selectedCar = cars.length ? cars[0] : null;
+      if(cars.length>1){
+        const sel=document.createElement('select'); sel.className='cmt-veh'; sel.id='cmtVehSelect';
+        cars.forEach((c,i)=>{
+          const o=document.createElement('option'); o.value=String(i);
+          o.textContent=(c.handle_name?c.handle_name+'／':'')+vehLabel(c);
+          sel.appendChild(o);
+        });
+        sel.onchange=()=>{ selectedCar=cars[+sel.value]||null;
+          const t=document.getElementById('cmtVehText'); if(t) t.value=vehLabel(selectedCar); };
+        wrap.appendChild(sel);
+      }
+      const txt=document.createElement('input');
+      txt.type='text'; txt.className='cmt-veh'; txt.id='cmtVehText'; txt.maxLength=40;
+      txt.placeholder='車種（例：FIAT 500 L）';
+      txt.value=(mine && mine.author_vehicle) || vehLabel(selectedCar) || '';
+      wrap.appendChild(txt);
+    }
+    async function showCommentForm(mine){
+      await loadMyCars();
+      buildVehField(mine);
+      document.getElementById('cmtInput').value=(mine && mine.comment) || '';
+      const hasComment=!!(mine && mine.comment);
+      document.getElementById('cmtSaveBtn').textContent=hasComment?'更新':'保存';
+      document.getElementById('cmtDelBtn').style.display=hasComment?'':'none';
+      document.getElementById('cmtForm').style.display='flex';
+    }
+    function hideCommentForm(){ document.getElementById('cmtForm').style.display='none'; }
+    async function saveComment(){
+      if(cmtBusy || !currentUid || !currentVideo) return;
+      const input=document.getElementById('cmtInput');
+      const comment=(input.value||'').trim();
+      if(!comment){ input.focus(); return; }  // 空は保存しない
+      const vehText=document.getElementById('cmtVehText');
+      const author_vehicle=(vehText? vehText.value.trim():'') || null;
+      const author_name = selectedCar ? (selectedCar.handle_name||null) : null;
+      const wasComment=document.getElementById('cmtDelBtn').style.display!=='none';
+      cmtBusy=true;
+      const saveBtn=document.getElementById('cmtSaveBtn'); saveBtn.disabled=true;
+      try{
+        const { error } = await sb.from('recommendations').upsert(
+          { video_id:currentVideo.id, user_id:currentUid, comment, author_name, author_vehicle },
+          { onConflict:'video_id,user_id' });
+        if(error) throw error;
+        applyLiked(true);  // upsert でいいね行も成立
+        setRecoCount(await fetchRecoCount(currentVideo.id));
+        saveBtn.textContent='更新';
+        document.getElementById('cmtDelBtn').style.display='';
+        track('video_comment', Object.assign(videoParams(currentVideo),{action: wasComment?'edit':'add'}));
+        await loadComments();
+      }catch(e){
+        console.error(e);
+        alert('コメントの保存に失敗しました。時間をおいて再度お試しください。');
+      }finally{
+        saveBtn.disabled=false; cmtBusy=false;
+      }
+    }
+    async function deleteComment(){
+      // 削除確認ダイアログは付けない（Playwright自動テストをブロックする・編集で戻せる）
+      if(cmtBusy || !currentUid || !currentVideo) return;
+      cmtBusy=true;
+      const delBtn=document.getElementById('cmtDelBtn'); delBtn.disabled=true;
+      try{
+        const { error } = await sb.from('recommendations')
+          .update({ comment:null, author_vehicle:null, author_name:null })
+          .eq('video_id',currentVideo.id).eq('user_id',currentUid);  // いいね行は残す
+        if(error) throw error;
+        document.getElementById('cmtInput').value='';
+        delBtn.style.display='none';
+        document.getElementById('cmtSaveBtn').textContent='保存';
+        track('video_comment', Object.assign(videoParams(currentVideo),{action:'remove'}));
+        await loadComments();
+      }catch(e){
+        console.error(e);
+        alert('コメントの削除に失敗しました。時間をおいて再度お試しください。');
+      }finally{
+        delBtn.disabled=false; cmtBusy=false;
+      }
+    }
+    async function loadComments(){
+      const v=currentVideo; if(!v) return;
+      const { data } = await sb.from('recommendations')
+        .select('user_id, comment, author_vehicle, author_name, created_at')
+        .eq('video_id', v.id).not('comment','is',null)
+        .order('created_at',{ascending:false});
+      renderComments(data||[]);
+    }
+    function renderComments(rows){
+      const list=document.getElementById('cmtList');
+      if(!rows.length){
+        list.innerHTML='<p class="cmt-empty">まだコメントはありません。役に立った動画に「車種＋一言」を残してみてください。</p>';
+        return;
+      }
+      list.innerHTML=rows.map(r=>{
+        const mine=currentUid && r.user_id===currentUid;
+        const veh=r.author_vehicle ? `<span class="cmt-veh-badge">${esc(r.author_vehicle)}</span>` : '';
+        const edit=mine ? `<button type="button" class="cmt-mine-edit" data-edit="1">編集</button>` : '';
+        return `<div class="cmt-item">
+          <div class="cmt-head">${veh}<span class="cmt-name">${esc(r.author_name||'オーナー')}</span><span class="cmt-date">${fmtDate(r.created_at)}</span>${edit}</div>
+          <div class="cmt-body">${esc(r.comment)}</div>
+        </div>`;
+      }).join('');
+      const eb=list.querySelector('[data-edit]');
+      if(eb){ eb.onclick=()=>{ const f=document.getElementById('cmtForm');
+        if(f.style.display!=='none'){ f.scrollIntoView({behavior:'smooth',block:'center'}); document.getElementById('cmtInput').focus(); } }; }
+    }
+    document.getElementById('cmtSaveBtn').addEventListener('click', saveComment);
+    document.getElementById('cmtDelBtn').addEventListener('click', deleteComment);
+
+    // ログイン/ログアウトを検知して いいね＋コメントUI を更新（コールバック内で直接 await しない＝Supabaseの注意点）
     sb.auth.onAuthStateChange(()=>{ setTimeout(refreshRecoUI, 0); });
 
     load().catch(e=>{ console.error(e); showError(); });

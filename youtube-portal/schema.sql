@@ -126,13 +126,17 @@ create table video_vehicles (
 );
 create index idx_vv_vehicle on video_vehicles(vehicle_id);
 
--- 7. recommendations — おすすめ1段階 + 任意コメント
+-- 7. recommendations — おすすめ1段階 + 任意コメント（車種＋一言）
+--    author_name / author_vehicle は投稿時のスナップショット（cars を join しない・改名しても安定）
 create table recommendations (
-  video_id    uuid not null references videos(id)      on delete cascade,
-  user_id     uuid not null references auth.users(id)  on delete cascade,
-  comment     text,
-  created_at  timestamptz not null default now(),
-  primary key (video_id, user_id)
+  video_id       uuid not null references videos(id)      on delete cascade,
+  user_id        uuid not null references auth.users(id)  on delete cascade,
+  comment        text,
+  author_name    text,   -- 投稿時の handle_name スナップショット（一覧表示用・全員読取）
+  author_vehicle text,   -- 投稿時の車種表示スナップショット（例「FIAT 500 L」）
+  created_at     timestamptz not null default now(),
+  primary key (video_id, user_id),
+  constraint recommendations_comment_len check (char_length(comment) <= 140)
 );
 create index idx_reco_video on recommendations(video_id);
 
