@@ -1,0 +1,40 @@
+{
+  "model": "F",
+  "model_label_ja": "FIAT 500 F",
+  "source": "大塚さん配線図(2004) を元にデータ化。結線は原図＋FIAT500標準回路からの推定を含み、オーナー照合で確定する。",
+  "ref_image": "assets/turn_signal_ref.png",
+  "ref_aspect": { "w": 2358, "h": 3334 },
+  "systems": [
+    { "id": "turn_signal", "label_ja": "ウインカー系", "hi_color": "#2f9e44" }
+  ],
+  "_comment_nodes": "pos は原図基準の正規化座標(0〜1)。背景画像とほぼ重なる。将来 vehicle_pos(前/側/上/背の4面座標) を各nodeに追加できる。",
+  "nodes": [
+    { "id": "battery",       "label_ja": "バッテリー",             "label_en": "Battery",            "type": "power",     "pos": { "x": 0.700, "y": 0.180 }, "systems": ["turn_signal"] },
+    { "id": "ignition_sw",   "label_ja": "イグニッションSW",       "label_en": "Ignition SW",        "type": "switch",    "pos": { "x": 0.748, "y": 0.578 }, "systems": ["turn_signal"] },
+    { "id": "fuse_box",      "label_ja": "ヒューズボックス",       "label_en": "Fuse Box",           "type": "fuse",      "pos": { "x": 0.298, "y": 0.225 }, "systems": ["turn_signal"] },
+    { "id": "flasher",       "label_ja": "ウインカーリレー",       "label_en": "Turn Signal Flasher","type": "relay",     "pos": { "x": 0.632, "y": 0.245 }, "systems": ["turn_signal"] },
+    { "id": "turn_sw",       "label_ja": "ウインカーSW",           "label_en": "Turn Signal SW",     "type": "switch",    "pos": { "x": 0.272, "y": 0.580 }, "systems": ["turn_signal"] },
+    { "id": "indicator",     "label_ja": "メーター内インジケーター","label_en": "Indicator Lamp",     "type": "lamp",      "pos": { "x": 0.600, "y": 0.578 }, "systems": ["turn_signal"] },
+    { "id": "lamp_fl",       "label_ja": "左前ウインカー",         "label_en": "Front Left",         "type": "lamp",      "pos": { "x": 0.085, "y": 0.195 }, "systems": ["turn_signal"] },
+    { "id": "lamp_fr",       "label_ja": "右前ウインカー",         "label_en": "Front Right",        "type": "lamp",      "pos": { "x": 0.920, "y": 0.195 }, "systems": ["turn_signal"] },
+    { "id": "lamp_rl",       "label_ja": "左後ウインカー",         "label_en": "Rear Left",          "type": "lamp",      "pos": { "x": 0.106, "y": 0.855 }, "systems": ["turn_signal"] },
+    { "id": "lamp_rr",       "label_ja": "右後ウインカー",         "label_en": "Rear Right",         "type": "lamp",      "pos": { "x": 0.905, "y": 0.855 }, "systems": ["turn_signal"] },
+    { "id": "ground",        "label_ja": "アース(車体)",           "label_en": "Ground",             "type": "ground",    "pos": { "x": 0.500, "y": 0.930 }, "systems": ["turn_signal"] }
+  ],
+  "_comment_edges": "color/style は原図の線色・線種を保持。verified=false は要オーナー照合のドラフト結線。",
+  "edges": [
+    { "from": "battery",     "to": "ignition_sw", "color": "#c92a2a", "style": "solid",  "system": "turn_signal", "verified": false, "note": "電源フィード(系統をまたぐ・推定)" },
+    { "from": "ignition_sw", "to": "fuse_box",    "color": "#c92a2a", "style": "solid",  "system": "turn_signal", "verified": false, "note": "IG経由でヒューズへ(推定)" },
+    { "from": "fuse_box",    "to": "flasher",     "color": "#f08c00", "style": "solid",  "system": "turn_signal", "verified": false, "note": "ヒューズ→リレー入力(推定)" },
+    { "from": "flasher",     "to": "turn_sw",     "color": "#2f9e44", "style": "solid",  "system": "turn_signal", "verified": false, "note": "原図の緑線に対応" },
+    { "from": "flasher",     "to": "indicator",   "color": "#f08c00", "style": "dashed", "system": "turn_signal", "verified": false, "note": "原図の黄オレンジ破線に対応" },
+    { "from": "turn_sw",     "to": "lamp_fl",     "color": "#1971c2", "style": "solid",  "system": "turn_signal", "verified": false, "note": "原図の青線ループに対応" },
+    { "from": "turn_sw",     "to": "lamp_rl",     "color": "#1971c2", "style": "solid",  "system": "turn_signal", "verified": false, "note": "原図の青線ループに対応" },
+    { "from": "turn_sw",     "to": "lamp_fr",     "color": "#1971c2", "style": "solid",  "system": "turn_signal", "verified": false, "note": "原図の青線ループに対応" },
+    { "from": "turn_sw",     "to": "lamp_rr",     "color": "#1971c2", "style": "solid",  "system": "turn_signal", "verified": false, "note": "原図の青線ループに対応" },
+    { "from": "lamp_fl",     "to": "ground",      "color": "#868e96", "style": "solid",  "system": "turn_signal", "verified": false, "note": "アース(推定)" },
+    { "from": "lamp_fr",     "to": "ground",      "color": "#868e96", "style": "solid",  "system": "turn_signal", "verified": false, "note": "アース(推定)" },
+    { "from": "lamp_rl",     "to": "ground",      "color": "#868e96", "style": "solid",  "system": "turn_signal", "verified": false, "note": "アース(推定)" },
+    { "from": "lamp_rr",     "to": "ground",      "color": "#868e96", "style": "solid",  "system": "turn_signal", "verified": false, "note": "アース(推定)" }
+  ]
+}

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=4, user-scalable=yes">
+<meta name="robots" content="noindex">
+<title>FIAT 500 配線図ビューア（pilot・ウインカー系）</title>
+<style>
+  :root { --bg:#f7f6f3; --panel:#fff; --ink:#1b1b1b; --sub:#6b6b6b; --line:#e0ddd6; --accent:#2f9e44; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink);
+    font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; }
+  header { padding:10px 14px; border-bottom:1px solid var(--line); background:var(--panel); }
+  header h1 { font-size:15px; margin:0; font-weight:700; }
+  header p { font-size:11px; margin:2px 0 0; color:var(--sub); }
+  .toolbar { display:flex; gap:6px; padding:8px 12px; flex-wrap:wrap; align-items:center;
+    border-bottom:1px solid var(--line); background:var(--panel); font-size:13px; }
+  .toolbar label { color:var(--sub); }
+  .toolbar select, .toolbar button { font-size:13px; padding:5px 9px; border:1px solid var(--line);
+    border-radius:8px; background:#fff; color:var(--ink); }
+  .toolbar button { cursor:pointer; }
+  .toolbar button.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .stage { position:relative; overflow:hidden; height:calc(100% - 210px); touch-action:none; background:#fbfaf7; }
+  svg { display:block; width:100%; height:100%; }
+  #bg { opacity:0.22; }
+  .edge { stroke-width:3.2; fill:none; cursor:pointer; transition:stroke-width .1s, opacity .1s; }
+  .edge.dim { opacity:0.12; }
+  .edge.hot { stroke-width:6; }
+  .node circle { stroke:#333; stroke-width:1.4; cursor:pointer; transition:opacity .1s; }
+  .node text { font-size:12px; fill:#222; paint-order:stroke; stroke:#fff; stroke-width:3px;
+    pointer-events:none; user-select:none; }
+  .node.dim { opacity:0.18; }
+  .node.hot circle { stroke:var(--accent); stroke-width:3.5; }
+  .panel { position:fixed; left:0; right:0; bottom:0; background:var(--panel);
+    border-top:1px solid var(--line); padding:12px 16px; min-height:76px; box-shadow:0 -4px 16px rgba(0,0,0,.05); }
+  .panel .title { font-size:15px; font-weight:700; }
+  .panel .meta { font-size:12px; color:var(--sub); margin-top:3px; line-height:1.5; }
+  .panel .hint { font-size:12px; color:var(--sub); }
+  .badge { display:inline-block; font-size:10px; padding:1px 6px; border-radius:6px;
+    background:#fff3bf; color:#8a6d00; margin-left:6px; }
+  .zoombtns { position:absolute; right:10px; bottom:10px; display:flex; flex-direction:column; gap:6px; }
+  .zoombtns button { width:38px; height:38px; font-size:20px; border-radius:10px; border:1px solid var(--line);
+    background:#fff; cursor:pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>FIAT 500 配線図ビューア <span style="font-weight:400;font-size:12px;color:#6b6b6b">pilot</span></h1>
+  <p>部品や線をタップすると、つながっている配線が光ります。原図（大塚さん）を薄く重ねて答え合わせ中。</p>
+</header>
+<div class="toolbar">
+  <label>モデル</label>
+  <select id="model" disabled><option>F（L/Rは今後）</option></select>
+  <label>系統</label>
+  <select id="system"><option value="turn_signal">ウインカー系</option></select>
+  <button id="bgtoggle" class="on">原図を重ねる</button>
+  <button id="reset">選択解除</button>
+</div>
+<div class="stage" id="stage">
+  <svg id="svg" viewBox="0 0 2358 3334" preserveAspectRatio="xMidYMid meet">
+    <image id="bg" x="0" y="0" width="2358" height="3334" href="assets/turn_signal_ref.png"></image>
+    <g id="edges"></g>
+    <g id="nodes"></g>
+  </svg>
+  <div class="zoombtns">
+    <button id="zin">＋</button>
+    <button id="zout">－</button>
+  </div>
+</div>
+<div class="panel" id="panel">
+  <div class="hint">タップして配線をたどってください。緑=リレーからスイッチ / 青=ランプへ / 破線=インジケーター。</div>
+</div>
+
+<script>
+const W=2358, H=3334;
+const svg = document.getElementById('svg');
+const gEdges = document.getElementById('edges');
+const gNodes = document.getElementById('nodes');
+const panel = document.getElementById('panel');
+let data=null, nodeById={}, adj={}; // adj: nodeId -> [edgeIndex...]
+
+fetch('data/f.json').then(r=>r.json()).then(d=>{ data=d; build(); });
+
+function build(){
+  data.nodes.forEach(n=> nodeById[n.id]=n);
+  data.nodes.forEach(n=> adj[n.id]=[]);
+  // edges
+  data.edges.forEach((e,i)=>{
+    const a=nodeById[e.from], b=nodeById[e.to];
+    if(!a||!b) return;
+    adj[e.from].push(i); adj[e.to].push(i);
+    const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+    ln.setAttribute('x1',a.pos.x*W); ln.setAttribute('y1',a.pos.y*H);
+    ln.setAttribute('x2',b.pos.x*W); ln.setAttribute('y2',b.pos.y*H);
+    ln.setAttribute('stroke', e.color||'#555');
+    if((e.style||'')==='dashed') ln.setAttribute('stroke-dasharray','14 10');
+    ln.setAttribute('class','edge'); ln.dataset.i=i;
+    ln.addEventListener('click',ev=>{ ev.stopPropagation(); selectEdge(i); });
+    gEdges.appendChild(ln);
+  });
+  // nodes
+  data.nodes.forEach(n=>{
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','node'); g.dataset.id=n.id;
+    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx',n.pos.x*W); c.setAttribute('cy',n.pos.y*H);
+    c.setAttribute('r', n.type==='lamp'?16:19);
+    c.setAttribute('fill', fillFor(n.type));
+    const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x',n.pos.x*W); t.setAttribute('y',n.pos.y*H - 24);
+    t.setAttribute('text-anchor','middle'); t.textContent=n.label_ja;
+    g.appendChild(c); g.appendChild(t);
+    g.addEventListener('click',ev=>{ ev.stopPropagation(); selectNode(n.id); });
+    gNodes.appendChild(g);
+  });
+  svg.addEventListener('click',clearSel);
+}
+function fillFor(t){ return ({power:'#ffd43b',fuse:'#ffa94d',relay:'#da77f2',switch:'#74c0fc',lamp:'#ff8787',ground:'#adb5bd'})[t]||'#ced4da'; }
+
+function selectNode(id){
+  const touched=new Set([id]);
+  adj[id].forEach(i=>{ const e=data.edges[i]; touched.add(e.from); touched.add(e.to); });
+  applyHighlight(touched, new Set(adj[id]));
+  const n=nodeById[id];
+  const conns=adj[id].map(i=>{ const e=data.edges[i]; const other=e.from===id?e.to:e.from; return nodeById[other].label_ja; });
+  panel.innerHTML=`<div class="title">${n.label_ja}<span class="badge">要照合</span></div>
+    <div class="meta">種類: ${typeJa(n.type)}<br>つながっている先: ${conns.join(' / ')||'—'}</div>`;
+}
+function selectEdge(i){
+  const e=data.edges[i];
+  applyHighlight(new Set([e.from,e.to]), new Set([i]));
+  panel.innerHTML=`<div class="title">${nodeById[e.from].label_ja} → ${nodeById[e.to].label_ja}<span class="badge">要照合</span></div>
+    <div class="meta">${e.note||''}${e.verified?'':' ／ このデータはドラフト（要オーナー確認）'}</div>`;
+}
+function applyHighlight(nodeSet, edgeSet){
+  gNodes.querySelectorAll('.node').forEach(g=>{
+    const on=nodeSet.has(g.dataset.id);
+    g.classList.toggle('hot',on); g.classList.toggle('dim',!on);
+  });
+  gEdges.querySelectorAll('.edge').forEach(l=>{
+    const on=edgeSet.has(+l.dataset.i);
+    l.classList.toggle('hot',on); l.classList.toggle('dim',!on);
+  });
+}
+function clearSel(){
+  gNodes.querySelectorAll('.node').forEach(g=>g.classList.remove('hot','dim'));
+  gEdges.querySelectorAll('.edge').forEach(l=>l.classList.remove('hot','dim'));
+  panel.innerHTML='<div class="hint">タップして配線をたどってください。緑=リレーからスイッチ / 青=ランプへ / 破線=インジケーター。</div>';
+}
+function typeJa(t){ return ({power:'電源',fuse:'ヒューズ',relay:'リレー',switch:'スイッチ',lamp:'ランプ',ground:'アース'})[t]||t; }
+
+// 背景トグル
+document.getElementById('bgtoggle').addEventListener('click',function(){
+  this.classList.toggle('on');
+  document.getElementById('bg').style.display=this.classList.contains('on')?'':'none';
+});
+document.getElementById('reset').addEventListener('click',clearSel);
+
+// ズーム＆パン（viewBox操作）
+let vb={x:0,y:0,w:W,h:H};
+function setVB(){ svg.setAttribute('viewBox',`${vb.x} ${vb.y} ${vb.w} ${vb.h}`); }
+function zoom(f,cx,cy){
+  const nx=cx-(cx-vb.x)*f, ny=cy-(cy-vb.y)*f;
+  vb={x:nx,y:ny,w:vb.w*f,h:vb.h*f}; setVB();
+}
+document.getElementById('zin').onclick=()=>zoom(0.8, vb.x+vb.w/2, vb.y+vb.h/2);
+document.getElementById('zout').onclick=()=>zoom(1.25, vb.x+vb.w/2, vb.y+vb.h/2);
+// ドラッグでパン
+let drag=null;
+const stage=document.getElementById('stage');
+function pt(ev){ const r=svg.getBoundingClientRect(); const e=ev.touches?ev.touches[0]:ev;
+  return { x: vb.x + (e.clientX-r.left)/r.width*vb.w, y: vb.y + (e.clientY-r.top)/r.height*vb.h }; }
+stage.addEventListener('pointerdown',ev=>{ drag={sx:ev.clientX,sy:ev.clientY,vx:vb.x,vy:vb.y}; });
+stage.addEventListener('pointermove',ev=>{ if(!drag)return; const r=svg.getBoundingClientRect();
+  vb.x=drag.vx-(ev.clientX-drag.sx)/r.width*vb.w; vb.y=drag.vy-(ev.clientY-drag.sy)/r.height*vb.h; setVB(); });
+window.addEventListener('pointerup',()=>drag=null);
+// ホイールズーム
+stage.addEventListener('wheel',ev=>{ ev.preventDefault(); const p=pt(ev); zoom(ev.deltaY>0?1.1:0.9,p.x,p.y); },{passive:false});
+</script>
+</body>
+</html>
