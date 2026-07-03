@@ -35,3 +35,12 @@ jobs:
       - name: AI翻訳（新規レコードのみ）
         if: success()
         run: python py/ai_marathon_final_v9.py
+
+      - name: 価格・在庫スナップショット記録
+        if: always()
+        continue-on-error: true
+        run: |
+          curl -s -X POST "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/take_parts_snapshot" \
+            -H "apikey: ${{ secrets.SUPABASE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}" \
+            -H "Content-Type: application/json"
