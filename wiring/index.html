@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="robots" content="noindex, nofollow">
+<title>FIAT 500 実車透視 配線ガイド（開発中）</title>
+<style>
+  :root { --bg0:#0e141c; --bg1:#1a2432; --fg:#e8eef5; --accent:#5aa3e8; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; overflow:hidden; background:var(--bg0); color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif; }
+  #app { position:fixed; inset:0; }
+  canvas { display:block; touch-action:none; }
+  #hud { position:fixed; top:0; left:0; right:0; padding:10px 14px; pointer-events:none;
+    display:flex; align-items:center; gap:10px; z-index:5;
+    background:linear-gradient(180deg, rgba(10,15,22,.75), transparent); }
+  #hud h1 { font-size:15px; font-weight:600; letter-spacing:.04em; }
+  #hud .sub { font-size:11px; opacity:.65; }
+  #loading { position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:12px; z-index:10; background:var(--bg0); transition:opacity .6s; }
+  #loading.done { opacity:0; pointer-events:none; }
+  .spin { width:34px; height:34px; border-radius:50%; border:3px solid rgba(255,255,255,.15);
+    border-top-color:var(--accent); animation:sp 1s linear infinite; }
+  @keyframes sp { to { transform:rotate(360deg); } }
+  #hint { position:fixed; bottom:14px; left:0; right:0; text-align:center; font-size:12px;
+    opacity:.55; pointer-events:none; z-index:5; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="hud">
+  <div>
+    <h1>FIAT 500 実車透視 配線ガイド <span class="sub">Phase 1 プレビュー</span></h1>
+    <div class="sub">ドラッグで回転 / ピンチ・ホイールでズーム</div>
+  </div>
+</div>
+<div id="hint">開発中プレビュー：車体シェルの形状確認用</div>
+<div id="loading"><div class="spin"></div><div style="font-size:12px;opacity:.7">車体モデルを読み込み中…</div></div>
+
+<script type="importmap">
+{ "imports": { "three": "./lib/three.module.min.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from './lib/OrbitControls.js';
+
+const app = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.setClearColor(0x0e141c);
+app.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x0e141c, 6000, 14000);
+
+const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 10, 30000);
+// 車両座標(mm): x=前軸0・後方+, y=左+, z=上。Three: カメラ用にそのままZ-upで扱うため回転
+camera.position.set(-2600, -3400, 1900);
+camera.up.set(0, 0, 1);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.target.set(920, 0, 550);       // 車体中心あたり
+controls.minDistance = 1200;
+controls.maxDistance = 9000;
+controls.maxPolarAngle = Math.PI * 0.55; // 地面下に潜りすぎない
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.8;
+controls.addEventListener('start', () => { controls.autoRotate = false; });
+
+// ---- ライト ----
+scene.add(new THREE.AmbientLight(0x8899bb, 0.55));
+const key = new THREE.DirectionalLight(0xffffff, 0.9);
+key.position.set(-2000, -3000, 4000);
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x6fa8ff, 0.5);
+rim.position.set(3000, 2500, 1500);
+scene.add(rim);
+
+// ---- 地面（柔らかい影風グラデーション） ----
+{
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(128,128,10, 128,128,128);
+  grad.addColorStop(0, 'rgba(0,0,0,0.55)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = grad; g.fillRect(0,0,256,256);
+  const tex = new THREE.CanvasTexture(c);
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(5200, 3400),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false })
+  );
+  m.position.set(920, 0, 1);
+  scene.add(m);
+  const grid = new THREE.GridHelper(12000, 24, 0x24344a, 0x18222f);
+  grid.rotation.x = Math.PI/2;
+  grid.position.set(920, 0, 0);
+  scene.add(grid);
+}
+
+// ---- フレネル・ゴーストシェーダー ----
+const ghostMat = new THREE.ShaderMaterial({
+  transparent: true,
+  depthWrite: false,
+  side: THREE.DoubleSide,
+  uniforms: {
+    tint:   { value: new THREE.Color(0x9cc4e8) },
+    edgeC:  { value: new THREE.Color(0xd9ecff) },
+  },
+  vertexShader: `
+    varying vec3 vN; varying vec3 vV;
+    void main(){
+      vec4 wp = modelMatrix * vec4(position, 1.0);
+      vN = normalize(mat3(modelMatrix) * normal);
+      vV = normalize(cameraPosition - wp.xyz);
+      gl_Position = projectionMatrix * viewMatrix * wp;
+    }`,
+  fragmentShader: `
+    uniform vec3 tint; uniform vec3 edgeC;
+    varying vec3 vN; varying vec3 vV;
+    void main(){
+      float f = 1.0 - abs(dot(normalize(vN), normalize(vV)));
+      float a = 0.045 + 0.75 * pow(f, 2.6);
+      vec3 col = mix(tint, edgeC, pow(f, 3.0));
+      gl_FragColor = vec4(col, a);
+    }`,
+});
+
+function meshFromQuantized(q, material) {
+  const n = q.qpos.length / 3;
+  const pos = new Float32Array(q.qpos.length);
+  const mn = q.min, mx = q.max;
+  for (let i = 0; i < n; i++) {
+    for (let k = 0; k < 3; k++) {
+      pos[i*3+k] = mn[k] + (q.qpos[i*3+k] / 65535) * (mx[k] - mn[k]);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setIndex(q.idx);
+  geo.computeVertexNormals();
+  return new THREE.Mesh(geo, material);
+}
+
+const tireMat = new THREE.MeshStandardMaterial({
+  color: 0x232c38, roughness: 0.9, metalness: 0.1,
+  transparent: true, opacity: 0.8,
+});
+const bumperMat = new THREE.MeshStandardMaterial({
+  color: 0xbfd2e4, roughness: 0.25, metalness: 0.7,
+  transparent: true, opacity: 0.55,
+});
+const lineMat = new THREE.LineBasicMaterial({
+  color: 0xcfe6ff, transparent: true, opacity: 0.75,
+  blending: THREE.AdditiveBlending, depthWrite: false,
+});
+
+fetch('./assets/body_f.json').then(r => r.json()).then(data => {
+  const body = meshFromQuantized(data.body, ghostMat);
+  body.renderOrder = 2;
+  scene.add(body);
+  for (const w of data.wheels) {
+    const m = meshFromQuantized(w, tireMat);
+    m.renderOrder = 1;
+    scene.add(m);
+  }
+  for (const b of (data.bumpers || [])) {
+    const m = meshFromQuantized(b, bumperMat);
+    m.renderOrder = 1;
+    scene.add(m);
+  }
+  const rimMat = new THREE.MeshStandardMaterial({
+    color: 0xd8e2ec, roughness: 0.3, metalness: 0.6,
+    transparent: true, opacity: 0.85, side: THREE.DoubleSide,
+  });
+  for (const r of (data.rims || [])) {
+    const m = meshFromQuantized(r, rimMat);
+    m.renderOrder = 1;
+    scene.add(m);
+  }
+  // 特徴線（窓・ドア・ライト・アーチ等）
+  for (const pl of (data.lines || [])) {
+    const pts = pl.map(p => new THREE.Vector3(p[0], p[1], p[2]));
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const line = new THREE.Line(geo, lineMat);
+    line.renderOrder = 3;
+    scene.add(line);
+  }
+  addLandmarks();
+  document.getElementById('loading').classList.add('done');
+});
+
+// ---- 内部ランドマーク（透視図の文脈・位置は資料ベースの概略、配線Phase2で照合） ----
+function addLandmarks() {
+  const gray = new THREE.MeshStandardMaterial({
+    color: 0x7d92a8, roughness: 0.75, metalness: 0.15,
+    transparent: true, opacity: 0.28, depthWrite: false,
+  });
+  const amber = new THREE.MeshStandardMaterial({
+    color: 0xd8b46a, roughness: 0.7, metalness: 0.2,
+    transparent: true, opacity: 0.38, depthWrite: false,
+  });
+  const items = [
+    // [名前, x0,x1, y0,y1, z0,z1, 素材]
+    ['engine',    1950, 2330, -260, 260, 240, 620, amber],   // エンジン（後部）
+    ['fuel_tank', -350,  -90, -240, 240, 320, 520, gray],    // 燃料タンク（前トランク）
+    ['battery',   -320, -150,  120, 330, 430, 580, amber],   // バッテリー（前トランク左）
+    ['dash',       380,  470, -560, 560, 730, 860, gray],    // ダッシュボード
+    ['seat_l',     640, 1060,   60, 430, 380, 640, gray],    // シート左
+    ['seat_r',     640, 1060, -430, -60, 380, 640, gray],    // シート右
+  ];
+  for (const [name, x0, x1, y0, y1, z0, z1, mat] of items) {
+    const g = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0);
+    const m = new THREE.Mesh(g, mat);
+    m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+    m.renderOrder = 1;
+    m.name = 'lm_' + name;
+    scene.add(m);
+  }
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+renderer.setAnimationLoop(() => {
+  controls.update();
+  renderer.render(scene, camera);
+});
+
+// 開発用フック（Playwrightからカメラ操作）
+window.__viewer = { camera, controls, scene, THREE };
+window.__setCam = (px, py, pz, ortho) => {
+  controls.autoRotate = false;
+  camera.position.set(px, py, pz);
+  controls.update();
+};
+</script>
+</body>
+</html>
