@@ -153,45 +153,6 @@ def compute_transform(prims, real_length_mm, front_overhang_mm):
                                    front_z=front_z, front_axle_z=front_axle_z)
 
 
-def reclassify_wheel_leakage(prims, transform, wheels, radius_factor=1.15):
-    """'body'に紛れ込んだタイヤ形状の三角形を'tire'へ移し替える。
-    タイヤの材質が複数プリミティブ/マテリアルに分かれており、色ベースの分類ヒューリスティック
-    (classify_material)が一部を拾いきれず'body'側に残ることがある(例: F型で発見・食い込んで
-    見える余分なタイヤ)。プリミティブ全体でなく三角形単位で、車輪中心からの距離で幾何学的に補足する。"""
-    wheel_centers = [np.array(w['center']) for w in wheels]
-    wheel_radii = [w['radius'] for w in wheels]
-    out = []
-    moved_tris = 0
-    for p in prims:
-        if p['category'] != 'body':
-            out.append(p)
-            continue
-        pos_raw = p['positions']
-        idx = p['indices'].reshape(-1, 3)
-        pos_v = transform(pos_raw)  # 判定用の変換座標(出力には使わない)
-        centroids = pos_v[idx].mean(axis=1)
-        near_mask = np.zeros(centroids.shape[0], dtype=bool)
-        for c, r in zip(wheel_centers, wheel_radii):
-            near_mask |= np.linalg.norm(centroids - c, axis=1) < r * radius_factor
-        if not near_mask.any():
-            out.append(p)
-            continue
-        moved_tris += int(near_mask.sum())
-        for cat, tri_idx in (('body', idx[~near_mask]), ('tire', idx[near_mask])):
-            if tri_idx.size == 0:
-                continue
-            flat = tri_idx.reshape(-1)
-            unique_idx, remap = np.unique(flat, return_inverse=True)
-            out.append({
-                'category': cat,
-                'positions': pos_raw[unique_idx],
-                'indices': remap.astype(np.uint32),
-            })
-    if moved_tris:
-        print(f'body->tire 再分類: {moved_tris} 三角形をタイヤ近傍のため移動')
-    return out
-
-
 def merge_by_category(prims, transform):
     grouped = {}
     for p in prims:
@@ -339,25 +300,12 @@ def main():
         cats[p['category']] = cats.get(p['category'], 0) + 1
     print('category primitive counts:', cats)
 
-    # トーラス(タイヤ)の位置・半径は、bodyからの再分類前(=純粋なタイヤ材質のみ)の点群を正とする。
-    # 再分類後の点群で再計算すると、body側から移動してきた分(フェンダー際のごく一部を含みうる)
-    # に引っ張られて半径が実際より大きく見積もられるため。
-    prelim_wheels = None
-    tire_prims = [p for p in prims if p['category'] == 'tire']
-    if tire_prims:
-        prelim_tire_pts = np.vstack([transform(p['positions']) for p in tire_prims])
-        prelim_wheels = cluster_wheels(prelim_tire_pts)
-        if len(prelim_wheels) == 4:
-            prims = reclassify_wheel_leakage(prims, transform, prelim_wheels, radius_factor=1.06)
-        else:
-            prelim_wheels = None
-
     merged = merge_by_category(prims, transform)
     for cat, m in merged.items():
         print(f"  {cat}: {m['positions'].shape[0]} verts, {m['indices'].shape[0]//3} tris")
 
     if 'tire' in merged:
-        wheels = prelim_wheels if prelim_wheels is not None else cluster_wheels(merged['tire']['positions'])
+        wheels = cluster_wheels(merged['tire']['positions'])
         chrome_pos = merged['chrome']['positions'] if 'chrome' in merged else None
         wheels = estimate_chrome_rim_radius(chrome_pos, wheels)
         print('wheels (center=[X,Y,hub_z], radius, chrome_radius):')

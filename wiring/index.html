@@ -222,19 +222,31 @@ const ghostMat = new THREE.ShaderMaterial({
     edgeC:   { value: new THREE.Color(0xd9ecff) },
     solidC:  { value: new THREE.Color(0xcfd6dc) },
     reveal:  { value: 0.0 },
+    wheelCenters: { value: [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()] },
+    wheelRadii:   { value: [0, 0, 0, 0] },
+    wheelCount:   { value: 0 },
   },
   vertexShader: `
-    varying vec3 vN; varying vec3 vV;
+    varying vec3 vN; varying vec3 vV; varying vec3 vWP;
     void main(){
       vec4 wp = modelMatrix * vec4(position, 1.0);
       vN = normalize(mat3(modelMatrix) * normal);
       vV = normalize(cameraPosition - wp.xyz);
+      vWP = wp.xyz;
       gl_Position = projectionMatrix * viewMatrix * wp;
     }`,
   fragmentShader: `
     uniform vec3 tint; uniform vec3 edgeC; uniform vec3 solidC; uniform float reveal;
-    varying vec3 vN; varying vec3 vV;
+    uniform vec3 wheelCenters[4]; uniform float wheelRadii[4]; uniform int wheelCount;
+    varying vec3 vN; varying vec3 vV; varying vec3 vWP;
     void main(){
+      // 元モデルのタイヤ材質分類漏れで body 側に残ったタイヤ形状のジオメトリを、
+      // メッシュを切らずにピクセル単位で隠す(車輪中心付近は描画しない)。
+      // トポロジーに触れないためEdgesGeometryの境界線アーティファクトが発生しない。
+      for (int i = 0; i < 4; i++) {
+        if (i >= wheelCount) break;
+        if (distance(vWP, wheelCenters[i]) < wheelRadii[i] * 0.94) discard;
+      }
       float f = 1.0 - abs(dot(normalize(vN), normalize(vV)));
       float ghostA = 0.045 + 0.75 * pow(f, 2.6);
       float shade = 0.55 + 0.45 * max(dot(normalize(vN), vec3(0.3,0.3,0.9)), 0.0);
@@ -396,6 +408,19 @@ function addLandmarks() {
   scene.add(landmarksGroup);
 }
 
+// 'body'カテゴリに残る車輪近傍ジオメトリ(タイヤ材質の分類漏れ)をシェーダーでdiscardするための
+// uniform更新。モデル切替のたびにそのモデルのwheels情報で上書きする。
+function updateGhostWheelUniforms(info) {
+  const wheels = (info.wheels || []).slice(0, 4);
+  const centers = ghostMat.uniforms.wheelCenters.value;
+  const radii = ghostMat.uniforms.wheelRadii.value;
+  wheels.forEach((w, i) => {
+    centers[i].set(w.center[0], w.center[1], w.center[2]);
+    radii[i] = w.radius;
+  });
+  ghostMat.uniforms.wheelCount.value = wheels.length;
+}
+
 const modelCache = {}; // key -> THREE.Group(読込済みキャッシュ)
 let activeModelKey = null;
 async function showModel(key) {
@@ -413,6 +438,7 @@ async function showModel(key) {
     modelCache[key].visible = true;
     activeModelKey = key;
     updateAttrib(MODEL_INFO[key]);
+    updateGhostWheelUniforms(MODEL_INFO[key]);
     document.getElementById('loading').classList.add('done');
   } catch (err) {
     document.getElementById('loading').innerHTML =
