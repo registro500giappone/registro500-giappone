@@ -104,7 +104,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     loadSearchConditions();
+    applyDeepLinkParams();
 });
+
+// --- ディープリンク対応: ?q=キーワード&cat=カテゴリ で外部ページから検索を直接実行する ---
+// (例: 3Dパーツビューアのパーツタップ→購入先導線)
+function applyDeepLinkParams() {
+    const p = new URLSearchParams(location.search);
+    const q = p.get('q');
+    const cat = p.get('cat');
+    if (!q && !cat) return;
+    if (cat && CATEGORY_MAP[cat]) {
+        selectSubcategory(cat, q || '');
+    } else if (q) {
+        const keywordInput = document.getElementById('keyword-input');
+        if (keywordInput) keywordInput.value = q;
+        executeSearch();
+    }
+}
 
 // --- ショップチェックボックスを本サイトリンク付きで生成 ---
 // ショップの表示名を返す（DBキーは shop_name のまま、UI表示のみ display_name を優先）

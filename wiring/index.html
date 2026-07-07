@@ -25,6 +25,43 @@
   @keyframes sp { to { transform:rotate(360deg); } }
   #hint { position:fixed; bottom:14px; left:0; right:0; text-align:center; font-size:12px;
     opacity:.55; pointer-events:none; z-index:5; }
+  #attrib { position:fixed; bottom:34px; left:0; right:0; text-align:center; font-size:10px;
+    opacity:.45; pointer-events:auto; z-index:5; }
+  #attrib a { color:inherit; }
+  #panel { position:fixed; top:56px; right:12px; z-index:6; display:flex; flex-direction:column; gap:6px; }
+  #panel button { font-size:12px; padding:7px 12px; border-radius:8px; border:1px solid rgba(255,255,255,.25);
+    background:rgba(20,28,38,.75); color:var(--fg); backdrop-filter:blur(4px); cursor:pointer; text-align:left; }
+  #panel button.active { background:var(--accent); border-color:var(--accent); color:#0a1420; font-weight:600; }
+  #panel .grp { display:flex; gap:6px; }
+  #panel .grp button { flex:1; }
+
+  #partListPanel { position:fixed; top:0; left:0; bottom:0; width:230px; z-index:7;
+    background:rgba(14,20,28,.92); backdrop-filter:blur(6px); border-right:1px solid rgba(255,255,255,.12);
+    transform:translateX(-100%); transition:transform .25s ease; display:flex; flex-direction:column; }
+  #partListPanel.open { transform:translateX(0); }
+  #partListHeader { display:flex; align-items:center; justify-content:space-between;
+    padding:14px 14px 10px; font-size:13px; font-weight:600; border-bottom:1px solid rgba(255,255,255,.1); }
+  #partListHeader button { background:none; border:none; color:var(--fg); font-size:18px; cursor:pointer; opacity:.7; }
+  #partListBody { overflow-y:auto; padding:8px 0; }
+  .plp-group { padding:8px 14px 4px; font-size:11px; opacity:.55; letter-spacing:.05em; }
+  .plp-item { padding:9px 16px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:8px; }
+  .plp-item:hover { background:rgba(255,255,255,.06); }
+  .plp-item.active { background:rgba(90,163,232,.22); }
+  .plp-dot { width:9px; height:9px; border-radius:50%; flex:none; }
+  #btnPartList { position:fixed; top:56px; left:12px; z-index:6; font-size:12px; padding:7px 12px;
+    border-radius:8px; border:1px solid rgba(255,255,255,.25); background:rgba(20,28,38,.75);
+    color:var(--fg); backdrop-filter:blur(4px); cursor:pointer; }
+  #infoCard { position:fixed; left:12px; right:12px; bottom:14px; z-index:8; max-width:420px; margin:0 auto;
+    background:rgba(16,22,30,.92); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,.14);
+    border-radius:12px; padding:14px 16px; transform:translateY(140%); transition:transform .25s ease; }
+  #infoCard.open { transform:translateY(0); }
+  #infoCard .ic-title { font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px; }
+  #infoCard .ic-badge { font-size:10px; padding:2px 7px; border-radius:6px; background:#4a3a12; color:#e8c877; }
+  #infoCard .ic-meta { font-size:12px; opacity:.7; margin-top:4px; line-height:1.5; }
+  #infoCard .ic-link { display:inline-block; margin-top:10px; font-size:12px; padding:8px 14px;
+    border-radius:8px; background:var(--accent); color:#0a1420; font-weight:600; text-decoration:none; }
+  #infoCard .ic-close { position:absolute; top:8px; right:10px; background:none; border:none;
+    color:var(--fg); opacity:.6; font-size:16px; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -35,8 +72,53 @@
     <div class="sub">ドラッグで回転 / ピンチ・ホイールでズーム</div>
   </div>
 </div>
-<div id="hint">開発中プレビュー：車体シェルの形状確認用</div>
+<div id="panel">
+  <div class="grp">
+    <button id="btnModelF">F(軽量)</button>
+    <button id="btnModelL">L(高精細)</button>
+  </div>
+  <button id="btnGhost">シースルーにする</button>
+  <button id="btnWiring">配線を表示</button>
+</div>
+<button id="btnPartList">☰ 部品リスト</button>
+<div id="partListPanel">
+  <div id="partListHeader"><span>部品リスト</span><button id="btnClosePartList">×</button></div>
+  <div id="partListBody"></div>
+</div>
+<div id="infoCard"></div>
+<div id="hint">色付き外観を確認中：右上のボタンでシースルー切替</div>
+<div id="attrib"></div>
 <div id="loading"><div class="spin"></div><div style="font-size:12px;opacity:.7">車体モデルを読み込み中…</div></div>
+<div id="dbgOverlay" style="position:fixed;left:0;right:0;bottom:0;max-height:42vh;overflow:auto;
+  background:rgba(0,0,0,.88);color:#7fff7f;font:10px/1.4 monospace;padding:8px 10px;z-index:99;
+  display:none;white-space:pre-wrap;word-break:break-all;"></div>
+<script>
+// 実機診断用の簡易エラー表示(リモートデバッグ環境が無い端末でも画面上でエラー内容を確認できるようにする)。
+// モジュールスクリプトより先に読み込み専用の読み込み失敗も拾えるよう、ここで最速に登録する。
+(function () {
+  var box = document.getElementById('dbgOverlay');
+  var lines = [];
+  function log(msg) {
+    lines.push(msg);
+    box.style.display = 'block';
+    box.textContent = lines.join('\n---\n');
+  }
+  window.addEventListener('error', function (e) {
+    log('[error] ' + (e.message || '') + ' @ ' + (e.filename || '') + ':' + (e.lineno || '') + ':' + (e.colno || '')
+      + (e.error && e.error.stack ? '\n' + e.error.stack : ''));
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e.reason;
+    log('[unhandledrejection] ' + (r && (r.stack || r.message) ? (r.stack || r.message) : String(r)));
+  });
+  setTimeout(function () {
+    var loadingEl = document.getElementById('loading');
+    if (loadingEl && !loadingEl.classList.contains('done')) {
+      log('[timeout] 8秒経過してもモデル読み込みが完了していません(エラーは検出されていません)');
+    }
+  }, 8000);
+})();
+</script>
 
 <script type="importmap">
 { "imports": { "three": "./lib/three.module.min.js" } }
@@ -44,6 +126,30 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from './lib/OrbitControls.js';
+import { GLTFLoader } from './lib/GLTFLoader.js';
+
+const MODEL_INFO = {
+  f: {
+    url: './assets/body_f_v2.glb',
+    label: 'Fiat Nuova 500F', author: 'freeReef',
+    src: 'https://sketchfab.com/3d-models/fiat-nuova-500f-0d1548037b7641f2b8fb32da8556018e',
+    wheels: [{"center": [216.0475311279297, -466.41925048828125, 415.15447998046875], "radius": 280.6846923828125}, {"center": [207.87545776367188, 426.9884948730469, 415.15447998046875], "radius": 280.6846923828125}, {"center": [1108.099365234375, -345.4764709472656, 451.9009094238281], "radius": 244.57327270507812}, {"center": [1108.952880859375, 286.3326416015625, 447.3572082519531], "radius": 249.11697387695312}],
+  },
+  l: {
+    url: './assets/body_l_v2.glb',
+    label: 'Fiat500_alt (L型ベース)', author: 'PapaX007',
+    src: 'https://sketchfab.com/3d-models/fiat500-alt-1d34eceb6aea44049ec1d6a1dd1c3c83',
+    wheels: [{"center": [229.84181213378906, -469.34820556640625, 256.1357116699219], "radius": 256.1357116699219}, {"center": [240.94422912597656, 464.3118591308594, 256.6424865722656], "radius": 256.1357116699219}, {"center": [1873.13232421875, -434.3720397949219, 256.1357116699219], "radius": 256.1357116699219}, {"center": [1873.290771484375, 435.1085510253906, 256.6424865722656], "radius": 256.13568115234375}],
+    edgeThresholdBonus: 20, // 高精細で面数が多く特徴線が過密になるため閾値を上げてノイズを減らす
+  },
+};
+// Artifact配布環境ではURLクエリがページに正しく渡らないケースがあるため、
+// モデル切替・シースルー切替は画面上のボタン操作のみに一本化する（?model=/?solid= は使わない）。
+function updateAttrib(info) {
+  document.getElementById('attrib').innerHTML =
+    `モデル: <a href="${info.src}" target="_blank" rel="noopener">${info.label}</a> by ${info.author} `
+    + `(<a href="http://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>・改変あり)`;
+}
 
 const app = document.getElementById('app');
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -102,13 +208,20 @@ scene.add(rim);
 }
 
 // ---- フレネル・ゴーストシェーダー ----
+// reveal=0: 塗装済みの通常イラスト風(不透明), reveal=1: 透視ゴースト。ボタン操作でクロスフェードする(setGhost参照)。
+// 注意: transparent:trueのまま不透明(alpha=1)で使うと、透明オブジェクト用の描画順ソートの影響で
+// 内部ランドマークなどに隠れてほぼ見えなくなる問題を確認したため、solid(不透明)表示中は
+// transparent:falseで運用し、ゴースト遷移開始時にtrueへ切り替える。
 const ghostMat = new THREE.ShaderMaterial({
-  transparent: true,
-  depthWrite: false,
+  transparent: false,
+  depthWrite: true,
   side: THREE.DoubleSide,
+  polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1, // 特徴線とのZファイティング(点滅)防止
   uniforms: {
-    tint:   { value: new THREE.Color(0x9cc4e8) },
-    edgeC:  { value: new THREE.Color(0xd9ecff) },
+    tint:    { value: new THREE.Color(0x9cc4e8) },
+    edgeC:   { value: new THREE.Color(0xd9ecff) },
+    solidC:  { value: new THREE.Color(0xcfd6dc) },
+    reveal:  { value: 0.0 },
   },
   vertexShader: `
     varying vec3 vN; varying vec3 vV;
@@ -119,81 +232,140 @@ const ghostMat = new THREE.ShaderMaterial({
       gl_Position = projectionMatrix * viewMatrix * wp;
     }`,
   fragmentShader: `
-    uniform vec3 tint; uniform vec3 edgeC;
+    uniform vec3 tint; uniform vec3 edgeC; uniform vec3 solidC; uniform float reveal;
     varying vec3 vN; varying vec3 vV;
     void main(){
       float f = 1.0 - abs(dot(normalize(vN), normalize(vV)));
-      float a = 0.045 + 0.75 * pow(f, 2.6);
-      vec3 col = mix(tint, edgeC, pow(f, 3.0));
+      float ghostA = 0.045 + 0.75 * pow(f, 2.6);
+      float shade = 0.55 + 0.45 * max(dot(normalize(vN), vec3(0.3,0.3,0.9)), 0.0);
+      vec3 solidCol = solidC * shade;
+      vec3 ghostCol = mix(tint, edgeC, pow(f, 3.0));
+      vec3 col = mix(solidCol, ghostCol, reveal);
+      float a = mix(1.0, ghostA, reveal);
       gl_FragColor = vec4(col, a);
     }`,
 });
 
-function meshFromQuantized(q, material) {
-  const n = q.qpos.length / 3;
-  const pos = new Float32Array(q.qpos.length);
-  const mn = q.min, mx = q.max;
-  for (let i = 0; i < n; i++) {
-    for (let k = 0; k < 3; k++) {
-      pos[i*3+k] = mn[k] + (q.qpos[i*3+k] / 65535) * (mx[k] - mn[k]);
-    }
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  geo.setIndex(q.idx);
-  geo.computeVertexNormals();
-  return new THREE.Mesh(geo, material);
-}
-
+// 各マテリアルは「塗装済みイラスト(solid)」で開始し、操作開始で「透視ゴースト(ghost)」へクロスフェードする。
+const MAT_STATES = {
+  tire:     { solidColor: 0x1c1f24, solidOpacity: 1,    ghostColor: 0x232c38, ghostOpacity: 0.8  },
+  chrome:   { solidColor: 0xe2e8ee, solidOpacity: 1,    ghostColor: 0xbfd2e4, ghostOpacity: 0.55 },
+  glass:    { solidColor: 0x9fd3e6, solidOpacity: 0.92, ghostColor: 0xf2f9ff, ghostOpacity: 0.5  },
+  rim:      { solidColor: 0xe6ebf0, solidOpacity: 1,    ghostColor: 0xd8e2ec, ghostOpacity: 0.85 },
+  interior: { solidColor: 0x555f6b, solidOpacity: 1,    ghostColor: 0x6d7d90, ghostOpacity: 0.18 },
+};
+// body同様、solid表示中はtransparent:falseで運用し、ゴースト遷移時にtrueへ切り替える。
 const tireMat = new THREE.MeshStandardMaterial({
-  color: 0x232c38, roughness: 0.9, metalness: 0.1,
-  transparent: true, opacity: 0.8,
+  color: MAT_STATES.tire.solidColor, roughness: 0.9, metalness: 0.1,
+  transparent: false, opacity: MAT_STATES.tire.solidOpacity,
+  polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
 });
-const bumperMat = new THREE.MeshStandardMaterial({
-  color: 0xbfd2e4, roughness: 0.25, metalness: 0.7,
-  transparent: true, opacity: 0.55,
+const chromeMat = new THREE.MeshStandardMaterial({
+  color: MAT_STATES.chrome.solidColor, roughness: 0.25, metalness: 0.7,
+  transparent: false, opacity: MAT_STATES.chrome.solidOpacity, side: THREE.DoubleSide,
+});
+const glassMat = new THREE.MeshStandardMaterial({
+  color: MAT_STATES.glass.solidColor, roughness: 0.05, metalness: 0.1,
+  emissive: 0xffffff, emissiveIntensity: 0.15,
+  transparent: false, opacity: MAT_STATES.glass.solidOpacity, side: THREE.DoubleSide, depthWrite: true,
+  polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
+});
+const rimMat = new THREE.MeshStandardMaterial({
+  color: MAT_STATES.rim.solidColor, roughness: 0.3, metalness: 0.6,
+  transparent: false, opacity: MAT_STATES.rim.solidOpacity, side: THREE.DoubleSide,
+  polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
+});
+const interiorMat = new THREE.MeshStandardMaterial({
+  color: MAT_STATES.interior.solidColor, roughness: 0.8, metalness: 0.1,
+  transparent: false, opacity: MAT_STATES.interior.solidOpacity, depthWrite: true,
 });
 const lineMat = new THREE.LineBasicMaterial({
-  color: 0xcfe6ff, transparent: true, opacity: 0.75,
+  color: 0xcfe6ff, transparent: true, opacity: 0.55,
   blending: THREE.AdditiveBlending, depthWrite: false,
 });
 
-fetch('./assets/body_f.json').then(r => r.json()).then(data => {
-  const body = meshFromQuantized(data.body, ghostMat);
-  body.renderOrder = 2;
-  scene.add(body);
-  for (const w of data.wheels) {
-    const m = meshFromQuantized(w, tireMat);
-    m.renderOrder = 1;
-    scene.add(m);
+const CATEGORY_MATERIAL = {
+  body: ghostMat, glass: glassMat, tire: tireMat,
+  rim: rimMat, chrome: chromeMat, interior: interiorMat,
+};
+const CATEGORY_ORDER = { body: 2, glass: 2, tire: 1, rim: 1, chrome: 1, interior: 1 };
+
+// 元モデルのタイヤは厚み0の平板メッシュしか無いため、prep_model.pyが検出した
+// ホイール中心・半径からトーラス形状の立体タイヤを生成して差し替える。
+function buildWheels(wheels) {
+  const group = new THREE.Group();
+  const tubeR = 65; // タイヤ幅の半分(mm)概算
+  const patchLen = 90; // 接地パッチの前後長(mm)。前後から見た時に平らな線として見える
+  for (const w of wheels) {
+    const outerR = Math.max(20, w.radius - tubeR);
+    const geo = new THREE.TorusGeometry(outerR, tubeR, 14, 28);
+    const mesh = new THREE.Mesh(geo, tireMat);
+    mesh.rotation.x = Math.PI / 2;
+    mesh.position.set(w.center[0], w.center[1], w.center[2]);
+    mesh.renderOrder = 1;
+    mesh.name = 'tire_proc';
+    group.add(mesh);
+
+    // 接地パッチ: タイヤ底面(ハブ中心からradius分下=地面)に薄い平板を敷き、
+    // 前後/正面から見た時の「地面との平らな接地線」を作る
+    const patchGeo = new THREE.BoxGeometry(patchLen, tubeR * 2 * 0.92, 16);
+    const patchMesh = new THREE.Mesh(patchGeo, tireMat);
+    patchMesh.position.set(w.center[0], w.center[1], w.center[2] - w.radius + 4);
+    patchMesh.renderOrder = 1;
+    patchMesh.name = 'tire_proc';
+    group.add(patchMesh);
   }
-  for (const b of (data.bumpers || [])) {
-    const m = meshFromQuantized(b, bumperMat);
-    m.renderOrder = 1;
-    scene.add(m);
-  }
-  const rimMat = new THREE.MeshStandardMaterial({
-    color: 0xd8e2ec, roughness: 0.3, metalness: 0.6,
-    transparent: true, opacity: 0.85, side: THREE.DoubleSide,
+  return group;
+}
+
+// gltfシーンにマテリアル割当・特徴線・立体タイヤを付与し、表示用グループにまとめる(まだsceneには追加しない)
+function buildModelGroup(gltf, info) {
+  const group = new THREE.Group();
+  gltf.scene.traverse((obj) => {
+    if (!obj.isMesh) return;
+    const cat = obj.name;
+    obj.material = CATEGORY_MATERIAL[cat] || ghostMat;
+    obj.renderOrder = CATEGORY_ORDER[cat] || 1;
+    if (cat === 'tire' && info.wheels && info.wheels.length === 4) {
+      obj.visible = false; // 立体タイヤに差し替えるため元の平板メッシュは隠す
+      return;
+    }
+    if (cat === 'body' || cat === 'glass' || cat === 'tire' || cat === 'rim') {
+      const base = (cat === 'tire' || cat === 'rim') ? 15 : 32;
+      const threshold = base + (info.edgeThresholdBonus || 0);
+      const edges = new THREE.EdgesGeometry(obj.geometry, threshold);
+      const line = new THREE.LineSegments(edges, lineMat);
+      line.renderOrder = 3;
+      obj.add(line);
+    }
   });
-  for (const r of (data.rims || [])) {
-    const m = meshFromQuantized(r, rimMat);
-    m.renderOrder = 1;
-    scene.add(m);
+  group.add(gltf.scene);
+  if (info.wheels && info.wheels.length === 4) {
+    group.add(buildWheels(info.wheels));
   }
-  // 特徴線（窓・ドア・ライト・アーチ等）
-  for (const pl of (data.lines || [])) {
-    const pts = pl.map(p => new THREE.Vector3(p[0], p[1], p[2]));
-    const geo = new THREE.BufferGeometry().setFromPoints(pts);
-    const line = new THREE.Line(geo, lineMat);
-    line.renderOrder = 3;
-    scene.add(line);
-  }
-  addLandmarks();
-  document.getElementById('loading').classList.add('done');
-});
+  return group;
+}
+
+function parseModel(info) {
+  return new Promise((resolve, reject) => {
+    const onError = (err) => {
+      console.error('GLBモデル読込エラー:', err);
+      reject(err);
+    };
+    if (info.dataB64) {
+      const bin = atob(info.dataB64);
+      const buf = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      new GLTFLoader().parse(buf.buffer, '', (gltf) => resolve(buildModelGroup(gltf, info)), onError);
+    } else {
+      new GLTFLoader().load(info.url, (gltf) => resolve(buildModelGroup(gltf, info)), undefined, onError);
+    }
+  });
+}
 
 // ---- 内部ランドマーク（透視図の文脈・位置は資料ベースの概略、配線Phase2で照合） ----
+// ソリッド(外観イラスト)表示中は内部が見えても意味が無いため、ゴースト表示時のみ見せる。
+let landmarksGroup = null;
 function addLandmarks() {
   const gray = new THREE.MeshStandardMaterial({
     color: 0x7d92a8, roughness: 0.75, metalness: 0.15,
@@ -206,20 +378,412 @@ function addLandmarks() {
   const items = [
     // [名前, x0,x1, y0,y1, z0,z1, 素材]
     ['engine',    1950, 2330, -260, 260, 240, 620, amber],   // エンジン（後部）
-    ['fuel_tank', -350,  -90, -240, 240, 320, 520, gray],    // 燃料タンク（前トランク）
     ['battery',   -320, -150,  120, 330, 430, 580, amber],   // バッテリー（前トランク左）
     ['dash',       380,  470, -560, 560, 730, 860, gray],    // ダッシュボード
     ['seat_l',     640, 1060,   60, 430, 380, 640, gray],    // シート左
     ['seat_r',     640, 1060, -430, -60, 380, 640, gray],    // シート右
   ];
+  landmarksGroup = new THREE.Group();
+  landmarksGroup.visible = false;
   for (const [name, x0, x1, y0, y1, z0, z1, mat] of items) {
     const g = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0);
     const m = new THREE.Mesh(g, mat);
     m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
     m.renderOrder = 1;
     m.name = 'lm_' + name;
-    scene.add(m);
+    landmarksGroup.add(m);
   }
+  scene.add(landmarksGroup);
+}
+
+const modelCache = {}; // key -> THREE.Group(読込済みキャッシュ)
+let activeModelKey = null;
+async function showModel(key) {
+  document.getElementById('btnModelF').classList.toggle('active', key === 'f');
+  document.getElementById('btnModelL').classList.toggle('active', key === 'l');
+  if (activeModelKey === key) return;
+  try {
+    if (!modelCache[key]) {
+      modelCache[key] = await parseModel(MODEL_INFO[key]);
+      scene.add(modelCache[key]);
+    }
+    if (activeModelKey && modelCache[activeModelKey]) {
+      modelCache[activeModelKey].visible = false;
+    }
+    modelCache[key].visible = true;
+    activeModelKey = key;
+    updateAttrib(MODEL_INFO[key]);
+    document.getElementById('loading').classList.add('done');
+  } catch (err) {
+    document.getElementById('loading').innerHTML =
+      '<div style="font-size:12px;opacity:.8;color:#f0a">読み込みに失敗しました</div>';
+  }
+}
+document.getElementById('btnModelF').addEventListener('click', () => showModel('f'));
+document.getElementById('btnModelL').addEventListener('click', () => showModel('l'));
+addLandmarks();
+showModel('f'); // 初期表示
+
+// ---- ソリッド(色付きイラスト)→ゴースト(透視)のクロスフェード ----
+// ボタンでのみ切り替える双方向トグル（自動発火なし）。色付き⇔シースルーを何度でも行き来できる。
+let isGhost = false;
+let ghostAnimGen = 0; // 連打時に前のアニメーションを打ち切るための世代カウンタ
+const MAT_ENTRIES = Object.entries(MAT_STATES).map(([cat, s]) => ({
+  mat: CATEGORY_MATERIAL[cat],
+  solidColor: new THREE.Color(s.solidColor),
+  ghostColor: new THREE.Color(s.ghostColor),
+  solidOp: s.solidOpacity,
+  ghostOp: s.ghostOpacity,
+}));
+function setGhost(toGhost) {
+  if (toGhost === isGhost) return;
+  isGhost = toGhost;
+  const btn = document.getElementById('btnGhost');
+  btn.textContent = toGhost ? '色付き外観に戻す' : 'シースルーにする';
+  document.getElementById('hint').textContent = toGhost
+    ? 'シースルー表示中：もう一度ボタンで色付き外観に戻せます'
+    : '色付き外観を確認中：右上のボタンでシースルー切替';
+
+  const gen = ++ghostAnimGen;
+  const duration = 800;
+  const t0 = performance.now();
+  const fromReveal = ghostMat.uniforms.reveal.value;
+  const toReveal = toGhost ? 1 : 0;
+  // アニメ中は常にtransparent:trueにしておく(不透明←→半透明どちらの端点も表現できるようにするため)
+  ghostMat.transparent = true;
+  ghostMat.depthWrite = !toGhost && fromReveal === 0 ? true : false;
+  ghostMat.needsUpdate = true;
+  for (const en of MAT_ENTRIES) {
+    en.mat.transparent = true;
+    en.mat.needsUpdate = true;
+  }
+  if (toGhost && landmarksGroup) landmarksGroup.visible = true;
+  if (toGhost && partsGroup) partsGroup.visible = true;
+  updateWiringVisibility();
+  function tick(now) {
+    if (gen !== ghostAnimGen) return; // 別の切替が割り込んだので中断
+    const t = Math.min(1, (now - t0) / duration);
+    const e = t * t * (3 - 2 * t); // smoothstep
+    const r = fromReveal + (toReveal - fromReveal) * e;
+    ghostMat.uniforms.reveal.value = r;
+    for (const en of MAT_ENTRIES) {
+      const fromOp = toGhost ? en.solidOp : en.ghostOp;
+      const toOp = toGhost ? en.ghostOp : en.solidOp;
+      en.mat.color.lerpColors(toGhost ? en.solidColor : en.ghostColor, toGhost ? en.ghostColor : en.solidColor, e);
+      en.mat.opacity = fromOp + (toOp - fromOp) * e;
+    }
+    if (t < 1) {
+      requestAnimationFrame(tick);
+    } else {
+      ghostMat.depthWrite = toGhost ? false : true;
+      ghostMat.transparent = toGhost ? true : false;
+      ghostMat.needsUpdate = true;
+      for (const en of MAT_ENTRIES) {
+        en.mat.transparent = toGhost ? true : false;
+        en.mat.depthWrite = toGhost ? false : true;
+        en.mat.needsUpdate = true;
+      }
+      if (!toGhost && landmarksGroup) landmarksGroup.visible = false;
+      if (!toGhost && partsGroup) { partsGroup.visible = false; deselectPart(); }
+      updateWiringVisibility();
+    }
+  }
+  requestAnimationFrame(tick);
+}
+document.getElementById('btnGhost').addEventListener('click', () => setGhost(!isGhost));
+
+// ---- パーツレイヤー（配線DB f.json のノードを実車位置にタップ可能な簡易形状で表示） ----
+// シースルー(ghost)表示時のみ意味があるため landmarksGroup と同じ表示タイミングで出し入れする。
+let wiringData = null;
+let partsGroup = null;
+const partMeshById = {};
+
+function nodeGeometry(shape) {
+  if (shape.kind === 'cylinder') {
+    const [r1, r2, h] = shape.size;
+    return new THREE.CylinderGeometry(r1, r2, h, 16);
+  }
+  const [sx, sy, sz] = shape.size;
+  return new THREE.BoxGeometry(sx, sy, sz);
+}
+
+function buildParts(data) {
+  const systemColor = {};
+  (data.systems || []).forEach(s => { systemColor[s.id] = s.hi_color || '#5aa3e8'; });
+  partsGroup = new THREE.Group();
+  partsGroup.visible = false;
+  data.nodes.forEach((n) => {
+    if (!n.pos3d || !n.shape) return;
+    const sys = (n.systems && n.systems[0]) || null;
+    const color = systemColor[sys] || '#5aa3e8';
+    const mat = new THREE.MeshStandardMaterial({
+      color, emissive: new THREE.Color(color), emissiveIntensity: 0.25,
+      roughness: 0.5, metalness: 0.1, transparent: true, opacity: 0.9, depthWrite: true,
+    });
+    const mesh = new THREE.Mesh(nodeGeometry(n.shape), mat);
+    mesh.position.set(n.pos3d[0], n.pos3d[1], n.pos3d[2]);
+    if (n.shape.kind === 'cylinder') mesh.rotation.x = Math.PI / 2;
+    mesh.userData.nodeId = n.id;
+    mesh.renderOrder = 4;
+    partMeshById[n.id] = mesh;
+    partsGroup.add(mesh);
+  });
+  scene.add(partsGroup);
+}
+
+fetch('./data/f.json').then(r => r.json()).then((data) => {
+  wiringData = data;
+  buildParts(data);
+  buildPartList(data);
+  buildWiringLayer(data);
+  if (new URLSearchParams(location.search).get('edit') === '1') {
+    setGhost(true);
+    wiringLayerOn = true;
+    const btn = document.getElementById('btnWiring');
+    btn.classList.add('active');
+    btn.textContent = '配線を隠す';
+    updateWiringVisibility();
+    document.getElementById('partListPanel').classList.add('open');
+  }
+});
+
+// ---- 配線レイヤー（edges を3Dポリラインで描画。route3dがあれば経由、無ければノード間を直結） ----
+const nodeById = {};
+let wiringGroup = null;
+let edgeLines = []; // { line, from, to, baseOpacity }
+let wiringLayerOn = false;
+function buildWiringLayer(data) {
+  data.nodes.forEach((n) => { if (n.pos3d) nodeById[n.id] = n; });
+  wiringGroup = new THREE.Group();
+  wiringGroup.visible = false;
+  data.edges.forEach((e) => {
+    const a = nodeById[e.from], b = nodeById[e.to];
+    if (!a || !b) return;
+    const points = (e.route3d && e.route3d.length)
+      ? e.route3d.map(p => new THREE.Vector3(p[0], p[1], p[2]))
+      : [new THREE.Vector3(a.pos3d[0], a.pos3d[1], a.pos3d[2]), new THREE.Vector3(b.pos3d[0], b.pos3d[1], b.pos3d[2])];
+    const geo = new THREE.BufferGeometry().setFromPoints(points);
+    const dashed = (e.style || '') === 'dashed';
+    const baseOpacity = e.verified ? 0.9 : 0.5; // 未照合(verified:false)は薄く表示
+    const mat = dashed
+      ? new THREE.LineDashedMaterial({ color: e.color || '#999999', dashSize: 30, gapSize: 18, transparent: true, opacity: baseOpacity })
+      : new THREE.LineBasicMaterial({ color: e.color || '#999999', transparent: true, opacity: baseOpacity });
+    const line = new THREE.Line(geo, mat);
+    if (dashed) line.computeLineDistances();
+    line.renderOrder = 5;
+    wiringGroup.add(line);
+    edgeLines.push({ line, from: e.from, to: e.to, baseOpacity });
+  });
+  scene.add(wiringGroup);
+}
+function updateWiringVisibility() {
+  if (wiringGroup) wiringGroup.visible = wiringLayerOn && isGhost;
+}
+function highlightWiring(id) {
+  edgeLines.forEach(({ line, from, to, baseOpacity }) => {
+    if (!id) { line.material.opacity = baseOpacity; return; }
+    const on = from === id || to === id;
+    line.material.opacity = on ? 1 : baseOpacity * 0.2;
+  });
+}
+document.getElementById('btnWiring').addEventListener('click', () => {
+  wiringLayerOn = !wiringLayerOn;
+  const btn = document.getElementById('btnWiring');
+  btn.classList.toggle('active', wiringLayerOn);
+  btn.textContent = wiringLayerOn ? '配線を隠す' : '配線を表示';
+  updateWiringVisibility();
+});
+
+// ---- 部品リストパネル ----
+const TYPE_JA = { power:'電源', fuse:'ヒューズ', relay:'リレー', switch:'スイッチ', lamp:'ランプ', ground:'アース' };
+function buildPartList(data) {
+  const body = document.getElementById('partListBody');
+  const groups = (data.groups && data.groups.length) ? data.groups : [{ id: '_all', label_ja: '部品', icon: '' }];
+  const systemColor = {};
+  (data.systems || []).forEach(s => { systemColor[s.id] = s.hi_color || '#5aa3e8'; });
+  groups.forEach((g) => {
+    const nodesInGroup = data.nodes.filter(n => (n.group || '_all') === g.id && n.pos3d);
+    if (!nodesInGroup.length) return;
+    const h = document.createElement('div');
+    h.className = 'plp-group';
+    h.textContent = `${g.icon || ''} ${g.label_ja}`.trim();
+    body.appendChild(h);
+    nodesInGroup.forEach((n) => {
+      const item = document.createElement('div');
+      item.className = 'plp-item';
+      item.dataset.nodeId = n.id;
+      const sys = (n.systems && n.systems[0]) || null;
+      const color = systemColor[sys] || '#5aa3e8';
+      item.innerHTML = `<span class="plp-dot" style="background:${color}"></span><span>${n.label_ja}</span>`;
+      item.addEventListener('click', () => {
+        document.getElementById('partListPanel').classList.remove('open');
+        selectPartFromList(n.id);
+      });
+      body.appendChild(item);
+    });
+  });
+}
+async function selectPartFromList(id) {
+  if (!isGhost) { setGhost(true); await new Promise(r => setTimeout(r, 850)); }
+  selectPart(id);
+}
+document.getElementById('btnPartList').addEventListener('click', () => {
+  document.getElementById('partListPanel').classList.toggle('open');
+});
+document.getElementById('btnClosePartList').addEventListener('click', () => {
+  document.getElementById('partListPanel').classList.remove('open');
+});
+
+// ---- 情報カード ----
+function showInfoCard(n) {
+  const card = document.getElementById('infoCard');
+  const verifiedBadge = n.pos3d_verified ? '' : '<span class="ic-badge">位置は概算・要照合</span>';
+  const link = n.parts_query
+    ? `<a class="ic-link" href="../parts.html?q=${encodeURIComponent(n.parts_query.q)}&cat=${encodeURIComponent(n.parts_query.category)}" target="_blank" rel="noopener">この部品の購入先を探す</a>`
+    : '';
+  card.innerHTML = `
+    <button class="ic-close" id="btnCloseCard">×</button>
+    <div class="ic-title">${n.label_ja} ${verifiedBadge}</div>
+    <div class="ic-meta">種類: ${TYPE_JA[n.type] || n.type}</div>
+    ${link}`;
+  card.classList.add('open');
+  document.getElementById('btnCloseCard').addEventListener('click', () => {
+    card.classList.remove('open');
+    deselectPart();
+  });
+}
+function hideInfoCard() {
+  document.getElementById('infoCard').classList.remove('open');
+}
+
+// カメラフライ: 現在の視線方向を保ったまま対象点へ寄る
+let flyGen = 0;
+function flyTo(targetVec3, distance = 700) {
+  controls.autoRotate = false;
+  const gen = ++flyGen;
+  const startTarget = controls.target.clone();
+  const startPos = camera.position.clone();
+  const dir = startPos.clone().sub(startTarget);
+  if (dir.lengthSq() < 1) dir.set(0, -1, 0.4);
+  dir.normalize();
+  const endTarget = targetVec3.clone();
+  const endPos = endTarget.clone().add(dir.multiplyScalar(distance));
+  const duration = 700;
+  const t0 = performance.now();
+  function tick(now) {
+    if (gen !== flyGen) return;
+    const t = Math.min(1, (now - t0) / duration);
+    const e = t * t * (3 - 2 * t);
+    camera.position.lerpVectors(startPos, endPos, e);
+    controls.target.lerpVectors(startTarget, endTarget, e);
+    controls.update();
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+let selectedPartId = null;
+function highlightPart(id) {
+  Object.entries(partMeshById).forEach(([nid, mesh]) => {
+    const on = nid === id;
+    mesh.material.emissiveIntensity = on ? 1.1 : 0.25;
+    mesh.material.opacity = on ? 1 : 0.9;
+    mesh.scale.setScalar(on ? 1.35 : 1);
+  });
+  document.querySelectorAll('.plp-item').forEach((el) => {
+    el.classList.toggle('active', el.dataset.nodeId === id);
+  });
+}
+function selectPart(id) {
+  selectedPartId = id;
+  highlightPart(id);
+  highlightWiring(id);
+  const n = wiringData && wiringData.nodes.find(x => x.id === id);
+  if (n) {
+    flyTo(new THREE.Vector3(n.pos3d[0], n.pos3d[1], n.pos3d[2]));
+    showInfoCard(n);
+  }
+}
+function deselectPart() {
+  selectedPartId = null;
+  highlightPart(null);
+  highlightWiring(null);
+  hideInfoCard();
+}
+
+const raycaster = new THREE.Raycaster();
+const pointerNDC = new THREE.Vector2();
+let downX = 0, downY = 0;
+renderer.domElement.addEventListener('pointerdown', (ev) => { downX = ev.clientX; downY = ev.clientY; });
+renderer.domElement.addEventListener('pointerup', (ev) => {
+  if (!partsGroup || !partsGroup.visible) return;
+  const dx = ev.clientX - downX, dy = ev.clientY - downY;
+  if (Math.hypot(dx, dy) > 6) return; // ドラッグ操作はタップと見なさない
+  pointerNDC.x = (ev.clientX / innerWidth) * 2 - 1;
+  pointerNDC.y = -(ev.clientY / innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointerNDC, camera);
+  const hits = raycaster.intersectObjects(partsGroup.children, false);
+  if (hits.length) {
+    selectPart(hits[0].object.userData.nodeId);
+  } else {
+    deselectPart();
+  }
+});
+
+// ---- 配置エディタ（?edit=1 のローカル限定。公開UIには出さない） ----
+// Artifact配布ではURLクエリに頼れないため、これはローカル(python -m http.serverなど)専用の作業用モード。
+const EDIT_MODE = new URLSearchParams(location.search).get('edit') === '1';
+function refreshWiringLayerGeometry() {
+  if (!wiringGroup) return;
+  edgeLines.forEach(({ line, from, to }) => {
+    const a = nodeById[from], b = nodeById[to];
+    if (!a || !b) return;
+    const points = [
+      new THREE.Vector3(a.pos3d[0], a.pos3d[1], a.pos3d[2]),
+      new THREE.Vector3(b.pos3d[0], b.pos3d[1], b.pos3d[2]),
+    ];
+    line.geometry.setFromPoints(points);
+    line.geometry.attributes.position.needsUpdate = true;
+    if (line.material.isLineDashedMaterial) line.computeLineDistances();
+  });
+}
+function exportNodesJson() {
+  const json = JSON.stringify(wiringData.nodes, null, 2);
+  console.log('[配置エディタ] 現在のnodes:\n' + json);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(json).then(() => console.log('[配置エディタ] クリップボードにコピーしました'));
+  }
+}
+if (EDIT_MODE) {
+  const hud = document.createElement('div');
+  hud.id = 'editHud';
+  hud.style.cssText = 'position:fixed;bottom:14px;left:12px;right:12px;z-index:9;background:rgba(40,14,14,.85);'
+    + 'color:#fff;font:12px monospace;padding:10px 14px;border-radius:8px;max-width:520px;';
+  hud.textContent = '編集モード: 部品を選択→矢印キー(左右=Y/上下=Z)・[ ](X前後)で移動、Shiftで大きく、Eでエクスポート(コンソール+クリップボード)';
+  document.body.appendChild(hud);
+
+  addEventListener('keydown', (ev) => {
+    if (ev.key.toLowerCase() === 'e') { exportNodesJson(); return; }
+    if (!selectedPartId || !wiringData) return;
+    const n = wiringData.nodes.find(x => x.id === selectedPartId);
+    if (!n || !n.pos3d) return;
+    const step = ev.shiftKey ? 100 : 10;
+    let moved = true;
+    if (ev.key === 'ArrowLeft') n.pos3d[1] += step;
+    else if (ev.key === 'ArrowRight') n.pos3d[1] -= step;
+    else if (ev.key === 'ArrowUp') n.pos3d[2] += step;
+    else if (ev.key === 'ArrowDown') n.pos3d[2] -= step;
+    else if (ev.key === '[') n.pos3d[0] -= step;
+    else if (ev.key === ']') n.pos3d[0] += step;
+    else moved = false;
+    if (!moved) return;
+    ev.preventDefault();
+    const mesh = partMeshById[n.id];
+    if (mesh) mesh.position.set(n.pos3d[0], n.pos3d[1], n.pos3d[2]);
+    refreshWiringLayerGeometry();
+    hud.textContent = `編集中: ${n.label_ja} pos3d=[${n.pos3d.map(v => Math.round(v)).join(', ')}]`
+      + '（矢印/[ ]で移動・Shiftで大きく・Eでエクスポート）';
+  });
 }
 
 addEventListener('resize', () => {

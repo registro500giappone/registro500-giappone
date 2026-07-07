@@ -7,19 +7,23 @@
   "systems": [
     { "id": "turn_signal", "label_ja": "ウインカー系", "hi_color": "#2f9e44" }
   ],
-  "_comment_nodes": "pos は原図基準の正規化座標(0〜1)。背景画像とほぼ重なる。将来 vehicle_pos(前/側/上/背の4面座標) を各nodeに追加できる。",
+  "_comment_groups": "3Dパーツリストの階層。今回はelectricalのみ。将来engine/brakes/body/interior等を追加する。",
+  "groups": [
+    { "id": "electrical", "label_ja": "電装", "icon": "⚡" }
+  ],
+  "_comment_nodes": "pos は原図基準の正規化座標(0〜1・2D回路図viewer.html用)。pos3dは実車mm座標(x=前軸0/後方+, y=左+, z=上)で3Dビューア用・概略値でpos3d_verified:falseは要実車照合。shapeは3D簡易形状。parts_queryはparts.htmlへの検索導線。将来 data/{d,l,r}.json を同スキーマで追加しモデル別に拡張する。",
   "nodes": [
-    { "id": "battery",       "label_ja": "バッテリー",             "label_en": "Battery",            "type": "power",     "pos": { "x": 0.700, "y": 0.180 }, "systems": ["turn_signal"] },
-    { "id": "ignition_sw",   "label_ja": "イグニッションSW",       "label_en": "Ignition SW",        "type": "switch",    "pos": { "x": 0.748, "y": 0.578 }, "systems": ["turn_signal"] },
-    { "id": "fuse_box",      "label_ja": "ヒューズボックス",       "label_en": "Fuse Box",           "type": "fuse",      "pos": { "x": 0.298, "y": 0.225 }, "systems": ["turn_signal"] },
-    { "id": "flasher",       "label_ja": "ウインカーリレー",       "label_en": "Turn Signal Flasher","type": "relay",     "pos": { "x": 0.632, "y": 0.245 }, "systems": ["turn_signal"] },
-    { "id": "turn_sw",       "label_ja": "ウインカーSW",           "label_en": "Turn Signal SW",     "type": "switch",    "pos": { "x": 0.272, "y": 0.580 }, "systems": ["turn_signal"] },
-    { "id": "indicator",     "label_ja": "メーター内インジケーター","label_en": "Indicator Lamp",     "type": "lamp",      "pos": { "x": 0.600, "y": 0.578 }, "systems": ["turn_signal"] },
-    { "id": "lamp_fl",       "label_ja": "左前ウインカー",         "label_en": "Front Left",         "type": "lamp",      "pos": { "x": 0.085, "y": 0.195 }, "systems": ["turn_signal"] },
-    { "id": "lamp_fr",       "label_ja": "右前ウインカー",         "label_en": "Front Right",        "type": "lamp",      "pos": { "x": 0.920, "y": 0.195 }, "systems": ["turn_signal"] },
-    { "id": "lamp_rl",       "label_ja": "左後ウインカー",         "label_en": "Rear Left",          "type": "lamp",      "pos": { "x": 0.106, "y": 0.855 }, "systems": ["turn_signal"] },
-    { "id": "lamp_rr",       "label_ja": "右後ウインカー",         "label_en": "Rear Right",         "type": "lamp",      "pos": { "x": 0.905, "y": 0.855 }, "systems": ["turn_signal"] },
-    { "id": "ground",        "label_ja": "アース(車体)",           "label_en": "Ground",             "type": "ground",    "pos": { "x": 0.500, "y": 0.930 }, "systems": ["turn_signal"] }
+    { "id": "battery",       "label_ja": "バッテリー",             "label_en": "Battery",            "type": "power",     "pos": { "x": 0.700, "y": 0.180 }, "systems": ["turn_signal"], "group": "electrical", "pos3d": [-235, 225, 505], "shape": { "kind": "box", "size": [140, 120, 130] }, "pos3d_verified": false, "parts_query": { "q": "バッテリー", "category": "電装・ライト・点火系" } },
+    { "id": "ignition_sw",   "label_ja": "イグニッションSW",       "label_en": "Ignition SW",        "type": "switch",    "pos": { "x": 0.748, "y": 0.578 }, "systems": ["turn_signal"], "group": "electrical", "pos3d": [420, 280, 780], "shape": { "kind": "cylinder", "size": [30, 30, 50] }, "pos3d_verified": false, "parts_query": { "q": "イグニッションスイッチ", "category": "電装・ライト・点火系" } },
+    { "id": "fuse_box",      "label_ja": "ヒューズボックス",       "label_en": "Fuse Box",           "type": "fuse",      "pos": { "x": 0.298, "y": 0.225 }, "systems": ["turn_signal"], "group": "electrical", "pos3d": [-260, -160, 520], "shape": { "kind": "box", "size": [110, 70, 60] }, "pos3d_verified": false, "parts_query": { "q": "ヒューズボックス", "category": "電装・ライト・点火系" } },
+    { "id": "flasher",       "label_ja": "ウインカーリレー",       "label_en": "Turn Signal Flasher","type": "relay",     "pos": { "x": 0.632, "y": 0.245 }, "systems": ["turn_signal"], "group": "electrical", "pos3d": [420, -220, 750], "shape": { "kind": "box", "size": [60, 50, 40] }, "pos3d_verified": false, "parts_query": { "q": "ウインカーリレー", "category": "電装・ライト・点火系" } },
+    { "id": "turn_sw",       "label_ja": "ウインカーSW",           "label_en": "Turn Signal SW",     "type": "switch",    "pos": { "x": 0.272, "y": 0.580 }, "systems": ["turn_signal"], "group": "electrical", "pos3d": [430, 300, 800], "shape": { "kind": "cylinder", "size": [25, 25, 80] }, "pos3d_verified": false, "parts_query": { "q": "ウインカースイッチ", "category": "電装・ライト・点火系" } },
+    { "id": "indicator",     "label_ja": "メーター内インジケーター","label_en": "Indicator Lamp",     "type": "lamp",      "pos": { "x": 0.600, "y": 0.578 }, "systems": ["turn_signal"], "group": "electrical", "pos3d": [420, 50, 820], "shape": { "kind": "cylinder", "size": [15, 15, 15] }, "pos3d_verified": false, "parts_query": { "q": "メーターインジケーター", "category": "電装・ライト・点火系" } },
+    { "id": "lamp_fl",       "label_ja": "左前ウインカー",         "label_en": "Front Left",         "type": "lamp",      "pos": { "x": 0.085, "y": 0.195 }, "systems": ["turn_signal"], "group": "electrical", "pos3d": [-80, 350, 380], "shape": { "kind": "cylinder", "size": [40, 40, 30] }, "pos3d_verified": false, "parts_query": { "q": "ウインカーランプ 左前", "category": "電装・ライト・点火系" } },
+    { "id": "lamp_fr",       "label_ja": "右前ウインカー",         "label_en": "Front Right",        "type": "lamp",      "pos": { "x": 0.920, "y": 0.195 }, "systems": ["turn_signal"], "group": "electrical", "pos3d": [-80, -350, 380], "shape": { "kind": "cylinder", "size": [40, 40, 30] }, "pos3d_verified": false, "parts_query": { "q": "ウインカーランプ 右前", "category": "電装・ライト・点火系" } },
+    { "id": "lamp_rl",       "label_ja": "左後ウインカー",         "label_en": "Rear Left",          "type": "lamp",      "pos": { "x": 0.106, "y": 0.855 }, "systems": ["turn_signal"], "group": "electrical", "pos3d": [2420, 350, 420], "shape": { "kind": "cylinder", "size": [40, 40, 30] }, "pos3d_verified": false, "parts_query": { "q": "ウインカーランプ 左後", "category": "電装・ライト・点火系" } },
+    { "id": "lamp_rr",       "label_ja": "右後ウインカー",         "label_en": "Rear Right",         "type": "lamp",      "pos": { "x": 0.905, "y": 0.855 }, "systems": ["turn_signal"], "group": "electrical", "pos3d": [2420, -350, 420], "shape": { "kind": "cylinder", "size": [40, 40, 30] }, "pos3d_verified": false, "parts_query": { "q": "ウインカーランプ 右後", "category": "電装・ライト・点火系" } },
+    { "id": "ground",        "label_ja": "アース(車体)",           "label_en": "Ground",             "type": "ground",    "pos": { "x": 0.500, "y": 0.930 }, "systems": ["turn_signal"], "group": "electrical", "pos3d": [900, 0, 250], "shape": { "kind": "box", "size": [40, 40, 10] }, "pos3d_verified": false, "parts_query": { "q": "アース", "category": "電装・ライト・点火系" } }
   ],
   "_comment_edges": "color/style は原図の線色・線種を保持。verified=false は要オーナー照合のドラフト結線。",
   "edges": [
