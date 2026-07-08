@@ -323,6 +323,12 @@ function buildModelGroup(gltf, info) {
   const group = new THREE.Group();
   gltf.scene.traverse((obj) => {
     if (!obj.isMesh) return;
+    // GLB(prep_model.py産)はPOSITIONのみでNORMALを持たない。法線属性が無いと
+    // シェーダーの normalize(normal) が未定義動作になり、GPUによって
+    // 「ちらつき(PC)」「ソリッド面が真っ黒=背景と同化(iOS)」を起こすため必ず補う。
+    if (obj.geometry && !obj.geometry.attributes.normal) {
+      obj.geometry.computeVertexNormals();
+    }
     const cat = obj.name;
     obj.material = CATEGORY_MATERIAL[cat] || ghostMat;
     obj.renderOrder = CATEGORY_ORDER[cat] || 1;
