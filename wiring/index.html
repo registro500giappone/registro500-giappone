@@ -245,7 +245,7 @@ const ghostMat = new THREE.ShaderMaterial({
       // トポロジーに触れないためEdgesGeometryの境界線アーティファクトが発生しない。
       for (int i = 0; i < 4; i++) {
         if (i >= wheelCount) break;
-        if (distance(vWP, wheelCenters[i]) < wheelRadii[i] * 0.94) discard;
+        if (distance(vWP, wheelCenters[i]) < wheelRadii[i] * 1.1) discard;
       }
       float f = 1.0 - abs(dot(normalize(vN), normalize(vV)));
       float ghostA = 0.045 + 0.75 * pow(f, 2.6);
@@ -291,9 +291,37 @@ const interiorMat = new THREE.MeshStandardMaterial({
   color: MAT_STATES.interior.solidColor, roughness: 0.8, metalness: 0.1,
   transparent: false, opacity: MAT_STATES.interior.solidOpacity, depthWrite: true,
 });
-const lineMat = new THREE.LineBasicMaterial({
-  color: 0xcfe6ff, transparent: true, opacity: 0.55,
-  blending: THREE.AdditiveBlending, depthWrite: false,
+// 特徴線(EdgesGeometry)はbody等のフィルとは別マテリアル・別ジオメトリで描画されるため、
+// ghostMat側のdiscardだけでは車輪近傍の輪郭線が隠れない。同じ判定ロジックをこちらにも実装する。
+const lineMat = new THREE.ShaderMaterial({
+  transparent: true,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+  uniforms: {
+    lineColor: { value: new THREE.Color(0xcfe6ff) },
+    lineOpacity: { value: 0.55 },
+    wheelCenters: { value: [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()] },
+    wheelRadii:   { value: [0, 0, 0, 0] },
+    wheelCount:   { value: 0 },
+  },
+  vertexShader: `
+    varying vec3 vWP;
+    void main(){
+      vec4 wp = modelMatrix * vec4(position, 1.0);
+      vWP = wp.xyz;
+      gl_Position = projectionMatrix * viewMatrix * wp;
+    }`,
+  fragmentShader: `
+    uniform vec3 lineColor; uniform float lineOpacity;
+    uniform vec3 wheelCenters[4]; uniform float wheelRadii[4]; uniform int wheelCount;
+    varying vec3 vWP;
+    void main(){
+      for (int i = 0; i < 4; i++) {
+        if (i >= wheelCount) break;
+        if (distance(vWP, wheelCenters[i]) < wheelRadii[i] * 1.1) discard;
+      }
+      gl_FragColor = vec4(lineColor, lineOpacity);
+    }`,
 });
 
 const CATEGORY_MATERIAL = {
@@ -408,17 +436,20 @@ function addLandmarks() {
   scene.add(landmarksGroup);
 }
 
-// 'body'カテゴリに残る車輪近傍ジオメトリ(タイヤ材質の分類漏れ)をシェーダーでdiscardするための
-// uniform更新。モデル切替のたびにそのモデルのwheels情報で上書きする。
+// 'body'カテゴリに残る車輪近傍ジオメトリ(タイヤ材質の分類漏れ)を、フィル(ghostMat)と
+// 輪郭線(lineMat)の両方でシェーダーdiscardするためのuniform更新。
+// モデル切替のたびにそのモデルのwheels情報で上書きする。
 function updateGhostWheelUniforms(info) {
   const wheels = (info.wheels || []).slice(0, 4);
-  const centers = ghostMat.uniforms.wheelCenters.value;
-  const radii = ghostMat.uniforms.wheelRadii.value;
-  wheels.forEach((w, i) => {
-    centers[i].set(w.center[0], w.center[1], w.center[2]);
-    radii[i] = w.radius;
-  });
-  ghostMat.uniforms.wheelCount.value = wheels.length;
+  for (const mat of [ghostMat, lineMat]) {
+    const centers = mat.uniforms.wheelCenters.value;
+    const radii = mat.uniforms.wheelRadii.value;
+    wheels.forEach((w, i) => {
+      centers[i].set(w.center[0], w.center[1], w.center[2]);
+      radii[i] = w.radius;
+    });
+    mat.uniforms.wheelCount.value = wheels.length;
+  }
 }
 
 const modelCache = {}; // key -> THREE.Group(読込済みキャッシュ)
