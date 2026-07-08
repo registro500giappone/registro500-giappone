@@ -279,8 +279,11 @@ const interiorMat = new THREE.MeshStandardMaterial({
   color: MAT_STATES.interior.solidColor, roughness: 0.8, metalness: 0.1,
   transparent: false, opacity: MAT_STATES.interior.solidOpacity, depthWrite: true,
 });
+// 特徴線はシースルー表示専用(2026-07-08ユーザー判断: 色付き表示では陰影だけで成立し
+// 白線はむしろ邪魔)。色付き(solid)ではopacity 0で消し、setGhostでクロスフェードする。
+const LINE_GHOST_OPACITY = 0.55;
 const lineMat = new THREE.LineBasicMaterial({
-  color: 0xcfe6ff, transparent: true, opacity: 0.55,
+  color: 0xcfe6ff, transparent: true, opacity: 0,
   blending: THREE.AdditiveBlending, depthWrite: false,
 });
 
@@ -472,6 +475,7 @@ function setGhost(toGhost) {
     const e = t * t * (3 - 2 * t); // smoothstep
     const r = fromReveal + (toReveal - fromReveal) * e;
     ghostMat.uniforms.reveal.value = r;
+    lineMat.opacity = LINE_GHOST_OPACITY * (toGhost ? e : 1 - e); // 特徴線はシースルー時のみ
     for (const en of MAT_ENTRIES) {
       const fromOp = toGhost ? en.solidOp : en.ghostOp;
       const toOp = toGhost ? en.ghostOp : en.solidOp;

@@ -342,6 +342,58 @@ def write_glb(merged, out_path):
     g.save_binary(out_path)
 
 
+def reclassify_headlight_lenses(prims, transform):
+    """前照灯レンズをbodyからglassへ移す(2026-07-08ユーザー要望: 鉄板色→ガラス同色)。
+    freeReefモデルではレンズが白い光沢材(acmat_8: metal0.5/rough0.2)で、chrome判定
+    (metal>0.6)に届かずbodyに落ちる。位置ベースで特定する:
+    前端(X<-300)・フェンダー上(350<|Y|<480, 500<Z<650)にある、Yに薄く(<60mm)
+    直径100〜200mmの円盤状の独立成分。左右対称に2枚揃った時のみ適用し、
+    条件が崩れたら警告して何もしない(見た目の問題なので中断まではしない)。"""
+    matches = {}  # prim_idx -> [comp, ...]
+    sides = []
+    for pi, p in enumerate(prims):
+        if p['category'] != 'body':
+            continue
+        pos_mm = transform(p['positions'])
+        for comp in _connected_components(p['positions'].shape[0], p['indices']):
+            sub = pos_mm[comp]
+            c = sub.mean(axis=0)
+            ext = sub.max(axis=0) - sub.min(axis=0)
+            if (c[0] < -300 and 350 < abs(c[1]) < 480 and 500 < c[2] < 650
+                    and ext[0] < 60 and 100 < ext[1] < 200 and 100 < ext[2] < 200):
+                matches.setdefault(pi, []).append(comp)
+                sides.append(1 if c[1] > 0 else -1)
+    total = sum(len(v) for v in matches.values())
+    if total != 2 or sorted(sides) != [-1, 1]:
+        print(f'!! ヘッドライトレンズ検出が想定外({total}個, sides={sides})のためglass移し替えをスキップ')
+        return prims
+    new_prims = []
+    for pi, p in enumerate(prims):
+        if pi not in matches:
+            new_prims.append(p)
+            continue
+        pos_raw = p['positions']
+        idx = p['indices']
+        lens_mask = np.zeros(pos_raw.shape[0], dtype=bool)
+        for comp in matches[pi]:
+            lens_mask[comp] = True
+        tri = idx.reshape(-1, 3)
+        for dest, mask in (('glass', lens_mask), (p['category'], ~lens_mask)):
+            tri_keep = mask[tri].all(axis=1)
+            new_tri = tri[tri_keep]
+            if new_tri.size == 0:
+                continue
+            flat = new_tri.reshape(-1)
+            unique_idx, remap = np.unique(flat, return_inverse=True)
+            new_prims.append({
+                'category': dest,
+                'positions': pos_raw[unique_idx],
+                'indices': remap.astype(np.uint32),
+            })
+    print('ヘッドライトレンズ2枚をbody→glassへ移動')
+    return new_prims
+
+
 def estimate_chrome_rim_radius(chrome_positions_mm, wheels, xy_tol=320):
     """'rim'分類が存在しないモデル(ホイールディスクがchromeに混入)向けに、
     各ホイール中心付近のchrome頂点から局所的な円盤半径を推定する。
@@ -384,6 +436,7 @@ def main():
     print('category primitive counts:', cats)
 
     wheels = detect_wheels(prims, transform, args.wheelbase_mm)
+    prims = reclassify_headlight_lenses(prims, transform)
 
     merged = merge_by_category(prims, transform)
     for cat, m in merged.items():
