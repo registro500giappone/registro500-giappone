@@ -178,57 +178,120 @@ def _connected_components(n_verts, indices):
     return list(groups.values())
 
 
-def drop_wheel_islands_from_body(prims, transform, wheels, radius_factor=1.3):
-    """'body'に紛れ込んだ車輪近傍の破片(ブレーキ/ハブ等の断片。色ヒューリスティックで
-    tire/chromeに分類されずbody側に残り、実車には無いドーナツ状の見た目を作る)を削除する。
-    削除対象は既存メッシュと頂点を共有しない独立した連結成分のみなので、
-    残るbody本体の境界線(EdgesGeometry)には一切影響しない。"""
-    wheel_centers = [np.array(w['center']) for w in wheels]
-    wheel_radii = [w['radius'] for w in wheels]
-    out = []
-    dropped_verts = 0
-    dropped_islands = 0
+# 車輪捕捉領域: 実車の既知寸法から決める(前軸X=0/後軸X=wheelbase)。
+# マテリアルのPBRヒューリスティックは車輪の特定には使わない
+# (freeReefモデルは全マテリアルが無名acmat_Nで、暗くザラついたルーフ・ドアが
+#  tireに誤分類され、そこから推定したホイール中心が完全に壊れていた実績がある)。
+WHEEL_ZONE = dict(dx=350, y_min=380, y_max=700, z_max=620)
+
+
+def detect_wheels_and_reclassify(prims, transform, wheelbase_mm):
+    """連結成分の重心が車輪捕捉領域(前後軸まわりの円筒)に入るかどうかで車輪を特定する。
+
+    - ホイール中心・半径は、捕捉成分のうち「側面視で丸く・Yに薄く・接地している(zmin<60)」
+      成分＝タイヤリングのみから実測する。フェンダー外皮の断片も同じ領域に浮いて
+      入り込むが、接地条件で確実に除外できる。
+    - 捕捉されなかった'tire'成分 → 'body'へ戻す(PBRヒューリスティックで誤分類された
+      ルーフ・ドアの復活)。捕捉された'tire'成分(ホイールハウス内張り等)はtireのまま
+      =ビューアが非表示にする。
+    - 'body'/'chrome'のジオメトリは一切動かさない。正位置にある実タイヤリングや
+      ホイールキャップは、正位置に生成されるプロシージャルタイヤと重なるだけで無害。
+      (bodyから車輪領域の成分を抜くとリアフェンダー外皮まで巻き添えで穴が開く)
+
+    戻り値: (再分類後のprims, wheels[4])。4輪が揃わない・寸法が不自然なら例外で中断する。
+    """
+    axles = [0.0, float(wheelbase_mm)]
+    disc_pts = {}   # (axle_idx, side_idx) -> [接地円盤成分の頂点(mm)]
+    new_prims = []
+    moved_to_body = 0
+
+    def capture(centroid):
+        for ai, ax in enumerate(axles):
+            if (abs(centroid[0] - ax) < WHEEL_ZONE['dx']
+                    and WHEEL_ZONE['y_min'] < abs(centroid[1]) < WHEEL_ZONE['y_max']
+                    and centroid[2] < WHEEL_ZONE['z_max']):
+                return (ai, 0 if centroid[1] > 0 else 1)
+        return None
+
     for p in prims:
-        if p['category'] != 'body':
-            out.append(p)
+        cat = p['category']
+        if cat not in ('body', 'tire', 'chrome'):
+            new_prims.append(p)
             continue
         pos_raw = p['positions']
         idx = p['indices']
-        pos_v = transform(pos_raw)
+        pos_mm = transform(pos_raw)
         components = _connected_components(pos_raw.shape[0], idx)
-        if len(components) <= 1:
-            out.append(p)
-            continue
-        keep_mask = np.ones(pos_raw.shape[0], dtype=bool)
+
+        to_body_mask = np.zeros(pos_raw.shape[0], dtype=bool)
         for comp in components:
-            centroid = pos_v[comp].mean(axis=0)
-            near = any(
-                np.linalg.norm(centroid - c) < r * radius_factor
-                for c, r in zip(wheel_centers, wheel_radii)
-            )
-            if near:
-                keep_mask[comp] = False
-                dropped_verts += len(comp)
-                dropped_islands += 1
-        if keep_mask.all():
-            out.append(p)
+            sub = pos_mm[comp]
+            key = capture(sub.mean(axis=0))
+            if key is not None:
+                mn, mx = sub.min(axis=0), sub.max(axis=0)
+                ext = mx - mn
+                tire_ring = (mn[2] < 60 and ext[1] < 160
+                             and 300 < ext[0] < 560 and 300 < ext[2] < 560
+                             and 0.8 < (ext[0] + 1e-9) / (ext[2] + 1e-9) < 1.25)
+                if tire_ring:
+                    disc_pts.setdefault(key, []).append(sub)
+            elif cat == 'tire':
+                to_body_mask[comp] = True
+                moved_to_body += len(comp)
+
+        if not to_body_mask.any():
+            new_prims.append(p)
             continue
-        # 削除後、残った三角形だけを抽出(すべての頂点がkeep_maskで残っている三角形のみ)
+        # tireプリミティブを body行き / tire残留 に分割(三角形は連結成分をまたがない)
         tri = idx.reshape(-1, 3)
-        tri_keep = keep_mask[tri].all(axis=1)
-        new_tri = tri[tri_keep]
-        if new_tri.size == 0:
-            continue
-        flat = new_tri.reshape(-1)
-        unique_idx, remap = np.unique(flat, return_inverse=True)
-        out.append({
-            'category': 'body',
-            'positions': pos_raw[unique_idx],
-            'indices': remap.astype(np.uint32),
-        })
-    if dropped_islands:
-        print(f'body: 車輪近傍の独立した破片 {dropped_islands}個({dropped_verts}頂点)を削除')
-    return out
+        for dest, mask in (('body', to_body_mask), ('tire', ~to_body_mask)):
+            tri_keep = mask[tri].all(axis=1)
+            new_tri = tri[tri_keep]
+            if new_tri.size == 0:
+                continue
+            flat = new_tri.reshape(-1)
+            unique_idx, remap = np.unique(flat, return_inverse=True)
+            new_prims.append({
+                'category': dest,
+                'positions': pos_raw[unique_idx],
+                'indices': remap.astype(np.uint32),
+            })
+
+    print(f'車輪再分類: tire→body {moved_to_body}頂点(誤分類されたルーフ・ドア等の復帰)')
+
+    # 4輪のホイール中心・半径を円盤状成分の実測bboxから決定
+    wheels = []
+    problems = []
+    for ai, ax in enumerate(axles):
+        for si, side in ((0, '左'), (1, '右')):
+            key = (ai, si)
+            label = f"{'前' if ai == 0 else '後'}{side}"
+            if key not in disc_pts:
+                problems.append(f'{label}輪: 円盤状成分が見つからない')
+                continue
+            pts = np.vstack(disc_pts[key])
+            if pts.shape[0] < 100:
+                problems.append(f'{label}輪: 頂点数不足({pts.shape[0]})')
+                continue
+            mn, mx = pts.min(axis=0), pts.max(axis=0)
+            radius = float((mx[2] - mn[2]) / 2)
+            center = [float((mn[0] + mx[0]) / 2), float((mn[1] + mx[1]) / 2),
+                      float(mn[2] + radius)]
+            if not (150 <= radius <= 400):
+                problems.append(f'{label}輪: 半径{radius:.0f}mmが実車として不自然')
+            if abs(center[0] - ax) > 80:
+                problems.append(f'{label}輪: 中心X={center[0]:.0f}が軸位置{ax:.0f}から乖離')
+            wheels.append({'center': center, 'radius': radius})
+    if len(wheels) == 4:
+        for ai, base in ((0, 0), (1, 2)):
+            y_l, y_r = wheels[base]['center'][1], wheels[base + 1]['center'][1]
+            if abs(y_l + y_r) > 60:
+                problems.append(f"{'前' if ai == 0 else '後'}軸: 左右非対称(YL={y_l:.0f}, YR={y_r:.0f})")
+    if problems or len(wheels) != 4:
+        for w in wheels:
+            print('  wheel:', w)
+        raise SystemExit('!! 車輪検出失敗(壊れたwheels.jsonを出力しないため中断):\n  ' + '\n  '.join(problems))
+    return new_prims, wheels
 
 
 def merge_by_category(prims, transform):
@@ -312,32 +375,6 @@ def write_glb(merged, out_path):
     g.save_binary(out_path)
 
 
-def cluster_wheels(tire_positions_mm):
-    """タイヤ(viewer mm座標)を前後(X)・左右(Y)の中央値で4象限に分け、各ホイールの中心とタイヤ半径を推定する。
-    厚みゼロの平板メッシュしか無い元モデルに対し、index.html側で本物の3Dトーラスタイヤを
-    生成し直すためのメタデータ。"""
-    pts = tire_positions_mm
-    # 'tire'分類に紛れ込んだ地上高の高い誤検出(幌など)を除外。実車のタイヤは接地面〜700mm程度に収まる
-    pts = pts[pts[:, 2] < 700]
-    x_med = np.median(pts[:, 0])
-    y_med = np.median(pts[:, 1])
-    wheels = []
-    for x_is_front in (True, False):
-        for y_is_left in (True, False):
-            mask = ((pts[:, 0] < x_med) == x_is_front) & ((pts[:, 1] < y_med) == y_is_left)
-            if mask.sum() < 20:
-                continue
-            sub = pts[mask]
-            center = sub.mean(axis=0)
-            radius = float((sub[:, 2].max() - sub[:, 2].min()) / 2)
-            hub_z = float(sub[:, 2].min() + radius)  # 接地面(z最小)から半径分上=ハブ中心の高さ
-            wheels.append({
-                'center': [float(center[0]), float(center[1]), hub_z],
-                'radius': radius,
-            })
-    return wheels
-
-
 def estimate_chrome_rim_radius(chrome_positions_mm, wheels, xy_tol=320):
     """'rim'分類が存在しないモデル(ホイールディスクがchromeに混入)向けに、
     各ホイール中心付近のchrome頂点から局所的な円盤半径を推定する。
@@ -366,6 +403,7 @@ def main():
     ap.add_argument('output_glb')
     ap.add_argument('--real-length-mm', type=float, required=True)
     ap.add_argument('--front-overhang-mm', type=float, required=True)
+    ap.add_argument('--wheelbase-mm', type=float, required=True)
     args = ap.parse_args()
 
     prims = collect_world_primitives(args.input_gltf)
@@ -378,35 +416,22 @@ def main():
         cats[p['category']] = cats.get(p['category'], 0) + 1
     print('category primitive counts:', cats)
 
-    tire_prims = [p for p in prims if p['category'] == 'tire']
-    if tire_prims:
-        prelim_tire_pts = np.vstack([transform(p['positions']) for p in tire_prims])
-        prelim_wheels = cluster_wheels(prelim_tire_pts)
-        if len(prelim_wheels) == 4:
-            prims = drop_wheel_islands_from_body(prims, transform, prelim_wheels)
+    prims, wheels = detect_wheels_and_reclassify(prims, transform, args.wheelbase_mm)
 
     merged = merge_by_category(prims, transform)
     for cat, m in merged.items():
         print(f"  {cat}: {m['positions'].shape[0]} verts, {m['indices'].shape[0]//3} tris")
 
-    if 'tire' in merged:
-        wheels = cluster_wheels(merged['tire']['positions'])
-        chrome_pos = merged['chrome']['positions'] if 'chrome' in merged else None
-        wheels = estimate_chrome_rim_radius(chrome_pos, wheels)
-        print('wheels (center=[X,Y,hub_z], radius, chrome_radius):')
-        for w in wheels:
-            print('  ', w)
-        # 実車のタイヤ半径として妥当な範囲(150-400mm)を外れる場合は分類ミス(他パーツ混入)とみなし出力しない
-        radii = [w['radius'] for w in wheels]
-        median_r = sorted(radii)[len(radii)//2] if radii else 0
-        if len(wheels) == 4 and 150 <= median_r <= 400:
-            import json
-            wheels_path = args.output_glb.rsplit('.', 1)[0] + '_wheels.json'
-            with open(wheels_path, 'w', encoding='utf-8') as f:
-                json.dump(wheels, f)
-            print('wrote', wheels_path)
-        else:
-            print(f'!! wheels怪しい(median_r={median_r:.0f}mm) のためwheels.jsonは出力しない(平板タイヤのままにフォールバック)')
+    chrome_pos = merged['chrome']['positions'] if 'chrome' in merged else None
+    wheels = estimate_chrome_rim_radius(chrome_pos, wheels)
+    print('wheels (center=[X,Y,hub_z], radius, chrome_radius):')
+    for w in wheels:
+        print('  ', w)
+    import json
+    wheels_path = args.output_glb.rsplit('.', 1)[0] + '_wheels.json'
+    with open(wheels_path, 'w', encoding='utf-8') as f:
+        json.dump(wheels, f)
+    print('wrote', wheels_path)
 
     write_glb(merged, args.output_glb)
     print('wrote', args.output_glb)
