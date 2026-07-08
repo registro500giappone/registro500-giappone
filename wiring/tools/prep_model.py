@@ -185,25 +185,21 @@ def _connected_components(n_verts, indices):
 WHEEL_ZONE = dict(dx=350, y_min=380, y_max=700, z_max=620)
 
 
-def detect_wheels_and_reclassify(prims, transform, wheelbase_mm):
+def detect_wheels(prims, transform, wheelbase_mm):
     """連結成分の重心が車輪捕捉領域(前後軸まわりの円筒)に入るかどうかで車輪を特定する。
 
     - ホイール中心・半径は、捕捉成分のうち「側面視で丸く・Yに薄く・接地している(zmin<60)」
       成分＝タイヤリングのみから実測する。フェンダー外皮の断片も同じ領域に浮いて
       入り込むが、接地条件で確実に除外できる。
-    - 捕捉されなかった'tire'成分 → 'body'へ戻す(PBRヒューリスティックで誤分類された
-      ルーフ・ドアの復活)。捕捉された'tire'成分(ホイールハウス内張り等)はtireのまま
-      =ビューアが非表示にする。
-    - 'body'/'chrome'のジオメトリは一切動かさない。正位置にある実タイヤリングや
-      ホイールキャップは、正位置に生成されるプロシージャルタイヤと重なるだけで無害。
-      (bodyから車輪領域の成分を抜くとリアフェンダー外皮まで巻き添えで穴が開く)
+    - **ジオメトリの再分類は一切行わない(計測のみ)**。tireに誤分類されたゴム/幌類
+      (ドアシール・サンルーフ等)をbodyへ戻すと、車体外皮と同一面で重なって
+      Zファイティング(点滅)を起こすことが実機で判明した(2026-07-08)。tireノードは
+      ビューアが丸ごと非表示にするので、誤分類は放置が正解。
 
-    戻り値: (再分類後のprims, wheels[4])。4輪が揃わない・寸法が不自然なら例外で中断する。
+    戻り値: wheels[4]。4輪が揃わない・寸法が不自然なら例外で中断する。
     """
     axles = [0.0, float(wheelbase_mm)]
     disc_pts = {}   # (axle_idx, side_idx) -> [接地円盤成分の頂点(mm)]
-    new_prims = []
-    moved_to_body = 0
 
     def capture(centroid):
         for ai, ax in enumerate(axles):
@@ -214,50 +210,21 @@ def detect_wheels_and_reclassify(prims, transform, wheelbase_mm):
         return None
 
     for p in prims:
-        cat = p['category']
-        if cat not in ('body', 'tire', 'chrome'):
-            new_prims.append(p)
+        if p['category'] not in ('body', 'tire', 'chrome'):
             continue
-        pos_raw = p['positions']
-        idx = p['indices']
-        pos_mm = transform(pos_raw)
-        components = _connected_components(pos_raw.shape[0], idx)
-
-        to_body_mask = np.zeros(pos_raw.shape[0], dtype=bool)
-        for comp in components:
+        pos_mm = transform(p['positions'])
+        for comp in _connected_components(p['positions'].shape[0], p['indices']):
             sub = pos_mm[comp]
             key = capture(sub.mean(axis=0))
-            if key is not None:
-                mn, mx = sub.min(axis=0), sub.max(axis=0)
-                ext = mx - mn
-                tire_ring = (mn[2] < 60 and ext[1] < 160
-                             and 300 < ext[0] < 560 and 300 < ext[2] < 560
-                             and 0.8 < (ext[0] + 1e-9) / (ext[2] + 1e-9) < 1.25)
-                if tire_ring:
-                    disc_pts.setdefault(key, []).append(sub)
-            elif cat == 'tire':
-                to_body_mask[comp] = True
-                moved_to_body += len(comp)
-
-        if not to_body_mask.any():
-            new_prims.append(p)
-            continue
-        # tireプリミティブを body行き / tire残留 に分割(三角形は連結成分をまたがない)
-        tri = idx.reshape(-1, 3)
-        for dest, mask in (('body', to_body_mask), ('tire', ~to_body_mask)):
-            tri_keep = mask[tri].all(axis=1)
-            new_tri = tri[tri_keep]
-            if new_tri.size == 0:
+            if key is None:
                 continue
-            flat = new_tri.reshape(-1)
-            unique_idx, remap = np.unique(flat, return_inverse=True)
-            new_prims.append({
-                'category': dest,
-                'positions': pos_raw[unique_idx],
-                'indices': remap.astype(np.uint32),
-            })
-
-    print(f'車輪再分類: tire→body {moved_to_body}頂点(誤分類されたルーフ・ドア等の復帰)')
+            mn, mx = sub.min(axis=0), sub.max(axis=0)
+            ext = mx - mn
+            tire_ring = (mn[2] < 60 and ext[1] < 160
+                         and 300 < ext[0] < 560 and 300 < ext[2] < 560
+                         and 0.8 < (ext[0] + 1e-9) / (ext[2] + 1e-9) < 1.25)
+            if tire_ring:
+                disc_pts.setdefault(key, []).append(sub)
 
     # 4輪のホイール中心・半径を円盤状成分の実測bboxから決定
     wheels = []
@@ -291,7 +258,7 @@ def detect_wheels_and_reclassify(prims, transform, wheelbase_mm):
         for w in wheels:
             print('  wheel:', w)
         raise SystemExit('!! 車輪検出失敗(壊れたwheels.jsonを出力しないため中断):\n  ' + '\n  '.join(problems))
-    return new_prims, wheels
+    return wheels
 
 
 def merge_by_category(prims, transform):
@@ -416,7 +383,7 @@ def main():
         cats[p['category']] = cats.get(p['category'], 0) + 1
     print('category primitive counts:', cats)
 
-    prims, wheels = detect_wheels_and_reclassify(prims, transform, args.wheelbase_mm)
+    wheels = detect_wheels(prims, transform, args.wheelbase_mm)
 
     merged = merge_by_category(prims, transform)
     for cat, m in merged.items():
