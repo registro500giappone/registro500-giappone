@@ -83,7 +83,9 @@ def main():
         mn, mx = pos.min(axis=0), pos.max(axis=0)
         print(f'[{node.name}] X[{mn[0]:.0f},{mx[0]:.0f}] Y[{mn[1]:.0f},{mx[1]:.0f}] Z[{mn[2]:.0f},{mx[2]:.0f}]')
         check(mn[0] > -550 and mx[0] < 2500, f'{node.name}: X範囲が実車全長内')
-        check(abs(mn[1]) < 700 and abs(mx[1]) < 700, f'{node.name}: |Y|<700mm (実車全幅内)')
+        # tireノードは操舵角付き前輪(L型)が外側へ張り出すぶん許容を広げる(非表示ノード)
+        y_lim = 760 if node.name == 'tire' else 700
+        check(abs(mn[1]) < y_lim and abs(mx[1]) < y_lim, f'{node.name}: |Y|<{y_lim}mm (実車全幅内)')
         check(mn[2] > -30 and mx[2] < 1400, f'{node.name}: Z範囲が実車全高内')
         # tireノードはビューアが丸ごと非表示にするため、ゴム/幌類の誤混入は無害
         # (bodyへ戻すと車体外皮とZファイティングを起こすので、あえて放置する設計)。

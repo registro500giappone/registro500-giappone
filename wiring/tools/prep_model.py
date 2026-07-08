@@ -185,21 +185,45 @@ def _connected_components(n_verts, indices):
 WHEEL_ZONE = dict(dx=350, y_min=380, y_max=700, z_max=620)
 
 
+def _split_prim_by_mask(p, mask, cat_true, cat_false):
+    """primを頂点マスクで2カテゴリに分割する(三角形は連結成分をまたがない前提)。"""
+    out = []
+    tri = p['indices'].reshape(-1, 3)
+    for dest, m in ((cat_true, mask), (cat_false, ~mask)):
+        tri_keep = m[tri].all(axis=1)
+        new_tri = tri[tri_keep]
+        if new_tri.size == 0:
+            continue
+        flat = new_tri.reshape(-1)
+        unique_idx, remap = np.unique(flat, return_inverse=True)
+        out.append({
+            'category': dest,
+            'positions': p['positions'][unique_idx],
+            'indices': remap.astype(np.uint32),
+        })
+    return out
+
+
 def detect_wheels(prims, transform, wheelbase_mm):
     """連結成分の重心が車輪捕捉領域(前後軸まわりの円筒)に入るかどうかで車輪を特定する。
 
-    - ホイール中心・半径は、捕捉成分のうち「側面視で丸く・Yに薄く・接地している(zmin<60)」
-      成分＝タイヤリングのみから実測する。フェンダー外皮の断片も同じ領域に浮いて
-      入り込むが、接地条件で確実に除外できる。
-    - **ジオメトリの再分類は一切行わない(計測のみ)**。tireに誤分類されたゴム/幌類
-      (ドアシール・サンルーフ等)をbodyへ戻すと、車体外皮と同一面で重なって
-      Zファイティング(点滅)を起こすことが実機で判明した(2026-07-08)。tireノードは
-      ビューアが丸ごと非表示にするので、誤分類は放置が正解。
+    - ホイール中心・半径は、捕捉成分のうち「接地していて(zmin<60)側面視で車輪サイズの
+      円盤/トーラス状」の成分＝タイヤリングのみから実測する。フェンダー外皮の断片も
+      同じ領域に浮いて入り込むが、接地条件で確実に除外できる。
+    - 操舵角付きでモデリングされた前輪(L型モデル: 約25度)にも対応: 回転してもZ幅
+      (=直径)は不変なので半径・中心はZ基準で測る。Y厚みは操舵判定に使う。
+    - **body/chromeジオメトリの再分類は原則行わない(計測のみ)**。tireに誤分類された
+      ゴム/幌類をbodyへ戻すと車体外皮と同一面で重なりZファイティング(点滅)を起こす
+      ことが実機で判明した(2026-07-08)。tireノードはビューアが丸ごと非表示にするので
+      誤分類は放置が正解。**例外**: 操舵された車輪のchrome部品(ホイールキャップ等)は
+      回転したままフェンダーからはみ出して見え、まっすぐ生成されるプロシージャル
+      タイヤとも不整合なので、tireへ移して非表示にする。
 
-    戻り値: wheels[4]。4輪が揃わない・寸法が不自然なら例外で中断する。
+    戻り値: (prims, wheels[4])。4輪が揃わない・寸法が不自然なら例外で中断する。
     """
     axles = [0.0, float(wheelbase_mm)]
-    disc_pts = {}   # (axle_idx, side_idx) -> [接地円盤成分の頂点(mm)]
+    disc_pts = {}      # (axle_idx, side_idx) -> [接地円盤成分の頂点(mm)]
+    steered = set()    # 操舵角が付いている車輪のkey
 
     def capture(centroid):
         for ai, ax in enumerate(axles):
@@ -220,11 +244,56 @@ def detect_wheels(prims, transform, wheelbase_mm):
                 continue
             mn, mx = sub.min(axis=0), sub.max(axis=0)
             ext = mx - mn
-            tire_ring = (mn[2] < 60 and ext[1] < 160
-                         and 300 < ext[0] < 560 and 300 < ext[2] < 560
-                         and 0.8 < (ext[0] + 1e-9) / (ext[2] + 1e-9) < 1.25)
+            # 接地・Z幅が車輪直径・X幅はZ幅以下(操舵で縮む)・Y厚みは操舵角次第で許容
+            tire_ring = (mn[2] < 60 and 300 < ext[2] < 560
+                         and 250 < ext[0] <= ext[2] * 1.15 and ext[1] < 400)
             if tire_ring:
                 disc_pts.setdefault(key, []).append(sub)
+                if ext[1] > 100:  # まっすぐな車輪のリングはY厚み数十mm、操舵されると100mm超
+                    steered.add(key)
+
+    # 操舵された車輪のchrome部品をtireへ移動(非表示化)。
+    # さらに、操舵輪の領域に「プリム全体が」収まるbodyプリム(=塗装スチールホイールの
+    # ディスク。L型モデルで操舵したままプロシージャルタイヤを貫通して見えた)も
+    # プリム丸ごとtireへ。全体包含条件なのでフェンダー外皮を巻き添えにしない。
+    if steered:
+        def fully_in_steered_zone(pos_mm):
+            for ai, si in steered:
+                ax = axles[ai]
+                y = pos_mm[:, 1] if si == 0 else -pos_mm[:, 1]
+                if ((np.abs(pos_mm[:, 0] - ax) < WHEEL_ZONE['dx']).all()
+                        and (y > 350).all() and (y < 760).all()
+                        and (pos_mm[:, 2] < WHEEL_ZONE['z_max']).all()):
+                    return True
+            return False
+
+        new_prims = []
+        moved_chrome = moved_body_prims = 0
+        for p in prims:
+            pos_mm = transform(p['positions'])
+            if p['category'] == 'body' and fully_in_steered_zone(pos_mm):
+                p = dict(p, category='tire')
+                moved_body_prims += 1
+                new_prims.append(p)
+                continue
+            if p['category'] != 'chrome':
+                new_prims.append(p)
+                continue
+            hide_mask = np.zeros(p['positions'].shape[0], dtype=bool)
+            for comp in _connected_components(p['positions'].shape[0], p['indices']):
+                key = capture(pos_mm[comp].mean(axis=0))
+                if key in steered:
+                    hide_mask[comp] = True
+                    moved_chrome += len(comp)
+            if hide_mask.any():
+                new_prims.extend(_split_prim_by_mask(p, hide_mask, 'tire', 'chrome'))
+            else:
+                new_prims.append(p)
+        prims = new_prims
+        labels = ['前左', '前右', '後左', '後右']
+        names = [labels[k[0] * 2 + k[1]] for k in sorted(steered)]
+        print(f"操舵された車輪({'/'.join(names)}): chrome {moved_chrome}頂点と"
+              f"bodyホイールプリム{moved_body_prims}個をtireへ移動(非表示化)")
 
     # 4輪のホイール中心・半径を円盤状成分の実測bboxから決定
     wheels = []
@@ -258,7 +327,7 @@ def detect_wheels(prims, transform, wheelbase_mm):
         for w in wheels:
             print('  wheel:', w)
         raise SystemExit('!! 車輪検出失敗(壊れたwheels.jsonを出力しないため中断):\n  ' + '\n  '.join(problems))
-    return wheels
+    return prims, wheels
 
 
 def merge_by_category(prims, transform):
@@ -435,7 +504,7 @@ def main():
         cats[p['category']] = cats.get(p['category'], 0) + 1
     print('category primitive counts:', cats)
 
-    wheels = detect_wheels(prims, transform, args.wheelbase_mm)
+    prims, wheels = detect_wheels(prims, transform, args.wheelbase_mm)
     prims = reclassify_headlight_lenses(prims, transform)
 
     merged = merge_by_category(prims, transform)
