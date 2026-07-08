@@ -153,6 +153,84 @@ def compute_transform(prims, real_length_mm, front_overhang_mm):
                                    front_z=front_z, front_axle_z=front_axle_z)
 
 
+def _connected_components(n_verts, indices):
+    """三角形の頂点共有関係で連結成分(Union-Find)に分解する。"""
+    parent = list(range(n_verts))
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a, b):
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+
+    idx = indices.reshape(-1, 3)
+    for tri in idx:
+        union(int(tri[0]), int(tri[1]))
+        union(int(tri[1]), int(tri[2]))
+    groups = {}
+    for v in range(n_verts):
+        groups.setdefault(find(v), []).append(v)
+    return list(groups.values())
+
+
+def drop_wheel_islands_from_body(prims, transform, wheels, radius_factor=1.3):
+    """'body'に紛れ込んだ車輪近傍の破片(ブレーキ/ハブ等の断片。色ヒューリスティックで
+    tire/chromeに分類されずbody側に残り、実車には無いドーナツ状の見た目を作る)を削除する。
+    削除対象は既存メッシュと頂点を共有しない独立した連結成分のみなので、
+    残るbody本体の境界線(EdgesGeometry)には一切影響しない。"""
+    wheel_centers = [np.array(w['center']) for w in wheels]
+    wheel_radii = [w['radius'] for w in wheels]
+    out = []
+    dropped_verts = 0
+    dropped_islands = 0
+    for p in prims:
+        if p['category'] != 'body':
+            out.append(p)
+            continue
+        pos_raw = p['positions']
+        idx = p['indices']
+        pos_v = transform(pos_raw)
+        components = _connected_components(pos_raw.shape[0], idx)
+        if len(components) <= 1:
+            out.append(p)
+            continue
+        keep_mask = np.ones(pos_raw.shape[0], dtype=bool)
+        for comp in components:
+            centroid = pos_v[comp].mean(axis=0)
+            near = any(
+                np.linalg.norm(centroid - c) < r * radius_factor
+                for c, r in zip(wheel_centers, wheel_radii)
+            )
+            if near:
+                keep_mask[comp] = False
+                dropped_verts += len(comp)
+                dropped_islands += 1
+        if keep_mask.all():
+            out.append(p)
+            continue
+        # 削除後、残った三角形だけを抽出(すべての頂点がkeep_maskで残っている三角形のみ)
+        tri = idx.reshape(-1, 3)
+        tri_keep = keep_mask[tri].all(axis=1)
+        new_tri = tri[tri_keep]
+        if new_tri.size == 0:
+            continue
+        flat = new_tri.reshape(-1)
+        unique_idx, remap = np.unique(flat, return_inverse=True)
+        out.append({
+            'category': 'body',
+            'positions': pos_raw[unique_idx],
+            'indices': remap.astype(np.uint32),
+        })
+    if dropped_islands:
+        print(f'body: 車輪近傍の独立した破片 {dropped_islands}個({dropped_verts}頂点)を削除')
+    return out
+
+
 def merge_by_category(prims, transform):
     grouped = {}
     for p in prims:
@@ -299,6 +377,13 @@ def main():
     for p in prims:
         cats[p['category']] = cats.get(p['category'], 0) + 1
     print('category primitive counts:', cats)
+
+    tire_prims = [p for p in prims if p['category'] == 'tire']
+    if tire_prims:
+        prelim_tire_pts = np.vstack([transform(p['positions']) for p in tire_prims])
+        prelim_wheels = cluster_wheels(prelim_tire_pts)
+        if len(prelim_wheels) == 4:
+            prims = drop_wheel_islands_from_body(prims, transform, prelim_wheels)
 
     merged = merge_by_category(prims, transform)
     for cat, m in merged.items():

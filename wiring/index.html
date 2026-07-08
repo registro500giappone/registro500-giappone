@@ -222,31 +222,19 @@ const ghostMat = new THREE.ShaderMaterial({
     edgeC:   { value: new THREE.Color(0xd9ecff) },
     solidC:  { value: new THREE.Color(0xcfd6dc) },
     reveal:  { value: 0.0 },
-    wheelCenters: { value: [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()] },
-    wheelRadii:   { value: [0, 0, 0, 0] },
-    wheelCount:   { value: 0 },
   },
   vertexShader: `
-    varying vec3 vN; varying vec3 vV; varying vec3 vWP;
+    varying vec3 vN; varying vec3 vV;
     void main(){
       vec4 wp = modelMatrix * vec4(position, 1.0);
       vN = normalize(mat3(modelMatrix) * normal);
       vV = normalize(cameraPosition - wp.xyz);
-      vWP = wp.xyz;
       gl_Position = projectionMatrix * viewMatrix * wp;
     }`,
   fragmentShader: `
     uniform vec3 tint; uniform vec3 edgeC; uniform vec3 solidC; uniform float reveal;
-    uniform vec3 wheelCenters[4]; uniform float wheelRadii[4]; uniform int wheelCount;
-    varying vec3 vN; varying vec3 vV; varying vec3 vWP;
+    varying vec3 vN; varying vec3 vV;
     void main(){
-      // 元モデルのタイヤ材質分類漏れで body 側に残ったタイヤ形状のジオメトリを、
-      // メッシュを切らずにピクセル単位で隠す(車輪中心付近は描画しない)。
-      // トポロジーに触れないためEdgesGeometryの境界線アーティファクトが発生しない。
-      for (int i = 0; i < 4; i++) {
-        if (i >= wheelCount) break;
-        if (distance(vWP, wheelCenters[i]) < wheelRadii[i] * 1.1) discard;
-      }
       float f = 1.0 - abs(dot(normalize(vN), normalize(vV)));
       float ghostA = 0.045 + 0.75 * pow(f, 2.6);
       float shade = 0.55 + 0.45 * max(dot(normalize(vN), vec3(0.3,0.3,0.9)), 0.0);
@@ -291,37 +279,9 @@ const interiorMat = new THREE.MeshStandardMaterial({
   color: MAT_STATES.interior.solidColor, roughness: 0.8, metalness: 0.1,
   transparent: false, opacity: MAT_STATES.interior.solidOpacity, depthWrite: true,
 });
-// 特徴線(EdgesGeometry)はbody等のフィルとは別マテリアル・別ジオメトリで描画されるため、
-// ghostMat側のdiscardだけでは車輪近傍の輪郭線が隠れない。同じ判定ロジックをこちらにも実装する。
-const lineMat = new THREE.ShaderMaterial({
-  transparent: true,
-  depthWrite: false,
-  blending: THREE.AdditiveBlending,
-  uniforms: {
-    lineColor: { value: new THREE.Color(0xcfe6ff) },
-    lineOpacity: { value: 0.55 },
-    wheelCenters: { value: [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()] },
-    wheelRadii:   { value: [0, 0, 0, 0] },
-    wheelCount:   { value: 0 },
-  },
-  vertexShader: `
-    varying vec3 vWP;
-    void main(){
-      vec4 wp = modelMatrix * vec4(position, 1.0);
-      vWP = wp.xyz;
-      gl_Position = projectionMatrix * viewMatrix * wp;
-    }`,
-  fragmentShader: `
-    uniform vec3 lineColor; uniform float lineOpacity;
-    uniform vec3 wheelCenters[4]; uniform float wheelRadii[4]; uniform int wheelCount;
-    varying vec3 vWP;
-    void main(){
-      for (int i = 0; i < 4; i++) {
-        if (i >= wheelCount) break;
-        if (distance(vWP, wheelCenters[i]) < wheelRadii[i] * 1.1) discard;
-      }
-      gl_FragColor = vec4(lineColor, lineOpacity);
-    }`,
+const lineMat = new THREE.LineBasicMaterial({
+  color: 0xcfe6ff, transparent: true, opacity: 0.55,
+  blending: THREE.AdditiveBlending, depthWrite: false,
 });
 
 const CATEGORY_MATERIAL = {
@@ -436,22 +396,6 @@ function addLandmarks() {
   scene.add(landmarksGroup);
 }
 
-// 'body'カテゴリに残る車輪近傍ジオメトリ(タイヤ材質の分類漏れ)を、フィル(ghostMat)と
-// 輪郭線(lineMat)の両方でシェーダーdiscardするためのuniform更新。
-// モデル切替のたびにそのモデルのwheels情報で上書きする。
-function updateGhostWheelUniforms(info) {
-  const wheels = (info.wheels || []).slice(0, 4);
-  for (const mat of [ghostMat, lineMat]) {
-    const centers = mat.uniforms.wheelCenters.value;
-    const radii = mat.uniforms.wheelRadii.value;
-    wheels.forEach((w, i) => {
-      centers[i].set(w.center[0], w.center[1], w.center[2]);
-      radii[i] = w.radius;
-    });
-    mat.uniforms.wheelCount.value = wheels.length;
-  }
-}
-
 const modelCache = {}; // key -> THREE.Group(読込済みキャッシュ)
 let activeModelKey = null;
 async function showModel(key) {
@@ -469,7 +413,6 @@ async function showModel(key) {
     modelCache[key].visible = true;
     activeModelKey = key;
     updateAttrib(MODEL_INFO[key]);
-    updateGhostWheelUniforms(MODEL_INFO[key]);
     document.getElementById('loading').classList.add('done');
   } catch (err) {
     document.getElementById('loading').innerHTML =
