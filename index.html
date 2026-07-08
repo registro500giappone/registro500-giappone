@@ -670,7 +670,7 @@
     });
 
     async function forceReload() {
-      // iOSのSafari PWAではreload()が効かないため、fetchCars()を直接呼ぶ
+      // iOSのSafari PWAではreload()が効かないため、キャッシュバスティング付き遷移を使う
       const loadingEl = document.getElementById('loading');
       loadingEl.innerText = '読み込んでいます...';
       loadingEl.style.display = 'block';
@@ -690,19 +690,12 @@
         }
       } catch (e) { /* SW未対応環境はスキップしてデータ再取得に進む */ }
 
-      let success = await fetchCars();
-      // 失敗した場合は2秒後にリトライ
-      if (!success) {
-        await new Promise(r => setTimeout(r, 2000));
-        loadingEl.innerText = '再試行しています...';
-        loadingEl.style.display = 'block';
-        success = await fetchCars();
-      }
-      if (!success && carsData.length > 0) {
-        loadingEl.innerText = '更新に失敗しました。もう一度お試しください。';
-        loadingEl.style.display = 'block';
-        setTimeout(() => { loadingEl.style.display = 'none'; }, 3000);
-      }
+      // 新SW待機なし＝SWは最新化済みの可能性が高いが、
+      // メニュー等の静的HTML部分はページロード時点のままなので、
+      // キャッシュバスティング付きURLへ再ナビゲーションして確実に最新HTMLを取得する
+      // （PWA standaloneモードではlocation.reload()が効かない端末があるため、
+      //   新規ナビゲーション扱いになるクエリパラメータ付き遷移を使う）
+      window.location.href = window.location.pathname + '?_r=' + Date.now();
     }
 
     function shareSite() {
