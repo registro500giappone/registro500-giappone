@@ -862,7 +862,7 @@
           }
 
           const dbData = {
-            owner_email: userEmail, owner_user_id: currentAuthUser.id, car_type: raw.CarType || '500', handle_name: raw.HandleName, prefecture: raw.Prefecture,
+            car_type: raw.CarType || '500', handle_name: raw.HandleName, prefecture: raw.Prefecture,
             model_select_a: raw.ModelSelectA, model_text_a: raw.ModelTextA, model_select_b: raw.ModelSelectB, model_text_b: raw.ModelTextB,
             year: raw.Year, body_color: raw.BodyColor, length_cm: raw.Length_cm || null, capacity: raw.Capacity, steering: raw.Steering,
             engine_cc: raw.EngineCC, engine_type_select: raw.EngineTypeSelect, engine_type_text: raw.EngineTypeText,
@@ -881,7 +881,12 @@
             last_update_date: new Date().toISOString(), // ★ここを追加
             accept_inquiry: true, updated_at: new Date().toISOString()
           };
-          if (!isNew) dbData.document_id = raw.DocumentID;
+          if (isNew) {
+            dbData.owner_email = userEmail;
+            dbData.owner_user_id = currentAuthUser.id;
+          } else {
+            dbData.document_id = raw.DocumentID;
+          }
           // ON CONFLICT DO UPDATE（upsert）は SELECT 権限を要求し owner_email 非公開化と両立しないため、
           // 新規=insert / 既存=update に分割する
           const { data: savedData, error } = isNew
