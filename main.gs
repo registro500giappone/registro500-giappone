@@ -361,7 +361,11 @@ function supabaseUpdate_(table, id, data) {
     payload: JSON.stringify(data),
     muteHttpExceptions: true
   };
-  UrlFetchApp.fetch(url, options);
+  const response = UrlFetchApp.fetch(url, options);
+  const code = response.getResponseCode();
+  if (code < 200 || code >= 300) {
+    throw new Error('supabaseUpdate_ HTTP ' + code + ' / ' + response.getContentText());
+  }
 }
 
 // =================================================
@@ -376,8 +380,8 @@ function sendDailyDigest() {
   }
   try {
     const now = new Date();
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const yesterdayISO = yesterday.toISOString();
+    const windowStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000); // 取り残し救済窓（配信失敗しても14日以内は自動リカバリ）
+    const windowStartISO = windowStart.toISOString();
 
     Logger.log('sendDailyDigest 開始: ' + now);
 
@@ -387,7 +391,7 @@ function sendDailyDigest() {
     // 2. 新車チェック
     const newCarsData = supabaseQuery_('cars', 'id,document_id,handle_name,model_display_c,notification_sent,created_at', {
       'notification_sent': 'eq.false',
-      'created_at': `gte.${yesterdayISO}`,
+      'created_at': `gte.${windowStartISO}`,
       'order': 'created_at.asc'
     });
     if (!Array.isArray(newCarsData)) {
@@ -403,7 +407,8 @@ function sendDailyDigest() {
     // 3. 新規イベントチェック
     const newEventsData = supabaseQuery_('events', 'id,event_name,event_date,owner_name,location,notification_sent,created_at', {
       'notification_sent': 'eq.false',
-      'created_at': `gte.${yesterdayISO}`,
+      'created_at': `gte.${windowStartISO}`,
+      'event_date': `gte.${now.toISOString().slice(0,10)}`, // 開催日を過ぎたイベントは救済配信しない
       'order': 'created_at.asc'
     });
     const newEvents = newEventsData.map(evt => {
@@ -421,7 +426,7 @@ function sendDailyDigest() {
     const newEpisodesData = supabaseQuery_('car_episodes', 'id,car_id,type,title,created_at,notification_sent,is_published', {
       'notification_sent': 'eq.false',
       'is_published': 'eq.true',
-      'created_at': `gte.${yesterdayISO}`,
+      'created_at': `gte.${windowStartISO}`,
       'order': 'created_at.asc'
     });
     if (!Array.isArray(newEpisodesData)) {
@@ -445,6 +450,7 @@ function sendDailyDigest() {
 
     if (unsentNews.length === 0 && newCars.length === 0 && newEvents.length === 0 && newEpisodes.length === 0) {
       Logger.log('配信対象なし');
+      try { logDelivery('daily_digest', 0, '対象なし', 'skip'); } catch (e) {}
       return;
     }
 
@@ -512,6 +518,8 @@ function sendDailyDigest() {
     // 6. フラグ更新（1件以上 chunk 送信に成功した場合のみ。全滅ならフラグ据え置きで次回再送を担保）
     if (sentChunks === 0) {
       Logger.log('❌ 全chunk送信失敗（成功:0, 失敗:' + failedChunks + '）→ フラグ更新スキップ。次回の定期実行で再送されます。');
+      try { logDelivery('daily_digest', 0, subject, '失敗'); } catch (e) {}
+      try { sendAdminAlert_('【要確認】朝ダイジェスト送信失敗', '全' + failedChunks + 'chunkの送信に失敗しました（成功:0）。件名: ' + subject); } catch (e) {}
       return;
     }
     if (failedChunks > 0) {
@@ -519,7 +527,7 @@ function sendDailyDigest() {
     }
 
     newCars.forEach(car => {
-      try { supabaseUpdate_('cars', car.DbId, { notification_sent: true }); } catch (e) {}
+      try { supabaseUpdate_('cars', car.DbId, { notification_sent: true }); } catch (e) { Logger.log('cars フラグ更新エラー: ' + e); }
     });
     newEvents.forEach(evt => {
       try { markEventNotificationSent_(evt.DbId); } catch (e) { Logger.log('events フラグ更新エラー: ' + e); }
@@ -532,13 +540,22 @@ function sendDailyDigest() {
     });
 
     Logger.log(`メール配信完了: お知らせ${unsentNews.length}件、車両${newCars.length}台、イベント${newEvents.length}件、ストーリー${newEpisodes.length}件（送信chunk ${sentChunks}成功/${failedChunks}失敗）`);
+    try { logDelivery('daily_digest', recipients.length, subject, failedChunks > 0 ? `一部失敗(${sentChunks}/${sentChunks + failedChunks})` : '成功'); } catch (e) {}
   } catch (error) {
     Logger.log('❌ sendDailyDigest エラー: ' + error);
     Logger.log('スタックトレース: ' + error.stack);
+    try { logDelivery('daily_digest', 0, 'sendDailyDigest', '失敗'); } catch (e) {}
+    try { sendAdminAlert_('【要確認】朝ダイジェスト送信失敗', 'sendDailyDigest で例外が発生しました: ' + error); } catch (e) {}
     throw error;
   } finally {
     lock.releaseLock();
   }
+}
+
+// Brevoを経由しない管理者アラート（Brevo障害時でもGmail経路で必ず届く）
+function sendAdminAlert_(subject, body) {
+  if (ADMIN_EMAILS.length === 0) return;
+  MailApp.sendEmail({ to: ADMIN_EMAILS[0], subject: subject, body: body });
 }
 
 // 未送信のお知らせを取得（直近14日以内 かつ 最大5件）
@@ -976,9 +993,14 @@ function markNewsAsSent_(newsId) {
       'Prefer': 'return=minimal'
     };
     const options = { method: 'patch', headers: headers, payload: JSON.stringify({ sent_at: new Date().toISOString(), email_sent: true }), muteHttpExceptions: true };
-    UrlFetchApp.fetch(url, options);
+    const response = UrlFetchApp.fetch(url, options);
+    const code = response.getResponseCode();
+    if (code < 200 || code >= 300) {
+      throw new Error('markNewsAsSent_ HTTP ' + code + ' / ' + response.getContentText());
+    }
   } catch (e) {
     console.error('markNewsAsSent_ error:', e);
+    throw e;
   }
 }
 
@@ -992,9 +1014,14 @@ function markEventNotificationSent_(eventId) {
       'Content-Type': 'application/json'
     };
     const options = { method: 'post', headers: headers, payload: JSON.stringify({ p_event_id: eventId }), muteHttpExceptions: true };
-    UrlFetchApp.fetch(url, options);
+    const response = UrlFetchApp.fetch(url, options);
+    const code = response.getResponseCode();
+    if (code < 200 || code >= 300) {
+      throw new Error('markEventNotificationSent_ HTTP ' + code + ' / ' + response.getContentText());
+    }
   } catch (e) {
     Logger.log('markEventNotificationSent_ error: ' + e);
+    throw e;
   }
 }
 
