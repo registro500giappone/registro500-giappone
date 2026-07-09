@@ -117,13 +117,15 @@ generated_at
 | 5 | goods/parts主要リンクにイベントパラメータ | ④の商品・ショップ別精緻化 | 🟡 属性付与 |
 | 6 | GA4 Data API連携（レポート自動取得） | ①④をレポートに統合・Cloudflare引退 | 🔴 GCPサービスアカウント設定 |
 
+【2026-07-09 更新】#6 完了。`py/gen_report.py` にGA4 Data API接続（REST直叩き・google-authでサービスアカウント認証）を実装。①signup_page_views/signups/signup_cvr、④affil_clicks/affil_click_by_pageをweekly_metricsに記録・report.htmlのpending欄を実値化。実装時の発見：アフィリクリックの絞り込みはStep 0で登録したカスタムディメンション`customEvent:link_domain`ではなく、GA4がEnhanced Measurementの外部リンククリックに対して自動提供する**標準ディメンション`linkDomain`**を使う（カスタムディメンション登録は実質不要だった）。ローカルE2E確認済（実データ: signup_page_views=77, signups=3, affil_clicks=22）。配信（`py/send_report.py`）とcron（`.github/workflows/weekly-report.yml`）も合わせて実装済み・CI E2E検証待ち。
+
 ---
 
 ## 7. 実装ロードマップ
 
 - **フェーズ1（今あるデータで・今日着手可）**: Supabase部分の週次化、`weekly_metrics`開始、真アクティブ率・コホート、未連携CSV。→ ②③が動く。
 - **フェーズ2（低コスト配線）**: GA4拡張計測ON＋`sign_up`イベント。→ ①④が貯まり始める。
-- **フェーズ3（GA4 Data API）**: GA4数値をレポートに統合、Cloudflare引退。
+- **フェーズ3（GA4 Data API）**: GA4数値をレポートに統合、Cloudflare引退。【2026-07-09 実装完了・Cloudflare引退は並走2週間後に判断】
 - **フェーズ4（定性）**: アンケート（既存survey型を再利用）＋コア9人へ直接ヒアリングを、定量レポートの絞り込みと連携。
 
 ---

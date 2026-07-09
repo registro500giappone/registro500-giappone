@@ -1,0 +1,39 @@
+name: Weekly Growth Report
+
+on:
+  schedule:
+    - cron: '0 22 * * 0'  # 毎週月曜 07:00 JST (日曜 22:00 UTC)
+  workflow_dispatch:       # 手動実行ボタン
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 依存関係インストール
+        run: pip install requests google-auth
+      - name: .env / GA4サービスアカウントキー 作成
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
+          echo "SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}" >> py/.env
+          echo "CLOUDFLARE_ANALYTICS_TOKEN=${{ secrets.CLOUDFLARE_ANALYTICS_TOKEN }}" >> py/.env
+          echo "GA4_PROPERTY_ID=${{ secrets.GA4_PROPERTY_ID }}" >> py/.env
+          echo "BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}" >> py/.env
+          echo '${{ secrets.GA4_SA_JSON }}' > py/ga4_sa.json
+      - name: レポート生成
+        run: python py/gen_report.py
+      - name: メール配信
+        run: python py/send_report.py
+      - name: report.html を artifact 保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: growth-report-${{ github.run_number }}
+          path: report.html
+          retention-days: 90
+          if-no-files-found: warn

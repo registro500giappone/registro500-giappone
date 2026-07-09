@@ -203,6 +203,69 @@ prev = fetch(g0, g1)
 prev_paths = dict(prev["paths"])
 prev_ref = dict(prev["ref"])
 
+# ───────────────────────── GA4 Data API（フェーズ2配線・失敗時はpending表示にフォールバック）─────────────────────────
+GA4_PROPERTY_ID = env.get("GA4_PROPERTY_ID")
+GA4_SA_JSON = os.path.join(BASE, "py", "ga4_sa.json")
+GA4_EDIT_PATH = "/edit"
+
+ga4 = None
+
+
+def ga4_report(metrics, dimensions=None, dimension_filter=None):
+    from google.oauth2 import service_account
+    from google.auth.transport.requests import Request as GARequest
+    creds = service_account.Credentials.from_service_account_file(
+        GA4_SA_JSON, scopes=["https://www.googleapis.com/auth/analytics.readonly"])
+    creds.refresh(GARequest())
+    body = {"dateRanges": [{"startDate": "7daysAgo", "endDate": "today"}],
+            "metrics": [{"name": m} for m in metrics]}
+    if dimensions:
+        body["dimensions"] = [{"name": d} for d in dimensions]
+    if dimension_filter:
+        body["dimensionFilter"] = dimension_filter
+    req = urllib.request.Request(
+        f"https://analyticsdata.googleapis.com/v1beta/properties/{GA4_PROPERTY_ID}:runReport",
+        data=json.dumps(body).encode(),
+        headers={"Authorization": "Bearer " + creds.token, "Content-Type": "application/json"})
+    return json.load(urllib.request.urlopen(req, timeout=40))
+
+
+if GA4_PROPERTY_ID and os.path.exists(GA4_SA_JSON):
+    try:
+        traffic = ga4_report(["screenPageViews", "sessions"])
+        trows = traffic.get("rows")
+        g_pv = int(trows[0]["metricValues"][0]["value"]) if trows else 0
+        g_visits = int(trows[0]["metricValues"][1]["value"]) if trows else 0
+
+        sp = ga4_report(["screenPageViews"], dimension_filter={
+            "filter": {"fieldName": "pagePath", "stringFilter": {"value": GA4_EDIT_PATH, "matchType": "EXACT"}}})
+        signup_page_views = sum(int(r["metricValues"][0]["value"]) for r in sp.get("rows", []))
+
+        su = ga4_report(["eventCount"], dimension_filter={
+            "filter": {"fieldName": "eventName", "stringFilter": {"value": "sign_up", "matchType": "EXACT"}}})
+        signups = sum(int(r["metricValues"][0]["value"]) for r in su.get("rows", []))
+
+        affil_filter = {"andGroup": {"expressions": [
+            {"filter": {"fieldName": "eventName", "stringFilter": {"value": "click", "matchType": "EXACT"}}},
+            {"filter": {"fieldName": "linkDomain",
+                        "stringFilter": {"value": "amazon", "matchType": "CONTAINS"}}},
+        ]}}
+        ac = ga4_report(["eventCount"], dimension_filter=affil_filter)
+        affil_clicks = sum(int(r["metricValues"][0]["value"]) for r in ac.get("rows", []))
+
+        acp = ga4_report(["eventCount"], dimensions=["pagePath"], dimension_filter=affil_filter)
+        affil_click_by_page = {r["dimensionValues"][0]["value"]: int(r["metricValues"][0]["value"])
+                                for r in acp.get("rows", [])}
+
+        ga4 = {
+            "pv": g_pv, "visits": g_visits,
+            "signup_page_views": signup_page_views, "signups": signups,
+            "signup_cvr": (signups / signup_page_views) if signup_page_views else None,
+            "affil_clicks": affil_clicks, "affil_click_by_page": affil_click_by_page,
+        }
+    except Exception as e:
+        print("GA4取得失敗（pending表示にフォールバック）:", e)
+
 # ───────────────────────── 週次スナップショット（前週比の起点）─────────────────────────
 _psnap = sb("weekly_metrics", "*", f"week_start=lt.{week_start}&order=week_start.desc&limit=1")
 prev_snap = _psnap[0] if _psnap else None
@@ -217,6 +280,13 @@ snap = {
     "garage_notes": gnotes, "user_selections": usel,
     "pv_7d": cur["pv"], "visits_7d": cur["visits"],
 }
+if ga4:
+    snap.update({
+        "pv": ga4["pv"], "visits": ga4["visits"],
+        "signup_page_views": ga4["signup_page_views"], "signups": ga4["signups"],
+        "signup_cvr": ga4["signup_cvr"],
+        "affil_clicks": ga4["affil_clicks"], "affil_click_by_page": ga4["affil_click_by_page"],
+    })
 sb_upsert("weekly_metrics", snap)
 
 
@@ -400,6 +470,32 @@ new Chart(document.getElementById('cDay'),{type:'line',
  options:{...noLeg,scales:{y:{beginAtZero:true}}}});
 """
 
+# ───────────────────────── ① 獲得ファネル・④ 収益（GA4取得結果 or pending）─────────────────────────
+if ga4:
+    cvr_str = pct(ga4["signups"], ga4["signup_page_views"])
+    funnel_html = (
+        '<table><tr><th>指標</th><th class="num">値</th></tr>'
+        f'<tr><td>登録ページ到達（7日）</td><td class="num">{ga4["signup_page_views"]:,}</td></tr>'
+        f'<tr><td>登録完了（sign_up）</td><td class="num">{ga4["signups"]:,}</td></tr>'
+        f'<tr><td>到達→完了率</td><td class="num">{cvr_str}</td></tr></table>'
+    )
+    top_pages = sorted(ga4["affil_click_by_page"].items(), key=lambda x: -x[1])[:8]
+    page_rows = "".join(f'<tr><td>{html.escape(p)}</td><td class="num">{c}</td></tr>' for p, c in top_pages)
+    revenue_html = (
+        f'<div class="kpi-grid"><div class="kpi green"><div class="k">アフィリクリック(7日)</div>'
+        f'<div class="v">{ga4["affil_clicks"]:,}</div></div></div>'
+        + (f'<table style="margin-top:.6em"><tr><th>ページ</th><th class="num">クリック</th></tr>{page_rows}</table>'
+           if page_rows else "")
+    )
+else:
+    funnel_html = ('<div class="pending">⏳ フェーズ2で配線予定。<code>sign_up</code> イベントは実装済み'
+                    '（デプロイ後にGA4でキーイベント指定）。ONになれば「来訪したのに登録しなかった層」と'
+                    '離脱箇所が見え始めます。</div>')
+    revenue_html = ('<div class="pending">⏳ <b>GA4「外部リンククリック（拡張計測）」をONにすれば、'
+                     '無改修で来週から取得開始</b>。goods.html に Amazonアソシエイト等の送客リンクが多数あり、'
+                     '現状クリックは未計測。ON後は「どのページ・商品・ショップが送客しているか」'
+                     '「閲覧→クリック率」が見え、goods改善/新規の判断材料になります。報酬額は提携先レポートと突合。</div>')
+
 HTML = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -430,9 +526,8 @@ HTML = f"""<!DOCTYPE html>
     <div class="note">{read_reg}</div>
   </div>
   <div class="cardbox">
-    <h3>獲得ファネル（GA4）</h3><div class="cap">登録ページ到達→完了率・流入元別の転換</div>
-    <div class="pending">⏳ フェーズ2で配線予定。<code>sign_up</code> イベントは実装済み（デプロイ後にGA4でキーイベント指定）。
-    ONになれば「来訪したのに登録しなかった層」と離脱箇所が見え始めます。</div>
+    <h3>獲得ファネル（GA4）</h3><div class="cap">登録ページ到達→完了率（直近7日）</div>
+    {funnel_html}
   </div>
 </div>
 
@@ -477,9 +572,7 @@ HTML = f"""<!DOCTYPE html>
 </div>
 
 <div class="seg-title">④ 収益 ― アフィリエイト送客</div>
-<div class="pending">⏳ <b>GA4「外部リンククリック（拡張計測）」をONにすれば、無改修で来週から取得開始</b>。
-goods.html に Amazonアソシエイト等の送客リンクが多数あり、現状クリックは未計測。
-ON後は「どのページ・商品・ショップが送客しているか」「閲覧→クリック率」が見え、goods改善/新規の判断材料になります。報酬額は提携先レポートと突合。</div>
+{revenue_html}
 
 <div class="seg-title">流入（Cloudflare 直近7日 / フェーズ3でGA4へ移管）</div>
 <div class="kpi-grid">
