@@ -145,7 +145,8 @@ def compute_transform(prims, real_length_mm, front_overhang_mm):
     def transform(pos):
         x, y, z = pos[:, 0], pos[:, 1], pos[:, 2]
         vx = (front_axle_z - z) * scale   # 前軸0・後方+
-        vy = -x * scale                   # 左右。実機確認でハンドル/マフラーが左右逆と判明したため反転（2026-07-07）
+        vy = x * scale                    # 左右。2026-07-09: 頂点実測でハンドルが右(RHD)と確定したため2026-07-07の反転(vy=-x)を撤回。
+                                          # 既存GLBは同日mirror_glb.pyで直接Y反転済み。次回この式で再生成すればLHDで一致する。
         vz = (y - ground_y) * scale       # 地面0・上+
         return np.stack([vx, vy, vz], axis=1)
 
