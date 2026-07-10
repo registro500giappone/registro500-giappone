@@ -24,3 +24,26 @@
 - 原本: https://sketchfab.com/3d-models/fiat500-alt-1d34eceb6aea44049ec1d6a1dd1c3c83
 - ライセンス: [CC Attribution 4.0](http://creativecommons.org/licenses/by/4.0/)
 - 改変内容: テクスチャ除去・実車寸法へのスケール/座標整列・マテリアル名によるパーツ分類・約45万面→約12万面へ簡略化・gltf-transformによる軽量化
+
+## 110F型エンジンユニット（`assets/engine_110f.glb`）
+- 出典: 他社作品の改変ではなく自作プロシージャル生成（`tools/build_engine.py`）。
+  形状の主参照は FIAT 500 D 型 uso e manutenzione マニュアル p47「Motore con
+  ventilatore, sezionati parzialmente」（カットモデル図版・著作権はFIAT/出版元に帰属・
+  ローカル参照のみで同梱はしていない）。
+- 構成: クランクケース＋オイルパン／フィン付きシリンダー×2＋ヘッドカバー／遠心ファン
+  ハウジング(ダイナモ一体)＋シュラウド／クランクプーリー・ファンプーリー・Vベルト／
+  キャブレター＋エアクリーナー／マフラー＋エキゾーストパイプ×2／ディストリビューター・
+  点火コイル・オイルフィラーキャップ／ベルハウジング最小スタブ(ギアボックス本体は別GLB
+  drivetrain_110f.glb が担当する前提で重複させていない)。
+- 座標系: body_f_v2.glb/body_l_v2.glb と同じ実車mm座標系(x=前軸0・後方+/y=左+/z=地面0・
+  上+)で直接生成。f.json の group:"engine" ノード(cylinder_head/dynamo/air_cleaner/
+  distributor/ignition_coil 等)の pos3d を配置アンカーとして使用(詳細は
+  build_engine.py 冒頭docstring)。
+- 再生成手順:
+  ```
+  cd wiring/tools
+  python build_engine.py
+  ```
+  出力先は `../assets/engine_110f.glb`（面数・バウンディングボックスを標準出力に表示）。
+  index.html 側は `EXTRA_GLBS` 配列（機械系ユニット追加GLB群）から読み込む。今後
+  駆動系等を追加する場合はこの配列にファイルを1行追加すればよい。

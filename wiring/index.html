@@ -406,7 +406,7 @@ function addLandmarks() {
   });
   const items = [
     // [名前, x0,x1, y0,y1, z0,z1, 素材]
-    ['engine',    1950, 2330, -260, 260, 240, 620, amber],   // エンジン（後部）
+    // エンジンは実形状GLB(engine_110f.glb・loadEngine参照)に置き換え済みのため抽象ボックスは廃止
     ['battery',   -320, -150,  120, 330, 430, 580, amber],   // バッテリー（前トランク左）
     ['dash',       380,  470, -560, 560, 730, 860, gray],    // ダッシュボード
     ['seat_l',     640, 1060,   60, 430, 380, 640, gray],    // シート左
@@ -452,6 +452,33 @@ document.getElementById('btnModelF').addEventListener('click', () => showModel('
 document.getElementById('btnModelL').addEventListener('click', () => showModel('l'));
 addLandmarks();
 showModel('f'); // 初期表示
+
+// ---- 機械系ユニット追加GLB群（エンジン等。F/L共通・常時表示） ----
+// 車体と同じ座標系で直接生成済み(build_*.py)のためスケール/位置合わせ不要。
+// パーツタップ(raycast)はpartsGroup.childrenのみを見るため、ここではpartsGroupに入れず
+// sceneへ直接追加することで自動的にタップ対象から除外される。1件ずつ読み込み、
+// 失敗しても他のGLBの読み込みには影響しない(個別に静かにスキップ)。
+// 今後 駆動系(drivetrain_110f.glb)等を追加する場合は配列に1行足すだけでよい。
+const EXTRA_GLBS = [
+  { file: './assets/engine_110f.glb', label: 'engine' },
+];
+function loadExtraGlbs() {
+  for (const { file, label } of EXTRA_GLBS) {
+    new GLTFLoader().load(file, (gltf) => {
+      gltf.scene.traverse((obj) => {
+        if (!obj.isMesh) return;
+        if (obj.geometry && !obj.geometry.attributes.normal) {
+          obj.geometry.computeVertexNormals();
+        }
+        obj.renderOrder = 1;
+      });
+      scene.add(gltf.scene);
+    }, undefined, (err) => {
+      console.warn(`機械系GLB(${label})読込に失敗（スキップ）:`, err);
+    });
+  }
+}
+loadExtraGlbs();
 
 // ---- ソリッド(色付きイラスト)→ゴースト(透視)のクロスフェード ----
 // ボタンでのみ切り替える双方向トグル（自動発火なし）。色付き⇔シースルーを何度でも行き来できる。
