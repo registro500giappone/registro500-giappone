@@ -133,13 +133,13 @@ const MODEL_INFO = {
     url: './assets/body_f_v2.glb',
     label: 'Fiat Nuova 500F', author: 'freeReef',
     src: 'https://sketchfab.com/3d-models/fiat-nuova-500f-0d1548037b7641f2b8fb32da8556018e',
-    wheels: [{"center": [-4.33, 568.43, 246.82], "radius": 246.82}, {"center": [-4.33, -568.43, 246.82], "radius": 246.82}, {"center": [1833.35, 568.43, 246.82], "radius": 246.82}, {"center": [1833.35, -568.43, 246.82], "radius": 246.82}],
+    wheels: [{"center": [-4.33, -568.43, 246.82], "radius": 246.82}, {"center": [-4.33, 568.43, 246.82], "radius": 246.82}, {"center": [1833.35, -568.43, 246.82], "radius": 246.82}, {"center": [1833.35, 568.43, 246.82], "radius": 246.82}],
   },
   l: {
     url: './assets/body_l_v2.glb',
     label: 'Fiat500_alt (L型ベース)', author: 'PapaX007',
     src: 'https://sketchfab.com/3d-models/fiat500-alt-1d34eceb6aea44049ec1d6a1dd1c3c83',
-    wheels: [{"center": [4.00, -567.07, 251.98], "radius": 250.91, "cap": true}, {"center": [-9.48, 567.39, 251.48], "radius": 250.91, "cap": true}, {"center": [1830.94, -564.18, 251.98], "radius": 250.91}, {"center": [1830.94, 564.56, 251.48], "radius": 250.91}],
+    wheels: [{"center": [4.00, 567.07, 251.98], "radius": 250.91, "cap": true}, {"center": [-9.48, -567.39, 251.48], "radius": 250.91, "cap": true}, {"center": [1830.94, 564.18, 251.98], "radius": 250.91}, {"center": [1830.94, -564.56, 251.48], "radius": 250.91}],
     edgeThresholdBonus: 20, // 高精細で面数が多く特徴線が過密になるため閾値を上げてノイズを減らす
   },
 };
@@ -162,7 +162,9 @@ const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x0e141c, 6000, 14000);
 
 const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 10, 30000);
-// 車両座標(mm): x=前軸0・後方+, y=左+, z=上。Three: カメラ用にそのままZ-upで扱うため回転
+// 車両座標(mm): x=前軸0・後方+(車体前方=-x), z=上。右手系・up=+zのため
+// 前方が-xだと運転者の左=-y・右=+y。実車は左ハンドル(LHD)なので操舵/運転席系はy<0側。
+// (旧コメントは「y=左+」と誤記し全部品が右ハンドル側に置かれていた→2026-07-11に全体Y軸ミラーで是正)
 camera.position.set(-2600, -3400, 1900);
 camera.up.set(0, 0, 1);
 
