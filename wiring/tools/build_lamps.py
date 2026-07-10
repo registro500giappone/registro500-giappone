@@ -135,32 +135,171 @@ def build_side_repeater(parts, side, sign):
              f'side_repeater_{side}_lens', squash=0.75)
 
 
+# ---- リアテールランプ: 角のある台形輪郭レンズカバーのロフト生成 ----
+
+def _fillet_polygon(corners, radius, seg=5):
+    """CCW凸多角形の各角を radius でフィレットした輪郭点列を返す。"""
+    P = [np.asarray(c, dtype=float) for c in corners]
+    n = len(P)
+    pts = []
+    for i in range(n):
+        p0, p1, p2 = P[i - 1], P[i], P[(i + 1) % n]
+        v1, v2 = p1 - p0, p2 - p1
+        l1, l2 = np.linalg.norm(v1), np.linalg.norm(v2)
+        d1, d2 = v1 / l1, v2 / l2
+        ang = np.arccos(np.clip(np.dot(d1, d2), -1.0, 1.0))  # 外角
+        if ang < 1e-6:
+            pts.append(p1)
+            continue
+        t = min(radius * np.tan(ang / 2), l1 * 0.45, l2 * 0.45)
+        rr = t / np.tan(ang / 2)
+        start, end = p1 - d1 * t, p1 + d2 * t
+        n1 = np.array([-d1[1], d1[0]])  # CCWなら内側法線
+        c = start + n1 * rr
+        a0 = np.arctan2(start[1] - c[1], start[0] - c[0])
+        a1 = np.arctan2(end[1] - c[1], end[0] - c[0])
+        sweep = a1 - a0
+        while sweep > np.pi:
+            sweep -= 2 * np.pi
+        while sweep < -np.pi:
+            sweep += 2 * np.pi
+        for k in range(seg + 1):
+            a = a0 + sweep * k / seg
+            pts.append(c + rr * np.array([np.cos(a), np.sin(a)]))
+    return np.array(pts)
+
+
+def _loft_shell(profile, rim_x, cy, cz, rings, apex_bulge=None, flip=False):
+    """輪郭 profile を輪郭重心まわりに (scale, bulge) リングで積層した
+    シェルの (vertices, faces) を返す。apex_bulge を与えると重心位置の
+    頂点でキャップする。faceted な面取り形状を作れるようリングは明示指定。"""
+    n = len(profile)
+    cen = profile.mean(axis=0)
+    verts = []
+    for s, bulge in rings:
+        for (u, v) in profile:
+            uu = cen[0] + (u - cen[0]) * s
+            vv = cen[1] + (v - cen[1]) * s
+            verts.append((rim_x + bulge, cy + uu, cz + vv))
+    faces = []
+    for r in range(len(rings) - 1):
+        for i in range(n):
+            j = (i + 1) % n
+            a, b = r * n + i, r * n + j
+            c, d = (r + 1) * n + i, (r + 1) * n + j
+            faces.append([a, b, d]); faces.append([a, d, c])
+    if apex_bulge is not None:
+        verts.append((rim_x + apex_bulge, cy + cen[0], cz + cen[1]))
+        apex = len(verts) - 1
+        last = (len(rings) - 1) * n
+        for i in range(n):
+            j = (i + 1) % n
+            faces.append([last + i, last + j, apex])
+    verts = np.array(verts, dtype=float)
+    faces = np.array(faces, dtype=int)
+    if flip:
+        faces = faces[:, ::-1]
+    return verts, faces
+
+
+def _shell_mesh(verts, faces, material, name, face_mask=None):
+    f = faces if face_mask is None else faces[face_mask]
+    m = trimesh.Trimesh(vertices=verts, faces=f, process=True)
+    return _set_material(m, material, name)
+
+
+def _split_mesh_at_z(verts, faces, z):
+    """三角形メッシュを水平面 z で正確に2分割し (上側Trimesh, 下側Trimesh) を
+    返す。跨ぐ三角形は交線で細分割する(trimesh.slice_plane は shapely 依存の
+    ため自前実装)。"""
+    verts = [np.asarray(v, dtype=float) for v in verts]
+    above_faces, below_faces = [], []
+
+    def interp(p0, p1):
+        t = (z - p0[2]) / (p1[2] - p0[2])
+        verts.append(p0 + (p1 - p0) * t)
+        return len(verts) - 1
+
+    for tri in faces:
+        idx = list(tri)
+        d = [verts[i][2] - z for i in idx]
+        if all(di >= 0 for di in d):
+            above_faces.append(idx)
+            continue
+        if all(di <= 0 for di in d):
+            below_faces.append(idx)
+            continue
+        # 「単独側」の頂点が先頭になるよう巡回シフト(巻き方向は保存される)
+        pos = [di > 0 for di in d]
+        lone_above = pos.count(True) == 1
+        for _ in range(3):
+            if (d[0] > 0) == lone_above and (d[1] > 0) != lone_above:
+                break
+            idx = idx[1:] + idx[:1]
+            d = d[1:] + d[:1]
+        a, b, c = idx
+        i_ab = interp(verts[a], verts[b])
+        i_ca = interp(verts[c], verts[a])
+        lone_part = [[a, i_ab, i_ca]]
+        pair_part = [[i_ab, b, c], [i_ab, c, i_ca]]
+        if lone_above:
+            above_faces += lone_part
+            below_faces += pair_part
+        else:
+            below_faces += lone_part
+            above_faces += pair_part
+
+    va = np.array(verts)
+    up = trimesh.Trimesh(vertices=va, faces=np.array(above_faces), process=True)
+    dn = trimesh.Trimesh(vertices=va, faces=np.array(below_faces), process=True)
+    return up, dn
+
+
+def _rear_lamp_profile(sign):
+    """角のある縦長台形輪郭(外側縁=フェンダーラインに沿って上すぼまりに傾斜・
+    内側縁=ほぼ垂直・上下縁=水平)。u正=車体外側。CCW・フィレットr=9。
+    sign=-1(右側)ではu反転し、CCWを保つため点列も反転する。"""
+    corners = [(34, -52), (18, 56), (-22, 56), (-28, -52)]  # CCW (u,v)
+    prof = _fillet_polygon(corners, radius=9, seg=4)
+    if sign < 0:
+        prof = prof * np.array([-1.0, 1.0])
+        prof = prof[::-1]
+    return prof
+
+
 def build_rear_lamp(parts, side, sign):
-    """リアテールランプ(ブレーキ/ウインカー一体・縦長2色)。
+    """リアテールランプ(ブレーキ/ウインカー一体)。
     アンカー: f.json lamp_rl/rr [2300, ±430, 480]・表皮実測 x≈2360。
-    上=アンバー(ウインカー)・下=赤(テール&ブレーキ)。"""
+
+    実車F型のレンズカバーは「角のある」縦長台形(下辺が広く、外側縁が
+    フェンダーラインに沿って傾斜)の一体成形樹脂で、前面はほぼ平らな
+    面取りプリズム状。上側約1/3=アンバー(ウインカー)・下側=赤(テール&
+    ブレーキ)。周囲にクロームベゼル・車体側にガスケット。
+    ※初版「楕円柱＋半球2個」→第2版「ティアドロップドーム」はいずれも
+      ユーザーレビューで却下(「角のある形状なので間違えないで」2026-07-10)。
+      フィレット付き角形輪郭＋面取りロフトで再現する。"""
     skin_x, cy, cz = 2355, sign * 430, 480
-    # ガスケット+クローム台座(縦長楕円柱)
-    # align_vectors([0,0,1],[1,0,0]) はY軸回りの90度回転で、ローカルX→ワールド-Z・
-    # ローカルY→ワールドYに写る。縦長(ワールドz方向)にするにはローカルXを拡大する。
-    tf = _align_transform((1, 0, 0))
-    base = trimesh.creation.cylinder(radius=30, height=10, sections=18)
-    base.apply_scale([1.9, 1.0, 1.0])
-    base.apply_transform(tf)
-    base.apply_translation((skin_x + 3, cy, cz))
-    parts.append(_set_material(base, MAT_GASKET, f'rear_lamp_{side}_gasket'))
+    prof = _rear_lamp_profile(sign)
 
-    base2 = trimesh.creation.cylinder(radius=27, height=10, sections=18)
-    base2.apply_scale([1.85, 1.0, 1.0])
-    base2.apply_transform(tf)
-    base2.apply_translation((skin_x + 9, cy, cz))
-    parts.append(_set_material(base2, MAT_CHROME, f'rear_lamp_{side}_base'))
+    # ガスケット台座(ほぼ平板・輪郭を1.16倍)
+    gv, gf = _loft_shell(prof * 1.16, skin_x - 3, cy, cz,
+                         rings=[(1.0, 0.0), (0.5, 3.0)], apex_bulge=3.5)
+    parts.append(_shell_mesh(gv, gf, MAT_GASKET, f'rear_lamp_{side}_gasket'))
 
-    # 上段アンバー(ウインカー)・下段赤(ブレーキ/テール)の2ドーム
-    add_dome(parts, (skin_x + 13, cy, cz + 26), (1, 0, 0), 21, MAT_LENS_AMBER,
-             f'rear_lamp_{side}_turn_lens', squash=0.7)
-    add_dome(parts, (skin_x + 13, cy, cz - 22), (1, 0, 0), 24, MAT_LENS_RED,
-             f'rear_lamp_{side}_brake_lens', squash=0.7)
+    # クロームベゼル(輪郭1.10倍の低い外周帯・キャップなし)
+    bv, bf = _loft_shell(prof * 1.10, skin_x - 1, cy, cz,
+                         rings=[(1.0, 0.0), (0.90, 7.0)], apex_bulge=None)
+    parts.append(_shell_mesh(bv, bf, MAT_CHROME, f'rear_lamp_{side}_bezel'))
+
+    # レンズカバー本体: 側壁→面取り→ほぼ平らな前面、の面取りプリズム。
+    # 上下2色の分割は水平面での正確なスライス(初版の面重心判定はV字の
+    # ギザギザ縫い目になったため却下)
+    lens_rings = [(1.00, 0.0), (0.94, 10.0), (0.78, 19.0), (0.50, 23.0)]
+    lv, lf = _loft_shell(prof, skin_x + 1, cy, cz, rings=lens_rings, apex_bulge=24.5)
+    split_z = cz + 15.0  # 上側約1/3をアンバーに
+    amber, red = _split_mesh_at_z(lv, lf, split_z)
+    parts.append(_set_material(amber, MAT_LENS_AMBER, f'rear_lamp_{side}_turn_lens'))
+    parts.append(_set_material(red, MAT_LENS_RED, f'rear_lamp_{side}_brake_lens'))
 
 
 def build_parts():
