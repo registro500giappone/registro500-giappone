@@ -47,3 +47,26 @@
   出力先は `../assets/engine_110f.glb`（面数・バウンディングボックスを標準出力に表示）。
   index.html 側は `EXTRA_GLBS` 配列（機械系ユニット追加GLB群）から読み込む。今後
   駆動系等を追加する場合はこの配列にファイルを1行追加すればよい。
+
+## drivetrain_110f.glb / front_parts_110f.glb / dashboard_110f.glb（自作プロシージャル）
+- 作者: 本プロジェクト自作（プリミティブ合成・第三者素材不使用）。参照資料はFIAT純正マニュアル図版
+  （110型 uso e manutenzione p45=エンジン+ギアボックス実写、110F/L版 p22/p24=上面透視図）。
+- 内容:
+  - `drivetrain_110f.glb`: クラッチベルハウジング・ギアボックス＋デフ一体ケース・
+    左右ドライブシャフト（ジョイントブーツ付き）・マウント類。エンジンGLBのベルハウジング
+    スタブ終端(1815,0,488)へ接続。
+  - `front_parts_110f.glb`: フロントトランク内燃料タンク（給油キャップ・コック・配管）＋
+    左右ヘッドライトユニット（リフレクター椀・リム・レンズ・バルブ）。ヘッドライト中心
+    (-409,±418,578)は body_f_v2.glb の灯体凹みをレイキャスト実測して取得
+    （f.json の lamp_fl/fr [-420,±455,430] はウインカーであり別物）。
+  - `dashboard_110f.glb`: ダッシュパネル・Veglia風スピードメーター・警告灯3点・
+    イグニッションスイッチ・トグルスイッチ類。
+- 座標系: 実車mm座標系（engine_110f.glb と同様）。
+- 再生成手順:
+  ```
+  cd wiring/tools
+  python build_drivetrain.py
+  python build_front_parts.py
+  python build_dashboard.py
+  ```
+  いずれも index.html の `EXTRA_GLBS` 配列から読み込む。
