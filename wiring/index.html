@@ -568,23 +568,31 @@ function nodeGeometry(shape) {
   return new THREE.BoxGeometry(sx, sy, sz);
 }
 
+// グループ別マーカー色（f.json groups[].color が正本。無いgroupは既定青）
+let groupColor = {};
+function buildGroupColors(data) {
+  groupColor = {};
+  (data.groups || []).forEach(g => { if (g.color) groupColor[g.id] = g.color; });
+}
+function nodeColor(n) { return groupColor[n.group] || '#5aa3e8'; }
+
 function buildParts(data) {
-  const systemColor = {};
-  (data.systems || []).forEach(s => { systemColor[s.id] = s.hi_color || '#5aa3e8'; });
   partsGroup = new THREE.Group();
   partsGroup.visible = false;
   data.nodes.forEach((n) => {
     if (!n.pos3d || !n.shape) return;
-    const sys = (n.systems && n.systems[0]) || null;
-    const color = systemColor[sys] || '#5aa3e8';
+    const color = nodeColor(n);
     const mat = new THREE.MeshStandardMaterial({
       color, emissive: new THREE.Color(color), emissiveIntensity: 0.25,
       roughness: 0.5, metalness: 0.1, transparent: true, opacity: 0.9, depthWrite: true,
     });
-    const mesh = new THREE.Mesh(nodeGeometry(n.shape), mat);
+    // 実形状GLBがある部品(modeled)はプロキシ形状で実形状を隠さず小球ドットに
+    const geo = n.modeled ? new THREE.SphereGeometry(35, 16, 12) : nodeGeometry(n.shape);
+    const mesh = new THREE.Mesh(geo, mat);
     mesh.position.set(n.pos3d[0], n.pos3d[1], n.pos3d[2]);
-    if (n.shape.kind === 'cylinder') mesh.rotation.x = Math.PI / 2;
+    if (!n.modeled && n.shape.kind === 'cylinder') mesh.rotation.x = Math.PI / 2;
     mesh.userData.nodeId = n.id;
+    mesh.userData.modeled = !!n.modeled;
     mesh.renderOrder = 4;
     partMeshById[n.id] = mesh;
     partsGroup.add(mesh);
@@ -595,6 +603,7 @@ function buildParts(data) {
 // cache:'no-cache'=毎回サーバーに再検証。f.json更新がブラウザキャッシュで届かない事故の防止
 fetch('./data/f.json', { cache: 'no-cache' }).then(r => r.json()).then((data) => {
   wiringData = data;
+  buildGroupColors(data);
   buildParts(data);
   buildPartList(data);
   buildWiringLayer(data);
@@ -661,22 +670,19 @@ const TYPE_JA = { power:'電源', fuse:'ヒューズ', relay:'リレー', switch
 function buildPartList(data) {
   const body = document.getElementById('partListBody');
   const groups = (data.groups && data.groups.length) ? data.groups : [{ id: '_all', label_ja: '部品', icon: '' }];
-  const systemColor = {};
-  (data.systems || []).forEach(s => { systemColor[s.id] = s.hi_color || '#5aa3e8'; });
   groups.forEach((g) => {
     const nodesInGroup = data.nodes.filter(n => (n.group || '_all') === g.id && n.pos3d);
     if (!nodesInGroup.length) return;
     const h = document.createElement('div');
     h.className = 'plp-group';
-    h.textContent = `${g.icon || ''} ${g.label_ja}`.trim();
+    const gColor = g.color || '#5aa3e8';
+    h.innerHTML = `<span class="plp-dot" style="background:${gColor};display:inline-block;vertical-align:middle;margin-right:6px"></span>${g.icon || ''} ${g.label_ja}`.trim();
     body.appendChild(h);
     nodesInGroup.forEach((n) => {
       const item = document.createElement('div');
       item.className = 'plp-item';
       item.dataset.nodeId = n.id;
-      const sys = (n.systems && n.systems[0]) || null;
-      const color = systemColor[sys] || '#5aa3e8';
-      item.innerHTML = `<span class="plp-dot" style="background:${color}"></span><span>${n.label_ja}</span>`;
+      item.innerHTML = `<span class="plp-dot" style="background:${nodeColor(n)}"></span><span>${n.label_ja}</span>`;
       item.addEventListener('click', () => {
         document.getElementById('partListPanel').classList.remove('open');
         selectPartFromList(n.id);
@@ -750,7 +756,8 @@ function highlightPart(id) {
     const on = nid === id;
     mesh.material.emissiveIntensity = on ? 1.1 : 0.25;
     mesh.material.opacity = on ? 1 : 0.9;
-    mesh.scale.setScalar(on ? 1.35 : 1);
+    // 小球ドット(modeled)は1.35倍では気づきにくいため大きめに強調
+    mesh.scale.setScalar(on ? (mesh.userData.modeled ? 2.2 : 1.35) : 1);
   });
   document.querySelectorAll('.plp-item').forEach((el) => {
     el.classList.toggle('active', el.dataset.nodeId === id);
