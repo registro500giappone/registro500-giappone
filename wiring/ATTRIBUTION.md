@@ -70,3 +70,11 @@
   python build_dashboard.py
   ```
   いずれも index.html の `EXTRA_GLBS` 配列から読み込む。
+
+## lamps_110f.glb（自作プロシージャル）
+- 作者: 本プロジェクト自作（プリミティブ合成・第三者素材不使用）。
+- 内容: フロントウインカー×2（f.json lamp_fl/fr準拠・表皮実測x≈-399）／サイドウインカー×2
+  （f.jsonノード無し・GLB表皮実測 (300,±620,590)）／リアテール（ブレーキ/ウインカー一体）×2
+  （lamp_rl/rr準拠・表皮実測x≈2360・上アンバー/下赤2色レンズ）。
+- 座標系: 実車mm座標系。再生成: `cd wiring/tools && python build_lamps.py`。
+  index.html の `EXTRA_GLBS` から読み込む。
