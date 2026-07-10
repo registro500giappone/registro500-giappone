@@ -74,10 +74,18 @@ def main():
     module_src = module_src.replace(marker_f, f"{marker_f} dataB64: '{f_glb_b64}',")
     module_src = module_src.replace(marker_l, f"{marker_l} dataB64: '{l_glb_b64}',")
 
+    # 機械系ユニットGLB群(EXTRA_GLBS)も同様にbase64埋め込み(相対パスfetchはArtifactで不可)
+    for glb in ('engine_110f', 'drivetrain_110f', 'front_parts_110f', 'dashboard_110f', 'lamps_110f'):
+        b64 = base64.b64encode((ROOT / 'assets' / f'{glb}.glb').read_bytes()).decode('ascii')
+        marker = f"{{ file: './assets/{glb}.glb',"
+        if marker not in module_src:
+            raise SystemExit(f'EXTRA_GLBSのエントリが見つかりません: {glb}。index.htmlの構造が変わっていないか確認してください。')
+        module_src = module_src.replace(marker, f"{marker} dataB64: '{b64}',")
+
     # data/f.json の fetch をインライン埋め込みに置き換え
     f_json = json.loads((ROOT / 'data' / 'f.json').read_text(encoding='utf-8'))
     f_json_str = json.dumps(f_json, ensure_ascii=False)
-    old_fetch = "fetch('./data/f.json').then(r => r.json()).then((data) => {"
+    old_fetch = "fetch('./data/f.json', { cache: 'no-cache' }).then(r => r.json()).then((data) => {"
     if old_fetch not in module_src:
         raise SystemExit('f.jsonのfetch呼び出しが見つかりません。index.htmlの構造が変わっていないか確認してください。')
     module_src = module_src.replace(old_fetch, f"Promise.resolve({f_json_str}).then((data) => {{")

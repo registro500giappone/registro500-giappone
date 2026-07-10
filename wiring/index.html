@@ -467,8 +467,9 @@ const EXTRA_GLBS = [
   { file: './assets/lamps_110f.glb', label: 'lamps' },
 ];
 function loadExtraGlbs() {
-  for (const { file, label } of EXTRA_GLBS) {
-    new GLTFLoader().load(file, (gltf) => {
+  for (const entry of EXTRA_GLBS) {
+    const { file, label } = entry;
+    const onLoad = (gltf) => {
       gltf.scene.traverse((obj) => {
         if (!obj.isMesh) return;
         if (obj.geometry && !obj.geometry.attributes.normal) {
@@ -477,9 +478,19 @@ function loadExtraGlbs() {
         obj.renderOrder = 1;
       });
       scene.add(gltf.scene);
-    }, undefined, (err) => {
+    };
+    const onError = (err) => {
       console.warn(`機械系GLB(${label})読込に失敗（スキップ）:`, err);
-    });
+    };
+    if (entry.dataB64) {
+      // Artifact配布用: build_bundle.pyが埋め込むbase64を優先(相対パスfetch不可のため)
+      const bin = atob(entry.dataB64);
+      const buf = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      new GLTFLoader().parse(buf.buffer, '', onLoad, onError);
+    } else {
+      new GLTFLoader().load(file, onLoad, undefined, onError);
+    }
   }
 }
 loadExtraGlbs();
