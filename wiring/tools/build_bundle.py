@@ -74,13 +74,8 @@ def main():
     module_src = module_src.replace(marker_f, f"{marker_f} dataB64: '{f_glb_b64}',")
     module_src = module_src.replace(marker_l, f"{marker_l} dataB64: '{l_glb_b64}',")
 
-    # 機械系ユニットGLB群(EXTRA_GLBS)も同様にbase64埋め込み(相対パスfetchはArtifactで不可)
-    for glb in ('engine_110f', 'drivetrain_110f', 'front_parts_110f', 'dashboard_110f', 'lamps_110f'):
-        b64 = base64.b64encode((ROOT / 'assets' / f'{glb}.glb').read_bytes()).decode('ascii')
-        marker = f"{{ file: './assets/{glb}.glb',"
-        if marker not in module_src:
-            raise SystemExit(f'EXTRA_GLBSのエントリが見つかりません: {glb}。index.htmlの構造が変わっていないか確認してください。')
-        module_src = module_src.replace(marker, f"{marker} dataB64: '{b64}',")
+    # 機械系ユニットGLB群(engine/drivetrain/front_parts/dashboard/lamps)は
+    # 品質不足のため2026-07-11に全削除(EXTRA_GLBS=[])。埋め込み対象なし。
 
     # data/f.json の fetch をインライン埋め込みに置き換え
     f_json = json.loads((ROOT / 'data' / 'f.json').read_text(encoding='utf-8'))
