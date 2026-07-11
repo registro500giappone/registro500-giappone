@@ -595,11 +595,10 @@ function buildParts(data) {
       color, emissive: new THREE.Color(color), emissiveIntensity: 0.25,
       roughness: 0.5, metalness: 0.1, transparent: true, opacity: 0.9, depthWrite: true,
     });
-    // 実形状GLBがある部品(modeled)はプロキシ形状で実形状を隠さず小球ドットに
-    const geo = n.modeled ? new THREE.SphereGeometry(35, 16, 12) : nodeGeometry(n.shape);
+    // 全パーツを小球ドットで表示(2026-07-11: 色付き箱マーカーは廃止。タップでカタログに飛ぶ位置目印のみ残す)
+    const geo = new THREE.SphereGeometry(35, 16, 12);
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.set(n.pos3d[0], n.pos3d[1], n.pos3d[2]);
-    if (!n.modeled && n.shape.kind === 'cylinder') mesh.rotation.x = Math.PI / 2;
     mesh.userData.nodeId = n.id;
     mesh.userData.modeled = !!n.modeled;
     mesh.renderOrder = 4;
