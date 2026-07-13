@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0d0c0a">
+<meta name="robots" content="noindex, nofollow">
+<title>UCM-01 GPS速度計プロトタイプ</title>
+<style>
+  :root{
+    --bg:#0d0c0a; --panel:#16140f; --panel2:#1d1a13;
+    --ink:#f0e6d2; --dim:#8a8272; --line:#2a261c;
+    --amber:#e39a2d; --red:#e05545; --green:#86b26a; --blue:#6a9ab2;
+  }
+  [data-theme="day"]{
+    --bg:#f2eee4; --panel:#ffffff; --panel2:#faf7ef;
+    --ink:#26221a; --dim:#6f6a5e; --line:#d8d2c2;
+    --amber:#b06f0e; --red:#c23a2b; --green:#4a7a2e; --blue:#2e6a8a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,"Helvetica Neue","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+    font-variant-numeric:tabular-nums;
+    -webkit-user-select:none; user-select:none;
+    padding:12px 14px calc(16px + env(safe-area-inset-bottom));
+    max-width:520px; margin:0 auto;
+  }
+  header{display:flex; align-items:center; gap:8px; margin-bottom:10px}
+  header h1{font-size:13px; font-weight:600; letter-spacing:.12em; color:var(--dim)}
+  .spacer{flex:1}
+  .pill{
+    font-size:11px; font-weight:700; letter-spacing:.1em;
+    padding:4px 10px; border-radius:999px; border:1px solid var(--line);
+    color:var(--dim); background:var(--panel);
+  }
+  .pill.fix{color:var(--green); border-color:var(--green)}
+  .pill.stale{color:var(--amber); border-color:var(--amber)}
+  .pill.lost{color:var(--red); border-color:var(--red); animation:blink 1s step-end infinite}
+  @keyframes blink{50%{opacity:.35}}
+  .iconbtn{
+    background:var(--panel); border:1px solid var(--line); color:var(--dim);
+    border-radius:8px; padding:4px 10px; font-size:12px;
+  }
+
+  /* --- main speed --- */
+  .speedbox{ text-align:center; padding:18px 0 6px; }
+  .speedbox .kmh{
+    font-size:min(34vw,150px); font-weight:200; line-height:1;
+    letter-spacing:-0.02em; color:var(--amber);
+  }
+  .speedbox .unit{font-size:15px; color:var(--dim); letter-spacing:.25em; margin-top:2px}
+  .accbar{
+    height:3px; border-radius:2px; background:var(--line);
+    margin:14px 24px 0; overflow:hidden;
+  }
+  .accbar>i{display:block; height:100%; width:0%; background:var(--green); transition:width .3s, background .3s}
+  .accnote{font-size:11px; color:var(--dim); text-align:center; margin-top:5px}
+
+  .subspeed{
+    display:flex; justify-content:center; gap:26px; margin:12px 0 4px;
+    font-size:13px; color:var(--dim);
+  }
+  .subspeed b{color:var(--ink); font-size:17px; font-weight:500; margin-left:5px}
+
+  /* --- stat grid --- */
+  .grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:14px 0 12px;
+  }
+  .cell{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:9px 12px;
+  }
+  .cell .k{font-size:10px; letter-spacing:.14em; color:var(--dim); margin-bottom:3px}
+  .cell .v{font-size:19px; font-weight:500}
+  .cell .v small{font-size:11px; color:var(--dim); font-weight:400; margin-left:2px}
+  .v.warn{color:var(--amber)} .v.bad{color:var(--red)} .v.ok{color:var(--green)}
+
+  /* --- controls --- */
+  .controls{display:flex; gap:8px; margin-bottom:14px}
+  button.main{
+    flex:1; font-size:16px; font-weight:700; letter-spacing:.06em;
+    padding:14px 0; border-radius:12px; border:none;
+    background:var(--amber); color:#151208;
+  }
+  button.main.stop{background:var(--red); color:#fff}
+  button.sub{
+    flex:0 0 auto; padding:0 16px; border-radius:12px;
+    background:var(--panel); border:1px solid var(--line); color:var(--ink); font-size:13px;
+  }
+  button:disabled{opacity:.4}
+
+  /* --- log --- */
+  .loghead{display:flex; align-items:baseline; gap:8px; margin-bottom:6px}
+  .loghead h2{font-size:11px; letter-spacing:.14em; color:var(--dim); font-weight:600}
+  .log{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    font-size:12px; line-height:1.55; padding:8px 10px;
+    max-height:180px; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  }
+  .log .t{color:var(--dim); margin-right:6px}
+  .log .ev-lost{color:var(--red)} .log .ev-back{color:var(--green)}
+  .log .ev-warn{color:var(--amber)} .log .ev-info{color:var(--blue)}
+  .log:empty::before{content:"計測を開始するとイベントを記録します"; color:var(--dim)}
+
+  .httpswarn{
+    background:var(--panel2); border:1px solid var(--red); color:var(--red);
+    border-radius:10px; padding:10px 12px; font-size:12px; line-height:1.6; margin-bottom:12px;
+  }
+  footer{margin-top:14px; font-size:10px; color:var(--dim); text-align:center; letter-spacing:.06em}
+</style>
+</head>
+<body data-theme="night">
+
+<header>
+  <h1>UCM-01 / GPS SPEED PROTO</h1>
+  <div class="spacer"></div>
+  <span id="wakeind" class="pill" hidden>画面ON保持</span>
+  <span id="status" class="pill">停止中</span>
+  <button id="themebtn" class="iconbtn">昼</button>
+</header>
+
+<div id="httpswarn" class="httpswarn" hidden>
+  この環境ではGPSが使えません(HTTPSが必要)。file:// で開いている場合は、
+  HTTPS のサーバー(Cloudflare Pages等)に置いてアクセスしてください。
+</div>
+
+<div class="speedbox">
+  <div class="kmh" id="speed">--</div>
+  <div class="unit">km/h(GPS実測)</div>
+  <div class="accbar"><i id="accfill"></i></div>
+  <div class="accnote" id="accnote">精度: -- m</div>
+</div>
+
+<div class="subspeed">
+  <span>座標差分速度<b id="calcspeed">--</b></span>
+  <span>最終取得<b id="agesec">--</b></span>
+</div>
+
+<div class="grid">
+  <div class="cell"><div class="k">更新間隔(直近)</div><div class="v" id="interval">--<small>ms</small></div></div>
+  <div class="cell"><div class="k">更新間隔(平均)</div><div class="v" id="intervalavg">--<small>ms</small></div></div>
+  <div class="cell"><div class="k">取得回数 / 欠測</div><div class="v" id="fixcount">0<small>/ 0回</small></div></div>
+  <div class="cell"><div class="k">最高速度</div><div class="v" id="maxspeed">--<small>km/h</small></div></div>
+  <div class="cell"><div class="k">走行距離</div><div class="v" id="dist">0.00<small>km</small></div></div>
+  <div class="cell"><div class="k">経過時間</div><div class="v" id="elapsed">00:00</div></div>
+</div>
+
+<div class="controls">
+  <button id="startbtn" class="main">計測開始</button>
+  <button id="csvbtn" class="sub" disabled>CSV保存</button>
+</div>
+
+<div class="loghead"><h2>イベントログ</h2></div>
+<div class="log" id="log"></div>
+
+<footer>registro500 / UCM-01 Phase 3 事前検証ツール v1.0</footer>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+/* ---------- 設定 ---------- */
+const STALE_SEC = 3;    // これを超えたら「更新停滞」表示(黄)
+const LOST_SEC  = 6;    // これを超えたら「信号ロスト」扱い(赤・ログ記録)
+const ACC_WARN  = 20;   // 精度がこのm数を超えたら警告色
+const ACC_BAD   = 50;   // 距離積算から除外する精度しきい値
+
+/* ---------- 状態 ---------- */
+let watchId = null, wakeLock = null;
+let startTime = 0, lastFix = null, lastFixTime = 0;
+let fixCount = 0, lostCount = 0, maxKmh = 0, distKm = 0;
+let intervals = [];            // 直近の更新間隔(ms)
+let records = [];              // CSV用全記録
+let lostSince = 0;             // 0=正常, >0=ロスト開始時刻
+let tickTimer = null;
+
+/* ---------- ユーティリティ ---------- */
+const pad = n => String(n).padStart(2,"0");
+function nowStr(t){
+  const d = new Date(t);
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${String(d.getMilliseconds()).padStart(3,"0")}`;
+}
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371000, r=Math.PI/180;
+  const dLat=(lat2-lat1)*r, dLon=(lon2-lon1)*r;
+  const a=Math.sin(dLat/2)**2 + Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a)); // meters
+}
+function addLog(cls, msg, t=Date.now()){
+  const div=document.createElement("div");
+  div.innerHTML=`<span class="t">${nowStr(t)}</span><span class="${cls}">${msg}</span>`;
+  const log=$("log"); log.prepend(div);
+  records.push({time:t, type:"event", note:msg});
+}
+
+/* ---------- 画面ON保持 ---------- */
+async function acquireWakeLock(){
+  try{
+    if("wakeLock" in navigator){
+      wakeLock = await navigator.wakeLock.request("screen");
+      $("wakeind").hidden=false;
+      wakeLock.addEventListener("release",()=>{ $("wakeind").hidden=true; });
+    }
+  }catch(e){ /* 非対応・省電力モード等は無視 */ }
+}
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible" && watchId!==null) acquireWakeLock();
+});
+
+/* ---------- GPS ---------- */
+function onFix(pos){
+  const t = Date.now();
+  const c = pos.coords;
+
+  // ロスト復帰判定
+  if(lostSince){
+    const gap = ((t-lostSince)/1000).toFixed(1);
+    addLog("ev-back",`信号復帰(ロスト ${gap} 秒)`, t);
+    lostSince = 0;
+  }
+
+  // 更新間隔
+  let dt = null;
+  if(lastFixTime){
+    dt = t - lastFixTime;
+    intervals.push(dt);
+    if(intervals.length>30) intervals.shift();
+    $("interval").innerHTML = `${dt}<small>ms</small>`;
+    const avg = Math.round(intervals.reduce((a,b)=>a+b,0)/intervals.length);
+    $("intervalavg").innerHTML = `${avg}<small>ms</small>`;
+  }
+
+  // GPSネイティブ速度(m/s → km/h)。端末によってはnull
+  let kmhGps = null;
+  if(c.speed !== null && !Number.isNaN(c.speed) && c.speed >= 0){
+    kmhGps = c.speed * 3.6;
+  }
+
+  // 座標差分速度(検証用の比較値)
+  let kmhCalc = null;
+  if(lastFix && dt && dt > 200){
+    const d = haversine(lastFix.latitude,lastFix.longitude,c.latitude,c.longitude);
+    kmhCalc = (d/(dt/1000))*3.6;
+    // 距離積算(精度が悪いときは加算しない)
+    if(c.accuracy <= ACC_BAD && lastFix.accuracy <= ACC_BAD && kmhCalc < 200){
+      distKm += d/1000;
+      $("dist").innerHTML = `${distKm.toFixed(2)}<small>km</small>`;
+    }
+  }
+
+  // 表示更新
+  const shown = kmhGps ?? kmhCalc;
+  $("speed").textContent = shown===null ? "--" : Math.round(shown);
+  $("calcspeed").textContent = kmhCalc===null ? "--" : kmhCalc.toFixed(1)+" km/h";
+  if(shown!==null && shown>maxKmh){
+    maxKmh = shown;
+    $("maxspeed").innerHTML = `${Math.round(maxKmh)}<small>km/h</small>`;
+  }
+
+  // 精度表示
+  const acc = c.accuracy;
+  $("accnote").textContent = `精度: ±${acc.toFixed(0)} m` + (kmhGps===null ? "(speed値なし→差分速度で表示)" : "");
+  const fill = $("accfill");
+  fill.style.width = Math.max(6, 100 - Math.min(acc,100)) + "%";
+  fill.style.background = acc<=ACC_WARN ? "var(--green)" : acc<=ACC_BAD ? "var(--amber)" : "var(--red)";
+  if(acc>ACC_BAD && (!lastFix || lastFix.accuracy<=ACC_BAD)){
+    addLog("ev-warn",`精度低下 ±${acc.toFixed(0)}m`, t);
+  }
+
+  fixCount++;
+  $("fixcount").innerHTML = `${fixCount}<small>/ ${lostCount}回</small>`;
+  setStatus("fix","受信中");
+
+  // 記録
+  records.push({
+    time:t, type:"fix",
+    lat:c.latitude, lon:c.longitude,
+    speed_gps_kmh: kmhGps===null?"":kmhGps.toFixed(2),
+    speed_calc_kmh: kmhCalc===null?"":kmhCalc.toFixed(2),
+    accuracy_m: acc.toFixed(1),
+    interval_ms: dt??"",
+    altitude_m: c.altitude===null?"":c.altitude.toFixed(1),
+    heading: c.heading===null||Number.isNaN(c.heading)?"":c.heading.toFixed(0)
+  });
+
+  lastFix = c; lastFixTime = t;
+}
+
+function onError(err){
+  const msgs = {
+    1:"位置情報が拒否されています。ブラウザの設定でこのページの位置情報を許可してください。",
+    2:"位置を取得できません(GPS圏外・機内モード等)。",
+    3:"位置取得がタイムアウトしました。"
+  };
+  addLog("ev-lost", msgs[err.code] || `エラー: ${err.message}`);
+  if(err.code===1) stop();
+}
+
+/* ---------- 監視タイマー(欠測検出・経過表示) ---------- */
+function tick(){
+  const t = Date.now();
+  // 経過時間
+  const s = Math.floor((t-startTime)/1000);
+  $("elapsed").textContent = s>=3600
+    ? `${Math.floor(s/3600)}:${pad(Math.floor(s/60)%60)}:${pad(s%60)}`
+    : `${pad(Math.floor(s/60))}:${pad(s%60)}`;
+
+  if(!lastFixTime){ $("agesec").textContent="待機中"; return; }
+  const age = (t-lastFixTime)/1000;
+  $("agesec").textContent = age.toFixed(1)+" 秒前";
+
+  if(age>=LOST_SEC){
+    if(!lostSince){
+      lostSince = lastFixTime;
+      lostCount++;
+      $("fixcount").innerHTML = `${fixCount}<small>/ ${lostCount}回</small>`;
+      addLog("ev-lost",`信号ロスト(${LOST_SEC}秒以上更新なし)`);
+      $("speed").textContent="--";
+    }
+    setStatus("lost","信号ロスト");
+  }else if(age>=STALE_SEC){
+    setStatus("stale","更新停滞");
+  }
+}
+
+function setStatus(cls,label){
+  const el=$("status");
+  el.className="pill "+cls;
+  el.textContent=label;
+}
+
+/* ---------- 開始/停止 ---------- */
+function start(){
+  if(!("geolocation" in navigator)){ $("httpswarn").hidden=false; return; }
+  records=[]; intervals=[]; fixCount=0; lostCount=0; maxKmh=0; distKm=0;
+  lastFix=null; lastFixTime=0; lostSince=0;
+  $("log").innerHTML="";
+  startTime=Date.now();
+  addLog("ev-info","計測開始(enableHighAccuracy: true)");
+  watchId = navigator.geolocation.watchPosition(onFix, onError, {
+    enableHighAccuracy:true, maximumAge:0, timeout:15000
+  });
+  acquireWakeLock();
+  tickTimer = setInterval(tick, 250);
+  const b=$("startbtn"); b.textContent="計測停止"; b.classList.add("stop");
+  $("csvbtn").disabled=false;
+  setStatus("stale","測位待ち…");
+}
+function stop(){
+  if(watchId!==null){ navigator.geolocation.clearWatch(watchId); watchId=null; }
+  if(tickTimer){ clearInterval(tickTimer); tickTimer=null; }
+  if(wakeLock){ wakeLock.release().catch(()=>{}); wakeLock=null; }
+  addLog("ev-info","計測停止");
+  const b=$("startbtn"); b.textContent="計測開始"; b.classList.remove("stop");
+  setStatus("","停止中");
+}
+$("startbtn").addEventListener("click",()=> watchId===null ? start() : stop());
+
+/* ---------- CSV ---------- */
+$("csvbtn").addEventListener("click",()=>{
+  const head=["time_iso","type","lat","lon","speed_gps_kmh","speed_calc_kmh","accuracy_m","interval_ms","altitude_m","heading","note"];
+  const lines=[head.join(",")];
+  for(const r of records){
+    lines.push([
+      new Date(r.time).toISOString(), r.type,
+      r.lat??"", r.lon??"", r.speed_gps_kmh??"", r.speed_calc_kmh??"",
+      r.accuracy_m??"", r.interval_ms??"", r.altitude_m??"", r.heading??"",
+      r.note ? `"${String(r.note).replace(/"/g,'""')}"` : ""
+    ].join(","));
+  }
+  const blob=new Blob(["﻿"+lines.join("\r\n")],{type:"text/csv"});
+  const a=document.createElement("a");
+  const d=new Date();
+  a.href=URL.createObjectURL(blob);
+  a.download=`ucm01_gpslog_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+/* ---------- 昼夜切替 ---------- */
+$("themebtn").addEventListener("click",()=>{
+  const b=document.body;
+  const night = b.dataset.theme!=="day";
+  b.dataset.theme = night ? "day" : "night";
+  $("themebtn").textContent = night ? "夜" : "昼";
+});
+
+/* ---------- 環境チェック ---------- */
+if(!window.isSecureContext || !("geolocation" in navigator)){
+  $("httpswarn").hidden=false;
+  $("startbtn").disabled=true;
+}
+</script>
+</body>
+</html>
