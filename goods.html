@@ -68,22 +68,6 @@
     .brand-title { font-size: 1.6rem; font-weight: 800; margin: 0 0 4px; padding: 0; }
     .brand-tagline { font-size: 0.85rem; opacity: 0.85; margin: 0; }
 
-    /* クイックナビ */
-    .quick-nav {
-      display: flex; gap: 8px; flex-wrap: wrap;
-      margin-bottom: 20px;
-    }
-    .quick-nav a {
-      display: inline-flex; align-items: center; gap: 4px;
-      background: var(--card-bg);
-      border: 1px solid var(--border-soft);
-      border-radius: 999px;
-      padding: 6px 14px;
-      font-size: 0.8rem; font-weight: 600;
-      color: var(--text-main); text-decoration: none;
-      white-space: nowrap;
-    }
-    .quick-nav a:hover { border-color: var(--accent); color: var(--accent); }
 
     /* アンケートバナー */
     .survey-banner {
@@ -559,7 +543,6 @@
       .monotaro-intro { background: #14532d; border-color: #166534; }
       .monotaro-intro h3 { color: #86efac; }
       .monotaro-intro p { color: #bbf7d0; }
-      .quick-nav a { background: var(--card-bg); }
       .sticky-cta { box-shadow: 0 -4px 20px rgba(0,0,0,0.45); }
     }
 
@@ -668,6 +651,32 @@
       .tb-btn { background: #d97706; }
       .tb-btn:hover { background: #b45309; }
     }
+
+    /* ============ 価格帯セクション（買いやすさ順の1軸構成） ============ */
+    .tier-section { margin-bottom: 52px; scroll-margin-top: 12px; }
+    .tier-head {
+      display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+      border-bottom: 3px solid var(--accent); padding-bottom: 10px; margin-bottom: 10px;
+    }
+    .tier-h { font-size: 1.45rem; font-weight: 900; margin: 0; color: var(--text-main); line-height: 1.25; }
+    .tier-band {
+      font-size: 0.78rem; font-weight: 800; color: #fff; background: var(--accent);
+      border-radius: 999px; padding: 4px 12px; white-space: nowrap;
+    }
+    .tier-copy { font-size: 0.88rem; color: var(--text-sub); line-height: 1.85; margin: 0 0 22px; }
+    .feature-block { margin-bottom: 22px; }
+    .feature-h {
+      font-size: 1rem; font-weight: 800; margin: 0 0 8px; color: var(--accent);
+      display: flex; align-items: center; gap: 8px; line-height: 1.35;
+    }
+    .tier-more {
+      font-size: 0.8rem; font-weight: 700; color: var(--text-sub);
+      margin: 26px 0 14px; display: flex; align-items: center; gap: 10px;
+    }
+    .tier-more::after { content: ''; flex: 1; height: 1px; background: var(--border-soft); }
+    @media (prefers-color-scheme: dark) {
+      .tier-band { color: #0f172a; }
+    }
   </style>
 </head>
 <body>
@@ -693,29 +702,7 @@
   </div>
 
   <!-- クイックナビ（ファーストビュー直下） -->
-  <nav class="quick-nav" aria-label="カテゴリ">
-    <a href="#oil">🛢️ オイル</a>
-    <a href="#battery">🔋 バッテリー</a>
-    <a href="#tools">🔧 工具</a>
-    <a href="#ignition">⚡ 点火系</a>
-    <a href="#chemical">🧪 ケミカル</a>
-    <a href="#coating">✨ コーティング</a>
-    <a href="#rubber">🪝 ゴム保護</a>
-    <a href="#carwash">💧 水なし洗車</a>
-  </nav>
 
-  <!-- 第2層（道具箱）へのナビ -->
-  <nav class="quick-nav" aria-label="道具箱">
-    <a href="#tb-onboard">🚗 車載しておく物</a>
-    <a href="#tb-clean">✨ 洗車・艶出し</a>
-    <a href="#tb-tools">🔧 工具箱</a>
-    <a href="#tb-screwdriver">🔌 電動ドライバー</a>
-    <a href="#tb-knipex">🛡️ KNIPEX</a>
-    <a href="#tb-nejizaurus">🦖 ネジザウルス</a>
-    <a href="#tb-wera">🪛 Wera</a>
-    <a href="#tb-generic">🔩 WORKPRO</a>
-    <a href="#tb-battery">🔋 バッテリー本体</a>
-  </nav>
 
   <!-- 季節バナー（月別自動切替） -->
   <div class="seasonal-banner" id="seasonalBanner"></div>
@@ -756,42 +743,42 @@
       <span class="survey-bar-wrap"><span class="survey-bar-inner" style="--bar-w:100%"></span></span>
       <span class="survey-votes">13票</span>
     </a>
-    <a href="#battery" class="survey-row">
+    <a href="#t4" class="survey-row">
       <span class="survey-label">🔋 バッテリー上がり</span>
       <span class="survey-bar-wrap"><span class="survey-bar-inner" style="--bar-w:77%"></span></span>
       <span class="survey-votes">10票</span>
     </a>
-    <a href="#tools" class="survey-row">
+    <a href="#t4" class="survey-row">
       <span class="survey-label">🔧 工具・トルク管理</span>
       <span class="survey-bar-wrap"><span class="survey-bar-inner" style="--bar-w:77%"></span></span>
       <span class="survey-votes">10票</span>
     </a>
-    <a href="#ignition" class="survey-row">
+    <a href="#t1" class="survey-row">
       <span class="survey-label">⚡ 点火系・エンスト</span>
       <span class="survey-bar-wrap"><span class="survey-bar-inner" style="--bar-w:69%"></span></span>
       <span class="survey-votes">9票</span>
     </a>
-    <a href="#chemical" class="survey-row">
+    <a href="#t2" class="survey-row">
       <span class="survey-label">🧪 ケミカル・洗浄</span>
       <span class="survey-bar-wrap"><span class="survey-bar-inner" style="--bar-w:69%"></span></span>
       <span class="survey-votes">9票</span>
     </a>
-    <a href="#coating" class="survey-row">
+    <a href="#t3" class="survey-row">
       <span class="survey-label">✨ コーティング</span>
       <span class="survey-bar-wrap"><span class="survey-bar-inner" style="--bar-w:62%"></span></span>
       <span class="survey-votes">8票</span>
     </a>
-    <a href="#rubber" class="survey-row">
+    <a href="#t1" class="survey-row">
       <span class="survey-label">🪝 ゴム・樹脂劣化</span>
       <span class="survey-bar-wrap"><span class="survey-bar-inner" style="--bar-w:46%"></span></span>
       <span class="survey-votes">6票</span>
     </a>
-    <a href="#carwash" class="survey-row">
+    <a href="#t1" class="survey-row">
       <span class="survey-label">💧 水なし洗車</span>
       <span class="survey-bar-wrap"><span class="survey-bar-inner" style="--bar-w:38%"></span></span>
       <span class="survey-votes">5票</span>
     </a>
-    <p class="survey-chart-note">↑ 各カテゴリをタップすると詳細へ移動</p>
+    <p class="survey-chart-note">↑ タップすると、その品を扱っている価格帯へ移動します</p>
   </div>
 
   <!-- イントロ -->
@@ -799,16 +786,771 @@
     Fiat 500乗りなら一度は経験すること。<br>
     その解決策を、48人のオーナーたちが教えてくれました。
   </div>
-  <p class="intro-note">↓ 票数の多い順に並んでいます</p>
+  <p class="intro-note">↓ 手に取りやすい価格帯から並べています。上から順に見ていただければ</p>
 
-  <!-- ============ 問題1: エンジンオイル（1位・13票）============ -->
-  <div id="oil" class="problem-section">
-    <h2 class="section-heading"><span class="section-rank-num">1位・13票</span>🛢️ フィアット500のエンジンオイル</h2>
-    <div class="problem-scenario">
-      <span class="problem-scenario-label">仲間は何を使っている？</span>
-      「次のオイル交換、いつものブランドにするか、別のを試してみるか——ほかのオーナーの実績が気になる。」
+  <!-- ============ T1：まずはこの1つから（〜1,000円）============ -->
+  <div id="t1" class="tier-section">
+    <div class="tier-head">
+      <h2 class="tier-h">まずはこの1つから</h2>
+      <span class="tier-band">〜1,000円</span>
+    </div>
+    <p class="tier-copy">迷ったらここから。数百円から1,000円ほどで、今日から愛車の状態が変わるものを集めました。旧車の維持は、こういう小さな一手の積み重ねです。</p>
+
+    <div class="feature-block">
+      <h3 class="feature-h">⚡ フィアット500の点火系・スパークプラグ</h3>
+      <div class="problem-scenario">
+            <span class="problem-scenario-label">こんな経験、ありませんか？</span>
+            「信号待ちでエンストしそうになる。アイドリングが安定しない。」
+          </div>
+      <div class="item-card featured">
+        <div class="item-badges">
+          <span class="badge badge-amazon">Amazon</span>
+          <span class="badge badge-monotaro">MonotaRO</span>
+          <span class="badge badge-community">👥 48人中9人が選択</span>
+        </div>
+        <img class="item-img" src="https://m.media-amazon.com/images/P/B001GHAY84.01._SL200_.jpg" alt="NGK BP6HS" loading="lazy" onerror="this.style.display='none'">
+        <div class="item-name">スパークプラグ（NGK BP6HS）</div>
+        <div class="item-sub">Fiat 500（チンクエチェント）標準プラグ</div>
+        <div class="item-price">参考: 約400〜600円/本（4本セット推奨）</div>
+        <div class="item-reason">
+          旧車の始動不調の主因のひとつが点火系の劣化。
+          BP6HSはFiat 500（500F/L/R）の標準指定プラグ。NGKは国内シェア1位の信頼ブランド。
+        </div>
+        <div class="owner-comment">
+          プラグは常備しておきたいですね。標準仕様はこちらから。
+          <span class="owner-comment-attr">── オーナー推薦</span>
+        </div>
+        <div class="item-buttons">
+          <a href="https://www.amazon.co.jp/dp/B001GHAY84?tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">NGK BP6HSをAmazonで今すぐ購入する →</a>
+          <a href="https://www.monotaro.com/s/q-bp6hs/" class="btn-monotaro" target="_blank" rel="nofollow">MonotaROで探す</a>
+        </div>
+      </div>
     </div>
 
+    <div class="feature-block">
+      <h3 class="feature-h">🪝 フィアット500のゴム・樹脂保護</h3>
+      <div class="problem-scenario">
+            <span class="problem-scenario-label">こんな劣化、見て見ぬふりをしていませんか？</span>
+            「ドアのゴムが硬くなっている。雨の日、隙間から水が滲みてきた。」
+          </div>
+      <div class="item-card featured">
+        <div class="item-badges">
+          <span class="badge badge-amazon">Amazon</span>
+          <span class="badge badge-community">👥 48人中6人が選択</span>
+        </div>
+        <img class="item-img" src="https://m.media-amazon.com/images/P/B00264ODT2.01._SL200_.jpg" alt="KURE ラバープロテクタント" loading="lazy" onerror="this.style.display='none'">
+        <div class="item-name">KURE ラバープロテクタント（呉工業）</div>
+        <div class="item-sub">ゴム製パーツ保護剤・300ml</div>
+        <div class="item-price">参考: 約850〜1,200円</div>
+        <div class="item-reason">
+          製造から50年以上経ったゴムパーツは乾燥・硬化が進んでいます。
+          ドアのウェザーストリップ、ゴムブーツ、外装モールに年1〜2回塗るだけでひび割れと水漏れを大幅に防げます。
+          レビュー6600件超の実績ある定番品。
+        </div>
+        <div class="item-buttons">
+          <a href="https://www.amazon.co.jp/dp/B00264ODT2?tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">KURE ラバープロテクタントをAmazonで今すぐ購入する →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-block">
+      <h3 class="feature-h">💧 フィアット500の水なし洗車</h3>
+      <div class="problem-scenario">
+            <span class="problem-scenario-label">こんなジレンマ、ありませんか？</span>
+            「旧車の塗装に傷がつきそうで、ホースの水も当てたくない。でも汚れてきた。」
+          </div>
+      <div class="item-card featured">
+        <div class="item-badges">
+          <span class="badge badge-amazon">Amazon</span>
+          <span class="badge badge-community">👥 推薦あり</span>
+        </div>
+        <img class="item-img" src="https://m.media-amazon.com/images/P/B08VNFRJSY.01._SL200_.jpg" alt="ソフト99 フクピカ Gen5" loading="lazy" onerror="this.style.display='none'">
+        <div class="item-name">ソフト99 フクピカ Gen5（24枚）</div>
+        <div class="item-sub">水なし洗車シート・洗浄＋ワックス＋艶出し</div>
+        <div class="item-price">参考: 約900〜1,200円</div>
+        <div class="owner-comment">
+          古いチンクには極力水使いたくないから、フクピカ良いよね。
+          <span class="owner-comment-attr">── 2026年3月 オーナーアンケートより</span>
+        </div>
+        <div class="owner-comment">
+          あー！鳥の糞が〜！戻ってきたらボディやガラスにねっちょりと。そんな時にさっとひと拭き♪
+          <span class="owner-comment-attr">── 管理人より</span>
+        </div>
+        <div class="item-buttons">
+          <a href="https://www.amazon.co.jp/dp/B08VNFRJSY?tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">ソフト99 フクピカをAmazonで今すぐ購入する →</a>
+        </div>
+      </div>
+    </div>
+
+    <p class="tier-more">この価格帯のほかの品</p>
+    <div class="tb-grid">
+          <div class="tb-card">
+            <span class="tb-badge-owner">👥 オーナー推薦</span>
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B0026T8PKU.01._SL200_.jpg" alt="PiKAL グラスターゾルオート" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">PiKAL ガラス・ボディークリーナー グラスターゾルオート 420ml</div>
+            <div class="tb-brand">ピカール(Pikal)</div>
+            <div class="tb-price">〜1,000円</div>
+            <div class="tb-comment">ピカピカロードスターで有名な<a href="https://x.com/questwanaka?s=20" target="_blank" rel="noopener">Kazu Tomitaさん</a>も愛用。ちょっと汚れが気になった時、ボディもガラスもこれを吹き付けてクロスで吹き上げれば、砂埃でキズ付けることなく綺麗にできます♪</div>
+            <a href="https://www.amazon.co.jp/dp/B0026T8PKU?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <span class="tb-badge-owner">👥 オーナー推薦</span>
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B00F1KTQQ8.01._SL200_.jpg" alt="NGK スパークプラグ B6HS" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">日本特殊陶業(NGK) スパークプラグ【3409】一体形 B6HS</div>
+            <div class="tb-brand">NGK</div>
+            <div class="tb-price">〜1,000円</div>
+            <div class="tb-comment">こちらも標準仕様。</div>
+            <a href="https://www.amazon.co.jp/dp/B00F1KTQQ8?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/81jW8pnlpXL._AC_SX679_.jpg" alt="NGK 一般プラグ BP6HS-10 6326" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">日本特殊陶業(NGK) 一般プラグ(分離形/ターミナル付)1本【6326】BP6HS-10</div>
+            <div class="tb-brand">NGK</div>
+            <div class="tb-price">〜1,000円</div>
+            <div class="tb-comment">点火が強化タイプの場合はギャップが1.0mmのこちら。</div>
+            <a href="https://www.amazon.co.jp/dp/B000GZDHNQ?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B003B2WL88.01._SL200_.jpg" alt="ソフト99 glaco ガラスクリーナー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">ソフト99 glaco ガラスクリーナー 下地処理</div>
+            <div class="tb-brand">SOFT99</div>
+            <div class="tb-price">〜1,000円</div>
+            <div class="tb-comment">ガラコ施工前の油膜・汚れ落としに。コーティングの持ちを左右する下地処理用。</div>
+            <a href="https://www.amazon.co.jp/dp/B003B2WL88?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B09QHFPHYS.01._SL200_.jpg" alt="ソフト99 ぬりぬりガラコDX" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">ソフト99 ぬりぬりガラコDX（110mL）</div>
+            <div class="tb-brand">SOFT99</div>
+            <div class="tb-price">〜1,000円</div>
+            <div class="tb-comment">塗り込みタイプのガラスコーティング。ワイパーの効きが悪くなってきたガラスに。</div>
+            <a href="https://www.amazon.co.jp/dp/B09QHFPHYS?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B002CPO796.01._SL200_.jpg" alt="ホルツ コンパウンドミニセット" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">ホルツ 補修用品 コンパウンドミニセット</div>
+            <div class="tb-brand">Holts(ホルツ)</div>
+            <div class="tb-price">〜1,000円</div>
+            <div class="tb-comment">粗目・細目・極細の3本セット。まず手軽に試してみたい人向けの入門セット。</div>
+            <a href="https://www.amazon.co.jp/dp/B002CPO796?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <span class="tb-badge-owner">👥 オーナー推薦</span>
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/61dyb0MdKEL._AC_SX679_.jpg" alt="KURE シリコングリースメイト ペースト" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">KURE(呉工業) シリコングリースメイト ペースト 50g</div>
+            <div class="tb-brand">KURE(呉工業)</div>
+            <div class="tb-price">〜1,000円</div>
+            <div class="tb-comment">ドラシャブーツやドラシャジョイントのゴム劣化防止に。ゴムを攻撃しないシリコングリースなのでゴムパーツまわりに安心して使えます。</div>
+            <a href="https://www.amazon.co.jp/dp/B001D2CVCY?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B000TGLYT6.01._SL200_.jpg" alt="KURE 6-66" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">KURE(呉工業) 6-66 315ml マリーン用防錆・防湿・潤滑剤</div>
+            <div class="tb-brand">KURE(呉工業)</div>
+            <div class="tb-price">〜1,000円</div>
+            <div class="tb-comment">塩害・湿気に強い防錆潤滑剤。ボディ下回りや金属パーツの錆対策の定番。</div>
+            <a href="https://www.amazon.co.jp/dp/B000TGLYT6?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B003B32JAC.01._SL200_.jpg" alt="KURE エンジンコンディショナー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">KURE(呉工業) エンジンコンディショナー 380ml</div>
+            <div class="tb-brand">KURE(呉工業)</div>
+            <div class="tb-price">〜1,000円</div>
+            <div class="tb-comment">気化器・燃焼室のカーボン除去用クリーナー。アイドリング不調が気になったら。</div>
+            <a href="https://www.amazon.co.jp/dp/B003B32JAC?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B000TGO0ME.01._SL200_.jpg" alt="KURE 接点復活スプレー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">KURE(呉工業) 接点復活スプレー 220ml</div>
+            <div class="tb-brand">KURE(呉工業)</div>
+            <div class="tb-price">〜1,000円</div>
+            <div class="tb-comment">配線コネクタの接触不良に。旧車の電装トラブルの初手として常備しておきたい一本。</div>
+            <a href="https://www.amazon.co.jp/dp/B000TGO0ME?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+    </div>
+  </div>
+
+  <!-- ============ T2：定番のケミカル・消耗品（1,000〜3,000円）============ -->
+  <div id="t2" class="tier-section">
+    <div class="tier-head">
+      <h2 class="tier-h">定番のケミカル・消耗品</h2>
+      <span class="tier-band">1,000〜3,000円</span>
+    </div>
+    <p class="tier-copy">オーナーの間で名前がよく挙がる定番どころ。1本持っておくと「あの時買っておけば」が減る領域です。</p>
+
+    <div class="feature-block">
+      <h3 class="feature-h">🧪 フィアット500のケミカル類</h3>
+      <div class="problem-scenario">
+            <span class="problem-scenario-label">こんな経験、ありませんか？</span>
+            「ボルトが固着して外れない。キャブが詰まっている気がする。各部に錆が広がってきた。」
+          </div>
+      <div class="item-card featured">
+        <div class="item-badges">
+          <span class="badge badge-amazon">Amazon</span>
+          <span class="badge badge-community">👥 オーナー推薦ブランド</span>
+        </div>
+        <img class="item-img" src="https://m.media-amazon.com/images/P/B0025R69EC.01._SL200_.jpg" alt="ワコーズ ラスペネ RC" loading="lazy" onerror="this.style.display='none'">
+        <div class="item-name">ワコーズ ラスペネ RC（浸透潤滑剤）</div>
+        <div class="item-sub">固着ボルトの救世主・旧車整備の必需品</div>
+        <div class="item-price">参考: 約1,800〜2,500円</div>
+        <div class="item-reason">
+          「ケミカル類はワコーズ」——アンケートで繰り返し聞かれた言葉です。
+          旧車では錆・固着したボルトに日常的に遭遇します。ラスペネRCは強力な浸透力と潤滑力で、諦めかけていたボルトを救います。整備のお供に1本常備。
+        </div>
+        <div class="owner-comment">
+          ケミカル類はワコーズ。
+          <span class="owner-comment-attr">── 2026年3月 オーナーアンケートより</span>
+        </div>
+        <div class="item-buttons">
+          <a href="https://www.amazon.co.jp/dp/B0025R69EC?tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">ワコーズ ラスペネRCをAmazonで今すぐ購入する →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-block">
+      <div class="item-card">
+        <div class="item-badges">
+          <span class="badge badge-amazon">Amazon</span>
+        </div>
+        <img class="item-img" src="https://m.media-amazon.com/images/P/B0025R9HKU.01._SL200_.jpg" alt="ワコーズ F-1 フューエルワン" loading="lazy" onerror="this.style.display='none'">
+        <div class="item-name">ワコーズ F-1 フューエルワン（燃料添加剤）</div>
+        <div class="item-sub">キャブレター・燃料系の汚れを内側から洗浄</div>
+        <div class="item-price">参考: 約2,200〜3,000円</div>
+        <div class="item-reason">
+          旧車の燃料系は詰まりやすく、アイドリング不安定や始動不良の原因になります。
+          給油のたびに少量加えるだけで、キャブレターや燃料ラインを内側から洗浄。定番の予防メンテナンスです。
+        </div>
+        <div class="item-buttons">
+          <a href="https://www.amazon.co.jp/dp/B0025R9HKU?tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">フューエルワンをAmazonで見る →</a>
+          <a href="https://www.amazon.co.jp/s?k=ワコーズ+ケミカル+旧車&tag=registro500-22" class="btn-amazon-sub" target="_blank" rel="nofollow">ワコーズ他商品を見る</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-block">
+      <div class="item-card">
+        <div class="item-badges">
+          <span class="badge badge-amazon">Amazon</span>
+          <span class="badge badge-community">👥 推薦あり</span>
+        </div>
+        <img class="item-img" src="https://m.media-amazon.com/images/P/B0069Z77FG.01._SL200_.jpg" alt="ワコーズ シェイクワックス QW" loading="lazy" onerror="this.style.display='none'">
+        <div class="item-name">ワコーズ シェイクワックス QW</div>
+        <div class="item-sub">二相式リキッドワックス・艶出し特化</div>
+        <div class="item-price">参考: 約2,200〜3,000円</div>
+        <div class="item-reason">
+          バリアスコートで保護膜を作り、このシェイクワックスで艶を重ねる「二段掛け」が人気。
+          旧車のくすんだ塗装に当時の光沢を蘇らせる効果があります。
+        </div>
+        <div class="owner-comment">
+          飴のような光沢を得られる。バリアスコートと合わせて使っています。
+          <span class="owner-comment-attr">── 2026年3月 オーナーアンケートより</span>
+        </div>
+        <div class="item-buttons">
+          <a href="https://www.amazon.co.jp/dp/B0069Z77FG?tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">シェイクワックスをAmazonで見る →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-block">
+      <div class="item-card">
+        <div class="item-badges">
+          <span class="badge badge-amazon">Amazon</span>
+          <span class="badge badge-community">👥 推薦あり</span>
+        </div>
+        <div class="item-name">クラシカ 瞬（水なし洗車ワックス）</div>
+        <div class="item-reason">
+          旧車オーナーから名指しで挙がったブランド。塗り込み不要でサッと拭くだけで仕上がり、旧車の繊細な塗装への負担が少ない設計。フクピカと並ぶ「水を使わない洗車」の選択肢として支持されています。
+        </div>
+        <div class="owner-comment">
+          「クラシカ 瞬」という水なし洗車ワックスです。
+          <span class="owner-comment-attr">── 2026年3月 オーナーアンケートより</span>
+        </div>
+        <div class="item-buttons">
+          <a href="https://www.amazon.co.jp/s?k=クラシカ+瞬+水なし洗車&tag=registro500-22" class="btn-amazon-sub" target="_blank" rel="nofollow">クラシカ 瞬をAmazonで見る</a>
+        </div>
+      </div>
+    </div>
+
+    <p class="tier-more">この価格帯のほかの品</p>
+    <div class="tb-grid">
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/91uM42fqUbL._AC_SX569_.jpg" alt="Amazonベーシック マイクロファイバークロス" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">Amazonベーシック クリーニングクロス マイクロファイバー 12個 (40×40cm)</div>
+            <div class="tb-brand">Amazonベーシック</div>
+            <div class="tb-price">1,000〜3,000円</div>
+            <div class="tb-comment">拭き上げるクロスは、やはりマイクロファイバーが便利ですよね。何枚あってもいつの間にか足りなくなるので、Amazonベーシックで補充しておきましょう。</div>
+            <a href="https://www.amazon.co.jp/dp/B0CY2XW4GB?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/51JkeRzuo+L._AC_SY879_.jpg" alt="エーモン 三角停止板" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">エーモン(amon) 三角停止板 国家公安委員会認定品 6640</div>
+            <div class="tb-brand">エーモン(amon)</div>
+            <div class="tb-price">1,000〜3,000円</div>
+            <div class="tb-comment">止まってほしくないけど、トラブルはつきもの。安全確保のためにも三角停止板は必須ですよね。</div>
+            <a href="https://www.amazon.co.jp/dp/B06X93K63P?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/617Mh8QR4NL._AC_SX679_.jpg" alt="エーモン パープルセーバー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">エーモン(amon) 第1世代 パープルセーバー 停止表示灯 6910</div>
+            <div class="tb-brand">エーモン(amon)</div>
+            <div class="tb-price">1,000〜3,000円</div>
+            <div class="tb-comment">三角停止板はかさばるからなあ、という方には、ぜひこちらがお勧め！輝度も高く小ぶりなのにしっかり目立ちます。管理人も何度こいつのお世話になったことか。お勧めです♪</div>
+            <a href="https://www.amazon.co.jp/dp/B0B58HCPBX?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <span class="tb-badge-owner">👥 オーナー推薦</span>
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/514bws1scSL._AC_SX679_.jpg" alt="KTC パンタグラフジャッキ PJ-06" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">京都機械工具(KTC) パンタグラフジャッキ PJ-06</div>
+            <div class="tb-brand">京都機械工具(KTC)</div>
+            <div class="tb-price">1,000〜3,000円</div>
+            <div class="tb-comment">油圧ジャッキは重すぎて…という方には安心のブランドKTCのパンタグラフジャッキがお勧め。純正ジャッキよりも安心感あり。コンパクトで軽量。</div>
+            <a href="https://www.amazon.co.jp/dp/B000W9KZ68?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/61qCXLIsa9L._AC_SX679_.jpg" alt="LETOUR LEDランタン" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">LETOUR LEDランタン 充電式 超高輝度 無段階調光 マグネット付き</div>
+            <div class="tb-brand">LETOUR</div>
+            <div class="tb-price">1,000〜3,000円</div>
+            <div class="tb-comment">こちらはちょっと小ぶりな手のひらサイズですが、いろんなシーンで使えます。</div>
+            <a href="https://www.amazon.co.jp/dp/B0G49328KY?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B00O1M5XFK.01._SL200_.jpg" alt="柳瀬 ガラセリウム" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">柳瀬 ヤナセ 研磨剤 ガラセリウム 100g</div>
+            <div class="tb-brand">柳瀬</div>
+            <div class="tb-price">1,000〜3,000円</div>
+            <div class="tb-comment">金属・メッキパーツの曇りを取る研磨剤。バンパーやモールの輝きを取り戻したいときに。</div>
+            <a href="https://www.amazon.co.jp/dp/B00O1M5XFK?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B004X3GIZ6.01._SL200_.jpg" alt="ソフト99 液体コンパウンドトライアルセット" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">ソフト99 99工房 液体コンパウンドトライアルセット</div>
+            <div class="tb-brand">SOFT99</div>
+            <div class="tb-price">1,000〜3,000円</div>
+            <div class="tb-comment">専用スポンジ付き。塗装面のキズ消し・仕上げ・鏡面仕上げまで一通り体験できる。</div>
+            <a href="https://www.amazon.co.jp/dp/B004X3GIZ6?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <span class="tb-badge-owner">👥 オーナー推薦</span>
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/51uipl1M2TL._AC_SX679_.jpg" alt="ノックスドール 300" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">ノックスドール 300 500ml</div>
+            <div class="tb-brand">Noxudol</div>
+            <div class="tb-price">1,000〜3,000円</div>
+            <div class="tb-comment">アンダーフロアの防錆剤。雨や雪の日に走っても新たな錆びの発生や進行が見当たらないほど効き目は抜群、とオーナーも太鼓判。700番と組み合わせて使うのがおすすめ。</div>
+            <a href="https://www.amazon.co.jp/dp/B00JUEXUWC?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <span class="tb-badge-owner">👥 オーナー推薦</span>
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/51BKLXakVKL._AC_SX679_.jpg" alt="ノックスドール 700" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">ノックスドール 700 500mlエアゾール</div>
+            <div class="tb-brand">Noxudol</div>
+            <div class="tb-price">1,000〜3,000円</div>
+            <div class="tb-comment">300番と合わせてアンダーフロアの防錆対策に。旧車のボディ下回りをしっかり守りたい人向け。</div>
+            <a href="https://www.amazon.co.jp/dp/B00JUEXUW2?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <span class="tb-badge-owner">👥 オーナー推薦</span>
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/814MbYQMlhL._AC_SY879_.jpg" alt="ワコーズ RMV リムーバー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">ワコーズ RMV リムーバー ガスケットの剥離・カーボン除去スプレー 300ml</div>
+            <div class="tb-brand">ワコーズ(Wako's)</div>
+            <div class="tb-price">1,000〜3,000円</div>
+            <div class="tb-comment">こびりついたガスケットのカスやエンジン周りのカーボン汚れがキレイに落ちる。</div>
+            <a href="https://www.amazon.co.jp/dp/B008SKC7YG?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B000HBNVSK.01._SL200_.jpg" alt="Permatex エンジンアセンブリ潤滑剤" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">Permatex ウルトラスリック エンジンアセンブリ潤滑剤 4オンス</div>
+            <div class="tb-brand">Permatex</div>
+            <div class="tb-price">1,000〜3,000円</div>
+            <div class="tb-comment">組み付け時の初期潤滑・焼き付き防止に。エンジン内部作業をする人向けの専門ケミカル。</div>
+            <a href="https://www.amazon.co.jp/dp/B000HBNVSK?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B0031XVTPS.01._SL200_.jpg" alt="ヤマルーブ スーパーキャブレタークリーナー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">ヤマハ発動機 ヤマルーブ スーパーキャブレタークリーナー 泡タイプ 500ml</div>
+            <div class="tb-brand">YAMAHA (Automotive)</div>
+            <div class="tb-price">1,000〜3,000円</div>
+            <div class="tb-comment">キャブレターの詰まりが気になるときに。泡タイプで狙った場所にしっかり留まる。</div>
+            <a href="https://www.amazon.co.jp/dp/B0031XVTPS?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+        <div class="tb-card">
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B001EQCIL8.01._SL200_.jpg" alt="KTC プロフィットツールスパナ" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">京都機械工具(KTC) プロフィットツール スパナ S30-10</div>
+          <div class="tb-brand">京都機械工具(KTC)</div>
+          <div class="tb-price">1,000〜3,000円</div>
+          <div class="tb-comment">デスビの調整に。10・13・17・19mmが揃うとFiat 500の作業がぐっと楽に。</div>
+          <a href="https://www.amazon.co.jp/dp/B001EQCIL8?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+        <div class="tb-card">
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/61y9ZfA9xHL._AC_SX679_.jpg" alt="ENGINEER ネジザウルスGT" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">ENGINEER エンジニア ネジザウルスGT PZ-58 グリーン</div>
+          <div class="tb-brand">ENGINEER</div>
+          <div class="tb-price">1,000〜3,000円</div>
+          <div class="tb-comment">なめたネジ・潰れたネジ・錆びたネジをがっちり掴んで外す定番工具。φ3〜9.5mm対応。</div>
+          <a href="https://www.amazon.co.jp/dp/B002L6HJAA?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+        <div class="tb-card">
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/61fbEXSkMNL._AC_SY300_SX300_QL70_ML2_.jpg" alt="ミャクミャクザウルス" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">EXPO2025 大阪・関西万博公式ライセンス ミャクミャクザウルス PZ-58MM</div>
+          <div class="tb-brand">ENGINEER</div>
+          <div class="tb-price">1,000〜3,000円</div>
+          <div class="tb-comment">性能はネジザウルスGTと同等の万博公式コラボモデル。実用性能はそのままに、話のタネにもなる一本。</div>
+          <a href="https://www.amazon.co.jp/dp/B0FMXV8SPM?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+        <div class="tb-card">
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B07Z7F179T.01._SL200_.jpg" alt="ENGINEER ネジザウルスモグラセット" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">ENGINEER エンジニア ネジザウルスモグラセット DBZ-20</div>
+          <div class="tb-brand">ENGINEER</div>
+          <div class="tb-price">1,000〜3,000円</div>
+          <div class="tb-comment">なめた六角穴付きボルトの取り外しに。皿ネジ・キャップボルトにも対応するビット4本組。</div>
+          <a href="https://www.amazon.co.jp/dp/B07Z7F179T?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+        <div class="tb-card">
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/41O07MfsikL._AC_SX679_.jpg" alt="Wera プラスドライバー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">Wera(ヴェラ) プラスドライバー 2×100 008720</div>
+          <div class="tb-brand">Wera</div>
+          <div class="tb-price">1,000〜3,000円</div>
+          <div class="tb-comment">剛性感のあるドイツ製ドライバー。1本持っておくと道具箱の格が上がる定番品。</div>
+          <a href="https://www.amazon.co.jp/dp/B0001P17L0?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+        <div class="tb-card">
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/617wB2HafyL._AC_SX679_.jpg" alt="WORKPRO ペンチ" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">WORKPRO ペンチ ラジオペンチ コンビネーションプライヤー 全長205mm</div>
+          <div class="tb-brand">WORKPRO</div>
+          <div class="tb-price">1,000〜3,000円</div>
+          <div class="tb-comment">スリップジョイント式で2段階調整可能。手頃な価格で1本持っておきたい万能ペンチ。</div>
+          <a href="https://www.amazon.co.jp/dp/B0DKJ6RZVP?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+    </div>
+  </div>
+
+  <!-- ============ T3：あると作業が変わる道具（3,000〜1万円）============ -->
+  <div id="t3" class="tier-section">
+    <div class="tier-head">
+      <h2 class="tier-h">あると作業が変わる道具</h2>
+      <span class="tier-band">3,000〜1万円</span>
+    </div>
+    <p class="tier-copy">無くても何とかなる。でも、あると作業のストレスが目に見えて減る道具です。少しずつ揃えていく楽しみがあるところ。</p>
+
+    <div class="feature-block">
+      <div class="item-card">
+        <div class="item-badges">
+          <span class="badge badge-amazon">Amazon</span>
+          <span class="badge badge-community">👥 推薦あり</span>
+        </div>
+        <div class="item-name">スパナ・メガネレンチ（スタビレー / トネ）</div>
+        <div class="item-reason">
+          Fiat 500でよく使うのは 10・13・17・19mm。
+          障害物が多いエンジンルームではオフセット角の大きいタイプが有効。旧車はミリ規格のみでOK。
+        </div>
+        <div class="owner-comment">
+          メガネタイプで障害物を避けたい場合は、スタビレーのディープオフセット（75°）がおすすめ。10と13、13と17、17と19の組み合わせで揃えると便利。日本製ならトネでも同様の組み合わせがあります。
+          <span class="owner-comment-attr">── 2026年3月 オーナーアンケートより</span>
+        </div>
+        <div class="item-buttons">
+          <a href="https://www.amazon.co.jp/s?k=スタビレー+めがねレンチ+ディープオフセット&tag=registro500-22" class="btn-amazon-sub" target="_blank" rel="nofollow">スタビレーをAmazonで見る</a>
+          <a href="https://www.amazon.co.jp/s?k=トネ+めがねレンチ+ミリ&tag=registro500-22" class="btn-amazon-sub" target="_blank" rel="nofollow">トネをAmazonで見る</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-block">
+      <h3 class="feature-h">✨ フィアット500のコーティング・ワックス</h3>
+      <div class="problem-scenario">
+            <span class="problem-scenario-label">こんなこと、気になっていませんか？</span>
+            「雨の後、ボンネットの水はじきが悪くなってきた。塗装のツヤも落ちてきた気がする。」
+          </div>
+      <div class="item-card featured">
+        <div class="item-badges">
+          <span class="badge badge-amazon">Amazon</span>
+          <span class="badge badge-community">👥 48人中8人が選択（複数名が名指し推薦）</span>
+        </div>
+        <img class="item-img" src="https://m.media-amazon.com/images/P/B07YVFRFHN.01._SL200_.jpg" alt="ワコーズ バリアスコート" loading="lazy" onerror="this.style.display='none'">
+        <div class="item-name">ワコーズ VAC バリアスコート スプレー A142</div>
+        <div class="item-sub">ガラス系コーティング・300ml</div>
+        <div class="item-price">参考: 約3,500〜5,000円</div>
+        <div class="item-reason">
+          ガラス系コーティングは塗装面に硬い保護膜を形成し、雨水と汚れを弾きます。
+          旧車の塗装は現代車より薄く紫外線にも弱いため、定期的なコーティングが劣化の進行を大幅に遅らせます。
+          スプレーして拭き取るだけの簡単施工。
+        </div>
+        <div class="owner-comment">
+          撥水力があり、効果も長持ちなガラス系コーティング剤のワコーズ・バリアスコート。（ただし、だいぶ高額になってしまった）
+          <span class="owner-comment-attr">── 2026年3月 オーナーアンケートより</span>
+        </div>
+        <div class="item-buttons">
+          <a href="https://www.amazon.co.jp/dp/B07YVFRFHN?tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">ワコーズ バリアスコートをAmazonで今すぐ購入する →</a>
+        </div>
+      </div>
+    </div>
+
+    <p class="tier-more">この価格帯のほかの品</p>
+    <div class="tb-grid">
+          <div class="tb-card">
+            <span class="tb-badge-owner">👥 オーナー推薦</span>
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/61dyIXYc7WL._SX522_.jpg" alt="テイクナウ LED小型スポットライト" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">テイクナウ(TAKENOW) LED小型スポットライト WL6016</div>
+            <div class="tb-brand">テイクナウ(TAKENOW)</div>
+            <div class="tb-price">3,000〜1万円</div>
+            <div class="tb-comment">夜中のトラブル時に、手元をしっかり照らしてくれる頼りになるライト。</div>
+            <a href="https://www.amazon.co.jp/dp/B083ZGS7LP?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <span class="tb-badge-owner">👥 オーナー推薦</span>
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/81ZN1p2TrYL._AC_SX679_.jpg" alt="マキタ 充電式ファン" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">マキタ 充電式ファン 羽根径18cm(10.8V) CF101DZ</div>
+            <div class="tb-brand">マキタ</div>
+            <div class="tb-price">3,000〜1万円</div>
+            <div class="tb-comment">灼熱の夏場、走行中に風を呼び込む三角窓も停車時は助けてくれない。信号待ちでも風が欲しい！　そんなあなたには助手席の足元にこれを置いてほしい。マキタの名に恥じない強い風と長持ちバッテリー！</div>
+            <a href="https://www.amazon.co.jp/dp/B07D16XLK2?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/51ZsvhQqk2L._AC_SX679_.jpg" alt="FW1 水なし洗車スプレー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">FW1 水なし洗車 カーワックススプレー 517mL</div>
+            <div class="tb-brand">FW1 Wash and Wax</div>
+            <div class="tb-price">3,000〜1万円</div>
+            <div class="tb-comment">吹きかけて拭き取るだけで撥水・艶出し。洗車のたびにホースを引っ張り出すのが面倒な人向け。</div>
+            <a href="https://www.amazon.co.jp/dp/B00FLN8M2Y?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B08FDBL3Y3.01._SL200_.jpg" alt="3Mコンパウンド3本セット" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">[3Mジャパン正規品] コンパウンド 小容量3本セット</div>
+            <div class="tb-brand">スリーエム(3M)</div>
+            <div class="tb-price">3,000〜1万円</div>
+            <div class="tb-comment">ハード1・ハード2・ウルトラフィーナプレミアムの3本セット。小キズ消しから鏡面仕上げまで段階的に。</div>
+            <a href="https://www.amazon.co.jp/dp/B08FDBL3Y3?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/71t52MfJYyL._SX522_.jpg" alt="ベルハンマーゴールド" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">スズキ機工 ベルハンマー 超極圧潤滑剤 LSベルハンマーゴールド</div>
+            <div class="tb-brand">スズキ機工(Suzuki Kikoh)</div>
+            <div class="tb-price">3,000〜1万円</div>
+            <div class="tb-comment">固着ボルトに強い超極圧グリース。「これで外れないボルトはない」と評判の一品。</div>
+            <a href="https://www.amazon.co.jp/dp/B07SVDHFWY?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+        <div class="tb-card">
+          <span class="tb-badge-owner">👥 オーナー推薦</span>
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/6128niwokGL._AC_SX679_.jpg" alt="KTC ロックカプラ JAE915" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">京都機械工具(KTC) ロックカプラ JAE915</div>
+          <div class="tb-brand">京都機械工具(KTC)</div>
+          <div class="tb-price">3,000〜1万円</div>
+          <div class="tb-comment">グリースニップルにワンタッチで食いつくグリースガン用カプラー。他車の廃番品を愛用しているオーナーもいるほど、確実な食いつきが便利。</div>
+          <a href="https://www.amazon.co.jp/dp/B07H9P21MN?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+        <div class="tb-card">
+          <span class="tb-badge-owner">👥 オーナー推薦</span>
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/6192ykCOAyL._AC_SX679_.jpg" alt="コーケン フリーターンクロスレンチ" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">山下工業研究所 コーケン 1/2SQ. フリーターンクロスレンチ 4711X</div>
+          <div class="tb-brand">Ko-ken</div>
+          <div class="tb-price">3,000〜1万円</div>
+          <div class="tb-comment">スライドバーのように動かして外せるハンドルなのでとてもコンパクトになる十字レンチの代わり。グリップが回転するため作業が楽。</div>
+          <a href="https://www.amazon.co.jp/dp/B004IKOBFI?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+        <div class="tb-card">
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/71aPTVV13FL._AC_SX679_.jpg" alt="Yacooda 電動ドライバー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">Yacooda 電動ドライバー 小型 鬼トルク6N.m 16点ビット付き</div>
+          <div class="tb-brand">Yacooda</div>
+          <div class="tb-price">3,000〜1万円</div>
+          <div class="tb-comment">小型・軽量で扱いやすい電動ドライバー。ビット16点付きで内装・小物の分解作業が一通りこなせる。</div>
+          <a href="https://www.amazon.co.jp/dp/B0DZCMJVVZ?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+        <div class="tb-card">
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/61u0hVUO8sL._AC_SX679_.jpg" alt="ベッセル 電ドラボール" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">ベッセル(VESSEL) 電動 ボールグリップドライバー 電ドラボール 220USB-S1</div>
+          <div class="tb-brand">VESSEL</div>
+          <div class="tb-price">3,000〜1万円</div>
+          <div class="tb-comment">握るだけで回転するボールグリップタイプ。ビス打ちの多い内装まわりの作業がぐっと楽になる。</div>
+          <a href="https://www.amazon.co.jp/dp/B08MQDCLWK?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+        <div class="tb-card">
+          <span class="tb-badge-owner">👥 オーナー推薦</span>
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/61YnFY81PUL._AC_SX679_.jpg" alt="KNIPEX コブラ250mm" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">KNIPEX プライヤー コブラ 250mm 87 01 250</div>
+          <div class="tb-brand">クニペックス KNIPEX</div>
+          <div class="tb-price">3,000〜1万円</div>
+          <div class="tb-comment">定番のウォーターポンププライヤー。大きめサイズで太いパイプやナットにも対応。</div>
+          <a href="https://www.amazon.co.jp/dp/B0001D9JAI?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+        <div class="tb-card">
+          <span class="tb-badge-owner">👥 オーナー推薦</span>
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/419duUHcWeL._AC_SX569_.jpg" alt="KNIPEX コブラ 8701-125SB" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">KNIPEX コブラ ウォーターポンププライヤー 8701-125SB</div>
+          <div class="tb-brand">クニペックス KNIPEX</div>
+          <div class="tb-price">3,000〜1万円</div>
+          <div class="tb-comment">掴む口のギザが高強度でとにかく力を入れやすい。掴む・回す・こじるで最強クラス、とオーナーも太鼓判のサイズ。</div>
+          <a href="https://www.amazon.co.jp/dp/B002A021WS?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+        <div class="tb-card">
+          <span class="tb-badge-owner">👥 オーナー推薦</span>
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/51Is7UFj6wL._AC_SX679_.jpg" alt="KNIPEX スーパーニッパー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">KNIPEX エレクトロニクス スーパーニッパー クランプ付 7813-125</div>
+          <div class="tb-brand">クニペックス KNIPEX</div>
+          <div class="tb-price">3,000〜1万円</div>
+          <div class="tb-comment">結束バンドのカットに。カットした部分がフラットになるため手に怪我をしにくく、飛んでいかないのも嬉しいポイント。</div>
+          <a href="https://www.amazon.co.jp/dp/B000Y8M416?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+        <div class="tb-card">
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/71FpOSCC3oL._AC_SX679_.jpg" alt="KNIPEX ツイングリッププライヤー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">KNIPEX ツイングリップ スリップジョイントプライヤー 200mm</div>
+          <div class="tb-brand">クニペックス KNIPEX</div>
+          <div class="tb-price">3,000〜1万円</div>
+          <div class="tb-comment">開口幅調整可能で、摩耗したボルト・ナットもしっかり掴める万能プライヤー。</div>
+          <a href="https://www.amazon.co.jp/dp/B09FPZPY96?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+        <div class="tb-card">
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/51jTXj81IDL._AC_SX300_SY300_QL70_ML2_.jpg" alt="KNIPEX プライヤーレンチ" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">KNIPEX プライヤーレンチ 8603-250SB</div>
+          <div class="tb-brand">クニペックス KNIPEX</div>
+          <div class="tb-price">3,000〜1万円</div>
+          <div class="tb-comment">ワンハンドで開口幅を無段階調整できる代表作。掴む・回すを1本でこなせる。</div>
+          <a href="https://www.amazon.co.jp/dp/B0001D9JEO?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+        <div class="tb-card">
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/71CMAkgSURL._AC_SX679_.jpg" alt="KNIPEX コブラ100mm" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">KNIPEX Cobra ウォーターポンププライヤー 全長100mm 8700-100</div>
+          <div class="tb-brand">クニペックス KNIPEX</div>
+          <div class="tb-price">3,000〜1万円</div>
+          <div class="tb-comment">小回りの効くコンパクトサイズ。エンジンルームの狭い場所での作業に。</div>
+          <a href="https://www.amazon.co.jp/dp/B085WBGQNP?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+        <div class="tb-card">
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/61S45dh1pOL._AC_SX679_.jpg" alt="ENGINEER GTドライヴ ネジバズーカセット" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">ENGINEER エンジニア GTドライヴ ネジバズーカセット DZ-76</div>
+          <div class="tb-brand">ENGINEER</div>
+          <div class="tb-price">3,000〜1万円</div>
+          <div class="tb-comment">なめたネジの取り外し専用工具。旧車あるあるの「なめネジ」対策に1セット。</div>
+          <a href="https://www.amazon.co.jp/dp/B0CW2MXG5D?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+        <div class="tb-card">
+          <span class="tb-badge-owner">👥 オーナー推薦</span>
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/61Uf9qTT-kL._AC_SX679_.jpg" alt="Panasonic caos N-60B19R" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">パナソニック(Panasonic) 国産車バッテリー カオス N-60B19R/C8</div>
+          <div class="tb-brand">Panasonic</div>
+          <div class="tb-price">3,000〜1万円</div>
+          <div class="tb-comment">同じくオーナー推薦、60B19R規格。容量が大きく安心感がある一本。標準車(充電制御車)用。</div>
+          <a href="https://www.amazon.co.jp/dp/B0BFGSZ932?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+    </div>
+  </div>
+
+  <!-- ============ T4：腰を据えて選ぶもの（1万円〜）============ -->
+  <div id="t4" class="tier-section">
+    <div class="tier-head">
+      <h2 class="tier-h">腰を据えて選ぶもの</h2>
+      <span class="tier-band">1万円〜</span>
+    </div>
+    <p class="tier-copy">値は張りますが、長く使えて確実に元が取れるもの。急がずじっくり選んでください。</p>
+
+    <div class="feature-block">
+      <h3 class="feature-h">🔋 フィアット500のバッテリー充電器</h3>
+      <div class="problem-scenario">
+            <span class="problem-scenario-label">こんな経験、ありませんか？</span>
+            「2週間ぶりに乗ろうとしたら、エンジンがかからなかった。」
+          </div>
+      <div class="item-card featured">
+        <div class="item-badges">
+          <span class="badge badge-amazon">Amazon</span>
+          <span class="badge badge-community">👥 48人中10人が選択</span>
+        </div>
+        <img class="item-img" src="https://m.media-amazon.com/images/P/B00KM3U2T4.01._SL200_.jpg" alt="CTEK MXS 5.0JP" loading="lazy" onerror="this.style.display='none'">
+        <div class="item-name">バッテリー充電器（トリクル充電）</div>
+        <div class="item-sub">CTEK MXS 5.0JP — 定番・日本仕様正規品</div>
+        <div class="item-price">参考: 約14,000〜16,000円</div>
+        <div class="item-reason">
+          Fiat 500の小型バッテリーは、数週間乗らないだけで上がります。
+          CTEKは欧州旧車オーナーに長年支持されてきた定番機種。繋げておくだけで自動管理してくれます。<br>
+          <strong>バッテリー上がりによるレッカー代は1回1〜2万円。</strong>CTEKは買い切りで何年も使えるため、長い目で見ると割安です。
+        </div>
+        <div class="owner-comment">
+          旧車は乗らない期間こそが一番の敵。CTEKをつけてから、バッテリー上がりで焦ることがなくなりました。
+          <span class="owner-comment-attr">── 2026年3月 オーナーアンケートより</span>
+        </div>
+        <div class="item-buttons">
+          <a href="https://www.amazon.co.jp/dp/B00KM3U2T4?tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">CTEK MXS 5.0JPをAmazonで今すぐ購入する →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-block">
+      <h3 class="feature-h">🔧 フィアット500の工具・トルク管理</h3>
+      <div class="problem-scenario">
+            <span class="problem-scenario-label">こんな経験、ありませんか？</span>
+            「ネジを締めすぎてネジ山をなめた。旧車のボルト、どのくらいの力で締めればいい？」
+          </div>
+      <div class="item-card featured">
+        <div class="item-badges">
+          <span class="badge badge-amazon">Amazon</span>
+          <span class="badge badge-community">👥 48人中10人が工具類を選択</span>
+        </div>
+        <img class="item-img" src="https://m.media-amazon.com/images/P/B01H8CFVVU.01._SL200_.jpg" alt="東日製作所 QL50N" loading="lazy" onerror="this.style.display='none'">
+        <div class="item-name">トルクレンチ（東日製作所 QL50N）</div>
+        <div class="item-sub">10〜50N·m — Fiat 500の締め付けをほぼカバー</div>
+        <div class="item-price">参考: 約10,000〜14,000円</div>
+        <div class="item-reason">
+          旧車のボルト・ナットは締めすぎるとネジ山を痛めます。
+          10・13・17・19mmがFiat 500でよく使うサイズ。東日は国産精密工具の代表格。
+        </div>
+        <div class="owner-comment">
+          トルクレンチは東日製が信頼性とコストパフォーマンスに優れているかと。
+          <span class="owner-comment-attr">── 2026年3月 オーナーアンケートより</span>
+        </div>
+        <div class="item-buttons">
+          <a href="https://www.amazon.co.jp/dp/B01H8CFVVU?tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">東日 QL50NをAmazonで今すぐ購入する →</a>
+        </div>
+      </div>
+    </div>
+
+    <p class="tier-more">この価格帯のほかの品</p>
+    <div class="tb-grid">
+          <div class="tb-card">
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/51OpJd-kmRL._AC_SX679_.jpg" alt="FIRE SHOKA STICK" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">FIRE SHOKA STICK（ファイヤーショーカスティック）耐用年数15年</div>
+            <div class="tb-brand">FIRE SHOKA STICK</div>
+            <div class="tb-price">1万円〜</div>
+            <div class="tb-comment">このニオイはガソリン？　キャブ車の火災事故は少なくありません。万が一、火が出てしまったら？　この消火器は車載専用で、不活性ガスで消火するので汚れない消火が可能。ちょっとお高めですが、エンジンが使えなくなることを考えれば安いもの？　管理人も買おうと思っています♪</div>
+            <a href="https://www.amazon.co.jp/dp/B0DNYBT725?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+          <div class="tb-card">
+            <span class="tb-badge-owner">👥 オーナー推薦</span>
+            <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B001UJ2O6S.01._SL200_.jpg" alt="マサダ製作所 シザースジャッキ" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+            <div class="tb-name">マサダ製作所 乗用車 BEETLE 油圧シザースジャッキ 850kg DPJ-850DX</div>
+            <div class="tb-brand">マサダ製作所</div>
+            <div class="tb-price">1万円〜</div>
+            <div class="tb-comment">FIAT純正のジャッキ、デザインは素敵ですが心もとないですよね。機械式のパンタグラフジャッキは手回しが大変。そんなあなたにお勧め。安心のブランド　マサダ製作所の油圧ジャッキ。管理人も車載しています。ちょっと重いのが難点ですが、日常整備もこれで十分！</div>
+            <a href="https://www.amazon.co.jp/dp/B001UJ2O6S?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+          </div>
+        <div class="tb-card">
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/41gVtO87EFL._AC_SX679_.jpg" alt="Wera Kraftform Kompakt 20" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">Wera(ヴェラ) Kraftform Kompakt 20 RA-R 6点【日本正規輸入品】</div>
+          <div class="tb-brand">Wera</div>
+          <div class="tb-price">1万円〜</div>
+          <div class="tb-comment">ラチェットドライバー＋ビット6点のセット。1台で幅広いネジに対応できる本格派。</div>
+          <a href="https://www.amazon.co.jp/dp/B0F7HWXNVF?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+        <div class="tb-card">
+          <span class="tb-badge-owner">👥 オーナー推薦</span>
+          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/617Jsr6YR3L._AC_SX679_.jpg" alt="Panasonic caos N-80B24R" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          <div class="tb-name">パナソニック(Panasonic) 国産車バッテリー カオス N-80B24R/C8</div>
+          <div class="tb-brand">Panasonic</div>
+          <div class="tb-price">1万円〜</div>
+          <div class="tb-comment">オーナー推薦のバッテリー。80B24R規格。標準車(充電制御車)用で安心サポート付き。</div>
+          <a href="https://www.amazon.co.jp/dp/B0BFGVKCTY?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
+        </div>
+    </div>
+  </div>
+
+  <!-- ============ エンジンオイル（別枠：粘度と銘柄の選択が要るため）============ -->
+  <div id="oil" class="tier-section">
+    <div class="tier-head">
+      <h2 class="tier-h">🛢️ フィアット500のエンジンオイル</h2>
+      <span class="tier-band">アンケート1位・13票</span>
+    </div>
+    <p class="tier-copy">アンケートで最も多くの票が集まったのがオイルでした。粘度も銘柄もオーナーによって様々なので、このサイトに登録された車両の実使用データと合わせてどうぞ。</p>
+
+    <div class="problem-scenario">
+          <span class="problem-scenario-label">仲間は何を使っている？</span>
+          「次のオイル交換、いつものブランドにするか、別のを試してみるか——ほかのオーナーの実績が気になる。」
+        </div>
     <div class="item-card featured">
       <div class="item-badges">
         <span class="badge badge-amazon">Amazon</span>
@@ -844,8 +1586,7 @@
       </div>
     </div>
 
-    <!-- 交換サイクルCTA -->
-    <div class="cycle-cta">
+<div class="cycle-cta">
       📊 <strong>オーナーの実際の交換サイクル：</strong>距離では <strong>3,000km前後</strong>、期間では <strong>半年ごと</strong> が最多。<br>
       走行距離・保管期間が気になってきたら、これを機に交換してみませんか？
       <div style="margin-top: 10px;">
@@ -853,922 +1594,6 @@
       </div>
     </div>
   </div>
-
-  <!-- ============ 問題2: バッテリー上がり（10票）============ -->
-  <div id="battery" class="problem-section">
-    <h2 class="section-heading"><span class="section-rank-num">2位・10票</span>🔋 フィアット500のバッテリー充電器</h2>
-    <div class="problem-scenario">
-      <span class="problem-scenario-label">こんな経験、ありませんか？</span>
-      「2週間ぶりに乗ろうとしたら、エンジンがかからなかった。」
-    </div>
-
-    <div class="item-card featured">
-      <div class="item-badges">
-        <span class="badge badge-amazon">Amazon</span>
-        <span class="badge badge-community">👥 48人中10人が選択</span>
-      </div>
-      <img class="item-img" src="https://m.media-amazon.com/images/P/B00KM3U2T4.01._SL200_.jpg" alt="CTEK MXS 5.0JP" loading="lazy" onerror="this.style.display='none'">
-      <div class="item-name">バッテリー充電器（トリクル充電）</div>
-      <div class="item-sub">CTEK MXS 5.0JP — 定番・日本仕様正規品</div>
-      <div class="item-price">参考: 約14,000〜16,000円</div>
-      <div class="item-reason">
-        Fiat 500の小型バッテリーは、数週間乗らないだけで上がります。
-        CTEKは欧州旧車オーナーに長年支持されてきた定番機種。繋げておくだけで自動管理してくれます。<br>
-        <strong>バッテリー上がりによるレッカー代は1回1〜2万円。</strong>CTEKは買い切りで何年も使えるため、長い目で見ると割安です。
-      </div>
-      <div class="owner-comment">
-        旧車は乗らない期間こそが一番の敵。CTEKをつけてから、バッテリー上がりで焦ることがなくなりました。
-        <span class="owner-comment-attr">── 2026年3月 オーナーアンケートより</span>
-      </div>
-      <div class="item-buttons">
-        <a href="https://www.amazon.co.jp/dp/B00KM3U2T4?tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">CTEK MXS 5.0JPをAmazonで今すぐ購入する →</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ 問題3: 工具・トルク管理（10票）============ -->
-  <div id="tools" class="problem-section">
-    <h2 class="section-heading"><span class="section-rank-num">2位・10票</span>🔧 フィアット500の工具・トルク管理</h2>
-    <div class="problem-scenario">
-      <span class="problem-scenario-label">こんな経験、ありませんか？</span>
-      「ネジを締めすぎてネジ山をなめた。旧車のボルト、どのくらいの力で締めればいい？」
-    </div>
-
-    <div class="item-card featured">
-      <div class="item-badges">
-        <span class="badge badge-amazon">Amazon</span>
-        <span class="badge badge-community">👥 48人中10人が工具類を選択</span>
-      </div>
-      <img class="item-img" src="https://m.media-amazon.com/images/P/B01H8CFVVU.01._SL200_.jpg" alt="東日製作所 QL50N" loading="lazy" onerror="this.style.display='none'">
-      <div class="item-name">トルクレンチ（東日製作所 QL50N）</div>
-      <div class="item-sub">10〜50N·m — Fiat 500の締め付けをほぼカバー</div>
-      <div class="item-price">参考: 約10,000〜14,000円</div>
-      <div class="item-reason">
-        旧車のボルト・ナットは締めすぎるとネジ山を痛めます。
-        10・13・17・19mmがFiat 500でよく使うサイズ。東日は国産精密工具の代表格。
-      </div>
-      <div class="owner-comment">
-        トルクレンチは東日製が信頼性とコストパフォーマンスに優れているかと。
-        <span class="owner-comment-attr">── 2026年3月 オーナーアンケートより</span>
-      </div>
-      <div class="item-buttons">
-        <a href="https://www.amazon.co.jp/dp/B01H8CFVVU?tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">東日 QL50NをAmazonで今すぐ購入する →</a>
-      </div>
-    </div>
-
-    <div class="item-card">
-      <div class="item-badges">
-        <span class="badge badge-amazon">Amazon</span>
-        <span class="badge badge-community">👥 推薦あり</span>
-      </div>
-      <div class="item-name">スパナ・メガネレンチ（スタビレー / トネ）</div>
-      <div class="item-reason">
-        Fiat 500でよく使うのは 10・13・17・19mm。
-        障害物が多いエンジンルームではオフセット角の大きいタイプが有効。旧車はミリ規格のみでOK。
-      </div>
-      <div class="owner-comment">
-        メガネタイプで障害物を避けたい場合は、スタビレーのディープオフセット（75°）がおすすめ。10と13、13と17、17と19の組み合わせで揃えると便利。日本製ならトネでも同様の組み合わせがあります。
-        <span class="owner-comment-attr">── 2026年3月 オーナーアンケートより</span>
-      </div>
-      <div class="item-buttons">
-        <a href="https://www.amazon.co.jp/s?k=スタビレー+めがねレンチ+ディープオフセット&tag=registro500-22" class="btn-amazon-sub" target="_blank" rel="nofollow">スタビレーをAmazonで見る</a>
-        <a href="https://www.amazon.co.jp/s?k=トネ+めがねレンチ+ミリ&tag=registro500-22" class="btn-amazon-sub" target="_blank" rel="nofollow">トネをAmazonで見る</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ 問題4: 点火系（9票）============ -->
-  <div id="ignition" class="problem-section">
-    <h2 class="section-heading"><span class="section-rank-num">4位・9票</span>⚡ フィアット500の点火系・スパークプラグ</h2>
-    <div class="problem-scenario">
-      <span class="problem-scenario-label">こんな経験、ありませんか？</span>
-      「信号待ちでエンストしそうになる。アイドリングが安定しない。」
-    </div>
-
-    <div class="item-card featured">
-      <div class="item-badges">
-        <span class="badge badge-amazon">Amazon</span>
-        <span class="badge badge-monotaro">MonotaRO</span>
-        <span class="badge badge-community">👥 48人中9人が選択</span>
-      </div>
-      <img class="item-img" src="https://m.media-amazon.com/images/P/B001GHAY84.01._SL200_.jpg" alt="NGK BP6HS" loading="lazy" onerror="this.style.display='none'">
-      <div class="item-name">スパークプラグ（NGK BP6HS）</div>
-      <div class="item-sub">Fiat 500（チンクエチェント）標準プラグ</div>
-      <div class="item-price">参考: 約400〜600円/本（4本セット推奨）</div>
-      <div class="item-reason">
-        旧車の始動不調の主因のひとつが点火系の劣化。
-        BP6HSはFiat 500（500F/L/R）の標準指定プラグ。NGKは国内シェア1位の信頼ブランド。
-      </div>
-      <div class="owner-comment">
-        プラグは常備しておきたいですね。標準仕様はこちらから。
-        <span class="owner-comment-attr">── オーナー推薦</span>
-      </div>
-      <div class="item-buttons">
-        <a href="https://www.amazon.co.jp/dp/B001GHAY84?tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">NGK BP6HSをAmazonで今すぐ購入する →</a>
-        <a href="https://www.monotaro.com/s/q-bp6hs/" class="btn-monotaro" target="_blank" rel="nofollow">MonotaROで探す</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ ケミカル類（ワコーズ推薦）============ -->
-  <div id="chemical" class="problem-section">
-    <h2 class="section-heading"><span class="section-rank-num">4位・9票</span>🧪 フィアット500のケミカル類</h2>
-    <div class="problem-scenario">
-      <span class="problem-scenario-label">こんな経験、ありませんか？</span>
-      「ボルトが固着して外れない。キャブが詰まっている気がする。各部に錆が広がってきた。」
-    </div>
-
-    <div class="item-card featured">
-      <div class="item-badges">
-        <span class="badge badge-amazon">Amazon</span>
-        <span class="badge badge-community">👥 オーナー推薦ブランド</span>
-      </div>
-      <img class="item-img" src="https://m.media-amazon.com/images/P/B0025R69EC.01._SL200_.jpg" alt="ワコーズ ラスペネ RC" loading="lazy" onerror="this.style.display='none'">
-      <div class="item-name">ワコーズ ラスペネ RC（浸透潤滑剤）</div>
-      <div class="item-sub">固着ボルトの救世主・旧車整備の必需品</div>
-      <div class="item-price">参考: 約1,800〜2,500円</div>
-      <div class="item-reason">
-        「ケミカル類はワコーズ」——アンケートで繰り返し聞かれた言葉です。
-        旧車では錆・固着したボルトに日常的に遭遇します。ラスペネRCは強力な浸透力と潤滑力で、諦めかけていたボルトを救います。整備のお供に1本常備。
-      </div>
-      <div class="owner-comment">
-        ケミカル類はワコーズ。
-        <span class="owner-comment-attr">── 2026年3月 オーナーアンケートより</span>
-      </div>
-      <div class="item-buttons">
-        <a href="https://www.amazon.co.jp/dp/B0025R69EC?tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">ワコーズ ラスペネRCをAmazonで今すぐ購入する →</a>
-      </div>
-    </div>
-
-    <div class="item-card">
-      <div class="item-badges">
-        <span class="badge badge-amazon">Amazon</span>
-      </div>
-      <img class="item-img" src="https://m.media-amazon.com/images/P/B0025R9HKU.01._SL200_.jpg" alt="ワコーズ F-1 フューエルワン" loading="lazy" onerror="this.style.display='none'">
-      <div class="item-name">ワコーズ F-1 フューエルワン（燃料添加剤）</div>
-      <div class="item-sub">キャブレター・燃料系の汚れを内側から洗浄</div>
-      <div class="item-price">参考: 約2,200〜3,000円</div>
-      <div class="item-reason">
-        旧車の燃料系は詰まりやすく、アイドリング不安定や始動不良の原因になります。
-        給油のたびに少量加えるだけで、キャブレターや燃料ラインを内側から洗浄。定番の予防メンテナンスです。
-      </div>
-      <div class="item-buttons">
-        <a href="https://www.amazon.co.jp/dp/B0025R9HKU?tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">フューエルワンをAmazonで見る →</a>
-        <a href="https://www.amazon.co.jp/s?k=ワコーズ+ケミカル+旧車&tag=registro500-22" class="btn-amazon-sub" target="_blank" rel="nofollow">ワコーズ他商品を見る</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ 問題5: 塗装・コーティング（8票）============ -->
-  <div id="coating" class="problem-section">
-    <h2 class="section-heading"><span class="section-rank-num">6位・8票</span>✨ フィアット500のコーティング・ワックス</h2>
-    <div class="problem-scenario">
-      <span class="problem-scenario-label">こんなこと、気になっていませんか？</span>
-      「雨の後、ボンネットの水はじきが悪くなってきた。塗装のツヤも落ちてきた気がする。」
-    </div>
-
-    <div class="item-card featured">
-      <div class="item-badges">
-        <span class="badge badge-amazon">Amazon</span>
-        <span class="badge badge-community">👥 48人中8人が選択（複数名が名指し推薦）</span>
-      </div>
-      <img class="item-img" src="https://m.media-amazon.com/images/P/B07YVFRFHN.01._SL200_.jpg" alt="ワコーズ バリアスコート" loading="lazy" onerror="this.style.display='none'">
-      <div class="item-name">ワコーズ VAC バリアスコート スプレー A142</div>
-      <div class="item-sub">ガラス系コーティング・300ml</div>
-      <div class="item-price">参考: 約3,500〜5,000円</div>
-      <div class="item-reason">
-        ガラス系コーティングは塗装面に硬い保護膜を形成し、雨水と汚れを弾きます。
-        旧車の塗装は現代車より薄く紫外線にも弱いため、定期的なコーティングが劣化の進行を大幅に遅らせます。
-        スプレーして拭き取るだけの簡単施工。
-      </div>
-      <div class="owner-comment">
-        撥水力があり、効果も長持ちなガラス系コーティング剤のワコーズ・バリアスコート。（ただし、だいぶ高額になってしまった）
-        <span class="owner-comment-attr">── 2026年3月 オーナーアンケートより</span>
-      </div>
-      <div class="item-buttons">
-        <a href="https://www.amazon.co.jp/dp/B07YVFRFHN?tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">ワコーズ バリアスコートをAmazonで今すぐ購入する →</a>
-      </div>
-    </div>
-
-    <div class="item-card">
-      <div class="item-badges">
-        <span class="badge badge-amazon">Amazon</span>
-        <span class="badge badge-community">👥 推薦あり</span>
-      </div>
-      <img class="item-img" src="https://m.media-amazon.com/images/P/B0069Z77FG.01._SL200_.jpg" alt="ワコーズ シェイクワックス QW" loading="lazy" onerror="this.style.display='none'">
-      <div class="item-name">ワコーズ シェイクワックス QW</div>
-      <div class="item-sub">二相式リキッドワックス・艶出し特化</div>
-      <div class="item-price">参考: 約2,200〜3,000円</div>
-      <div class="item-reason">
-        バリアスコートで保護膜を作り、このシェイクワックスで艶を重ねる「二段掛け」が人気。
-        旧車のくすんだ塗装に当時の光沢を蘇らせる効果があります。
-      </div>
-      <div class="owner-comment">
-        飴のような光沢を得られる。バリアスコートと合わせて使っています。
-        <span class="owner-comment-attr">── 2026年3月 オーナーアンケートより</span>
-      </div>
-      <div class="item-buttons">
-        <a href="https://www.amazon.co.jp/dp/B0069Z77FG?tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">シェイクワックスをAmazonで見る →</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ 問題6: ゴム・樹脂の劣化（6票）============ -->
-  <div id="rubber" class="problem-section">
-    <h2 class="section-heading"><span class="section-rank-num">7位・6票</span>🪝 フィアット500のゴム・樹脂保護</h2>
-    <div class="problem-scenario">
-      <span class="problem-scenario-label">こんな劣化、見て見ぬふりをしていませんか？</span>
-      「ドアのゴムが硬くなっている。雨の日、隙間から水が滲みてきた。」
-    </div>
-
-    <div class="item-card featured">
-      <div class="item-badges">
-        <span class="badge badge-amazon">Amazon</span>
-        <span class="badge badge-community">👥 48人中6人が選択</span>
-      </div>
-      <img class="item-img" src="https://m.media-amazon.com/images/P/B00264ODT2.01._SL200_.jpg" alt="KURE ラバープロテクタント" loading="lazy" onerror="this.style.display='none'">
-      <div class="item-name">KURE ラバープロテクタント（呉工業）</div>
-      <div class="item-sub">ゴム製パーツ保護剤・300ml</div>
-      <div class="item-price">参考: 約850〜1,200円</div>
-      <div class="item-reason">
-        製造から50年以上経ったゴムパーツは乾燥・硬化が進んでいます。
-        ドアのウェザーストリップ、ゴムブーツ、外装モールに年1〜2回塗るだけでひび割れと水漏れを大幅に防げます。
-        レビュー6600件超の実績ある定番品。
-      </div>
-      <div class="item-buttons">
-        <a href="https://www.amazon.co.jp/dp/B00264ODT2?tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">KURE ラバープロテクタントをAmazonで今すぐ購入する →</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ 問題7: 水なし洗車（推薦）============ -->
-  <div id="carwash" class="problem-section">
-    <h2 class="section-heading"><span class="section-rank-num">8位・5票</span>💧 フィアット500の水なし洗車</h2>
-    <div class="problem-scenario">
-      <span class="problem-scenario-label">こんなジレンマ、ありませんか？</span>
-      「旧車の塗装に傷がつきそうで、ホースの水も当てたくない。でも汚れてきた。」
-    </div>
-
-    <div class="item-card featured">
-      <div class="item-badges">
-        <span class="badge badge-amazon">Amazon</span>
-        <span class="badge badge-community">👥 推薦あり</span>
-      </div>
-      <img class="item-img" src="https://m.media-amazon.com/images/P/B08VNFRJSY.01._SL200_.jpg" alt="ソフト99 フクピカ Gen5" loading="lazy" onerror="this.style.display='none'">
-      <div class="item-name">ソフト99 フクピカ Gen5（24枚）</div>
-      <div class="item-sub">水なし洗車シート・洗浄＋ワックス＋艶出し</div>
-      <div class="item-price">参考: 約900〜1,200円</div>
-      <div class="owner-comment">
-        古いチンクには極力水使いたくないから、フクピカ良いよね。
-        <span class="owner-comment-attr">── 2026年3月 オーナーアンケートより</span>
-      </div>
-      <div class="owner-comment">
-        あー！鳥の糞が〜！戻ってきたらボディやガラスにねっちょりと。そんな時にさっとひと拭き♪
-        <span class="owner-comment-attr">── 管理人より</span>
-      </div>
-      <div class="item-buttons">
-        <a href="https://www.amazon.co.jp/dp/B08VNFRJSY?tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">ソフト99 フクピカをAmazonで今すぐ購入する →</a>
-      </div>
-    </div>
-
-    <div class="item-card">
-      <div class="item-badges">
-        <span class="badge badge-amazon">Amazon</span>
-        <span class="badge badge-community">👥 推薦あり</span>
-      </div>
-      <div class="item-name">クラシカ 瞬（水なし洗車ワックス）</div>
-      <div class="item-reason">
-        旧車オーナーから名指しで挙がったブランド。塗り込み不要でサッと拭くだけで仕上がり、旧車の繊細な塗装への負担が少ない設計。フクピカと並ぶ「水を使わない洗車」の選択肢として支持されています。
-      </div>
-      <div class="owner-comment">
-        「クラシカ 瞬」という水なし洗車ワックスです。
-        <span class="owner-comment-attr">── 2026年3月 オーナーアンケートより</span>
-      </div>
-      <div class="item-buttons">
-        <a href="https://www.amazon.co.jp/s?k=クラシカ+瞬+水なし洗車&tag=registro500-22" class="btn-amazon-sub" target="_blank" rel="nofollow">クラシカ 瞬をAmazonで見る</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ MonotaROコーナー ============ -->
-  <!-- ============ 第2層：道具箱カタログ（旧 prime-sale.html を統合） ============ -->
-  <div class="section-divider">道具箱 ― オーナーと管理人の実用品</div>
-
-  <div class="toolbox-intro">
-    🧰 ここからは <strong>アンケートで名前が挙がった品</strong> と、<strong>管理人が実際に使っている・欲しいと思っている道具</strong> を、
-    使うシーン別・ブランド別に並べました。<br>
-    <strong>👥 オーナー推薦</strong> の印が付いているものが、オーナーから挙がった品です。<br>
-    価格は目安の帯で表示しています。変動しますので、<strong>実際の価格は各商品ページでご確認ください。</strong>
-  </div>
-
-  <!-- ============ シーン: 車載していて、よかった！ ============ -->
-  <div id="tb-onboard" class="tb-scene">
-    <h2 class="tb-scene-h">🚗 車載していて、よかった！</h2>
-    <p class="tb-scene-copy">これのおかげで助かった！　あなたは何を車載していますか？　車載しておくと、いざという時に安心／便利な逸品をご紹介♪</p>
-
-    <div class="tb-sub">
-      <h3 class="tb-sub-h">✨ 綺麗にしたい</h3>
-      <div class="tb-grid">
-
-        <div class="tb-card">
-          <span class="tb-badge-owner">👥 オーナー推薦</span>
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B0026T8PKU.01._SL200_.jpg" alt="PiKAL グラスターゾルオート" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">PiKAL ガラス・ボディークリーナー グラスターゾルオート 420ml</div>
-          <div class="tb-brand">ピカール(Pikal)</div>
-          <div class="tb-price">〜1,000円</div>
-          <div class="tb-comment">ピカピカロードスターで有名な<a href="https://x.com/questwanaka?s=20" target="_blank" rel="noopener">Kazu Tomitaさん</a>も愛用。ちょっと汚れが気になった時、ボディもガラスもこれを吹き付けてクロスで吹き上げれば、砂埃でキズ付けることなく綺麗にできます♪</div>
-          <a href="https://www.amazon.co.jp/dp/B0026T8PKU?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/91uM42fqUbL._AC_SX569_.jpg" alt="Amazonベーシック マイクロファイバークロス" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">Amazonベーシック クリーニングクロス マイクロファイバー 12個 (40×40cm)</div>
-          <div class="tb-brand">Amazonベーシック</div>
-          <div class="tb-price">1,000〜3,000円</div>
-          <div class="tb-comment">拭き上げるクロスは、やはりマイクロファイバーが便利ですよね。何枚あってもいつの間にか足りなくなるので、Amazonベーシックで補充しておきましょう。</div>
-          <a href="https://www.amazon.co.jp/dp/B0CY2XW4GB?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="tb-sub">
-      <h3 class="tb-sub-h">🚨 もしも？のために安全確保が大切ですよね</h3>
-      <div class="tb-grid">
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/51JkeRzuo+L._AC_SY879_.jpg" alt="エーモン 三角停止板" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">エーモン(amon) 三角停止板 国家公安委員会認定品 6640</div>
-          <div class="tb-brand">エーモン(amon)</div>
-          <div class="tb-price">1,000〜3,000円</div>
-          <div class="tb-comment">止まってほしくないけど、トラブルはつきもの。安全確保のためにも三角停止板は必須ですよね。</div>
-          <a href="https://www.amazon.co.jp/dp/B06X93K63P?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/617Mh8QR4NL._AC_SX679_.jpg" alt="エーモン パープルセーバー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">エーモン(amon) 第1世代 パープルセーバー 停止表示灯 6910</div>
-          <div class="tb-brand">エーモン(amon)</div>
-          <div class="tb-price">1,000〜3,000円</div>
-          <div class="tb-comment">三角停止板はかさばるからなあ、という方には、ぜひこちらがお勧め！輝度も高く小ぶりなのにしっかり目立ちます。管理人も何度こいつのお世話になったことか。お勧めです♪</div>
-          <a href="https://www.amazon.co.jp/dp/B0B58HCPBX?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/51OpJd-kmRL._AC_SX679_.jpg" alt="FIRE SHOKA STICK" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">FIRE SHOKA STICK（ファイヤーショーカスティック）耐用年数15年</div>
-          <div class="tb-brand">FIRE SHOKA STICK</div>
-          <div class="tb-price">1万円〜</div>
-          <div class="tb-comment">このニオイはガソリン？　キャブ車の火災事故は少なくありません。万が一、火が出てしまったら？　この消火器は車載専用で、不活性ガスで消火するので汚れない消火が可能。ちょっとお高めですが、エンジンが使えなくなることを考えれば安いもの？　管理人も買おうと思っています♪</div>
-          <a href="https://www.amazon.co.jp/dp/B0DNYBT725?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="tb-sub">
-      <h3 class="tb-sub-h">💪 止まったって、自分で何とかしてやる！</h3>
-      <div class="tb-grid">
-
-        <div class="tb-card">
-          <span class="tb-badge-owner">👥 オーナー推薦</span>
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B001UJ2O6S.01._SL200_.jpg" alt="マサダ製作所 シザースジャッキ" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">マサダ製作所 乗用車 BEETLE 油圧シザースジャッキ 850kg DPJ-850DX</div>
-          <div class="tb-brand">マサダ製作所</div>
-          <div class="tb-price">1万円〜</div>
-          <div class="tb-comment">FIAT純正のジャッキ、デザインは素敵ですが心もとないですよね。機械式のパンタグラフジャッキは手回しが大変。そんなあなたにお勧め。安心のブランド　マサダ製作所の油圧ジャッキ。管理人も車載しています。ちょっと重いのが難点ですが、日常整備もこれで十分！</div>
-          <a href="https://www.amazon.co.jp/dp/B001UJ2O6S?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-        <div class="tb-card">
-          <span class="tb-badge-owner">👥 オーナー推薦</span>
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/514bws1scSL._AC_SX679_.jpg" alt="KTC パンタグラフジャッキ PJ-06" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">京都機械工具(KTC) パンタグラフジャッキ PJ-06</div>
-          <div class="tb-brand">京都機械工具(KTC)</div>
-          <div class="tb-price">1,000〜3,000円</div>
-          <div class="tb-comment">油圧ジャッキは重すぎて…という方には安心のブランドKTCのパンタグラフジャッキがお勧め。純正ジャッキよりも安心感あり。コンパクトで軽量。</div>
-          <a href="https://www.amazon.co.jp/dp/B000W9KZ68?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="tb-sub">
-      <h3 class="tb-sub-h">💡 暗くて見えない！</h3>
-      <div class="tb-grid">
-
-        <div class="tb-card">
-          <span class="tb-badge-owner">👥 オーナー推薦</span>
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/61dyIXYc7WL._SX522_.jpg" alt="テイクナウ LED小型スポットライト" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">テイクナウ(TAKENOW) LED小型スポットライト WL6016</div>
-          <div class="tb-brand">テイクナウ(TAKENOW)</div>
-          <div class="tb-price">3,000〜1万円</div>
-          <div class="tb-comment">夜中のトラブル時に、手元をしっかり照らしてくれる頼りになるライト。</div>
-          <a href="https://www.amazon.co.jp/dp/B083ZGS7LP?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/61qCXLIsa9L._AC_SX679_.jpg" alt="LETOUR LEDランタン" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">LETOUR LEDランタン 充電式 超高輝度 無段階調光 マグネット付き</div>
-          <div class="tb-brand">LETOUR</div>
-          <div class="tb-price">1,000〜3,000円</div>
-          <div class="tb-comment">こちらはちょっと小ぶりな手のひらサイズですが、いろんなシーンで使えます。</div>
-          <a href="https://www.amazon.co.jp/dp/B0G49328KY?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="tb-sub">
-      <h3 class="tb-sub-h">🔥 プラグくらいは持っておかないと！</h3>
-      <div class="tb-grid">
-
-
-        <div class="tb-card">
-          <span class="tb-badge-owner">👥 オーナー推薦</span>
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B00F1KTQQ8.01._SL200_.jpg" alt="NGK スパークプラグ B6HS" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">日本特殊陶業(NGK) スパークプラグ【3409】一体形 B6HS</div>
-          <div class="tb-brand">NGK</div>
-          <div class="tb-price">〜1,000円</div>
-          <div class="tb-comment">こちらも標準仕様。</div>
-          <a href="https://www.amazon.co.jp/dp/B00F1KTQQ8?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/81jW8pnlpXL._AC_SX679_.jpg" alt="NGK 一般プラグ BP6HS-10 6326" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">日本特殊陶業(NGK) 一般プラグ(分離形/ターミナル付)1本【6326】BP6HS-10</div>
-          <div class="tb-brand">NGK</div>
-          <div class="tb-price">〜1,000円</div>
-          <div class="tb-comment">点火が強化タイプの場合はギャップが1.0mmのこちら。</div>
-          <a href="https://www.amazon.co.jp/dp/B000GZDHNQ?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="tb-sub">
-      <h3 class="tb-sub-h">🌞 夏の暑さを乗り切りたい！</h3>
-      <div class="tb-grid">
-
-        <div class="tb-card">
-          <span class="tb-badge-owner">👥 オーナー推薦</span>
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/81ZN1p2TrYL._AC_SX679_.jpg" alt="マキタ 充電式ファン" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">マキタ 充電式ファン 羽根径18cm(10.8V) CF101DZ</div>
-          <div class="tb-brand">マキタ</div>
-          <div class="tb-price">3,000〜1万円</div>
-          <div class="tb-comment">灼熱の夏場、走行中に風を呼び込む三角窓も停車時は助けてくれない。信号待ちでも風が欲しい！　そんなあなたには助手席の足元にこれを置いてほしい。マキタの名に恥じない強い風と長持ちバッテリー！</div>
-          <a href="https://www.amazon.co.jp/dp/B07D16XLK2?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ シーン: 愛車を綺麗にしよう ============ -->
-  <div id="tb-clean" class="tb-scene">
-    <h2 class="tb-scene-h">✨ 愛車を綺麗にしよう</h2>
-    <p class="tb-scene-copy">50年選手の塗装を守り、艶を蘇らせる。窓ガラスからボディまで、旧車のコンディションを保つ定番アイテムをご紹介♪</p>
-
-    <div class="tb-sub">
-      <h3 class="tb-sub-h">🪟 窓ガラス</h3>
-      <div class="tb-grid">
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B003B2WL88.01._SL200_.jpg" alt="ソフト99 glaco ガラスクリーナー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">ソフト99 glaco ガラスクリーナー 下地処理</div>
-          <div class="tb-brand">SOFT99</div>
-          <div class="tb-price">〜1,000円</div>
-          <div class="tb-comment">ガラコ施工前の油膜・汚れ落としに。コーティングの持ちを左右する下地処理用。</div>
-          <a href="https://www.amazon.co.jp/dp/B003B2WL88?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B09QHFPHYS.01._SL200_.jpg" alt="ソフト99 ぬりぬりガラコDX" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">ソフト99 ぬりぬりガラコDX（110mL）</div>
-          <div class="tb-brand">SOFT99</div>
-          <div class="tb-price">〜1,000円</div>
-          <div class="tb-comment">塗り込みタイプのガラスコーティング。ワイパーの効きが悪くなってきたガラスに。</div>
-          <a href="https://www.amazon.co.jp/dp/B09QHFPHYS?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B00O1M5XFK.01._SL200_.jpg" alt="柳瀬 ガラセリウム" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">柳瀬 ヤナセ 研磨剤 ガラセリウム 100g</div>
-          <div class="tb-brand">柳瀬</div>
-          <div class="tb-price">1,000〜3,000円</div>
-          <div class="tb-comment">金属・メッキパーツの曇りを取る研磨剤。バンパーやモールの輝きを取り戻したいときに。</div>
-          <a href="https://www.amazon.co.jp/dp/B00O1M5XFK?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="tb-sub">
-      <h3 class="tb-sub-h">🧽 ワックス</h3>
-      <div class="tb-grid">
-
-
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/51ZsvhQqk2L._AC_SX679_.jpg" alt="FW1 水なし洗車スプレー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">FW1 水なし洗車 カーワックススプレー 517mL</div>
-          <div class="tb-brand">FW1 Wash and Wax</div>
-          <div class="tb-price">3,000〜1万円</div>
-          <div class="tb-comment">吹きかけて拭き取るだけで撥水・艶出し。洗車のたびにホースを引っ張り出すのが面倒な人向け。</div>
-          <a href="https://www.amazon.co.jp/dp/B00FLN8M2Y?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="tb-sub">
-      <h3 class="tb-sub-h">🪄 コンパウンド</h3>
-      <div class="tb-grid">
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B08FDBL3Y3.01._SL200_.jpg" alt="3Mコンパウンド3本セット" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">[3Mジャパン正規品] コンパウンド 小容量3本セット</div>
-          <div class="tb-brand">スリーエム(3M)</div>
-          <div class="tb-price">3,000〜1万円</div>
-          <div class="tb-comment">ハード1・ハード2・ウルトラフィーナプレミアムの3本セット。小キズ消しから鏡面仕上げまで段階的に。</div>
-          <a href="https://www.amazon.co.jp/dp/B08FDBL3Y3?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B002CPO796.01._SL200_.jpg" alt="ホルツ コンパウンドミニセット" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">ホルツ 補修用品 コンパウンドミニセット</div>
-          <div class="tb-brand">Holts(ホルツ)</div>
-          <div class="tb-price">〜1,000円</div>
-          <div class="tb-comment">粗目・細目・極細の3本セット。まず手軽に試してみたい人向けの入門セット。</div>
-          <a href="https://www.amazon.co.jp/dp/B002CPO796?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B004X3GIZ6.01._SL200_.jpg" alt="ソフト99 液体コンパウンドトライアルセット" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">ソフト99 99工房 液体コンパウンドトライアルセット</div>
-          <div class="tb-brand">SOFT99</div>
-          <div class="tb-price">1,000〜3,000円</div>
-          <div class="tb-comment">専用スポンジ付き。塗装面のキズ消し・仕上げ・鏡面仕上げまで一通り体験できる。</div>
-          <a href="https://www.amazon.co.jp/dp/B004X3GIZ6?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="tb-sub">
-      <h3 class="tb-sub-h">🧴 ケミカル・潤滑・防錆</h3>
-      <div class="tb-grid">
-
-
-        <div class="tb-card">
-          <span class="tb-badge-owner">👥 オーナー推薦</span>
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/61dyb0MdKEL._AC_SX679_.jpg" alt="KURE シリコングリースメイト ペースト" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">KURE(呉工業) シリコングリースメイト ペースト 50g</div>
-          <div class="tb-brand">KURE(呉工業)</div>
-          <div class="tb-price">〜1,000円</div>
-          <div class="tb-comment">ドラシャブーツやドラシャジョイントのゴム劣化防止に。ゴムを攻撃しないシリコングリースなのでゴムパーツまわりに安心して使えます。</div>
-          <a href="https://www.amazon.co.jp/dp/B001D2CVCY?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-        <div class="tb-card">
-          <span class="tb-badge-owner">👥 オーナー推薦</span>
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/51uipl1M2TL._AC_SX679_.jpg" alt="ノックスドール 300" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">ノックスドール 300 500ml</div>
-          <div class="tb-brand">Noxudol</div>
-          <div class="tb-price">1,000〜3,000円</div>
-          <div class="tb-comment">アンダーフロアの防錆剤。雨や雪の日に走っても新たな錆びの発生や進行が見当たらないほど効き目は抜群、とオーナーも太鼓判。700番と組み合わせて使うのがおすすめ。</div>
-          <a href="https://www.amazon.co.jp/dp/B00JUEXUWC?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-        <div class="tb-card">
-          <span class="tb-badge-owner">👥 オーナー推薦</span>
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/51BKLXakVKL._AC_SX679_.jpg" alt="ノックスドール 700" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">ノックスドール 700 500mlエアゾール</div>
-          <div class="tb-brand">Noxudol</div>
-          <div class="tb-price">1,000〜3,000円</div>
-          <div class="tb-comment">300番と合わせてアンダーフロアの防錆対策に。旧車のボディ下回りをしっかり守りたい人向け。</div>
-          <a href="https://www.amazon.co.jp/dp/B00JUEXUW2?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-        <div class="tb-card">
-          <span class="tb-badge-owner">👥 オーナー推薦</span>
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/814MbYQMlhL._AC_SY879_.jpg" alt="ワコーズ RMV リムーバー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">ワコーズ RMV リムーバー ガスケットの剥離・カーボン除去スプレー 300ml</div>
-          <div class="tb-brand">ワコーズ(Wako's)</div>
-          <div class="tb-price">1,000〜3,000円</div>
-          <div class="tb-comment">こびりついたガスケットのカスやエンジン周りのカーボン汚れがキレイに落ちる。</div>
-          <a href="https://www.amazon.co.jp/dp/B008SKC7YG?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B000TGLYT6.01._SL200_.jpg" alt="KURE 6-66" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">KURE(呉工業) 6-66 315ml マリーン用防錆・防湿・潤滑剤</div>
-          <div class="tb-brand">KURE(呉工業)</div>
-          <div class="tb-price">〜1,000円</div>
-          <div class="tb-comment">塩害・湿気に強い防錆潤滑剤。ボディ下回りや金属パーツの錆対策の定番。</div>
-          <a href="https://www.amazon.co.jp/dp/B000TGLYT6?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B003B32JAC.01._SL200_.jpg" alt="KURE エンジンコンディショナー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">KURE(呉工業) エンジンコンディショナー 380ml</div>
-          <div class="tb-brand">KURE(呉工業)</div>
-          <div class="tb-price">〜1,000円</div>
-          <div class="tb-comment">気化器・燃焼室のカーボン除去用クリーナー。アイドリング不調が気になったら。</div>
-          <a href="https://www.amazon.co.jp/dp/B003B32JAC?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B000TGO0ME.01._SL200_.jpg" alt="KURE 接点復活スプレー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">KURE(呉工業) 接点復活スプレー 220ml</div>
-          <div class="tb-brand">KURE(呉工業)</div>
-          <div class="tb-price">〜1,000円</div>
-          <div class="tb-comment">配線コネクタの接触不良に。旧車の電装トラブルの初手として常備しておきたい一本。</div>
-          <a href="https://www.amazon.co.jp/dp/B000TGO0ME?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/71t52MfJYyL._SX522_.jpg" alt="ベルハンマーゴールド" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">スズキ機工 ベルハンマー 超極圧潤滑剤 LSベルハンマーゴールド</div>
-          <div class="tb-brand">スズキ機工(Suzuki Kikoh)</div>
-          <div class="tb-price">3,000〜1万円</div>
-          <div class="tb-comment">固着ボルトに強い超極圧グリース。「これで外れないボルトはない」と評判の一品。</div>
-          <a href="https://www.amazon.co.jp/dp/B07SVDHFWY?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B000HBNVSK.01._SL200_.jpg" alt="Permatex エンジンアセンブリ潤滑剤" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">Permatex ウルトラスリック エンジンアセンブリ潤滑剤 4オンス</div>
-          <div class="tb-brand">Permatex</div>
-          <div class="tb-price">1,000〜3,000円</div>
-          <div class="tb-comment">組み付け時の初期潤滑・焼き付き防止に。エンジン内部作業をする人向けの専門ケミカル。</div>
-          <a href="https://www.amazon.co.jp/dp/B000HBNVSK?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-        <div class="tb-card">
-          <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B0031XVTPS.01._SL200_.jpg" alt="ヤマルーブ スーパーキャブレタークリーナー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-          <div class="tb-name">ヤマハ発動機 ヤマルーブ スーパーキャブレタークリーナー 泡タイプ 500ml</div>
-          <div class="tb-brand">YAMAHA (Automotive)</div>
-          <div class="tb-price">1,000〜3,000円</div>
-          <div class="tb-comment">キャブレターの詰まりが気になるときに。泡タイプで狙った場所にしっかり留まる。</div>
-          <a href="https://www.amazon.co.jp/dp/B0031XVTPS?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ 工具箱 ============ -->
-  <div id="tb-tools" class="tb-cat">
-    <h2 class="tb-cat-h">🔧 工具箱</h2>
-    <p class="tb-cat-sub">締めすぎ・なめすぎを防ぐ、信頼できる手道具たち。</p>
-    <div class="tb-grid">
-
-      <div class="tb-card">
-        <span class="tb-badge-owner">👥 オーナー推薦</span>
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/6128niwokGL._AC_SX679_.jpg" alt="KTC ロックカプラ JAE915" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">京都機械工具(KTC) ロックカプラ JAE915</div>
-        <div class="tb-brand">京都機械工具(KTC)</div>
-        <div class="tb-price">3,000〜1万円</div>
-        <div class="tb-comment">グリースニップルにワンタッチで食いつくグリースガン用カプラー。他車の廃番品を愛用しているオーナーもいるほど、確実な食いつきが便利。</div>
-        <a href="https://www.amazon.co.jp/dp/B07H9P21MN?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-      <div class="tb-card">
-        <span class="tb-badge-owner">👥 オーナー推薦</span>
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/6192ykCOAyL._AC_SX679_.jpg" alt="コーケン フリーターンクロスレンチ" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">山下工業研究所 コーケン 1/2SQ. フリーターンクロスレンチ 4711X</div>
-        <div class="tb-brand">Ko-ken</div>
-        <div class="tb-price">3,000〜1万円</div>
-        <div class="tb-comment">スライドバーのように動かして外せるハンドルなのでとてもコンパクトになる十字レンチの代わり。グリップが回転するため作業が楽。</div>
-        <a href="https://www.amazon.co.jp/dp/B004IKOBFI?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-      <div class="tb-card">
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B001EQCIL8.01._SL200_.jpg" alt="KTC プロフィットツールスパナ" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">京都機械工具(KTC) プロフィットツール スパナ S30-10</div>
-        <div class="tb-brand">京都機械工具(KTC)</div>
-        <div class="tb-price">1,000〜3,000円</div>
-        <div class="tb-comment">デスビの調整に。10・13・17・19mmが揃うとFiat 500の作業がぐっと楽に。</div>
-        <a href="https://www.amazon.co.jp/dp/B001EQCIL8?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ============ 電動ドライバー ============ -->
-  <div id="tb-screwdriver" class="tb-cat">
-    <h2 class="tb-cat-h">🔌 電動ドライバー</h2>
-    <p class="tb-cat-sub">手回しがつらくなってきたら、電動の力を借りるのも手。</p>
-    <div class="tb-grid">
-
-      <div class="tb-card">
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/71aPTVV13FL._AC_SX679_.jpg" alt="Yacooda 電動ドライバー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">Yacooda 電動ドライバー 小型 鬼トルク6N.m 16点ビット付き</div>
-        <div class="tb-brand">Yacooda</div>
-        <div class="tb-price">3,000〜1万円</div>
-        <div class="tb-comment">小型・軽量で扱いやすい電動ドライバー。ビット16点付きで内装・小物の分解作業が一通りこなせる。</div>
-        <a href="https://www.amazon.co.jp/dp/B0DZCMJVVZ?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-      <div class="tb-card">
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/61u0hVUO8sL._AC_SX679_.jpg" alt="ベッセル 電ドラボール" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">ベッセル(VESSEL) 電動 ボールグリップドライバー 電ドラボール 220USB-S1</div>
-        <div class="tb-brand">VESSEL</div>
-        <div class="tb-price">3,000〜1万円</div>
-        <div class="tb-comment">握るだけで回転するボールグリップタイプ。ビス打ちの多い内装まわりの作業がぐっと楽になる。</div>
-        <a href="https://www.amazon.co.jp/dp/B08MQDCLWK?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ============ KNIPEX ============ -->
-  <div id="tb-knipex" class="tb-cat">
-    <h2 class="tb-cat-h">🛡️ これがあれば安心のブランド KNIPEX</h2>
-    <p class="tb-cat-sub">掴む・回す・こじる。困ったときに頼れるドイツ製プライヤー。</p>
-    <div class="tb-grid">
-
-      <div class="tb-card">
-        <span class="tb-badge-owner">👥 オーナー推薦</span>
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/61YnFY81PUL._AC_SX679_.jpg" alt="KNIPEX コブラ250mm" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">KNIPEX プライヤー コブラ 250mm 87 01 250</div>
-        <div class="tb-brand">クニペックス KNIPEX</div>
-        <div class="tb-price">3,000〜1万円</div>
-        <div class="tb-comment">定番のウォーターポンププライヤー。大きめサイズで太いパイプやナットにも対応。</div>
-        <a href="https://www.amazon.co.jp/dp/B0001D9JAI?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-      <div class="tb-card">
-        <span class="tb-badge-owner">👥 オーナー推薦</span>
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/419duUHcWeL._AC_SX569_.jpg" alt="KNIPEX コブラ 8701-125SB" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">KNIPEX コブラ ウォーターポンププライヤー 8701-125SB</div>
-        <div class="tb-brand">クニペックス KNIPEX</div>
-        <div class="tb-price">3,000〜1万円</div>
-        <div class="tb-comment">掴む口のギザが高強度でとにかく力を入れやすい。掴む・回す・こじるで最強クラス、とオーナーも太鼓判のサイズ。</div>
-        <a href="https://www.amazon.co.jp/dp/B002A021WS?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-      <div class="tb-card">
-        <span class="tb-badge-owner">👥 オーナー推薦</span>
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/51Is7UFj6wL._AC_SX679_.jpg" alt="KNIPEX スーパーニッパー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">KNIPEX エレクトロニクス スーパーニッパー クランプ付 7813-125</div>
-        <div class="tb-brand">クニペックス KNIPEX</div>
-        <div class="tb-price">3,000〜1万円</div>
-        <div class="tb-comment">結束バンドのカットに。カットした部分がフラットになるため手に怪我をしにくく、飛んでいかないのも嬉しいポイント。</div>
-        <a href="https://www.amazon.co.jp/dp/B000Y8M416?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-      <div class="tb-card">
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/71FpOSCC3oL._AC_SX679_.jpg" alt="KNIPEX ツイングリッププライヤー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">KNIPEX ツイングリップ スリップジョイントプライヤー 200mm</div>
-        <div class="tb-brand">クニペックス KNIPEX</div>
-        <div class="tb-price">3,000〜1万円</div>
-        <div class="tb-comment">開口幅調整可能で、摩耗したボルト・ナットもしっかり掴める万能プライヤー。</div>
-        <a href="https://www.amazon.co.jp/dp/B09FPZPY96?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-      <div class="tb-card">
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/51jTXj81IDL._AC_SX300_SY300_QL70_ML2_.jpg" alt="KNIPEX プライヤーレンチ" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">KNIPEX プライヤーレンチ 8603-250SB</div>
-        <div class="tb-brand">クニペックス KNIPEX</div>
-        <div class="tb-price">3,000〜1万円</div>
-        <div class="tb-comment">ワンハンドで開口幅を無段階調整できる代表作。掴む・回すを1本でこなせる。</div>
-        <a href="https://www.amazon.co.jp/dp/B0001D9JEO?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-      <div class="tb-card">
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/71CMAkgSURL._AC_SX679_.jpg" alt="KNIPEX コブラ100mm" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">KNIPEX Cobra ウォーターポンププライヤー 全長100mm 8700-100</div>
-        <div class="tb-brand">クニペックス KNIPEX</div>
-        <div class="tb-price">3,000〜1万円</div>
-        <div class="tb-comment">小回りの効くコンパクトサイズ。エンジンルームの狭い場所での作業に。</div>
-        <a href="https://www.amazon.co.jp/dp/B085WBGQNP?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ============ ネジザウルス ============ -->
-  <div id="tb-nejizaurus" class="tb-cat">
-    <h2 class="tb-cat-h">🦖 ネジが舐めたらネジザウルス（ENGINEER）</h2>
-    <p class="tb-cat-sub">なめた・潰れた・錆びた——絶望的なネジを救う専門工具。</p>
-    <div class="tb-grid">
-
-      <div class="tb-card">
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/61y9ZfA9xHL._AC_SX679_.jpg" alt="ENGINEER ネジザウルスGT" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">ENGINEER エンジニア ネジザウルスGT PZ-58 グリーン</div>
-        <div class="tb-brand">ENGINEER</div>
-        <div class="tb-price">1,000〜3,000円</div>
-        <div class="tb-comment">なめたネジ・潰れたネジ・錆びたネジをがっちり掴んで外す定番工具。φ3〜9.5mm対応。</div>
-        <a href="https://www.amazon.co.jp/dp/B002L6HJAA?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-      <div class="tb-card">
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/61fbEXSkMNL._AC_SY300_SX300_QL70_ML2_.jpg" alt="ミャクミャクザウルス" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">EXPO2025 大阪・関西万博公式ライセンス ミャクミャクザウルス PZ-58MM</div>
-        <div class="tb-brand">ENGINEER</div>
-        <div class="tb-price">1,000〜3,000円</div>
-        <div class="tb-comment">性能はネジザウルスGTと同等の万博公式コラボモデル。実用性能はそのままに、話のタネにもなる一本。</div>
-        <a href="https://www.amazon.co.jp/dp/B0FMXV8SPM?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-      <div class="tb-card">
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/61S45dh1pOL._AC_SX679_.jpg" alt="ENGINEER GTドライヴ ネジバズーカセット" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">ENGINEER エンジニア GTドライヴ ネジバズーカセット DZ-76</div>
-        <div class="tb-brand">ENGINEER</div>
-        <div class="tb-price">3,000〜1万円</div>
-        <div class="tb-comment">なめたネジの取り外し専用工具。旧車あるあるの「なめネジ」対策に1セット。</div>
-        <a href="https://www.amazon.co.jp/dp/B0CW2MXG5D?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-      <div class="tb-card">
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/P/B07Z7F179T.01._SL200_.jpg" alt="ENGINEER ネジザウルスモグラセット" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">ENGINEER エンジニア ネジザウルスモグラセット DBZ-20</div>
-        <div class="tb-brand">ENGINEER</div>
-        <div class="tb-price">1,000〜3,000円</div>
-        <div class="tb-comment">なめた六角穴付きボルトの取り外しに。皿ネジ・キャップボルトにも対応するビット4本組。</div>
-        <a href="https://www.amazon.co.jp/dp/B07Z7F179T?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ============ Wera ============ -->
-  <div id="tb-wera" class="tb-cat">
-    <h2 class="tb-cat-h">🪛 ドライバーはこのブランドでも Wera（ヴェラ）</h2>
-    <p class="tb-cat-sub">剛性感のあるドイツ製。1本持っておくと道具箱の格が上がる。</p>
-    <div class="tb-grid">
-
-      <div class="tb-card">
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/41O07MfsikL._AC_SX679_.jpg" alt="Wera プラスドライバー" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">Wera(ヴェラ) プラスドライバー 2×100 008720</div>
-        <div class="tb-brand">Wera</div>
-        <div class="tb-price">1,000〜3,000円</div>
-        <div class="tb-comment">剛性感のあるドイツ製ドライバー。1本持っておくと道具箱の格が上がる定番品。</div>
-        <a href="https://www.amazon.co.jp/dp/B0001P17L0?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-      <div class="tb-card">
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/41gVtO87EFL._AC_SX679_.jpg" alt="Wera Kraftform Kompakt 20" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">Wera(ヴェラ) Kraftform Kompakt 20 RA-R 6点【日本正規輸入品】</div>
-        <div class="tb-brand">Wera</div>
-        <div class="tb-price">1万円〜</div>
-        <div class="tb-comment">ラチェットドライバー＋ビット6点のセット。1台で幅広いネジに対応できる本格派。</div>
-        <a href="https://www.amazon.co.jp/dp/B0F7HWXNVF?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ============ ジェネリック工具 ============ -->
-  <div id="tb-generic" class="tb-cat">
-    <h2 class="tb-cat-h">🔩 ジェネリックsnap-on WORKPRO</h2>
-    <p class="tb-cat-sub">高級ブランドの前に、まずは手頃な価格で試してみたい人向け。</p>
-    <div class="tb-grid">
-
-      <div class="tb-card">
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/617wB2HafyL._AC_SX679_.jpg" alt="WORKPRO ペンチ" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">WORKPRO ペンチ ラジオペンチ コンビネーションプライヤー 全長205mm</div>
-        <div class="tb-brand">WORKPRO</div>
-        <div class="tb-price">1,000〜3,000円</div>
-        <div class="tb-comment">スリップジョイント式で2段階調整可能。手頃な価格で1本持っておきたい万能ペンチ。</div>
-        <a href="https://www.amazon.co.jp/dp/B0DKJ6RZVP?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ============ バッテリー ============ -->
-  <div id="tb-battery" class="tb-cat">
-    <h2 class="tb-cat-h">🔋 バッテリー</h2>
-    <p class="tb-cat-sub">旧車の小型バッテリーは、数週間乗らないだけで上がります。</p>
-    <div class="tb-grid">
-
-      <div class="tb-card">
-        <span class="tb-badge-owner">👥 オーナー推薦</span>
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/617Jsr6YR3L._AC_SX679_.jpg" alt="Panasonic caos N-80B24R" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">パナソニック(Panasonic) 国産車バッテリー カオス N-80B24R/C8</div>
-        <div class="tb-brand">Panasonic</div>
-        <div class="tb-price">1万円〜</div>
-        <div class="tb-comment">オーナー推薦のバッテリー。80B24R規格。標準車(充電制御車)用で安心サポート付き。</div>
-        <a href="https://www.amazon.co.jp/dp/B0BFGVKCTY?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-      <div class="tb-card">
-        <span class="tb-badge-owner">👥 オーナー推薦</span>
-        <div class="tb-img-wrap"><img class="tb-img" src="https://m.media-amazon.com/images/I/61Uf9qTT-kL._AC_SX679_.jpg" alt="Panasonic caos N-60B19R" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
-        <div class="tb-name">パナソニック(Panasonic) 国産車バッテリー カオス N-60B19R/C8</div>
-        <div class="tb-brand">Panasonic</div>
-        <div class="tb-price">3,000〜1万円</div>
-        <div class="tb-comment">同じくオーナー推薦、60B19R規格。容量が大きく安心感がある一本。標準車(充電制御車)用。</div>
-        <a href="https://www.amazon.co.jp/dp/B0BFGSZ932?tag=registro500-22" class="tb-btn" target="_blank" rel="nofollow sponsored">🛒 Amazonで見る →</a>
-      </div>
-
-    </div>
-  </div>
-
   <div class="section-divider">MonotaROで揃えるもの</div>
 
   <div class="monotaro-intro">
