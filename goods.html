@@ -47,8 +47,6 @@
       display: block; padding: 12px 0; font-size: 0.85rem;
       color: var(--accent); text-decoration: none; font-weight: 600;
     }
-
-    /* PR表記 */
     .pr-badge {
       display: inline-block;
       background: #f3f4f6; border: 1px solid #d1d5db;
@@ -66,19 +64,16 @@
     .brand-header-logos img { height: 28px; filter: brightness(0) invert(1); }
     .brand-header-logos .logo-sep { color: rgba(255,255,255,0.5); font-size: 1.2rem; line-height: 1; }
     .brand-title { font-size: 1.6rem; font-weight: 800; margin: 0 0 4px; padding: 0; }
-    .brand-tagline { font-size: 0.85rem; opacity: 0.85; margin: 0; }
-
-
-    /* アンケートバナー */
-    .survey-banner {
-      background: var(--accent-soft);
-      border: 1px solid #c2d4ff; border-radius: 10px;
-      padding: 10px 14px; font-size: 0.82rem;
-      color: var(--text-sub); margin-bottom: 24px; line-height: 1.6;
-    }
-    .survey-banner strong { color: var(--accent); }
 
     /* イントロ */
+    /* 前置きは枠で囲わず、地の文としてさらっと置く */
+    .lede {
+      font-size: 0.78rem; color: var(--text-sub); line-height: 1.95;
+      margin: 0 0 8px; padding: 0 2px;
+    }
+    .lede:last-of-type { margin-bottom: 24px; }
+    .lede strong { color: var(--text-main); font-weight: 700; }
+
     .intro-text {
       font-size: 1rem; line-height: 1.9; color: var(--text-main);
       font-weight: 600;
@@ -315,48 +310,6 @@
     .oil-grade-sep { font-size: 0.65rem; color: #64748b; }
     .oil-grade-icon { font-size: 1.3rem; line-height: 1; }
 
-    /* アンケートグラフ */
-    .survey-chart {
-      background: var(--card-bg);
-      border: 1px solid var(--border-soft);
-      border-radius: var(--radius-lg);
-      padding: 14px 16px;
-      margin-bottom: 24px;
-    }
-    .survey-chart-title {
-      font-size: 0.78rem; font-weight: 700;
-      color: var(--text-sub); margin: 0 0 12px;
-      display: flex; align-items: center; gap: 6px;
-    }
-    .survey-row {
-      display: flex; align-items: center; gap: 8px;
-      padding: 4px 0; text-decoration: none; color: var(--text-main);
-      border-radius: 4px;
-    }
-    .survey-row:hover .survey-bar-inner { filter: brightness(1.2); }
-    .survey-label {
-      font-size: 0.77rem; min-width: 112px; flex-shrink: 0;
-      white-space: nowrap;
-    }
-    .survey-bar-wrap {
-      flex: 1; height: 12px;
-      background: var(--bg-main); border-radius: 6px; overflow: hidden;
-    }
-    .survey-bar-inner {
-      display: block;
-      height: 100%; background: var(--accent);
-      border-radius: 6px;
-      width: var(--bar-w, 0%);
-    }
-    .survey-votes {
-      font-size: 0.73rem; color: var(--text-sub);
-      min-width: 28px; text-align: right; flex-shrink: 0;
-    }
-    .survey-chart-note {
-      font-size: 0.72rem; color: var(--text-sub);
-      margin-top: 10px; text-align: right;
-    }
-
     /* 参考価格バッジ */
     .item-price {
       display: inline-block;
@@ -390,19 +343,6 @@
       text-align: center; padding: 20px;
       border-top: 1px solid var(--border-soft);
       margin-top: 40px; line-height: 1.8;
-    }
-
-    /* 季節バナー */
-    .seasonal-banner {
-      background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-      border: 1.5px solid #fdba74;
-      border-radius: 10px;
-      padding: 11px 14px;
-      font-size: 0.83rem;
-      color: #9a3412;
-      font-weight: 600;
-      margin-bottom: 20px;
-      line-height: 1.65;
     }
 
     /* スターターキット */
@@ -492,9 +432,7 @@
     .faq-item.open .faq-a { display: block; }
 
     @media (prefers-color-scheme: dark) {
-      .seasonal-banner { background: #431407; border-color: #c2410c; color: #fb923c; }
       .pr-badge { background: #374151; border-color: #4b5563; color: #9ca3af; }
-      .survey-banner { border-color: #1e3a5f; }
       .btn-amazon { background: #d97706; }
       .btn-amazon:hover { background: #b45309; }
       .btn-amazon-lg { background: #d97706; }
@@ -620,7 +558,6 @@
       <img src="logo_horizontal126.png" alt="Registro126 Giappone">
     </div>
     <h1 class="brand-title">📦 フィアット500 メンテナンス おすすめグッズ</h1>
-    <p class="brand-tagline">チンクと暮らす道具帖 ― オーナーアンケートから生まれた、旧車メンテの必需品ガイド</p>
     <div class="brand-stats">
       <div class="brand-stat"><strong>48</strong>人のオーナーが回答</div>
       <div class="brand-stat"><strong>49</strong>点を掲載</div>
@@ -628,87 +565,35 @@
     </div>
   </div>
 
-  <!-- クイックナビ（ファーストビュー直下） -->
-
-
-  <!-- 季節バナー（月別自動切替） -->
-  <div class="seasonal-banner" id="seasonalBanner"></div>
+  <!-- 前置き（枠で囲わず地の文として軽く。文言は残すが主張はしない） -->
+  <p class="lede" id="seasonalNote"></p>
   <script>
     (function(){
       const m = new Date().getMonth() + 1;
       const msgs = {
-        1:  '❄️ 冬の冷え込みはバッテリーの大敵。乗る前に電圧チェックを忘れずに。',
-        2:  '❄️ 春の初乗りに向けて、オイルとバッテリーの状態を今のうちに確認しておきませんか。',
-        3:  '🌸 春の初乗りシーズン目前。オイル・バッテリー・プラグ、この3点をチェックしている人が多いようです。',
-        4:  '🌸 春の初乗りシーズン。このページのオーナーたちは、この時期にオイルとバッテリーをチェックしている人が多いようです。',
-        5:  '☀️ ゴールデンウィークのツーリング前に、オイル交換とバッテリー確認を済ませておくと安心です。',
-        6:  '🌧️ 梅雨入り前のボディケアが塗装を守ります。コーティング・ゴム保護は今がタイミング。',
-        7:  '🌞 夏の高温下は旧車エンジンに負荷がかかります。オイル管理を丁寧に。',
-        8:  '🌞 真夏の炎天下はバッテリーと冷却系の要チェック時期。長距離前に点検を。',
-        9:  '🍂 秋の行楽シーズン到来。ツーリング前のバッテリー・点火系チェックを忘れずに。',
-        10: '🍁 冬支度の前に、オイルとゴム類のメンテナンスを済ませておくと安心です。',
-        11: '🍂 冬に向けてバッテリーのコンディション確認を。気温が下がると一気に弱りやすくなります。',
-        12: '❄️ 年末の長期保管前にCTEKを繋げておくと、年明けの始動が格段に楽になります。',
+        1:  '冬の冷え込みはバッテリーの大敵。乗る前に電圧チェックを忘れずに。',
+        2:  '春の初乗りに向けて、オイルとバッテリーの状態を今のうちに確認しておきませんか。',
+        3:  '春の初乗りシーズン目前。オイル・バッテリー・プラグを見ている人が多いようです。',
+        4:  '春の初乗りシーズン。この時期はオイルとバッテリーを見ている人が多いようです。',
+        5:  'ゴールデンウィークのツーリング前に、オイル交換とバッテリー確認を済ませておくと安心です。',
+        6:  '梅雨入り前のボディケアが塗装を守ります。コーティング・ゴム保護は今がタイミング。',
+        7:  '夏の高温下は旧車エンジンに負荷がかかります。オイル管理を丁寧に。',
+        8:  '真夏の炎天下はバッテリーと冷却系の要チェック時期。長距離前に点検を。',
+        9:  '秋の行楽シーズン到来。ツーリング前のバッテリー・点火系チェックを忘れずに。',
+        10: '冬支度の前に、オイルとゴム類のメンテナンスを済ませておくと安心です。',
+        11: '冬に向けてバッテリーのコンディション確認を。気温が下がると一気に弱りやすくなります。',
+        12: '年末の長期保管前にCTEKを繋げておくと、年明けの始動が格段に楽になります。',
       };
-      document.getElementById('seasonalBanner').textContent = msgs[m] || '';
+      document.getElementById('seasonalNote').textContent = msgs[m] || '';
     })();
   </script>
 
-  <!-- アンケートバナー -->
-  <div class="survey-banner">
-    📋 このページは <strong>Fiat 500・126オーナーへのアンケート（48件）</strong> と、<strong>このサイトに登録された実車両データ</strong>をもとに作成しています。<br>
-    2026年3月実施。後半の「道具箱」には、これに<strong>管理人が実際に使っている・欲しいと思っている道具</strong>を加えています。<br>
-    掲載商品はオーナーの声・集計データ・実使用に基づいて選定しており、広告主からの依頼ではありません。<br>
-    <strong>ページ内のAmazonリンクはアフィリエイト（PR）です。</strong>リンク経由でご購入いただくとサイトに収益が入りますが、商品の価格は変わりません。MonotaROリンクはアフィリエイトではなく、利便性のために掲載しています。
-  </div>
+  <p class="lede">
+    48人のオーナーアンケート（2026年3月）と、サイトに登録された実車両データ、管理人の実使用をもとに選んでいます。
+    困りごととして多く挙がったのは、オイル・バッテリー・工具・点火系でした。<br>
+    ページ内のAmazonリンクはアフィリエイト（PR）です。経由してご購入いただいても<strong>商品の価格は変わりません</strong>。MonotaROリンクはアフィリエイトではありません。
+  </p>
 
-  <!-- アンケート結果グラフ -->
-  <div class="survey-chart">
-    <p class="survey-chart-title">📊 アンケート：旧車乗りが困っていること（48人・複数回答）</p>
-    <a href="#oil" class="survey-row">
-      <span class="survey-label">🛢️ エンジンオイル</span>
-      <span class="survey-bar-wrap"><span class="survey-bar-inner" style="--bar-w:100%"></span></span>
-      <span class="survey-votes">13票</span>
-    </a>
-    <a href="#t4" class="survey-row">
-      <span class="survey-label">🔋 バッテリー上がり</span>
-      <span class="survey-bar-wrap"><span class="survey-bar-inner" style="--bar-w:77%"></span></span>
-      <span class="survey-votes">10票</span>
-    </a>
-    <a href="#t4" class="survey-row">
-      <span class="survey-label">🔧 工具・トルク管理</span>
-      <span class="survey-bar-wrap"><span class="survey-bar-inner" style="--bar-w:77%"></span></span>
-      <span class="survey-votes">10票</span>
-    </a>
-    <a href="#t1" class="survey-row">
-      <span class="survey-label">⚡ 点火系・エンスト</span>
-      <span class="survey-bar-wrap"><span class="survey-bar-inner" style="--bar-w:69%"></span></span>
-      <span class="survey-votes">9票</span>
-    </a>
-    <a href="#t2" class="survey-row">
-      <span class="survey-label">🧪 ケミカル・洗浄</span>
-      <span class="survey-bar-wrap"><span class="survey-bar-inner" style="--bar-w:69%"></span></span>
-      <span class="survey-votes">9票</span>
-    </a>
-    <a href="#t3" class="survey-row">
-      <span class="survey-label">✨ コーティング</span>
-      <span class="survey-bar-wrap"><span class="survey-bar-inner" style="--bar-w:62%"></span></span>
-      <span class="survey-votes">8票</span>
-    </a>
-    <a href="#t1" class="survey-row">
-      <span class="survey-label">🪝 ゴム・樹脂劣化</span>
-      <span class="survey-bar-wrap"><span class="survey-bar-inner" style="--bar-w:46%"></span></span>
-      <span class="survey-votes">6票</span>
-    </a>
-    <a href="#t1" class="survey-row">
-      <span class="survey-label">💧 水なし洗車</span>
-      <span class="survey-bar-wrap"><span class="survey-bar-inner" style="--bar-w:38%"></span></span>
-      <span class="survey-votes">5票</span>
-    </a>
-    <p class="survey-chart-note">↑ タップすると、その品を扱っている価格帯へ移動します</p>
-  </div>
-
-  <!-- イントロ -->
   <div class="intro-text">
     Fiat 500乗りなら一度は経験すること。<br>
     その解決策を、48人のオーナーたちが教えてくれました。
