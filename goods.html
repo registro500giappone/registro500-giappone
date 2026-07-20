@@ -40,7 +40,7 @@
       }
     }
 
-    body { background: var(--bg-main); color: var(--text-main); margin: 0; padding-bottom: 60px; }
+    body { background: var(--bg-main); color: var(--text-main); margin: 0; padding-bottom: 20px; }
     .page { max-width: 720px; margin: 0 auto; padding: 0 16px; }
 
     .back-link {
@@ -491,30 +491,6 @@
     }
     .faq-item.open .faq-a { display: block; }
 
-    /* スティッキーモバイルCTA */
-    .sticky-cta {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      background: var(--card-bg);
-      border-top: 1px solid var(--border-soft);
-      padding: 10px 14px env(safe-area-inset-bottom, 8px);
-      display: flex; gap: 8px; align-items: center;
-      z-index: 1000;
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.14);
-      transform: translateY(100%);
-      transition: transform 0.3s ease;
-    }
-    .sticky-cta.visible { transform: translateY(0); }
-    .sticky-cta-label { flex: 1; min-width: 0; }
-    .sticky-cta-label strong { display: block; font-size: 0.8rem; color: var(--text-main); font-weight: 700; }
-    .sticky-cta-label span { font-size: 0.7rem; color: var(--text-sub); }
-    .sticky-cta .btn-amazon { padding: 10px 14px; font-size: 0.8rem; white-space: nowrap; flex-shrink: 0; }
-    .sticky-cta-close {
-      background: none; border: none; padding: 6px;
-      font-size: 1rem; color: var(--text-sub); cursor: pointer; flex-shrink: 0;
-      line-height: 1;
-    }
-    @media (min-width: 640px) { .sticky-cta { display: none !important; } }
-
     @media (prefers-color-scheme: dark) {
       .seasonal-banner { background: #431407; border-color: #c2410c; color: #fb923c; }
       .pr-badge { background: #374151; border-color: #4b5563; color: #9ca3af; }
@@ -529,7 +505,6 @@
       .monotaro-intro { background: #14532d; border-color: #166534; }
       .monotaro-intro h3 { color: #86efac; }
       .monotaro-intro p { color: #bbf7d0; }
-      .sticky-cta { box-shadow: 0 -4px 20px rgba(0,0,0,0.45); }
     }
 
     /* ============ 第2層：道具箱カタログ ============
@@ -1660,16 +1635,6 @@
   <div>© Registro500 Giappone</div>
 </footer>
 
-<!-- スティッキーモバイルCTA（スクロール後に表示） -->
-<div class="sticky-cta" id="stickyCta">
-  <div class="sticky-cta-label">
-    <strong>🛢️ 1位：エンジンオイル（20W-50/60）</strong>
-    <span>48人中13人が使用 — オーナーたちの実データ</span>
-  </div>
-  <a href="https://www.amazon.co.jp/s?k=エンジンオイル+20W-50+旧車&tag=registro500-22" class="btn-amazon" target="_blank" rel="nofollow">Amazonで購入</a>
-  <button class="sticky-cta-close" id="stickyCtaClose" aria-label="閉じる">✕</button>
-</div>
-
 <button class="scroll-top-btn" id="scrollTopBtn" aria-label="ページトップへ" onclick="window.scrollTo({top:0,behavior:'smooth'})">
   <svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
 </button>
@@ -1765,22 +1730,8 @@
     });
   });
 
-  // スティッキーCTA
-  const stickyCta = document.getElementById('stickyCta');
-  const stickyCtaClose = document.getElementById('stickyCtaClose');
-  let stickyClosed = false;
-  if (stickyCtaClose) {
-    stickyCtaClose.addEventListener('click', () => {
-      stickyClosed = true;
-      stickyCta.classList.remove('visible');
-    });
-  }
-
   window.addEventListener('scroll', () => {
     document.getElementById('scrollTopBtn').classList.toggle('visible', window.scrollY > 400);
-    if (stickyCta && !stickyClosed) {
-      stickyCta.classList.toggle('visible', window.scrollY > 700);
-    }
   });
 
   /* Amazonは画像未登録のASINに対し 1x1 の透明GIF（43バイト）を HTTP 200 で返す。
