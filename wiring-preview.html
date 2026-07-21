@@ -15,7 +15,7 @@
   body { margin:0; display:flex; flex-direction:column; height:100vh; overflow:hidden;
          font-family:-apple-system,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic UI",sans-serif;
          background:var(--bg); color:var(--ink); }
-  header { flex:none; display:flex; align-items:center; gap:10px; padding:8px 12px;
+  header { flex:none; display:flex; align-items:center; gap:10px; padding:calc(8px + env(safe-area-inset-top)) 12px 8px;
            border-bottom:1px solid var(--line); background:var(--panel); }
   header .brand { font-size:15px; font-weight:800; letter-spacing:.3px; white-space:nowrap;
                   overflow:hidden; text-overflow:ellipsis; }
@@ -111,7 +111,7 @@
     <button class="navbtn" id="next" aria-label="次へ">›</button>
   </div>
 </header>
-<div class="lead" id="lead">FIAT 500Fの配線を<b>16の系統</b>に分けて見られます。系統を選ぶと、その回路だけが色付きで浮かび上がります（他はグレー）。<span class="sub">「全表示」を選ぶと全系統をまとめて表示します。<b style="color:var(--ink)">この図はF型ベースですが、L型もほぼ共通です。</b></span> <button type="button" id="ldiff-open" class="ldiff-btn">L型（Lusso）との違い ›</button></div>
+<div class="lead" id="lead">FIAT 500Fの配線を<b>16の系統</b>に分けて見られます。系統を選ぶと、その回路だけが色付きで浮かび上がります（他はグレー）。<span class="sub">「全表示」を選ぶと全系統をまとめて表示します。<b style="color:var(--ink)">L型もほぼ共通です。</b></span> <button type="button" id="ldiff-open" class="ldiff-btn">L型（Lusso）との違い ›</button></div>
 <div class="mbar" id="mbar">
   <button class="mbar-btn" id="mprev" aria-label="前へ">◀</button>
   <div class="mbar-center">
@@ -241,26 +241,24 @@
 </script>
 <div id="ldiff-overlay"><div id="ldiff-panel">
   <button id="ldiff-close" aria-label="閉じる">×</button>
-  <h2>L型（Lusso）とF型の配線の違い</h2>
-  <p>結論：<span class="k">基本の電装はF型とまったく同じ</span>です。この配線図はL型でもほぼそのまま使えます。FIAT 500の電装は D／F／L／R すべて共通の設計です。</p>
-  <h3>F・L共通の基本</h3>
+  <h2>L型（Lusso）とF型の違い</h2>
+  <p>電装の基本は F・L 共通です。この配線図は L型でもそのまま使えます。</p>
+  <h3>共通スペック（D／F／L／R）</h3>
   <ul>
-    <li>12V・マイナスアース（negativo a massa）</li>
-    <li>バッテリー 32Ah</li>
-    <li>発電＝ダイナモ（dinamo・連続16A／オルタネータではありません）</li>
-    <li>スターターモーター 0.5kW</li>
-    <li>配線の色コードも共通（Azzuro=水／Giallo=黄／Grigio=灰／Nero=黒／Rosso=赤／Rosa=桃／Verde=緑／Viola=紫／Bianco=白／Marrone=茶）</li>
-    <li>回路の顔ぶれ（灯火・ウインカー・ワイパー・ホーン・点火・充電・室内灯）も同一</li>
+    <li>電圧：12V・マイナスアース</li>
+    <li>バッテリー：32Ah</li>
+    <li>発電：ダイナモ 連続16A（オルタネータではありません）</li>
+    <li>スターター：0.5kW</li>
+    <li>配線色：Azzuro=水／Giallo=黄／Grigio=灰／Nero=黒／Rosso=赤／Rosa=桃／Verde=緑／Viola=紫／Bianco=白／Marrone=茶</li>
   </ul>
-  <h3>L型（Lusso）で増えるところ</h3>
-  <p>L型は上級版で、型式プレートには「110&nbsp;F/L」と刻印されます。電装で実質的に増えるのは、主に<span class="k">計器盤（Quadro di controllo）まわり</span>です。</p>
+  <h3>L型で加わる装備</h3>
   <ul>
-    <li><span class="k">燃料計（フューエルゲージ）</span>… L型はタンクに燃料レベルセンダーを備え、メーターに燃料計が付きます。標準（F）は燃料計を持たず、リザーブコックで運用します。<b>実質的な追加配線はここが中心</b>です。</li>
-    <li>計器盤に集約される警告灯：燃料リザーブ／充電（ダイナモ電圧不足）／油圧／ハイビーム／ポジション灯点灯／ウインカー表示、および計器盤照明。<br>※これらの警告灯じたいはF型にも概ね存在します。L型は1つの計器盤に整然とまとめているのが違いで、回路の種類が増えるわけではありません。</li>
+    <li><span class="k">燃料計</span>（タンクの燃料センダー＋メーターのゲージ）… F型は燃料計なし・リザーブコック運用。追加配線はここが中心。</li>
+    <li>計器盤（Quadro di controllo）に警告灯を集約：燃料リザーブ／充電／油圧／ハイビーム／ポジション灯／ウインカー、＋計器盤照明。<br>※警告灯自体はF型にもあり、L型は1つの計器盤にまとめた形です。</li>
   </ul>
-  <h3>この図をL型で見るときは</h3>
-  <p>配線図としての違いは、ざっくり<span class="k">「燃料計まわりが少し増える」程度</span>です。左（スマホは上）の系統リストのうち<b>「フューエルセンサー」「メーターパネル」</b>だけ、L型では計器が1つ多いと読み替えてください。ほかの系統（ヘッドライト／ウインカー／ワイパー／点火／発電…）はL型でも同じ配線です。</p>
-  <p class="note">※年式・仕向け地・個体の改造によって細部は異なります。作業時は必ず実車と付き合わせてご確認ください。この図はF型（OTSUKA氏作図）をベースにした参考資料です。</p>
+  <h3>この図をL型で見るとき</h3>
+  <p>差は<span class="k">「燃料計まわりが少し増える」程度</span>。系統リストの「フューエルセンサー」「メーターパネル」だけ計器が1つ多いと読み替えてください。ほかの系統は同じ配線です。</p>
+  <p class="note">年式・仕向け地・改造によって細部は異なります。作業時は実車と付き合わせてご確認ください。作図：OTSUKA氏（F型ベース）。</p>
 </div></div>
 <script>
 (function(){
