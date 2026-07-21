@@ -1,0 +1,38 @@
+# B2 (local_hy21) 専用venv `.venv-hy21` の依存（Phase 3・2026-07-12構築時の実績）
+#
+# セットアップ手順（.venv本体とは完全に分離すること）:
+#   python -m venv photo3d/.venv-hy21
+#   photo3d/.venv-hy21/Scripts/python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+#   photo3d/.venv-hy21/Scripts/python -m pip install -r photo3d/requirements-hy21.txt
+#   git clone --depth 1 https://github.com/Tencent-Hunyuan/Hunyuan3D-2.git photo3d/.venv-hy21/hy3dgen-src
+#
+# 注意:
+# - 重み=tencent/Hunyuan3D-2mv（hunyuan3d-dit-v2-mv）。初回実行時にHFキャッシュ
+#   既定位置（~/.cache/huggingface）へ約9GB自動DLされる。
+# - 使うrepoは Hunyuan3D-2（hy3dgen）であって 2.1（hy3dshape）ではない。
+#   2mv重みのconfig.yamlクラスパスがhy3dgen世代を指すため（詳細は
+#   backends/hy21_cli/generate_shape.py のdocstring）。
+# - テクスチャ生成（hy3dpaint/texgen・カスタムラスタライザのC++ビルド）は
+#   形状のみ利用のため一切インストールしない（プラン§5 Phase3）。
+
+numpy<2
+transformers==4.46.0
+diffusers==0.30.0
+accelerate==1.1.1
+huggingface-hub>=0.30.2
+safetensors
+scipy
+einops==0.8.0
+opencv-python==4.10.0.84
+trimesh==4.4.7
+pymeshlab
+pygltflib==1.16.3
+xatlas==0.0.9
+omegaconf==2.3.0
+pyyaml
+tqdm
+rembg==2.0.65
+onnxruntime
+ninja
+pybind11
+Pillow
