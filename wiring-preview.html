@@ -68,6 +68,22 @@
                    border-radius:8px; border:1px solid var(--line); background:var(--panel);
                    color:var(--accent); text-align:center; }
   }
+  .ldiff-btn { display:inline-block; margin-top:6px; border:1px solid var(--accent); background:transparent;
+              color:var(--accent); font-size:12px; font-weight:700; padding:4px 11px; border-radius:14px; cursor:pointer; }
+  .ldiff-btn:hover { background:var(--accent); color:#fff; }
+  #ldiff-overlay { position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.5); display:none; }
+  #ldiff-overlay.open { display:block; }
+  #ldiff-panel { position:absolute; top:0; right:0; bottom:0; width:min(560px,92vw); background:var(--panel);
+                 color:var(--ink); overflow-y:auto; -webkit-overflow-scrolling:touch;
+                 box-shadow:-4px 0 24px rgba(0,0,0,.28); padding:16px 18px 44px; }
+  #ldiff-panel h2 { font-size:17px; margin:0 6px 4px 0; }
+  #ldiff-panel h3 { font-size:13.5px; color:var(--accent); margin:18px 0 6px; }
+  #ldiff-panel p, #ldiff-panel li { font-size:13px; line-height:1.65; }
+  #ldiff-panel ul { margin:6px 0; padding-left:1.2em; }
+  #ldiff-panel .k { color:var(--accent); font-weight:700; }
+  #ldiff-panel .note { color:var(--sub); font-size:12px; margin-top:16px; }
+  #ldiff-close { position:sticky; top:0; float:right; border:none; background:var(--bg); color:var(--ink);
+                 width:34px; height:34px; border-radius:17px; font-size:18px; line-height:1; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -95,7 +111,7 @@
     <button class="navbtn" id="next" aria-label="次へ">›</button>
   </div>
 </header>
-<div class="lead" id="lead">FIAT 500Fの配線を<b>16の系統</b>に分けて見られます。系統を選ぶと、その回路だけが色付きで浮かび上がります（他はグレー）。<span class="sub">「全表示」を選ぶと全系統をまとめて表示します。</span></div>
+<div class="lead" id="lead">FIAT 500Fの配線を<b>16の系統</b>に分けて見られます。系統を選ぶと、その回路だけが色付きで浮かび上がります（他はグレー）。<span class="sub">「全表示」を選ぶと全系統をまとめて表示します。<b style="color:var(--ink)">この図はF型ベースですが、L型もほぼ共通です。</b></span> <button type="button" id="ldiff-open" class="ldiff-btn">L型（Lusso）との違い ›</button></div>
 <div class="mbar" id="mbar">
   <button class="mbar-btn" id="mprev" aria-label="前へ">◀</button>
   <div class="mbar-center">
@@ -222,6 +238,41 @@
   mnext.addEventListener('click',()=>show(idx+1));
   document.addEventListener('keydown',e=>{ if(e.key==='ArrowRight')show(idx+1); if(e.key==='ArrowLeft')show(idx-1); });
   show(0);
+</script>
+<div id="ldiff-overlay"><div id="ldiff-panel">
+  <button id="ldiff-close" aria-label="閉じる">×</button>
+  <h2>L型（Lusso）とF型の配線の違い</h2>
+  <p>結論：<span class="k">基本の電装はF型とまったく同じ</span>です。この配線図はL型でもほぼそのまま使えます。FIAT 500の電装は D／F／L／R すべて共通の設計です。</p>
+  <h3>F・L共通の基本</h3>
+  <ul>
+    <li>12V・マイナスアース（negativo a massa）</li>
+    <li>バッテリー 32Ah</li>
+    <li>発電＝ダイナモ（dinamo・連続16A／オルタネータではありません）</li>
+    <li>スターターモーター 0.5kW</li>
+    <li>配線の色コードも共通（Azzuro=水／Giallo=黄／Grigio=灰／Nero=黒／Rosso=赤／Rosa=桃／Verde=緑／Viola=紫／Bianco=白／Marrone=茶）</li>
+    <li>回路の顔ぶれ（灯火・ウインカー・ワイパー・ホーン・点火・充電・室内灯）も同一</li>
+  </ul>
+  <h3>L型（Lusso）で増えるところ</h3>
+  <p>L型は上級版で、型式プレートには「110&nbsp;F/L」と刻印されます。電装で実質的に増えるのは、主に<span class="k">計器盤（Quadro di controllo）まわり</span>です。</p>
+  <ul>
+    <li><span class="k">燃料計（フューエルゲージ）</span>… L型はタンクに燃料レベルセンダーを備え、メーターに燃料計が付きます。標準（F）は燃料計を持たず、リザーブコックで運用します。<b>実質的な追加配線はここが中心</b>です。</li>
+    <li>計器盤に集約される警告灯：燃料リザーブ／充電（ダイナモ電圧不足）／油圧／ハイビーム／ポジション灯点灯／ウインカー表示、および計器盤照明。<br>※これらの警告灯じたいはF型にも概ね存在します。L型は1つの計器盤に整然とまとめているのが違いで、回路の種類が増えるわけではありません。</li>
+  </ul>
+  <h3>この図をL型で見るときは</h3>
+  <p>配線図としての違いは、ざっくり<span class="k">「燃料計まわりが少し増える」程度</span>です。左（スマホは上）の系統リストのうち<b>「フューエルセンサー」「メーターパネル」</b>だけ、L型では計器が1つ多いと読み替えてください。ほかの系統（ヘッドライト／ウインカー／ワイパー／点火／発電…）はL型でも同じ配線です。</p>
+  <p class="note">※年式・仕向け地・個体の改造によって細部は異なります。作業時は必ず実車と付き合わせてご確認ください。この図はF型（OTSUKA氏作図）をベースにした参考資料です。</p>
+</div></div>
+<script>
+(function(){
+  var ov=document.getElementById('ldiff-overlay');
+  var op=document.getElementById('ldiff-open');
+  var cl=document.getElementById('ldiff-close');
+  function setO(v){ ov.classList.toggle('open', v); }
+  op.addEventListener('click', function(){ setO(true); });
+  cl.addEventListener('click', function(){ setO(false); });
+  ov.addEventListener('click', function(e){ if(e.target===ov) setO(false); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') setO(false); });
+})();
 </script>
 </body>
 </html>
