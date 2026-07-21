@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>配線トレース プレビュー</title>
+<style>
+  /*
+    配線ビューア本体（wiring/index.html）と同じ配色に合わせたプレビューページ。
+    背景 #0e141c ・線色 #cfe6ff。
+    トレース中のSVGをドラッグ&ドロップ、またはファイル選択ボタンで読み込むと、
+    reference / edge_hint レイヤーを隠し、パスの線色を配線ビューア風に着色して表示する。
+  */
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #0e141c;
+    color: #cfe6ff;
+    font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+    min-height: 100%;
+  }
+
+  #dropzone {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    border: 2px dashed rgba(207, 230, 255, 0.35);
+    margin: 12px;
+    border-radius: 12px;
+    text-align: center;
+    padding: 24px;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+    z-index: 5;
+  }
+  #dropzone.dragover {
+    background-color: rgba(207, 230, 255, 0.08);
+    border-color: #cfe6ff;
+  }
+  #dropzone.has-content {
+    /* SVG読み込み後は控えめな帯として上部に残す */
+    position: static;
+    inset: auto;
+    margin: 0;
+    border-radius: 0;
+    border-width: 0 0 1px 0;
+    padding: 10px 16px;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  h1 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: 0.02em;
+  }
+  p.desc {
+    font-size: 13px;
+    color: rgba(207, 230, 255, 0.6);
+    margin: 0;
+    max-width: 480px;
+    line-height: 1.6;
+  }
+
+  button#choose_btn {
+    background: #1c2a3a;
+    color: #cfe6ff;
+    border: 1px solid rgba(207, 230, 255, 0.4);
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  button#choose_btn:hover {
+    background: #24384c;
+  }
+
+  #filename {
+    font-size: 12px;
+    color: rgba(207, 230, 255, 0.55);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #stage {
+    display: none;
+    width: 100%;
+    padding: 12px;
+  }
+  #stage.visible {
+    display: block;
+  }
+  #svg_holder {
+    width: 100%;
+    max-width: 100%;
+    overflow: auto;
+    display: flex;
+    justify-content: center;
+  }
+  #svg_holder svg {
+    width: 100%;
+    height: auto;
+    max-width: 1400px;
+    background: #0e141c;
+  }
+
+  #status {
+    font-size: 12px;
+    color: rgba(207, 230, 255, 0.5);
+    padding: 4px 12px 12px;
+  }
+
+  input[type="file"] { display: none; }
+
+  @media (max-width: 640px) {
+    #dropzone.has-content {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <div id="dropzone">
+    <h1 id="title_text">配線トレース プレビュー</h1>
+    <p class="desc" id="desc_text">
+      Inkscapeでトレース中の SVG ファイルをここにドラッグ&amp;ドロップするか、
+      下のボタンで選択してください。<br>
+      reference / edge_hint レイヤーは自動的に非表示になり、
+      trace レイヤーのパスだけが配線ビューアと同じ淡青色(#cfe6ff)で表示されます。
+    </p>
+    <button id="choose_btn" type="button">SVGファイルを選択</button>
+    <span id="filename"></span>
+    <input type="file" id="file_input" accept=".svg,image/svg+xml">
+  </div>
+
+  <div id="stage">
+    <div id="svg_holder"></div>
+    <div id="status"></div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  var dropzone = document.getElementById("dropzone");
+  var stage = document.getElementById("stage");
+  var svgHolder = document.getElementById("svg_holder");
+  var statusEl = document.getElementById("status");
+  var filenameEl = document.getElementById("filename");
+  var chooseBtn = document.getElementById("choose_btn");
+  var fileInput = document.getElementById("file_input");
+
+  // レイヤー判定に使う「隠す対象」のinkscape:labelの一覧
+  var HIDE_LAYER_LABELS = ["reference", "edge_hint"];
+
+  chooseBtn.addEventListener("click", function () {
+    fileInput.click();
+  });
+
+  fileInput.addEventListener("change", function (e) {
+    if (e.target.files && e.target.files[0]) {
+      loadFile(e.target.files[0]);
+    }
+  });
+
+  ["dragenter", "dragover"].forEach(function (evt) {
+    dropzone.addEventListener(evt, function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.add("dragover");
+    });
+  });
+  ["dragleave", "drop"].forEach(function (evt) {
+    dropzone.addEventListener(evt, function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove("dragover");
+    });
+  });
+  dropzone.addEventListener("drop", function (e) {
+    var files = e.dataTransfer && e.dataTransfer.files;
+    if (files && files[0]) {
+      loadFile(files[0]);
+    }
+  });
+
+  // ページ全体でのドロップも受け付ける（読み込み後、帯が縮んだ状態での再ドロップ用）
+  document.addEventListener("dragover", function (e) { e.preventDefault(); });
+  document.addEventListener("drop", function (e) {
+    e.preventDefault();
+    var files = e.dataTransfer && e.dataTransfer.files;
+    if (files && files[0]) {
+      loadFile(files[0]);
+    }
+  });
+
+  function loadFile(file) {
+    if (!/\.svg$/i.test(file.name) && file.type !== "image/svg+xml") {
+      setStatus("SVGファイルを指定してください: " + file.name);
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      renderSvgText(ev.target.result, file.name);
+    };
+    reader.onerror = function () {
+      setStatus("ファイルの読み込みに失敗しました: " + file.name);
+    };
+    reader.readAsText(file, "utf-8");
+  }
+
+  function setStatus(text) {
+    statusEl.textContent = text;
+  }
+
+  function renderSvgText(svgText, filename) {
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(svgText, "image/svg+xml");
+
+    var parseError = doc.querySelector("parsererror");
+    if (parseError) {
+      setStatus("SVGの解析に失敗しました。ファイルが壊れていないか確認してください。");
+      return;
+    }
+
+    var svgEl = doc.documentElement;
+    if (!svgEl || svgEl.tagName.toLowerCase() !== "svg") {
+      setStatus("SVGルート要素が見つかりませんでした。");
+      return;
+    }
+
+    var hiddenLayers = 0;
+    var coloredShapes = 0;
+
+    // inkscape:groupmode="layer" のグループを走査し、reference/edge_hintを非表示化
+    var groups = svgEl.querySelectorAll("g");
+    groups.forEach(function (g) {
+      var groupmode = g.getAttribute("inkscape:groupmode");
+      var label = g.getAttribute("inkscape:label");
+      if (groupmode === "layer" && HIDE_LAYER_LABELS.indexOf(label) !== -1) {
+        g.style.display = "none";
+        hiddenLayers++;
+      }
+    });
+
+    // 描画パス系要素の線色を配線ビューアの色に統一。fillは強制的にnoneに保つ。
+    //
+    // 注意: Inkscapeが書き出すパスは色情報を style="fill:...;stroke:...;stroke-width:...."
+    // のようにインラインstyle属性へまとめて持つのが通例。インラインstyleはCSS詳細度が
+    // 最も高く、fill/stroke属性(setAttribute)で上書きしようとしても効かない。
+    // そのため el.style.xxx への直接代入で統一する（同じインラインstyle内での上書きになるため確実に効く）。
+    var shapeSelector = "path, polyline, polygon, line, circle, ellipse, rect";
+    var shapes = svgEl.querySelectorAll(shapeSelector);
+    shapes.forEach(function (el) {
+      // 非表示にしたレイヤー配下の要素はスキップ（reference/edge_hintは画像のみなので通常該当なし）
+      if (el.closest && el.closest('g[style*="display: none"]')) {
+        return;
+      }
+      // 視認性のため、既存のstroke-widthが無い/0の場合のみ既定値を補う（先に読んでおく）
+      var existingSw = el.style.strokeWidth || el.getAttribute("stroke-width");
+
+      el.style.setProperty("fill", "none", "important");
+      el.style.setProperty("stroke", "#cfe6ff", "important");
+
+      if (!existingSw || parseFloat(existingSw) === 0) {
+        el.style.setProperty("stroke-width", "2", "important");
+      }
+      coloredShapes++;
+    });
+
+    // 背景色をビューアに合わせる
+    svgEl.style.background = "#0e141c";
+
+    svgHolder.innerHTML = "";
+    svgHolder.appendChild(svgEl);
+
+    dropzone.classList.add("has-content");
+    document.getElementById("title_text").textContent = "配線トレース プレビュー";
+    document.getElementById("desc_text").style.display = "none";
+    filenameEl.textContent = filename;
+    stage.classList.add("visible");
+
+    setStatus(
+      "読み込み完了: " + filename +
+      " ／ 非表示化したレイヤー数=" + hiddenLayers +
+      " ／ 着色した図形数=" + coloredShapes +
+      "（別のSVGを再度ドラッグ&ドロップすると差し替わります）"
+    );
+  }
+})();
+</script>
+
+</body>
+</html>
