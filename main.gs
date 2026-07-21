@@ -494,7 +494,7 @@ function sendDailyDigest() {
       body += `\n詳細: https://www.registro500.com/news.html\n`;
     }
 
-    body += `\n---------------------------------------------------------\nRegistro500 / Registro126 Giappone\nhttps://www.registro500.com/\n※このメールは毎朝6〜7時頃に自動配信されます。`;
+    body += `\n---------------------------------------------------------\nRegistro500 / Registro126 Giappone\nhttps://www.registro500.com/`;
 
     // 5. 一斉送信（成功数を記録してフラグ更新の根拠とする）
     const recipients = getAllExistingOwnerEmails_();
