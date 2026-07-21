@@ -137,7 +137,7 @@ registro500.com をクラシックFIAT 500/126ポータル化する施策。YouT
 過去に「残ミッションを俯瞰して答えられなくなる」事象が起きた。原因は俯瞰の素材（`MEMORY.md` の「進行中テーマ一覧 / 残ミッション」セクション）が欠落し、情報が各 `project_*.md` に分散していたこと。再発防止のため以下を厳守する：
 
 - **俯瞰セクションが欠落・空になっていたら、各 `project_*.md` から再構築してから回答する**こと。「セクションが無いので答えられない」で済ませない。
-- メモリディレクトリ（`C:\Users\akayu\.claude\projects\C--Users-akayu-Documents-registro500-giappone\memory\`）は**ローカルgit管理下**（2026-06-20初期化）。台帳を編集したら `git -C "<memoryパス>" add -A && git -C "<memoryパス>" commit -m "..."` でこまめにスナップショットを残す。壊しても `git -C "<memoryパス>" checkout` / reflog で復元できる。
+- メモリディレクトリ（`C:\Users\akayu\.claude\projects\C--Users-akayu-Documents-registro500-giappone\memory\`）は**ローカルgit管理下**（2026-06-20初期化）。台帳を編集したら `git -C "<memoryパス>" add <編集したファイル> && git -C "<memoryパス>" commit -m "..."` でこまめにスナップショットを残す（**`git add -A` は使わない**＝プロジェクトの `.claude/settings.json` deny `Bash(git add -A*)` に文字列マッチして拒否されるため。メモリディレクトリに機密ファイルは無いので、編集したファイルを明示指定すれば安全かつ拒否されない）。壊しても `git -C "<memoryパス>" checkout` / reflog で復元できる。
 - 台帳系ファイルは**全文上書き（Write）を避け、部分Editか日付付き追記で更新**する。過去の経緯（いつ・何を決めたか）を物理的に消さない。
 - 数値・状態の「最新化」は上書きでなく `【YYYY-MM-DD 更新】` 形式の追記を優先する。
 
