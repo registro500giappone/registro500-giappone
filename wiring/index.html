@@ -463,6 +463,9 @@ showModel('f'); // 初期表示
 // 今後 駆動系(drivetrain_110f.glb)等を追加する場合は配列に1行足すだけでよい。
 // 機械系のプロシージャルGLB(engine/drivetrain/front_parts/dashboard/lamps)は
 // 品質不足のため2026-07-11に全削除。今後はAI画像→3D生成での作り直しに置換予定。
+// 2026-07-11: AI画像→3D生成(Hunyuan3D-2mv)によるエンジンも品質不足でユーザー判定NG。
+// 生成GLBは削除しアプローチ自体を取り下げた(経緯はメモリ project-fiat500-wiring-viewer 追記16)。
+// entryは position(mm) / scale / rotation(度) / material を任意で持てる(座標を焼き込む場合は不要)。
 const EXTRA_GLBS = [];
 function loadExtraGlbs() {
   for (const entry of EXTRA_GLBS) {
@@ -473,9 +476,17 @@ function loadExtraGlbs() {
         if (obj.geometry && !obj.geometry.attributes.normal) {
           obj.geometry.computeVertexNormals();
         }
+        if (entry.material) obj.material = new THREE.MeshStandardMaterial(entry.material);
         obj.renderOrder = 1;
       });
-      scene.add(gltf.scene);
+      const root = gltf.scene;
+      if (entry.rotation) {
+        const [rx, ry, rz] = entry.rotation.map(THREE.MathUtils.degToRad);
+        root.rotation.set(rx, ry, rz);
+      }
+      if (entry.scale) root.scale.setScalar(entry.scale);
+      if (entry.position) root.position.set(...entry.position);
+      scene.add(root);
     };
     const onError = (err) => {
       console.warn(`機械系GLB(${label})読込に失敗（スキップ）:`, err);

@@ -74,8 +74,14 @@ def main():
     module_src = module_src.replace(marker_f, f"{marker_f} dataB64: '{f_glb_b64}',")
     module_src = module_src.replace(marker_l, f"{marker_l} dataB64: '{l_glb_b64}',")
 
-    # 機械系ユニットGLB群(engine/drivetrain/front_parts/dashboard/lamps)は
-    # 品質不足のため2026-07-11に全削除(EXTRA_GLBS=[])。埋め込み対象なし。
+    # EXTRA_GLBS(AI生成の機械系パーツ)も同様にdataB64で埋め込む。
+    # file: './assets/xxx.glb', を見つけて後ろにdataB64を差し込む。
+    for glb_path in sorted((ROOT / 'assets').glob('*.glb')):
+        marker = f"file: './assets/{glb_path.name}',"
+        if marker not in module_src:
+            continue
+        b64 = base64.b64encode(glb_path.read_bytes()).decode('ascii')
+        module_src = module_src.replace(marker, f"{marker} dataB64: '{b64}',")
 
     # data/f.json の fetch をインライン埋め込みに置き換え
     f_json = json.loads((ROOT / 'data' / 'f.json').read_text(encoding='utf-8'))
