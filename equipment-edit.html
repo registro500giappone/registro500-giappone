@@ -69,6 +69,18 @@
     }
     .concept-band strong { font-weight: 700; }
 
+    /* ===== 対象車の明示（この手帳が誰の・どの車のものか） ===== */
+    .target-car {
+      display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+      background: var(--card-bg); border-left: 4px solid var(--accent);
+      border-radius: var(--radius-lg); box-shadow: var(--shadow-soft);
+      padding: 14px 16px; margin-bottom: 16px;
+    }
+    .target-car-label { font-size: 0.75rem; color: var(--text-sub); }
+    .target-car-name { font-size: 1rem; font-weight: 700; }
+    .target-car.is-unlinked { border-left-color: var(--border-soft); }
+    .target-car.is-unlinked .target-car-name { font-weight: 400; color: var(--text-sub); font-size: 0.85rem; }
+
     /* ===== カード ===== */
     .card {
       background: var(--card-bg); border-radius: var(--radius-lg);
@@ -174,6 +186,8 @@
       padding: 12px; font-size: 0.9rem; font-weight: 700; cursor: pointer; font-family: inherit;
     }
     .btn-image:disabled { opacity: .55; cursor: default; }
+    .btn-image + .btn-image { margin-top: 8px; }
+    .btn-secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
 
     /* ===== 保存バー ===== */
     .save-bar {
@@ -261,17 +275,19 @@
   <div id="loading">読み込み中…</div>
 
   <div id="app" style="display:none;">
+    <!-- 対象車（この手帳がどの車のものか・冒頭で明示） -->
+    <div class="target-car" id="target-car" style="display:none;">
+      <span class="target-car-label">この手帳の対象車</span>
+      <span class="target-car-name" id="target-car-name"></span>
+    </div>
+
     <!-- 車両情報 -->
     <section class="card">
       <h2>あなたの車について</h2>
-      <p class="card-lead">集計を「年式帯別」「遠出の多さ別」で見るために使います。装備の答え合わせには使いません。</p>
+      <p class="card-lead">集計を「遠出の多さ別」で見るために使います。装備の答え合わせには使いません。</p>
       <div class="field" id="vehicle-field" style="display:none;">
         <label for="vehicle-select">どの車の装備手帳ですか</label>
         <select id="vehicle-select"></select>
-      </div>
-      <div class="field">
-        <label for="model-year">年式</label>
-        <input type="text" id="model-year" placeholder="例: 1968年式 / 不明">
       </div>
       <div class="field">
         <label for="usage-freq">乗る頻度</label>
@@ -316,7 +332,9 @@
       <div id="result-safety"></div>
       <div id="result-ladder"></div>
       <div class="result-actions">
-        <button type="button" class="btn-image" id="btnSaveImage">📷 この結果を画像で保存</button>
+        <button type="button" class="btn-image" id="btnSaveCsv">⬇ 装備リストをCSVで書き出す</button>
+        <button type="button" class="btn-image btn-secondary" id="btnSaveImage">📷 この結果を画像で保存</button>
+        <p class="field-hint" style="margin-top:8px;">CSVはExcel・スプレッドシートでそのまま開けます。車載チェックリストとして印刷する用途を想定しています。</p>
       </div>
     </section>
   </div>
@@ -358,7 +376,11 @@
       document.getElementById('loginOverlay').classList.add('hidden');
       // onAuthStateChange のコールバック内で supabase 呼び出しを直接 await すると
       // 認証ロックでデッドロックするため、setTimeout で遅延実行する（edit.html の教訓）
-      setTimeout(() => { loadAll(); }, 0);
+      setTimeout(async () => {
+        // 初ログインでも登録車両が紐づくよう、車両読み込みの前にメール一致で紐づける（edit.html と同じ）
+        try { await supabaseClient.rpc('link_owner_car'); } catch (e) { console.error(e); }
+        loadAll();
+      }, 0);
     } else {
       document.getElementById('loginOverlay').classList.remove('hidden');
       document.getElementById('loading').style.display = 'none';
@@ -480,27 +502,49 @@
   }
 
   // ===================== 描画 =====================
+  // 対象車のラベル（例: Nuova500 F ／ 1971年式）
+  function carLabel(c) {
+    if (!c) return '';
+    const model = [c.model_display_a || c.car_type || 'Fiat', c.model_display_b || ''].filter(Boolean).join(' ');
+    return c.year ? model + ' ／ ' + c.year + '年式' : model;
+  }
+  function selectedCar() {
+    const sel = document.getElementById('vehicle-select');
+    if (myCars.length === 0) return null;
+    return myCars.find(c => c.document_id === sel.value) || myCars[0];
+  }
+  // 冒頭の「この手帳の対象車」を現在の選択に合わせて更新する
+  function renderTargetCar() {
+    const band = document.getElementById('target-car');
+    const nameEl = document.getElementById('target-car-name');
+    band.style.display = 'flex';
+    if (myCars.length === 0) {
+      // 登録車両と紐づいていない場合も記録自体は残せる（車両紐付けだけが落ちる）
+      band.classList.add('is-unlinked');
+      nameEl.textContent = '登録車両と紐づいていません（このまま記録できます）';
+      return;
+    }
+    band.classList.remove('is-unlinked');
+    nameEl.textContent = carLabel(selectedCar());
+  }
+
   function renderVehicleFields() {
     if (myCars.length > 0) {
       const wrap = document.getElementById('vehicle-field');
       const sel = document.getElementById('vehicle-select');
-      sel.innerHTML = myCars.map(c => {
-        const label = [c.model_display_a || c.car_type || 'Fiat', c.year ? c.year + '年式' : '']
-          .filter(Boolean).join(' ');
-        return '<option value="' + escapeHtml(c.document_id) + '">' + escapeHtml(label) + '</option>';
-      }).join('');
+      sel.innerHTML = myCars.map(c =>
+        '<option value="' + escapeHtml(c.document_id) + '">' + escapeHtml(carLabel(c)) + '</option>'
+      ).join('');
       if (record && record.vehicle_id) sel.value = record.vehicle_id;
       // 1台だけなら選ぶ意味がないので隠したまま（値は自動で入る）
       if (myCars.length > 1) wrap.style.display = 'block';
+      sel.addEventListener('change', renderTargetCar);
     }
-    // 年式は cars.year からプリフィル（初回のみ・入力の手間を減らす）
-    const yearEl = document.getElementById('model-year');
+    renderTargetCar();
+    // 年式の手入力は廃止（cars.year から自動で記録する。年式帯別集計は当面使わない）
     if (record) {
-      yearEl.value = record.model_year || '';
       document.getElementById('usage-freq').value = record.usage_freq || '';
       document.getElementById('longtrip-freq').value = record.longtrip_freq || '';
-    } else if (myCars.length > 0 && myCars[0].year) {
-      yearEl.value = myCars[0].year;
     }
     if (experience) document.getElementById('experience-body').value = experience.body || '';
   }
@@ -911,13 +955,64 @@
     }
   };
 
+  // ===================== CSV書き出し =====================
+  // 画像より使い道が想像しやすいのはこちら（Excelで開ける／印刷して車に積める）。
+  const FREQ_LABEL = { always: '常時', occasional: '随時' };
+
+  function csvCell(v) {
+    const s = (v == null ? '' : String(v));
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+
+  function buildCsv() {
+    // 先頭に対象車と出力日を控える（印刷して車に積んだとき、どの車のいつ時点のリストか分かるように）
+    const car = selectedCar();
+    const rows = [
+      ['装備手帳', car ? carLabel(car) : '', '出力日', new Date().toISOString().slice(0, 10), ''],
+      ['カテゴリ', '品名', '積み方', 'メモ', 'なぜ積むのか']
+    ];
+    CATEGORIES.forEach(cat => {
+      items.filter(i => i.category === cat).forEach(i => {
+        const s = state[i.id];
+        if (!s || !s.frequency) return;   // 未搭載は書き出さない（チェックリストとして使うため）
+        rows.push([cat, i.name, FREQ_LABEL[s.frequency] || '', s.note || '', i.reason || '']);
+      });
+      (customRows[cat] || []).forEach(r => {
+        if (!r.name || !r.name.trim()) return;
+        rows.push([cat, r.name.trim(), FREQ_LABEL[r.frequency] || '', '', r.reason || '']);
+      });
+    });
+    // BOM付きUTF-8（これが無いとExcelで日本語が化ける）
+    return String.fromCharCode(0xFEFF) + rows.map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+  }
+
+  document.getElementById('btnSaveCsv').onclick = () => {
+    const csv = buildCsv();
+    // 先頭2行（対象車行＋見出し行）だけなら中身が無い
+    if (csv.split('\r\n').filter(Boolean).length <= 2) {
+      alert('書き出す装備がまだありません。積んでいる物を選んで保存してください。');
+      return;
+    }
+    const car = selectedCar();
+    const stamp = new Date().toISOString().slice(0, 10);
+    const name = ['装備手帳', car ? carLabel(car).replace(/[\s／\/]+/g, '_') : '', stamp]
+      .filter(Boolean).join('_') + '.csv';
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    track('equipment_csv_download', {});
+  };
+
   // ===================== 保存 =====================
   let dirty = false;
   function markDirty() {
     dirty = true;
     document.getElementById('save-status').textContent = '未保存の変更があります';
   }
-  ['model-year', 'usage-freq', 'longtrip-freq', 'experience-body', 'vehicle-select'].forEach(id => {
+  ['usage-freq', 'longtrip-freq', 'experience-body', 'vehicle-select'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', markDirty);
   });
@@ -931,11 +1026,11 @@
     btn.disabled = true; btn.textContent = '保存中…'; status.textContent = '';
 
     try {
-      const sel = document.getElementById('vehicle-select');
-      const vehicleId = (myCars.length > 0 && sel.value) ? sel.value : null;
+      const car = selectedCar();
       const base = {
-        vehicle_id: vehicleId,
-        model_year: document.getElementById('model-year').value.trim() || null,
+        vehicle_id: car ? car.document_id : null,
+        // 年式は手入力させず cars.year から控える（既存値は車が無いとき維持）
+        model_year: (car && car.year) || (record && record.model_year) || null,
         usage_freq: document.getElementById('usage-freq').value || null,
         longtrip_freq: document.getElementById('longtrip-freq').value || null,
         updated_at: new Date().toISOString()
