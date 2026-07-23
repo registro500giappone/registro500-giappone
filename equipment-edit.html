@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <link rel="canonical" href="https://www.registro500.com/equipment-edit">
+  <!-- 個人の入力画面のため検索対象にしない（集計ページ equipment.html は別途インデックス対象） -->
+  <meta name="robots" content="noindex">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-27SHHC4JYH');
+  </script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>装備手帳 | Registro500</title>
+  <meta name="description" content="空冷クラシックFiat 500の車載品を記録する装備手帳。出先のトラブルに備えて何を積んでいるかを記録し、いつでも更新できます。">
+
+  <link rel="icon" href="logo_horizontal.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+  <script src="config.js"></script>
+
+  <style>
+    :root {
+      --bg-main: #f4f4f7;
+      --card-bg: #ffffff;
+      --border-soft: #e5e7eb;
+      --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.08);
+      --text-main: #111827;
+      --text-sub: #6b7280;
+      --accent: #2856a8;
+      --accent-soft: #e6efff;
+      --occasional: #7c8db5;
+      --radius-lg: 12px;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { font-size: 16px; max-width: 100%; overflow-x: hidden; }
+    @media (min-width: 1025px) { html { font-size: 17px; } }
+
+    body {
+      font-family: var(--font-sans); margin: 0; padding: 20px 16px 110px;
+      background-color: var(--bg-main); color: var(--text-main); line-height: 1.7;
+    }
+    .page { max-width: 800px; margin: 0 auto; }
+
+    /* ===== 戻るリンク / ブランドヘッダー ===== */
+    .back-link {
+      display: inline-block; font-size: 0.85rem; color: var(--text-sub);
+      text-decoration: none; margin-bottom: 16px;
+    }
+    .back-link:hover { color: var(--accent); }
+    .brand-header { text-align: center; margin-bottom: 8px; }
+    .brand-header img { height: 40px; width: auto; mix-blend-mode: multiply; margin-bottom: 12px; }
+    .brand-title {
+      font-size: 1.7rem; font-weight: 800; color: var(--text-main);
+      margin: 0 0 6px; letter-spacing: -0.01em;
+    }
+    .brand-tagline { font-size: 0.88rem; color: var(--text-sub); margin: 0 0 20px; }
+
+    /* ===== コンセプト帯 ===== */
+    .concept-band {
+      background: linear-gradient(135deg, #1d3f8a 0%, #2856a8 100%);
+      color: #fff; border-radius: var(--radius-lg);
+      padding: 20px 22px; margin-bottom: 20px; line-height: 1.9; font-size: 0.9rem;
+    }
+    .concept-band strong { font-weight: 700; }
+
+    /* ===== カード ===== */
+    .card {
+      background: var(--card-bg); border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft); padding: 18px 16px; margin-bottom: 16px;
+    }
+    .card h2 {
+      font-size: 1.02rem; margin: 0 0 4px; font-weight: 700;
+    }
+    .card-lead { font-size: 0.82rem; color: var(--text-sub); margin: 0 0 14px; line-height: 1.7; }
+
+    /* ===== 車両情報 ===== */
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label {
+      display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; color: var(--text-main);
+    }
+    .field select, .field input[type="text"] {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border-soft);
+      border-radius: 8px; font-size: 0.92rem; font-family: inherit; background: #fff; color: var(--text-main);
+    }
+    .field-hint { font-size: 0.75rem; color: var(--text-sub); margin: 4px 0 0; }
+
+    /* ===== カテゴリ（折りたたみ） ===== */
+    .cat { background: var(--card-bg); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); margin-bottom: 12px; overflow: hidden; }
+    .cat > summary {
+      list-style: none; cursor: pointer; padding: 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .cat > summary::-webkit-details-marker { display: none; }
+    .cat-name { font-size: 1.02rem; font-weight: 700; }
+    .cat-meta { display: flex; align-items: center; gap: 8px; }
+    .cat-count { font-size: 0.8rem; color: var(--text-sub); font-variant-numeric: tabular-nums; }
+    .cat-count.has { color: var(--accent); font-weight: 700; }
+    .cat-arrow { color: var(--text-sub); font-size: 0.8rem; transition: transform .15s; }
+    .cat[open] .cat-arrow { transform: rotate(90deg); }
+    .cat-body { padding: 0 16px 16px; }
+
+    /* ===== 項目行 ===== */
+    .item {
+      display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;
+      padding: 12px 0; border-top: 1px solid var(--border-soft);
+    }
+    .item-main { flex: 1; min-width: 0; }
+    .item-name { font-size: 0.92rem; font-weight: 600; line-height: 1.5; }
+    .item-reason { font-size: 0.78rem; color: var(--text-sub); margin-top: 3px; line-height: 1.65; }
+    .freq-group { display: flex; gap: 6px; flex-shrink: 0; padding-top: 2px; }
+    .freq-btn {
+      border: 1px solid var(--border-soft); background: #fff; border-radius: 15px;
+      padding: 6px 11px; font-size: 0.76rem; cursor: pointer; color: var(--text-sub);
+      white-space: nowrap; font-family: inherit; line-height: 1.2;
+    }
+    .freq-btn.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+    .freq-btn.on.occ { background: var(--occasional); border-color: var(--occasional); }
+    .item-note { margin-top: 6px; flex: 1 1 100%; }  /* 項目行の下に全幅で出す（プロンプトを読み切れるように） */
+    .item-note input {
+      width: 100%; padding: 8px 10px; border: 1px solid var(--border-soft);
+      border-radius: 8px; font-size: 0.82rem; font-family: inherit; background: #fbfcff;
+    }
+
+    /* ===== 自由追加 ===== */
+    .custom-block { margin-top: 16px; padding-top: 14px; border-top: 2px dashed var(--border-soft); }
+    .custom-title { font-size: 0.85rem; font-weight: 700; margin: 0 0 4px; }
+    .custom-lead { font-size: 0.76rem; color: var(--text-sub); margin: 0 0 10px; line-height: 1.6; }
+    .custom-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .custom-row input {
+      padding: 8px 10px; border: 1px solid var(--border-soft); border-radius: 8px;
+      font-size: 0.82rem; font-family: inherit; min-width: 0;
+    }
+    .custom-row .c-name { flex: 1 1 100%; }
+    .custom-row .c-reason { flex: 1 1 100%; }
+    .custom-row .freq-group { flex: 0 0 auto; }
+    .btn-add {
+      background: none; border: 1px dashed var(--border-soft); border-radius: 8px;
+      padding: 8px 12px; font-size: 0.8rem; color: var(--accent); cursor: pointer;
+      font-family: inherit; font-weight: 600;
+    }
+
+    /* ===== カテゴリ完了 ===== */
+    .cat-done {
+      margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-soft);
+      display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--text-sub);
+    }
+    .cat-done input { width: 17px; height: 17px; accent-color: var(--accent); }
+
+    /* ===== 経験談 ===== */
+    #experience-body {
+      width: 100%; min-height: 120px; padding: 12px; border: 1px solid var(--border-soft);
+      border-radius: 8px; font-size: 0.9rem; font-family: inherit; line-height: 1.7; resize: vertical;
+    }
+
+    /* ===== 結果（タイプ判定＋リコメンド） ===== */
+    #result-section { border: 2px solid var(--accent-soft); }
+    .result-type-name { font-size: 1.25rem; font-weight: 800; color: var(--accent); margin: 0 0 4px; }
+    .reco-heading { font-size: 0.85rem; font-weight: 700; margin: 16px 0 8px; }
+    .reco-heading:first-child { margin-top: 0; }
+    .reco-item { padding: 8px 0; border-top: 1px solid var(--border-soft); }
+    .reco-name { font-size: 0.9rem; font-weight: 700; }
+    .reco-reason { font-size: 0.78rem; color: var(--text-sub); margin-top: 2px; line-height: 1.6; }
+    .reco-invite { font-size: 0.85rem; color: var(--text-sub); line-height: 1.8; margin: 0; }
+    .result-actions { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border-soft); }
+    .btn-image {
+      width: 100%; background: var(--accent); color: #fff; border: 0; border-radius: 10px;
+      padding: 12px; font-size: 0.9rem; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    .btn-image:disabled { opacity: .55; cursor: default; }
+
+    /* ===== 保存バー ===== */
+    .save-bar {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+      background: rgba(255,255,255,0.97); border-top: 1px solid var(--border-soft);
+      padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+      display: flex; align-items: center; gap: 12px; justify-content: center;
+      box-shadow: 0 -4px 12px rgba(15,23,42,0.06);
+    }
+    .save-status { font-size: 0.8rem; color: var(--text-sub); }
+    .btn-save {
+      background: var(--accent); color: #fff; border: 0; border-radius: 10px;
+      padding: 12px 28px; font-size: 0.95rem; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    .btn-save:disabled { opacity: .55; cursor: default; }
+
+    /* ===== ログインオーバーレイ ===== */
+    #loginOverlay {
+      position: fixed; inset: 0; z-index: 100; background: rgba(244,244,247,0.97);
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    #loginOverlay.hidden { display: none; }
+    .login-box {
+      background: #fff; padding: 32px 24px; border-radius: 20px; text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 360px; width: 100%;
+    }
+    .login-box h2 { margin: 0 0 6px; font-size: 1.15rem; }
+    .login-box p.lead { font-size: 0.85rem; color: var(--text-sub); margin: 0 0 18px; line-height: 1.7; }
+
+    #loading { text-align: center; color: var(--text-sub); font-size: 0.88rem; padding: 40px 0; }
+  </style>
+</head>
+<body>
+
+<!-- ============ ログイン（OTPコード方式・edit.html と同型） ============ -->
+<div id="loginOverlay">
+  <div class="login-box">
+    <h2>オーナー認証</h2>
+    <p class="lead">装備手帳はご自身の記録です。<br>ご利用にはログインが必要です。</p>
+    <div style="display:flex;flex-direction:column;gap:10px;text-align:left;">
+      <div id="otpStep1" style="display:flex;flex-direction:column;gap:10px;">
+        <input type="email" id="emailLoginInput" placeholder="登録したメールアドレス" autocomplete="email"
+               style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:15px;">
+        <button type="button" id="clearEmailBtn" style="display:none;background:none;border:0;color:#888;font-size:12px;cursor:pointer;align-self:flex-start;padding:0;">別のアドレスを使う</button>
+        <button id="emailLoginBtn"
+                style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">
+          確認コードを送信
+        </button>
+        <div style="display:flex;align-items:center;gap:8px;color:#aaa;font-size:12px;margin:4px 0;">
+          <span style="flex:1;height:1px;background:#e0e0e0;"></span>または<span style="flex:1;height:1px;background:#e0e0e0;"></span>
+        </div>
+        <button id="googleLoginBtn"
+                style="padding:12px;border:1px solid #ccc;border-radius:8px;background:#fff;color:#333;cursor:pointer;">Googleでログイン（従来方式）</button>
+      </div>
+      <div id="otpStep2" style="display:none;flex-direction:column;gap:10px;">
+        <p style="font-size:13px;color:#2e7d32;margin:0;">✅ <span id="otpSentEmail" style="font-weight:700;"></span> に6桁の確認コードを送信しました。届いたコードを入力してください。</p>
+        <input type="text" id="otpCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"
+               style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:22px;letter-spacing:8px;text-align:center;">
+        <button id="otpVerifyBtn"
+                style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">
+          ログイン
+        </button>
+        <button id="otpResendBtn" style="background:none;border:0;color:#2856a8;cursor:pointer;font-size:13px;">確認コードを再送する</button>
+      </div>
+      <p id="otpErrorMsg" style="display:none;font-size:13px;color:#c62828;margin:8px 0 0;"></p>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+  <a href="index.html" class="back-link">&larr; ガレージに戻る</a>
+
+  <div class="brand-header">
+    <img src="logo_horizontal.png" alt="Registro500 Giappone">
+    <h1 class="brand-title">装備手帳</h1>
+    <p class="brand-tagline">出先のトラブルに備えて、何を積んでいるか</p>
+  </div>
+
+  <div class="concept-band">
+    これは一度きりのアンケートではなく、<strong>あなた自身の記録</strong>です。<br>
+    買い足したら書き足してください。いつでも更新できます。<br>
+    それぞれの項目には「なぜ積むのか」を添えました。<strong>知らなかった物が1つでも見つかれば、それがこの手帳の目的</strong>です。
+  </div>
+
+  <div id="loading">読み込み中…</div>
+
+  <div id="app" style="display:none;">
+    <!-- 車両情報 -->
+    <section class="card">
+      <h2>あなたの車について</h2>
+      <p class="card-lead">集計を「年式帯別」「遠出の多さ別」で見るために使います。装備の答え合わせには使いません。</p>
+      <div class="field" id="vehicle-field" style="display:none;">
+        <label for="vehicle-select">どの車の装備手帳ですか</label>
+        <select id="vehicle-select"></select>
+      </div>
+      <div class="field">
+        <label for="model-year">年式</label>
+        <input type="text" id="model-year" placeholder="例: 1968年式 / 不明">
+      </div>
+      <div class="field">
+        <label for="usage-freq">乗る頻度</label>
+        <select id="usage-freq">
+          <option value="">選択してください</option>
+          <option value="週に数回">週に数回</option>
+          <option value="週1回程度">週1回程度</option>
+          <option value="月に数回">月に数回</option>
+          <option value="月1回程度">月1回程度</option>
+          <option value="年に数回">年に数回</option>
+          <option value="ほとんど動かしていない">ほとんど動かしていない</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="longtrip-freq">遠出（イベント参加・長距離）の頻度</label>
+        <select id="longtrip-freq">
+          <option value="">選択してください</option>
+          <option value="月1回以上">月1回以上</option>
+          <option value="年に数回">年に数回</option>
+          <option value="年1回程度">年1回程度</option>
+          <option value="ほとんどしない">ほとんどしない</option>
+        </select>
+        <p class="field-hint">「随時」は、遠出・イベント参加・長距離走行のときだけ積む物を指します。</p>
+      </div>
+    </section>
+
+    <!-- カテゴリ（JSで生成） -->
+    <div id="categories"></div>
+
+    <!-- 経験談 -->
+    <section class="card">
+      <h2>出先で助かった／困った経験</h2>
+      <p class="card-lead">「これがあって助かった」「これが無くて詰んだ」という話をぜひ。他のオーナーにとって、装備リストそのものより役に立つことがあります。</p>
+      <textarea id="experience-body" placeholder="例: 箱根の帰りにVベルトが切れたが、予備とスパナがあったので路肩で20分ほどで復帰できた。"></textarea>
+    </section>
+
+    <!-- 結果（保存後に表示：タイプ判定＋リコメンド） -->
+    <section class="card" id="result-section" style="display:none;">
+      <h2>あなたの装備タイプ</h2>
+      <p class="result-type-name" id="result-type-name"></p>
+      <p class="card-lead" id="result-type-desc"></p>
+      <div id="result-safety"></div>
+      <div id="result-ladder"></div>
+      <div class="result-actions">
+        <button type="button" class="btn-image" id="btnSaveImage">📷 この結果を画像で保存</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="save-bar" id="save-bar" style="display:none;">
+  <span class="save-status" id="save-status"></span>
+  <button class="btn-save" id="saveBtn">保存する</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0"></script>
+<script>
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // カテゴリの表示順（項目マスターの category と一致させる）
+  const CATEGORIES = ['工具', 'パーツ', 'ケミカル', '非常時対応', '洗車・その他'];
+
+  let currentUser = null;
+  let items = [];        // 項目マスター
+  let record = null;     // equipment_records の1行（無ければ null＝初回）
+  let myCars = [];       // 所有車両
+  let experience = null; // equipment_experiences の1行
+  const state = {};      // { itemId: { frequency: 'always'|'occasional'|null, note: string } }
+  const catDone = {};    // { category: boolean }
+  const customRows = {}; // { category: [ {name, frequency, reason} ] }
+
+  // GA4（gtag未読込でもクラッシュしない）
+  function track(name, params) {
+    try { if (typeof gtag === 'function') gtag('event', name, params || {}); } catch (e) {}
+  }
+
+  // ===================== 認証 =====================
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    const user = session?.user ?? null;
+    currentUser = user;
+    if (event === 'USER_UPDATED') return;
+
+    if (user) {
+      document.getElementById('loginOverlay').classList.add('hidden');
+      // onAuthStateChange のコールバック内で supabase 呼び出しを直接 await すると
+      // 認証ロックでデッドロックするため、setTimeout で遅延実行する（edit.html の教訓）
+      setTimeout(() => { loadAll(); }, 0);
+    } else {
+      document.getElementById('loginOverlay').classList.remove('hidden');
+      document.getElementById('loading').style.display = 'none';
+    }
+  });
+
+  function showOtpError(msg) {
+    const el = document.getElementById('otpErrorMsg');
+    if (!msg) { el.style.display = 'none'; return; }
+    el.textContent = msg; el.style.display = 'block';
+  }
+
+  let otpEmail = '';
+  document.getElementById('emailLoginBtn').onclick = async () => {
+    const email = document.getElementById('emailLoginInput').value.trim();
+    if (!email) { alert('メールアドレスを入力してください'); return; }
+    const btn = document.getElementById('emailLoginBtn');
+    btn.disabled = true; btn.textContent = '送信中…';
+    const { error } = await supabaseClient.auth.signInWithOtp({ email });
+    btn.disabled = false; btn.textContent = '確認コードを送信';
+    if (error) { showOtpError('送信に失敗しました：' + error.message); return; }
+    otpEmail = email;
+    localStorage.setItem('r500_login_email', email);
+    document.getElementById('otpSentEmail').textContent = email;
+    document.getElementById('otpStep1').style.display = 'none';
+    document.getElementById('otpStep2').style.display = 'flex';
+    showOtpError('');
+  };
+  document.getElementById('otpVerifyBtn').onclick = async () => {
+    const code = document.getElementById('otpCodeInput').value.trim();
+    if (!code) { alert('確認コードを入力してください'); return; }
+    const btn = document.getElementById('otpVerifyBtn');
+    btn.disabled = true; btn.textContent = '確認中…';
+    const { error } = await supabaseClient.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
+    btn.disabled = false; btn.textContent = 'ログイン';
+    if (error) { showOtpError('コードが正しくないか、期限切れです。もう一度お試しください。'); return; }
+    // 成功 → onAuthStateChange 側で読み込みが走る
+  };
+  document.getElementById('otpResendBtn').onclick = async () => {
+    if (!otpEmail) return;
+    const { error } = await supabaseClient.auth.signInWithOtp({ email: otpEmail });
+    showOtpError(error ? ('再送に失敗しました：' + error.message) : '');
+    if (!error) alert('確認コードを再送しました。');
+  };
+  document.getElementById('googleLoginBtn').onclick = async () => {
+    await supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.href }
+    });
+  };
+  (function () {
+    const emailInput = document.getElementById('emailLoginInput');
+    const clearBtn = document.getElementById('clearEmailBtn');
+    const saved = localStorage.getItem('r500_login_email');
+    if (saved && emailInput) { emailInput.value = saved; clearBtn.style.display = 'block'; }
+    clearBtn.onclick = () => {
+      emailInput.value = '';
+      localStorage.removeItem('r500_login_email');
+      clearBtn.style.display = 'none';
+      emailInput.focus();
+    };
+  })();
+
+  // ===================== 読み込み =====================
+  async function loadAll() {
+    try {
+      const [itemsRes, carsRes, recRes] = await Promise.all([
+        supabaseClient.from('equipment_items')
+          .select('id, code, category, name, reason, sort_order, note_prompt, recommend_priority')
+          .eq('is_active', true).order('sort_order'),
+        supabaseClient.from('cars')
+          .select('document_id, model_display_a, model_display_b, year, car_type')
+          .eq('owner_user_id', currentUser.id),
+        supabaseClient.from('equipment_records')
+          .select('*').eq('user_id', currentUser.id)
+          .order('updated_at', { ascending: false }).limit(1)
+      ]);
+      if (itemsRes.error) throw itemsRes.error;
+
+      items = itemsRes.data || [];
+      myCars = carsRes.data || [];
+      record = (recRes.data && recRes.data[0]) || null;
+
+      items.forEach(i => { state[i.id] = { frequency: null, note: '' }; });
+      CATEGORIES.forEach(c => { catDone[c] = false; customRows[c] = []; });
+
+      if (record) await loadExistingAnswers();
+
+      renderVehicleFields();
+      renderCategories();
+      if (record) renderResult();
+
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('save-bar').style.display = 'flex';
+    } catch (e) {
+      document.getElementById('loading').textContent =
+        '読み込みに失敗しました。時間をおいて再度お試しください。';
+      console.error(e);
+    }
+  }
+
+  async function loadExistingAnswers() {
+    const [entRes, catRes, cusRes, expRes] = await Promise.all([
+      supabaseClient.from('equipment_entries').select('item_id, frequency, note').eq('record_id', record.id),
+      supabaseClient.from('equipment_category_status').select('category, completed').eq('record_id', record.id),
+      supabaseClient.from('equipment_custom_items').select('name, category, frequency, reason').eq('record_id', record.id),
+      supabaseClient.from('equipment_experiences').select('*').eq('record_id', record.id).limit(1)
+    ]);
+    (entRes.data || []).forEach(e => {
+      if (state[e.item_id]) state[e.item_id] = { frequency: e.frequency, note: e.note || '' };
+    });
+    (catRes.data || []).forEach(c => { catDone[c.category] = !!c.completed; });
+    (cusRes.data || []).forEach(c => {
+      const cat = CATEGORIES.includes(c.category) ? c.category : CATEGORIES[0];
+      customRows[cat].push({ name: c.name || '', frequency: c.frequency || null, reason: c.reason || '' });
+    });
+    experience = (expRes.data && expRes.data[0]) || null;
+  }
+
+  // ===================== 描画 =====================
+  function renderVehicleFields() {
+    if (myCars.length > 0) {
+      const wrap = document.getElementById('vehicle-field');
+      const sel = document.getElementById('vehicle-select');
+      sel.innerHTML = myCars.map(c => {
+        const label = [c.model_display_a || c.car_type || 'Fiat', c.year ? c.year + '年式' : '']
+          .filter(Boolean).join(' ');
+        return '<option value="' + escapeHtml(c.document_id) + '">' + escapeHtml(label) + '</option>';
+      }).join('');
+      if (record && record.vehicle_id) sel.value = record.vehicle_id;
+      // 1台だけなら選ぶ意味がないので隠したまま（値は自動で入る）
+      if (myCars.length > 1) wrap.style.display = 'block';
+    }
+    // 年式は cars.year からプリフィル（初回のみ・入力の手間を減らす）
+    const yearEl = document.getElementById('model-year');
+    if (record) {
+      yearEl.value = record.model_year || '';
+      document.getElementById('usage-freq').value = record.usage_freq || '';
+      document.getElementById('longtrip-freq').value = record.longtrip_freq || '';
+    } else if (myCars.length > 0 && myCars[0].year) {
+      yearEl.value = myCars[0].year;
+    }
+    if (experience) document.getElementById('experience-body').value = experience.body || '';
+  }
+
+  function renderCategories() {
+    const host = document.getElementById('categories');
+    host.innerHTML = '';
+    CATEGORIES.forEach((cat, idx) => {
+      const catItems = items.filter(i => i.category === cat);
+      if (!catItems.length) return;
+
+      const det = document.createElement('details');
+      det.className = 'cat';
+      det.dataset.category = cat;
+      if (idx === 0) det.open = true;
+
+      const sum = document.createElement('summary');
+      sum.innerHTML =
+        '<span class="cat-name">' + escapeHtml(cat) + '</span>' +
+        '<span class="cat-meta">' +
+          '<span class="cat-count" data-count="' + escapeHtml(cat) + '"></span>' +
+          '<span class="cat-arrow">▶</span>' +
+        '</span>';
+      det.appendChild(sum);
+
+      const body = document.createElement('div');
+      body.className = 'cat-body';
+
+      catItems.forEach(item => body.appendChild(buildItemRow(item)));
+      body.appendChild(buildCustomBlock(cat));
+      body.appendChild(buildDoneRow(cat));
+
+      det.appendChild(body);
+      host.appendChild(det);
+      updateCatCount(cat);
+    });
+  }
+
+  function buildItemRow(item) {
+    const row = document.createElement('div');
+    row.className = 'item';
+
+    const main = document.createElement('div');
+    main.className = 'item-main';
+    main.innerHTML =
+      '<div class="item-name">' + escapeHtml(item.name) + '</div>' +
+      '<div class="item-reason">' + escapeHtml(item.reason) + '</div>';
+
+    // note_prompt を持つ項目だけメモ欄を出す（全項目に出すと照合に疲れて離脱する）
+    let noteWrap = null;
+    if (item.note_prompt) {
+      noteWrap = document.createElement('div');
+      noteWrap.className = 'item-note';
+      noteWrap.style.display = state[item.id].frequency ? 'block' : 'none';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = item.note_prompt;
+      input.value = state[item.id].note || '';
+      input.oninput = () => { state[item.id].note = input.value; };
+      noteWrap.appendChild(input);
+    }
+
+    const group = document.createElement('div');
+    group.className = 'freq-group';
+    ['always', 'occasional'].forEach(freq => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'freq-btn' + (freq === 'occasional' ? ' occ' : '');
+      btn.textContent = freq === 'always' ? '常時' : '随時';
+      btn.onclick = () => {
+        // 同じボタンをもう一度押したら解除＝積んでいない（明示的な「積んでいない」は置かない設計）
+        state[item.id].frequency = (state[item.id].frequency === freq) ? null : freq;
+        syncItemRow(item, group, noteWrap);
+        updateCatCount(item.category);
+        markDirty();
+      };
+      group.appendChild(btn);
+    });
+
+    row.appendChild(main);
+    row.appendChild(group);
+    if (noteWrap) row.appendChild(noteWrap);
+    syncItemRow(item, group, noteWrap);
+    return row;
+  }
+
+  function syncItemRow(item, group, noteWrap) {
+    const cur = state[item.id].frequency;
+    const btns = group.querySelectorAll('.freq-btn');
+    btns[0].classList.toggle('on', cur === 'always');
+    btns[1].classList.toggle('on', cur === 'occasional');
+    if (noteWrap) noteWrap.style.display = cur ? 'block' : 'none';
+  }
+
+  function buildCustomBlock(cat) {
+    const block = document.createElement('div');
+    block.className = 'custom-block';
+    block.innerHTML =
+      '<p class="custom-title">ここに無い物を積んでいますか</p>' +
+      '<p class="custom-lead">選択肢に無い物ほど、他のオーナーにとっての発見になります。空欄のままで構いません。</p>';
+
+    const rowsHost = document.createElement('div');
+    block.appendChild(rowsHost);
+
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'btn-add';
+    addBtn.textContent = '＋ 追加';
+    addBtn.onclick = () => {
+      customRows[cat].push({ name: '', frequency: null, reason: '' });
+      renderCustomRows(cat, rowsHost);
+      markDirty();
+    };
+    block.appendChild(addBtn);
+
+    if (customRows[cat].length === 0) customRows[cat].push({ name: '', frequency: null, reason: '' });
+    renderCustomRows(cat, rowsHost);
+    return block;
+  }
+
+  function renderCustomRows(cat, host) {
+    host.innerHTML = '';
+    customRows[cat].forEach((row, i) => {
+      const div = document.createElement('div');
+      div.className = 'custom-row';
+
+      const nameInput = document.createElement('input');
+      nameInput.className = 'c-name';
+      nameInput.type = 'text';
+      nameInput.placeholder = '品名（例: ポイントヤスリ）';
+      nameInput.value = row.name;
+      nameInput.oninput = () => { row.name = nameInput.value; markDirty(); };
+
+      const group = document.createElement('div');
+      group.className = 'freq-group';
+      ['always', 'occasional'].forEach(freq => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'freq-btn' + (freq === 'occasional' ? ' occ' : '') + (row.frequency === freq ? ' on' : '');
+        btn.textContent = freq === 'always' ? '常時' : '随時';
+        btn.onclick = () => {
+          row.frequency = (row.frequency === freq) ? null : freq;
+          renderCustomRows(cat, host);
+          markDirty();
+        };
+        group.appendChild(btn);
+      });
+
+      const reasonInput = document.createElement('input');
+      reasonInput.className = 'c-reason';
+      reasonInput.type = 'text';
+      reasonInput.placeholder = 'なぜ積むのか（任意）';
+      reasonInput.value = row.reason;
+      reasonInput.oninput = () => { row.reason = reasonInput.value; markDirty(); };
+
+      div.appendChild(nameInput);
+      div.appendChild(group);
+      div.appendChild(reasonInput);
+      host.appendChild(div);
+    });
+  }
+
+  function buildDoneRow(cat) {
+    const wrap = document.createElement('label');
+    wrap.className = 'cat-done';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!catDone[cat];
+    cb.onchange = () => { catDone[cat] = cb.checked; updateCatCount(cat); markDirty(); };
+    const txt = document.createElement('span');
+    txt.textContent = 'このカテゴリは確認し終えた（チェックの無い項目＝積んでいない、として集計します）';
+    wrap.appendChild(cb);
+    wrap.appendChild(txt);
+    return wrap;
+  }
+
+  function updateCatCount(cat) {
+    const el = document.querySelector('[data-count="' + cat + '"]');
+    if (!el) return;
+    const catItems = items.filter(i => i.category === cat);
+    const n = catItems.filter(i => state[i.id].frequency).length;
+    el.textContent = (catDone[cat] ? '✓ ' : '') + n + '/' + catItems.length;
+    el.classList.toggle('has', n > 0);
+  }
+
+  // ===================== 結果（タイプ判定＋リコメンド） =====================
+  // フェーズ1: 母数が貯まるまでは統計でなく本人の回答バランスから返す（design-original.md／HANDOFF「リコメンド設計の再定義」参照）。
+  // 工具・パーツが薄い人に「梯子」を返しても響かないため、タイプと表示を同じ判定軸で連動させる。
+  const TYPE_INFO = {
+    genchi: { name: '現地修理型', desc: '止まっても自力で帰る。工具とパーツの厚みに、その構えが表れています。' },
+    yobou:  { name: '予防整備型', desc: 'そもそも止まらせない。ケミカル・点検用品の厚みに、その構えが表れています。' },
+    kyuen:  { name: '救援前提型', desc: 'ロードサービスと保険で構える。非常時対応の装備が、その安心を支えています。' },
+    migaru: { name: '身軽型', desc: 'あなたの割り切りは合理的です。近距離中心の乗り方なら、最低限の備えで十分成り立ちます。' }
+  };
+  const MECH_THICK_THRESHOLD = 3; // 工具+パーツの搭載数がこれ以上で「機械系が厚い」とみなす
+
+  function categoryCounts() {
+    const counts = {}; CATEGORIES.forEach(c => counts[c] = 0);
+    items.forEach(i => { if (state[i.id].frequency) counts[i.category]++; });
+    return counts;
+  }
+
+  function classifyType(counts) {
+    const totals = {}; CATEGORIES.forEach(c => totals[c] = items.filter(i => i.category === c).length);
+    const toolsRatio  = totals['工具'] ? counts['工具'] / totals['工具'] : 0;
+    const partsRatio  = totals['パーツ'] ? counts['パーツ'] / totals['パーツ'] : 0;
+    const chemRatio   = totals['ケミカル'] ? counts['ケミカル'] / totals['ケミカル'] : 0;
+    const emergRatio  = totals['非常時対応'] ? counts['非常時対応'] / totals['非常時対応'] : 0;
+    const mechScore = (toolsRatio + partsRatio) / 2;
+    const overallLoaded = counts['工具'] + counts['パーツ'] + counts['ケミカル'] + counts['非常時対応'];
+
+    if (overallLoaded <= 2) return 'migaru';
+    if (mechScore >= 0.15 && mechScore >= chemRatio) return 'genchi';
+    if (chemRatio >= 0.2 && chemRatio > mechScore) return 'yobou';
+    if (emergRatio >= 0.4) return 'kyuen';
+    return 'genchi';
+  }
+
+  function recoItemHtml(i) {
+    return '<div class="reco-item"><div class="reco-name">' + escapeHtml(i.name) + '</div>' +
+      '<div class="reco-reason">' + escapeHtml(i.reason) + '</div></div>';
+  }
+
+  // DOM表示・画像化の両方が使う共通データ（本人の回答から算出。統計は使わない＝フェーズ1）
+  function computeResultData() {
+    const counts = categoryCounts();
+    const type = classifyType(counts);
+    const missing = items.filter(i => i.recommend_priority != null && !state[i.id].frequency)
+      .sort((a, b) => a.recommend_priority - b.recommend_priority);
+    // 第0層＝安全層（非常時対応）。スタイルに関わらず全員に返す
+    const safety = missing.filter(i => i.category === '非常時対応');
+    // 第1層＝自走復帰の梯子（工具・パーツ・ケミカル）。本人の機械系の厚みで表示を条件分岐
+    const ladder = missing.filter(i => i.category !== '非常時対応');
+    return { type, info: TYPE_INFO[type], safety, ladder, mechLoaded: counts['工具'] + counts['パーツ'] };
+  }
+
+  // 表示分岐（見出し・件数）を1箇所に集約。DOM描画とCanvas描画で文言が食い違わないようにする
+  function buildResultSections(data) {
+    const sec = {
+      safetyHeading: data.safety.length ? 'まず、これだけは' : '安全対応の基本装備は揃っています',
+      safetyItems: data.safety,
+      ladderHeading: null, ladderItems: null, ladderInvite: null
+    };
+    if (data.mechLoaded >= MECH_THICK_THRESHOLD) {
+      sec.ladderHeading = data.ladder.length ? '自走復帰の備え、次の一手' : '工具・パーツの基本装備は揃っています';
+      sec.ladderItems = data.ladder.slice(0, 5);
+    } else if (data.type === 'migaru') {
+      sec.ladderInvite = '近距離中心なら、上の安全対応だけ持てば十分です。それ以上を無理に積む必要はありません。';
+    } else {
+      sec.ladderInvite = 'もし自走復帰の備えに興味があれば、まずは一歩から'
+        + (data.ladder[0] ? '——「' + data.ladder[0].name + '」あたりが手始めです。' : '。');
+    }
+    return sec;
+  }
+
+  function renderResult() {
+    const data = computeResultData();
+    const sec = buildResultSections(data);
+    document.getElementById('result-type-name').textContent = data.info.name;
+    document.getElementById('result-type-desc').textContent = data.info.desc;
+
+    document.getElementById('result-safety').innerHTML =
+      '<p class="reco-heading">' + escapeHtml(sec.safetyHeading) + '</p>' + sec.safetyItems.map(recoItemHtml).join('');
+
+    const ladderHost = document.getElementById('result-ladder');
+    ladderHost.innerHTML = sec.ladderItems
+      ? '<p class="reco-heading">' + escapeHtml(sec.ladderHeading) + '</p>' + sec.ladderItems.map(recoItemHtml).join('')
+      : '<p class="reco-invite">' + escapeHtml(sec.ladderInvite) + '</p>';
+
+    document.getElementById('result-section').style.display = 'block';
+  }
+
+  // ===================== 結果カード画像化（Canvas 2D・html2canvas等は未導入） =====================
+  const CARD_FONT = '"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif';
+
+  // 日本語は分かち書きが無いため文字単位で折り返す（体裁は簡易・禁則処理はしない）
+  function wrapText(ctx, text, maxWidth) {
+    const lines = [];
+    let line = '';
+    for (const ch of String(text || '')) {
+      const test = line + ch;
+      if (line && ctx.measureText(test).width > maxWidth) { lines.push(line); line = ch; }
+      else line = test;
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  function layoutSection(mctx, cmds, y, cw, heading, itemsArr, fHead, fName, fReason) {
+    cmds.push({ y, text: heading, font: fHead, color: '#111827' });
+    y += 10;
+    itemsArr.forEach(item => {
+      y += 24;
+      cmds.push({ y, text: item.name, font: fName, color: '#111827' });
+      mctx.font = fReason;
+      wrapText(mctx, item.reason || '', cw).forEach(line => {
+        y += 19;
+        cmds.push({ y, text: line, font: fReason, color: '#6b7280' });
+      });
+    });
+    return y;
+  }
+
+  // 描画コマンド列とコンテンツ高さを算出（フォントは計測にも描画にも同じ文字列を使う）
+  function layoutResultContent(mctx, data, sec, cw) {
+    const F_TYPE = '700 26px ' + CARD_FONT, F_DESC = '400 15px ' + CARD_FONT, F_HEAD = '700 15px ' + CARD_FONT,
+          F_NAME = '700 16px ' + CARD_FONT, F_REASON = '400 13px ' + CARD_FONT, F_INVITE = '400 14px ' + CARD_FONT;
+    const cmds = [];
+    let y = 26;
+    cmds.push({ y, text: data.info.name, font: F_TYPE, color: '#2856a8' });
+    y += 16;
+    mctx.font = F_DESC;
+    wrapText(mctx, data.info.desc, cw).forEach(line => {
+      y += 22;
+      cmds.push({ y, text: line, font: F_DESC, color: '#111827' });
+    });
+
+    y = layoutSection(mctx, cmds, y + 26, cw, sec.safetyHeading, sec.safetyItems, F_HEAD, F_NAME, F_REASON);
+
+    if (sec.ladderItems) {
+      y = layoutSection(mctx, cmds, y + 26, cw, sec.ladderHeading, sec.ladderItems, F_HEAD, F_NAME, F_REASON);
+    } else {
+      y += 26;
+      mctx.font = F_INVITE;
+      wrapText(mctx, sec.ladderInvite, cw).forEach(line => {
+        cmds.push({ y, text: line, font: F_INVITE, color: '#6b7280' });
+        y += 22;
+      });
+    }
+    return { cmds, height: y + 12 };
+  }
+
+  function buildResultCanvas(data, sec) {
+    const SCALE = 2, W = 720, PAD = 36, CW = W - PAD * 2, HEADER_H = 118, TOP_PAD = 28, BOTTOM_PAD = 24, FOOTER_H = 48;
+
+    const mctx = document.createElement('canvas').getContext('2d');
+    const { cmds, height: contentH } = layoutResultContent(mctx, data, sec, CW);
+    const totalH = HEADER_H + TOP_PAD + contentH + BOTTOM_PAD + FOOTER_H;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(W * SCALE);
+    canvas.height = Math.round(totalH * SCALE);
+    const ctx = canvas.getContext('2d');
+    ctx.scale(SCALE, SCALE);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, totalH);
+
+    const grad = ctx.createLinearGradient(0, 0, W, 0);
+    grad.addColorStop(0, '#1d3f8a'); grad.addColorStop(1, '#2856a8');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, HEADER_H);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 22px ' + CARD_FONT;
+    ctx.fillText('装備手帳', W / 2, 50);
+    ctx.font = '400 13px ' + CARD_FONT;
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillText('Registro500 Giappone', W / 2, 74);
+    ctx.font = '400 12px ' + CARD_FONT;
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.fillText('あなたの装備タイプ', W / 2, 98);
+    ctx.textAlign = 'left';
+
+    const originY = HEADER_H + TOP_PAD;
+    cmds.forEach(cmd => {
+      ctx.font = cmd.font;
+      ctx.fillStyle = cmd.color;
+      ctx.fillText(cmd.text, PAD, originY + cmd.y);
+    });
+
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.beginPath();
+    ctx.moveTo(PAD, totalH - FOOTER_H);
+    ctx.lineTo(W - PAD, totalH - FOOTER_H);
+    ctx.stroke();
+    ctx.font = '400 11px ' + CARD_FONT;
+    ctx.fillStyle = '#9ca3af';
+    ctx.fillText(new Date().toLocaleDateString('ja-JP') + ' 時点の記録', PAD, totalH - FOOTER_H + 26);
+    ctx.textAlign = 'right';
+    ctx.fillText('registro500.com', W - PAD, totalH - FOOTER_H + 26);
+    ctx.textAlign = 'left';
+
+    return canvas;
+  }
+
+  document.getElementById('btnSaveImage').onclick = () => {
+    const btn = document.getElementById('btnSaveImage');
+    const orig = btn.textContent;
+    btn.disabled = true; btn.textContent = '生成中…';
+    try {
+      const data = computeResultData();
+      const sec = buildResultSections(data);
+      const canvas = buildResultCanvas(data, sec);
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = '装備手帳_' + data.info.name + '.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      track('equipment_save_image', { type: data.type });
+    } catch (e) {
+      console.error(e);
+      alert('画像の生成に失敗しました。');
+    } finally {
+      btn.disabled = false; btn.textContent = orig;
+    }
+  };
+
+  // ===================== 保存 =====================
+  let dirty = false;
+  function markDirty() {
+    dirty = true;
+    document.getElementById('save-status').textContent = '未保存の変更があります';
+  }
+  ['model-year', 'usage-freq', 'longtrip-freq', 'experience-body', 'vehicle-select'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', markDirty);
+  });
+  window.addEventListener('beforeunload', (e) => {
+    if (dirty) { e.preventDefault(); e.returnValue = ''; }
+  });
+
+  document.getElementById('saveBtn').onclick = async () => {
+    const btn = document.getElementById('saveBtn');
+    const status = document.getElementById('save-status');
+    btn.disabled = true; btn.textContent = '保存中…'; status.textContent = '';
+
+    try {
+      const sel = document.getElementById('vehicle-select');
+      const vehicleId = (myCars.length > 0 && sel.value) ? sel.value : null;
+      const base = {
+        vehicle_id: vehicleId,
+        model_year: document.getElementById('model-year').value.trim() || null,
+        usage_freq: document.getElementById('usage-freq').value || null,
+        longtrip_freq: document.getElementById('longtrip-freq').value || null,
+        updated_at: new Date().toISOString()
+      };
+
+      // 1. 手帳本体
+      if (!record) {
+        const { data, error } = await supabaseClient.from('equipment_records')
+          .insert({ ...base, user_id: currentUser.id, is_anonymous: false })
+          .select().single();
+        if (error) throw error;
+        record = data;
+      } else {
+        // update では所有権列（user_id）を送らない（他人の記録に付け替わる事故の回避＝edit.html の教訓）
+        const { error } = await supabaseClient.from('equipment_records')
+          .update(base).eq('id', record.id);
+        if (error) throw error;
+      }
+
+      // 2. 個別回答（行あり＝積んでいる／行なし＝積んでいない）
+      const selected = [], unselected = [];
+      items.forEach(i => {
+        const s = state[i.id];
+        if (s.frequency) {
+          selected.push({
+            record_id: record.id, item_id: i.id, frequency: s.frequency,
+            note: (i.note_prompt && s.note) ? s.note.trim() : null
+          });
+        } else {
+          unselected.push(i.id);
+        }
+      });
+      if (selected.length) {
+        const { error } = await supabaseClient.from('equipment_entries')
+          .upsert(selected, { onConflict: 'record_id,item_id' });
+        if (error) throw error;
+      }
+      if (unselected.length) {
+        const { error } = await supabaseClient.from('equipment_entries')
+          .delete().eq('record_id', record.id).in('item_id', unselected);
+        if (error) throw error;
+      }
+
+      // 3. カテゴリ完了フラグ（未回答と未搭載の区別）
+      const catRows = CATEGORIES.map(c => ({ record_id: record.id, category: c, completed: !!catDone[c] }));
+      const { error: catErr } = await supabaseClient.from('equipment_category_status')
+        .upsert(catRows, { onConflict: 'record_id,category' });
+      if (catErr) throw catErr;
+
+      // 4. 自由追加（MVPは総入れ替え。履歴はフェーズ2）
+      const { error: delErr } = await supabaseClient.from('equipment_custom_items')
+        .delete().eq('record_id', record.id);
+      if (delErr) throw delErr;
+      const customPayload = [];
+      CATEGORIES.forEach(c => {
+        customRows[c].forEach(r => {
+          if (!r.name || !r.name.trim()) return;   // 空欄は無視
+          customPayload.push({
+            record_id: record.id, category: c, name: r.name.trim(),
+            frequency: r.frequency, reason: r.reason.trim() || null
+          });
+        });
+      });
+      if (customPayload.length) {
+        const { error } = await supabaseClient.from('equipment_custom_items').insert(customPayload);
+        if (error) throw error;
+      }
+
+      // 5. 経験談（1件運用）
+      const body = document.getElementById('experience-body').value.trim();
+      if (body && experience) {
+        const { error } = await supabaseClient.from('equipment_experiences')
+          .update({ body }).eq('id', experience.id);
+        if (error) throw error;
+      } else if (body && !experience) {
+        const { data, error } = await supabaseClient.from('equipment_experiences')
+          .insert({ record_id: record.id, body }).select().single();
+        if (error) throw error;
+        experience = data;
+      } else if (!body && experience) {
+        await supabaseClient.from('equipment_experiences').delete().eq('id', experience.id);
+        experience = null;
+      }
+
+      dirty = false;
+      status.textContent = '✅ 保存しました（' + selected.length + '点）';
+      track('equipment_save', { item_count: selected.length, custom_count: customPayload.length });
+      renderResult();
+      document.getElementById('result-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (e) {
+      console.error(e);
+      document.getElementById('save-status').textContent = '保存に失敗しました。時間をおいて再度お試しください。';
+    } finally {
+      btn.disabled = false; btn.textContent = '保存する';
+    }
+  };
+
+  function escapeHtml(str) {
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+</script>
+
+<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "60f959409b1e4eb29308eeb53615812a"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

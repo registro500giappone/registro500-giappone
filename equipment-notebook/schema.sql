@@ -16,6 +16,7 @@ create table if not exists public.equipment_items (
   is_active        boolean not null default true,  -- 廃止は false（行削除しない）
   item_class       text not null default 'standard' check (item_class in ('standard','meihin')),
   recommend_priority int,                           -- 編集部推奨の並び（低いほど優先・null=非推奨）
+  note_prompt      text,                            -- [migration: equipment_notebook_item_notes] メモ欄のプロンプト。null=メモ欄を出さない
   affiliate_url    text,
   created_at       timestamptz not null default now()
 );
@@ -44,6 +45,7 @@ create table if not exists public.equipment_entries (
   record_id  uuid not null references public.equipment_records(id) on delete cascade,
   item_id    bigint not null references public.equipment_items(id),
   frequency  text not null check (frequency in ('always','occasional')),
+  note       text,                                  -- [migration: equipment_notebook_item_notes] 項目単位の自由記入（note_prompt を持つ項目のみ）
   unique (record_id, item_id)
 );
 create index if not exists idx_equipment_entries_record on public.equipment_entries (record_id);
@@ -73,6 +75,7 @@ create table if not exists public.equipment_custom_items (
   id                  uuid primary key default gen_random_uuid(),
   record_id           uuid not null references public.equipment_records(id) on delete cascade,
   name                text not null,
+  category            text,                         -- [migration: equipment_custom_items_category] 入力されたカテゴリ（昇格時の配置先判断）
   frequency           text check (frequency in ('always','occasional')),
   reason              text,
   promoted_to_item_id bigint references public.equipment_items(id),
