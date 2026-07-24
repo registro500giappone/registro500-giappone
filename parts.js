@@ -104,6 +104,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     loadSearchConditions();
+
+    // ?q=キーワード があればプリフィルして自動検索（装備手帳など外部ページからのディープリンク用）
+    const qParam = new URLSearchParams(location.search).get('q');
+    if (qParam) {
+        const keywordInput = document.getElementById('keyword-input');
+        if (keywordInput) keywordInput.value = qParam;
+        executeSearch();
+    }
 });
 
 // --- ショップチェックボックスを本サイトリンク付きで生成 ---

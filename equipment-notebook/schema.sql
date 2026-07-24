@@ -17,7 +17,7 @@ create table if not exists public.equipment_items (
   item_class       text not null default 'standard' check (item_class in ('standard','meihin')),
   recommend_priority int,                           -- 編集部推奨の並び（低いほど優先・null=非推奨）
   note_prompt      text,                            -- [migration: equipment_notebook_item_notes] メモ欄のプロンプト。null=メモ欄を出さない
-  affiliate_url    text,
+  purchase_links   jsonb,                           -- [migration: equipment_notebook_purchase_links] 購入先リンク配列 [{type,url,label?,q?}]。null=非表示
   created_at       timestamptz not null default now()
 );
 create index if not exists idx_equipment_items_cat on public.equipment_items (category, sort_order);

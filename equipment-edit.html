@@ -180,6 +180,24 @@
     .reco-name { font-size: 0.9rem; font-weight: 700; }
     .reco-reason { font-size: 0.78rem; color: var(--text-sub); margin-top: 2px; line-height: 1.6; }
     .reco-invite { font-size: 0.85rem; color: var(--text-sub); line-height: 1.8; margin: 0; }
+    .reco-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .reco-link-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.75rem; font-weight: 600; text-decoration: none;
+      padding: 5px 10px; border-radius: 14px; border: 1px solid var(--border-soft);
+      color: var(--text-sub); background: #fff;
+    }
+    .reco-link-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .reco-link-amazon { border-color: #ff9900; color: #b06400; }
+    .reco-link-amazon:hover { background: #fff6e9; color: #b06400; }
+    .pr-badge {
+      font-size: 0.62rem; font-weight: 700; color: var(--text-sub);
+      border: 1px solid var(--border-soft); border-radius: 4px; padding: 0 3px; line-height: 1.4;
+    }
+    #affiliate-disclosure {
+      font-size: 0.72rem; color: var(--text-sub); line-height: 1.8;
+      margin: 16px 0 0; padding-top: 12px; border-top: 1px dashed var(--border-soft);
+    }
     .result-actions { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border-soft); }
     .btn-image {
       width: 100%; background: var(--accent); color: #fff; border: 0; border-radius: 10px;
@@ -331,6 +349,11 @@
       <p class="card-lead" id="result-type-desc"></p>
       <div id="result-safety"></div>
       <div id="result-ladder"></div>
+      <p id="affiliate-disclosure" style="display:none">
+        このページにはAmazonアソシエイトのリンクが含まれています（PR）。<br>
+        リンク経由でご購入いただいた場合、Amazonからわずかな報酬がこのサイトに入りますが、<strong>商品の価格は変わりません。</strong><br>
+        <small>Amazonアソシエイトとして、registro500-22はAmazon.co.jpの適格販売に伴う収入を得ています。</small>
+      </p>
       <div class="result-actions">
         <button type="button" class="btn-image" id="btnSaveCsv">⬇ 装備リストをCSVで書き出す</button>
         <button type="button" class="btn-image btn-secondary" id="btnSaveImage">📷 この結果を画像で保存</button>
@@ -452,7 +475,7 @@
     try {
       const [itemsRes, carsRes, recRes] = await Promise.all([
         supabaseClient.from('equipment_items')
-          .select('id, code, category, name, reason, sort_order, note_prompt, recommend_priority')
+          .select('id, code, category, name, reason, sort_order, note_prompt, recommend_priority, purchase_links')
           .eq('is_active', true).order('sort_order'),
         supabaseClient.from('cars')
           .select('document_id, model_display_a, model_display_b, year, car_type')
@@ -766,9 +789,42 @@
     return 'genchi';
   }
 
+  // 購入先チャネルの表示順（国内調達優先。ユーザー確定・変更しない）
+  const PURCHASE_CHANNEL_ORDER = ['amazon', 'monotaro', 'shop', 'kurabetaro'];
+
+  function purchaseLinkBtnHtml(link, itemName) {
+    const url = escapeHtml(link.url || '');
+    const itemAttr = escapeHtml(itemName);
+    if (link.type === 'amazon') {
+      return '<a class="reco-link-btn reco-link-amazon" href="' + url + '" target="_blank" rel="nofollow sponsored" data-channel="amazon" data-item="' + itemAttr + '">'
+        + '🛒 Amazonで見る<span class="pr-badge">PR</span></a>';
+    }
+    if (link.type === 'monotaro') {
+      return '<a class="reco-link-btn" href="' + url + '" target="_blank" rel="nofollow" data-channel="monotaro" data-item="' + itemAttr + '">'
+        + 'モノタロウで見る</a>';
+    }
+    if (link.type === 'shop') {
+      const label = escapeHtml(link.label || '専門店');
+      return '<a class="reco-link-btn" href="' + url + '" target="_blank" rel="nofollow" data-channel="shop" data-item="' + itemAttr + '">'
+        + label + 'で見る</a>';
+    }
+    if (link.type === 'kurabetaro') {
+      const href = 'parts.html?q=' + encodeURIComponent(link.q || itemName || '');
+      return '<a class="reco-link-btn" href="' + escapeHtml(href) + '" target="_blank" data-channel="kurabetaro" data-item="' + itemAttr + '" title="比べ太郎・海外通販は届くまで日数がかかります">'
+        + '海外通販の価格を比べる</a>';
+    }
+    return '';
+  }
+
   function recoItemHtml(i) {
+    let linksHtml = '';
+    if (Array.isArray(i.purchase_links) && i.purchase_links.length) {
+      const sorted = i.purchase_links.slice().sort((a, b) =>
+        PURCHASE_CHANNEL_ORDER.indexOf(a.type) - PURCHASE_CHANNEL_ORDER.indexOf(b.type));
+      linksHtml = '<div class="reco-links">' + sorted.map(link => purchaseLinkBtnHtml(link, i.name)).join('') + '</div>';
+    }
     return '<div class="reco-item"><div class="reco-name">' + escapeHtml(i.name) + '</div>' +
-      '<div class="reco-reason">' + escapeHtml(i.reason) + '</div></div>';
+      '<div class="reco-reason">' + escapeHtml(i.reason) + '</div>' + linksHtml + '</div>';
   }
 
   // DOM表示・画像化の両方が使う共通データ（本人の回答から算出。統計は使わない＝フェーズ1）
@@ -816,6 +872,12 @@
     ladderHost.innerHTML = sec.ladderItems
       ? '<p class="reco-heading">' + escapeHtml(sec.ladderHeading) + '</p>' + sec.ladderItems.map(recoItemHtml).join('')
       : '<p class="reco-invite">' + escapeHtml(sec.ladderInvite) + '</p>';
+
+    // 表示中のリコメンドにAmazonリンクが1つでも含まれる場合のみPR開示文を出す
+    const shownItems = sec.safetyItems.concat(sec.ladderItems || []);
+    const hasAmazonLink = shownItems.some(i => Array.isArray(i.purchase_links)
+      && i.purchase_links.some(l => l.type === 'amazon'));
+    document.getElementById('affiliate-disclosure').style.display = hasAmazonLink ? 'block' : 'none';
 
     document.getElementById('result-section').style.display = 'block';
   }
@@ -1008,6 +1070,14 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     track('equipment_csv_download', {});
   };
+
+  // ===================== 購入先リンク（クリック計測） =====================
+  // イベントデリゲーション：ボタンはrenderResult()の度にinnerHTMLで再生成されるため個別bindはしない
+  document.getElementById('result-section').addEventListener('click', (e) => {
+    const btn = e.target.closest('.reco-link-btn');
+    if (!btn) return;
+    track('equipment_buy_click', { channel: btn.dataset.channel, item_name: btn.dataset.item });
+  });
 
   // ===================== 保存 =====================
   let dirty = false;
