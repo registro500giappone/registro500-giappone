@@ -174,6 +174,19 @@
     /* ===== 結果（タイプ判定＋リコメンド） ===== */
     #result-section { border: 2px solid var(--accent-soft); }
     .result-type-name { font-size: 1.25rem; font-weight: 800; color: var(--accent); margin: 0 0 4px; }
+    /* 4つの型を並べて本人の型を強調する（自分の型だけでは位置づけが分からないため） */
+    .type-map { margin: 0 0 4px; padding: 12px 14px; background: var(--accent-soft); border-radius: 10px; }
+    .type-map-title { font-size: 0.75rem; font-weight: 700; color: var(--accent); margin: 0 0 6px; }
+    .type-row {
+      display: flex; gap: 7px; align-items: baseline; flex-wrap: wrap;
+      padding: 3px 0; font-size: 0.78rem; color: var(--text-sub);
+    }
+    .type-row.is-me { color: var(--text-main); font-weight: 700; }
+    .type-row-short { font-size: 0.73rem; font-weight: 400; }
+    .type-me-badge {
+      font-size: 0.62rem; font-weight: 700; color: #fff; background: var(--accent);
+      border-radius: 4px; padding: 1px 5px; line-height: 1.5;
+    }
     .reco-heading { font-size: 0.85rem; font-weight: 700; margin: 16px 0 8px; }
     .reco-heading:first-child { margin-top: 0; }
     .reco-item { padding: 8px 0; border-top: 1px solid var(--border-soft); }
@@ -221,6 +234,17 @@
       padding: 12px 28px; font-size: 0.95rem; font-weight: 700; cursor: pointer; font-family: inherit;
     }
     .btn-save:disabled { opacity: .55; cursor: default; }
+
+    /* ===== 上に戻る（項目数が多く縦に長いため。保存バーの真上に置く） ===== */
+    .to-top {
+      position: fixed; right: 16px; bottom: calc(74px + env(safe-area-inset-bottom)); z-index: 49;
+      width: 44px; height: 44px; border-radius: 50%;
+      background: rgba(255,255,255,0.97); border: 1px solid var(--border-soft);
+      box-shadow: 0 4px 12px rgba(15,23,42,0.12);
+      color: var(--accent); font-size: 1.15rem; line-height: 1; cursor: pointer;
+      display: none; align-items: center; justify-content: center; font-family: inherit;
+    }
+    .to-top.show { display: flex; }
 
     /* ===== ログインオーバーレイ ===== */
     #loginOverlay {
@@ -349,6 +373,7 @@
       <h2>あなたの装備タイプ</h2>
       <p class="result-type-name" id="result-type-name"></p>
       <p class="card-lead" id="result-type-desc"></p>
+      <div id="result-type-map"></div>
       <div id="result-safety"></div>
       <div id="result-ladder"></div>
       <p id="affiliate-disclosure" style="display:none">
@@ -364,6 +389,8 @@
     </section>
   </div>
 </div>
+
+<button class="to-top" id="toTopBtn" type="button" aria-label="ページの先頭に戻る">↑</button>
 
 <div class="save-bar" id="save-bar" style="display:none;">
   <span class="save-status" id="save-status"></span>
@@ -761,11 +788,19 @@
   // ===================== 結果（タイプ判定＋リコメンド） =====================
   // フェーズ1: 母数が貯まるまでは統計でなく本人の回答バランスから返す（design-original.md／HANDOFF「リコメンド設計の再定義」参照）。
   // 工具・パーツが薄い人に「梯子」を返しても響かないため、タイプと表示を同じ判定軸で連動させる。
+  // 結果画面では4型すべてを並べて本人の型を強調する（自分の型だけ見せても位置づけが分からないため）
+  const TYPE_ORDER = ['genchi', 'yobou', 'kyuen', 'migaru'];
   const TYPE_INFO = {
-    genchi: { name: '現地修理型', desc: '止まっても自力で帰る。工具とパーツの厚みに、その構えが表れています。' },
-    yobou:  { name: '予防整備型', desc: 'そもそも止まらせない。ケミカル・点検用品の厚みに、その構えが表れています。' },
-    kyuen:  { name: '救援前提型', desc: 'ロードサービスと保険で構える。非常時対応の装備が、その安心を支えています。' },
-    migaru: { name: '身軽型', desc: 'あなたの割り切りは合理的です。近距離中心の乗り方なら、最低限の備えで十分成り立ちます。' }
+    genchi: { name: '現地修理型', short: '工具とパーツで、自分で直して帰る',
+              desc: '止まっても自力で帰る。工具とパーツの厚みに、その構えが表れています。' },
+    yobou:  { name: '予防整備型', short: '消耗品と点検で、そもそも止まらせない',
+              desc: 'そもそも止まらせない。ケミカル・点検用品の厚みに、その構えが表れています。' },
+    // 「何でも自分で直す」のでなく、軽い手当てだけ積んで割り切って救援を呼ぶ層。
+    // 受け身に読める旧文（ロードサービスと保険で構える…）から、能動的な合理判断として書き直した。
+    kyuen:  { name: '救援前提型', short: '軽い手当てと救援を、使い分ける',
+              desc: '直せる範囲は自分で、無理はしない。手当てと救援の使い分けが、いちばん現実的な構えです。' },
+    migaru: { name: '身軽型', short: '近距離中心。最低限で割り切る',
+              desc: 'あなたの割り切りは合理的です。近距離中心の乗り方なら、最低限の備えで十分成り立ちます。' }
   };
   const MECH_THICK_THRESHOLD = 3; // 工具+パーツの搭載数がこれ以上で「機械系が厚い」とみなす
 
@@ -775,20 +810,18 @@
     return counts;
   }
 
+  // 率でなく実数で判定する。カテゴリごとに有効項目数が違う（工具23／パーツ20／ケミカル8／非常時12）ため、
+  // 率を横並びで比べると項目数の少ないケミカルが跳ね、最重装備の人が予防整備型に落ちる誤判定が出た（2026-07-24 実データで確認）。
+  // 閾値はパイロット n=6 の暫定値。回答が増えたら見直す。
   function classifyType(counts) {
-    const totals = {}; CATEGORIES.forEach(c => totals[c] = items.filter(i => i.category === c).length);
-    const toolsRatio  = totals['工具'] ? counts['工具'] / totals['工具'] : 0;
-    const partsRatio  = totals['パーツ'] ? counts['パーツ'] / totals['パーツ'] : 0;
-    const chemRatio   = totals['ケミカル'] ? counts['ケミカル'] / totals['ケミカル'] : 0;
-    const emergRatio  = totals['非常時対応'] ? counts['非常時対応'] / totals['非常時対応'] : 0;
-    const mechScore = (toolsRatio + partsRatio) / 2;
-    const overallLoaded = counts['工具'] + counts['パーツ'] + counts['ケミカル'] + counts['非常時対応'];
+    const mech  = counts['工具'] + counts['パーツ'];  // 最大43
+    const chem  = counts['ケミカル'];                 // 最大8
+    const emerg = counts['非常時対応'];               // 最大12
 
-    if (overallLoaded <= 2) return 'migaru';
-    if (mechScore >= 0.15 && mechScore >= chemRatio) return 'genchi';
-    if (chemRatio >= 0.2 && chemRatio > mechScore) return 'yobou';
-    if (emergRatio >= 0.4) return 'kyuen';
-    return 'genchi';
+    if (mech >= 15) return 'genchi';
+    if (chem >= 5) return 'yobou';
+    if (emerg >= 4 && mech <= 8) return 'kyuen';
+    return 'migaru';   // 判定に迷ったら最も控えめな型に落とす（重い型に落とすと本人の実態と食い違って失礼になる）
   }
 
   // 購入先チャネルの表示順（国内調達優先。ユーザー確定・変更しない）
@@ -866,6 +899,18 @@
     const sec = buildResultSections(data);
     document.getElementById('result-type-name').textContent = data.info.name;
     document.getElementById('result-type-desc').textContent = data.info.desc;
+
+    // 4型すべてを並べ、本人の型に「あなた」バッジを付ける
+    document.getElementById('result-type-map').innerHTML =
+      '<div class="type-map"><p class="type-map-title">装備タイプは4つあります</p>' +
+      TYPE_ORDER.map(key => {
+        const t = TYPE_INFO[key];
+        const isMe = (key === data.type);
+        return '<div class="type-row' + (isMe ? ' is-me' : '') + '">' +
+          '<span>' + escapeHtml(t.name) + '</span>' +
+          (isMe ? '<span class="type-me-badge">あなた</span>' : '') +
+          '<span class="type-row-short">' + escapeHtml(t.short) + '</span></div>';
+      }).join('') + '</div>';
 
     document.getElementById('result-safety').innerHTML =
       '<p class="reco-heading">' + escapeHtml(sec.safetyHeading) + '</p>' + sec.safetyItems.map(recoItemHtml).join('');
@@ -1087,6 +1132,15 @@
     dirty = true;
     document.getElementById('save-status').textContent = '未保存の変更があります';
   }
+  // 上に戻る（63項目あって縦に長いため。保存バーに隠れない位置に出す）
+  (function () {
+    const btn = document.getElementById('toTopBtn');
+    const sync = () => btn.classList.toggle('show', window.scrollY > 400);
+    window.addEventListener('scroll', sync, { passive: true });
+    btn.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+    sync();
+  })();
+
   ['usage-freq', 'longtrip-freq', 'experience-body', 'vehicle-select'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', markDirty);
