@@ -367,6 +367,7 @@
   }
 
   // ===================== 認証 =====================
+  let hasLoadedOnce = false; // TOKEN_REFRESHED等で再度発火しても loadAll() を再実行しない（未保存の入力を消さないため）
   supabaseClient.auth.onAuthStateChange((event, session) => {
     const user = session?.user ?? null;
     currentUser = user;
@@ -374,6 +375,8 @@
 
     if (user) {
       document.getElementById('loginOverlay').classList.add('hidden');
+      if (hasLoadedOnce) return;   // 初回ログイン時のみ読み込む。以降の再発火（トークン自動更新等）は無視
+      hasLoadedOnce = true;
       // onAuthStateChange のコールバック内で supabase 呼び出しを直接 await すると
       // 認証ロックでデッドロックするため、setTimeout で遅延実行する（edit.html の教訓）
       setTimeout(async () => {

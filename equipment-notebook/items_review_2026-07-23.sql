@@ -20,3 +20,10 @@ set is_active = false
 where id in (52, 53, 54);
 
 -- 結果: 有効項目 54 → 51 件（工具13 / パーツ15 / ケミカル9 / 非常時対応12 / 洗車・その他2）
+
+-- 3) プラグレンチのサイズ表記修正（migration: equipment_notebook_plug_wrench_size_fix）
+--    パイロットテスターの指摘: 「14mm」はスパークプラグのネジ径であり、レンチの対辺（六角二面幅）と誤解を招く。
+--    正しい対辺サイズ（20.8mm、または21mm表記の製品もある）に訂正。
+update public.equipment_items
+set name = 'プラグレンチ（20.8mm・六角二面幅／21mm表記のもの）'
+where id = 1;

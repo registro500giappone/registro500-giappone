@@ -614,6 +614,7 @@
       let activeTarget = null;
       let cropper = null;
       let currentAuthUser = null; // Supabase Authユーザー
+      let hasLoadedOnce = false; // TOKEN_REFRESHED等の再発火で loadSpecificCar/fillForm を再実行し、編集中の未保存入力を消さないためのガード
 
       supabaseClient.auth.onAuthStateChange((event, session) => {
         const user = session?.user ?? null;
@@ -627,6 +628,8 @@
         if (user) {
           overlay.classList.add('hidden');
           document.getElementById('userEmailDisplay').textContent = user.email;
+          if (hasLoadedOnce) return;   // 初回ログイン時のみ読み込む。以降の再発火（トークン自動更新等）でフォームを上書きしない
+          hasLoadedOnce = true;
           // onAuthStateChange のコールバック内で supabase 呼び出しを直接 await すると
           // 認証ロックでデッドロックするため、setTimeout で遅延実行する
           setTimeout(async () => {
