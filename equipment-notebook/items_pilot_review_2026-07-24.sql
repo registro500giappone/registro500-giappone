@@ -91,3 +91,24 @@ update public.equipment_items set recommend_priority = 33 where id = 65; -- ド�
 
 -- 適用後の状態：有効63項目（工具23 / パーツ20 / ケミカル8 / 非常時対応12 / 洗車・その他0）
 --                note_prompt 付き8項目、recommend_priority 付き33項目
+
+-- ============================================================
+-- 【第2弾】項目名の見直し（ユーザーレビュー反映）
+-- 本番適用済み migration: equipment_notebook_items_naming_2026_07_24
+-- 適用日: 2026-07-24
+-- 原則：項目名は幅を持たせ内訳は note_prompt で集める／
+--       ユニット丸ごと積む人と部品単位で積む人は別項目にする
+-- ============================================================
+update public.equipment_items set name = 'ヒューズ',
+  reason = '現代の規格と異なるため入手困難。必携',
+  note_prompt = '規格とアンペア数は？（欧州車用セラミック／ブレード型 など）' where id = 21;
+update public.equipment_items set name = '予備の電球',
+  reason = '一式でなくても、切れやすい球を1〜2個。夜間の走行不能や整備不良を避けられます',
+  note_prompt = 'どの球を積んでいますか？（ヘッドライト／ウインカー／テール／メーター など）' where id = 22;
+update public.equipment_items set name = 'キャブレター本体（丸ごと交換用）',
+  reason = '不調時に載せ替えて最短で復帰する構え。かさばるが確実' where id = 66;
+insert into public.equipment_items (id, code, category, name, reason, sort_order, is_active) values
+  (71,'part_carb_repair_kit','パーツ','キャブレターの補修部品（ガスケット・Oリング・ニップル・フロート など）','現地で開けて直す構え。かさばらず、効果の大きい定番トラブルに効く',210,true);
+update public.equipment_items set name = 'デスビ本体（丸ごと交換用）',
+  reason = '切り分けをせず載せ替えて復帰する構え。キャップ・ローター単品とは別の備え方' where id = 67;
+-- 適用後：有効64項目（工具23／パーツ21／ケミカル8／非常時対応12）
