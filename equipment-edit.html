@@ -311,6 +311,7 @@
         <label for="usage-freq">乗る頻度</label>
         <select id="usage-freq">
           <option value="">選択してください</option>
+          <option value="毎日">毎日</option>
           <option value="週に数回">週に数回</option>
           <option value="週1回程度">週1回程度</option>
           <option value="月に数回">月に数回</option>
@@ -321,6 +322,7 @@
       </div>
       <div class="field">
         <label for="longtrip-freq">遠出（イベント参加・長距離）の頻度</label>
+        <p class="field-hint" style="margin:0 0 6px;">目安は<strong>片道50km以上</strong>、または高速道路を使う移動です。だいたいで構いません。</p>
         <select id="longtrip-freq">
           <option value="">選択してください</option>
           <option value="月1回以上">月1回以上</option>
@@ -1158,11 +1160,16 @@
         .delete().eq('record_id', record.id);
       if (delErr) throw delErr;
       const customPayload = [];
+      const seenCustom = new Set();               // 同一カテゴリ内の同名重複を弾く（状態が二重に積まれても壊れないように）
       CATEGORIES.forEach(c => {
         customRows[c].forEach(r => {
           if (!r.name || !r.name.trim()) return;   // 空欄は無視
+          const name = r.name.trim();
+          const key = c + '/' + name;
+          if (seenCustom.has(key)) return;
+          seenCustom.add(key);
           customPayload.push({
-            record_id: record.id, category: c, name: r.name.trim(),
+            record_id: record.id, category: c, name: name,
             frequency: r.frequency, reason: r.reason.trim() || null
           });
         });
