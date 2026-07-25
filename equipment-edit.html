@@ -32,6 +32,7 @@
       --text-main: #111827;
       --text-sub: #6b7280;
       --accent: #2856a8;
+      --ok: #1f7a45;
       --accent-soft: #e6efff;
       --occasional: #7c8db5;
       --radius-lg: 12px;
@@ -193,6 +194,12 @@
     .reco-name { font-size: 0.9rem; font-weight: 700; }
     .reco-reason { font-size: 0.78rem; color: var(--text-sub); margin-top: 2px; line-height: 1.6; }
     .reco-invite { font-size: 0.85rem; color: var(--text-sub); line-height: 1.8; margin: 0; }
+    /* 不足ゼロのときは見出しでなく本文の完了メッセージにする（見出しだけ残ると項目が抜け落ちたように見えるため） */
+    .reco-done { display: flex; gap: 8px; align-items: flex-start; margin: 16px 0 0; font-size: 0.85rem; line-height: 1.7; }
+    .reco-done:first-child { margin-top: 0; }
+    .reco-done-mark { color: var(--ok); font-weight: 700; flex-shrink: 0; }
+    .reco-done-text { color: var(--text-main); font-weight: 700; }
+    .reco-done-sub { display: block; margin-top: 2px; color: var(--text-sub); font-weight: 400; font-size: 0.8rem; }
     .reco-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
     .reco-link-btn {
       display: inline-flex; align-items: center; gap: 4px;
@@ -862,6 +869,12 @@
       '<div class="reco-reason">' + escapeHtml(i.reason) + '</div>' + linksHtml + '</div>';
   }
 
+  function doneHtml(text, sub) {
+    return '<p class="reco-done"><span class="reco-done-mark" aria-hidden="true">✓</span>' +
+      '<span><span class="reco-done-text">' + escapeHtml(text) + '</span>' +
+      '<span class="reco-done-sub">' + escapeHtml(sub) + '</span></span></p>';
+  }
+
   // DOM表示・画像化の両方が使う共通データ（本人の回答から算出。統計は使わない＝フェーズ1）
   function computeResultData() {
     const counts = categoryCounts();
@@ -878,13 +891,27 @@
   // 表示分岐（見出し・件数）を1箇所に集約。DOM描画とCanvas描画で文言が食い違わないようにする
   function buildResultSections(data) {
     const sec = {
-      safetyHeading: data.safety.length ? 'まず、これだけは' : '安全対応の基本装備は揃っています',
+      safetyHeading: 'まず、これだけは',
       safetyItems: data.safety,
-      ladderHeading: null, ladderItems: null, ladderInvite: null
+      safetyDone: null, safetyDoneSub: null,
+      ladderHeading: null, ladderItems: null, ladderInvite: null,
+      ladderDone: null, ladderDoneSub: null
     };
+    // 不足ゼロは「見出し＋項目なし」でなく完了メッセージとして扱う（褒めを本文で伝える）
+    if (!data.safety.length) {
+      sec.safetyHeading = null;
+      sec.safetyDone = '安全対応の基本装備は揃っています。';
+      sec.safetyDoneSub = '編集部がすすめる非常時対応の項目は、すべて積まれています。';
+    }
     if (data.mechLoaded >= MECH_THICK_THRESHOLD) {
-      sec.ladderHeading = data.ladder.length ? '自走復帰の備え、次の一手' : '工具・パーツの基本装備は揃っています';
-      sec.ladderItems = data.ladder.slice(0, 5);
+      if (data.ladder.length) {
+        sec.ladderHeading = '自走復帰の備え、次の一手';
+        sec.ladderItems = data.ladder.slice(0, 5);
+      } else {
+        // 安全層も完了しているときだけ「も」で受ける
+        sec.ladderDone = sec.safetyDone ? '工具・パーツの基本装備も揃っています。' : '工具・パーツの基本装備は揃っています。';
+        sec.ladderDoneSub = 'ここから先は、乗り方に合わせて足していく領域です。';
+      }
     } else if (data.type === 'migaru') {
       sec.ladderInvite = '近距離中心なら、上の安全対応だけ持てば十分です。それ以上を無理に積む必要はありません。';
     } else {
@@ -912,13 +939,16 @@
           '<span class="type-row-short">' + escapeHtml(t.short) + '</span></div>';
       }).join('') + '</div>';
 
-    document.getElementById('result-safety').innerHTML =
-      '<p class="reco-heading">' + escapeHtml(sec.safetyHeading) + '</p>' + sec.safetyItems.map(recoItemHtml).join('');
+    document.getElementById('result-safety').innerHTML = sec.safetyDone
+      ? doneHtml(sec.safetyDone, sec.safetyDoneSub)
+      : '<p class="reco-heading">' + escapeHtml(sec.safetyHeading) + '</p>' + sec.safetyItems.map(recoItemHtml).join('');
 
     const ladderHost = document.getElementById('result-ladder');
     ladderHost.innerHTML = sec.ladderItems
       ? '<p class="reco-heading">' + escapeHtml(sec.ladderHeading) + '</p>' + sec.ladderItems.map(recoItemHtml).join('')
-      : '<p class="reco-invite">' + escapeHtml(sec.ladderInvite) + '</p>';
+      : sec.ladderDone
+        ? doneHtml(sec.ladderDone, sec.ladderDoneSub)
+        : '<p class="reco-invite">' + escapeHtml(sec.ladderInvite) + '</p>';
 
     // 表示中のリコメンドにAmazonリンクが1つでも含まれる場合のみPR開示文を出す
     const shownItems = sec.safetyItems.concat(sec.ladderItems || []);
@@ -960,6 +990,21 @@
     return y;
   }
 
+  // 完了メッセージ（見出しでなく本文扱い）。DOMの .reco-done と文言・順序を揃える
+  function layoutDone(mctx, cmds, y, cw, doneText, subText, fMain, fSub) {
+    mctx.font = fMain;
+    wrapText(mctx, '✓ ' + doneText, cw).forEach((line, idx) => {
+      if (idx) y += 21;
+      cmds.push({ y, text: line, font: fMain, color: '#1f7a45' });
+    });
+    mctx.font = fSub;
+    wrapText(mctx, subText, cw).forEach(line => {
+      y += 20;
+      cmds.push({ y, text: line, font: fSub, color: '#6b7280' });
+    });
+    return y;
+  }
+
   // 描画コマンド列とコンテンツ高さを算出（フォントは計測にも描画にも同じ文字列を使う）
   function layoutResultContent(mctx, data, sec, cw) {
     const F_TYPE = '700 26px ' + CARD_FONT, F_DESC = '400 15px ' + CARD_FONT, F_HEAD = '700 15px ' + CARD_FONT,
@@ -974,10 +1019,14 @@
       cmds.push({ y, text: line, font: F_DESC, color: '#111827' });
     });
 
-    y = layoutSection(mctx, cmds, y + 26, cw, sec.safetyHeading, sec.safetyItems, F_HEAD, F_NAME, F_REASON);
+    y = sec.safetyDone
+      ? layoutDone(mctx, cmds, y + 26, cw, sec.safetyDone, sec.safetyDoneSub, F_HEAD, F_REASON)
+      : layoutSection(mctx, cmds, y + 26, cw, sec.safetyHeading, sec.safetyItems, F_HEAD, F_NAME, F_REASON);
 
     if (sec.ladderItems) {
       y = layoutSection(mctx, cmds, y + 26, cw, sec.ladderHeading, sec.ladderItems, F_HEAD, F_NAME, F_REASON);
+    } else if (sec.ladderDone) {
+      y = layoutDone(mctx, cmds, y + 26, cw, sec.ladderDone, sec.ladderDoneSub, F_HEAD, F_REASON);
     } else {
       y += 26;
       mctx.font = F_INVITE;
