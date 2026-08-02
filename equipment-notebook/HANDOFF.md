@@ -308,3 +308,24 @@ mech = 工具数 + パーツ数 (最大43) / emg = 非常時対応数 (最大12)
 6. ~~本番反映のタイミング~~ →**2026-08-02 mainへマージ・デプロイ**（ユーザー判断）。限定URLはv0.2に切り替わった。
 
 **次の大きな一手**＝29件×難易度×装備の対応表を使った**タイプ分類ロジックの再設計**（「積載数」→「どんな止まり方に対応できるか」への置き換え）。
+
+### 2026-08-02 タイプ分類の止まり方ベース再設計＝実装完了（migration未適用・フォールバックで安全）
+
+本作業からFable=プラン・検収のみ、実作業はhaiku/sonnetサブエージェントに委譲する運用（ユーザー指示・以後厳守）。
+
+- **設計確定（ユーザー承認）**: ①止まり方マスターはSupabaseにDBテーブル追加 ②4型は存続し判定根拠と結果画面の主役を差し替え ③項目マスターに id72 シフトリンケージのカップリング・id73 ミッションサポートラバーを追加 ④表示は3区分・n/22（救援案件は分母から除外し別枠） ⑤第1層リコメンドは解錠数ベースに置換。
+- **マッピング（sonnet起案・Fable検収済）**: 29件×装備ID。装備で対応19件（うちD2/D4は新規id72/73が必要）／手だけで対処3件（F3・M3・E5）／救援案件7件（M6・C1・X3・B1・K1〜K3＝levelsが['R']のみ）。need行52・help行99。
+- **migration SQL（sonnet起案・Fable検収済・コミット`9d04a15`・⚠️未適用）**: `stop_modes_schema.sql`（migration名 `equipment_stop_modes_schema`）。equipment_items追加2件＋`equipment_stop_modes`29件＋`equipment_stop_mode_items`（need52/help99）＋RLS（SELECT全員可・書込はservice_roleのみ）。updated_atトリガは既存equipment系の規約（トリガなし）に合わせ付与せず。**適用はローカルのSupabase MCPセッションで実施する**。
+- **フロント実装（sonnet実装・Fable検収済）**: `equipment-edit.html`
+  - `loadStopModes()`＝取得エラー/0件なら `stopModesReady=false`＝新UIを一切出さず従来ロジックのみ（**migration未適用の本番でも壊れない完全後方互換**。必須データ取得のPromise.allには混ぜない）。
+  - カバレッジ計算は純粋関数（rescue/hands/covered/uncovered、n/denom、repairCover＝L2/L3を含むcoveredの数）。搭載＝常時または随時。
+  - 結果画面の主役として「あなたの備えで対応できる止まり方 n/22」＋3区分details（①いま対応できる ②装備を足せば対応できる＝不足装備名付き ③救援案件＝id44ロードサービス連絡先/id45保険証券の搭載✓/未を添える）を型表示の上に挿入。
+  - `classifyType(counts, repairCover)`＝repairCover取得時は新決定木（repairCover>=8→現地修理型／chem>=5→予防整備型／emerg>=4かつrepairCover<=3→救援前提型／else身軽型。閾値は定数化・暫定・実データで見直す）。フォールバック時は従来のmech実数決定木を温存。
+  - 第1層リコメンド＝解錠数（それを積むと新たにcoveredになる止まり方の数）降順・同数はrecommend_priority昇順（nullは最後）・最大5件、各項目に「→ F1・F2に対応」を表示。第0層安全層・身軽型の肯定文言・招待分岐・Canvasカード・CSVは無変更。
+  - 既知の挙動: 解錠数>0の候補が5件未満のとき残枠はrecommend_priority順で埋まる（実質従来の梯子＝許容）。
+  - 検証: script2ブロックのnode --check OK／vm実行シミュレーション（全搭載n=22・搭載ゼロn=3(手対処のみ)・工具4点時の解錠数上位の妥当性・classifyType閾値境界・フォールバック経路）。ブラウザ実機はmigration適用後にユーザー確認。
+- **残タスク**:
+  1. ローカルセッションで `stop_modes_schema.sql` を migration 適用（適用後、入力UIは66項目になる）。
+  2. 適用後のユーザー実機確認（カバレッジ表示・型判定の変化・解錠数リコメンド・390px幅）。
+  3. 確認後に main へマージ（フロントは未適用でも安全だが、新UI確認を挟んでからが望ましい）。
+  4. Canvasカード・集計ページ equipment.html へのカバレッジ反映は次フェーズで判断。

@@ -193,6 +193,7 @@
     .reco-item { padding: 8px 0; border-top: 1px solid var(--border-soft); }
     .reco-name { font-size: 0.9rem; font-weight: 700; }
     .reco-reason { font-size: 0.78rem; color: var(--text-sub); margin-top: 2px; line-height: 1.6; }
+    .reco-unlock { font-size: 0.78rem; color: var(--accent); font-weight: 700; margin-top: 4px; }
     .reco-invite { font-size: 0.85rem; color: var(--text-sub); line-height: 1.8; margin: 0; }
     /* 不足ゼロのときは見出しでなく本文の完了メッセージにする（見出しだけ残ると項目が抜け落ちたように見えるため） */
     .reco-done { display: flex; gap: 8px; align-items: flex-start; margin: 16px 0 0; font-size: 0.85rem; line-height: 1.7; }
@@ -214,6 +215,32 @@
       font-size: 0.62rem; font-weight: 700; color: var(--text-sub);
       border: 1px solid var(--border-soft); border-radius: 4px; padding: 0 3px; line-height: 1.4;
     }
+
+    /* ===== 止まり方カバレッジ（stop_modes取得時のみ表示。#result-typeより上＝主役） ===== */
+    .cov-block { margin: 0 0 20px; padding-bottom: 18px; border-bottom: 1px dashed var(--border-soft); }
+    .cov-heading { font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin: 0 0 12px; line-height: 1.5; }
+    .cov-heading .cov-num { color: var(--accent); font-variant-numeric: tabular-nums; }
+    .cov-group { border: 1px solid var(--border-soft); border-radius: 10px; margin-bottom: 8px; overflow: hidden; background: var(--card-bg); }
+    .cov-group > summary {
+      list-style: none; cursor: pointer; padding: 11px 12px;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      font-size: 0.85rem; font-weight: 700;
+    }
+    .cov-group > summary::-webkit-details-marker { display: none; }
+    .cov-group-title { flex: 1 1 auto; min-width: 0; word-break: break-word; }
+    .cov-group-count { font-size: 0.76rem; color: var(--text-sub); font-weight: 400; flex-shrink: 0; }
+    .cov-group-arrow { color: var(--text-sub); font-size: 0.75rem; transition: transform .15s; flex-shrink: 0; }
+    .cov-group[open] .cov-group-arrow { transform: rotate(90deg); }
+    .cov-group-body { padding: 0 12px 10px; }
+    .cov-row { padding: 8px 0; border-top: 1px solid var(--border-soft); font-size: 0.82rem; line-height: 1.6; word-break: break-word; }
+    .cov-row:first-child { border-top: none; }
+    .cov-row-code { font-weight: 700; color: var(--text-main); }
+    .cov-row-sym { color: var(--text-sub); margin-left: 4px; }
+    .cov-row-sub { display: block; margin-top: 2px; font-size: 0.76rem; color: var(--text-sub); }
+    .cov-rescue-check { display: block; margin-top: 6px; font-size: 0.76rem; }
+    .cov-rescue-check span { margin-right: 12px; }
+    .cov-rescue-check .is-ok { color: var(--ok); font-weight: 700; }
+    .cov-rescue-check .is-ng { color: var(--text-sub); }
     #affiliate-disclosure {
       font-size: 0.72rem; color: var(--text-sub); line-height: 1.8;
       margin: 16px 0 0; padding-top: 12px; border-top: 1px dashed var(--border-soft);
@@ -377,6 +404,7 @@
 
     <!-- 結果（保存後に表示：タイプ判定＋リコメンド） -->
     <section class="card" id="result-section" style="display:none;">
+      <div id="result-coverage"></div>
       <h2>あなたの装備タイプ</h2>
       <p class="result-type-name" id="result-type-name"></p>
       <p class="card-lead" id="result-type-desc"></p>
@@ -419,6 +447,12 @@
   const state = {};      // { itemId: { frequency: 'always'|'occasional'|null, note: string } }
   const catDone = {};    // { category: boolean }
   const customRows = {}; // { category: [ {name, frequency, reason} ] }
+
+  // 止まり方カバレッジ（equipment_stop_modes / equipment_stop_mode_items）。
+  // migration未適用の本番でも壊れないよう、取得失敗 or 0件なら stopModesReady=false のまま＝新UI非表示・既存ロジックのみで動く
+  let stopModes = [];          // equipment_stop_modes（is_active=true, sort_order昇順）
+  let stopModeNeedByCode = {}; // { code: [item_id, ...] }（role='need'の行のみ）
+  let stopModesReady = false;
 
   // GA4（gtag未読込でもクラッシュしない）
   function track(name, params) {
@@ -507,8 +541,42 @@
   })();
 
   // ===================== 読み込み =====================
+  // 止まり方カバレッジのマスター取得（テーブル未適用の本番では equipment_stop_modes が存在せずerrorになる想定。
+  // ここで例外を握りつぶして stopModesReady=false のままにすることで、呼び出し元（loadAll）を一切壊さない）
+  async function loadStopModes() {
+    try {
+      const [smRes, smiRes] = await Promise.all([
+        supabaseClient.from('equipment_stop_modes')
+          .select('code, sym, systems, levels, note, need_note, sort_order, is_active')
+          .eq('is_active', true).order('sort_order'),
+        supabaseClient.from('equipment_stop_mode_items')
+          .select('stop_mode_code, item_id, role')
+      ]);
+      if (smRes.error) throw smRes.error;
+      if (smiRes.error) throw smiRes.error;
+      const modes = smRes.data || [];
+      if (!modes.length) return; // 0件はフォールバック対象（stopModesReadyはfalseのまま）
+
+      const needByCode = {};
+      (smiRes.data || []).forEach(r => {
+        if (r.role !== 'need') return;
+        if (!needByCode[r.stop_mode_code]) needByCode[r.stop_mode_code] = [];
+        needByCode[r.stop_mode_code].push(r.item_id);
+      });
+
+      stopModes = modes;
+      stopModeNeedByCode = needByCode;
+      stopModesReady = true;
+    } catch (e) {
+      // migration未適用（テーブル不存在）を含め、あらゆる失敗はここで吸収してフォールバック表示にする
+      console.error('equipment_stop_modes の読み込みに失敗（既存UIにフォールバック）:', e);
+      stopModes = []; stopModeNeedByCode = {}; stopModesReady = false;
+    }
+  }
+
   async function loadAll() {
     try {
+      const stopModesPromise = loadStopModes(); // 失敗しても throw しないので Promise.all に混ぜない（itemsRes等の必須取得を巻き込まない）
       const [itemsRes, carsRes, recRes] = await Promise.all([
         supabaseClient.from('equipment_items')
           .select('id, code, category, name, reason, sort_order, note_prompt, recommend_priority, purchase_links')
@@ -530,6 +598,7 @@
       CATEGORIES.forEach(c => { catDone[c] = false; customRows[c] = []; });
 
       if (record) await loadExistingAnswers();
+      await stopModesPromise;
 
       renderVehicleFields();
       renderCategories();
@@ -810,6 +879,11 @@
               desc: 'あなたの割り切りは合理的です。近距離中心の乗り方なら、最低限の備えで十分成り立ちます。' }
   };
   const MECH_THICK_THRESHOLD = 3; // 工具+パーツの搭載数がこれ以上で「機械系が厚い」とみなす
+  // stop_modes取得時（repairCoverベース判定）の閾値。29件時点のパイロット相当の暫定値・実データで見直す
+  const REPAIR_COVER_GENCHI_THRESHOLD = 8; // repairCoverがこれ以上でgenchi
+  const CHEM_YOBOU_THRESHOLD = 5;          // chemがこれ以上でyobou（フォールバック時と共通の閾値）
+  const EMERG_KYUEN_THRESHOLD = 4;         // emergがこれ以上でkyuen候補
+  const REPAIR_COVER_KYUEN_MAX = 3;        // repairCoverがこれ以下でkyuen候補
 
   function categoryCounts() {
     const counts = {}; CATEGORIES.forEach(c => counts[c] = 0);
@@ -820,13 +894,22 @@
   // 率でなく実数で判定する。カテゴリごとに有効項目数が違う（工具23／パーツ20／ケミカル8／非常時12）ため、
   // 率を横並びで比べると項目数の少ないケミカルが跳ね、最重装備の人が予防整備型に落ちる誤判定が出た（2026-07-24 実データで確認）。
   // 閾値はパイロット n=6 の暫定値。回答が増えたら見直す。
-  function classifyType(counts) {
+  // repairCoverを渡すとstop_modesベースの決定木（mech実数の代わりにrepairCoverを使う）に切り替わる。
+  // null/undefinedのとき（stop_modes未取得＝フォールバック）は従来どおりmech実数で判定する。
+  function classifyType(counts, repairCover) {
     const mech  = counts['工具'] + counts['パーツ'];  // 最大43
     const chem  = counts['ケミカル'];                 // 最大8
     const emerg = counts['非常時対応'];               // 最大12
 
+    if (repairCover != null) {
+      if (repairCover >= REPAIR_COVER_GENCHI_THRESHOLD) return 'genchi';
+      if (chem >= CHEM_YOBOU_THRESHOLD) return 'yobou';
+      if (emerg >= EMERG_KYUEN_THRESHOLD && repairCover <= REPAIR_COVER_KYUEN_MAX) return 'kyuen';
+      return 'migaru';
+    }
+
     if (mech >= 15) return 'genchi';
-    if (chem >= 5) return 'yobou';
+    if (chem >= CHEM_YOBOU_THRESHOLD) return 'yobou';
     if (emerg >= 4 && mech <= 8) return 'kyuen';
     return 'migaru';   // 判定に迷ったら最も控えめな型に落とす（重い型に落とすと本人の実態と食い違って失礼になる）
   }
@@ -865,8 +948,12 @@
         PURCHASE_CHANNEL_ORDER.indexOf(a.type) - PURCHASE_CHANNEL_ORDER.indexOf(b.type));
       linksHtml = '<div class="reco-links">' + sorted.map(link => purchaseLinkBtnHtml(link, i.name)).join('') + '</div>';
     }
+    // 止まり方カバレッジ（解錠数ベース）でランキングされた項目にのみ「→ F1・F2に対応」を添える
+    const unlockHtml = (Array.isArray(i._unlockModes) && i._unlockModes.length)
+      ? '<div class="reco-unlock">→ ' + escapeHtml(i._unlockModes.map(m => m.code).join('・')) + 'に対応</div>'
+      : '';
     return '<div class="reco-item"><div class="reco-name">' + escapeHtml(i.name) + '</div>' +
-      '<div class="reco-reason">' + escapeHtml(i.reason) + '</div>' + linksHtml + '</div>';
+      '<div class="reco-reason">' + escapeHtml(i.reason) + '</div>' + unlockHtml + linksHtml + '</div>';
   }
 
   function doneHtml(text, sub) {
@@ -875,17 +962,89 @@
       '<span class="reco-done-sub">' + escapeHtml(sub) + '</span></span></p>';
   }
 
+  // ===================== 止まり方カバレッジ（純粋関数。DOM非依存） =====================
+  // levelsが['R']のみ＝路上では直せない救援案件（7件想定）
+  function isRescueMode(mode) {
+    return Array.isArray(mode.levels) && mode.levels.length === 1 && mode.levels[0] === 'R';
+  }
+  // levelsにL2またはL3を含む（rescue以外の）修理系止まり方
+  function isRepairLevelMode(mode) {
+    return Array.isArray(mode.levels) && (mode.levels.indexOf('L2') !== -1 || mode.levels.indexOf('L3') !== -1);
+  }
+
+  // modes: equipment_stop_modes配列（is_active=true, sort_order昇順）
+  // needByCode: { code: [item_id, ...] }（role='need'のみ）
+  // loadedIds: Set<item_id>（常時 or 随時が選択されている項目）
+  // 返り値: { rescue, hands, covered, uncovered, denom, n, repairCover }
+  //   rescue: levelsが['R']のみの止まり方（誰も路上では直せない別枠）
+  //   hands: rescue以外でneed行が0件＝手で対処すれば全員カバー
+  //   covered: need行が全て搭載済み
+  //   uncovered: { mode, missing:[item_id,...] } の配列（missingは不足しているneed item_id）
+  //   denom: rescueを除いた件数（hands+covered+uncovered）
+  //   n: hands+coveredの数（あなたの備えで対応できる止まり方の数）
+  //   repairCover: coveredのうちisRepairLevelModeな数（handsは含めない）
+  function computeStopModeCoverage(modes, needByCode, loadedIds) {
+    const rescue = [], hands = [], covered = [], uncovered = [];
+    modes.forEach(mode => {
+      if (isRescueMode(mode)) { rescue.push(mode); return; }
+      const need = needByCode[mode.code] || [];
+      if (!need.length) { hands.push(mode); return; }
+      const missing = need.filter(id => !loadedIds.has(id));
+      if (!missing.length) covered.push(mode);
+      else uncovered.push({ mode: mode, missing: missing });
+    });
+    const denom = hands.length + covered.length + uncovered.length;
+    const n = hands.length + covered.length;
+    const repairCover = covered.filter(isRepairLevelMode).length;
+    return { rescue: rescue, hands: hands, covered: covered, uncovered: uncovered, denom: denom, n: n, repairCover: repairCover };
+  }
+
+  // uncoveredのうち「不足needがちょうど1件」の止まり方だけを対象に、その不足item_id→止まり方の対応表を作る。
+  // (missingは元々「未搭載のneed item_id」の集合なので、その1件を積めば即coveredになる＝解錠数のカウント対象)
+  function unlockMapFromUncovered(uncovered) {
+    const map = {}; // item_id -> [mode, ...]
+    uncovered.forEach(u => {
+      if (u.missing.length === 1) {
+        const id = u.missing[0];
+        if (!map[id]) map[id] = [];
+        map[id].push(u.mode);
+      }
+    });
+    return map;
+  }
+
   // DOM表示・画像化の両方が使う共通データ（本人の回答から算出。統計は使わない＝フェーズ1）
   function computeResultData() {
     const counts = categoryCounts();
-    const type = classifyType(counts);
+    const loadedIds = new Set(items.filter(i => state[i.id].frequency).map(i => i.id));
+    const coverage = stopModesReady
+      ? computeStopModeCoverage(stopModes, stopModeNeedByCode, loadedIds)
+      : null;
+    const type = classifyType(counts, coverage ? coverage.repairCover : null);
     const missing = items.filter(i => i.recommend_priority != null && !state[i.id].frequency)
       .sort((a, b) => a.recommend_priority - b.recommend_priority);
     // 第0層＝安全層（非常時対応）。スタイルに関わらず全員に返す
     const safety = missing.filter(i => i.category === '非常時対応');
     // 第1層＝自走復帰の梯子（工具・パーツ・ケミカル）。本人の機械系の厚みで表示を条件分岐
-    const ladder = missing.filter(i => i.category !== '非常時対応');
-    return { type, info: TYPE_INFO[type], safety, ladder, mechLoaded: counts['工具'] + counts['パーツ'] };
+    let ladder;
+    if (coverage) {
+      // stop_modes取得時：解錠数（それを積むと新たにcoveredになる止まり方の数）降順、
+      // 同数はrecommend_priority昇順（nullは最後）でランキングする。
+      // recommend_priorityの有無に関わらず候補にするため、missing（priority!=null限定）でなくitems全体から拾い直す。
+      const candidates = items.filter(i => i.category !== '非常時対応' && !state[i.id].frequency);
+      const unlockMap = unlockMapFromUncovered(coverage.uncovered);
+      ladder = candidates.slice().sort((a, b) => {
+        const ua = (unlockMap[a.id] || []).length, ub = (unlockMap[b.id] || []).length;
+        if (ua !== ub) return ub - ua; // 解錠数降順
+        const pa = a.recommend_priority == null ? Infinity : a.recommend_priority;
+        const pb = b.recommend_priority == null ? Infinity : b.recommend_priority;
+        return pa - pb;
+      }).map(i => Object.assign({}, i, { _unlockModes: unlockMap[i.id] || [] }));
+    } else {
+      // フォールバック（stop_modes未取得）：従来どおりrecommend_priority昇順
+      ladder = missing.filter(i => i.category !== '非常時対応');
+    }
+    return { type, info: TYPE_INFO[type], safety, ladder, mechLoaded: counts['工具'] + counts['パーツ'], coverage };
   }
 
   // 表示分岐（見出し・件数）を1箇所に集約。DOM描画とCanvas描画で文言が食い違わないようにする
@@ -921,9 +1080,67 @@
     return sec;
   }
 
+  // ===================== 止まり方カバレッジの表示（#result-coverage。stop_modes取得時のみ中身を入れる） =====================
+  // ロードサービス連絡先＝id44、保険証券＝id45（equipment_items固定id。仕様指定）
+  const RESCUE_SUPPORT_ITEM_IDS = { roadside: 44, insurance: 45 };
+
+  function itemIsLoaded(id) {
+    return !!(state[id] && state[id].frequency);
+  }
+
+  function covRowHtml(mode, sub) {
+    return '<div class="cov-row"><span class="cov-row-code">' + escapeHtml(mode.code) + '</span>' +
+      '<span class="cov-row-sym">' + escapeHtml(mode.sym || '') + '</span>' +
+      (sub ? '<span class="cov-row-sub">' + escapeHtml(sub) + '</span>' : '') + '</div>';
+  }
+
+  function covGroupHtml(title, count, bodyHtml, open) {
+    return '<details class="cov-group"' + (open ? ' open' : '') + '>' +
+      '<summary><span class="cov-group-title">' + escapeHtml(title) + '</span>' +
+      '<span class="cov-group-count">' + count + '件</span>' +
+      '<span class="cov-group-arrow" aria-hidden="true">▶</span></summary>' +
+      '<div class="cov-group-body">' + (bodyHtml || '<p class="cov-row">該当なし</p>') + '</div></details>';
+  }
+
+  function buildCoverageHtml(coverage) {
+    if (!coverage) return ''; // stop_modes未取得＝新UIを一切出さない（完全後方互換）
+
+    const handsHtml = coverage.hands.map(m => covRowHtml(m, '手で対処できる')).join('');
+    const coveredHtml = coverage.covered.map(m => covRowHtml(m)).join('');
+
+    const uncoveredHtml = coverage.uncovered.map(u => {
+      const names = u.missing.map(id => {
+        const it = items.find(x => x.id === id);
+        return it ? it.name : ('#' + id);
+      });
+      const sub = names.length > 1
+        ? (names[0] + '　＋あと' + (names.length - 1) + '点')
+        : names[0];
+      return covRowHtml(u.mode, sub);
+    }).join('');
+
+    const roadsideOk = itemIsLoaded(RESCUE_SUPPORT_ITEM_IDS.roadside);
+    const insuranceOk = itemIsLoaded(RESCUE_SUPPORT_ITEM_IDS.insurance);
+    const rescueHtml = coverage.rescue.map(m => covRowHtml(m)).join('') +
+      '<div class="cov-rescue-check">' +
+      '<span class="' + (roadsideOk ? 'is-ok' : 'is-ng') + '">救援の備え（ロードサービス連絡先）: ' + (roadsideOk ? '✓' : '未') + '</span>' +
+      '<span class="' + (insuranceOk ? 'is-ok' : 'is-ng') + '">救援の備え（保険証券）: ' + (insuranceOk ? '✓' : '未') + '</span>' +
+      '</div>';
+
+    return '<div class="cov-block">' +
+      '<p class="cov-heading">あなたの備えで対応できる止まり方 <span class="cov-num">' + coverage.n + '/' + coverage.denom + '</span></p>' +
+      covGroupHtml('① いま対応できる', coverage.hands.length + coverage.covered.length, handsHtml + coveredHtml, true) +
+      covGroupHtml('② 装備を足せば対応できる', coverage.uncovered.length, uncoveredHtml, false) +
+      covGroupHtml('③ 救援案件（どれだけ積んでいても路上では直せない）', coverage.rescue.length, rescueHtml, false) +
+      '</div>';
+  }
+
   function renderResult() {
     const data = computeResultData();
     const sec = buildResultSections(data);
+
+    document.getElementById('result-coverage').innerHTML = buildCoverageHtml(data.coverage);
+
     document.getElementById('result-type-name').textContent = data.info.name;
     document.getElementById('result-type-desc').textContent = data.info.desc;
 
