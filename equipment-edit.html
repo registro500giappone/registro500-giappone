@@ -179,7 +179,6 @@
       border-radius: 8px; padding: 8px 10px; margin: 0 0 14px; line-height: 1.6;
     }
     .result-type-name { font-size: 1.25rem; font-weight: 800; color: var(--accent); margin: 0 0 4px; }
-    .result-type-basis { font-size: 0.75rem; color: var(--text-sub); margin: 0 0 8px; }
     /* 4つの型を並べて本人の型を強調する（自分の型だけでは位置づけが分からないため） */
     .type-map { margin: 0 0 4px; padding: 12px 14px; background: var(--accent-soft); border-radius: 10px; }
     .type-map-title { font-size: 0.75rem; font-weight: 700; color: var(--accent); margin: 0 0 6px; }
@@ -224,28 +223,15 @@
     /* ===== 止まり方カバレッジ（stop_modes取得時のみ表示。#result-typeより上＝主役） ===== */
     .cov-block { margin: 0 0 20px; padding-bottom: 18px; border-bottom: 1px dashed var(--border-soft); }
     .cov-heading { font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin: 0 0 12px; line-height: 1.5; }
-    .cov-heading .cov-num { color: var(--accent); font-variant-numeric: tabular-nums; }
-    .cov-group { border: 1px solid var(--border-soft); border-radius: 10px; margin-bottom: 8px; overflow: hidden; background: var(--card-bg); }
-    .cov-group > summary {
-      list-style: none; cursor: pointer; padding: 11px 12px;
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
-      font-size: 0.85rem; font-weight: 700;
-    }
-    .cov-group > summary::-webkit-details-marker { display: none; }
-    .cov-group-title { flex: 1 1 auto; min-width: 0; word-break: break-word; }
-    .cov-group-count { font-size: 0.76rem; color: var(--text-sub); font-weight: 400; flex-shrink: 0; }
-    .cov-group-arrow { color: var(--text-sub); font-size: 0.75rem; transition: transform .15s; flex-shrink: 0; }
-    .cov-group[open] .cov-group-arrow { transform: rotate(90deg); }
-    .cov-group-body { padding: 0 12px 10px; }
     .cov-row { padding: 8px 0; border-top: 1px solid var(--border-soft); font-size: 0.82rem; line-height: 1.6; word-break: break-word; }
     .cov-row:first-child { border-top: none; }
     .cov-row-code { font-weight: 700; color: var(--text-main); }
     .cov-row-sym { color: var(--text-sub); margin-left: 4px; }
     .cov-row-sub { display: block; margin-top: 2px; font-size: 0.76rem; color: var(--text-sub); }
-    .cov-rescue-check { display: block; margin-top: 6px; font-size: 0.76rem; }
-    .cov-rescue-check span { margin-right: 12px; }
-    .cov-rescue-check .is-ok { color: var(--ok); font-weight: 700; }
-    .cov-rescue-check .is-ng { color: var(--text-sub); }
+    .cov-empty { padding: 8px 0; font-size: 0.85rem; color: var(--text-sub); line-height: 1.7; }
+    .cov-wiki { margin-top: 10px; font-size: 0.8rem; color: var(--text-sub); }
+    .cov-wiki a { color: var(--accent); font-weight: 700; text-decoration: none; }
+    .cov-wiki a:hover { text-decoration: underline; }
     #affiliate-disclosure {
       font-size: 0.72rem; color: var(--text-sub); line-height: 1.8;
       margin: 16px 0 0; padding-top: 12px; border-top: 1px dashed var(--border-soft);
@@ -413,7 +399,6 @@
       <div id="result-coverage"></div>
       <h2>あなたの装備タイプ</h2>
       <p class="result-type-name" id="result-type-name"></p>
-      <p class="result-type-basis" id="result-type-basis" style="display:none;"></p>
       <p class="card-lead" id="result-type-desc"></p>
       <div id="result-type-map"></div>
       <div id="result-safety"></div>
@@ -1089,11 +1074,10 @@
   }
 
   // ===================== 止まり方カバレッジの表示（#result-coverage。stop_modes取得時のみ中身を入れる） =====================
-  // ロードサービス連絡先＝id44、保険証券＝id45（equipment_items固定id。仕様指定）
-  const RESCUE_SUPPORT_ITEM_IDS = { roadside: 44, insurance: 45 };
-
-  function itemIsLoaded(id) {
-    return !!(state[id] && state[id].frequency);
+  function covRowHtml(mode, sub) {
+    return '<div class="cov-row"><span class="cov-row-code">' + escapeHtml(mode.code) + '</span>' +
+      '<span class="cov-row-sym">' + escapeHtml(mode.sym || '') + '</span>' +
+      (sub ? '<span class="cov-row-sub">' + escapeHtml(sub) + '</span>' : '') + '</div>';
   }
 
   // need_noteの先頭末尾が全角括弧（　）で囲まれている場合は外す（DB側の注記表記ゆれを吸収）
@@ -1104,61 +1088,24 @@
     return s;
   }
 
-  // ①区分（hands）の注記：need_noteがあれば「手で対処：<need_note>」、無ければ従来の固定文
-  function handsSubText(mode) {
-    if (mode.need_note) return '手で対処：' + stripFullwidthParens(String(mode.need_note));
-    return '手で対処できる';
-  }
-
-  function covRowHtml(mode, sub) {
-    // causeはmigration後にequipment_stop_modesへ追加される想定の列。無ければ何も出さない（後方互換）
-    const causeHtml = mode.cause
-      ? '<span class="cov-row-sub">想定原因: ' + escapeHtml(mode.cause) + '</span>'
-      : '';
-    return '<div class="cov-row"><span class="cov-row-code">' + escapeHtml(mode.code) + '</span>' +
-      '<span class="cov-row-sym">' + escapeHtml(mode.sym || '') + '</span>' +
-      (sub ? '<span class="cov-row-sub">' + escapeHtml(sub) + '</span>' : '') +
-      causeHtml + '</div>';
-  }
-
-  function covGroupHtml(title, count, bodyHtml, open) {
-    return '<details class="cov-group"' + (open ? ' open' : '') + '>' +
-      '<summary><span class="cov-group-title">' + escapeHtml(title) + '</span>' +
-      '<span class="cov-group-count">' + count + '件</span>' +
-      '<span class="cov-group-arrow" aria-hidden="true">▶</span></summary>' +
-      '<div class="cov-group-body">' + (bodyHtml || '<p class="cov-row">該当なし</p>') + '</div></details>';
-  }
+  const REPAIR_WIKI_LINK = '<p class="cov-wiki">原因の切り分けに迷ったら → '
+    + '<a href="https://w.atwiki.jp/fiat500-onlinemanual/pages/20.html" target="_blank" rel="noopener">整備wiki：故障探求</a></p>';
 
   function buildCoverageHtml(coverage) {
     if (!coverage) return ''; // stop_modes未取得＝新UIを一切出さない（完全後方互換）
 
-    const handsHtml = coverage.hands.map(m => covRowHtml(m, handsSubText(m))).join('');
+    // 手で対処できるトラブルも「装備（なし）でできる路上対応」として同じ一覧に載せる
+    const handsHtml = coverage.hands.map(m =>
+      covRowHtml(m, m.need_note ? '手で対処：' + stripFullwidthParens(String(m.need_note)) : '手で対処できる')
+    ).join('');
     const coveredHtml = coverage.covered.map(m => covRowHtml(m)).join('');
-
-    const uncoveredHtml = coverage.uncovered.map(u => {
-      const names = u.missing.map(id => {
-        const it = items.find(x => x.id === id);
-        return it ? it.name : ('#' + id);
-      });
-      const sub = names.length > 1
-        ? (names[0] + '　＋あと' + (names.length - 1) + '点')
-        : names[0];
-      return covRowHtml(u.mode, sub);
-    }).join('');
-
-    const roadsideOk = itemIsLoaded(RESCUE_SUPPORT_ITEM_IDS.roadside);
-    const insuranceOk = itemIsLoaded(RESCUE_SUPPORT_ITEM_IDS.insurance);
-    const rescueHtml = coverage.rescue.map(m => covRowHtml(m)).join('') +
-      '<div class="cov-rescue-check">' +
-      '<span class="' + (roadsideOk ? 'is-ok' : 'is-ng') + '">救援の備え（ロードサービス連絡先）: ' + (roadsideOk ? '✓' : '未') + '</span>' +
-      '<span class="' + (insuranceOk ? 'is-ok' : 'is-ng') + '">救援の備え（保険証券）: ' + (insuranceOk ? '✓' : '未') + '</span>' +
-      '</div>';
+    const body = (handsHtml || coveredHtml)
+      ? handsHtml + coveredHtml
+      : '<p class="cov-empty">保存済みの装備で対応できるトラブルはまだありません。下のおすすめが参考になります</p>';
 
     return '<div class="cov-block">' +
-      '<p class="cov-heading">あなたの備えで対応できるトラブル <span class="cov-num">' + coverage.n + '/' + coverage.denom + '</span></p>' +
-      covGroupHtml('① いま対応できる', coverage.hands.length + coverage.covered.length, handsHtml + coveredHtml, true) +
-      covGroupHtml('② 装備を足せば対応できる', coverage.uncovered.length, uncoveredHtml, false) +
-      covGroupHtml('③ 救援案件（どれだけ積んでいても路上では直せない）', coverage.rescue.length, rescueHtml, false) +
+      '<p class="cov-heading">あなたの装備でできる路上対応</p>' +
+      body + REPAIR_WIKI_LINK +
       '</div>';
   }
 
@@ -1171,21 +1118,12 @@
 
     document.getElementById('result-coverage').innerHTML = buildCoverageHtml(data.coverage);
 
-    const basisEl = document.getElementById('result-type-basis');
-    if (data.coverage) {
-      basisEl.textContent = '判定根拠：修理系トラブル' + data.coverage.repairCover + '件に対応できる備え（暫定基準）';
-      basisEl.style.display = 'block';
-    } else {
-      basisEl.textContent = '';
-      basisEl.style.display = 'none';
-    }
-
     document.getElementById('result-type-name').textContent = data.info.name;
     document.getElementById('result-type-desc').textContent = data.info.desc;
 
     // 4型すべてを並べ、本人の型に「あなた」バッジを付ける
     document.getElementById('result-type-map').innerHTML =
-      '<div class="type-map"><p class="type-map-title">ここでは、備えの傾向を4つに分類してみました</p>' +
+      '<div class="type-map"><p class="type-map-title">ここでは、備えの傾向を4つに分類してみました（お楽しみの分類です）</p>' +
       TYPE_ORDER.map(key => {
         const t = TYPE_INFO[key];
         const isMe = (key === data.type);
