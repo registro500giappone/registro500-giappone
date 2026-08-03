@@ -127,6 +127,7 @@
     .eq-cat-title { font-size: 0.85rem; font-weight: 700; color: var(--rg-muted); margin: 0 0 6px; }
     .eq-item-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 6px 0; border-top: 1px solid var(--rg-border); font-size: 0.9rem; }
     .eq-item-row:first-child { border-top: none; }
+    .eq-item-note { display: block; font-size: 0.78rem; color: var(--rg-muted); line-height: 1.5; }
     .eq-item-freq { font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; white-space: nowrap; color: #fff; }
     .eq-item-freq.always { background: var(--rg-accent); }
     .eq-item-freq.occasional { background: #94a3b8; }
@@ -392,10 +393,10 @@
 
         const [entRes, cusRes, expRes] = await Promise.all([
           supabaseClient.from('equipment_entries')
-            .select('frequency, equipment_items(name, category, sort_order)')
+            .select('frequency, note, equipment_items(name, category, sort_order)')
             .eq('record_id', eqRecord.id),
           supabaseClient.from('equipment_custom_items')
-            .select('name, category, frequency')
+            .select('name, category, frequency, reason')
             .eq('record_id', eqRecord.id),
           supabaseClient.from('equipment_experiences')
             .select('body').eq('record_id', eqRecord.id).limit(1)
@@ -416,12 +417,12 @@
         const item = e.equipment_items;
         if (!item || !e.frequency) return;
         const cat = EQ_CATEGORIES.includes(item.category) ? item.category : EQ_CATEGORIES[EQ_CATEGORIES.length - 1];
-        byCategory[cat].push({ name: item.name, frequency: e.frequency, sort_order: item.sort_order || 0 });
+        byCategory[cat].push({ name: item.name, frequency: e.frequency, sort_order: item.sort_order || 0, note: e.note || '' });
       });
       customItems.forEach(c => {
         if (!c.frequency) return;
         const cat = EQ_CATEGORIES.includes(c.category) ? c.category : EQ_CATEGORIES[EQ_CATEGORIES.length - 1];
-        byCategory[cat].push({ name: c.name, frequency: c.frequency, sort_order: 9999 });
+        byCategory[cat].push({ name: c.name, frequency: c.frequency, sort_order: 9999, note: c.reason || '' });
       });
 
       let html = '';
@@ -432,7 +433,8 @@
         html += `<div class="eq-cat"><p class="eq-cat-title">${esc(cat)}</p>`;
         rows.forEach(r => {
           const freqLabel = r.frequency === 'always' ? '常時' : '随時';
-          html += `<div class="eq-item-row"><span>${esc(r.name)}</span><span class="eq-item-freq ${r.frequency === 'always' ? 'always' : 'occasional'}">${freqLabel}</span></div>`;
+          const noteHtml = r.note ? `<span class="eq-item-note">${esc(r.note)}</span>` : '';
+          html += `<div class="eq-item-row"><div style="min-width:0">${esc(r.name)}${noteHtml}</div><span class="eq-item-freq ${r.frequency === 'always' ? 'always' : 'occasional'}">${freqLabel}</span></div>`;
         });
         html += `</div>`;
       });
