@@ -337,3 +337,13 @@ mech = 工具数 + パーツ数 (最大43) / emg = 非常時対応数 (最大12)
 - **migration第2弾 `items_feedback_2026-08-03.sql`**（migration名 `equipment_notebook_feedback_2026_08_03`・⚠️未適用）: id4 スパナ・メガネに8mm追加／id9 車載ジャッキ note_prompt「油圧フロア」→「油圧パンタ」（マサダは油圧パンタ・実態反映）／工具23項目の sort_order を6グループ順（回す・締める→点火の調整→電気まわり→持ち上げる・支える→応急材料→作業補助）に再割当／equipment_stop_modes に cause 列追加＋29件投入（M1・B1はFable検収で文言差し戻し済み）／F3・M3・E5 の need_note を具体的な対処文に差し替え。**cause 29件はユーザーレビュー後にローカルで適用**。
 - **型の区分けそのものは別途再議論**（ユーザー提起）。「現地修理型と予防整備型は重なるのでやめる」議論が過去にあったとのことだが台帳に記録が無い。次回の議論は必ず本ファイルに記録する。
 - 残タスク: ①cause 29件のユーザーレビュー→migration第2弾のローカル適用 ②型の区分け再議論（素材はFableが準備） ③閾値4は暫定・区分け議論の結果で再設計。
+
+### 2026-08-03 フェーズB: 公開トグルUI＋公開手帳一覧＋車両ページ埋め込み＝実装完了
+
+マイガレージ連携（L129-142の「トグルUIだけを先に出さない」方針どおり、トグルと表示を同時実装）。方針確定（ユーザー確認済み・`public_read_2026-08-03.sql`のコメント欄にも記載）: Q1公開はオプトイン（既定false・既存パイロット6件は非公開のまま個別確認は別途）／Q2公開単位は手帳丸ごと（装備＋メモ＋自由追加＋経験談）／Q3入口は equipment.html の公開手帳一覧＋集計、および各オーナーの車両詳細ページへの埋込。
+
+- **`equipment-edit.html`**: 「この手帳を公開する」トグル（`.switch`スイッチUI・新設）を経験談セクションの直後・結果セクションの直前に追加。ONにする瞬間に`confirm()`で「装備一覧・メモ・自由追加項目・経験談のすべてが誰でも閲覧できる」ことを明示し、キャンセルなら未チェックに戻す。保存時の`base`オブジェクトに`is_public`を追加（新規・更新どちらも送る。updateでも所有権列と違い公開状態は本人が変更してよい列のため問題なし）。読み込み時は`record.is_public`からチェック状態を復元。
+- **`equipment.html`**: 新セクション「公開中の手帳」を集計の上に追加。`equipment_records`を`is_public=true`で取得→`vehicle_id`から`cars`を`in()`で引いてオーナー名・車種を表示するカード一覧（`equipment_records.vehicle_id`に実FKは無いためクライアント側で2クエリをマージ）。0件でも空メッセージを出すだけで集計セクション（`equipment_item_rates()`・既存実装）には影響させない。各カードは`detail.html?doc=<document_id>#equipment-notebook`へリンク。
+- **`detail.html`**（＝各オーナーの公開車両ページ。**「ガレージページ」はガレージノート掲示板(`garage-notes.html`)ではなくこちらと判断**＝design-original.md「オーナー公開設定にした装備手帳をガレージページに表示」の実装先として、個別車両を持つ唯一の公開ページはdetail.htmlのため）: 新セクション「装備手帳」を追加（SNSセクションの直後）。対象車の`equipment_records`を`vehicle_id`一致・`is_public=true`で1件取得し、`equipment_entries`（`equipment_items`を実FK経由でネスト取得）・`equipment_custom_items`・`equipment_experiences`をカテゴリ別に読み取り専用表示。該当が無ければセクション自体を非表示のまま。`#equipment-notebook`ハッシュで来た場合はスクロール。
+- **RLS前提**: 上記はすべて`public_read_2026-08-03.sql`（`equipment_records`/`equipment_entries`/`equipment_category_status`/`equipment_custom_items`/`equipment_experiences`への`is_public`公開SELECTポリシー）が適用済みであることが前提。**このセッションはSupabase MCPに接続できず適用状態を直接確認できなかった**（タスク指示では適用済みとされていたため前提として実装）。未適用の場合、匿名ユーザーからは他人の公開手帳が見えない（自分の手帳のみ本人ログイン時に見える状態）ので、公開後に一度シークレットウィンドウ等で他ユーザーとして`equipment.html`とdetail.htmlの表示を必ず確認すること。
+- 残タスク: ①`public_read_2026-08-03.sql`の適用状態を実環境で確認 ②パイロット6件の公開可否を個別に本人へ確認（Q1で保留にしていた分） ③実機で公開トグル→一覧表示→車両ページ埋込の一連の流れを確認。

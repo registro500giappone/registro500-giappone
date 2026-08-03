@@ -108,6 +108,20 @@
     .bar-fill.occasional { background: var(--occasional); }
     .stat-breakdown { font-size: 0.75rem; color: var(--text-sub); margin-top: 3px; }
 
+    /* ===== 公開手帳一覧 ===== */
+    .public-list-section { margin-bottom: 24px; }
+    .public-list-lead { font-size: 0.82rem; color: var(--text-sub); margin: 0 0 14px; }
+    .public-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+    .public-card {
+      display: flex; flex-direction: column; gap: 3px; background: #f8faff;
+      border: 1px solid var(--border-soft); border-radius: 10px; padding: 12px 14px;
+      text-decoration: none; color: var(--text-main);
+    }
+    .public-card:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .public-card-name { font-size: 0.88rem; font-weight: 700; }
+    .public-card-model { font-size: 0.78rem; color: var(--text-sub); }
+    .public-list-empty { font-size: 0.85rem; color: var(--text-sub); margin: 0; }
+
     .legend { display: flex; gap: 16px; font-size: 0.78rem; color: var(--text-sub); margin: 12px 0 20px; }
     .legend-item { display: flex; align-items: center; gap: 6px; }
     .legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
@@ -139,6 +153,12 @@
     <div class="cta-band">
       <p>あなたの装備手帳はまだですか？ 記入すると、この集計にも反映されます。</p>
       <a class="btn-cta" href="equipment-edit.html">装備手帳を書く・更新する →</a>
+    </div>
+
+    <div id="public-list-section" class="public-list-section" style="display:none;">
+      <div class="section-title"><span class="icon">📖</span> 公開中の手帳</div>
+      <p class="public-list-lead">オーナーが公開設定にした装備手帳です。タップすると、その車の車両ページで装備・メモ・経験談を見られます。</p>
+      <div id="public-list" class="public-list"></div>
     </div>
 
     <div id="empty-state" class="empty-state" style="display:none;">
@@ -251,11 +271,65 @@
     });
   }
 
+  // ===== 公開手帳一覧 =====
+  async function loadPublicRecords() {
+    const { data: recs, error } = await supabaseClient
+      .from('equipment_records')
+      .select('id, vehicle_id, updated_at')
+      .eq('is_public', true)
+      .order('updated_at', { ascending: false })
+      .limit(24);
+    if (error) throw error;
+
+    const withVehicle = (recs || []).filter(r => r.vehicle_id);
+    if (!withVehicle.length) return [];
+
+    const vehicleIds = [...new Set(withVehicle.map(r => r.vehicle_id))];
+    const { data: cars, error: carsError } = await supabaseClient
+      .from('cars')
+      .select('document_id, handle_name, model_display_a, model_display_b, model_display_c, car_type')
+      .in('document_id', vehicleIds);
+    if (carsError) throw carsError;
+
+    const carMap = {};
+    (cars || []).forEach(c => { carMap[c.document_id] = c; });
+
+    return withVehicle
+      .map(r => ({ ...r, car: carMap[r.vehicle_id] }))
+      .filter(r => r.car);
+  }
+
+  function renderPublicList(list) {
+    const section = document.getElementById('public-list-section');
+    const host = document.getElementById('public-list');
+    section.style.display = 'block';
+
+    if (!list.length) {
+      host.innerHTML = '<p class="public-list-empty">まだ公開されている手帳はありません。</p>';
+      return;
+    }
+
+    host.innerHTML = list.map(r => {
+      const car = r.car;
+      const carLabel = car.car_type === '126' ? 'FIAT 126' : 'FIAT 500';
+      const model = car.model_display_c || [car.model_display_a || carLabel, car.model_display_b || ''].filter(Boolean).join(' ');
+      return `
+        <a class="public-card" href="detail.html?doc=${encodeURIComponent(car.document_id)}#equipment-notebook">
+          <span class="public-card-name">${esc(car.handle_name || '名称未設定')}さん</span>
+          <span class="public-card-model">${esc(model)}</span>
+        </a>`;
+    }).join('');
+  }
+
   async function load() {
     try {
-      const { data, error } = await supabaseClient.rpc('equipment_item_rates');
-      if (error) throw error;
-      renderRows(data || []);
+      const [ratesRes, publicList] = await Promise.all([
+        supabaseClient.rpc('equipment_item_rates'),
+        loadPublicRecords().catch(e => { console.error('公開手帳一覧の読み込みに失敗:', e); return []; })
+      ]);
+      if (ratesRes.error) throw ratesRes.error;
+      renderPublicList(publicList);
+      renderRows(ratesRes.data || []);
     } catch (e) {
       console.error(e);
       document.getElementById('loading').textContent = '読み込みに失敗しました。時間をおいて再度お試しください。';
