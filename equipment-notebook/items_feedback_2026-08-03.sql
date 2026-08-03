@@ -4,8 +4,9 @@
 -- ユーザー実機レビュー10件の反映。
 --   A. 項目マスターの表記修正2件（id4名称・id9note_prompt）
 --   B. 工具カテゴリ23項目のsort_order種類別再割当
---   C. equipment_stop_modesにcause列追加＋29件に想定原因を投入
 --   D. need_noteの説明文具体化3件
+-- ※ 旧C（equipment_stop_modesへの想定原因列追加）は不採用。症状ベース判定の廃止に伴い、
+--   「想定原因」表示のC部分は方針変更で削除した（2026-08-03）。
 -- 参考: equipment-notebook/stop_modes_schema.sql（テーブル定義・29件note原文）
 --       equipment-notebook/seed_items.sql（書式）
 -- ============================================================
@@ -66,50 +67,6 @@ update public.equipment_items set sort_order = 220 where id = 63; -- ハンマ�
 update public.equipment_items set sort_order = 230 where id = 64; -- カッター
 
 -- ============================================================
--- C. equipment_stop_modes に cause 列（想定原因の短文）を追加
---    目安15〜30字・体言止め・専門用語は原文（stop_modes_schema.sql note/sym）準拠。
---    noteが薄いコードはsymの括弧内などから素直に起案。推測の付け足しはしない。
--- ============================================================
-alter table public.equipment_stop_modes add column if not exists cause text;
-
-update public.equipment_stop_modes set cause = 'コンデンサー不良など点火系の突然死' where code = 'F1';
-update public.equipment_stop_modes set cause = 'デスビ調整不良・二次エア・接触不良' where code = 'F2';
-update public.equipment_stop_modes set cause = 'プラグコードのすっぽ抜け・接触不良' where code = 'F3';
-update public.equipment_stop_modes set cause = 'イグニッションコイルの熱による不良' where code = 'F4';
-update public.equipment_stop_modes set cause = 'デスビ固定ナットの脱落・キャップ破損' where code = 'F5';
-
-update public.equipment_stop_modes set cause = '燃料計の狂いで残量に気づけないガス欠' where code = 'M1';
-update public.equipment_stop_modes set cause = 'キャブレター燃料吸入口の脱落・破損' where code = 'M2';
-update public.equipment_stop_modes set cause = 'パーコレーションによる燃料の気化' where code = 'M3';
-update public.equipment_stop_modes set cause = 'ジェット詰まり・二次エア・点火時期狂い' where code = 'M4';
-update public.equipment_stop_modes set cause = 'アクセルワイヤー切れ／キャブリンケージの外れ' where code = 'M5';
-update public.equipment_stop_modes set cause = '燃料ポンプの機械的な故障・寿命' where code = 'M6';
-
-update public.equipment_stop_modes set cause = 'バルブクラッシュなどエンジン内部破損' where code = 'C1';
-update public.equipment_stop_modes set cause = 'オイル漏れ・増し締めで戻る系から油圧系故障まで' where code = 'C2';
-
-update public.equipment_stop_modes set cause = 'ベルト滑り・配線不良・レギュレーター不良' where code = 'E1';
-update public.equipment_stop_modes set cause = '端子緩み・アース不良・バッテリー劣化' where code = 'E2';
-update public.equipment_stop_modes set cause = 'バルブのソケット脱落・端子外れ・断線' where code = 'E3';
-update public.equipment_stop_modes set cause = 'バッテリー充電不良・発電機系の故障' where code = 'E4';
-update public.equipment_stop_modes set cause = 'スターターワイヤーのフック外れ・断線' where code = 'E5';
-
-update public.equipment_stop_modes set cause = '固定ピン破断・ワイヤー切れ・ボルト折損' where code = 'D1';
-update public.equipment_stop_modes set cause = 'シフトリンケージのゴムカップリング劣化' where code = 'D2';
-update public.equipment_stop_modes set cause = 'ドライブシャフトジョイントの摩耗・破損' where code = 'D3';
-update public.equipment_stop_modes set cause = 'ミッションサポートラバーの劣化' where code = 'D4';
-
-update public.equipment_stop_modes set cause = 'タイヤの経年劣化・異物混入によるパンク' where code = 'X1';
-update public.equipment_stop_modes set cause = 'ホイールボルトの緩み・折損、キングピン摩耗' where code = 'X2';
-update public.equipment_stop_modes set cause = 'センターボルトのネジ山舐め・脱落' where code = 'X3';
-
-update public.equipment_stop_modes set cause = 'ホイールシリンダー／マスターシリンダーの破損（ホース起因も）' where code = 'B1';
-
-update public.equipment_stop_modes set cause = 'クーリングファンの破損' where code = 'K1';
-update public.equipment_stop_modes set cause = 'ファンカバーダクトの脱落・外れ' where code = 'K2';
-update public.equipment_stop_modes set cause = 'サーモスタットの故障によるフラップ固着' where code = 'K3';
-
--- ============================================================
 -- D. need_note の説明文を具体化3件（「手で対処できる、とは？」への対応）
 --    画面にそのまま出る文のため、原文の意図を保ちつつ具体的な動作を明記する。
 -- ============================================================
@@ -136,7 +93,5 @@ update public.equipment_stop_modes
 --      （①回す・締める7＝id4,55,56,1,5,6,61／②点火の調整2＝id2,60／
 --       ③電気まわり2＝id3,58／④持ち上げる・支える4＝id9,57,10,12／
 --       ⑤応急材料3＝id7,8,59／⑥作業補助5＝id11,13,62,63,64／合計7+2+2+4+3+5=23）
---   C. equipment_stop_modes cause列: 29件
---      （F1〜F5=5, M1〜M6=6, C1〜C2=2, E1〜E5=5, D1〜D4=4, X1〜X3=3, B1=1, K1〜K3=3 ／合計29）
 --   D. equipment_stop_modes need_note 具体化: 3件（F3, M3, E5）
 -- ============================================================
