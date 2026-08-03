@@ -226,6 +226,8 @@
       font-size: 0.75rem; font-weight: 600; text-decoration: none;
       padding: 5px 10px; border-radius: 14px; border: 1px solid var(--border-soft);
       color: var(--text-sub); background: #fff;
+      /* 商品名（link.label）を出すと長くなりうるので、狭い画面でも溢れず折り返す */
+      max-width: 100%; text-align: left; overflow-wrap: anywhere;
     }
     .reco-link-btn:hover { border-color: var(--accent); color: var(--accent); }
     .reco-link-amazon { border-color: #ff9900; color: #b06400; }
@@ -961,8 +963,11 @@
     const url = escapeHtml(link.url || '');
     const itemAttr = escapeHtml(itemName);
     if (link.type === 'amazon') {
+      // label があれば商品名を出す（商品指定リンク用）。無ければ従来どおり検索リンクの文言。
+      // 「オーナーが実際に使っている物」を名指しできる方が推薦として強いため、表示名を優先する。
+      const label = link.label ? escapeHtml(link.label) : 'Amazonで見る';
       return '<a class="reco-link-btn reco-link-amazon" href="' + url + '" target="_blank" rel="nofollow sponsored" data-channel="amazon" data-item="' + itemAttr + '">'
-        + '🛒 Amazonで見る<span class="pr-badge">PR</span></a>';
+        + '🛒 ' + label + '<span class="pr-badge">PR</span></a>';
     }
     if (link.type === 'monotaro') {
       return '<a class="reco-link-btn" href="' + url + '" target="_blank" rel="nofollow" data-channel="monotaro" data-item="' + itemAttr + '">'
