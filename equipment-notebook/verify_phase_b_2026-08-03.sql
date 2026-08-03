@@ -84,12 +84,12 @@ select
   (select count(*) from public.equipment_stop_modes where
      (code = 'F3' and need_note = '外れたプラグコードを差し直す（火傷に注意）') or
      (code = 'M3' and need_note = '冷えるのを待つ。布と水で燃料ポンプを冷やす手も') or
-     (code = 'E5' and need_note = 'エンジンルームのスターター本体のレバーを直接押す（火傷に注意）')
+     (code = 'E5' and need_note = 'エンジンルームのスターター本体のレバーを絶縁の棒等で直接押す（火傷に注意）')
   )::text || ' / 3' as 実測,
   case when (select count(*) from public.equipment_stop_modes where
      (code = 'F3' and need_note = '外れたプラグコードを差し直す（火傷に注意）') or
      (code = 'M3' and need_note = '冷えるのを待つ。布と水で燃料ポンプを冷やす手も') or
-     (code = 'E5' and need_note = 'エンジンルームのスターター本体のレバーを直接押す（火傷に注意）')
+     (code = 'E5' and need_note = 'エンジンルームのスターター本体のレバーを絶縁の棒等で直接押す（火傷に注意）')
   ) = 3 then '✅ 適用済み' else '❌ 未適用' end as 判定
 union all
 select
