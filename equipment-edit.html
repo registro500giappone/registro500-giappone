@@ -408,12 +408,14 @@
       <textarea id="experience-body" placeholder="例: 箱根の帰りにVベルトが切れたが、予備とスパナがあったので路肩で20分ほどで復帰できた。"></textarea>
     </section>
 
-    <!-- 公開設定 -->
+    <!-- 公開設定（既定＝公開。非公開にしたい人だけオフにする） -->
     <section class="card">
-      <h2>この手帳を公開する</h2>
+      <h2>この手帳の公開設定</h2>
       <p class="card-lead">
-        公開すると、装備一覧・メモ・自由追加項目・経験談のすべてが、あなたの車両ページと
-        <a href="equipment.html">装備手帳の公開一覧</a>に表示されます。既定は非公開です。
+        この手帳は<strong>既定で公開されます</strong>。装備一覧・メモ・自由追加項目・経験談が、
+        あなたの車両ページと<a href="equipment.html">装備手帳の公開一覧</a>に表示されます。
+        他のオーナーが何を積んでいるか見えることが、この手帳のいちばんの価値だからです。
+        見せたくない場合は、下のスイッチをオフにしてください。あとからいつでも切り替えられます。
       </p>
       <div class="public-toggle-row">
         <span class="public-toggle-label">この手帳を公開する</span>
@@ -423,7 +425,8 @@
         </label>
       </div>
       <p class="public-warning" id="public-warning">
-        公開すると、この手帳の内容（装備一覧・メモ・自由追加項目・経験談）がすべて誰でも閲覧できるようになります。非公開に戻すこともいつでもできます。
+        公開中です。この手帳の内容（装備一覧・メモ・自由追加項目・経験談）は、すべて誰でも閲覧できます。
+        スイッチをオフにすれば、いつでも非公開に戻せます。
       </p>
     </section>
 
@@ -704,7 +707,9 @@
       document.getElementById('longtrip-freq').value = record.longtrip_freq || '';
     }
     if (experience) document.getElementById('experience-body').value = experience.body || '';
-    document.getElementById('public-toggle').checked = !!(record && record.is_public);
+    // 既定＝公開（2026-08-03 方針変更）。初回＝record無しのときはON、既存記録は保存済みの値を尊重する。
+    // ※既存パイロット6件は false で保存済みのため、この既定変更では公開されない（本人の同意を得てから個別に切り替える）
+    document.getElementById('public-toggle').checked = record ? !!record.is_public : true;
     togglePublicWarning();
   }
 
@@ -1448,6 +1453,21 @@
   document.getElementById('saveBtn').onclick = async () => {
     const btn = document.getElementById('saveBtn');
     const status = document.getElementById('save-status');
+
+    // 既定が公開のため、公開設定セクションまでスクロールせずに保存する人がいる。
+    // 初回保存が公開になるときだけ、知らないうちに公開される事故を防ぐために確認する。
+    if (!record && document.getElementById('public-toggle').checked) {
+      const ok = confirm(
+        'この手帳は公開されます。\n\n' +
+        '装備一覧・メモ・自由追加項目・経験談が、あなたの車両ページと公開一覧に表示され、誰でも閲覧できます。\n\n' +
+        '「キャンセル」を選ぶと非公開で保存します（あとから公開に切り替えられます）。'
+      );
+      if (!ok) {
+        document.getElementById('public-toggle').checked = false;
+        togglePublicWarning();
+      }
+    }
+
     btn.disabled = true; btn.textContent = '保存中…'; status.textContent = '';
 
     try {
