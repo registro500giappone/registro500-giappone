@@ -16,7 +16,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `github` | PR作成・コミット・Issue管理 | GITHUB_PERSONAL_ACCESS_TOKEN |
 | `playwright` | ブラウザ自動操作・サイト確認 | 不要 |
 
-> ⚠️ `.mcp.json`（プロジェクトルート）はgitignore済み。トークンが入っているため**絶対にgit addしない**。
+### `.mcp.json` の方式変更（2026-08-03）
+
+**`.mcp.json` はgit管理対象になった**（旧: gitignore・git add禁止）。クラウドセッション（claude.ai/code）でもSupabase MCPを使えるようにするため、**トークンを直書きせず環境変数から展開する方式**に変更した。
+
+- ファイル内の値は `"SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"` の形。**ファイルに秘密情報は入っていないのでコミットしてよい**。
+- 動かすには環境変数 `SUPABASE_ACCESS_TOKEN` の設定が必要。**ローカルPCはWindowsのユーザー環境変数**に、**クラウドはclaude.ai/codeの環境設定**に登録する。
+- 環境変数が未設定でも設定ファイル自体は壊れない（`claude mcp list` に警告が出て、そのサーバーだけ認証に失敗する）。
+- **クラウド側のsupabaseは `--read-only` 付き**＝参照のみ。**migrationの適用など書き込みはローカルPCから行う**（本番DBを変更する操作は人が居る場所で実行する方針）。
+- トークンを直書きしたローカル専用設定を置きたい場合は `.mcp.local.json`（gitignore済み）を使う。
+
+> ⚠️ 秘密情報を`.mcp.json`に直書きして`git add`しないこと。トークンは必ず環境変数側に置く。
 
 ---
 
@@ -97,8 +107,9 @@ git push origin main           # Cloudflare Pages 自動デプロイがトリガ
 ## 重要なファイル・パス
 
 - `MEMORY.md` → プロジェクト全体のナレッジベース（自動読み込み）
-- `.mcp.json` → MCPサーバー設定（**gitignore済み・ローカルのみ**、トークンが含まれるためgit管理外）
-- `.mcp.json.example` → トークンなしのテンプレート（gitに含む）
+- `.mcp.json` → MCPサーバー設定（**git管理対象**。トークンは直書きせず環境変数 `SUPABASE_ACCESS_TOKEN` から展開。詳細は上記「MCPサーバー構成」）
+- `.mcp.json.example` → 旧方式のテンプレート（github/brevo等の設定例として残置）
+- `.mcp.local.json` → トークン直書きのローカル専用設定を置く場合の名前（gitignore済み）
 - `py/` → クローラースクリプト群（**GitHub Actions用にgit管理対象**、`*.py` / `*.md` はコミット必須。ログ・CSV・機密ファイルは `py/.gitignore` で除外）
 - `126/index.html` → Fiat 126姉妹サイトのトップページ
 - `.claude/agents/` → 専用サブエージェント定義（Haikuモデル）
