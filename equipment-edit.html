@@ -1519,8 +1519,12 @@
     ctx.fillText('Registro500 Giappone', W / 2, 74);
     ctx.font = '400 12px ' + CARD_FONT;
     ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    // 型名・スコアは一切出さない（2026-08-04「主従の再確認」）。称号を持つ人だけ称号名を添える
-    ctx.fillText(data.isMaster ? '車載マエストロ' : 'あなたの装備手帳', W / 2, 98);
+    // 型名・スコアは一切出さない（2026-08-04「主従の再確認」）。称号を持つ人だけ称号名を添える。
+    // 称号が無い人は対象車名を出す（2026-08-05: ここが「あなたの装備手帳」だと1行目と重複していたため）。
+    // 車両未紐付けなら3行目自体を省く（「紐づいていません」は共有画像に載せる情報ではない）
+    const car = myCars.length ? selectedCar() : null;
+    const sub = data.isMaster ? '車載マエストロ' : (car ? carLabel(car) : '');
+    if (sub) ctx.fillText(sub, W / 2, 98);
     ctx.textAlign = 'left';
 
     const originY = HEADER_H + TOP_PAD;
