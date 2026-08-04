@@ -187,9 +187,11 @@
       border-radius: 8px; font-size: 0.9rem; font-family: inherit; line-height: 1.7; resize: vertical;
     }
 
-    /* ===== 結果（3層構造：安全装備／カバレッジ＋一歩先／車載マスター） ===== */
+    /* ===== 結果（3層構造：安全装備／カバレッジ＋一歩先／車載マエストロ） ===== */
     /* 2026-08-04: 4型判定（現地修理型/予防整備型/救援前提型/身軽型）を全廃し3層に置き換え。
-       「名前を持つのは頂点（車載マスター）だけ。それ以外はすべて事実（数字）」（HANDOFF「型の区分け再議論」参照） */
+       「名前を持つのは頂点（車載マエストロ）だけ。それ以外はすべて事実（数字）」（HANDOFF「型の区分け再議論」参照）
+       さらに同日「主従の再確認」で、頂点の判定軸を止まり方のカバー数から装備リストの充足に戻した
+       （主＝装備・従＝止まり方。称号名も「車載マスター」→「車載マエストロ」に変更・HANDOFF参照） */
     #result-section { border: 2px solid var(--accent-soft); }
     .result-stale-note {
       font-size: 0.78rem; color: var(--text-sub); background: var(--accent-soft);
@@ -203,15 +205,19 @@
     .safety-gauge-label { font-size: 0.8rem; font-weight: 700; color: #c62828; margin: 0 0 10px; }
     /* 4/4は大きく祝わず、控えめな一行だけにする */
     .safety-ok { font-size: 0.82rem; font-weight: 700; color: var(--ok); margin: 0 0 20px; }
-    /* 第3層＝車載マスター。称号は1つだけなので視覚的にもここだけ特別扱いする */
+    /* 第3層＝車載マエストロ。称号は1つだけなので視覚的にもここだけ特別扱いする */
     .master-block { margin: 0 0 4px; padding: 16px; background: #fff8e1; border: 1px solid #f0c14b; border-radius: 10px; text-align: center; }
     .master-badge { font-size: 1.15rem; font-weight: 800; color: #9a6b00; margin: 0 0 6px; }
     .master-desc { font-size: 0.85rem; color: var(--text-main); line-height: 1.7; margin: 0 0 8px; }
+    /* 「走る部品庫」付記＝称号は増やさずコメントとして添えるのみ（キャブレター本体＋デスビ本体を両方搭載時のみ表示） */
+    .master-note { font-size: 0.83rem; color: #9a6b00; font-weight: 700; line-height: 1.7; margin: 0 0 10px; }
     .master-invite { font-size: 0.8rem; color: var(--text-sub); margin: 0; }
     .master-invite a { color: var(--accent); font-weight: 700; text-decoration: none; }
     .master-invite a:hover { text-decoration: underline; }
-    .reco-heading { font-size: 0.85rem; font-weight: 700; margin: 16px 0 8px; }
+    .reco-heading { font-size: 0.85rem; font-weight: 700; margin: 16px 0 8px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
     .reco-heading:first-child { margin-top: 0; }
+    /* 「車載マエストロまであとN項目」＝マスターに近い人向け。見出し脇に添える */
+    .reco-subheading { font-size: 0.78rem; font-weight: 700; color: var(--accent); }
     .reco-item { padding: 8px 0; border-top: 1px solid var(--border-soft); }
     .reco-name { font-size: 0.9rem; font-weight: 700; }
     .reco-reason { font-size: 0.78rem; color: var(--text-sub); margin-top: 2px; line-height: 1.6; }
@@ -233,11 +239,10 @@
       border: 1px solid var(--border-soft); border-radius: 4px; padding: 0 3px; line-height: 1.4;
     }
 
-    /* ===== 止まり方カバレッジ（stop_modes取得時のみ表示。第2層＝n/denomの数字表示が主役） ===== */
+    /* ===== 止まり方カバレッジ（stop_modes取得時のみ表示。2026-08-04「主従の再確認」でn/denomの数字表示は撤去し、
+       あなたの装備でできる路上対応のフラット一覧のみに戻した。判定軸ではなく従属の説明情報という位置づけ） ===== */
     .cov-block { margin: 0 0 20px; padding-bottom: 18px; border-bottom: 1px dashed var(--border-soft); }
     .cov-heading { font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin: 0 0 12px; line-height: 1.5; }
-    /* n/denomの数字表示が主役（中間層は無名・事実表示のみ） */
-    .cov-count { margin-left: 8px; color: var(--accent); font-variant-numeric: tabular-nums; }
     .cov-row { padding: 8px 0; border-top: 1px solid var(--border-soft); font-size: 0.82rem; line-height: 1.6; word-break: break-word; }
     .cov-row:first-child { border-top: none; }
     .cov-row-code { font-weight: 700; color: var(--text-main); }
@@ -430,7 +435,7 @@
       </p>
     </section>
 
-    <!-- 結果（保存後に表示：安全装備／カバレッジ＋一歩先／車載マスターの3層） -->
+    <!-- 結果（保存後に表示：安全装備／カバレッジ＋一歩先／車載マエストロの3層） -->
     <section class="card" id="result-section" style="display:none;">
       <p class="result-stale-note" id="result-stale-note" style="display:none;">※前回保存した内容にもとづく判定です。保存すると更新されます</p>
       <div id="result-safety"></div>
@@ -897,10 +902,12 @@
     el.classList.toggle('has', n > 0);
   }
 
-  // ===================== 結果（安全装備／カバレッジ＋一歩先／車載マスターの3層） =====================
+  // ===================== 結果（安全装備／カバレッジ＋一歩先／車載マエストロの3層） =====================
   // 2026-08-04: 4型判定（現地修理型/予防整備型/救援前提型/身軽型）は「人にラベルを貼る」文法で
   // 上から目線と受け取られるため全廃（design-original.md／HANDOFF「型の区分け再議論」参照）。
-  // 「名前を持つのは頂点（車載マスター）だけ。それ以外はすべて事実（数字）」の原則に置き換える。
+  // 「名前を持つのは頂点（車載マエストロ）だけ。それ以外はすべて事実（数字）」の原則に置き換える。
+  // 同日「主従の再確認」でさらに一段：主＝装備、従＝止まり方。止まり方は「あなたの装備ならこれに
+  // 対応できます」と説明するための従属情報にすぎず、頂点の判定軸には一切使わない（HANDOFF参照）。
 
   // 安全装備4点（法律・レスキューの事実として言えるため、唯一ダメ出しが許されるゾーン）。
   // recommend_priorityが1〜4に割り当て済みなのでそのまま表示順として使える
@@ -910,6 +917,55 @@
   const SAFETY_REASON_OVERRIDE = { 39: '高速道路上で停止した際の設置は法律上の義務です' };
   // 一歩先リコメンドの上限。「全員に最大限積ませる」旧設計をやめ一歩先だけ見せるため固定で3件
   const NEXT_STEP_MAX = 3;
+
+  // ===== 車載マエストロ＝マスター装備リストの充足で判定（止まり方のカバー数は判定に一切使わない） =====
+  // 2026-08-04「主従の再確認」で確定。安全装備4点（39,38,44,45）を含む必須48項目（OR条件1組を含む）。
+  // 必須リスト（安全装備4点を含む・47項目）
+  const MASTER_ITEM_IDS = [
+    4, 55, 56, 1, 5, 6, 61, 2, 60, 3, 58, 9, 57, 10, 7, 11, 13, 62, 63, 64,
+    14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 27, 28, 65, 68, 71,
+    29, 31, 32, 33, 70,
+    40, 46,
+    39, 38, 44, 45
+  ];
+  // OR条件グループ：どちらか1つ搭載で充足（自己融着テープ／強力ガムテープ・ダクトテープ）。
+  // 上のMASTER_ITEM_IDS（47項目）とこのOR条件（1件）を合わせて必須48項目になる。
+  const MASTER_OR_GROUPS = [[8, 59]];
+  // 「走る部品庫」付記の対象＝キャブレター本体(66)とデスビ本体(67)を両方搭載。称号は増やさずコメントのみ添える
+  const SPARE_ENGINE_PARTS_IDS = [66, 67];
+
+  // ORグループが充足しているか（グループ内のいずれかが搭載済みか）
+  function isOrGroupSatisfied(group, loadedIds) {
+    return group.some(id => loadedIds.has(id));
+  }
+
+  // 車載マエストロ判定：必須47項目を全て搭載 かつ OR条件グループを各々1つ以上搭載
+  function computeIsMaster(loadedIds) {
+    return MASTER_ITEM_IDS.every(id => loadedIds.has(id))
+      && MASTER_OR_GROUPS.every(group => isOrGroupSatisfied(group, loadedIds));
+  }
+
+  // マエストロ未充足の場合の候補プール（マスターリストのうち未搭載のもの限定。リスト外は薦めない）。
+  // 安全装備は第1層で扱うため除外。ORグループはどちらも未搭載のときだけ両方を候補に加える
+  // （片方でも積めば充足するので、購入の選択肢として両方見せる）
+  function masterUnloadedCandidateIds(loadedIds) {
+    const required = MASTER_ITEM_IDS.filter(id =>
+      SAFETY_ITEM_IDS.indexOf(id) === -1 && !loadedIds.has(id));
+    const orCandidates = [];
+    MASTER_OR_GROUPS.forEach(group => {
+      if (!isOrGroupSatisfied(group, loadedIds)) {
+        group.forEach(id => { if (orCandidates.indexOf(id) === -1) orCandidates.push(id); });
+      }
+    });
+    return required.concat(orCandidates.filter(id => required.indexOf(id) === -1));
+  }
+
+  // 「車載マエストロまであとN項目」のN。必須項目の未搭載数＋未充足のOR条件グループ数（1組=1項目分）
+  function remainingToMasterCount(loadedIds) {
+    const missingRequired = MASTER_ITEM_IDS.filter(id => !loadedIds.has(id)).length;
+    const missingOrGroups = MASTER_OR_GROUPS.filter(group => !isOrGroupSatisfied(group, loadedIds)).length;
+    return missingRequired + missingOrGroups;
+  }
 
   // 購入先チャネルの表示順（国内調達優先。ユーザー確定・変更しない）
   const PURCHASE_CHANNEL_ORDER = ['amazon', 'monotaro', 'shop', 'kurabetaro'];
@@ -941,6 +997,18 @@
     return '';
   }
 
+  // 一歩先リコメンドの「解錠する止まり方」を、コードでも数字でもなく症状文で語る。
+  // 2026-08-04「主従の再確認」：主語は装備、止まり方は従属の説明情報。n/denomは一切出さない。
+  // 複数解錠する場合は症状を最大2件まで並べ、それ以上は「ほか」で省略する
+  function recoUnlockHtml(i) {
+    const modes = Array.isArray(i._unlockModes) ? i._unlockModes : [];
+    if (!modes.length) return '';
+    const syms = modes.map(m => m.sym || m.code).filter(Boolean);
+    const shown = syms.slice(0, 2).map(s => '「' + s + '」').join('');
+    const more = syms.length > 2 ? 'ほか' : '';
+    return '<div class="reco-unlock">→ これを積むと' + escapeHtml(shown + more) + 'に対応できます</div>';
+  }
+
   function recoItemHtml(i) {
     let linksHtml = '';
     if (Array.isArray(i.purchase_links) && i.purchase_links.length) {
@@ -948,11 +1016,8 @@
         PURCHASE_CHANNEL_ORDER.indexOf(a.type) - PURCHASE_CHANNEL_ORDER.indexOf(b.type));
       linksHtml = '<div class="reco-links">' + sorted.map(link => purchaseLinkBtnHtml(link, i.name)).join('') + '</div>';
     }
-    // 一歩先リコメンド（解錠数ベース）にのみ「積んだ後の数字」を添える。安全装備の項目には付かない
-    const unlockHtml = (Array.isArray(i._unlockModes) && i._unlockModes.length)
-      ? '<div class="reco-unlock">これを積むと『' + escapeHtml(i._unlockModes.map(m => m.code).join('・'))
-        + '』にも対処でき ' + i._afterN + '/' + i._denom + 'になります</div>'
-      : '';
+    // 一歩先リコメンド（解錠数ベースの並び）にのみ症状文の付記が付く。安全装備の項目には付かない
+    const unlockHtml = recoUnlockHtml(i);
     return '<div class="reco-item"><div class="reco-name">' + escapeHtml(i.name) + '</div>' +
       '<div class="reco-reason">' + escapeHtml(i.reason) + '</div>' + unlockHtml + linksHtml + '</div>';
   }
@@ -1014,6 +1079,27 @@
     return map;
   }
 
+  // マスターリスト限定の一歩先リコメンドを構築する。
+  // candidateIds: masterUnloadedCandidateIds()の結果（マスターリストのうち未搭載のもの限定）。
+  // coverageがある場合は「それを積むと新たに対応できるようになる止まり方の数」降順、同数はrecommend_priority昇順（nullは最後）。
+  // 解錠数0の項目もマスターリスト内なら候補に残す（リストを埋めることが目的のため。旧「候補0件は除外」設計は撤去）。
+  // coverageが無い（フォールバック）場合はrecommend_priority昇順のみでランキングする。
+  function buildNextSteps(candidateIds, coverage) {
+    const unlockMap = coverage ? unlockMapFromUncovered(coverage.uncovered) : {};
+    return candidateIds
+      .map(id => items.find(i => i.id === id))
+      .filter(Boolean)
+      .map(i => Object.assign({}, i, { _unlockModes: unlockMap[i.id] || [] }))
+      .sort((a, b) => {
+        const diff = b._unlockModes.length - a._unlockModes.length;
+        if (diff) return diff;
+        const pa = a.recommend_priority == null ? Infinity : a.recommend_priority;
+        const pb = b.recommend_priority == null ? Infinity : b.recommend_priority;
+        return pa - pb;
+      })
+      .slice(0, NEXT_STEP_MAX);
+  }
+
   // DOM表示・画像化の両方が使う共通データ（本人の回答から算出。統計は使わない＝フェーズ1）
   function computeResultData() {
     const loadedIds = new Set(items.filter(i => state[i.id].frequency).map(i => i.id));
@@ -1028,47 +1114,26 @@
     const safetyDoneCount = SAFETY_ITEM_IDS.length - safetyMissing.length;
     const safetyFull = safetyMissing.length === 0;
 
-    // 第3層＝車載マスター（22/22 かつ 安全装備4/4）。stop_modes未取得時は判定できない
-    const isMaster = !!coverage && coverage.n === coverage.denom && safetyFull;
+    // 第3層＝車載マエストロ。マスター装備リストの充足だけで判定する（止まり方のカバー数は使わない）。
+    // stop_modes未取得時でも装備リストだけで判定できる＝フォールバックでも動く
+    const isMaster = computeIsMaster(loadedIds);
+    // 「走る部品庫」の付記＝マエストロ かつ キャブレター本体・デスビ本体を両方搭載のときだけ（称号は増やさずコメントのみ）
+    const isSpareEngineParts = isMaster && SPARE_ENGINE_PARTS_IDS.every(id => loadedIds.has(id));
+    // 「車載マエストロまであとN項目」（残り3項目以下のときだけ見出し脇に表示する）
+    const remainingToMaster = remainingToMasterCount(loadedIds);
 
-    // 第2層＝一歩先リコメンド。マスターなら次の一手は無い
-    let nextSteps = [];
-    if (!isMaster) {
-      if (coverage) {
-        // stop_modes取得時：解錠数（それを積むと新たにcoveredになる止まり方の数）降順、
-        // 同数はrecommend_priority昇順（nullは最後）でランキングし、上位NEXT_STEP_MAX件だけを返す。
-        // 「全員に最大限積ませる」旧設計（枠余りを編集部推奨で埋める）は廃止＝解錠数0の項目は候補にしない。
-        const unlockMap = unlockMapFromUncovered(coverage.uncovered);
-        nextSteps = items
-          .filter(i => SAFETY_ITEM_IDS.indexOf(i.id) === -1 && !state[i.id].frequency && unlockMap[i.id])
-          .map(i => Object.assign({}, i, { _unlockModes: unlockMap[i.id] }))
-          .sort((a, b) => {
-            const diff = b._unlockModes.length - a._unlockModes.length;
-            if (diff) return diff;
-            const pa = a.recommend_priority == null ? Infinity : a.recommend_priority;
-            const pb = b.recommend_priority == null ? Infinity : b.recommend_priority;
-            return pa - pb;
-          })
-          .slice(0, NEXT_STEP_MAX)
-          .map(i => Object.assign({}, i, { _afterN: coverage.n + i._unlockModes.length, _denom: coverage.denom }));
-      } else {
-        // フォールバック（stop_modes未取得）：カバレッジが計算できないため従来どおりrecommend_priority順
-        nextSteps = items
-          .filter(i => SAFETY_ITEM_IDS.indexOf(i.id) === -1 && !state[i.id].frequency && i.recommend_priority != null)
-          .sort((a, b) => a.recommend_priority - b.recommend_priority)
-          .slice(0, NEXT_STEP_MAX);
-      }
-    }
+    // 第2層＝一歩先リコメンド。マエストロなら次の一手は無い
+    const nextSteps = isMaster ? [] : buildNextSteps(masterUnloadedCandidateIds(loadedIds), coverage);
 
-    return { safetyMissing, safetyDoneCount, safetyFull, coverage, isMaster, nextSteps };
+    return { safetyMissing, safetyDoneCount, safetyFull, coverage, isMaster, isSpareEngineParts, remainingToMaster, nextSteps };
   }
 
   // 表示分岐（見出し・文言）を1箇所に集約。DOM描画とCanvas描画で文言が食い違わないようにする
   function buildResultSections(data) {
     const sec = {
       safetyHeading: null, safetyGaugeLabel: null, safetyOkText: null,
-      masterTitle: null, masterDesc: null, masterInvite: null,
-      nextHeading: null
+      masterTitle: null, masterDesc: null, masterNote: null, masterInvite: null,
+      nextHeading: null, nextSubheading: null
     };
     if (data.safetyFull) {
       // 4/4は大きく祝わず、控えめな一行だけにする
@@ -1078,13 +1143,20 @@
       sec.safetyGaugeLabel = '安全装備 ' + data.safetyDoneCount + '/' + SAFETY_ITEM_IDS.length;
     }
     if (data.isMaster) {
-      sec.masterTitle = '🏆 車載マスター';
-      sec.masterDesc = '路上で対処しうる' + data.coverage.denom + 'の止まり方を、すべてカバーしています。'
-        + 'あなたの手帳は、他のオーナーの教科書です。';
+      sec.masterTitle = '🏆 車載マエストロ';
+      sec.masterDesc = 'マスター装備リストをすべて満たしています。あなたの手帳は、他のオーナーの教科書です。';
       sec.masterInvite = '手帳を公開すると、みんなの装備手帳の一覧で紹介されます。';
+      // 「走る部品庫」＝称号は増やさずコメントとして添えるのみ
+      if (data.isSpareEngineParts) {
+        sec.masterNote = '🌟 しかも、交換用のキャブレターとデスビまで積んでいます。走る部品庫です。';
+      }
     } else if (data.nextSteps.length) {
       // 中間層は無名。解錠数ベースかフォールバックかで見出しの語り口だけ変える
       sec.nextHeading = data.coverage ? '一歩先の備え' : '編集部のおすすめ';
+      // マスターに近い人向け。残り3項目以下のときだけ見出し脇に表示する
+      if (data.remainingToMaster <= 3) {
+        sec.nextSubheading = '車載マエストロまであと' + data.remainingToMaster + '項目';
+      }
     }
     return sec;
   }
@@ -1117,10 +1189,11 @@
     const coveredHtml = coverage.covered.map(m => covRowHtml(m)).join('');
     const body = (handsHtml || coveredHtml)
       ? handsHtml + coveredHtml
-      : '<p class="cov-empty">保存済みの装備で対応できるトラブルはまだありません。下のおすすめが参考になります</p>';
+      : '<p class="cov-empty">保存済みの装備でできる路上対応はまだありません。下のおすすめが参考になります</p>';
 
+    // 2026-08-04「主従の再確認」でn/denomの数字表示は撤去し、フラット一覧のみに戻した（判定軸は装備リストの充足）
     return '<div class="cov-block">' +
-      '<p class="cov-heading">あなたの装備でできる路上対応<span class="cov-count">' + coverage.n + '/' + coverage.denom + '</span></p>' +
+      '<p class="cov-heading">あなたの装備でできる路上対応</p>' +
       body + REPAIR_WIKI_LINK +
       '</div>';
   }
@@ -1144,16 +1217,22 @@
     // 第2層＝カバレッジ（既存の一覧はそのまま維持。n/denomの数字表示を主役として添える）
     document.getElementById('result-coverage').innerHTML = buildCoverageHtml(data.coverage);
 
-    // 一歩先リコメンド（最大3件。マスター時・候補0件のときはブロックごと出さない）
+    // 一歩先リコメンド（最大3件。マエストロ時・候補0件のときはブロックごと出さない）
+    // 見出し脇に「車載マエストロまであとN項目」を添える（残り3項目以下のときのみ）
+    const nextHeadingHtml = sec.nextHeading
+      ? escapeHtml(sec.nextHeading) + (sec.nextSubheading
+        ? '<span class="reco-subheading">' + escapeHtml(sec.nextSubheading) + '</span>' : '')
+      : '';
     document.getElementById('result-next').innerHTML = sec.nextHeading
-      ? '<div class="next-block"><p class="reco-heading">' + escapeHtml(sec.nextHeading) + '</p>' +
+      ? '<div class="next-block"><p class="reco-heading">' + nextHeadingHtml + '</p>' +
         data.nextSteps.map(recoItemHtml).join('') + '</div>'
       : '';
 
-    // 第3層＝車載マスター（唯一の称号）
+    // 第3層＝車載マエストロ（唯一の称号。「走る部品庫」は称号を増やさずコメントとして添えるのみ）
     document.getElementById('result-master').innerHTML = data.isMaster
       ? '<div class="master-block"><p class="master-badge">' + escapeHtml(sec.masterTitle) + '</p>' +
         '<p class="master-desc">' + escapeHtml(sec.masterDesc) + '</p>' +
+        (sec.masterNote ? '<p class="master-note">' + escapeHtml(sec.masterNote) + '</p>' : '') +
         '<p class="master-invite">' + escapeHtml(sec.masterInvite) + ' <a href="equipment.html">装備手帳の公開一覧を見る</a></p></div>'
       : '';
 
@@ -1198,8 +1277,23 @@
     return y;
   }
 
+  // 症状文の羅列を描画する（カバレッジ一覧用。項目名でなく症状名の列挙＝型名・スコアは出さない）
+  function layoutSymptomSection(mctx, cmds, y, cw, heading, syms, fHead, fBody) {
+    cmds.push({ y, text: heading, font: fHead, color: '#111827' });
+    y += 10;
+    mctx.font = fBody;
+    syms.forEach(sym => {
+      wrapText(mctx, '・' + sym, cw).forEach(line => {
+        y += 19;
+        cmds.push({ y, text: line, font: fBody, color: '#374151' });
+      });
+    });
+    return y;
+  }
+
   // 描画コマンド列とコンテンツ高さを算出（フォントは計測にも描画にも同じ文字列を使う）
-  // DOMの3層構造（安全装備／カバレッジ＋一歩先／車載マスター）と文言・順序を揃える
+  // DOMの3層構造（安全装備／カバレッジ＋一歩先／車載マエストロ）と文言・順序を揃える。
+  // 2026-08-04「主従の再確認」でn/denomの数字は一切出さない（型名・スコアは出さない方針）
   function layoutResultContent(mctx, data, cw) {
     const F_BIG = '700 22px ' + CARD_FONT, F_DESC = '400 15px ' + CARD_FONT, F_HEAD = '700 15px ' + CARD_FONT,
           F_NAME = '700 16px ' + CARD_FONT, F_REASON = '400 13px ' + CARD_FONT;
@@ -1215,23 +1309,32 @@
         data.safetyMissing, F_BIG, F_NAME, F_REASON, '#c62828');
     }
 
-    // 第3層＝車載マスター、第2層＝カバレッジ＋一歩先（stop_modes未取得時は編集部のおすすめのみ）
+    // 第3層＝車載マエストロ、第2層＝カバレッジ（症状名の列挙）＋一歩先（stop_modes未取得時は編集部のおすすめのみ）
     if (data.isMaster) {
       y += 26;
-      cmds.push({ y, text: '🏆 車載マスター', font: F_BIG, color: '#9a6b00' });
+      cmds.push({ y, text: '🏆 車載マエストロ', font: F_BIG, color: '#9a6b00' });
       mctx.font = F_DESC;
-      wrapText(mctx, '路上で対処しうる' + data.coverage.denom + 'の止まり方を、すべてカバーしています。', cw).forEach(line => {
+      wrapText(mctx, 'マスター装備リストをすべて満たしています。', cw).forEach(line => {
         y += 22;
         cmds.push({ y, text: line, font: F_DESC, color: '#111827' });
       });
-    } else if (data.coverage) {
-      y += 26;
-      cmds.push({ y, text: '対応できるトラブル ' + data.coverage.n + '/' + data.coverage.denom, font: F_BIG, color: '#2856a8' });
-      if (data.nextSteps.length) {
-        y = layoutSection(mctx, cmds, y + 20, cw, '一歩先の備え', data.nextSteps, F_HEAD, F_NAME, F_REASON);
+      if (data.isSpareEngineParts) {
+        wrapText(mctx, '🌟 交換用のキャブレターとデスビまで積んだ、走る部品庫です。', cw).forEach(line => {
+          y += 22;
+          cmds.push({ y, text: line, font: F_DESC, color: '#9a6b00' });
+        });
       }
-    } else if (data.nextSteps.length) {
-      y = layoutSection(mctx, cmds, y + 26, cw, '編集部のおすすめ', data.nextSteps, F_HEAD, F_NAME, F_REASON);
+    } else {
+      if (data.coverage) {
+        const syms = data.coverage.hands.concat(data.coverage.covered).map(m => m.sym).filter(Boolean);
+        if (syms.length) {
+          y = layoutSymptomSection(mctx, cmds, y + 26, cw, 'あなたの装備でできる路上対応', syms, F_HEAD, F_REASON);
+        }
+      }
+      if (data.nextSteps.length) {
+        const heading = data.coverage ? '一歩先の備え' : '編集部のおすすめ';
+        y = layoutSection(mctx, cmds, y + 20, cw, heading, data.nextSteps, F_HEAD, F_NAME, F_REASON);
+      }
     }
     return { cmds, height: y + 12 };
   }
@@ -1266,8 +1369,9 @@
     ctx.fillText('Registro500 Giappone', W / 2, 74);
     ctx.font = '400 12px ' + CARD_FONT;
     ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    // 型名・スコアは一切出さない（2026-08-04「主従の再確認」）。マエストロでなければ一覧の見出しのみ
     ctx.fillText(
-      data.isMaster ? '🏆 車載マスター' : (data.coverage ? '対応できるトラブル ' + data.coverage.n + '/' + data.coverage.denom : '装備の記録'),
+      data.isMaster ? '🏆 車載マエストロ' : 'あなたの装備でできる路上対応',
       W / 2, 98
     );
     ctx.textAlign = 'left';
@@ -1303,13 +1407,13 @@
       const canvas = buildResultCanvas(data);
       const a = document.createElement('a');
       a.href = canvas.toDataURL('image/png');
-      // ファイル名にも「名前でなく数字」の原則を反映（マスター時のみ称号を使う）
-      const label = data.isMaster ? '車載マスター' : (data.coverage ? 'n' + data.coverage.n + '_' + data.coverage.denom : '記録');
+      // ファイル名も型名・スコアを出さない（2026-08-04「主従の再確認」。マエストロ時のみ称号を使う）
+      const label = data.isMaster ? '車載マエストロ' : '記録';
       a.download = '装備手帳_' + label + '.png';
       document.body.appendChild(a);
       a.click();
       a.remove();
-      track('equipment_save_image', { is_master: data.isMaster, coverage_n: data.coverage ? data.coverage.n : null });
+      track('equipment_save_image', { is_master: data.isMaster });
     } catch (e) {
       console.error(e);
       alert('画像の生成に失敗しました。');
