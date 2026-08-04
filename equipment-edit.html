@@ -214,6 +214,8 @@
     .master-invite { font-size: 0.8rem; color: var(--text-sub); margin: 0; }
     .master-invite a { color: var(--accent); font-weight: 700; text-decoration: none; }
     .master-invite a:hover { text-decoration: underline; }
+    /* マエストロ未達成の人向けの控えめな進捗行（.safety-okと同じトーン。称号ではないのでアクセント色に留める） */
+    .master-progress { font-size: 0.82rem; font-weight: 700; color: var(--accent); margin: 0; }
     .reco-heading { font-size: 0.85rem; font-weight: 700; margin: 16px 0 8px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
     .reco-heading:first-child { margin-top: 0; }
     /* 「車載マエストロまであとN項目」＝マスターに近い人向け。見出し脇に添える */
@@ -918,53 +920,64 @@
   // 一歩先リコメンドの上限。「全員に最大限積ませる」旧設計をやめ一歩先だけ見せるため固定で3件
   const NEXT_STEP_MAX = 3;
 
-  // ===== 車載マエストロ＝マスター装備リストの充足で判定（止まり方のカバー数は判定に一切使わない） =====
-  // 2026-08-04「主従の再確認」で確定。安全装備4点（39,38,44,45）を含む必須48項目（OR条件1組を含む）。
-  // 必須リスト（安全装備4点を含む・47項目）
+  // ===== 車載マエストロ＝マスター装備リストの90%充足で判定（止まり方のカバー数は判定に一切使わない） =====
+  // 2026-08-04「マエストロ認定＝50項目中45項目以上（90%）」で最終確定（HANDOFF参照）。
+  // マスター装備リスト（安全装備4点を含む・50項目）。
+  // 従来はテープ類（自己融着／強力ガムテープ）をOR条件（どちらか1つでOK）で扱っていたが、
+  // 90%の余白が「テープはどちらか片方」を自然に吸収するためOR条件の仕組み自体が不要になり、
+  // 通常項目2件として編入。さらにタイミングライト(id74・デスビの点火時期調整に必須・2026-08-04新規追加)
+  // を加えて 47（従来の必須項目）＋2（テープ類）＋1（タイミングライト）＝50項目にした。
   const MASTER_ITEM_IDS = [
     4, 55, 56, 1, 5, 6, 61, 2, 60, 3, 58, 9, 57, 10, 7, 11, 13, 62, 63, 64,
     14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 27, 28, 65, 68, 71,
     29, 31, 32, 33, 70,
     40, 46,
-    39, 38, 44, 45
+    39, 38, 44, 45,
+    8, 59, 74
   ];
-  // OR条件グループ：どちらか1つ搭載で充足（自己融着テープ／強力ガムテープ・ダクトテープ）。
-  // 上のMASTER_ITEM_IDS（47項目）とこのOR条件（1件）を合わせて必須48項目になる。
-  const MASTER_OR_GROUPS = [[8, 59]];
+  // マエストロ認定の必要割合（90%）。ハードコードせず比率で定数化する（50項目なら45項目）
+  const MAESTRO_THRESHOLD_RATIO = 0.9;
   // 「走る部品庫」付記の対象＝キャブレター本体(66)とデスビ本体(67)を両方搭載。称号は増やさずコメントのみ添える
   const SPARE_ENGINE_PARTS_IDS = [66, 67];
 
-  // ORグループが充足しているか（グループ内のいずれかが搭載済みか）
-  function isOrGroupSatisfied(group, loadedIds) {
-    return group.some(id => loadedIds.has(id));
+  // MASTER_ITEM_IDSのうちitemsカタログに実在するものだけを判定対象にする。
+  // id74（タイミングライト）はmigration `master_items_2026-08-04.sql` が未適用の環境では
+  // itemsに存在しない。存在しないidを母数に含めたまま判定すると、どれだけ搭載しても
+  // 届かない基準になってしまう（=ユーザーの不利益）ため、存在する項目だけで割合を計算する。
+  // 例: 未適用時は母数49→必要数ceil(49*0.9)=45（適用後の母数50→必要数45と同じ。
+  // 1項目分の増減では必要数が変わらないため、migration適用前後でユーザーが不利益を被らない）。
+  function masterExistingItemIds() {
+    return MASTER_ITEM_IDS.filter(id => items.some(i => i.id === id));
   }
 
-  // 車載マエストロ判定：必須47項目を全て搭載 かつ OR条件グループを各々1つ以上搭載
+  // マスター装備リストの充足状況（搭載数／必要数／不足数）をまとめて算出する。
+  // computeIsMaster・remainingToMasterCount・進捗表示（#result-master）が共通して使う。
+  function computeMasterProgress(loadedIds) {
+    const existing = masterExistingItemIds();
+    const loaded = existing.filter(id => loadedIds.has(id)).length;
+    const required = Math.ceil(existing.length * MAESTRO_THRESHOLD_RATIO);
+    return { loaded: loaded, required: required, remaining: Math.max(0, required - loaded) };
+  }
+
+  // 車載マエストロ判定：マスター装備リストの90%以上を搭載 かつ 安全装備4点を全て搭載。
+  // 安全装備は90%の計算対象にも含まれる（=50項目の一部）が、それとは別に必須条件でもある
+  // （90%を満たしていても安全装備が1つでも欠けていればマエストロにならない）。
   function computeIsMaster(loadedIds) {
-    return MASTER_ITEM_IDS.every(id => loadedIds.has(id))
-      && MASTER_OR_GROUPS.every(group => isOrGroupSatisfied(group, loadedIds));
+    const progress = computeMasterProgress(loadedIds);
+    const safetyFull = SAFETY_ITEM_IDS.every(id => loadedIds.has(id));
+    return progress.loaded >= progress.required && safetyFull;
   }
 
   // マエストロ未充足の場合の候補プール（マスターリストのうち未搭載のもの限定。リスト外は薦めない）。
-  // 安全装備は第1層で扱うため除外。ORグループはどちらも未搭載のときだけ両方を候補に加える
-  // （片方でも積めば充足するので、購入の選択肢として両方見せる）
+  // 安全装備は第1層で扱うため除外。90%方式ではOR条件が不要になったため単純なフィルタのみでよい。
   function masterUnloadedCandidateIds(loadedIds) {
-    const required = MASTER_ITEM_IDS.filter(id =>
+    return MASTER_ITEM_IDS.filter(id =>
       SAFETY_ITEM_IDS.indexOf(id) === -1 && !loadedIds.has(id));
-    const orCandidates = [];
-    MASTER_OR_GROUPS.forEach(group => {
-      if (!isOrGroupSatisfied(group, loadedIds)) {
-        group.forEach(id => { if (orCandidates.indexOf(id) === -1) orCandidates.push(id); });
-      }
-    });
-    return required.concat(orCandidates.filter(id => required.indexOf(id) === -1));
   }
 
-  // 「車載マエストロまであとN項目」のN。必須項目の未搭載数＋未充足のOR条件グループ数（1組=1項目分）
+  // 「車載マエストロまであとN項目」のN＝必要数に対する搭載数の不足分。
   function remainingToMasterCount(loadedIds) {
-    const missingRequired = MASTER_ITEM_IDS.filter(id => !loadedIds.has(id)).length;
-    const missingOrGroups = MASTER_OR_GROUPS.filter(group => !isOrGroupSatisfied(group, loadedIds)).length;
-    return missingRequired + missingOrGroups;
+    return computeMasterProgress(loadedIds).remaining;
   }
 
   // 購入先チャネルの表示順（国内調達優先。ユーザー確定・変更しない）
@@ -1114,18 +1127,19 @@
     const safetyDoneCount = SAFETY_ITEM_IDS.length - safetyMissing.length;
     const safetyFull = safetyMissing.length === 0;
 
-    // 第3層＝車載マエストロ。マスター装備リストの充足だけで判定する（止まり方のカバー数は使わない）。
+    // 第3層＝車載マエストロ。マスター装備リストの90%充足＋安全装備4点で判定する（止まり方のカバー数は使わない）。
     // stop_modes未取得時でも装備リストだけで判定できる＝フォールバックでも動く
+    const masterProgress = computeMasterProgress(loadedIds);
     const isMaster = computeIsMaster(loadedIds);
     // 「走る部品庫」の付記＝マエストロ かつ キャブレター本体・デスビ本体を両方搭載のときだけ（称号は増やさずコメントのみ）
     const isSpareEngineParts = isMaster && SPARE_ENGINE_PARTS_IDS.every(id => loadedIds.has(id));
     // 「車載マエストロまであとN項目」（残り3項目以下のときだけ見出し脇に表示する）
-    const remainingToMaster = remainingToMasterCount(loadedIds);
+    const remainingToMaster = masterProgress.remaining;
 
     // 第2層＝一歩先リコメンド。マエストロなら次の一手は無い
     const nextSteps = isMaster ? [] : buildNextSteps(masterUnloadedCandidateIds(loadedIds), coverage);
 
-    return { safetyMissing, safetyDoneCount, safetyFull, coverage, isMaster, isSpareEngineParts, remainingToMaster, nextSteps };
+    return { safetyMissing, safetyDoneCount, safetyFull, coverage, isMaster, isSpareEngineParts, remainingToMaster, masterProgress, nextSteps };
   }
 
   // 表示分岐（見出し・文言）を1箇所に集約。DOM描画とCanvas描画で文言が食い違わないようにする
@@ -1133,6 +1147,7 @@
     const sec = {
       safetyHeading: null, safetyGaugeLabel: null, safetyOkText: null,
       masterTitle: null, masterDesc: null, masterNote: null, masterInvite: null,
+      masterProgressText: null,
       nextHeading: null, nextSubheading: null
     };
     if (data.safetyFull) {
@@ -1144,17 +1159,24 @@
     }
     if (data.isMaster) {
       sec.masterTitle = '🏆 車載マエストロ';
-      sec.masterDesc = 'マスター装備リストをすべて満たしています。あなたの手帳は、他のオーナーの教科書です。';
+      sec.masterDesc = 'マスター装備リストの90%以上を満たしています。あなたの手帳は、他のオーナーの教科書です。';
       sec.masterInvite = '手帳を公開すると、みんなの装備手帳の一覧で紹介されます。';
       // 「走る部品庫」＝称号は増やさずコメントとして添えるのみ
       if (data.isSpareEngineParts) {
         sec.masterNote = '🌟 しかも、交換用のキャブレターとデスビまで積んでいます。走る部品庫です。';
       }
-    } else if (data.nextSteps.length) {
+    } else {
+      // マエストロ未達成の人向けに、現在の充足状況を控えめな1行で示す（第2層の一歩先リコメンドと
+      // 重複しないよう小さく1行に留める。安全装備が原因で未達成でも搭載数の進捗自体は別情報として出す）
+      sec.masterProgressText = '車載マエストロ ' + data.masterProgress.loaded + '/' + data.masterProgress.required + '項目';
+    }
+    if (!data.isMaster && data.nextSteps.length) {
       // 中間層は無名。解錠数ベースかフォールバックかで見出しの語り口だけ変える
       sec.nextHeading = data.coverage ? '一歩先の備え' : '編集部のおすすめ';
       // マスターに近い人向け。残り3項目以下のときだけ見出し脇に表示する
-      if (data.remainingToMaster <= 3) {
+      // （安全装備不足だけが原因で未達成の場合はremainingToMasterが0になり得るため、
+      // 　0以下のときは表示しない＝第1層の安全装備ブロックが既に警告を出しているため重複させない）
+      if (data.remainingToMaster > 0 && data.remainingToMaster <= 3) {
         sec.nextSubheading = '車載マエストロまであと' + data.remainingToMaster + '項目';
       }
     }
@@ -1228,13 +1250,14 @@
         data.nextSteps.map(recoItemHtml).join('') + '</div>'
       : '';
 
-    // 第3層＝車載マエストロ（唯一の称号。「走る部品庫」は称号を増やさずコメントとして添えるのみ）
+    // 第3層＝車載マエストロ（唯一の称号。「走る部品庫」は称号を増やさずコメントとして添えるのみ）。
+    // 未達成の人には、控えめな進捗行（例「車載マエストロ 38/45項目」）だけを1行出す。
     document.getElementById('result-master').innerHTML = data.isMaster
       ? '<div class="master-block"><p class="master-badge">' + escapeHtml(sec.masterTitle) + '</p>' +
         '<p class="master-desc">' + escapeHtml(sec.masterDesc) + '</p>' +
         (sec.masterNote ? '<p class="master-note">' + escapeHtml(sec.masterNote) + '</p>' : '') +
         '<p class="master-invite">' + escapeHtml(sec.masterInvite) + ' <a href="equipment.html">装備手帳の公開一覧を見る</a></p></div>'
-      : '';
+      : '<p class="master-progress">' + escapeHtml(sec.masterProgressText) + '</p>';
 
     // 表示中のリコメンドにAmazonリンクが1つでも含まれる場合のみPR開示文を出す
     const shownItems = data.safetyMissing.concat(data.nextSteps);
