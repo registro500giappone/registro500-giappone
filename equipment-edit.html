@@ -187,33 +187,33 @@
       border-radius: 8px; font-size: 0.9rem; font-family: inherit; line-height: 1.7; resize: vertical;
     }
 
-    /* ===== 結果（車載マエストロ／安全装備／対応一覧／一歩先） ===== */
+    /* ===== 結果（車載マエストロ／安全装備／一歩先／常備品） ===== */
     /* 2026-08-04: 4型判定（現地修理型/予防整備型/救援前提型/身軽型）を全廃した。
-       「名前を持つのは頂点（車載マエストロ）だけ。それ以外はすべて事実（数字）」（HANDOFF「型の区分け再議論」参照）
-       さらに同日「主従の再確認」で、頂点の判定軸を止まり方のカバー数から装備リストの充足に戻した
-       （主＝装備・従＝止まり方。称号名も「車載マスター」→「車載マエストロ」に変更・HANDOFF参照） */
-    /* 2026-08-04 デザイン改修（ユーザー指摘「入力欄と結果表示が地続きでなんだかわからない」）:
-       ①入力カードと物理的に切断する＝白い .card をやめ、濃紺ヘッダー＋余白で「別の紙」に見せる
-       ②開いた瞬間に結論（称号 or 進捗）が目に入る＝ヒーローを最上部へ
-       ③称号 > 対応一覧 > 一歩先 の序列を文字サイズと色で付ける
-       ヘッダーの濃紺は結果カード画像（buildResultCanvas）のグラデーションと同じ色にして、
-       画面とダウンロード画像が同じものだと分かるようにしている。 */
+       「名前を持つのは頂点（車載マエストロ）だけ。それ以外はすべて事実」（HANDOFF「型の区分け再議論」参照）
+       同日「主従の再確認」で、頂点の判定軸を装備リストの充足に戻した（主＝装備）。
+       同日デザイン改修 第2稿（ユーザー指摘「まだインパクトが弱い。デザインの敗北。もっと明確に入力パートと区別して」）:
+       ①カードの枠線では足りないので、ページ幅を突き抜けた全幅の濃紺面にして面ごと切り替える
+       ②ヘッダー帯の進捗チップは「唐突」との指摘で廃止（数字はどこにも出さない）
+       ③車載マエストロはデザインしたシールロゴ（インラインSVG）にする */
     .result-shell {
-      margin: 40px 0 16px; border-radius: var(--radius-lg); overflow: hidden;
-      background: var(--card-bg); box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+      /* .page(max-width:800px)+body padding を突き抜けて全幅にする。html に overflow-x:hidden があるので 100vw で溢れない */
+      margin: 52px calc(50% - 50vw) 0; width: 100vw; padding: 0 0 30px;
+      background: linear-gradient(180deg, #0f2547 0%, #1d3f8a 58%, #24509e 100%);
+      overflow: hidden;
     }
-    .result-topbar {
-      display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
-      padding: 12px 16px; background: linear-gradient(90deg, #1d3f8a 0%, #2856a8 100%); color: #fff;
+    .result-banner { text-align: center; color: #fff; padding: 34px 20px 24px; }
+    .result-banner-eyebrow {
+      font-size: 0.64rem; font-weight: 700; letter-spacing: 0.42em; text-indent: 0.42em;
+      color: rgba(255,255,255,0.62); margin: 0 0 10px;
     }
-    .result-topbar-title { font-size: 0.95rem; font-weight: 800; letter-spacing: 0.04em; }
-    /* マエストロ未達成の人の進捗（例「車載マエストロ 38/45項目」）。称号ではないので帯の中の控えめなチップに留める */
-    .result-topbar-chip {
-      font-size: 0.75rem; font-weight: 700; color: #fff;
-      background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
-      border-radius: 999px; padding: 3px 10px; white-space: nowrap;
+    .result-banner-title { font-size: 1.55rem; font-weight: 800; margin: 0 0 8px; line-height: 1.35; }
+    .result-banner-sub { font-size: 0.8rem; color: rgba(255,255,255,0.78); margin: 0; line-height: 1.7; }
+    .result-banner-rule { width: 46px; height: 3px; border-radius: 2px; background: #f0c14b; margin: 14px auto 0; }
+    .result-inner { max-width: 800px; margin: 0 auto; padding: 0 16px; }
+    .result-body {
+      background: var(--card-bg); border-radius: 14px; padding: 20px 16px;
+      box-shadow: 0 14px 34px rgba(8, 20, 45, 0.34);
     }
-    .result-body { padding: 18px 16px; }
     .result-stale-note {
       font-size: 0.78rem; color: var(--text-sub); background: var(--accent-soft);
       border-radius: 8px; padding: 8px 10px; margin: 0 0 14px; line-height: 1.6;
@@ -232,14 +232,15 @@
       display: inline-block; font-size: 0.78rem; font-weight: 700; color: var(--ok);
       background: #eaf5ee; border-radius: 999px; padding: 4px 10px; margin: 0 0 16px;
     }
-    /* 車載マエストロ＝唯一の称号。序列の頂点なので結果の最上部（ヒーロー）に置き、金色と最大文字で特別扱いする。
-       未達成の人にはヒーロー自体を出さない（進捗はヘッダー帯のチップに退避＝ダメ出しにしない） */
+    /* 車載マエストロ＝唯一の称号。序列の頂点なので結果の最上部（ヒーロー）に置く。
+       2026-08-04 第2稿でユーザー要望によりデザインしたシールロゴ（インラインSVG）にした。
+       未達成の人にはヒーロー自体を出さない（進捗の数字はどこにも出さない＝チップ廃止） */
     .master-block {
-      margin: 0 0 22px; padding: 20px 16px; background: linear-gradient(160deg, #fffdf5 0%, #fdf0cd 100%);
-      border: 1px solid #f0c14b; border-radius: 12px; text-align: center;
-      box-shadow: 0 2px 10px rgba(154, 107, 0, 0.12);
+      margin: 0 0 22px; padding: 4px 0 18px; text-align: center;
+      border-bottom: 1px dashed var(--border-soft);
     }
-    .master-badge { font-size: 1.5rem; font-weight: 800; color: #9a6b00; margin: 0 0 8px; line-height: 1.35; }
+    .maestro-seal { width: 172px; height: 172px; display: block; margin: 0 auto 10px; }
+    .maestro-seal text { font-family: var(--font-sans); }
     .master-desc { font-size: 0.88rem; color: var(--text-main); line-height: 1.8; margin: 0 0 8px; }
     /* 「走る部品庫」付記＝称号は増やさずコメントとして添えるのみ（キャブレター本体＋デスビ本体を両方搭載時のみ表示） */
     .master-note { font-size: 0.83rem; color: #9a6b00; font-weight: 700; line-height: 1.7; margin: 0 0 10px; }
@@ -271,35 +272,12 @@
       border: 1px solid var(--border-soft); border-radius: 4px; padding: 0 3px; line-height: 1.4;
     }
 
-    /* ===== 止まり方カバレッジ（stop_modes取得時のみ表示。2026-08-04「主従の再確認」でn/denomの数字表示は撤去し、
-       あなたの装備でできる路上対応のフラット一覧のみに戻した。判定軸ではなく従属の説明情報という位置づけ） ===== */
-    /* 2026-08-04 デザイン改修: 一覧が「コード（F1）＋灰色の症状文」のフラット行で、
-       称号が無い人にとっての主役なのに最も読みにくかった。症状文を主役（濃色・太字）に上げ、
-       コードは末尾の小さなチップへ降格する（「→ F1・F2に対応」の相互参照用に残す必要はある）。 */
-    .cov-block { margin: 0 0 22px; padding-bottom: 18px; border-bottom: 1px dashed var(--border-soft); }
-    .cov-heading { font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin: 0 0 12px; line-height: 1.5; }
-    .cov-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-    .cov-row {
-      display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: start;
-      padding: 10px 12px; border: 1px solid var(--border-soft); border-left: 3px solid var(--ok);
-      border-radius: 10px; background: #fbfdfc; word-break: break-word;
-    }
-    .cov-row-mark { color: var(--ok); font-weight: 800; font-size: 0.9rem; line-height: 1.55; }
-    .cov-row-sym { font-size: 0.86rem; font-weight: 700; color: var(--text-main); line-height: 1.55; }
-    .cov-row-sub { display: block; margin-top: 4px; font-size: 0.76rem; color: var(--text-sub); line-height: 1.6; }
-    /* 工具なしで対処できるトラブル＝装備の有無に関わらず全員が持つ行なので、色味を分けて区別する */
-    .cov-row-hands { border-left-color: var(--occasional); background: #fbfbfd; }
-    .cov-row-hands .cov-row-mark { color: var(--occasional); }
-    .cov-row-tag {
-      display: inline-block; font-size: 0.68rem; font-weight: 700; color: var(--occasional);
-      border: 1px solid var(--occasional); border-radius: 4px; padding: 0 4px; margin-right: 6px;
-      line-height: 1.5; vertical-align: 1px;
-    }
-    .cov-row-code { display: block; margin-top: 4px; font-size: 0.66rem; font-weight: 700; color: #9aa3b2; letter-spacing: 0.06em; }
-    .cov-empty { padding: 8px 0; font-size: 0.85rem; color: var(--text-sub); line-height: 1.7; }
-    .cov-wiki { margin-top: 10px; font-size: 0.8rem; color: var(--text-sub); }
-    .cov-wiki a { color: var(--accent); font-weight: 700; text-decoration: none; }
-    .cov-wiki a:hover { text-decoration: underline; }
+    /* 一歩先ブロック／あると効く常備品ブロック。
+       2026-08-04: 止まり方カバレッジの症状一覧（.cov-*）は全廃した。
+       「いま積んでいる装備で何ができるかはオーナー自身が知っている。増分だけを伝える」（ユーザー確定） */
+    .next-block { margin: 0; }
+    .uni-block { margin: 22px 0 0; padding-top: 18px; border-top: 1px dashed var(--border-soft); }
+    .uni-lead { font-size: 0.78rem; color: var(--text-sub); margin: 0 0 10px; line-height: 1.7; }
     #affiliate-disclosure {
       font-size: 0.72rem; color: var(--text-sub); line-height: 1.8;
       margin: 16px 0 0; padding-top: 12px; border-top: 1px dashed var(--border-soft);
@@ -483,20 +461,24 @@
       </p>
     </section>
 
-    <!-- 結果（保存後に表示）。2026-08-04 デザイン改修:
-         入力カード群と地続きに見えていたため .card をやめ .result-shell（濃紺ヘッダー付きの別容器）に変更し、
-         結論（称号 or 進捗）を最上部のヒーローに移した。序列＝称号 > 対応一覧 > 一歩先。 -->
+    <!-- 結果（保存後に表示）。2026-08-04 デザイン改修 第2稿:
+         ①入力カード群と物理的に切るため、ページ幅を突き抜けた全幅の濃紺面に白いカードを浮かせる
+         ②ヘッダー帯の進捗チップは「唐突」との指摘で廃止
+         並びは 称号（シールロゴ）→ 安全装備 → 一歩先 → あると効く常備品 -->
     <section class="result-shell" id="result-section" style="display:none;">
-      <div class="result-topbar">
-        <span class="result-topbar-title">装備手帳の結果</span>
-        <span class="result-topbar-chip" id="result-topbar-chip" style="display:none;"></span>
+      <div class="result-banner">
+        <p class="result-banner-eyebrow">RESULT</p>
+        <p class="result-banner-title">あなたの装備手帳</p>
+        <p class="result-banner-sub">積んでいる装備から、出先でできることを読み解きました</p>
+        <div class="result-banner-rule"></div>
       </div>
+      <div class="result-inner">
       <div class="result-body">
         <p class="result-stale-note" id="result-stale-note" style="display:none;">※前回保存した内容にもとづく判定です。保存すると更新されます</p>
         <div id="result-hero"></div>
         <div id="result-safety"></div>
-        <div id="result-coverage"></div>
         <div id="result-next"></div>
+        <div id="result-universal"></div>
         <p id="affiliate-disclosure" style="display:none">
         このページにはAmazonアソシエイトのリンクが含まれています（PR）。<br>
         リンク経由でご購入いただいた場合、Amazonからわずかな報酬がこのサイトに入りますが、<strong>商品の価格は変わりません。</strong><br>
@@ -507,6 +489,7 @@
           <button type="button" class="btn-image btn-secondary" id="btnSaveImage">📷 この結果を画像で保存</button>
           <p class="field-hint" style="margin-top:8px;">CSVはExcel・スプレッドシートでそのまま開けます。車載チェックリストとして印刷する用途を想定しています。</p>
         </div>
+      </div>
       </div>
     </section>
   </div>
@@ -535,11 +518,13 @@
   const catDone = {};    // { category: boolean }
   const customRows = {}; // { category: [ {name, frequency, reason} ] }
 
-  // 止まり方カバレッジ（equipment_stop_modes / equipment_stop_mode_items）。
-  // migration未適用の本番でも壊れないよう、取得失敗 or 0件なら stopModesReady=false のまま＝新UI非表示・既存ロジックのみで動く
-  let stopModes = [];          // equipment_stop_modes（is_active=true, sort_order昇順）
-  let stopModeNeedByCode = {}; // { code: [item_id, ...] }（role='need'の行のみ）
-  let stopModesReady = false;
+  // 整備作業マスター（equipment_tasks / equipment_task_items）。
+  // migration未適用の本番でも壊れないよう、取得失敗 or 0件なら tasksReady=false のまま＝一歩先ブロック非表示。
+  // 2026-08-04: 止まり方（equipment_stop_modes）ベースを全廃してこちらへ差し替えた。
+  // 「止まり方には言及しない。いまの装備にこれを増やせばこの修理ができる、と伝える」（ユーザー確定）
+  let tasks = [];        // equipment_tasks（is_active=true, sort_order昇順。task_group 'A'=パーツ交換 / 'B'=工具だけで成立）
+  let taskNeeds = {};    // { task_code: [ {item_id, or_group}, ... ] }
+  let tasksReady = false;
 
   // GA4（gtag未読込でもクラッシュしない）
   function track(name, params) {
@@ -628,45 +613,43 @@
   })();
 
   // ===================== 読み込み =====================
-  // 止まり方カバレッジのマスター取得（テーブル未適用の本番では equipment_stop_modes が存在せずerrorになる想定。
-  // ここで例外を握りつぶして stopModesReady=false のままにすることで、呼び出し元（loadAll）を一切壊さない）
-  async function loadStopModes() {
+  // 整備作業マスターの取得（migration未適用の本番では equipment_tasks が存在せずerrorになる想定。
+  // ここで例外を握りつぶして tasksReady=false のままにすることで、呼び出し元（loadAll）を一切壊さない）
+  async function loadTasks() {
     try {
-      const [smRes, smiRes] = await Promise.all([
-        supabaseClient.from('equipment_stop_modes')
-          .select('*')
+      const [tRes, tiRes] = await Promise.all([
+        supabaseClient.from('equipment_tasks')
+          .select('code, name, task_group, sort_order')
           .eq('is_active', true).order('sort_order'),
-        supabaseClient.from('equipment_stop_mode_items')
-          .select('stop_mode_code, item_id, role')
+        supabaseClient.from('equipment_task_items')
+          .select('task_code, item_id, or_group')
       ]);
-      if (smRes.error) throw smRes.error;
-      if (smiRes.error) throw smiRes.error;
-      const modes = smRes.data || [];
-      if (!modes.length) return; // 0件はフォールバック対象（stopModesReadyはfalseのまま）
-
-      const needByCode = {};
-      (smiRes.data || []).forEach(r => {
-        if (r.role !== 'need') return;
-        if (!needByCode[r.stop_mode_code]) needByCode[r.stop_mode_code] = [];
-        needByCode[r.stop_mode_code].push(r.item_id);
+      if (tRes.error) throw tRes.error;
+      if (tiRes.error) throw tiRes.error;
+      const rows = tRes.data || [];
+      if (!rows.length) return; // 0件はフォールバック対象（tasksReadyはfalseのまま）
+      const needs = {};
+      (tiRes.data || []).forEach(r => {
+        if (!needs[r.task_code]) needs[r.task_code] = [];
+        needs[r.task_code].push({ item_id: r.item_id, or_group: r.or_group || null });
       });
-
-      stopModes = modes;
-      stopModeNeedByCode = needByCode;
-      stopModesReady = true;
+      tasks = rows;
+      taskNeeds = needs;
+      tasksReady = true;
     } catch (e) {
-      // migration未適用（テーブル不存在）を含め、あらゆる失敗はここで吸収してフォールバック表示にする
-      console.error('equipment_stop_modes の読み込みに失敗（既存UIにフォールバック）:', e);
-      stopModes = []; stopModeNeedByCode = {}; stopModesReady = false;
+      console.error('equipment_tasks の読み込みに失敗（一歩先ブロックは非表示）:', e);
+      tasks = []; taskNeeds = {}; tasksReady = false;
     }
   }
 
   async function loadAll() {
     try {
-      const stopModesPromise = loadStopModes(); // 失敗しても throw しないので Promise.all に混ぜない（itemsRes等の必須取得を巻き込まない）
+      const tasksPromise = loadTasks(); // 失敗しても throw しないので Promise.all に混ぜない（itemsRes等の必須取得を巻き込まない）
       const [itemsRes, carsRes, recRes] = await Promise.all([
         supabaseClient.from('equipment_items')
-          .select('id, code, category, name, reason, sort_order, note_prompt, recommend_priority, purchase_links')
+          // is_universal は migration 未適用の本番にはまだ無い列。明示すると取得ごと失敗するため * で読む
+          // （2026-08-03 の cause 列と同じ方式）
+          .select('*')
           .eq('is_active', true).order('sort_order'),
         supabaseClient.from('cars')
           .select('document_id, model_display_a, model_display_b, year, car_type')
@@ -685,7 +668,7 @@
       CATEGORIES.forEach(c => { catDone[c] = false; customRows[c] = []; });
 
       if (record) await loadExistingAnswers();
-      await stopModesPromise;
+      await tasksPromise;
 
       renderVehicleFields();
       renderCategories();
@@ -1005,7 +988,7 @@
   }
 
   // マスター装備リストの充足状況（搭載数／必要数／不足数）をまとめて算出する。
-  // computeIsMaster・remainingToMasterCount・進捗チップ（#result-topbar-chip）が共通して使う。
+  // computeIsMaster・remainingToMasterCount が共通して使う。
   function computeMasterProgress(loadedIds) {
     const existing = masterExistingItemIds();
     const loaded = existing.filter(id => loadedIds.has(id)).length;
@@ -1035,7 +1018,9 @@
   }
 
   // 購入先チャネルの表示順（国内調達優先。ユーザー確定・変更しない）
-  const PURCHASE_CHANNEL_ORDER = ['amazon', 'monotaro', 'shop', 'kurabetaro'];
+  // 2026-08-04 ユーザー確定＝結果画面に出すのは amazon と shop(スタンダードスピード等の専門店) の2つだけ。
+  // monotaro / kurabetaro はDBに入っていても描画しない（purchaseLinkBtnHtml 側でも空文字を返す）。
+  const PURCHASE_CHANNEL_ORDER = ['amazon', 'shop'];
 
   function purchaseLinkBtnHtml(link, itemName) {
     const url = escapeHtml(link.url || '');
@@ -1047,43 +1032,37 @@
       return '<a class="reco-link-btn reco-link-amazon" href="' + url + '" target="_blank" rel="nofollow sponsored" data-channel="amazon" data-item="' + itemAttr + '">'
         + '🛒 ' + label + '<span class="pr-badge">PR</span></a>';
     }
-    if (link.type === 'monotaro') {
-      return '<a class="reco-link-btn" href="' + url + '" target="_blank" rel="nofollow" data-channel="monotaro" data-item="' + itemAttr + '">'
-        + 'モノタロウで見る</a>';
-    }
     if (link.type === 'shop') {
+      // スタンダードスピード等の専門店。国内は届くのも速く、登録オーナーでもあるため応援したい（HANDOFF チャネル序列②）
       const label = escapeHtml(link.label || '専門店');
       return '<a class="reco-link-btn" href="' + url + '" target="_blank" rel="nofollow" data-channel="shop" data-item="' + itemAttr + '">'
         + label + 'で見る</a>';
     }
-    if (link.type === 'kurabetaro') {
-      const href = 'parts.html?q=' + encodeURIComponent(link.q || itemName || '');
-      return '<a class="reco-link-btn" href="' + escapeHtml(href) + '" target="_blank" data-channel="kurabetaro" data-item="' + itemAttr + '" title="比べ太郎・海外通販は届くまで日数がかかります">'
-        + '海外通販の価格を比べる</a>';
-    }
+    // monotaro / kurabetaro は 2026-08-04 の判断で結果画面に出さない（amazon と shop のみ）
     return '';
   }
 
-  // 一歩先リコメンドの「解錠する止まり方」を、コードでも数字でもなく症状文で語る。
-  // 2026-08-04「主従の再確認」：主語は装備、止まり方は従属の説明情報。n/denomは一切出さない。
-  // 複数解錠する場合は症状を最大2件まで並べ、それ以上は「ほか」で省略する
+  // 一歩先リコメンドの「積むと新しくできるようになる作業」を装備を主語にして書く。
+  // 2026-08-04「主従の再確認」＋「止まり方には言及しない」（ユーザー確定）。数字は一切出さない。
+  // 複数を解錠する場合は作業名を最大2件まで並べ、それ以上は「ほか」で省略する
   function recoUnlockHtml(i) {
-    const modes = Array.isArray(i._unlockModes) ? i._unlockModes : [];
-    if (!modes.length) return '';
-    const syms = modes.map(m => m.sym || m.code).filter(Boolean);
-    const shown = syms.slice(0, 2).map(s => '「' + s + '」').join('');
-    const more = syms.length > 2 ? 'ほか' : '';
-    return '<div class="reco-unlock">→ これを積むと' + escapeHtml(shown + more) + 'に対応できます</div>';
+    const list = Array.isArray(i._unlockTasks) ? i._unlockTasks : [];
+    if (!list.length) return '';
+    const names = list.map(t => t.name).filter(Boolean);
+    const shown = names.slice(0, 2).map(n => '「' + n + '」').join('');
+    const more = names.length > 2 ? 'ほか' : '';
+    return '<div class="reco-unlock">→ これを積むと' + escapeHtml(shown + more) + 'ができるようになります</div>';
   }
 
   function recoItemHtml(i) {
     let linksHtml = '';
     if (Array.isArray(i.purchase_links) && i.purchase_links.length) {
-      const sorted = i.purchase_links.slice().sort((a, b) =>
-        PURCHASE_CHANNEL_ORDER.indexOf(a.type) - PURCHASE_CHANNEL_ORDER.indexOf(b.type));
-      linksHtml = '<div class="reco-links">' + sorted.map(link => purchaseLinkBtnHtml(link, i.name)).join('') + '</div>';
+      const sorted = i.purchase_links
+        .filter(l => PURCHASE_CHANNEL_ORDER.indexOf(l.type) !== -1)
+        .sort((a, b) => PURCHASE_CHANNEL_ORDER.indexOf(a.type) - PURCHASE_CHANNEL_ORDER.indexOf(b.type));
+      if (sorted.length) linksHtml = '<div class="reco-links">' + sorted.map(link => purchaseLinkBtnHtml(link, i.name)).join('') + '</div>';
     }
-    // 一歩先リコメンド（解錠数ベースの並び）にのみ症状文の付記が付く。安全装備の項目には付かない
+    // 一歩先リコメンドにのみ「これを積むと〜ができるようになります」が付く。安全装備・常備品には付かない
     const unlockHtml = recoUnlockHtml(i);
     return '<div class="reco-item"><div class="reco-name">' + escapeHtml(i.name) + '</div>' +
       '<div class="reco-reason">' + escapeHtml(i.reason) + '</div>' + unlockHtml + linksHtml + '</div>';
@@ -1095,52 +1074,46 @@
     return recoItemHtml(reason ? Object.assign({}, i, { reason: reason }) : i);
   }
 
-  // ===================== 止まり方カバレッジ（純粋関数。DOM非依存） =====================
-  // levelsが['R']のみ＝路上では直せない救援案件（7件想定）
-  function isRescueMode(mode) {
-    return Array.isArray(mode.levels) && mode.levels.length === 1 && mode.levels[0] === 'R';
-  }
-  // levelsにL2またはL3を含む（rescue以外の）修理系止まり方
-  function isRepairLevelMode(mode) {
-    return Array.isArray(mode.levels) && (mode.levels.indexOf('L2') !== -1 || mode.levels.indexOf('L3') !== -1);
-  }
-
-  // modes: equipment_stop_modes配列（is_active=true, sort_order昇順）
-  // needByCode: { code: [item_id, ...] }（role='need'のみ）
-  // loadedIds: Set<item_id>（常時 or 随時が選択されている項目）
-  // 返り値: { rescue, hands, covered, uncovered, denom, n, repairCover }
-  //   rescue: levelsが['R']のみの止まり方（誰も路上では直せない別枠）
-  //   hands: rescue以外でneed行が0件＝手で対処すれば全員カバー
-  //   covered: need行が全て搭載済み
-  //   uncovered: { mode, missing:[item_id,...] } の配列（missingは不足しているneed item_id）
-  //   denom: rescueを除いた件数（hands+covered+uncovered）
-  //   n: hands+coveredの数（あなたの備えで対応できる止まり方の数）
-  //   repairCover: coveredのうちisRepairLevelModeな数（handsは含めない）
-  function computeStopModeCoverage(modes, needByCode, loadedIds) {
-    const rescue = [], hands = [], covered = [], uncovered = [];
-    modes.forEach(mode => {
-      if (isRescueMode(mode)) { rescue.push(mode); return; }
-      const need = needByCode[mode.code] || [];
-      if (!need.length) { hands.push(mode); return; }
-      const missing = need.filter(id => !loadedIds.has(id));
-      if (!missing.length) covered.push(mode);
-      else uncovered.push({ mode: mode, missing: missing });
+  // ===================== 整備作業の充足判定（純粋関数。DOM非依存） =====================
+  // needs: [ {item_id, or_group}, ... ]  loadedIds: Set<item_id>（常時 or 随時が選択されている項目）
+  // or_group が null の行＝必須（AND）。同じ or_group の行＝そのうち1つでも搭載していれば満たす。
+  // 返り値: 不足している item_id の配列（空＝その作業はいま実行できる）
+  function missingForTask(needs, loadedIds) {
+    const missing = [], groups = {};
+    needs.forEach(n => {
+      if (n.or_group == null) {
+        if (!loadedIds.has(n.item_id)) missing.push(n.item_id);
+      } else {
+        if (!groups[n.or_group]) groups[n.or_group] = [];
+        groups[n.or_group].push(n.item_id);
+      }
     });
-    const denom = hands.length + covered.length + uncovered.length;
-    const n = hands.length + covered.length;
-    const repairCover = covered.filter(isRepairLevelMode).length;
-    return { rescue: rescue, hands: hands, covered: covered, uncovered: uncovered, denom: denom, n: n, repairCover: repairCover };
+    Object.keys(groups).forEach(g => {
+      const ids = groups[g];
+      // グループ内に1つでも搭載があれば充足。無ければグループ全員が「不足」候補
+      if (!ids.some(id => loadedIds.has(id))) ids.forEach(id => missing.push(id));
+    });
+    return missing;
   }
 
-  // uncoveredのうち「不足needがちょうど1件」の止まり方だけを対象に、その不足item_id→止まり方の対応表を作る。
-  // (missingは元々「未搭載のneed item_id」の集合なので、その1件を積めば即coveredになる＝解錠数のカウント対象)
-  function unlockMapFromUncovered(uncovered) {
-    const map = {}; // item_id -> [mode, ...]
-    uncovered.forEach(u => {
-      if (u.missing.length === 1) {
-        const id = u.missing[0];
-        if (!map[id]) map[id] = [];
-        map[id].push(u.mode);
+  // 「その装備を1つ積めば新たにできるようになる作業」の対応表を作る。
+  // 不足がちょうど1件の作業＝その1件を積めば成立するので、解錠の対象になる。
+  // or_group の不足は「どれか1つ積めばよい」ので、グループ内の各候補それぞれを解錠者として数える。
+  // 返り値: { item_id: [task, ...] }
+  function unlockMapFromTasks(taskList, needsByCode, loadedIds) {
+    const map = {};
+    taskList.forEach(t => {
+      const needs = needsByCode[t.code] || [];
+      if (!needs.length) return;
+      const missing = missingForTask(needs, loadedIds);
+      if (!missing.length) return; // すでにできる
+      // 必須の不足が1件だけならその1件で解錠。or_groupだけが不足しているなら候補それぞれで解錠。
+      const req = needs.filter(n => n.or_group == null).map(n => n.item_id).filter(id => !loadedIds.has(id));
+      const grp = missing.filter(id => req.indexOf(id) === -1);
+      if (req.length === 0 && grp.length) {
+        grp.forEach(id => { (map[id] = map[id] || []).push(t); });
+      } else if (req.length === 1 && grp.length === 0) {
+        (map[req[0]] = map[req[0]] || []).push(t);
       }
     });
     return map;
@@ -1148,17 +1121,28 @@
 
   // マスターリスト限定の一歩先リコメンドを構築する。
   // candidateIds: masterUnloadedCandidateIds()の結果（マスターリストのうち未搭載のもの限定）。
-  // coverageがある場合は「それを積むと新たに対応できるようになる止まり方の数」降順、同数はrecommend_priority昇順（nullは最後）。
-  // 解錠数0の項目もマスターリスト内なら候補に残す（リストを埋めることが目的のため。旧「候補0件は除外」設計は撤去）。
-  // coverageが無い（フォールバック）場合はrecommend_priority昇順のみでランキングする。
-  function buildNextSteps(candidateIds, coverage) {
-    const unlockMap = coverage ? unlockMapFromUncovered(coverage.uncovered) : {};
+  // 2026-08-04 ユーザー確定:
+  //  ・並びは A群（パーツ交換）優先 → B群（工具だけで成立する作業）。装備の少ない人はA群に解錠候補が
+  //    無いためB群が出て、装備が揃った人にはA群が出る。
+  //  ・解錠数0の項目は出さない＝全行に必ず「これを積むと〜ができるようになります」が付く
+  //    （穴埋めは「あると効く常備品」ブロックが受け持つ）。
+  //  ・作業マスター未取得（migration未適用）なら一歩先ブロックは出さない。
+  function buildNextSteps(candidateIds, unlockMap) {
+    if (!unlockMap) return [];
+    const rank = t => (t.task_group === 'A' ? 0 : 1);
     return candidateIds
       .map(id => items.find(i => i.id === id))
       .filter(Boolean)
-      .map(i => Object.assign({}, i, { _unlockModes: unlockMap[i.id] || [] }))
+      .map(i => {
+        const list = (unlockMap[i.id] || []).slice().sort((a, b) => rank(a) - rank(b) || a.sort_order - b.sort_order);
+        return Object.assign({}, i, { _unlockTasks: list });
+      })
+      .filter(i => i._unlockTasks.length)
       .sort((a, b) => {
-        const diff = b._unlockModes.length - a._unlockModes.length;
+        // A群を解錠する装備を先に。次に解錠数の多い順。同数は recommend_priority 昇順（nullは最後）
+        const ga = rank(a._unlockTasks[0]), gb = rank(b._unlockTasks[0]);
+        if (ga !== gb) return ga - gb;
+        const diff = b._unlockTasks.length - a._unlockTasks.length;
         if (diff) return diff;
         const pa = a.recommend_priority == null ? Infinity : a.recommend_priority;
         const pb = b.recommend_priority == null ? Infinity : b.recommend_priority;
@@ -1167,12 +1151,24 @@
       .slice(0, NEXT_STEP_MAX);
   }
 
+  // あると効く常備品（万能装備）＝ equipment_items.is_universal かつ未搭載のもの。
+  // 特定の作業のneedには入れない（入れると「これが無いとVベルト交換ができない」という誤った断定になる）。
+  // is_universal 列が無い本番（migration未適用）では全件 undefined になり自動的に0件＝ブロック非表示。
+  function buildUniversalItems(loadedIds) {
+    return items
+      .filter(i => i.is_universal === true && !loadedIds.has(i.id))
+      .sort((a, b) => {
+        const pa = a.recommend_priority == null ? Infinity : a.recommend_priority;
+        const pb = b.recommend_priority == null ? Infinity : b.recommend_priority;
+        return pa - pb || a.sort_order - b.sort_order;
+      });
+  }
+
   // DOM表示・画像化の両方が使う共通データ（本人の回答から算出。統計は使わない＝フェーズ1）
   function computeResultData() {
     const loadedIds = new Set(items.filter(i => state[i.id].frequency).map(i => i.id));
-    const coverage = stopModesReady
-      ? computeStopModeCoverage(stopModes, stopModeNeedByCode, loadedIds)
-      : null;
+    // 「その装備を1つ積めば新たにできるようになる作業」の対応表。作業マスター未取得ならnull
+    const unlockMap = tasksReady ? unlockMapFromTasks(tasks, taskNeeds, loadedIds) : null;
 
     // 安全装備4点。不足分だけを抽出する（recommend_priority 1〜4の並びをそのまま使う）
     const safetyMissing = SAFETY_ITEM_IDS
@@ -1181,8 +1177,8 @@
     const safetyDoneCount = SAFETY_ITEM_IDS.length - safetyMissing.length;
     const safetyFull = safetyMissing.length === 0;
 
-    // 車載マエストロ＝マスター装備リストの90%充足＋安全装備4点で判定する（止まり方のカバー数は使わない）。
-    // stop_modes未取得時でも装備リストだけで判定できる＝フォールバックでも動く
+    // 車載マエストロ＝マスター装備リストの90%充足＋安全装備4点で判定する（作業の数は判定に使わない）。
+    // 作業マスター未取得時でも装備リストだけで判定できる＝フォールバックでも動く
     const masterProgress = computeMasterProgress(loadedIds);
     const isMaster = computeIsMaster(loadedIds);
     // 「走る部品庫」の付記＝マエストロ かつ キャブレター本体・デスビ本体を両方搭載のときだけ（称号は増やさずコメントのみ）
@@ -1191,17 +1187,24 @@
     const remainingToMaster = masterProgress.remaining;
 
     // 一歩先リコメンド。マエストロなら次の一手は無い
-    const nextSteps = isMaster ? [] : buildNextSteps(masterUnloadedCandidateIds(loadedIds), coverage);
+    const nextSteps = isMaster ? [] : buildNextSteps(masterUnloadedCandidateIds(loadedIds), unlockMap);
+    // あると効く常備品。マエストロでも未搭載があれば出す（作業とは独立した常備品のため）
+    const universalItems = buildUniversalItems(loadedIds);
 
-    return { safetyMissing, safetyDoneCount, safetyFull, coverage, isMaster, isSpareEngineParts, remainingToMaster, masterProgress, nextSteps };
+    return { safetyMissing, safetyDoneCount, safetyFull, isMaster, isSpareEngineParts, remainingToMaster, masterProgress, nextSteps, universalItems };
+  }
+
+  // 公開トグルの現在の状態（公開設定セクションは結果より上にあるので描画時点の値でよい）
+  function isPublicSelected() {
+    const el = document.getElementById('public-toggle');
+    return !!(el && el.checked);
   }
 
   // 表示分岐（見出し・文言）を1箇所に集約。DOM描画とCanvas描画で文言が食い違わないようにする
   function buildResultSections(data) {
     const sec = {
       safetyHeading: null, safetyGaugeLabel: null, safetyOkText: null,
-      masterTitle: null, masterDesc: null, masterNote: null, masterInvite: null,
-      masterProgressText: null,
+      masterDesc: null, masterNote: null, masterInvite: null,
       nextHeading: null, nextSubheading: null
     };
     if (data.safetyFull) {
@@ -1212,23 +1215,20 @@
       sec.safetyGaugeLabel = '安全装備 ' + data.safetyDoneCount + '/' + SAFETY_ITEM_IDS.length;
     }
     if (data.isMaster) {
-      sec.masterTitle = '🏆 車載マエストロ';
-      // 判定基準（90%）は進捗表示の側で数字として示されるため、称号の文面では言わない。
-      // 内部基準をそのまま出すと事務的に読めるので、装備の実態を平易に述べる文にする。
+      // 内部基準（90%）をそのまま出すと事務的に読めるので、装備の実態を平易に述べる文にする。
       sec.masterDesc = '出先で必要になる装備を、ほぼ余さず積んでいます。あなたの手帳は、他のオーナーの教科書です。';
-      sec.masterInvite = '手帳を公開すると、みんなの装備手帳の一覧で紹介されます。';
+      // 2026-08-04 ユーザー指摘「手帳を公開すると〜は公開前提なのでおかしい」。
+      // 公開が既定なので、いまのトグルの状態に合わせて言い方を変える。
+      sec.masterInvite = isPublicSelected()
+        ? 'あなたの手帳は、みんなの装備手帳の一覧で紹介されます。'
+        : '公開に切り替えると、みんなの装備手帳の一覧で紹介されます。';
       // 「走る部品庫」＝称号は増やさずコメントとして添えるのみ
       if (data.isSpareEngineParts) {
         sec.masterNote = '🌟 しかも、交換用のキャブレターとデスビまで積んでいます。走る部品庫です。';
       }
-    } else {
-      // マエストロ未達成の人向けに、現在の充足状況を控えめに示す（ヘッダー帯のチップに出す。
-      // 一歩先リコメンドと重複しないよう短く留める。安全装備が原因で未達成でも搭載数の進捗自体は別情報として出す）
-      sec.masterProgressText = '車載マエストロ ' + data.masterProgress.loaded + '/' + data.masterProgress.required + '項目';
     }
     if (!data.isMaster && data.nextSteps.length) {
-      // 中間層は無名。解錠数ベースかフォールバックかで見出しの語り口だけ変える
-      sec.nextHeading = data.coverage ? '一歩先の備え' : '編集部のおすすめ';
+      sec.nextHeading = 'これを積むと、できることが増えます';
       // マスターに近い人向け。残り3項目以下のときだけ見出し脇に表示する
       // （安全装備不足だけが原因で未達成の場合はremainingToMasterが0になり得るため、
       // 　0以下のときは表示しない＝安全装備ブロックが既に警告を出しているため重複させない）
@@ -1239,49 +1239,51 @@
     return sec;
   }
 
-  // ===================== 止まり方カバレッジの表示（#result-coverage。stop_modes取得時のみ中身を入れる） =====================
-  // handsNote を渡すと「工具なしでできる」行（色違い＋タグ付き）になる。
-  // コード（F1等）は一歩先リコメンドの「→ F1・F2に対応」から参照されるため残すが、
-  // 症状文を主役にするため行末の小さなチップへ降格する。
-  function covRowHtml(mode, handsNote) {
-    const isHands = handsNote != null;
-    return '<li class="cov-row' + (isHands ? ' cov-row-hands' : '') + '">' +
-      '<span class="cov-row-mark" aria-hidden="true">' + (isHands ? '✋' : '✓') + '</span>' +
-      '<span><span class="cov-row-sym">' + escapeHtml(mode.sym || '') + '</span>' +
-      (isHands
-        ? '<span class="cov-row-sub"><span class="cov-row-tag">工具なしでできる</span>' + escapeHtml(handsNote) + '</span>'
-        : '') +
-      '<span class="cov-row-code">' + escapeHtml(mode.code) + '</span></span></li>';
-  }
+  // ===================== 車載マエストロのシールロゴ（インラインSVG） =====================
+  // 2026-08-04 ユーザー要望「車載マエストロはデザインされたロゴが欲しい」。
+  // 外部画像を読まないのでCSPに影響せず、拡大しても劣化しない。
+  // 幾何は結果カード画像（Canvas）側の drawMaestroSeal() と共通の考え方で描いている。
+  const SEAL_GEOM = { cx: 100, cy: 104, r: 76, leaves: 7 };
 
-  // need_noteの先頭末尾が全角括弧（　）で囲まれている場合は外す（DB側の注記表記ゆれを吸収）
-  function stripFullwidthParens(s) {
-    if (s.length >= 2 && s.charAt(0) === '（' && s.charAt(s.length - 1) === '）') {
-      return s.slice(1, -1);
+  // 月桂樹の枝1本ぶんの葉を、円弧に沿って並べる。mirror=true で右側の枝（葉の傾きを反転）
+  function laurelLeaves(from, to, mirror) {
+    const g = SEAL_GEOM;
+    let out = '';
+    for (let k = 0; k < g.leaves; k++) {
+      const t = from + (to - from) * (k / (g.leaves - 1));
+      const rad = t * Math.PI / 180;
+      const x = g.cx + Math.cos(rad) * g.r, y = g.cy + Math.sin(rad) * g.r;
+      const lean = t + (mirror ? -64 : 64);
+      const grow = 0.62 + 0.38 * Math.sin(Math.PI * (k / (g.leaves - 1)));
+      out += '<ellipse cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" rx="' + (9 * grow).toFixed(1) +
+        '" ry="' + (4 * grow).toFixed(1) + '" transform="rotate(' + lean.toFixed(1) + ' ' + x.toFixed(1) + ' ' + y.toFixed(1) + ')"/>';
     }
-    return s;
+    return out;
   }
 
-  const REPAIR_WIKI_LINK = '<p class="cov-wiki">原因の切り分けに迷ったら → '
-    + '<a href="https://w.atwiki.jp/fiat500-onlinemanual/pages/20.html" target="_blank" rel="noopener">整備wiki：故障探求</a></p>';
+  function maestroSealSvg() {
+    return '<svg class="maestro-seal" viewBox="0 0 200 200" role="img" aria-label="車載マエストロ">' +
+      '<defs><linearGradient id="mseal" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="#f7e3a1"/><stop offset=".45" stop-color="#d9a92b"/><stop offset="1" stop-color="#9a6b00"/>' +
+      '</linearGradient></defs>' +
+      '<circle cx="100" cy="100" r="92" fill="#fffdf6"/>' +
+      '<circle cx="100" cy="100" r="90" fill="none" stroke="url(#mseal)" stroke-width="3.5"/>' +
+      '<circle cx="100" cy="100" r="82" fill="none" stroke="url(#mseal)" stroke-width="1.1" opacity=".65"/>' +
+      '<g fill="url(#mseal)">' + laurelLeaves(128, 218, false) + laurelLeaves(52, -38, true) + '</g>' +
+      '<path d="M100 24l3.2 6.6 7.3 1-5.3 5.1 1.3 7.2-6.5-3.4-6.5 3.4 1.3-7.2-5.3-5.1 7.3-1z" fill="url(#mseal)"/>' +
+      '<text x="103" y="84" text-anchor="middle" font-size="17" font-weight="700" fill="#9a6b00" letter-spacing="7">車載</text>' +
+      '<text x="100.5" y="115" text-anchor="middle" font-size="21" font-weight="800" fill="#8a5f00" letter-spacing="1">マエストロ</text>' +
+      '<line x1="70" y1="127" x2="130" y2="127" stroke="url(#mseal)" stroke-width="1.3"/>' +
+      '<text x="100.6" y="143" text-anchor="middle" font-size="8" font-weight="700" fill="#a9750d" letter-spacing="1.2">MAESTRO DI BORDO</text>' +
+      '</svg>';
+  }
 
-  function buildCoverageHtml(coverage) {
-    if (!coverage) return ''; // stop_modes未取得＝新UIを一切出さない（完全後方互換）
-
-    // 工具なしで対処できるトラブルも「装備（なし）でできる路上対応」として同じ一覧に載せる
-    const handsHtml = coverage.hands.map(m =>
-      covRowHtml(m, m.need_note ? stripFullwidthParens(String(m.need_note)) : 'その場で対処できます')
-    ).join('');
-    const coveredHtml = coverage.covered.map(m => covRowHtml(m)).join('');
-    const body = (handsHtml || coveredHtml)
-      ? '<ul class="cov-list">' + handsHtml + coveredHtml + '</ul>'
-      : '<p class="cov-empty">保存済みの装備でできる路上対応はまだありません。下のおすすめが参考になります</p>';
-
-    // 2026-08-04「主従の再確認」でn/denomの数字表示は撤去し、フラット一覧のみに戻した（判定軸は装備リストの充足）
-    return '<div class="cov-block">' +
-      '<p class="cov-heading">あなたの装備でできる路上対応</p>' +
-      body + REPAIR_WIKI_LINK +
-      '</div>';
+  // ===================== あると効く常備品（万能装備）の表示 =====================
+  function buildUniversalHtml(list) {
+    if (!list.length) return '';
+    return '<div class="uni-block"><p class="reco-heading">あると効く常備品</p>' +
+      '<p class="uni-lead">特定の作業に必要というわけではありませんが、無いと現場で困ります。積んでいなければ足しておくことをおすすめします。</p>' +
+      list.map(recoItemHtml).join('') + '</div>';
   }
 
   // fromSavedRecord=true は「保存済みレコードの読み込み直後」の呼び出しのみ。保存直後の再描画では付けない。
@@ -1291,18 +1293,15 @@
 
     document.getElementById('result-stale-note').style.display = fromSavedRecord ? 'block' : 'none';
 
-    // ヒーロー＝結論。称号を持つ人だけが金色ブロックを得る（序列の頂点なので最上部・最大文字）。
-    // 未達成の人にはヒーローを出さず、進捗はヘッダー帯のチップに退避させる（ダメ出しにしないため）。
+    // ヒーロー＝称号。シールロゴを持つのはマエストロだけ。
+    // 未達成の人にはヒーローを出さない（2026-08-04 ユーザー指摘によりヘッダー帯の進捗チップも廃止＝数字は出さない）
     document.getElementById('result-hero').innerHTML = data.isMaster
-      ? '<div class="master-block"><p class="master-badge">' + escapeHtml(sec.masterTitle) + '</p>' +
+      ? '<div class="master-block">' + maestroSealSvg() +
         '<p class="master-desc">' + escapeHtml(sec.masterDesc) + '</p>' +
         (sec.masterNote ? '<p class="master-note">' + escapeHtml(sec.masterNote) + '</p>' : '') +
-        '<p class="master-invite">' + escapeHtml(sec.masterInvite) + ' <a href="equipment.html">装備手帳の公開一覧を見る</a></p></div>'
+        '<p class="master-invite">' + escapeHtml(sec.masterInvite) +
+        ' <a href="equipment.html">一覧を見る</a></p></div>'
       : '';
-
-    const chip = document.getElementById('result-topbar-chip');
-    chip.textContent = sec.masterProgressText || '';
-    chip.style.display = sec.masterProgressText ? 'inline-block' : 'none';
 
     // 安全装備＝唯一のダメ出しが許されるゾーン。不足時は赤いアラート、充足時は控えめなチップ1つ
     document.getElementById('result-safety').innerHTML = sec.safetyOkText
@@ -1312,9 +1311,6 @@
           + Math.round(data.safetyDoneCount / SAFETY_ITEM_IDS.length * 100) + '%"></span></div>' +
         '<p class="safety-gauge-label">' + escapeHtml(sec.safetyGaugeLabel) + '</p>' +
         data.safetyMissing.map(safetyItemHtml).join('') + '</div>';
-
-    // 対応一覧＝称号が無い人にとっての主役。序列は 称号 > 対応一覧 > 一歩先（CSS側で文字サイズを付けている）
-    document.getElementById('result-coverage').innerHTML = buildCoverageHtml(data.coverage);
 
     // 一歩先リコメンド（最大3件。マエストロ時・候補0件のときはブロックごと出さない）
     // 見出し脇に「車載マエストロまであとN項目」を添える（残り3項目以下のときのみ）
@@ -1327,8 +1323,11 @@
         data.nextSteps.map(recoItemHtml).join('') + '</div>'
       : '';
 
+    // あると効く常備品（作業とは独立した別枠。未搭載が無ければブロックごと出ない）
+    document.getElementById('result-universal').innerHTML = buildUniversalHtml(data.universalItems);
+
     // 表示中のリコメンドにAmazonリンクが1つでも含まれる場合のみPR開示文を出す
-    const shownItems = data.safetyMissing.concat(data.nextSteps);
+    const shownItems = data.safetyMissing.concat(data.nextSteps, data.universalItems);
     const hasAmazonLink = shownItems.some(i => Array.isArray(i.purchase_links)
       && i.purchase_links.some(l => l.type === 'amazon'));
     document.getElementById('affiliate-disclosure').style.display = hasAmazonLink ? 'block' : 'none';
@@ -1368,35 +1367,20 @@
     return y;
   }
 
-  // 症状文の羅列を描画する（カバレッジ一覧用。項目名でなく症状名の列挙＝型名・スコアは出さない）
-  function layoutSymptomSection(mctx, cmds, y, cw, heading, syms, fHead, fBody) {
-    cmds.push({ y, text: heading, font: fHead, color: '#111827' });
-    y += 10;
-    mctx.font = fBody;
-    syms.forEach(sym => {
-      wrapText(mctx, '・' + sym, cw).forEach(line => {
-        y += 19;
-        cmds.push({ y, text: line, font: fBody, color: '#374151' });
-      });
-    });
-    return y;
-  }
-
-  // 描画コマンド列とコンテンツ高さを算出（フォントは計測にも描画にも同じ文字列を使う）
-  // DOMの並び（車載マエストロ／安全装備／対応一覧／一歩先）と文言・順序を揃える。
-  // 2026-08-04「主従の再確認」でn/denomの数字は一切出さない（型名・スコアは出さない方針）
   function layoutResultContent(mctx, data, cw) {
     const F_BIG = '700 22px ' + CARD_FONT, F_DESC = '400 15px ' + CARD_FONT, F_HEAD = '700 15px ' + CARD_FONT,
           F_NAME = '700 16px ' + CARD_FONT, F_REASON = '400 13px ' + CARD_FONT;
     const cmds = [];
     let y = 26;
 
-    // ヒーロー＝車載マエストロ（唯一の称号）。2026-08-04 デザイン改修でDOM側を
-    // 「称号 → 安全装備 → 対応一覧 → 一歩先」の順に変えたため、画像側の順序も合わせる。
+    // ヒーロー＝車載マエストロ（唯一の称号）。DOM側と同じ「称号 → 安全装備 → 一歩先 → 常備品」の順。
+    // 2026-08-04: シールロゴはCanvas 2Dのパスで直接描く（SVGを画像化して貼るとcanvasが汚染扱いになり
+    // toDataURL() が失敗しうるため。幾何はDOM側の maestroSealSvg() と共通）。
     if (data.isMaster) {
-      cmds.push({ y, text: '🏆 車載マエストロ', font: F_BIG, color: '#9a6b00' });
+      cmds.push({ seal: true, y: y, size: 150 });
+      y += 150 + 14;
       mctx.font = F_DESC;
-      wrapText(mctx, 'マスター装備リストをすべて満たしています。', cw).forEach(line => {
+      wrapText(mctx, '出先で必要になる装備を、ほぼ余さず積んでいます。', cw).forEach(line => {
         y += 22;
         cmds.push({ y, text: line, font: F_DESC, color: '#111827' });
       });
@@ -1418,21 +1402,75 @@
         data.safetyMissing, F_BIG, F_NAME, F_REASON, '#c62828');
     }
 
-    // 対応一覧（症状名の列挙）＋一歩先（stop_modes未取得時は編集部のおすすめのみ）。
-    // マエストロは称号だけで完結させるため一覧は出さない（従来どおり）
-    if (!data.isMaster) {
-      if (data.coverage) {
-        const syms = data.coverage.hands.concat(data.coverage.covered).map(m => m.sym).filter(Boolean);
-        if (syms.length) {
-          y = layoutSymptomSection(mctx, cmds, y + 26, cw, 'あなたの装備でできる路上対応', syms, F_HEAD, F_REASON);
-        }
-      }
-      if (data.nextSteps.length) {
-        const heading = data.coverage ? '一歩先の備え' : '編集部のおすすめ';
-        y = layoutSection(mctx, cmds, y + 20, cw, heading, data.nextSteps, F_HEAD, F_NAME, F_REASON);
-      }
+    // 一歩先＝「これを積むと、できることが増えます」。止まり方（症状）には言及しない
+    if (data.nextSteps.length) {
+      y = layoutSection(mctx, cmds, y + 26, cw, 'これを積むと、できることが増えます', data.nextSteps, F_HEAD, F_NAME, F_REASON);
+    }
+    // あると効く常備品
+    if (data.universalItems.length) {
+      y = layoutSection(mctx, cmds, y + 20, cw, 'あると効く常備品', data.universalItems, F_HEAD, F_NAME, F_REASON);
     }
     return { cmds, height: y + 12 };
+  }
+
+  // 車載マエストロのシールを Canvas 2D のパスで描く（SVGを画像化して貼るとcanvasが汚染扱いになり
+  // toDataURL() が失敗しうるため）。座標は maestroSealSvg() と同じ viewBox 200x200 系で書き、最後にスケールする。
+  function drawMaestroSeal(ctx, cx, cy, size) {
+    const k = size / 200;
+    ctx.save();
+    ctx.translate(cx - size / 2, cy - size / 2);
+    ctx.scale(k, k);
+
+    const grad = ctx.createLinearGradient(0, 8, 0, 192);
+    grad.addColorStop(0, '#f7e3a1'); grad.addColorStop(0.45, '#d9a92b'); grad.addColorStop(1, '#9a6b00');
+
+    ctx.fillStyle = '#fffdf6';
+    ctx.beginPath(); ctx.arc(100, 100, 92, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 3.5;
+    ctx.beginPath(); ctx.arc(100, 100, 90, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineWidth = 1.1; ctx.globalAlpha = 0.65;
+    ctx.beginPath(); ctx.arc(100, 100, 82, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // 月桂樹（DOM側 laurelLeaves と同一の式）
+    ctx.fillStyle = grad;
+    [[128, 218, false], [52, -38, true]].forEach(br => {
+      const from = br[0], to = br[1], mirror = br[2];
+      for (let n = 0; n < SEAL_GEOM.leaves; n++) {
+        const t = from + (to - from) * (n / (SEAL_GEOM.leaves - 1));
+        const rad = t * Math.PI / 180;
+        const x = SEAL_GEOM.cx + Math.cos(rad) * SEAL_GEOM.r;
+        const y = SEAL_GEOM.cy + Math.sin(rad) * SEAL_GEOM.r;
+        const lean = (t + (mirror ? -64 : 64)) * Math.PI / 180;
+        const grow = 0.62 + 0.38 * Math.sin(Math.PI * (n / (SEAL_GEOM.leaves - 1)));
+        ctx.beginPath();
+        ctx.ellipse(x, y, 9 * grow, 4 * grow, lean, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+
+    // 上部の星
+    ctx.beginPath();
+    ctx.moveTo(100, 24); ctx.lineTo(103.2, 30.6); ctx.lineTo(110.5, 31.6); ctx.lineTo(105.2, 36.7);
+    ctx.lineTo(106.5, 43.9); ctx.lineTo(100, 40.5); ctx.lineTo(93.5, 43.9); ctx.lineTo(94.8, 36.7);
+    ctx.lineTo(89.5, 31.6); ctx.lineTo(96.8, 30.6); ctx.closePath(); ctx.fill();
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#9a6b00';
+    ctx.font = '700 17px ' + CARD_FONT;
+    ctx.fillText('車 載', 103, 84);
+    ctx.fillStyle = '#8a5f00';
+    ctx.font = '800 21px ' + CARD_FONT;
+    ctx.fillText('マエストロ', 100.5, 115);
+    ctx.strokeStyle = grad; ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.moveTo(70, 127); ctx.lineTo(130, 127); ctx.stroke();
+    ctx.fillStyle = '#a9750d';
+    ctx.font = '700 8px ' + CARD_FONT;
+    ctx.fillText('M A E S T R O   D I   B O R D O', 100.6, 143);
+
+    ctx.textAlign = 'left';
+    ctx.restore();
   }
 
   function buildResultCanvas(data) {
@@ -1465,15 +1503,13 @@
     ctx.fillText('Registro500 Giappone', W / 2, 74);
     ctx.font = '400 12px ' + CARD_FONT;
     ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    // 型名・スコアは一切出さない（2026-08-04「主従の再確認」）。マエストロでなければ一覧の見出しのみ
-    ctx.fillText(
-      data.isMaster ? '🏆 車載マエストロ' : 'あなたの装備でできる路上対応',
-      W / 2, 98
-    );
+    // 型名・スコアは一切出さない（2026-08-04「主従の再確認」）。称号を持つ人だけ称号名を添える
+    ctx.fillText(data.isMaster ? '車載マエストロ' : 'あなたの装備手帳', W / 2, 98);
     ctx.textAlign = 'left';
 
     const originY = HEADER_H + TOP_PAD;
     cmds.forEach(cmd => {
+      if (cmd.seal) { drawMaestroSeal(ctx, W / 2, originY + cmd.y + cmd.size / 2, cmd.size); return; }
       ctx.font = cmd.font;
       ctx.fillStyle = cmd.color;
       ctx.fillText(cmd.text, PAD, originY + cmd.y);
