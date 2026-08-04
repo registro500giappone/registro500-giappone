@@ -187,26 +187,29 @@
       border-radius: 8px; font-size: 0.9rem; font-family: inherit; line-height: 1.7; resize: vertical;
     }
 
-    /* ===== 結果（タイプ判定＋リコメンド） ===== */
+    /* ===== 結果（3層構造：安全装備／カバレッジ＋一歩先／車載マスター） ===== */
+    /* 2026-08-04: 4型判定（現地修理型/予防整備型/救援前提型/身軽型）を全廃し3層に置き換え。
+       「名前を持つのは頂点（車載マスター）だけ。それ以外はすべて事実（数字）」（HANDOFF「型の区分け再議論」参照） */
     #result-section { border: 2px solid var(--accent-soft); }
     .result-stale-note {
       font-size: 0.78rem; color: var(--text-sub); background: var(--accent-soft);
       border-radius: 8px; padding: 8px 10px; margin: 0 0 14px; line-height: 1.6;
     }
-    .result-type-name { font-size: 1.25rem; font-weight: 800; color: var(--accent); margin: 0 0 4px; }
-    /* 4つの型を並べて本人の型を強調する（自分の型だけでは位置づけが分からないため） */
-    .type-map { margin: 0 0 4px; padding: 12px 14px; background: var(--accent-soft); border-radius: 10px; }
-    .type-map-title { font-size: 0.75rem; font-weight: 700; color: var(--accent); margin: 0 0 6px; }
-    .type-row {
-      display: flex; gap: 7px; align-items: baseline; flex-wrap: wrap;
-      padding: 3px 0; font-size: 0.78rem; color: var(--text-sub);
-    }
-    .type-row.is-me { color: var(--text-main); font-weight: 700; }
-    .type-row-short { font-size: 0.73rem; font-weight: 400; }
-    .type-me-badge {
-      font-size: 0.62rem; font-weight: 700; color: #fff; background: var(--accent);
-      border-radius: 4px; padding: 1px 5px; line-height: 1.5;
-    }
+    /* 第1層＝安全装備。唯一のダメ出しが許されるゾーンなので赤系で強調する */
+    .safety-block { margin: 0 0 20px; padding-bottom: 18px; border-bottom: 1px dashed var(--border-soft); }
+    .safety-heading { font-size: 1.05rem; font-weight: 800; color: #c62828; margin: 0 0 8px; }
+    .safety-gauge { height: 8px; border-radius: 4px; background: var(--border-soft); overflow: hidden; margin: 0 0 4px; }
+    .safety-gauge-fill { display: block; height: 100%; background: #c62828; border-radius: 4px; }
+    .safety-gauge-label { font-size: 0.8rem; font-weight: 700; color: #c62828; margin: 0 0 10px; }
+    /* 4/4は大きく祝わず、控えめな一行だけにする */
+    .safety-ok { font-size: 0.82rem; font-weight: 700; color: var(--ok); margin: 0 0 20px; }
+    /* 第3層＝車載マスター。称号は1つだけなので視覚的にもここだけ特別扱いする */
+    .master-block { margin: 0 0 4px; padding: 16px; background: #fff8e1; border: 1px solid #f0c14b; border-radius: 10px; text-align: center; }
+    .master-badge { font-size: 1.15rem; font-weight: 800; color: #9a6b00; margin: 0 0 6px; }
+    .master-desc { font-size: 0.85rem; color: var(--text-main); line-height: 1.7; margin: 0 0 8px; }
+    .master-invite { font-size: 0.8rem; color: var(--text-sub); margin: 0; }
+    .master-invite a { color: var(--accent); font-weight: 700; text-decoration: none; }
+    .master-invite a:hover { text-decoration: underline; }
     .reco-heading { font-size: 0.85rem; font-weight: 700; margin: 16px 0 8px; }
     .reco-heading:first-child { margin-top: 0; }
     .reco-item { padding: 8px 0; border-top: 1px solid var(--border-soft); }
@@ -240,6 +243,8 @@
     /* ===== 止まり方カバレッジ（stop_modes取得時のみ表示。#result-typeより上＝主役） ===== */
     .cov-block { margin: 0 0 20px; padding-bottom: 18px; border-bottom: 1px dashed var(--border-soft); }
     .cov-heading { font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin: 0 0 12px; line-height: 1.5; }
+    /* n/denomの数字表示が主役（中間層は無名・事実表示のみ） */
+    .cov-count { margin-left: 8px; color: var(--accent); font-variant-numeric: tabular-nums; }
     .cov-row { padding: 8px 0; border-top: 1px solid var(--border-soft); font-size: 0.82rem; line-height: 1.6; word-break: break-word; }
     .cov-row:first-child { border-top: none; }
     .cov-row-code { font-weight: 700; color: var(--text-main); }
@@ -432,16 +437,13 @@
       </p>
     </section>
 
-    <!-- 結果（保存後に表示：タイプ判定＋リコメンド） -->
+    <!-- 結果（保存後に表示：安全装備／カバレッジ＋一歩先／車載マスターの3層） -->
     <section class="card" id="result-section" style="display:none;">
       <p class="result-stale-note" id="result-stale-note" style="display:none;">※前回保存した内容にもとづく判定です。保存すると更新されます</p>
-      <div id="result-coverage"></div>
-      <h2>あなたの装備タイプ</h2>
-      <p class="result-type-name" id="result-type-name"></p>
-      <p class="card-lead" id="result-type-desc"></p>
-      <div id="result-type-map"></div>
       <div id="result-safety"></div>
-      <div id="result-ladder"></div>
+      <div id="result-coverage"></div>
+      <div id="result-next"></div>
+      <div id="result-master"></div>
       <p id="affiliate-disclosure" style="display:none">
         このページにはAmazonアソシエイトのリンクが含まれています（PR）。<br>
         リンク経由でご購入いただいた場合、Amazonからわずかな報酬がこのサイトに入りますが、<strong>商品の価格は変わりません。</strong><br>
@@ -902,59 +904,19 @@
     el.classList.toggle('has', n > 0);
   }
 
-  // ===================== 結果（タイプ判定＋リコメンド） =====================
-  // フェーズ1: 母数が貯まるまでは統計でなく本人の回答バランスから返す（design-original.md／HANDOFF「リコメンド設計の再定義」参照）。
-  // 工具・パーツが薄い人に「梯子」を返しても響かないため、タイプと表示を同じ判定軸で連動させる。
-  // 結果画面では4型すべてを並べて本人の型を強調する（自分の型だけ見せても位置づけが分からないため）
-  const TYPE_ORDER = ['genchi', 'yobou', 'kyuen', 'migaru'];
-  const TYPE_INFO = {
-    genchi: { name: '現地修理型', short: '工具とパーツで、自分で直して帰る',
-              desc: '止まっても自力で帰る。工具とパーツの厚みに、その構えが表れています。' },
-    yobou:  { name: '予防整備型', short: '消耗品と点検で、そもそも止まらせない',
-              desc: 'そもそも止まらせない。ケミカル・点検用品の厚みに、その構えが表れています。' },
-    // 「何でも自分で直す」のでなく、軽い手当てだけ積んで割り切って救援を呼ぶ層。
-    // 受け身に読める旧文（ロードサービスと保険で構える…）から、能動的な合理判断として書き直した。
-    kyuen:  { name: '救援前提型', short: '軽い手当てと救援を、使い分ける',
-              desc: '直せる範囲は自分で、無理はしない。手当てと救援の使い分けが、いちばん現実的な構えです。' },
-    migaru: { name: '身軽型', short: '近距離中心。最低限で割り切る',
-              desc: 'あなたの割り切りは合理的です。近距離中心の乗り方なら、最低限の備えで十分成り立ちます。' }
-  };
-  const MECH_THICK_THRESHOLD = 3; // 工具+パーツの搭載数がこれ以上で「機械系が厚い」とみなす
-  // stop_modes取得時（repairCoverベース判定）の閾値。29件時点のパイロット相当の暫定値・実データで見直す
-  // 修理系カバー4〜7件の実オーナーが身軽型に落ちる穴が実機レビューで発覚（2026-08-03）→暫定で4に引き下げ。型の区分け自体を再議論予定
-  const REPAIR_COVER_GENCHI_THRESHOLD = 4; // repairCoverがこれ以上でgenchi
-  const CHEM_YOBOU_THRESHOLD = 5;          // chemがこれ以上でyobou（フォールバック時と共通の閾値）
-  const EMERG_KYUEN_THRESHOLD = 4;         // emergがこれ以上でkyuen候補
-  const REPAIR_COVER_KYUEN_MAX = 3;        // repairCoverがこれ以下でkyuen候補
+  // ===================== 結果（安全装備／カバレッジ＋一歩先／車載マスターの3層） =====================
+  // 2026-08-04: 4型判定（現地修理型/予防整備型/救援前提型/身軽型）は「人にラベルを貼る」文法で
+  // 上から目線と受け取られるため全廃（design-original.md／HANDOFF「型の区分け再議論」参照）。
+  // 「名前を持つのは頂点（車載マスター）だけ。それ以外はすべて事実（数字）」の原則に置き換える。
 
-  function categoryCounts() {
-    const counts = {}; CATEGORIES.forEach(c => counts[c] = 0);
-    items.forEach(i => { if (state[i.id].frequency) counts[i.category]++; });
-    return counts;
-  }
-
-  // 率でなく実数で判定する。カテゴリごとに有効項目数が違う（工具23／パーツ20／ケミカル8／非常時12）ため、
-  // 率を横並びで比べると項目数の少ないケミカルが跳ね、最重装備の人が予防整備型に落ちる誤判定が出た（2026-07-24 実データで確認）。
-  // 閾値はパイロット n=6 の暫定値。回答が増えたら見直す。
-  // repairCoverを渡すとstop_modesベースの決定木（mech実数の代わりにrepairCoverを使う）に切り替わる。
-  // null/undefinedのとき（stop_modes未取得＝フォールバック）は従来どおりmech実数で判定する。
-  function classifyType(counts, repairCover) {
-    const mech  = counts['工具'] + counts['パーツ'];  // 最大43
-    const chem  = counts['ケミカル'];                 // 最大8
-    const emerg = counts['非常時対応'];               // 最大12
-
-    if (repairCover != null) {
-      if (repairCover >= REPAIR_COVER_GENCHI_THRESHOLD) return 'genchi';
-      if (chem >= CHEM_YOBOU_THRESHOLD) return 'yobou';
-      if (emerg >= EMERG_KYUEN_THRESHOLD && repairCover <= REPAIR_COVER_KYUEN_MAX) return 'kyuen';
-      return 'migaru';
-    }
-
-    if (mech >= 15) return 'genchi';
-    if (chem >= CHEM_YOBOU_THRESHOLD) return 'yobou';
-    if (emerg >= 4 && mech <= 8) return 'kyuen';
-    return 'migaru';   // 判定に迷ったら最も控えめな型に落とす（重い型に落とすと本人の実態と食い違って失礼になる）
-  }
+  // 安全装備4点（法律・レスキューの事実として言えるため、唯一ダメ出しが許されるゾーン）。
+  // recommend_priorityが1〜4に割り当て済みなのでそのまま表示順として使える
+  // （三角表示板39→発煙筒38→ロードサービス連絡先44→保険証券45。items_pilot_review_2026-07-24.sql参照）。
+  const SAFETY_ITEM_IDS = [39, 38, 44, 45];
+  // 三角表示板だけは「法律上の義務」という事実を明記する（DB側のreasonは短縮形のため表示時のみ上書き）
+  const SAFETY_REASON_OVERRIDE = { 39: '高速道路上で停止した際の設置は法律上の義務です' };
+  // 一歩先リコメンドの上限。「全員に最大限積ませる」旧設計をやめ一歩先だけ見せるため固定で3件
+  const NEXT_STEP_MAX = 3;
 
   // 購入先チャネルの表示順（国内調達優先。ユーザー確定・変更しない）
   const PURCHASE_CHANNEL_ORDER = ['amazon', 'monotaro', 'shop', 'kurabetaro'];
@@ -993,18 +955,19 @@
         PURCHASE_CHANNEL_ORDER.indexOf(a.type) - PURCHASE_CHANNEL_ORDER.indexOf(b.type));
       linksHtml = '<div class="reco-links">' + sorted.map(link => purchaseLinkBtnHtml(link, i.name)).join('') + '</div>';
     }
-    // 止まり方カバレッジ（解錠数ベース）でランキングされた項目にのみ「→ F1・F2に対応」を添える
+    // 一歩先リコメンド（解錠数ベース）にのみ「積んだ後の数字」を添える。安全装備の項目には付かない
     const unlockHtml = (Array.isArray(i._unlockModes) && i._unlockModes.length)
-      ? '<div class="reco-unlock">→ ' + escapeHtml(i._unlockModes.map(m => m.code).join('・')) + 'に対応</div>'
+      ? '<div class="reco-unlock">これを積むと『' + escapeHtml(i._unlockModes.map(m => m.code).join('・'))
+        + '』にも対処でき ' + i._afterN + '/' + i._denom + ' になります</div>'
       : '';
     return '<div class="reco-item"><div class="reco-name">' + escapeHtml(i.name) + '</div>' +
       '<div class="reco-reason">' + escapeHtml(i.reason) + '</div>' + unlockHtml + linksHtml + '</div>';
   }
 
-  function doneHtml(text, sub) {
-    return '<p class="reco-done"><span class="reco-done-mark" aria-hidden="true">✓</span>' +
-      '<span><span class="reco-done-text">' + escapeHtml(text) + '</span>' +
-      '<span class="reco-done-sub">' + escapeHtml(sub) + '</span></span></p>';
+  // 安全装備4点の1件を表示するHTML（三角表示板はreasonを法的事実の文言に上書きする）
+  function safetyItemHtml(i) {
+    const reason = SAFETY_REASON_OVERRIDE[i.id];
+    return recoItemHtml(reason ? Object.assign({}, i, { reason: reason }) : i);
   }
 
   // ===================== 止まり方カバレッジ（純粋関数。DOM非依存） =====================
@@ -1060,67 +1023,75 @@
 
   // DOM表示・画像化の両方が使う共通データ（本人の回答から算出。統計は使わない＝フェーズ1）
   function computeResultData() {
-    const counts = categoryCounts();
     const loadedIds = new Set(items.filter(i => state[i.id].frequency).map(i => i.id));
     const coverage = stopModesReady
       ? computeStopModeCoverage(stopModes, stopModeNeedByCode, loadedIds)
       : null;
-    const type = classifyType(counts, coverage ? coverage.repairCover : null);
-    const missing = items.filter(i => i.recommend_priority != null && !state[i.id].frequency)
-      .sort((a, b) => a.recommend_priority - b.recommend_priority);
-    // 第0層＝安全層（非常時対応）。スタイルに関わらず全員に返す
-    const safety = missing.filter(i => i.category === '非常時対応');
-    // 第1層＝自走復帰の梯子（工具・パーツ・ケミカル）。本人の機械系の厚みで表示を条件分岐
-    let ladder;
-    if (coverage) {
-      // stop_modes取得時：解錠数（それを積むと新たにcoveredになる止まり方の数）降順、
-      // 同数はrecommend_priority昇順（nullは最後）でランキングする。
-      // recommend_priorityの有無に関わらず候補にするため、missing（priority!=null限定）でなくitems全体から拾い直す。
-      const candidates = items.filter(i => i.category !== '非常時対応' && !state[i.id].frequency);
-      const unlockMap = unlockMapFromUncovered(coverage.uncovered);
-      ladder = candidates.slice().sort((a, b) => {
-        const ua = (unlockMap[a.id] || []).length, ub = (unlockMap[b.id] || []).length;
-        if (ua !== ub) return ub - ua; // 解錠数降順
-        const pa = a.recommend_priority == null ? Infinity : a.recommend_priority;
-        const pb = b.recommend_priority == null ? Infinity : b.recommend_priority;
-        return pa - pb;
-      }).map(i => Object.assign({}, i, { _unlockModes: unlockMap[i.id] || [] }));
-    } else {
-      // フォールバック（stop_modes未取得）：従来どおりrecommend_priority昇順
-      ladder = missing.filter(i => i.category !== '非常時対応');
+
+    // 第1層＝安全装備4点。不足分だけを抽出する（recommend_priority 1〜4の並びをそのまま使う）
+    const safetyMissing = SAFETY_ITEM_IDS
+      .map(id => items.find(i => i.id === id))
+      .filter(i => i && !state[i.id].frequency);
+    const safetyDoneCount = SAFETY_ITEM_IDS.length - safetyMissing.length;
+    const safetyFull = safetyMissing.length === 0;
+
+    // 第3層＝車載マスター（22/22 かつ 安全装備4/4）。stop_modes未取得時は判定できない
+    const isMaster = !!coverage && coverage.n === coverage.denom && safetyFull;
+
+    // 第2層＝一歩先リコメンド。マスターなら次の一手は無い
+    let nextSteps = [];
+    if (!isMaster) {
+      if (coverage) {
+        // stop_modes取得時：解錠数（それを積むと新たにcoveredになる止まり方の数）降順、
+        // 同数はrecommend_priority昇順（nullは最後）でランキングし、上位NEXT_STEP_MAX件だけを返す。
+        // 「全員に最大限積ませる」旧設計（枠余りを編集部推奨で埋める）は廃止＝解錠数0の項目は候補にしない。
+        const unlockMap = unlockMapFromUncovered(coverage.uncovered);
+        nextSteps = items
+          .filter(i => SAFETY_ITEM_IDS.indexOf(i.id) === -1 && !state[i.id].frequency && unlockMap[i.id])
+          .map(i => Object.assign({}, i, { _unlockModes: unlockMap[i.id] }))
+          .sort((a, b) => {
+            const diff = b._unlockModes.length - a._unlockModes.length;
+            if (diff) return diff;
+            const pa = a.recommend_priority == null ? Infinity : a.recommend_priority;
+            const pb = b.recommend_priority == null ? Infinity : b.recommend_priority;
+            return pa - pb;
+          })
+          .slice(0, NEXT_STEP_MAX)
+          .map(i => Object.assign({}, i, { _afterN: coverage.n + i._unlockModes.length, _denom: coverage.denom }));
+      } else {
+        // フォールバック（stop_modes未取得）：カバレッジが計算できないため従来どおりrecommend_priority順
+        nextSteps = items
+          .filter(i => SAFETY_ITEM_IDS.indexOf(i.id) === -1 && !state[i.id].frequency && i.recommend_priority != null)
+          .sort((a, b) => a.recommend_priority - b.recommend_priority)
+          .slice(0, NEXT_STEP_MAX);
+      }
     }
-    return { type, info: TYPE_INFO[type], safety, ladder, mechLoaded: counts['工具'] + counts['パーツ'], coverage };
+
+    return { safetyMissing, safetyDoneCount, safetyFull, coverage, isMaster, nextSteps };
   }
 
-  // 表示分岐（見出し・件数）を1箇所に集約。DOM描画とCanvas描画で文言が食い違わないようにする
+  // 表示分岐（見出し・文言）を1箇所に集約。DOM描画とCanvas描画で文言が食い違わないようにする
   function buildResultSections(data) {
     const sec = {
-      safetyHeading: 'まず、これだけは',
-      safetyItems: data.safety,
-      safetyDone: null, safetyDoneSub: null,
-      ladderHeading: null, ladderItems: null, ladderInvite: null,
-      ladderDone: null, ladderDoneSub: null
+      safetyHeading: null, safetyGaugeLabel: null, safetyOkText: null,
+      masterTitle: null, masterDesc: null, masterInvite: null,
+      nextHeading: null
     };
-    // 不足ゼロは「見出し＋項目なし」でなく完了メッセージとして扱う（褒めを本文で伝える）
-    if (!data.safety.length) {
-      sec.safetyHeading = null;
-      sec.safetyDone = '安全対応の基本装備は揃っています。';
-      sec.safetyDoneSub = '編集部がすすめる非常時対応の項目は、すべて積まれています。';
-    }
-    if (data.mechLoaded >= MECH_THICK_THRESHOLD) {
-      if (data.ladder.length) {
-        sec.ladderHeading = '自走復帰の備え、次の一手';
-        sec.ladderItems = data.ladder.slice(0, 5);
-      } else {
-        // 安全層も完了しているときだけ「も」で受ける
-        sec.ladderDone = sec.safetyDone ? '工具・パーツの基本装備も揃っています。' : '工具・パーツの基本装備は揃っています。';
-        sec.ladderDoneSub = 'ここから先は、乗り方に合わせて足していく領域です。';
-      }
-    } else if (data.type === 'migaru') {
-      sec.ladderInvite = '近距離中心なら、上の安全対応だけ持てば十分です。それ以上を無理に積む必要はありません。';
+    if (data.safetyFull) {
+      // 4/4は大きく祝わず、控えめな一行だけにする
+      sec.safetyOkText = '✓ 安全装備 ' + SAFETY_ITEM_IDS.length + '/' + SAFETY_ITEM_IDS.length;
     } else {
-      sec.ladderInvite = 'もし自走復帰の備えに興味があれば、まずは一歩から'
-        + (data.ladder[0] ? '——「' + data.ladder[0].name + '」あたりが手始めです。' : '。');
+      sec.safetyHeading = 'まず安全装備から';
+      sec.safetyGaugeLabel = '安全装備 ' + data.safetyDoneCount + '/' + SAFETY_ITEM_IDS.length;
+    }
+    if (data.isMaster) {
+      sec.masterTitle = '🏆 車載マスター';
+      sec.masterDesc = '路上で対処しうる' + data.coverage.denom + 'の止まり方を、すべてカバーしています。'
+        + 'あなたの手帳は、他のオーナーの教科書です。';
+      sec.masterInvite = '手帳を公開すると、みんなの装備手帳の一覧で紹介されます。';
+    } else if (data.nextSteps.length) {
+      // 中間層は無名。解錠数ベースかフォールバックかで見出しの語り口だけ変える
+      sec.nextHeading = data.coverage ? '一歩先の備え' : '編集部のおすすめ';
     }
     return sec;
   }
@@ -1156,7 +1127,7 @@
       : '<p class="cov-empty">保存済みの装備で対応できるトラブルはまだありません。下のおすすめが参考になります</p>';
 
     return '<div class="cov-block">' +
-      '<p class="cov-heading">あなたの装備でできる路上対応</p>' +
+      '<p class="cov-heading">あなたの装備でできる路上対応<span class="cov-count">' + coverage.n + '/' + coverage.denom + '</span></p>' +
       body + REPAIR_WIKI_LINK +
       '</div>';
   }
@@ -1168,36 +1139,33 @@
 
     document.getElementById('result-stale-note').style.display = fromSavedRecord ? 'block' : 'none';
 
+    // 第1層＝安全装備（唯一のダメ出しが許されるゾーン）
+    document.getElementById('result-safety').innerHTML = sec.safetyOkText
+      ? '<p class="safety-ok">' + escapeHtml(sec.safetyOkText) + '</p>'
+      : '<div class="safety-block"><p class="safety-heading">' + escapeHtml(sec.safetyHeading) + '</p>' +
+        '<div class="safety-gauge"><span class="safety-gauge-fill" style="width:'
+          + Math.round(data.safetyDoneCount / SAFETY_ITEM_IDS.length * 100) + '%"></span></div>' +
+        '<p class="safety-gauge-label">' + escapeHtml(sec.safetyGaugeLabel) + '</p>' +
+        data.safetyMissing.map(safetyItemHtml).join('') + '</div>';
+
+    // 第2層＝カバレッジ（既存の一覧はそのまま維持。n/denomの数字表示を主役として添える）
     document.getElementById('result-coverage').innerHTML = buildCoverageHtml(data.coverage);
 
-    document.getElementById('result-type-name').textContent = data.info.name;
-    document.getElementById('result-type-desc').textContent = data.info.desc;
+    // 一歩先リコメンド（最大3件。マスター時・候補0件のときはブロックごと出さない）
+    document.getElementById('result-next').innerHTML = sec.nextHeading
+      ? '<div class="next-block"><p class="reco-heading">' + escapeHtml(sec.nextHeading) + '</p>' +
+        data.nextSteps.map(recoItemHtml).join('') + '</div>'
+      : '';
 
-    // 4型すべてを並べ、本人の型に「あなた」バッジを付ける
-    document.getElementById('result-type-map').innerHTML =
-      '<div class="type-map"><p class="type-map-title">ここでは、備えの傾向を4つに分類してみました（お楽しみの分類です）</p>' +
-      TYPE_ORDER.map(key => {
-        const t = TYPE_INFO[key];
-        const isMe = (key === data.type);
-        return '<div class="type-row' + (isMe ? ' is-me' : '') + '">' +
-          '<span>' + escapeHtml(t.name) + '</span>' +
-          (isMe ? '<span class="type-me-badge">あなた</span>' : '') +
-          '<span class="type-row-short">' + escapeHtml(t.short) + '</span></div>';
-      }).join('') + '</div>';
-
-    document.getElementById('result-safety').innerHTML = sec.safetyDone
-      ? doneHtml(sec.safetyDone, sec.safetyDoneSub)
-      : '<p class="reco-heading">' + escapeHtml(sec.safetyHeading) + '</p>' + sec.safetyItems.map(recoItemHtml).join('');
-
-    const ladderHost = document.getElementById('result-ladder');
-    ladderHost.innerHTML = sec.ladderItems
-      ? '<p class="reco-heading">' + escapeHtml(sec.ladderHeading) + '</p>' + sec.ladderItems.map(recoItemHtml).join('')
-      : sec.ladderDone
-        ? doneHtml(sec.ladderDone, sec.ladderDoneSub)
-        : '<p class="reco-invite">' + escapeHtml(sec.ladderInvite) + '</p>';
+    // 第3層＝車載マスター（唯一の称号）
+    document.getElementById('result-master').innerHTML = data.isMaster
+      ? '<div class="master-block"><p class="master-badge">' + escapeHtml(sec.masterTitle) + '</p>' +
+        '<p class="master-desc">' + escapeHtml(sec.masterDesc) + '</p>' +
+        '<p class="master-invite">' + escapeHtml(sec.masterInvite) + ' <a href="equipment.html">装備手帳の公開一覧を見る</a></p></div>'
+      : '';
 
     // 表示中のリコメンドにAmazonリンクが1つでも含まれる場合のみPR開示文を出す
-    const shownItems = sec.safetyItems.concat(sec.ladderItems || []);
+    const shownItems = data.safetyMissing.concat(data.nextSteps);
     const hasAmazonLink = shownItems.some(i => Array.isArray(i.purchase_links)
       && i.purchase_links.some(l => l.type === 'amazon'));
     document.getElementById('affiliate-disclosure').style.display = hasAmazonLink ? 'block' : 'none';
