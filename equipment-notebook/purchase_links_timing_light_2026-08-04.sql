@@ -17,7 +17,7 @@
 -- ============================================================
 
 update public.equipment_items
-  set purchase_links = '[{"type":"amazon","url":"https://www.amazon.co.jp/s?k=%E3%82%BF%E3%82%A4%E3%83%9F%E3%83%B3%E3%82%B0%E3%83%A9%E3%82%A4%E3%83%88+12V+%E7%82%B9%E7%81%AB%E6%99%82%E6%9C%9Fhttps://www.amazon.co.jp/s?k=%E3%82%BF%E3%82%A4%E3%83%9F%E3%83%B3%E3%82%B0%E3%83%A9%E3%82%A4%E3%83%88%2012V%20%E7%82%B9%E7%81%AB%E6%99%82%E6%9C%9F&tag=registro500-22tag=registro500-22"}]'::jsonb
+  set purchase_links = '[{"type":"amazon","url":"https://www.amazon.co.jp/s?k=%E3%82%BF%E3%82%A4%E3%83%9F%E3%83%B3%E3%82%B0%E3%83%A9%E3%82%A4%E3%83%88+12V+%E7%82%B9%E7%81%AB%E6%99%82%E6%9C%9F&tag=registro500-22"}]'::jsonb
   where id = 74;
 
 -- ============================================================
