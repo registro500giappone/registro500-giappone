@@ -216,13 +216,6 @@
     .reco-name { font-size: 0.9rem; font-weight: 700; }
     .reco-reason { font-size: 0.78rem; color: var(--text-sub); margin-top: 2px; line-height: 1.6; }
     .reco-unlock { font-size: 0.78rem; color: var(--accent); font-weight: 700; margin-top: 4px; }
-    .reco-invite { font-size: 0.85rem; color: var(--text-sub); line-height: 1.8; margin: 0; }
-    /* 不足ゼロのときは見出しでなく本文の完了メッセージにする（見出しだけ残ると項目が抜け落ちたように見えるため） */
-    .reco-done { display: flex; gap: 8px; align-items: flex-start; margin: 16px 0 0; font-size: 0.85rem; line-height: 1.7; }
-    .reco-done:first-child { margin-top: 0; }
-    .reco-done-mark { color: var(--ok); font-weight: 700; flex-shrink: 0; }
-    .reco-done-text { color: var(--text-main); font-weight: 700; }
-    .reco-done-sub { display: block; margin-top: 2px; color: var(--text-sub); font-weight: 400; font-size: 0.8rem; }
     .reco-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
     .reco-link-btn {
       display: inline-flex; align-items: center; gap: 4px;
@@ -240,7 +233,7 @@
       border: 1px solid var(--border-soft); border-radius: 4px; padding: 0 3px; line-height: 1.4;
     }
 
-    /* ===== 止まり方カバレッジ（stop_modes取得時のみ表示。#result-typeより上＝主役） ===== */
+    /* ===== 止まり方カバレッジ（stop_modes取得時のみ表示。第2層＝n/denomの数字表示が主役） ===== */
     .cov-block { margin: 0 0 20px; padding-bottom: 18px; border-bottom: 1px dashed var(--border-soft); }
     .cov-heading { font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin: 0 0 12px; line-height: 1.5; }
     /* n/denomの数字表示が主役（中間層は無名・事実表示のみ） */
@@ -958,7 +951,7 @@
     // 一歩先リコメンド（解錠数ベース）にのみ「積んだ後の数字」を添える。安全装備の項目には付かない
     const unlockHtml = (Array.isArray(i._unlockModes) && i._unlockModes.length)
       ? '<div class="reco-unlock">これを積むと『' + escapeHtml(i._unlockModes.map(m => m.code).join('・'))
-        + '』にも対処でき ' + i._afterN + '/' + i._denom + ' になります</div>'
+        + '』にも対処でき ' + i._afterN + '/' + i._denom + 'になります</div>'
       : '';
     return '<div class="reco-item"><div class="reco-name">' + escapeHtml(i.name) + '</div>' +
       '<div class="reco-reason">' + escapeHtml(i.reason) + '</div>' + unlockHtml + linksHtml + '</div>';
@@ -1189,8 +1182,9 @@
     return lines;
   }
 
-  function layoutSection(mctx, cmds, y, cw, heading, itemsArr, fHead, fName, fReason) {
-    cmds.push({ y, text: heading, font: fHead, color: '#111827' });
+  // headColor省略時は本文と同じ黒。安全装備の不足見出しだけ赤で強調するため差し替え可能にしている
+  function layoutSection(mctx, cmds, y, cw, heading, itemsArr, fHead, fName, fReason, headColor) {
+    cmds.push({ y, text: heading, font: fHead, color: headColor || '#111827' });
     y += 10;
     itemsArr.forEach(item => {
       y += 24;
@@ -1204,59 +1198,49 @@
     return y;
   }
 
-  // 完了メッセージ（見出しでなく本文扱い）。DOMの .reco-done と文言・順序を揃える
-  function layoutDone(mctx, cmds, y, cw, doneText, subText, fMain, fSub) {
-    mctx.font = fMain;
-    wrapText(mctx, '✓ ' + doneText, cw).forEach((line, idx) => {
-      if (idx) y += 21;
-      cmds.push({ y, text: line, font: fMain, color: '#1f7a45' });
-    });
-    mctx.font = fSub;
-    wrapText(mctx, subText, cw).forEach(line => {
-      y += 20;
-      cmds.push({ y, text: line, font: fSub, color: '#6b7280' });
-    });
-    return y;
-  }
-
   // 描画コマンド列とコンテンツ高さを算出（フォントは計測にも描画にも同じ文字列を使う）
-  function layoutResultContent(mctx, data, sec, cw) {
-    const F_TYPE = '700 26px ' + CARD_FONT, F_DESC = '400 15px ' + CARD_FONT, F_HEAD = '700 15px ' + CARD_FONT,
-          F_NAME = '700 16px ' + CARD_FONT, F_REASON = '400 13px ' + CARD_FONT, F_INVITE = '400 14px ' + CARD_FONT;
+  // DOMの3層構造（安全装備／カバレッジ＋一歩先／車載マスター）と文言・順序を揃える
+  function layoutResultContent(mctx, data, cw) {
+    const F_BIG = '700 22px ' + CARD_FONT, F_DESC = '400 15px ' + CARD_FONT, F_HEAD = '700 15px ' + CARD_FONT,
+          F_NAME = '700 16px ' + CARD_FONT, F_REASON = '400 13px ' + CARD_FONT;
     const cmds = [];
     let y = 26;
-    cmds.push({ y, text: data.info.name, font: F_TYPE, color: '#2856a8' });
-    y += 16;
-    mctx.font = F_DESC;
-    wrapText(mctx, data.info.desc, cw).forEach(line => {
-      y += 22;
-      cmds.push({ y, text: line, font: F_DESC, color: '#111827' });
-    });
 
-    y = sec.safetyDone
-      ? layoutDone(mctx, cmds, y + 26, cw, sec.safetyDone, sec.safetyDoneSub, F_HEAD, F_REASON)
-      : layoutSection(mctx, cmds, y + 26, cw, sec.safetyHeading, sec.safetyItems, F_HEAD, F_NAME, F_REASON);
-
-    if (sec.ladderItems) {
-      y = layoutSection(mctx, cmds, y + 26, cw, sec.ladderHeading, sec.ladderItems, F_HEAD, F_NAME, F_REASON);
-    } else if (sec.ladderDone) {
-      y = layoutDone(mctx, cmds, y + 26, cw, sec.ladderDone, sec.ladderDoneSub, F_HEAD, F_REASON);
+    // 第1層＝安全装備（唯一のダメ出しが許されるゾーン）
+    if (data.safetyFull) {
+      cmds.push({ y, text: '✓ 安全装備 ' + SAFETY_ITEM_IDS.length + '/' + SAFETY_ITEM_IDS.length, font: F_HEAD, color: '#1f7a45' });
     } else {
+      y = layoutSection(mctx, cmds, y,
+        cw, '安全装備 ' + data.safetyDoneCount + '/' + SAFETY_ITEM_IDS.length + '（まず安全装備から）',
+        data.safetyMissing, F_BIG, F_NAME, F_REASON, '#c62828');
+    }
+
+    // 第3層＝車載マスター、第2層＝カバレッジ＋一歩先（stop_modes未取得時は編集部のおすすめのみ）
+    if (data.isMaster) {
       y += 26;
-      mctx.font = F_INVITE;
-      wrapText(mctx, sec.ladderInvite, cw).forEach(line => {
-        cmds.push({ y, text: line, font: F_INVITE, color: '#6b7280' });
+      cmds.push({ y, text: '🏆 車載マスター', font: F_BIG, color: '#9a6b00' });
+      mctx.font = F_DESC;
+      wrapText(mctx, '路上で対処しうる' + data.coverage.denom + 'の止まり方を、すべてカバーしています。', cw).forEach(line => {
         y += 22;
+        cmds.push({ y, text: line, font: F_DESC, color: '#111827' });
       });
+    } else if (data.coverage) {
+      y += 26;
+      cmds.push({ y, text: '対応できるトラブル ' + data.coverage.n + '/' + data.coverage.denom, font: F_BIG, color: '#2856a8' });
+      if (data.nextSteps.length) {
+        y = layoutSection(mctx, cmds, y + 20, cw, '一歩先の備え', data.nextSteps, F_HEAD, F_NAME, F_REASON);
+      }
+    } else if (data.nextSteps.length) {
+      y = layoutSection(mctx, cmds, y + 26, cw, '編集部のおすすめ', data.nextSteps, F_HEAD, F_NAME, F_REASON);
     }
     return { cmds, height: y + 12 };
   }
 
-  function buildResultCanvas(data, sec) {
+  function buildResultCanvas(data) {
     const SCALE = 2, W = 720, PAD = 36, CW = W - PAD * 2, HEADER_H = 118, TOP_PAD = 28, BOTTOM_PAD = 24, FOOTER_H = 48;
 
     const mctx = document.createElement('canvas').getContext('2d');
-    const { cmds, height: contentH } = layoutResultContent(mctx, data, sec, CW);
+    const { cmds, height: contentH } = layoutResultContent(mctx, data, CW);
     const totalH = HEADER_H + TOP_PAD + contentH + BOTTOM_PAD + FOOTER_H;
 
     const canvas = document.createElement('canvas');
@@ -1282,7 +1266,10 @@
     ctx.fillText('Registro500 Giappone', W / 2, 74);
     ctx.font = '400 12px ' + CARD_FONT;
     ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    ctx.fillText('あなたの装備タイプ', W / 2, 98);
+    ctx.fillText(
+      data.isMaster ? '🏆 車載マスター' : (data.coverage ? '対応できるトラブル ' + data.coverage.n + '/' + data.coverage.denom : '装備の記録'),
+      W / 2, 98
+    );
     ctx.textAlign = 'left';
 
     const originY = HEADER_H + TOP_PAD;
@@ -1313,15 +1300,16 @@
     btn.disabled = true; btn.textContent = '生成中…';
     try {
       const data = computeResultData();
-      const sec = buildResultSections(data);
-      const canvas = buildResultCanvas(data, sec);
+      const canvas = buildResultCanvas(data);
       const a = document.createElement('a');
       a.href = canvas.toDataURL('image/png');
-      a.download = '装備手帳_' + data.info.name + '.png';
+      // ファイル名にも「名前でなく数字」の原則を反映（マスター時のみ称号を使う）
+      const label = data.isMaster ? '車載マスター' : (data.coverage ? 'n' + data.coverage.n + '_' + data.coverage.denom : '記録');
+      a.download = '装備手帳_' + label + '.png';
       document.body.appendChild(a);
       a.click();
       a.remove();
-      track('equipment_save_image', { type: data.type });
+      track('equipment_save_image', { is_master: data.isMaster, coverage_n: data.coverage ? data.coverage.n : null });
     } catch (e) {
       console.error(e);
       alert('画像の生成に失敗しました。');
