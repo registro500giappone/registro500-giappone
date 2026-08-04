@@ -187,35 +187,65 @@
       border-radius: 8px; font-size: 0.9rem; font-family: inherit; line-height: 1.7; resize: vertical;
     }
 
-    /* ===== 結果（3層構造：安全装備／カバレッジ＋一歩先／車載マエストロ） ===== */
-    /* 2026-08-04: 4型判定（現地修理型/予防整備型/救援前提型/身軽型）を全廃し3層に置き換え。
+    /* ===== 結果（車載マエストロ／安全装備／対応一覧／一歩先） ===== */
+    /* 2026-08-04: 4型判定（現地修理型/予防整備型/救援前提型/身軽型）を全廃した。
        「名前を持つのは頂点（車載マエストロ）だけ。それ以外はすべて事実（数字）」（HANDOFF「型の区分け再議論」参照）
        さらに同日「主従の再確認」で、頂点の判定軸を止まり方のカバー数から装備リストの充足に戻した
        （主＝装備・従＝止まり方。称号名も「車載マスター」→「車載マエストロ」に変更・HANDOFF参照） */
-    #result-section { border: 2px solid var(--accent-soft); }
+    /* 2026-08-04 デザイン改修（ユーザー指摘「入力欄と結果表示が地続きでなんだかわからない」）:
+       ①入力カードと物理的に切断する＝白い .card をやめ、濃紺ヘッダー＋余白で「別の紙」に見せる
+       ②開いた瞬間に結論（称号 or 進捗）が目に入る＝ヒーローを最上部へ
+       ③称号 > 対応一覧 > 一歩先 の序列を文字サイズと色で付ける
+       ヘッダーの濃紺は結果カード画像（buildResultCanvas）のグラデーションと同じ色にして、
+       画面とダウンロード画像が同じものだと分かるようにしている。 */
+    .result-shell {
+      margin: 40px 0 16px; border-radius: var(--radius-lg); overflow: hidden;
+      background: var(--card-bg); box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+    }
+    .result-topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+      padding: 12px 16px; background: linear-gradient(90deg, #1d3f8a 0%, #2856a8 100%); color: #fff;
+    }
+    .result-topbar-title { font-size: 0.95rem; font-weight: 800; letter-spacing: 0.04em; }
+    /* マエストロ未達成の人の進捗（例「車載マエストロ 38/45項目」）。称号ではないので帯の中の控えめなチップに留める */
+    .result-topbar-chip {
+      font-size: 0.75rem; font-weight: 700; color: #fff;
+      background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 999px; padding: 3px 10px; white-space: nowrap;
+    }
+    .result-body { padding: 18px 16px; }
     .result-stale-note {
       font-size: 0.78rem; color: var(--text-sub); background: var(--accent-soft);
       border-radius: 8px; padding: 8px 10px; margin: 0 0 14px; line-height: 1.6;
     }
-    /* 第1層＝安全装備。唯一のダメ出しが許されるゾーンなので赤系で強調する */
-    .safety-block { margin: 0 0 20px; padding-bottom: 18px; border-bottom: 1px dashed var(--border-soft); }
+    /* 安全装備＝唯一のダメ出しが許されるゾーンなので赤系で強調する */
+    .safety-block {
+      margin: 0 0 22px; padding: 14px; border: 1px solid #f3c9c9; border-left: 3px solid #c62828;
+      border-radius: 10px; background: #fef7f7;
+    }
     .safety-heading { font-size: 1.05rem; font-weight: 800; color: #c62828; margin: 0 0 8px; }
-    .safety-gauge { height: 8px; border-radius: 4px; background: var(--border-soft); overflow: hidden; margin: 0 0 4px; }
+    .safety-gauge { height: 8px; border-radius: 4px; background: #f0dcdc; overflow: hidden; margin: 0 0 4px; }
     .safety-gauge-fill { display: block; height: 100%; background: #c62828; border-radius: 4px; }
     .safety-gauge-label { font-size: 0.8rem; font-weight: 700; color: #c62828; margin: 0 0 10px; }
-    /* 4/4は大きく祝わず、控えめな一行だけにする */
-    .safety-ok { font-size: 0.82rem; font-weight: 700; color: var(--ok); margin: 0 0 20px; }
-    /* 第3層＝車載マエストロ。称号は1つだけなので視覚的にもここだけ特別扱いする */
-    .master-block { margin: 0 0 4px; padding: 16px; background: #fff8e1; border: 1px solid #f0c14b; border-radius: 10px; text-align: center; }
-    .master-badge { font-size: 1.15rem; font-weight: 800; color: #9a6b00; margin: 0 0 6px; }
-    .master-desc { font-size: 0.85rem; color: var(--text-main); line-height: 1.7; margin: 0 0 8px; }
+    /* 4/4は大きく祝わず、控えめなチップ1つに留める（見出しに見えると結論を食ってしまうため） */
+    .safety-ok {
+      display: inline-block; font-size: 0.78rem; font-weight: 700; color: var(--ok);
+      background: #eaf5ee; border-radius: 999px; padding: 4px 10px; margin: 0 0 16px;
+    }
+    /* 車載マエストロ＝唯一の称号。序列の頂点なので結果の最上部（ヒーロー）に置き、金色と最大文字で特別扱いする。
+       未達成の人にはヒーロー自体を出さない（進捗はヘッダー帯のチップに退避＝ダメ出しにしない） */
+    .master-block {
+      margin: 0 0 22px; padding: 20px 16px; background: linear-gradient(160deg, #fffdf5 0%, #fdf0cd 100%);
+      border: 1px solid #f0c14b; border-radius: 12px; text-align: center;
+      box-shadow: 0 2px 10px rgba(154, 107, 0, 0.12);
+    }
+    .master-badge { font-size: 1.5rem; font-weight: 800; color: #9a6b00; margin: 0 0 8px; line-height: 1.35; }
+    .master-desc { font-size: 0.88rem; color: var(--text-main); line-height: 1.8; margin: 0 0 8px; }
     /* 「走る部品庫」付記＝称号は増やさずコメントとして添えるのみ（キャブレター本体＋デスビ本体を両方搭載時のみ表示） */
     .master-note { font-size: 0.83rem; color: #9a6b00; font-weight: 700; line-height: 1.7; margin: 0 0 10px; }
     .master-invite { font-size: 0.8rem; color: var(--text-sub); margin: 0; }
     .master-invite a { color: var(--accent); font-weight: 700; text-decoration: none; }
     .master-invite a:hover { text-decoration: underline; }
-    /* マエストロ未達成の人向けの控えめな進捗行（.safety-okと同じトーン。称号ではないのでアクセント色に留める） */
-    .master-progress { font-size: 0.82rem; font-weight: 700; color: var(--accent); margin: 0; }
     .reco-heading { font-size: 0.85rem; font-weight: 700; margin: 16px 0 8px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
     .reco-heading:first-child { margin-top: 0; }
     /* 「車載マエストロまであとN項目」＝マスターに近い人向け。見出し脇に添える */
@@ -243,13 +273,29 @@
 
     /* ===== 止まり方カバレッジ（stop_modes取得時のみ表示。2026-08-04「主従の再確認」でn/denomの数字表示は撤去し、
        あなたの装備でできる路上対応のフラット一覧のみに戻した。判定軸ではなく従属の説明情報という位置づけ） ===== */
-    .cov-block { margin: 0 0 20px; padding-bottom: 18px; border-bottom: 1px dashed var(--border-soft); }
+    /* 2026-08-04 デザイン改修: 一覧が「コード（F1）＋灰色の症状文」のフラット行で、
+       称号が無い人にとっての主役なのに最も読みにくかった。症状文を主役（濃色・太字）に上げ、
+       コードは末尾の小さなチップへ降格する（「→ F1・F2に対応」の相互参照用に残す必要はある）。 */
+    .cov-block { margin: 0 0 22px; padding-bottom: 18px; border-bottom: 1px dashed var(--border-soft); }
     .cov-heading { font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin: 0 0 12px; line-height: 1.5; }
-    .cov-row { padding: 8px 0; border-top: 1px solid var(--border-soft); font-size: 0.82rem; line-height: 1.6; word-break: break-word; }
-    .cov-row:first-child { border-top: none; }
-    .cov-row-code { font-weight: 700; color: var(--text-main); }
-    .cov-row-sym { color: var(--text-sub); margin-left: 4px; }
-    .cov-row-sub { display: block; margin-top: 2px; font-size: 0.76rem; color: var(--text-sub); }
+    .cov-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .cov-row {
+      display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: start;
+      padding: 10px 12px; border: 1px solid var(--border-soft); border-left: 3px solid var(--ok);
+      border-radius: 10px; background: #fbfdfc; word-break: break-word;
+    }
+    .cov-row-mark { color: var(--ok); font-weight: 800; font-size: 0.9rem; line-height: 1.55; }
+    .cov-row-sym { font-size: 0.86rem; font-weight: 700; color: var(--text-main); line-height: 1.55; }
+    .cov-row-sub { display: block; margin-top: 4px; font-size: 0.76rem; color: var(--text-sub); line-height: 1.6; }
+    /* 工具なしで対処できるトラブル＝装備の有無に関わらず全員が持つ行なので、色味を分けて区別する */
+    .cov-row-hands { border-left-color: var(--occasional); background: #fbfbfd; }
+    .cov-row-hands .cov-row-mark { color: var(--occasional); }
+    .cov-row-tag {
+      display: inline-block; font-size: 0.68rem; font-weight: 700; color: var(--occasional);
+      border: 1px solid var(--occasional); border-radius: 4px; padding: 0 4px; margin-right: 6px;
+      line-height: 1.5; vertical-align: 1px;
+    }
+    .cov-row-code { display: block; margin-top: 4px; font-size: 0.66rem; font-weight: 700; color: #9aa3b2; letter-spacing: 0.06em; }
     .cov-empty { padding: 8px 0; font-size: 0.85rem; color: var(--text-sub); line-height: 1.7; }
     .cov-wiki { margin-top: 10px; font-size: 0.8rem; color: var(--text-sub); }
     .cov-wiki a { color: var(--accent); font-weight: 700; text-decoration: none; }
@@ -437,22 +483,30 @@
       </p>
     </section>
 
-    <!-- 結果（保存後に表示：安全装備／カバレッジ＋一歩先／車載マエストロの3層） -->
-    <section class="card" id="result-section" style="display:none;">
-      <p class="result-stale-note" id="result-stale-note" style="display:none;">※前回保存した内容にもとづく判定です。保存すると更新されます</p>
-      <div id="result-safety"></div>
-      <div id="result-coverage"></div>
-      <div id="result-next"></div>
-      <div id="result-master"></div>
-      <p id="affiliate-disclosure" style="display:none">
+    <!-- 結果（保存後に表示）。2026-08-04 デザイン改修:
+         入力カード群と地続きに見えていたため .card をやめ .result-shell（濃紺ヘッダー付きの別容器）に変更し、
+         結論（称号 or 進捗）を最上部のヒーローに移した。序列＝称号 > 対応一覧 > 一歩先。 -->
+    <section class="result-shell" id="result-section" style="display:none;">
+      <div class="result-topbar">
+        <span class="result-topbar-title">装備手帳の結果</span>
+        <span class="result-topbar-chip" id="result-topbar-chip" style="display:none;"></span>
+      </div>
+      <div class="result-body">
+        <p class="result-stale-note" id="result-stale-note" style="display:none;">※前回保存した内容にもとづく判定です。保存すると更新されます</p>
+        <div id="result-hero"></div>
+        <div id="result-safety"></div>
+        <div id="result-coverage"></div>
+        <div id="result-next"></div>
+        <p id="affiliate-disclosure" style="display:none">
         このページにはAmazonアソシエイトのリンクが含まれています（PR）。<br>
         リンク経由でご購入いただいた場合、Amazonからわずかな報酬がこのサイトに入りますが、<strong>商品の価格は変わりません。</strong><br>
         <small>Amazonアソシエイトとして、registro500-22はAmazon.co.jpの適格販売に伴う収入を得ています。</small>
-      </p>
-      <div class="result-actions">
-        <button type="button" class="btn-image" id="btnSaveCsv">⬇ 装備リストをCSVで書き出す</button>
-        <button type="button" class="btn-image btn-secondary" id="btnSaveImage">📷 この結果を画像で保存</button>
-        <p class="field-hint" style="margin-top:8px;">CSVはExcel・スプレッドシートでそのまま開けます。車載チェックリストとして印刷する用途を想定しています。</p>
+        </p>
+        <div class="result-actions">
+          <button type="button" class="btn-image" id="btnSaveCsv">⬇ 装備リストをCSVで書き出す</button>
+          <button type="button" class="btn-image btn-secondary" id="btnSaveImage">📷 この結果を画像で保存</button>
+          <p class="field-hint" style="margin-top:8px;">CSVはExcel・スプレッドシートでそのまま開けます。車載チェックリストとして印刷する用途を想定しています。</p>
+        </div>
       </div>
     </section>
   </div>
@@ -904,7 +958,7 @@
     el.classList.toggle('has', n > 0);
   }
 
-  // ===================== 結果（安全装備／カバレッジ＋一歩先／車載マエストロの3層） =====================
+  // ===================== 結果（車載マエストロ／安全装備／対応一覧／一歩先） =====================
   // 2026-08-04: 4型判定（現地修理型/予防整備型/救援前提型/身軽型）は「人にラベルを貼る」文法で
   // 上から目線と受け取られるため全廃（design-original.md／HANDOFF「型の区分け再議論」参照）。
   // 「名前を持つのは頂点（車載マエストロ）だけ。それ以外はすべて事実（数字）」の原則に置き換える。
@@ -951,7 +1005,7 @@
   }
 
   // マスター装備リストの充足状況（搭載数／必要数／不足数）をまとめて算出する。
-  // computeIsMaster・remainingToMasterCount・進捗表示（#result-master）が共通して使う。
+  // computeIsMaster・remainingToMasterCount・進捗チップ（#result-topbar-chip）が共通して使う。
   function computeMasterProgress(loadedIds) {
     const existing = masterExistingItemIds();
     const loaded = existing.filter(id => loadedIds.has(id)).length;
@@ -969,7 +1023,7 @@
   }
 
   // マエストロ未充足の場合の候補プール（マスターリストのうち未搭載のもの限定。リスト外は薦めない）。
-  // 安全装備は第1層で扱うため除外。90%方式ではOR条件が不要になったため単純なフィルタのみでよい。
+  // 安全装備は専用ブロックで扱うため除外。90%方式ではOR条件が不要になったため単純なフィルタのみでよい。
   function masterUnloadedCandidateIds(loadedIds) {
     return MASTER_ITEM_IDS.filter(id =>
       SAFETY_ITEM_IDS.indexOf(id) === -1 && !loadedIds.has(id));
@@ -1120,14 +1174,14 @@
       ? computeStopModeCoverage(stopModes, stopModeNeedByCode, loadedIds)
       : null;
 
-    // 第1層＝安全装備4点。不足分だけを抽出する（recommend_priority 1〜4の並びをそのまま使う）
+    // 安全装備4点。不足分だけを抽出する（recommend_priority 1〜4の並びをそのまま使う）
     const safetyMissing = SAFETY_ITEM_IDS
       .map(id => items.find(i => i.id === id))
       .filter(i => i && !state[i.id].frequency);
     const safetyDoneCount = SAFETY_ITEM_IDS.length - safetyMissing.length;
     const safetyFull = safetyMissing.length === 0;
 
-    // 第3層＝車載マエストロ。マスター装備リストの90%充足＋安全装備4点で判定する（止まり方のカバー数は使わない）。
+    // 車載マエストロ＝マスター装備リストの90%充足＋安全装備4点で判定する（止まり方のカバー数は使わない）。
     // stop_modes未取得時でも装備リストだけで判定できる＝フォールバックでも動く
     const masterProgress = computeMasterProgress(loadedIds);
     const isMaster = computeIsMaster(loadedIds);
@@ -1136,7 +1190,7 @@
     // 「車載マエストロまであとN項目」（残り3項目以下のときだけ見出し脇に表示する）
     const remainingToMaster = masterProgress.remaining;
 
-    // 第2層＝一歩先リコメンド。マエストロなら次の一手は無い
+    // 一歩先リコメンド。マエストロなら次の一手は無い
     const nextSteps = isMaster ? [] : buildNextSteps(masterUnloadedCandidateIds(loadedIds), coverage);
 
     return { safetyMissing, safetyDoneCount, safetyFull, coverage, isMaster, isSpareEngineParts, remainingToMaster, masterProgress, nextSteps };
@@ -1168,8 +1222,8 @@
         sec.masterNote = '🌟 しかも、交換用のキャブレターとデスビまで積んでいます。走る部品庫です。';
       }
     } else {
-      // マエストロ未達成の人向けに、現在の充足状況を控えめな1行で示す（第2層の一歩先リコメンドと
-      // 重複しないよう小さく1行に留める。安全装備が原因で未達成でも搭載数の進捗自体は別情報として出す）
+      // マエストロ未達成の人向けに、現在の充足状況を控えめに示す（ヘッダー帯のチップに出す。
+      // 一歩先リコメンドと重複しないよう短く留める。安全装備が原因で未達成でも搭載数の進捗自体は別情報として出す）
       sec.masterProgressText = '車載マエストロ ' + data.masterProgress.loaded + '/' + data.masterProgress.required + '項目';
     }
     if (!data.isMaster && data.nextSteps.length) {
@@ -1177,7 +1231,7 @@
       sec.nextHeading = data.coverage ? '一歩先の備え' : '編集部のおすすめ';
       // マスターに近い人向け。残り3項目以下のときだけ見出し脇に表示する
       // （安全装備不足だけが原因で未達成の場合はremainingToMasterが0になり得るため、
-      // 　0以下のときは表示しない＝第1層の安全装備ブロックが既に警告を出しているため重複させない）
+      // 　0以下のときは表示しない＝安全装備ブロックが既に警告を出しているため重複させない）
       if (data.remainingToMaster > 0 && data.remainingToMaster <= 3) {
         sec.nextSubheading = '車載マエストロまであと' + data.remainingToMaster + '項目';
       }
@@ -1186,10 +1240,18 @@
   }
 
   // ===================== 止まり方カバレッジの表示（#result-coverage。stop_modes取得時のみ中身を入れる） =====================
-  function covRowHtml(mode, sub) {
-    return '<div class="cov-row"><span class="cov-row-code">' + escapeHtml(mode.code) + '</span>' +
-      '<span class="cov-row-sym">' + escapeHtml(mode.sym || '') + '</span>' +
-      (sub ? '<span class="cov-row-sub">' + escapeHtml(sub) + '</span>' : '') + '</div>';
+  // handsNote を渡すと「工具なしでできる」行（色違い＋タグ付き）になる。
+  // コード（F1等）は一歩先リコメンドの「→ F1・F2に対応」から参照されるため残すが、
+  // 症状文を主役にするため行末の小さなチップへ降格する。
+  function covRowHtml(mode, handsNote) {
+    const isHands = handsNote != null;
+    return '<li class="cov-row' + (isHands ? ' cov-row-hands' : '') + '">' +
+      '<span class="cov-row-mark" aria-hidden="true">' + (isHands ? '✋' : '✓') + '</span>' +
+      '<span><span class="cov-row-sym">' + escapeHtml(mode.sym || '') + '</span>' +
+      (isHands
+        ? '<span class="cov-row-sub"><span class="cov-row-tag">工具なしでできる</span>' + escapeHtml(handsNote) + '</span>'
+        : '') +
+      '<span class="cov-row-code">' + escapeHtml(mode.code) + '</span></span></li>';
   }
 
   // need_noteの先頭末尾が全角括弧（　）で囲まれている場合は外す（DB側の注記表記ゆれを吸収）
@@ -1208,11 +1270,11 @@
 
     // 工具なしで対処できるトラブルも「装備（なし）でできる路上対応」として同じ一覧に載せる
     const handsHtml = coverage.hands.map(m =>
-      covRowHtml(m, m.need_note ? '工具なしでできる：' + stripFullwidthParens(String(m.need_note)) : '工具がなくてもその場で対処できる')
+      covRowHtml(m, m.need_note ? stripFullwidthParens(String(m.need_note)) : 'その場で対処できます')
     ).join('');
     const coveredHtml = coverage.covered.map(m => covRowHtml(m)).join('');
     const body = (handsHtml || coveredHtml)
-      ? handsHtml + coveredHtml
+      ? '<ul class="cov-list">' + handsHtml + coveredHtml + '</ul>'
       : '<p class="cov-empty">保存済みの装備でできる路上対応はまだありません。下のおすすめが参考になります</p>';
 
     // 2026-08-04「主従の再確認」でn/denomの数字表示は撤去し、フラット一覧のみに戻した（判定軸は装備リストの充足）
@@ -1229,7 +1291,20 @@
 
     document.getElementById('result-stale-note').style.display = fromSavedRecord ? 'block' : 'none';
 
-    // 第1層＝安全装備（唯一のダメ出しが許されるゾーン）
+    // ヒーロー＝結論。称号を持つ人だけが金色ブロックを得る（序列の頂点なので最上部・最大文字）。
+    // 未達成の人にはヒーローを出さず、進捗はヘッダー帯のチップに退避させる（ダメ出しにしないため）。
+    document.getElementById('result-hero').innerHTML = data.isMaster
+      ? '<div class="master-block"><p class="master-badge">' + escapeHtml(sec.masterTitle) + '</p>' +
+        '<p class="master-desc">' + escapeHtml(sec.masterDesc) + '</p>' +
+        (sec.masterNote ? '<p class="master-note">' + escapeHtml(sec.masterNote) + '</p>' : '') +
+        '<p class="master-invite">' + escapeHtml(sec.masterInvite) + ' <a href="equipment.html">装備手帳の公開一覧を見る</a></p></div>'
+      : '';
+
+    const chip = document.getElementById('result-topbar-chip');
+    chip.textContent = sec.masterProgressText || '';
+    chip.style.display = sec.masterProgressText ? 'inline-block' : 'none';
+
+    // 安全装備＝唯一のダメ出しが許されるゾーン。不足時は赤いアラート、充足時は控えめなチップ1つ
     document.getElementById('result-safety').innerHTML = sec.safetyOkText
       ? '<p class="safety-ok">' + escapeHtml(sec.safetyOkText) + '</p>'
       : '<div class="safety-block"><p class="safety-heading">' + escapeHtml(sec.safetyHeading) + '</p>' +
@@ -1238,7 +1313,7 @@
         '<p class="safety-gauge-label">' + escapeHtml(sec.safetyGaugeLabel) + '</p>' +
         data.safetyMissing.map(safetyItemHtml).join('') + '</div>';
 
-    // 第2層＝カバレッジ（既存の一覧はそのまま維持。n/denomの数字表示を主役として添える）
+    // 対応一覧＝称号が無い人にとっての主役。序列は 称号 > 対応一覧 > 一歩先（CSS側で文字サイズを付けている）
     document.getElementById('result-coverage').innerHTML = buildCoverageHtml(data.coverage);
 
     // 一歩先リコメンド（最大3件。マエストロ時・候補0件のときはブロックごと出さない）
@@ -1251,15 +1326,6 @@
       ? '<div class="next-block"><p class="reco-heading">' + nextHeadingHtml + '</p>' +
         data.nextSteps.map(recoItemHtml).join('') + '</div>'
       : '';
-
-    // 第3層＝車載マエストロ（唯一の称号。「走る部品庫」は称号を増やさずコメントとして添えるのみ）。
-    // 未達成の人には、控えめな進捗行（例「車載マエストロ 38/45項目」）だけを1行出す。
-    document.getElementById('result-master').innerHTML = data.isMaster
-      ? '<div class="master-block"><p class="master-badge">' + escapeHtml(sec.masterTitle) + '</p>' +
-        '<p class="master-desc">' + escapeHtml(sec.masterDesc) + '</p>' +
-        (sec.masterNote ? '<p class="master-note">' + escapeHtml(sec.masterNote) + '</p>' : '') +
-        '<p class="master-invite">' + escapeHtml(sec.masterInvite) + ' <a href="equipment.html">装備手帳の公開一覧を見る</a></p></div>'
-      : '<p class="master-progress">' + escapeHtml(sec.masterProgressText) + '</p>';
 
     // 表示中のリコメンドにAmazonリンクが1つでも含まれる場合のみPR開示文を出す
     const shownItems = data.safetyMissing.concat(data.nextSteps);
@@ -1317,7 +1383,7 @@
   }
 
   // 描画コマンド列とコンテンツ高さを算出（フォントは計測にも描画にも同じ文字列を使う）
-  // DOMの3層構造（安全装備／カバレッジ＋一歩先／車載マエストロ）と文言・順序を揃える。
+  // DOMの並び（車載マエストロ／安全装備／対応一覧／一歩先）と文言・順序を揃える。
   // 2026-08-04「主従の再確認」でn/denomの数字は一切出さない（型名・スコアは出さない方針）
   function layoutResultContent(mctx, data, cw) {
     const F_BIG = '700 22px ' + CARD_FONT, F_DESC = '400 15px ' + CARD_FONT, F_HEAD = '700 15px ' + CARD_FONT,
@@ -1325,18 +1391,9 @@
     const cmds = [];
     let y = 26;
 
-    // 第1層＝安全装備（唯一のダメ出しが許されるゾーン）
-    if (data.safetyFull) {
-      cmds.push({ y, text: '✓ 安全装備 ' + SAFETY_ITEM_IDS.length + '/' + SAFETY_ITEM_IDS.length, font: F_HEAD, color: '#1f7a45' });
-    } else {
-      y = layoutSection(mctx, cmds, y,
-        cw, '安全装備 ' + data.safetyDoneCount + '/' + SAFETY_ITEM_IDS.length + '（まず安全装備から）',
-        data.safetyMissing, F_BIG, F_NAME, F_REASON, '#c62828');
-    }
-
-    // 第3層＝車載マエストロ、第2層＝カバレッジ（症状名の列挙）＋一歩先（stop_modes未取得時は編集部のおすすめのみ）
+    // ヒーロー＝車載マエストロ（唯一の称号）。2026-08-04 デザイン改修でDOM側を
+    // 「称号 → 安全装備 → 対応一覧 → 一歩先」の順に変えたため、画像側の順序も合わせる。
     if (data.isMaster) {
-      y += 26;
       cmds.push({ y, text: '🏆 車載マエストロ', font: F_BIG, color: '#9a6b00' });
       mctx.font = F_DESC;
       wrapText(mctx, 'マスター装備リストをすべて満たしています。', cw).forEach(line => {
@@ -1349,7 +1406,21 @@
           cmds.push({ y, text: line, font: F_DESC, color: '#9a6b00' });
         });
       }
+      y += 26; // セクション間の余白。10だと次の行と重なる（2026-07-23の重なりバグの教訓）
+    }
+
+    // 安全装備（唯一のダメ出しが許されるゾーン）
+    if (data.safetyFull) {
+      cmds.push({ y, text: '✓ 安全装備 ' + SAFETY_ITEM_IDS.length + '/' + SAFETY_ITEM_IDS.length, font: F_HEAD, color: '#1f7a45' });
     } else {
+      y = layoutSection(mctx, cmds, y,
+        cw, '安全装備 ' + data.safetyDoneCount + '/' + SAFETY_ITEM_IDS.length + '（まず安全装備から）',
+        data.safetyMissing, F_BIG, F_NAME, F_REASON, '#c62828');
+    }
+
+    // 対応一覧（症状名の列挙）＋一歩先（stop_modes未取得時は編集部のおすすめのみ）。
+    // マエストロは称号だけで完結させるため一覧は出さない（従来どおり）
+    if (!data.isMaster) {
       if (data.coverage) {
         const syms = data.coverage.hands.concat(data.coverage.covered).map(m => m.sym).filter(Boolean);
         if (syms.length) {
