@@ -16,7 +16,44 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `github` | PR作成・コミット・Issue管理 | GITHUB_PERSONAL_ACCESS_TOKEN |
 | `playwright` | ブラウザ自動操作・サイト確認 | 不要 |
 
-> ⚠️ `.mcp.json`（プロジェクトルート）はgitignore済み。トークンが入っているため**絶対にgit addしない**。
+### `.mcp.json` の方式変更（2026-08-03）
+
+**`.mcp.json` はgit管理対象になった**（旧: gitignore・git add禁止）。**トークンを直書きせず環境変数から展開する方式**に変更したため、ファイル自体に秘密情報が無い。
+
+- ファイル内の値は `"SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"` の形。**ファイルに秘密情報は入っていないのでコミットしてよい**。
+- 動かすには環境変数 `SUPABASE_ACCESS_TOKEN` の設定が必要。**ローカルPCのWindowsユーザー環境変数にのみ設定する**。
+- 環境変数が未設定でも設定ファイル自体は壊れない（`claude mcp list` に警告が出て、そのサーバーだけ認証に失敗する）。
+- トークンを直書きしたローカル専用設定を置きたい場合は `.mcp.local.json`（gitignore済み）を使う。
+
+> ⚠️ 秘密情報を`.mcp.json`に直書きして`git add`しないこと。トークンは必ず環境変数側に置く。
+
+### 🔒 Supabaseの個人アクセストークンをクラウド環境に置かない（2026-08-03 決定）
+
+**claude.ai/code のクラウド環境設定に `SUPABASE_ACCESS_TOKEN` を登録してはいけない。** 一度検討したうえで、以下の理由で見送った：
+
+1. クラウド環境には専用のシークレットストアが無く、公式ドキュメントが「資格情報を入れないこと」と明記している。
+2. セッション内の任意のコマンドから読め、セッションの記録・共有経由で漏れうる。
+3. **`--read-only` はMCPサーバー側の制御にすぎず、Supabase側で強制されない**。トークンが漏れれば無意味。
+4. Supabaseの個人アクセストークンはアカウント全体（プロジェクト削除を含む）に及び、本番DBには実在オーナーの個人情報が入っている。
+
+したがって**クラウドセッションでは supabase MCP は接続失敗のままが正常**。DBを変更する操作（migration適用など）は必ずローカルPCから行う。
+
+### クラウドから本番DBを確認する方法（公開キーを使う・秘密情報不要）
+
+`config.js` の `SUPABASE_ANON_KEY`（`sb_publishable_...`）は**元から全訪問者のブラウザに配られている公開値**なので、クラウドセッションから使ってよい。RLSが効いているため、**匿名訪問者に見えるものしか返らない**＝「公開設定が本当に効いているか」の検証にはこちらの方が確実（`pg_policies` を覗くより実地に近い）。
+
+```bash
+U="https://ttlttclfovuzafvghvaq.supabase.co/rest/v1"
+K="sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt"   # config.js と同じ公開キー
+
+# 公開設定された装備手帳が匿名から見えるか（フェーズBの決定的な検証）
+curl -s "$U/equipment_records?select=id,vehicle_id,is_public&is_public=eq.true" -H "apikey: $K"
+
+# マスターデータの値の確認（migration適用の実地確認）
+curl -s "$U/equipment_stop_modes?select=code,need_note&code=eq.E5" -H "apikey: $K"
+```
+
+できないのは `pg_policies` の一覧やmigration履歴などの管理系の照会のみ。それが必要なときだけローカルPCのsupabase MCPを使う。
 
 ---
 
@@ -97,8 +134,9 @@ git push origin main           # Cloudflare Pages 自動デプロイがトリガ
 ## 重要なファイル・パス
 
 - `MEMORY.md` → プロジェクト全体のナレッジベース（自動読み込み）
-- `.mcp.json` → MCPサーバー設定（**gitignore済み・ローカルのみ**、トークンが含まれるためgit管理外）
-- `.mcp.json.example` → トークンなしのテンプレート（gitに含む）
+- `.mcp.json` → MCPサーバー設定（**git管理対象**。トークンは直書きせず環境変数 `SUPABASE_ACCESS_TOKEN` から展開。詳細は上記「MCPサーバー構成」）
+- `.mcp.json.example` → 旧方式のテンプレート（github/brevo等の設定例として残置）
+- `.mcp.local.json` → トークン直書きのローカル専用設定を置く場合の名前（gitignore済み）
 - `py/` → クローラースクリプト群（**GitHub Actions用にgit管理対象**、`*.py` / `*.md` はコミット必須。ログ・CSV・機密ファイルは `py/.gitignore` で除外）
 - `126/index.html` → Fiat 126姉妹サイトのトップページ
 - `.claude/agents/` → 専用サブエージェント定義（Haikuモデル）

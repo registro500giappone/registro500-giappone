@@ -121,6 +121,20 @@
     .rg-ep-photo-cell { position: relative; aspect-ratio: 1; border-radius: 0.5rem; overflow: hidden; background: var(--rg-surface-sub); border: 1px solid var(--rg-border); }
     .rg-ep-photo-cell img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
 
+    /* 装備手帳（公開分の埋め込み） */
+    .eq-cat { margin-bottom: 14px; }
+    .eq-cat:last-child { margin-bottom: 0; }
+    .eq-cat-title { font-size: 0.85rem; font-weight: 700; color: var(--rg-muted); margin: 0 0 6px; }
+    .eq-item-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 6px 0; border-top: 1px solid var(--rg-border); font-size: 0.9rem; }
+    .eq-item-row:first-child { border-top: none; }
+    .eq-item-note { display: block; font-size: 0.78rem; color: var(--rg-muted); line-height: 1.5; }
+    .eq-item-freq { font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; white-space: nowrap; color: #fff; }
+    .eq-item-freq.always { background: var(--rg-accent); }
+    .eq-item-freq.occasional { background: #94a3b8; }
+    .eq-experience { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--rg-border); font-size: 0.9rem; white-space: pre-wrap; line-height: 1.8; }
+    .eq-experience-label { font-size: 0.8rem; font-weight: 700; color: var(--rg-muted); margin: 0 0 6px; }
+    .eq-footer-link { display: block; text-align: center; margin-top: 14px; font-size: 0.85rem; color: var(--rg-accent); text-decoration: none; font-weight: 600; }
+
     /* ダークモード */
     @media (prefers-color-scheme: dark) {
       .rg-gallery-thumb { background: #334155; }
@@ -213,6 +227,10 @@
             <button id="addEpisodeBtn" class="rg-btn-add-episode" style="display:none;">＋ エピソードを追加</button>
           </section>
           <section class="rg-card" id="snsSection" style="display:none;"><h2 class="rg-section-title">SNS</h2><dl class="rg-spec-grid" id="snsGrid"></dl></section>
+          <section class="rg-card" id="equipmentSection" style="display:none;">
+            <h2 class="rg-section-title">装備手帳</h2>
+            <div id="equipmentContent"></div>
+          </section>
           <section class="rg-card"><h2 class="rg-section-title">共有・連絡</h2>
             <div class="rg-action-row"><button class="rg-btn rg-btn-dark" onclick="showQRCode()">QR表示</button><a id="shareX" class="rg-btn rg-btn-black" target="_blank">Xでシェア</a><a id="shareLINE" class="rg-btn" style="background:#06C755;color:#fff;" target="_blank">LINEで送る</a></div>
             <div id="contactArea" style="display:none;"><button class="btn-contact" onclick="openContactForm()">オーナーへメッセージを送る</button></div>
@@ -355,6 +373,84 @@
       document.getElementById('shareX').href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(car.handle_name + 'さんの' + carLabel2)}&url=${encodeURIComponent(location.href)}`;
       document.getElementById('shareLINE').href = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(location.href)}`;
       fetchEpisodes(car.document_id);
+      fetchEquipmentNotebook(car.document_id);
+    }
+
+    // ─── 装備手帳（公開分の埋め込み） ───
+    const EQ_CATEGORIES = ['工具', 'パーツ', 'ケミカル', '非常時対応', '洗車・その他'];
+
+    async function fetchEquipmentNotebook(vehicleId) {
+      try {
+        const { data: recs } = await supabaseClient
+          .from('equipment_records')
+          .select('id')
+          .eq('vehicle_id', vehicleId)
+          .eq('is_public', true)
+          .order('updated_at', { ascending: false })
+          .limit(1);
+        const eqRecord = (recs && recs[0]) || null;
+        if (!eqRecord) return;
+
+        const [entRes, cusRes, expRes] = await Promise.all([
+          supabaseClient.from('equipment_entries')
+            .select('frequency, note, equipment_items(name, category, sort_order)')
+            .eq('record_id', eqRecord.id),
+          supabaseClient.from('equipment_custom_items')
+            .select('name, category, frequency, reason')
+            .eq('record_id', eqRecord.id),
+          supabaseClient.from('equipment_experiences')
+            .select('body').eq('record_id', eqRecord.id).limit(1)
+        ]);
+
+        renderEquipmentNotebook(entRes.data || [], cusRes.data || [], (expRes.data && expRes.data[0]) || null);
+      } catch (e) {
+        // 公開手帳の取得失敗は車両詳細の表示自体には影響させない
+      }
+    }
+
+    function renderEquipmentNotebook(entries, customItems, experience) {
+      if (!entries.length && !customItems.length && !(experience && experience.body)) return;
+
+      const byCategory = {};
+      EQ_CATEGORIES.forEach(c => { byCategory[c] = []; });
+      entries.forEach(e => {
+        const item = e.equipment_items;
+        if (!item || !e.frequency) return;
+        const cat = EQ_CATEGORIES.includes(item.category) ? item.category : EQ_CATEGORIES[EQ_CATEGORIES.length - 1];
+        byCategory[cat].push({ name: item.name, frequency: e.frequency, sort_order: item.sort_order || 0, note: e.note || '' });
+      });
+      customItems.forEach(c => {
+        if (!c.frequency) return;
+        const cat = EQ_CATEGORIES.includes(c.category) ? c.category : EQ_CATEGORIES[EQ_CATEGORIES.length - 1];
+        byCategory[cat].push({ name: c.name, frequency: c.frequency, sort_order: 9999, note: c.reason || '' });
+      });
+
+      let html = '';
+      EQ_CATEGORIES.forEach(cat => {
+        const rows = byCategory[cat];
+        if (!rows.length) return;
+        rows.sort((a, b) => a.sort_order - b.sort_order);
+        html += `<div class="eq-cat"><p class="eq-cat-title">${esc(cat)}</p>`;
+        rows.forEach(r => {
+          const freqLabel = r.frequency === 'always' ? '常時' : '随時';
+          const noteHtml = r.note ? `<span class="eq-item-note">${esc(r.note)}</span>` : '';
+          html += `<div class="eq-item-row"><div style="min-width:0">${esc(r.name)}${noteHtml}</div><span class="eq-item-freq ${r.frequency === 'always' ? 'always' : 'occasional'}">${freqLabel}</span></div>`;
+        });
+        html += `</div>`;
+      });
+
+      if (experience && experience.body) {
+        html += `<div class="eq-experience"><p class="eq-experience-label">出先で助かった／困った経験</p>${esc(experience.body)}</div>`;
+      }
+
+      html += `<a class="eq-footer-link" href="equipment.html">→ みんなの装備手帳の集計を見る</a>`;
+
+      document.getElementById('equipmentContent').innerHTML = html;
+      document.getElementById('equipmentSection').style.display = 'block';
+
+      if (location.hash === '#equipment-notebook') {
+        setTimeout(() => document.getElementById('equipmentSection').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      }
     }
 
     // ★ 更新バッジの適用ロジック
