@@ -115,35 +115,48 @@
        序列に見せないため、並びは更新順（新しい順）で固定し、点数での並べ替えはしない。 */
     .public-list-section { margin-bottom: 28px; }
     .public-list-lead { font-size: 0.82rem; color: var(--text-sub); margin: 0 0 14px; }
-    .public-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
-    .public-card {
-      display: flex; gap: 12px; align-items: stretch; background: var(--card-bg);
-      border: 1px solid var(--border-soft); border-radius: var(--radius-lg); padding: 12px;
-      text-decoration: none; color: var(--text-main); box-shadow: var(--shadow-soft);
-      transition: border-color 0.2s ease, transform 0.2s ease;
+    /* カードでなく行にする理由（2026-08-05 ユーザー指摘）:
+       カード1枚 約120px は、150人が公開すると約18,000px＝スマホ21画面ぶんになる。
+       一覧の目的は「誰がいるか見渡して、気になる人に入る」ことなので、装飾より走査性を採る。
+       写真は40pxで残す＝このサイトでは名前より車の写真で見分ける場面が多いため。1行 約57px。 */
+    .public-list {
+      background: var(--card-bg); border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-soft);
     }
-    .public-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-    .public-card-photo {
-      width: 84px; height: 84px; flex: 0 0 84px; border-radius: 8px; overflow: hidden;
+    .owner-row {
+      display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+      text-decoration: none; color: var(--text-main); border-top: 1px solid var(--border-soft);
+    }
+    .owner-row:first-child { border-top: none; }
+    .owner-row:hover { background: #f8faff; }
+    .row-thumb {
+      width: 40px; height: 40px; flex: 0 0 40px; border-radius: 6px; overflow: hidden;
       background: var(--accent-soft); display: flex; align-items: center; justify-content: center;
     }
-    .public-card-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .public-card-photo .noimg { font-size: 1.6rem; opacity: 0.45; }
-    .public-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-    .public-card-name { font-size: 0.95rem; font-weight: 700; overflow-wrap: anywhere; }
-    .public-card-model { font-size: 0.78rem; color: var(--text-sub); overflow-wrap: anywhere; }
-    .public-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: auto; padding-top: 4px; }
-    .eq-chip {
-      font-size: 0.72rem; font-weight: 600; border-radius: 999px; padding: 2px 8px;
-      background: var(--accent-soft); color: var(--accent); white-space: nowrap;
+    .row-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .row-thumb .noimg { font-size: 1rem; opacity: 0.45; }
+    .row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .row-name {
+      font-size: 0.88rem; font-weight: 700; display: flex; align-items: center; gap: 5px; min-width: 0;
     }
-    .eq-chip.experience { background: #eaf6ee; color: var(--ok, #1f7a45); }
-    /* 車載マエストロ＝唯一の称号。金で他のチップと明確に差をつける（結果画面の序列と揃える） */
-    .eq-chip.maestro {
+    .row-name .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .row-model {
+      font-size: 0.73rem; color: var(--text-sub);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    /* 車載マエストロ＝唯一の称号。行では金の小さなピルにする（58pxのシールは車両ページ側で出す） */
+    .row-maestro {
+      flex: 0 0 auto; font-size: 0.65rem; font-weight: 700; border-radius: 999px; padding: 1px 7px;
       background: linear-gradient(135deg, #f7e3a1 0%, #d9a92b 100%); color: #6b4a00;
-      border: 1px solid #c79a20;
+      border: 1px solid #c79a20; white-space: nowrap;
     }
-    .public-card-updated { font-size: 0.7rem; color: var(--text-sub); margin-left: auto; white-space: nowrap; }
+    .row-exp { flex: 0 0 auto; font-size: 0.68rem; color: var(--ok, #1f7a45); }
+    .row-right { flex: 0 0 auto; text-align: right; line-height: 1.35; }
+    .row-count { display: block; font-size: 0.85rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
+    .row-count small { font-size: 0.65rem; font-weight: 600; }
+    .row-date { display: block; font-size: 0.65rem; color: var(--text-sub); white-space: nowrap; }
+    /* 0件のときは行の器（枠・影）を消す。空メッセージ側が自前の破線枠を持つため二重になる */
+    .public-list.is-empty { background: none; border: none; box-shadow: none; }
     .public-list-empty {
       font-size: 0.85rem; color: var(--text-sub); margin: 0; background: var(--card-bg);
       border: 1px dashed var(--border-soft); border-radius: var(--radius-lg); padding: 20px; text-align: center;
@@ -321,9 +334,44 @@
   // 一度に読む上限。超えた分は注記で件数だけ伝える（ページングは公開件数が増えてから）
   const PUBLIC_LIST_LIMIT = 24;
   let publicTotalCount = null;   // 公開手帳の総数（上限を無視した実数）
-  let publicFetchedCount = 0;    // 実際に取得できた行数。表示できなかった件数はここから引いて求める
+  let publicLinkedCount = null;  // うち車両ページに紐付いていて一覧に出せるもの（RPC経由のときだけ判る）
+  let publicFetchedCount = 0;    // 実際に取得できた行数（フォールバック時の未表示件数の算出に使う）
 
+  // 一覧の取得は2経路ある。
+  //  ① equipment_public_list() ＝ DB側で集計して1レコード1行を返す。**こちらが本命**。
+  //     クライアント集計だと全員ぶんの equipment_entries を引くことになり、
+  //     PostgRESTの返却上限1000行（2026-08-05に本番実測）に公開25〜30人あたりで到達して
+  //     黙って切れる＝点数が小さく出て称号が消える。
+  //  ② ①の関数がまだ適用されていない環境向けのフォールバック（従来のクライアント集計）。
+  //     フロントを先にデプロイしてもこちらで動くので、migration適用まで一覧は壊れない。
   async function loadPublicRecords() {
+    const rpc = await supabaseClient.rpc('equipment_public_list', { p_limit: PUBLIC_LIST_LIMIT });
+    if (!rpc.error) {
+      const rows = rpc.data || [];
+      publicTotalCount = rows.length ? Number(rows[0].total_public) : 0;
+      publicLinkedCount = rows.length ? Number(rows[0].total_linked) : 0;
+      publicFetchedCount = rows.length;
+      return rows.map(r => ({
+        docId: r.vehicle_id,
+        handleName: r.handle_name,
+        modelDisplay: r.model_display,
+        carType: r.car_type,
+        photoMain: r.photo_main,
+        prefecture: r.prefecture,
+        year: r.car_year,
+        updatedAt: r.updated_at,
+        statsOk: true,
+        loadedCount: Number(r.loaded_count) || 0,
+        hasExperience: !!r.has_experience,
+        isMaestro: !!r.is_maestro
+      }));
+    }
+    console.info('equipment_public_list を使えないためクライアント側集計にフォールバックします:', rpc.error.message);
+    return loadPublicRecordsFallback();
+  }
+
+  async function loadPublicRecordsFallback() {
+    publicLinkedCount = null;
     // count を取るのは「24件で黙って切れる」のを避けるため（超過分は注記で明示する）
     const { data: recs, error, count } = await supabaseClient
       .from('equipment_records')
@@ -376,12 +424,22 @@
 
     const hasExperience = new Set((expRes.data || []).map(e => e.record_id));
 
+    // RPC経路と同じ形に正規化して返す（描画側が経路を意識しなくて済むように）
     return withVehicle
       .map(r => {
+        const car = carMap[r.vehicle_id];
+        if (!car) return null;
         const loadedIds = loadedByRecord[r.id] || new Set();
         return {
-          ...r,
-          car: carMap[r.vehicle_id],
+          docId: car.document_id,
+          handleName: car.handle_name,
+          modelDisplay: car.model_display_c
+            || [car.model_display_a || '', car.model_display_b || ''].filter(Boolean).join(' '),
+          carType: car.car_type,
+          photoMain: car.photo_main,
+          prefecture: car.prefecture,
+          year: car.year,
+          updatedAt: r.updated_at,
           statsOk,
           loadedCount: loadedIds.size + (customCount[r.id] || 0),
           // 称号の判定基準は equipment-maestro.js（結果画面と同一の正本）
@@ -389,12 +447,13 @@
           hasExperience: hasExperience.has(r.id)
         };
       })
-      .filter(r => r.car);
+      .filter(Boolean);
   }
 
+  // 行に収めるため「更新」の語は落として日付だけ（意味は title 属性で補う）
   function formatUpdated(iso) {
     const d = new Date(iso);
-    return isNaN(d) ? '' : `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} 更新`;
+    return isNaN(d) ? '' : `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
   }
 
   function renderPublicList(list) {
@@ -406,20 +465,31 @@
 
     if (!list.length) {
       countEl.textContent = '';
+      host.classList.add('is-empty');
       host.innerHTML = '<p class="public-list-empty">まだ公開されている手帳はありません。<br>あなたの手帳を公開すると、ここが最初の1件になります。</p>';
       return;
     }
 
+    host.classList.remove('is-empty');
     countEl.textContent = `（${list.length}件）`;
 
     // 上限で切れた分と、車両未紐付けで出せない分を黙って落とさず件数で伝える
     const notes = [];
-    if (publicTotalCount != null && publicTotalCount > PUBLIC_LIST_LIMIT) {
-      notes.push(`公開されている手帳は全${publicTotalCount}件です。更新が新しい順に${PUBLIC_LIST_LIMIT}件を表示しています。`);
+    let hiddenNoVehicle;
+    if (publicLinkedCount != null) {
+      // RPC経路＝一覧に出せる総数（total_linked）が判るので、差をそのまま使える
+      if (publicLinkedCount > list.length) {
+        notes.push(`公開されている手帳は全${publicTotalCount}件です。更新が新しい順に${list.length}件を表示しています。`);
+      }
+      hiddenNoVehicle = publicTotalCount - publicLinkedCount;
+    } else {
+      // フォールバック経路＝取得できた行数と実際に描けた件数の差で出す。
+      // 総数から推定すると「取得行数＝min(総数,上限)」を前提にしてしまい、嘘の件数になる
+      if (publicTotalCount != null && publicTotalCount > PUBLIC_LIST_LIMIT) {
+        notes.push(`公開されている手帳は全${publicTotalCount}件です。更新が新しい順に${PUBLIC_LIST_LIMIT}件を表示しています。`);
+      }
+      hiddenNoVehicle = publicFetchedCount - list.length;
     }
-    // 取得できた行数と実際に描けた枚数の差＝車両に紐付いていない（またはcarsを引けなかった）分。
-    // 総数から推定せず実測の差で出す（取得件数は上限や権限で変わりうるため）
-    const hiddenNoVehicle = publicFetchedCount - list.length;
     if (hiddenNoVehicle > 0) {
       // 「うち」で始めると総数の注記が出ないときに係り先を失うため、単独で読める文にする
       notes.push(`車両ページと紐付いていない手帳が${hiddenNoVehicle}件あるため、一覧には出していません。`);
@@ -428,30 +498,29 @@
     noteEl.style.display = notes.length ? 'block' : 'none';
 
     host.innerHTML = list.map(r => {
-      const car = r.car;
-      const carLabel = car.car_type === '126' ? 'FIAT 126' : 'FIAT 500';
-      const model = car.model_display_c || [car.model_display_a || carLabel, car.model_display_b || ''].filter(Boolean).join(' ');
-      const sub = [model, car.year ? `${car.year}年` : '', car.prefecture || ''].filter(Boolean).join('・');
+      const carLabel = r.carType === '126' ? 'FIAT 126' : 'FIAT 500';
+      const sub = [r.modelDisplay || carLabel, r.year ? `${r.year}年` : '', r.prefecture || '']
+        .filter(Boolean).join('・');
 
-      const photo = car.photo_main
-        ? `<img src="${esc(car.photo_main)}" alt="" loading="lazy" decoding="async">`
+      const photo = r.photoMain
+        ? `<img src="${esc(r.photoMain)}" alt="" loading="lazy" decoding="async">`
         : '<span class="noimg">🚗</span>';
 
-      const chips = [];
-      if (r.isMaestro) chips.push('<span class="eq-chip maestro">車載マエストロ</span>');
-      if (r.statsOk && r.loadedCount) chips.push(`<span class="eq-chip">装備 ${r.loadedCount}点</span>`);
-      if (r.hasExperience) chips.push('<span class="eq-chip experience">経験談あり</span>');
+      const maestro = r.isMaestro ? '<span class="row-maestro">マエストロ</span>' : '';
+      const exp = r.hasExperience ? '<span class="row-exp" title="経験談あり">✎</span>' : '';
+      const count = (r.statsOk && r.loadedCount)
+        ? `<span class="row-count">${r.loadedCount}<small>点</small></span>` : '';
 
       return `
-        <a class="public-card" href="detail.html?doc=${encodeURIComponent(car.document_id)}#equipment-notebook">
-          <span class="public-card-photo">${photo}</span>
-          <span class="public-card-body">
-            <span class="public-card-name">${esc(car.handle_name || '名称未設定')}さん</span>
-            <span class="public-card-model">${esc(sub)}</span>
-            <span class="public-card-meta">
-              ${chips.join('')}
-              <span class="public-card-updated">${esc(formatUpdated(r.updated_at))}</span>
-            </span>
+        <a class="owner-row" href="detail.html?doc=${encodeURIComponent(r.docId)}#equipment-notebook">
+          <span class="row-thumb">${photo}</span>
+          <span class="row-body">
+            <span class="row-name"><span class="nm">${esc(r.handleName || '名称未設定')}さん</span>${maestro}${exp}</span>
+            <span class="row-model">${esc(sub)}</span>
+          </span>
+          <span class="row-right">
+            ${count}
+            <span class="row-date" title="最終更新">${esc(formatUpdated(r.updatedAt))}</span>
           </span>
         </a>`;
     }).join('');
