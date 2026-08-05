@@ -413,7 +413,11 @@
     <!-- 車両情報 -->
     <section class="card">
       <h2>あなたの車について</h2>
-      <p class="card-lead">集計を「遠出の多さ別」で見るために使います。装備の答え合わせには使いません。</p>
+      <!-- 2026-08-05: 旧文言「集計を『遠出の多さ別』で見るために使います」は嘘だった。
+           usage_freq / longtrip_freq は保存しているだけで、集計関数 equipment_item_rates() は
+           一切参照していない（＝遠出の多さ別に見る画面は存在しない）。データ自体は将来の
+           分析に価値があるので取り続けるが、果たしていない約束を書かない文言に変えた。 -->
+      <p class="card-lead">「遠出の多い人は何を積んでいるか」を将来まとめるために伺っています（いまの集計には使っていません）。装備の答え合わせには使いません。</p>
       <div class="field" id="vehicle-field" style="display:none;">
         <label for="vehicle-select">どの車の車載手帳ですか</label>
         <select id="vehicle-select"></select>
@@ -463,6 +467,9 @@
         あなたの車両ページと<a href="equipment.html">車載手帳の公開一覧</a>に表示されます。
         他のオーナーが何を積んでいるか見えることが、この手帳のいちばんの価値だからです。
         見せたくない場合は、下のスイッチをオフにしてください。あとからいつでも切り替えられます。
+        <!-- 2026-08-05: 車両未紐付けの手帳はリンク先の車両ページが無く、公開しても一覧に出ない。
+             上の一文だけだと「公開すれば必ず載る」と読めてしまうため、条件を明記した。 -->
+        <br><span class="field-hint">上の「どの車の車載手帳ですか」で車を選んでいない場合は、公開しても一覧には表示されません。</span>
       </p>
       <div class="public-toggle-row">
         <span class="public-toggle-label">この手帳を公開する</span>
@@ -945,7 +952,10 @@
     cb.checked = !!catDone[cat];
     cb.onchange = () => { catDone[cat] = cb.checked; updateCatCount(cat); markDirty(); };
     const txt = document.createElement('span');
-    txt.textContent = 'このカテゴリは確認し終えた（チェックの無い項目＝積んでいない、として集計します）';
+    // 2026-08-05: 旧文言「チェックの無い項目＝積んでいない、として集計します」は嘘だった。
+    // equipment_category_status は保存・復元と見出しの✓表示に使うだけで、
+    // 集計関数 equipment_item_rates() は参照していない（付けても外しても集計は1ミリも変わらない）。
+    txt.textContent = 'このカテゴリは確認し終えた（見出しに✓が付く自分用の目印です）';
     wrap.appendChild(cb);
     wrap.appendChild(txt);
     return wrap;
