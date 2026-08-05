@@ -498,7 +498,7 @@
         <p id="affiliate-disclosure" style="display:none">
         このページにはAmazonアソシエイトのリンクが含まれています（PR）。<br>
         リンク経由でご購入いただいた場合、Amazonからわずかな報酬がこのサイトに入りますが、<strong>商品の価格は変わりません。</strong><br>
-        <small>Amazonアソシエイトとして、registro500-22はAmazon.co.jpの適格販売に伴う収入を得ています。</small>
+        <small>Amazonアソシエイトとして、<span id="affiliate-tag">registro500-22</span>はAmazon.co.jpの適格販売に伴う収入を得ています。</small>
         </p>
         <div class="result-actions">
           <button type="button" class="btn-image" id="btnSaveCsv">⬇ 装備リストをCSVで書き出す</button>
@@ -1033,6 +1033,17 @@
   // monotaro / kurabetaro はDBに入っていても描画しない（purchaseLinkBtnHtml 側でも空文字を返す）。
   const PURCHASE_CHANNEL_ORDER = ['amazon', 'shop'];
 
+  // 開示文に出すアソシエイトID。実際に描画したAmazonリンクの tag パラメータから取り出す。
+  // 取り出せなかったときだけ現行タグにフォールバックする（開示文を空にしないため）。
+  const AMAZON_ASSOCIATE_TAG_FALLBACK = 'registro500-22';
+  function amazonAssociateTag(amazonLinks) {
+    for (const link of amazonLinks || []) {
+      const m = /[?&]tag=([^&#]+)/.exec(link && link.url || '');
+      if (m) return decodeURIComponent(m[1]);
+    }
+    return AMAZON_ASSOCIATE_TAG_FALLBACK;
+  }
+
   function purchaseLinkBtnHtml(link, itemName) {
     const url = escapeHtml(link.url || '');
     const itemAttr = escapeHtml(itemName);
@@ -1339,9 +1350,13 @@
 
     // 表示中のリコメンドにAmazonリンクが1つでも含まれる場合のみPR開示文を出す
     const shownItems = data.safetyMissing.concat(data.nextSteps, data.universalItems);
-    const hasAmazonLink = shownItems.some(i => Array.isArray(i.purchase_links)
-      && i.purchase_links.some(l => l.type === 'amazon'));
-    document.getElementById('affiliate-disclosure').style.display = hasAmazonLink ? 'block' : 'none';
+    const amazonLinks = shownItems.filter(i => Array.isArray(i.purchase_links))
+      .flatMap(i => i.purchase_links.filter(l => l.type === 'amazon'));
+    document.getElementById('affiliate-disclosure').style.display = amazonLinks.length ? 'block' : 'none';
+    // 開示文に出すアソシエイトIDは、実際に描画したリンクのtagパラメータから取り出す。
+    // DBのリンクを新しいトラッキングタグに差し替えたのに開示文だけ旧タグのまま、という
+    // 食い違いを構造的に防ぐため（タグ発行時の作業漏れ対策・HANDOFF「次にやること」4番）。
+    document.getElementById('affiliate-tag').textContent = amazonAssociateTag(amazonLinks);
 
     document.getElementById('result-section').style.display = 'block';
   }
