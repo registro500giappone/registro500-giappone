@@ -156,6 +156,9 @@
     .legend-dot.occasional { background: var(--occasional); }
 
     #rates-heading { margin-bottom: 14px; }
+    .section-count { font-size: 0.82rem; font-weight: 600; color: var(--text-sub); margin-left: 2px; }
+    .public-list-note { font-size: 0.75rem; color: var(--text-sub); margin: 10px 0 0; }
+    .rates-note { font-size: 0.78rem; color: var(--text-sub); margin: -12px 0 20px; line-height: 1.7; }
 
     .page-footer { text-align: center; margin-top: 40px; }
     .page-footer a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
@@ -178,9 +181,10 @@
   <div id="content">
 
     <div id="public-list-section" class="public-list-section" style="display:none;">
-      <div class="section-title"><span class="icon">📖</span> 公開中の手帳</div>
+      <div class="section-title"><span class="icon">📖</span> 公開中の手帳<span id="public-count" class="section-count"></span></div>
       <p class="public-list-lead">オーナーが公開設定にした車載手帳です。タップすると、その車の車両ページで装備・メモ・経験談を見られます。</p>
       <div id="public-list" class="public-list"></div>
+      <p id="public-list-note" class="public-list-note" style="display:none;"></p>
     </div>
 
     <div class="cta-band">
@@ -193,6 +197,9 @@
     </div>
 
     <div id="summary-badge" class="summary-badge"></div>
+    <!-- 一覧のカード枚数と集計の母数が食い違って見えるため、理由を先に書いておく
+         （非公開の手帳も人数としては集計に入る＝公開しなくても貢献している、と伝える意図） -->
+    <p class="rates-note">積載率は<strong>非公開の手帳も含めた全員</strong>から集計しています。公開していない方の装備も、この数字に反映されています。</p>
 
     <div id="empty-state" class="empty-state" style="display:none;">
       <p>まだ記録がありません。最初の1件はあなたです。</p>
@@ -311,14 +318,23 @@
   // 一覧に出せるのは is_public=true の手帳だけ（RLSの公開SELECTポリシーが効いているので
   // 匿名でもこのクエリで返るのは公開分のみ）。並びは更新順で固定＝点数で並べ替えると
   // 序列表になってしまい、「互いの装備を見て気付く」という目的から外れるため。
+  // 一度に読む上限。超えた分は注記で件数だけ伝える（ページングは公開件数が増えてから）
+  const PUBLIC_LIST_LIMIT = 24;
+  let publicTotalCount = null;   // 公開手帳の総数（上限を無視した実数）
+  let publicFetchedCount = 0;    // 実際に取得できた行数。表示できなかった件数はここから引いて求める
+
   async function loadPublicRecords() {
-    const { data: recs, error } = await supabaseClient
+    // count を取るのは「24件で黙って切れる」のを避けるため（超過分は注記で明示する）
+    const { data: recs, error, count } = await supabaseClient
       .from('equipment_records')
-      .select('id, vehicle_id, updated_at')
+      .select('id, vehicle_id, updated_at', { count: 'exact' })
       .eq('is_public', true)
       .order('updated_at', { ascending: false })
-      .limit(24);
+      .limit(PUBLIC_LIST_LIMIT);
     if (error) throw error;
+
+    publicTotalCount = count;
+    publicFetchedCount = (recs || []).length;
 
     // 車両未紐付けの公開手帳はリンク先（車両ページ）が無いため一覧に出せない（既知の仕様）
     const withVehicle = (recs || []).filter(r => r.vehicle_id);
@@ -384,12 +400,32 @@
   function renderPublicList(list) {
     const section = document.getElementById('public-list-section');
     const host = document.getElementById('public-list');
+    const countEl = document.getElementById('public-count');
+    const noteEl = document.getElementById('public-list-note');
     section.style.display = 'block';
 
     if (!list.length) {
+      countEl.textContent = '';
       host.innerHTML = '<p class="public-list-empty">まだ公開されている手帳はありません。<br>あなたの手帳を公開すると、ここが最初の1件になります。</p>';
       return;
     }
+
+    countEl.textContent = `（${list.length}件）`;
+
+    // 上限で切れた分と、車両未紐付けで出せない分を黙って落とさず件数で伝える
+    const notes = [];
+    if (publicTotalCount != null && publicTotalCount > PUBLIC_LIST_LIMIT) {
+      notes.push(`公開されている手帳は全${publicTotalCount}件です。更新が新しい順に${PUBLIC_LIST_LIMIT}件を表示しています。`);
+    }
+    // 取得できた行数と実際に描けた枚数の差＝車両に紐付いていない（またはcarsを引けなかった）分。
+    // 総数から推定せず実測の差で出す（取得件数は上限や権限で変わりうるため）
+    const hiddenNoVehicle = publicFetchedCount - list.length;
+    if (hiddenNoVehicle > 0) {
+      // 「うち」で始めると総数の注記が出ないときに係り先を失うため、単独で読める文にする
+      notes.push(`車両ページと紐付いていない手帳が${hiddenNoVehicle}件あるため、一覧には出していません。`);
+    }
+    noteEl.textContent = notes.join(' ');
+    noteEl.style.display = notes.length ? 'block' : 'none';
 
     host.innerHTML = list.map(r => {
       const car = r.car;
