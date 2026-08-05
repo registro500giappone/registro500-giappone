@@ -95,7 +95,9 @@ totals as (
     (select count(*) from linked) as total_linked
 ),
 pub as (
-  select * from linked order by updated_at desc limit greatest(coalesce(p_limit, 24), 1)
+  -- 1〜100にクランプ（匿名から呼べる関数のため、巨大なlimit指定での乱用を防ぐ）
+  select * from linked order by updated_at desc
+   limit least(greatest(coalesce(p_limit, 24), 1), 100)
 ),
 loaded as (
   -- frequency が null の行は「行はあるが積んでいない」＝未搭載として除く
@@ -121,7 +123,9 @@ select
     (select count(*) from loaded l where l.record_id = p.id)
     + (select count(*) from equipment_custom_items ci where ci.record_id = p.id and ci.frequency is not null)
   )::int,
-  exists (select 1 from equipment_experiences x where x.record_id = p.id),
+  -- 本文が空の行は「経験談あり」に数えない（車両ページの表示条件と揃える）
+  exists (select 1 from equipment_experiences x
+           where x.record_id = p.id and nullif(btrim(x.body), '') is not null),
   (
     (select count(*) from loaded l join master_existing me on me.id = l.item_id where l.record_id = p.id) >= (select n from required)
     and (select count(*) from loaded l join safety s on s.id = l.item_id where l.record_id = p.id) = (select count(*) from safety)

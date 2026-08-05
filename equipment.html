@@ -212,7 +212,7 @@
     <div id="summary-badge" class="summary-badge"></div>
     <!-- 一覧のカード枚数と集計の母数が食い違って見えるため、理由を先に書いておく
          （非公開の手帳も人数としては集計に入る＝公開しなくても貢献している、と伝える意図） -->
-    <p class="rates-note">車載率は<strong>非公開の手帳も含めた全員</strong>から集計しています。公開していない方の装備も、この数字に反映されています。</p>
+    <p id="rates-note" class="rates-note">車載率は<strong>非公開の手帳も含めた全員</strong>から集計しています。公開していない方の装備も、この数字に反映されています。</p>
 
     <div id="empty-state" class="empty-state" style="display:none;">
       <p>まだ記録がありません。最初の1件はあなたです。</p>
@@ -252,6 +252,7 @@
   function renderEmpty() {
     document.getElementById('summary-badge').style.display = 'none';
     document.getElementById('rates-heading').style.display = 'none';
+    document.getElementById('rates-note').style.display = 'none';
     document.querySelector('.cta-band').style.display = 'none';
     document.getElementById('legend').style.display = 'none';
     document.getElementById('categories').innerHTML = '';
@@ -398,7 +399,7 @@
         .in('document_id', vehicleIds),
       supabaseClient.from('equipment_entries').select('record_id, item_id, frequency').in('record_id', recordIds),
       supabaseClient.from('equipment_custom_items').select('record_id, frequency').in('record_id', recordIds),
-      supabaseClient.from('equipment_experiences').select('record_id').in('record_id', recordIds),
+      supabaseClient.from('equipment_experiences').select('record_id, body').in('record_id', recordIds),
       supabaseClient.from('equipment_items').select('id')
     ]);
     if (carsRes.error) throw carsRes.error;
@@ -422,7 +423,9 @@
       customCount[c.record_id] = (customCount[c.record_id] || 0) + 1;
     });
 
-    const hasExperience = new Set((expRes.data || []).map(e => e.record_id));
+    // 本文が空の行は「経験談あり」に数えない（車両ページの表示条件・RPCと揃える）
+    const hasExperience = new Set((expRes.data || [])
+      .filter(e => e.body && e.body.trim()).map(e => e.record_id));
 
     // RPC経路と同じ形に正規化して返す（描画側が経路を意識しなくて済むように）
     return withVehicle
