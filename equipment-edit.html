@@ -22,6 +22,8 @@
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
+  <!-- 車載マエストロ判定の正本（公開手帳一覧 equipment.html と共有。値の二重管理を避けるため外だし） -->
+  <script src="equipment-maestro.js"></script>
 
   <style>
     :root {
@@ -965,7 +967,8 @@
   // 安全装備4点（法律・レスキューの事実として言えるため、唯一ダメ出しが許されるゾーン）。
   // recommend_priorityが1〜4に割り当て済みなのでそのまま表示順として使える
   // （三角表示板39→発煙筒38→ロードサービス連絡先44→保険証券45。items_pilot_review_2026-07-24.sql参照）。
-  const SAFETY_ITEM_IDS = [39, 38, 44, 45];
+  // 実体は equipment-maestro.js（公開手帳一覧と共有する正本）。
+  const SAFETY_ITEM_IDS = EQ_MAESTRO.SAFETY_ITEM_IDS;
   // 三角表示板だけは「法律上の義務」という事実を明記する（DB側のreasonは短縮形のため表示時のみ上書き）
   const SAFETY_REASON_OVERRIDE = { 39: '高速道路上で停止した際の設置は法律上の義務です' };
   // 一歩先リコメンドの上限。「全員に最大限積ませる」旧設計をやめ一歩先だけ見せるため固定で3件
@@ -978,16 +981,10 @@
   // 90%の余白が「テープはどちらか片方」を自然に吸収するためOR条件の仕組み自体が不要になり、
   // 通常項目2件として編入。さらにタイミングライト(id74・デスビの点火時期調整に必須・2026-08-04新規追加)
   // を加えて 47（従来の必須項目）＋2（テープ類）＋1（タイミングライト）＝50項目にした。
-  const MASTER_ITEM_IDS = [
-    4, 55, 56, 1, 5, 6, 61, 2, 60, 3, 58, 9, 57, 10, 7, 11, 13, 62, 63, 64,
-    14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 27, 28, 65, 68, 71,
-    29, 31, 32, 33, 70,
-    40, 46,
-    39, 38, 44, 45,
-    8, 59, 74
-  ];
+  // 実体は equipment-maestro.js（公開手帳一覧と共有する正本）。値の説明もそちらに置いた。
+  const MASTER_ITEM_IDS = EQ_MAESTRO.MASTER_ITEM_IDS;
   // マエストロ認定の必要割合（90%）。ハードコードせず比率で定数化する（50項目なら45項目）
-  const MAESTRO_THRESHOLD_RATIO = 0.9;
+  const MAESTRO_THRESHOLD_RATIO = EQ_MAESTRO.MAESTRO_THRESHOLD_RATIO;
   // 「走る部品庫」付記の対象＝キャブレター本体(66)とデスビ本体(67)を両方搭載。称号は増やさずコメントのみ添える
   const SPARE_ENGINE_PARTS_IDS = [66, 67];
 

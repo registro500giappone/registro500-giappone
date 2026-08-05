@@ -13,13 +13,15 @@
   </script>
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>装備手帳 集計レポート | Registro500 Giappone</title>
-  <meta name="description" content="空冷クラシックFiat 500オーナーの装備手帳から集計した、車載品の積載率レポート。工具・パーツ・ケミカル・非常時対応・洗車用品の各項目を、どれだけの人が積んでいるかで比較できます。">
+  <title>みんなの装備手帳 | Registro500 Giappone</title>
+  <meta name="description" content="空冷クラシックFiat 500・126オーナーが公開している装備手帳の一覧。誰が何を車載しているかを手帳ごとに見られます。あわせて全体の積載率（工具・パーツ・ケミカル・非常時対応・洗車用品）も集計しています。">
 
   <link rel="icon" href="logo_horizontal.png">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
+  <!-- 車載マエストロ判定の正本（equipment-edit.html と共有） -->
+  <script src="equipment-maestro.js"></script>
 
   <style>
     :root {
@@ -108,25 +110,52 @@
     .bar-fill.occasional { background: var(--occasional); }
     .stat-breakdown { font-size: 0.75rem; color: var(--text-sub); margin-top: 3px; }
 
-    /* ===== 公開手帳一覧 ===== */
-    .public-list-section { margin-bottom: 24px; }
+    /* ===== 公開手帳一覧 =====
+       このページの主役。「誰が何を積んでいるか」を見に来る導線なので集計より上に置く。
+       序列に見せないため、並びは更新順（新しい順）で固定し、点数での並べ替えはしない。 */
+    .public-list-section { margin-bottom: 28px; }
     .public-list-lead { font-size: 0.82rem; color: var(--text-sub); margin: 0 0 14px; }
-    .public-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+    .public-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
     .public-card {
-      display: flex; flex-direction: column; gap: 3px; background: #f8faff;
-      border: 1px solid var(--border-soft); border-radius: 10px; padding: 12px 14px;
-      text-decoration: none; color: var(--text-main);
+      display: flex; gap: 12px; align-items: stretch; background: var(--card-bg);
+      border: 1px solid var(--border-soft); border-radius: var(--radius-lg); padding: 12px;
+      text-decoration: none; color: var(--text-main); box-shadow: var(--shadow-soft);
+      transition: border-color 0.2s ease, transform 0.2s ease;
     }
-    .public-card:hover { border-color: var(--accent); background: var(--accent-soft); }
-    .public-card-name { font-size: 0.88rem; font-weight: 700; }
-    .public-card-model { font-size: 0.78rem; color: var(--text-sub); }
-    .public-list-empty { font-size: 0.85rem; color: var(--text-sub); margin: 0; }
+    .public-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .public-card-photo {
+      width: 84px; height: 84px; flex: 0 0 84px; border-radius: 8px; overflow: hidden;
+      background: var(--accent-soft); display: flex; align-items: center; justify-content: center;
+    }
+    .public-card-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .public-card-photo .noimg { font-size: 1.6rem; opacity: 0.45; }
+    .public-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .public-card-name { font-size: 0.95rem; font-weight: 700; overflow-wrap: anywhere; }
+    .public-card-model { font-size: 0.78rem; color: var(--text-sub); overflow-wrap: anywhere; }
+    .public-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: auto; padding-top: 4px; }
+    .eq-chip {
+      font-size: 0.72rem; font-weight: 600; border-radius: 999px; padding: 2px 8px;
+      background: var(--accent-soft); color: var(--accent); white-space: nowrap;
+    }
+    .eq-chip.experience { background: #eaf6ee; color: var(--ok, #1f7a45); }
+    /* 車載マエストロ＝唯一の称号。金で他のチップと明確に差をつける（結果画面の序列と揃える） */
+    .eq-chip.maestro {
+      background: linear-gradient(135deg, #f7e3a1 0%, #d9a92b 100%); color: #6b4a00;
+      border: 1px solid #c79a20;
+    }
+    .public-card-updated { font-size: 0.7rem; color: var(--text-sub); margin-left: auto; white-space: nowrap; }
+    .public-list-empty {
+      font-size: 0.85rem; color: var(--text-sub); margin: 0; background: var(--card-bg);
+      border: 1px dashed var(--border-soft); border-radius: var(--radius-lg); padding: 20px; text-align: center;
+    }
 
     .legend { display: flex; gap: 16px; font-size: 0.78rem; color: var(--text-sub); margin: 12px 0 20px; }
     .legend-item { display: flex; align-items: center; gap: 6px; }
     .legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
     .legend-dot.always { background: var(--accent); }
     .legend-dot.occasional { background: var(--occasional); }
+
+    #rates-heading { margin-bottom: 14px; }
 
     .page-footer { text-align: center; margin-top: 40px; }
     .page-footer a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
@@ -140,26 +169,30 @@
 
   <div class="brand-header">
     <img src="logo_horizontal.png" alt="Registro500 Giappone">
-    <h1>装備手帳 集計レポート</h1>
-    <p>みんなの車載品、積載率でみる</p>
+    <h1>みんなの装備手帳</h1>
+    <p>オーナーが公開した車載品リストと、全体の積載率</p>
   </div>
 
   <div id="loading">読み込み中…</div>
 
   <div id="content">
 
-    <div id="summary-badge" class="summary-badge"></div>
-
-    <div class="cta-band">
-      <p>あなたの装備手帳はまだですか？ 記入すると、この集計にも反映されます。</p>
-      <a class="btn-cta" href="equipment-edit.html">装備手帳を書く・更新する →</a>
-    </div>
-
     <div id="public-list-section" class="public-list-section" style="display:none;">
       <div class="section-title"><span class="icon">📖</span> 公開中の手帳</div>
       <p class="public-list-lead">オーナーが公開設定にした装備手帳です。タップすると、その車の車両ページで装備・メモ・経験談を見られます。</p>
       <div id="public-list" class="public-list"></div>
     </div>
+
+    <div class="cta-band">
+      <p>あなたの装備手帳はまだですか？ 記入すると、この一覧と集計に反映されます。</p>
+      <a class="btn-cta" href="equipment-edit.html">装備手帳を書く・更新する →</a>
+    </div>
+
+    <div id="rates-heading" class="section-title" style="display:none;">
+      <span class="icon">📊</span> みんなの積載率
+    </div>
+
+    <div id="summary-badge" class="summary-badge"></div>
 
     <div id="empty-state" class="empty-state" style="display:none;">
       <p>まだ記録がありません。最初の1件はあなたです。</p>
@@ -197,6 +230,7 @@
 
   function renderEmpty() {
     document.getElementById('summary-badge').style.display = 'none';
+    document.getElementById('rates-heading').style.display = 'none';
     document.querySelector('.cta-band').style.display = 'none';
     document.getElementById('legend').style.display = 'none';
     document.getElementById('categories').innerHTML = '';
@@ -213,6 +247,7 @@
 
     document.getElementById('summary-badge').textContent =
       `${totalRecords}名の装備手帳から集計（複数回答・積載率）`;
+    document.getElementById('rates-heading').style.display = 'flex';
     document.getElementById('legend').style.display = 'flex';
 
     const byCategory = {};
@@ -272,6 +307,9 @@
   }
 
   // ===== 公開手帳一覧 =====
+  // 一覧に出せるのは is_public=true の手帳だけ（RLSの公開SELECTポリシーが効いているので
+  // 匿名でもこのクエリで返るのは公開分のみ）。並びは更新順で固定＝点数で並べ替えると
+  // 序列表になってしまい、「互いの装備を見て気付く」という目的から外れるため。
   async function loadPublicRecords() {
     const { data: recs, error } = await supabaseClient
       .from('equipment_records')
@@ -281,22 +319,65 @@
       .limit(24);
     if (error) throw error;
 
+    // 車両未紐付けの公開手帳はリンク先（車両ページ）が無いため一覧に出せない（既知の仕様）
     const withVehicle = (recs || []).filter(r => r.vehicle_id);
     if (!withVehicle.length) return [];
 
+    const recordIds = withVehicle.map(r => r.id);
     const vehicleIds = [...new Set(withVehicle.map(r => r.vehicle_id))];
-    const { data: cars, error: carsError } = await supabaseClient
-      .from('cars')
-      .select('document_id, handle_name, model_display_a, model_display_b, model_display_c, car_type')
-      .in('document_id', vehicleIds);
-    if (carsError) throw carsError;
+
+    // equipment_records.vehicle_id に実FKが無いためクライアント側で突き合わせる
+    const [carsRes, entriesRes, customRes, expRes, itemsRes] = await Promise.all([
+      supabaseClient.from('cars')
+        .select('document_id, handle_name, model_display_a, model_display_b, model_display_c, car_type, photo_main, prefecture, year')
+        .in('document_id', vehicleIds),
+      supabaseClient.from('equipment_entries').select('record_id, item_id, frequency').in('record_id', recordIds),
+      supabaseClient.from('equipment_custom_items').select('record_id, frequency').in('record_id', recordIds),
+      supabaseClient.from('equipment_experiences').select('record_id').in('record_id', recordIds),
+      supabaseClient.from('equipment_items').select('id')
+    ]);
+    if (carsRes.error) throw carsRes.error;
+
+    // 装備の内訳が引けなかった場合は点数・称号だけ伏せて一覧自体は出す（カードが消えるより良い）
+    const statsOk = !entriesRes.error && !itemsRes.error;
+    const existingItemIds = new Set((itemsRes.data || []).map(i => i.id));
 
     const carMap = {};
-    (cars || []).forEach(c => { carMap[c.document_id] = c; });
+    (carsRes.data || []).forEach(c => { carMap[c.document_id] = c; });
+
+    const loadedByRecord = {};
+    (entriesRes.data || []).forEach(e => {
+      if (!e.frequency) return; // frequency 未設定＝未搭載（行があっても積んでいない）
+      (loadedByRecord[e.record_id] = loadedByRecord[e.record_id] || new Set()).add(e.item_id);
+    });
+
+    const customCount = {};
+    (customRes.data || []).forEach(c => {
+      if (!c.frequency) return;
+      customCount[c.record_id] = (customCount[c.record_id] || 0) + 1;
+    });
+
+    const hasExperience = new Set((expRes.data || []).map(e => e.record_id));
 
     return withVehicle
-      .map(r => ({ ...r, car: carMap[r.vehicle_id] }))
+      .map(r => {
+        const loadedIds = loadedByRecord[r.id] || new Set();
+        return {
+          ...r,
+          car: carMap[r.vehicle_id],
+          statsOk,
+          loadedCount: loadedIds.size + (customCount[r.id] || 0),
+          // 称号の判定基準は equipment-maestro.js（結果画面と同一の正本）
+          isMaestro: statsOk && EQ_MAESTRO.computeIsMaster(loadedIds, existingItemIds),
+          hasExperience: hasExperience.has(r.id)
+        };
+      })
       .filter(r => r.car);
+  }
+
+  function formatUpdated(iso) {
+    const d = new Date(iso);
+    return isNaN(d) ? '' : `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} 更新`;
   }
 
   function renderPublicList(list) {
@@ -305,7 +386,7 @@
     section.style.display = 'block';
 
     if (!list.length) {
-      host.innerHTML = '<p class="public-list-empty">まだ公開されている手帳はありません。</p>';
+      host.innerHTML = '<p class="public-list-empty">まだ公開されている手帳はありません。<br>あなたの手帳を公開すると、ここが最初の1件になります。</p>';
       return;
     }
 
@@ -313,10 +394,28 @@
       const car = r.car;
       const carLabel = car.car_type === '126' ? 'FIAT 126' : 'FIAT 500';
       const model = car.model_display_c || [car.model_display_a || carLabel, car.model_display_b || ''].filter(Boolean).join(' ');
+      const sub = [model, car.year ? `${car.year}年` : '', car.prefecture || ''].filter(Boolean).join('・');
+
+      const photo = car.photo_main
+        ? `<img src="${esc(car.photo_main)}" alt="" loading="lazy" decoding="async">`
+        : '<span class="noimg">🚗</span>';
+
+      const chips = [];
+      if (r.isMaestro) chips.push('<span class="eq-chip maestro">車載マエストロ</span>');
+      if (r.statsOk && r.loadedCount) chips.push(`<span class="eq-chip">装備 ${r.loadedCount}点</span>`);
+      if (r.hasExperience) chips.push('<span class="eq-chip experience">経験談あり</span>');
+
       return `
         <a class="public-card" href="detail.html?doc=${encodeURIComponent(car.document_id)}#equipment-notebook">
-          <span class="public-card-name">${esc(car.handle_name || '名称未設定')}さん</span>
-          <span class="public-card-model">${esc(model)}</span>
+          <span class="public-card-photo">${photo}</span>
+          <span class="public-card-body">
+            <span class="public-card-name">${esc(car.handle_name || '名称未設定')}さん</span>
+            <span class="public-card-model">${esc(sub)}</span>
+            <span class="public-card-meta">
+              ${chips.join('')}
+              <span class="public-card-updated">${esc(formatUpdated(r.updated_at))}</span>
+            </span>
+          </span>
         </a>`;
     }).join('');
   }
