@@ -666,3 +666,20 @@ mech = 工具数 + パーツ数 (最大43) / emg = 非常時対応数 (最大12)
 **対応**: `#equipment-notebook` 付きで来たときだけ、セクション見出しの直下に「← みんなの車載手帳へ戻る」（`#equipmentBackLink` / `.eq-back-link`）を出す。**一覧経由でない訪問者には出さない**のでノイズにならない。判定は既存の `location.hash === '#equipment-notebook'` を再利用しただけで、`document.referrer` は使っていない（リファラは遮断されうるため確実性で劣る）。末尾の既存リンクは直接来た人向けにそのまま残した。
 
 **見送った案**: 「← 前の手帳／次の手帳 →」の前後ナビ。回遊性は一番高いが、一覧の並び順を `detail.html` 側でも再現する必要があり規模が合わない。公開件数が増えたら再検討。
+
+#### 【2026-08-05】車載マエストロの称号を車両ページにも出す（提案A・ユーザー確定・実装済み）
+
+**発見した穴**: 称号の表示場所を洗い出したところ、`detail.html` には**マエストロ関連のコードが1行も無かった**（grep 0件）。つまり **一覧で金のチップを見て飛んだ先に称号が消えている**状態で、手帳の中身をいくら読んでもマエストロだと分からなかった。いちばん立派なSVGシールが**本人のログイン後の画面にしか出ていない**のも、「希少な称号として発見される」という設計（§427）と噛み合っていなかった。
+
+| 場所 | 従来 | 今回 |
+|---|---|---|
+| 結果画面（`equipment-edit.html`） | 172pxシール＋説明 | 変更なし |
+| 一覧カード（`equipment.html`） | 金のチップ | 変更なし |
+| 車両ページ（`detail.html`） | **無し** | **58pxシール＋称号＋一言の帯** |
+
+- **採用＝提案A（帯）**。見送った提案B（見出し脇にシールだけ・46px）は、直接訪問した人には「これが何の印か」が伝わらないため。称号だと分かって初めて中身を読む動機になる、という目的から帯を選んだ。
+- **シールの意匠も `equipment-maestro.js` に移設**した（`SEAL_GEOM` / `laurelLeaves` / `maestroSealSvg`）。同ファイルは判定基準の正本だったが、これで**判定と意匠の両方が1か所**になる。`equipment-edit.html` は `const SEAL_GEOM = EQ_MAESTRO.SEAL_GEOM` の形で参照するだけになった（Canvas版 `drawMaestroSeal` は同じ幾何を2Dパスで描くため SEAL_GEOM を共有し続ける）。`maestroSealSvg(idSuffix)` に引数を足し、同一ページに複数描くときのグラデーションid衝突を避けられるようにした（車両ページは `-detail`）。
+- **判定は結果画面と同一**＝`EQ_MAESTRO.computeIsMaster()`。`equipment_entries` の項目idと `equipment_items` の全idを渡す（`equipment_items(id, ...)` を nested select に追加＋id一覧を1クエリ追加）。**項目マスターが引けなかったときは帯を出さない**（誤って称号を消すより無表示が安全）。
+- 帯は `#equipmentContent` の**外**に置いた。`renderEquipmentNotebook` が innerHTML を差し替えるため、中に入れると消える。
+
+**検証**: `node --check` 3ファイル。共有モジュールを Node で直接読み、MEXさん相当の搭載（マスター50中46・安全装備4/4）で `isMaster=true`・`{loaded:46, required:45}`＝台帳の実データと一致、安全装備を1つ欠くと `false` を確認。実CSSと実 `equipment-maestro.js` を読み込むモックを Chromium headless で 680px / 390px 描画。390pxで説明文に孤立行（「〜していま／す。」）が出たため、結果画面と同じ `word-break: auto-phrase; text-wrap: balance;` を適用し2行に収めた。

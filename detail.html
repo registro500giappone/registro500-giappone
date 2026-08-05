@@ -16,6 +16,8 @@
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
+  <!-- 車載マエストロの判定基準とシール意匠の正本（equipment-edit.html / equipment.html と共有） -->
+  <script src="equipment-maestro.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>  
 
@@ -122,6 +124,23 @@
     .rg-ep-photo-cell img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
 
     /* 車載手帳（公開分の埋め込み） */
+    /* 車載マエストロの称号帯。一覧のチップより格を上げ、結果画面のシールと同じ意匠を使う。
+       ただし車両ページの主役は車なので、シールは58pxに抑えて帯におさめる。 */
+    .eq-maestro-band {
+      display: flex; align-items: center; gap: 12px; margin: 0 0 16px; padding: 10px 14px;
+      background: linear-gradient(135deg, #fdf6e0 0%, #f6e6b8 100%);
+      border: 1px solid #dcc069; border-radius: 10px;
+    }
+    .eq-maestro-band .maestro-seal { width: 58px; height: 58px; flex: 0 0 58px; display: block; }
+    .eq-maestro-band .maestro-seal text { font-family: inherit; }
+    .eq-maestro-band-title { font-size: 0.92rem; font-weight: 800; color: #7a5300; margin: 0; }
+    /* 狭い画面で「〜していま／す。」のような中途半端な改行が出るため、
+       equipment-edit.html の説明文と同じく文節折り＋行長そろえを効かせる（未対応ブラウザは無視するだけ） */
+    .eq-maestro-band-sub {
+      font-size: 0.76rem; color: #8a6a20; margin: 2px 0 0; line-height: 1.6;
+      word-break: auto-phrase; text-wrap: balance;
+    }
+
     /* 一覧からの戻り道。見出しの直下に置き、飛んできた位置でそのまま戻れるようにする */
     .eq-back-link {
       align-items: center; gap: 4px; margin: 0 0 14px;
@@ -251,6 +270,8 @@
             <!-- 一覧(#equipment-notebook付き)から飛んできたときだけ出す戻り道。
                  ヘッダーの「ガレージに戻る」は index.html 行きで一覧には戻れず、
                  末尾の一覧リンクは装備を全部スクロールしないと届かないため。 -->
+            <!-- 車載マエストロの称号帯。一覧でチップを見て飛んできた先に称号が無いのを埋める（2026-08-05） -->
+            <div id="equipmentMaestro" class="eq-maestro-band" style="display:none;"></div>
             <a id="equipmentBackLink" class="eq-back-link" href="equipment.html" style="display:none;">← みんなの車載手帳へ戻る</a>
             <div id="equipmentContent"></div>
           </section>
@@ -417,21 +438,43 @@
         const eqRecord = (recs && recs[0]) || null;
         if (!eqRecord) return;
 
-        const [entRes, cusRes, expRes] = await Promise.all([
+        const [entRes, cusRes, expRes, itemsRes] = await Promise.all([
           supabaseClient.from('equipment_entries')
-            .select('frequency, note, equipment_items(name, category, sort_order)')
+            .select('frequency, note, equipment_items(id, name, category, sort_order)')
             .eq('record_id', eqRecord.id),
           supabaseClient.from('equipment_custom_items')
             .select('name, category, frequency, reason')
             .eq('record_id', eqRecord.id),
           supabaseClient.from('equipment_experiences')
-            .select('body').eq('record_id', eqRecord.id).limit(1)
+            .select('body').eq('record_id', eqRecord.id).limit(1),
+          // マエストロ判定の母数。実在する項目だけで割合を計算するため（equipment-maestro.js 参照）
+          supabaseClient.from('equipment_items').select('id')
         ]);
 
         renderEquipmentNotebook(entRes.data || [], cusRes.data || [], (expRes.data && expRes.data[0]) || null);
+        renderEquipmentMaestro(entRes.data || [], itemsRes.error ? null : (itemsRes.data || []));
       } catch (e) {
         // 公開手帳の取得失敗は車両詳細の表示自体には影響させない
       }
+    }
+
+    // 車載マエストロの称号帯。判定基準・シール意匠とも equipment-maestro.js が正本で、
+    // 結果画面（equipment-edit.html）と同じものを使う＝画面によって認定がズレない。
+    // 項目マスターが引けなかったときは判定せず帯を出さない（誤って称号を消すより無表示が安全）。
+    function renderEquipmentMaestro(entries, allItems) {
+      if (!allItems || !allItems.length) return;
+
+      const loadedIds = new Set();
+      entries.forEach(e => {
+        if (e.frequency && e.equipment_items && e.equipment_items.id) loadedIds.add(e.equipment_items.id);
+      });
+      if (!EQ_MAESTRO.computeIsMaster(loadedIds, new Set(allItems.map(i => i.id)))) return;
+
+      const host = document.getElementById('equipmentMaestro');
+      host.innerHTML = EQ_MAESTRO.maestroSealSvg('-detail') +
+        '<div><p class="eq-maestro-band-title">車載マエストロ</p>' +
+        '<p class="eq-maestro-band-sub">出先のたいていのことを、自分で片づけられる装備が揃っています。</p></div>';
+      host.style.display = 'flex';
     }
 
     function renderEquipmentNotebook(entries, customItems, experience) {

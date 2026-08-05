@@ -59,7 +59,51 @@
     return progress.loaded >= progress.required && safetyFull;
   }
 
+  // ===== 車載マエストロのシールロゴ（インラインSVG） =====
+  // 2026-08-05 に equipment-edit.html から移設。結果画面・車両ページの両方が使う。
+  // Canvas版（equipment-edit.html の drawMaestroSeal）は同じ幾何を2Dパスで描くので、
+  // SEAL_GEOM を変えたら両方の見た目が変わる＝ここが幾何の正本。
+  var SEAL_GEOM = { cx: 100, cy: 104, r: 76, leaves: 7 };
+
+  // 月桂樹の枝1本ぶんの葉を、円弧に沿って並べる。mirror=true で右側の枝（葉の傾きを反転）
+  function laurelLeaves(from, to, mirror) {
+    var g = SEAL_GEOM;
+    var out = '';
+    for (var k = 0; k < g.leaves; k++) {
+      var t = from + (to - from) * (k / (g.leaves - 1));
+      var rad = t * Math.PI / 180;
+      var x = g.cx + Math.cos(rad) * g.r, y = g.cy + Math.sin(rad) * g.r;
+      var lean = t + (mirror ? -64 : 64);
+      var grow = 0.62 + 0.38 * Math.sin(Math.PI * (k / (g.leaves - 1)));
+      out += '<ellipse cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" rx="' + (9 * grow).toFixed(1) +
+        '" ry="' + (4 * grow).toFixed(1) + '" transform="rotate(' + lean.toFixed(1) + ' ' + x.toFixed(1) + ' ' + y.toFixed(1) + ')"/>';
+    }
+    return out;
+  }
+
+  // idSuffix: 同一ページに複数描くときにグラデーションのid衝突を避ける（省略可）
+  function maestroSealSvg(idSuffix) {
+    var gid = 'mseal' + (idSuffix || '');
+    return '<svg class="maestro-seal" viewBox="0 0 200 200" role="img" aria-label="車載マエストロ">' +
+      '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="#f7e3a1"/><stop offset=".45" stop-color="#d9a92b"/><stop offset="1" stop-color="#9a6b00"/>' +
+      '</linearGradient></defs>' +
+      '<circle cx="100" cy="100" r="92" fill="#fffdf6"/>' +
+      '<circle cx="100" cy="100" r="90" fill="none" stroke="url(#' + gid + ')" stroke-width="3.5"/>' +
+      '<circle cx="100" cy="100" r="82" fill="none" stroke="url(#' + gid + ')" stroke-width="1.1" opacity=".65"/>' +
+      '<g fill="url(#' + gid + ')">' + laurelLeaves(128, 218, false) + laurelLeaves(52, -38, true) + '</g>' +
+      '<path d="M100 24l3.2 6.6 7.3 1-5.3 5.1 1.3 7.2-6.5-3.4-6.5 3.4 1.3-7.2-5.3-5.1 7.3-1z" fill="url(#' + gid + ')"/>' +
+      '<text x="103" y="84" text-anchor="middle" font-size="17" font-weight="700" fill="#9a6b00" letter-spacing="7">車載</text>' +
+      '<text x="100.5" y="115" text-anchor="middle" font-size="21" font-weight="800" fill="#8a5f00" letter-spacing="1">マエストロ</text>' +
+      '<line x1="70" y1="127" x2="130" y2="127" stroke="url(#' + gid + ')" stroke-width="1.3"/>' +
+      '<text x="100.6" y="143" text-anchor="middle" font-size="8" font-weight="700" fill="#a9750d" letter-spacing="1.2">MAESTRO DI BORDO</text>' +
+      '</svg>';
+  }
+
   global.EQ_MAESTRO = {
+    SEAL_GEOM: SEAL_GEOM,
+    laurelLeaves: laurelLeaves,
+    maestroSealSvg: maestroSealSvg,
     SAFETY_ITEM_IDS: SAFETY_ITEM_IDS,
     MASTER_ITEM_IDS: MASTER_ITEM_IDS,
     MAESTRO_THRESHOLD_RATIO: MAESTRO_THRESHOLD_RATIO,
