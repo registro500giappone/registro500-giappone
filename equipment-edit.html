@@ -189,7 +189,7 @@
       border-radius: 8px; font-size: 0.9rem; font-family: inherit; line-height: 1.7; resize: vertical;
     }
 
-    /* ===== 結果（車載マエストロ／安全装備／一歩先／常備品） ===== */
+    /* ===== 結果（車載マエストロ／安全・救援／一歩先／常備品） ===== */
     /* 2026-08-04: 4型判定（現地修理型/予防整備型/救援前提型/身軽型）を全廃した。
        「名前を持つのは頂点（車載マエストロ）だけ。それ以外はすべて事実」（HANDOFF「型の区分け再議論」参照）
        同日「主従の再確認」で、頂点の判定軸を装備リストの充足に戻した（主＝装備）。
@@ -220,7 +220,7 @@
       font-size: 0.78rem; color: var(--text-sub); background: var(--accent-soft);
       border-radius: 8px; padding: 8px 10px; margin: 0 0 14px; line-height: 1.6;
     }
-    /* 安全装備＝唯一のダメ出しが許されるゾーンなので赤系で強調する */
+    /* 安全・救援＝唯一のダメ出しが許されるゾーンなので赤系で強調する */
     .safety-block {
       margin: 0 0 22px; padding: 14px; border: 1px solid #f3c9c9; border-left: 3px solid #c62828;
       border-radius: 10px; background: #fef7f7;
@@ -229,6 +229,10 @@
     .safety-gauge { height: 8px; border-radius: 4px; background: #f0dcdc; overflow: hidden; margin: 0 0 4px; }
     .safety-gauge-fill { display: block; height: 100%; background: #c62828; border-radius: 4px; }
     .safety-gauge-label { font-size: 0.8rem; font-weight: 700; color: #c62828; margin: 0 0 10px; }
+    /* 4点そろっている人向け。チップ1個だけでは素っ気ないため事実の一文を添える（2026-08-06） */
+    .safety-done { margin: 0 0 18px; }
+    .safety-ok-desc { font-size: 0.8rem; color: var(--ok); margin: 4px 0 0; line-height: 1.7;
+      word-break: auto-phrase; text-wrap: balance; }
     /* 4/4は大きく祝わず、控えめなチップ1つに留める（見出しに見えると結論を食ってしまうため） */
     .safety-ok {
       display: inline-block; font-size: 0.78rem; font-weight: 700; color: var(--ok);
@@ -487,7 +491,7 @@
     <!-- 結果（保存後に表示）。2026-08-04 デザイン改修 第2稿:
          ①入力カード群と物理的に切るため、ページ幅を突き抜けた全幅の濃紺面に白いカードを浮かせる
          ②ヘッダー帯の進捗チップは「唐突」との指摘で廃止
-         並びは 称号（シールロゴ）→ 安全装備 → 一歩先 → あると効く常備品 -->
+         並びは 称号（シールロゴ）→ 安全・救援 → 一歩先 → あると効く常備品 -->
     <section class="result-shell" id="result-section" style="display:none;">
       <div class="result-banner">
         <p class="result-banner-eyebrow">RESULT</p>
@@ -533,7 +537,7 @@
   // 2026-08-05「安全装備」を独立カテゴリに分割（migration category_safety_split_2026-08-05.sql）。
   // 結果画面が安全装備4点を特別枠として扱うのに、DB上は非常時対応の一部で閲覧画面では
   // 区別が消えていたため、軸を1本にした。並びは equipment.html / detail.html と揃えること。
-  const CATEGORIES = ['工具', 'パーツ', 'ケミカル', '安全装備', '非常時対応', '洗車・その他'];
+  const CATEGORIES = ['工具', 'パーツ', 'ケミカル', '安全・救援', '非常時対応', '洗車・その他'];
 
   let currentUser = null;
   let items = [];        // 項目マスター
@@ -970,14 +974,14 @@
     el.classList.toggle('has', n > 0);
   }
 
-  // ===================== 結果（車載マエストロ／安全装備／対応一覧／一歩先） =====================
+  // ===================== 結果（車載マエストロ／安全・救援／対応一覧／一歩先） =====================
   // 2026-08-04: 4型判定（現地修理型/予防整備型/救援前提型/身軽型）は「人にラベルを貼る」文法で
   // 上から目線と受け取られるため全廃（design-original.md／HANDOFF「型の区分け再議論」参照）。
   // 「名前を持つのは頂点（車載マエストロ）だけ。それ以外はすべて事実（数字）」の原則に置き換える。
   // 同日「主従の再確認」でさらに一段：主＝装備、従＝止まり方。止まり方は「あなたの装備ならこれに
   // 対応できます」と説明するための従属情報にすぎず、頂点の判定軸には一切使わない（HANDOFF参照）。
 
-  // 安全装備4点（法律・レスキューの事実として言えるため、唯一ダメ出しが許されるゾーン）。
+  // 安全・救援4点（法律・レスキューの事実として言えるため、唯一ダメ出しが許されるゾーン）。
   // recommend_priorityが1〜4に割り当て済みなのでそのまま表示順として使える
   // （三角表示板39→発煙筒38→ロードサービス連絡先44→保険証券45。items_pilot_review_2026-07-24.sql参照）。
   // 実体は equipment-maestro.js（公開手帳一覧と共有する正本）。
@@ -989,7 +993,7 @@
 
   // ===== 車載マエストロ＝マスター装備リストの90%充足で判定（止まり方のカバー数は判定に一切使わない） =====
   // 2026-08-04「マエストロ認定＝50項目中45項目以上（90%）」で最終確定（HANDOFF参照）。
-  // マスター装備リスト（安全装備4点を含む・50項目）。
+  // マスター装備リスト（安全・救援4点を含む・50項目）。
   // 従来はテープ類（自己融着／強力ガムテープ）をOR条件（どちらか1つでOK）で扱っていたが、
   // 90%の余白が「テープはどちらか片方」を自然に吸収するためOR条件の仕組み自体が不要になり、
   // 通常項目2件として編入。さらにタイミングライト(id74・デスビの点火時期調整に必須・2026-08-04新規追加)
@@ -1020,9 +1024,9 @@
     return { loaded: loaded, required: required, remaining: Math.max(0, required - loaded) };
   }
 
-  // 車載マエストロ判定：マスター装備リストの90%以上を搭載 かつ 安全装備4点を全て搭載。
-  // 安全装備は90%の計算対象にも含まれる（=50項目の一部）が、それとは別に必須条件でもある
-  // （90%を満たしていても安全装備が1つでも欠けていればマエストロにならない）。
+  // 車載マエストロ判定：マスター装備リストの90%以上を搭載 かつ 安全・救援4点を全て搭載。
+  // 安全・救援は90%の計算対象にも含まれる（=50項目の一部）が、それとは別に必須条件でもある
+  // （90%を満たしていても安全・救援が1つでも欠けていればマエストロにならない）。
   function computeIsMaster(loadedIds) {
     const progress = computeMasterProgress(loadedIds);
     const safetyFull = SAFETY_ITEM_IDS.every(id => loadedIds.has(id));
@@ -1030,7 +1034,7 @@
   }
 
   // マエストロ未充足の場合の候補プール（マスターリストのうち未搭載のもの限定。リスト外は薦めない）。
-  // 安全装備は専用ブロックで扱うため除外。90%方式ではOR条件が不要になったため単純なフィルタのみでよい。
+  // 安全・救援は専用ブロックで扱うため除外。90%方式ではOR条件が不要になったため単純なフィルタのみでよい。
   function masterUnloadedCandidateIds(loadedIds) {
     return MASTER_ITEM_IDS.filter(id =>
       SAFETY_ITEM_IDS.indexOf(id) === -1 && !loadedIds.has(id));
@@ -1097,13 +1101,13 @@
         .sort((a, b) => PURCHASE_CHANNEL_ORDER.indexOf(a.type) - PURCHASE_CHANNEL_ORDER.indexOf(b.type));
       if (sorted.length) linksHtml = '<div class="reco-links">' + sorted.map(link => purchaseLinkBtnHtml(link, i.name)).join('') + '</div>';
     }
-    // 一歩先リコメンドにのみ「これを積むと〜ができるようになります」が付く。安全装備・常備品には付かない
+    // 一歩先リコメンドにのみ「これを積むと〜ができるようになります」が付く。安全・救援・常備品には付かない
     const unlockHtml = recoUnlockHtml(i);
     return '<div class="reco-item"><div class="reco-name">' + escapeHtml(i.name) + '</div>' +
       '<div class="reco-reason">' + escapeHtml(i.reason) + '</div>' + unlockHtml + linksHtml + '</div>';
   }
 
-  // 安全装備4点の1件を表示するHTML（三角表示板はreasonを法的事実の文言に上書きする）
+  // 安全・救援4点の1件を表示するHTML（三角表示板はreasonを法的事実の文言に上書きする）
   function safetyItemHtml(i) {
     const reason = SAFETY_REASON_OVERRIDE[i.id];
     return recoItemHtml(reason ? Object.assign({}, i, { reason: reason }) : i);
@@ -1205,14 +1209,14 @@
     // 「その装備を1つ積めば新たにできるようになる作業」の対応表。作業マスター未取得ならnull
     const unlockMap = tasksReady ? unlockMapFromTasks(tasks, taskNeeds, loadedIds) : null;
 
-    // 安全装備4点。不足分だけを抽出する（recommend_priority 1〜4の並びをそのまま使う）
+    // 安全・救援4点。不足分だけを抽出する（recommend_priority 1〜4の並びをそのまま使う）
     const safetyMissing = SAFETY_ITEM_IDS
       .map(id => items.find(i => i.id === id))
       .filter(i => i && !state[i.id].frequency);
     const safetyDoneCount = SAFETY_ITEM_IDS.length - safetyMissing.length;
     const safetyFull = safetyMissing.length === 0;
 
-    // 車載マエストロ＝マスター装備リストの90%充足＋安全装備4点で判定する（作業の数は判定に使わない）。
+    // 車載マエストロ＝マスター装備リストの90%充足＋安全・救援4点で判定する（作業の数は判定に使わない）。
     // 作業マスター未取得時でも装備リストだけで判定できる＝フォールバックでも動く
     const masterProgress = computeMasterProgress(loadedIds);
     const isMaster = computeIsMaster(loadedIds);
@@ -1238,16 +1242,26 @@
   // 表示分岐（見出し・文言）を1箇所に集約。DOM描画とCanvas描画で文言が食い違わないようにする
   function buildResultSections(data) {
     const sec = {
-      safetyHeading: null, safetyGaugeLabel: null, safetyOkText: null,
+      safetyHeading: null, safetyGaugeLabel: null, safetyOkText: null, safetyOkDesc: null,
       masterDesc: null, masterNote: null, masterInvite: null,
       nextHeading: null, nextSubheading: null
     };
+    // 安全・救援の4点（39三角表示板・38発煙筒・44ロードサービス連絡先・45保険証券）。
+    // 2026-08-06 ユーザー指摘で全面的に書き直した:
+    //  ①呼称: 4点のうち44・45は「装備（モノ）」ではなく情報・書類。実態は「法律とレスキュー」
+    //    （HANDOFF§425）なので「安全・救援」→「安全・救援」に改めた（DBのカテゴリ名も同時変更）。
+    //  ②文体: 「まず安全・救援から」は指示形。この機能は診断→承認＋一歩先へ舵を切ったので
+    //    投げかけにする。理由（法令・レスキュー）を添えれば投げかけでも強さは落ちない。
+    //  ③不足数: 「2/4」は暗算が要る。不足が何点かを直接書く。
+    //  ④充足時: 従来は緑チップ1個だけで素っ気なかった。称号のように持ち上げず、
+    //    「何が揃っているのか」を事実として一文述べる（人にラベルを貼らない原則は維持）。
     if (data.safetyFull) {
-      // 4/4は大きく祝わず、控えめな一行だけにする
-      sec.safetyOkText = '✓ 安全装備 ' + SAFETY_ITEM_IDS.length + '/' + SAFETY_ITEM_IDS.length;
+      sec.safetyOkText = '✓ 安全・救援 ' + SAFETY_ITEM_IDS.length + '/' + SAFETY_ITEM_IDS.length;
+      sec.safetyOkDesc = '法律で求められる備えと、助けを呼ぶ手段が揃っています。';
     } else {
-      sec.safetyHeading = 'まず安全装備から';
-      sec.safetyGaugeLabel = '安全装備 ' + data.safetyDoneCount + '/' + SAFETY_ITEM_IDS.length;
+      sec.safetyHeading = '安全・救援の4点、漏れなく積んでおきませんか';
+      sec.safetyGaugeLabel = '不足しているのは ' + data.safetyMissing.length + '点 です（' +
+        data.safetyDoneCount + '/' + SAFETY_ITEM_IDS.length + ' 搭載）';
     }
     if (data.isMaster) {
       // 内部基準（90%）をそのまま出すと事務的に読めるので、装備の実態を平易に述べる文にする。
@@ -1265,8 +1279,8 @@
     if (!data.isMaster && data.nextSteps.length) {
       sec.nextHeading = 'これを積むと、できることが増えます';
       // マスターに近い人向け。残り3項目以下のときだけ見出し脇に表示する
-      // （安全装備不足だけが原因で未達成の場合はremainingToMasterが0になり得るため、
-      // 　0以下のときは表示しない＝安全装備ブロックが既に警告を出しているため重複させない）
+      // （安全・救援不足だけが原因で未達成の場合はremainingToMasterが0になり得るため、
+      // 　0以下のときは表示しない＝安全・救援ブロックが既に警告を出しているため重複させない）
       if (data.remainingToMaster > 0 && data.remainingToMaster <= 3) {
         sec.nextSubheading = '車載マエストロまであと' + data.remainingToMaster + '項目';
       }
@@ -1308,9 +1322,10 @@
         ' <a href="equipment.html">一覧を見る</a></p></div>'
       : '';
 
-    // 安全装備＝唯一のダメ出しが許されるゾーン。不足時は赤いアラート、充足時は控えめなチップ1つ
+    // 安全・救援＝唯一のダメ出しが許されるゾーン。不足時は赤いアラート、充足時は控えめなチップ1つ
     document.getElementById('result-safety').innerHTML = sec.safetyOkText
-      ? '<p class="safety-ok">' + escapeHtml(sec.safetyOkText) + '</p>'
+      ? '<div class="safety-done"><p class="safety-ok">' + escapeHtml(sec.safetyOkText) + '</p>' +
+        '<p class="safety-ok-desc">' + escapeHtml(sec.safetyOkDesc) + '</p></div>'
       : '<div class="safety-block"><p class="safety-heading">' + escapeHtml(sec.safetyHeading) + '</p>' +
         '<div class="safety-gauge"><span class="safety-gauge-fill" style="width:'
           + Math.round(data.safetyDoneCount / SAFETY_ITEM_IDS.length * 100) + '%"></span></div>' +
@@ -1360,7 +1375,7 @@
     return lines;
   }
 
-  // headColor省略時は本文と同じ黒。安全装備の不足見出しだけ赤で強調するため差し替え可能にしている
+  // headColor省略時は本文と同じ黒。安全・救援の不足見出しだけ赤で強調するため差し替え可能にしている
   function layoutSection(mctx, cmds, y, cw, heading, itemsArr, fHead, fName, fReason, headColor) {
     cmds.push({ y, text: heading, font: fHead, color: headColor || '#111827' });
     y += 10;
@@ -1377,12 +1392,15 @@
   }
 
   function layoutResultContent(mctx, data, cw) {
+    // 文言はDOM描画と同じ buildResultSections から取る（純粋関数なので再呼び出しで問題ない）。
+    // 画面と保存画像で文言が食い違わないようにするための決まりごと。
+    const sec = buildResultSections(data);
     const F_BIG = '700 22px ' + CARD_FONT, F_DESC = '400 15px ' + CARD_FONT, F_HEAD = '700 15px ' + CARD_FONT,
           F_NAME = '700 16px ' + CARD_FONT, F_REASON = '400 13px ' + CARD_FONT;
     const cmds = [];
     let y = 26;
 
-    // ヒーロー＝車載マエストロ（唯一の称号）。DOM側と同じ「称号 → 安全装備 → 一歩先 → 常備品」の順。
+    // ヒーロー＝車載マエストロ（唯一の称号）。DOM側と同じ「称号 → 安全・救援 → 一歩先 → 常備品」の順。
     // 2026-08-04: シールロゴはCanvas 2Dのパスで直接描く（SVGを画像化して貼るとcanvasが汚染扱いになり
     // toDataURL() が失敗しうるため。幾何はDOM側の maestroSealSvg() と共通）。
     if (data.isMaster) {
@@ -1402,13 +1420,14 @@
       y += 26; // セクション間の余白。10だと次の行と重なる（2026-07-23の重なりバグの教訓）
     }
 
-    // 安全装備（唯一のダメ出しが許されるゾーン）
+    // 安全・救援（唯一のダメ出しが許されるゾーン）。文言は buildResultSections と揃える
     if (data.safetyFull) {
-      cmds.push({ y, text: '✓ 安全装備 ' + SAFETY_ITEM_IDS.length + '/' + SAFETY_ITEM_IDS.length, font: F_HEAD, color: '#1f7a45' });
+      cmds.push({ y, text: sec.safetyOkText, font: F_HEAD, color: '#1f7a45' });
+      y += 22;
+      cmds.push({ y, text: sec.safetyOkDesc, font: F_REASON, color: '#1f7a45' });
     } else {
       y = layoutSection(mctx, cmds, y,
-        cw, '安全装備 ' + data.safetyDoneCount + '/' + SAFETY_ITEM_IDS.length + '（まず安全装備から）',
-        data.safetyMissing, F_BIG, F_NAME, F_REASON, '#c62828');
+        cw, sec.safetyGaugeLabel, data.safetyMissing, F_BIG, F_NAME, F_REASON, '#c62828');
     }
 
     // 一歩先＝「これを積むと、できることが増えます」。止まり方（症状）には言及しない
