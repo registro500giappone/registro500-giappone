@@ -15,8 +15,8 @@
   </script>
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>装備手帳 | Registro500</title>
-  <meta name="description" content="空冷クラシックFiat 500の車載品を記録する装備手帳。出先のトラブルに備えて何を積んでいるかを記録し、いつでも更新できます。">
+  <title>車載手帳 | Registro500</title>
+  <meta name="description" content="空冷クラシックFiat 500の車載品を記録する車載手帳。出先のトラブルに備えて何を積んでいるかを記録し、いつでも更新できます。">
 
   <link rel="icon" href="logo_horizontal.png">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -355,7 +355,7 @@
 <div id="loginOverlay">
   <div class="login-box">
     <h2>オーナー認証</h2>
-    <p class="lead">装備手帳はご自身の記録です。<br>ご利用にはログインが必要です。</p>
+    <p class="lead">車載手帳はご自身の記録です。<br>ご利用にはログインが必要です。</p>
     <div style="display:flex;flex-direction:column;gap:10px;text-align:left;">
       <div id="otpStep1" style="display:flex;flex-direction:column;gap:10px;">
         <input type="email" id="emailLoginInput" placeholder="登録したメールアドレス" autocomplete="email"
@@ -391,7 +391,7 @@
 
   <div class="brand-header">
     <img src="logo_horizontal.png" alt="Registro500 Giappone">
-    <h1 class="brand-title">装備手帳</h1>
+    <h1 class="brand-title">車載手帳</h1>
     <p class="brand-tagline">出先のトラブルに備えて、何を積んでいるか</p>
   </div>
 
@@ -415,7 +415,7 @@
       <h2>あなたの車について</h2>
       <p class="card-lead">集計を「遠出の多さ別」で見るために使います。装備の答え合わせには使いません。</p>
       <div class="field" id="vehicle-field" style="display:none;">
-        <label for="vehicle-select">どの車の装備手帳ですか</label>
+        <label for="vehicle-select">どの車の車載手帳ですか</label>
         <select id="vehicle-select"></select>
       </div>
       <div class="field">
@@ -460,7 +460,7 @@
       <h2>この手帳の公開設定</h2>
       <p class="card-lead">
         この手帳は<strong>既定で公開されます</strong>。装備一覧・メモ・自由追加項目・経験談が、
-        あなたの車両ページと<a href="equipment.html">装備手帳の公開一覧</a>に表示されます。
+        あなたの車両ページと<a href="equipment.html">車載手帳の公開一覧</a>に表示されます。
         他のオーナーが何を積んでいるか見えることが、この手帳のいちばんの価値だからです。
         見せたくない場合は、下のスイッチをオフにしてください。あとからいつでも切り替えられます。
       </p>
@@ -484,7 +484,7 @@
     <section class="result-shell" id="result-section" style="display:none;">
       <div class="result-banner">
         <p class="result-banner-eyebrow">RESULT</p>
-        <p class="result-banner-title">あなたの装備手帳</p>
+        <p class="result-banner-title">あなたの車載手帳</p>
         <p class="result-banner-sub">積んでいる装備から、出先でできることを読み解きました</p>
         <div class="result-banner-rule"></div>
       </div>
@@ -523,7 +523,10 @@
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // カテゴリの表示順（項目マスターの category と一致させる）
-  const CATEGORIES = ['工具', 'パーツ', 'ケミカル', '非常時対応', '洗車・その他'];
+  // 2026-08-05「安全装備」を独立カテゴリに分割（migration category_safety_split_2026-08-05.sql）。
+  // 結果画面が安全装備4点を特別枠として扱うのに、DB上は非常時対応の一部で閲覧画面では
+  // 区別が消えていたため、軸を1本にした。並びは equipment.html / detail.html と揃えること。
+  const CATEGORIES = ['工具', 'パーツ', 'ケミカル', '安全装備', '非常時対応', '洗車・その他'];
 
   let currentUser = null;
   let items = [];        // 項目マスター
@@ -1242,8 +1245,8 @@
       // 2026-08-04 ユーザー指摘「手帳を公開すると〜は公開前提なのでおかしい」。
       // 公開が既定なので、いまのトグルの状態に合わせて言い方を変える。
       sec.masterInvite = isPublicSelected()
-        ? 'あなたの手帳は、みんなの装備手帳の一覧で紹介されます。'
-        : '公開に切り替えると、みんなの装備手帳の一覧で紹介されます。';
+        ? 'あなたの手帳は、みんなの車載手帳の一覧で紹介されます。'
+        : '公開に切り替えると、みんなの車載手帳の一覧で紹介されます。';
       // 「走る部品庫」＝称号は増やさずコメントとして添えるのみ
       if (data.isSpareEngineParts) {
         sec.masterNote = '🌟 しかも、交換用のキャブレターとデスビまで積んでいます。走る部品庫です。';
@@ -1525,14 +1528,14 @@
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffffff';
     ctx.font = '700 22px ' + CARD_FONT;
-    ctx.fillText('装備手帳', W / 2, 50);
+    ctx.fillText('車載手帳', W / 2, 50);
     ctx.font = '400 13px ' + CARD_FONT;
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
     ctx.fillText('Registro500 Giappone', W / 2, 74);
     ctx.font = '400 12px ' + CARD_FONT;
     ctx.fillStyle = 'rgba(255,255,255,0.75)';
     // 型名・スコアは一切出さない（2026-08-04「主従の再確認」）。称号を持つ人だけ称号名を添える。
-    // 称号が無い人は対象車名を出す（2026-08-05: ここが「あなたの装備手帳」だと1行目と重複していたため）。
+    // 称号が無い人は対象車名を出す（2026-08-05: ここが「あなたの車載手帳」だと1行目と重複していたため）。
     // 車両未紐付けなら3行目自体を省く（「紐づいていません」は共有画像に載せる情報ではない）
     const car = myCars.length ? selectedCar() : null;
     const sub = data.isMaster ? '車載マエストロ' : (car ? carLabel(car) : '');
@@ -1573,7 +1576,7 @@
       a.href = canvas.toDataURL('image/png');
       // ファイル名も型名・スコアを出さない（2026-08-04「主従の再確認」。マエストロ時のみ称号を使う）
       const label = data.isMaster ? '車載マエストロ' : '記録';
-      a.download = '装備手帳_' + label + '.png';
+      a.download = '車載手帳_' + label + '.png';
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -1599,7 +1602,7 @@
     // 先頭に対象車と出力日を控える（印刷して車に積んだとき、どの車のいつ時点のリストか分かるように）
     const car = selectedCar();
     const rows = [
-      ['装備手帳', car ? carLabel(car) : '', '出力日', new Date().toISOString().slice(0, 10), ''],
+      ['車載手帳', car ? carLabel(car) : '', '出力日', new Date().toISOString().slice(0, 10), ''],
       ['カテゴリ', '品名', '積み方', 'メモ', 'なぜ積むのか']
     ];
     CATEGORIES.forEach(cat => {
@@ -1626,7 +1629,7 @@
     }
     const car = selectedCar();
     const stamp = new Date().toISOString().slice(0, 10);
-    const name = ['装備手帳', car ? carLabel(car).replace(/[\s／\/]+/g, '_') : '', stamp]
+    const name = ['車載手帳', car ? carLabel(car).replace(/[\s／\/]+/g, '_') : '', stamp]
       .filter(Boolean).join('_') + '.csv';
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);

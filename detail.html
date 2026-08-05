@@ -121,7 +121,7 @@
     .rg-ep-photo-cell { position: relative; aspect-ratio: 1; border-radius: 0.5rem; overflow: hidden; background: var(--rg-surface-sub); border: 1px solid var(--rg-border); }
     .rg-ep-photo-cell img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
 
-    /* 装備手帳（公開分の埋め込み） */
+    /* 車載手帳（公開分の埋め込み） */
     .eq-cat { margin-bottom: 22px; }
     .eq-cat:last-child { margin-bottom: 0; }
     /* カテゴリ見出し。従来は 0.85rem・muted色で、明細行(0.9rem・通常色)より小さく薄く、
@@ -135,9 +135,13 @@
     .eq-item-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 6px 0; border-top: 1px solid var(--rg-border); font-size: 0.9rem; }
     .eq-item-row:first-child { border-top: none; }
     .eq-item-note { display: block; font-size: 0.78rem; color: var(--rg-muted); line-height: 1.5; }
-    .eq-item-freq { font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; white-space: nowrap; color: #fff; }
-    .eq-item-freq.always { background: var(--rg-accent); }
-    .eq-item-freq.occasional { background: #94a3b8; }
+    /* 頻度の見せ方（2026-08-05 ユーザー確定「両方出すが弱める」）。
+       従来は常時・随時とも塗りバッジで、大半を占める「常時」の青が列になって
+       項目名より目立っていた。常時は色を持たない細字に落とし、例外である
+       「随時」だけ枠線で輪郭を残す。情報は両方とも残す。 */
+    .eq-item-freq { font-size: 0.7rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+    .eq-item-freq.always { color: var(--rg-muted); background: none; padding-left: 0; padding-right: 0; }
+    .eq-item-freq.occasional { color: #64748b; background: none; border: 1px solid var(--rg-border); }
     .eq-experience { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--rg-border); font-size: 0.9rem; white-space: pre-wrap; line-height: 1.8; }
     .eq-experience-label { font-size: 0.8rem; font-weight: 700; color: var(--rg-muted); margin: 0 0 6px; }
     .eq-footer-link { display: block; text-align: center; margin-top: 14px; font-size: 0.85rem; color: var(--rg-accent); text-decoration: none; font-weight: 600; }
@@ -235,7 +239,7 @@
           </section>
           <section class="rg-card" id="snsSection" style="display:none;"><h2 class="rg-section-title">SNS</h2><dl class="rg-spec-grid" id="snsGrid"></dl></section>
           <section class="rg-card" id="equipmentSection" style="display:none;">
-            <h2 class="rg-section-title">装備手帳</h2>
+            <h2 class="rg-section-title">車載手帳</h2>
             <div id="equipmentContent"></div>
           </section>
           <section class="rg-card"><h2 class="rg-section-title">共有・連絡</h2>
@@ -383,8 +387,11 @@
       fetchEquipmentNotebook(car.document_id);
     }
 
-    // ─── 装備手帳（公開分の埋め込み） ───
-    const EQ_CATEGORIES = ['工具', 'パーツ', 'ケミカル', '非常時対応', '洗車・その他'];
+    // ─── 車載手帳（公開分の埋め込み） ───
+    // 並びは equipment-edit.html / equipment.html の CATEGORIES と揃えること。
+    // 配列に無いカテゴリの項目は末尾（洗車・その他）に落ちるため、DB側のカテゴリ分割
+    // （category_safety_split_2026-08-05.sql）より先にこちらをデプロイする。
+    const EQ_CATEGORIES = ['工具', 'パーツ', 'ケミカル', '安全装備', '非常時対応', '洗車・その他'];
 
     async function fetchEquipmentNotebook(vehicleId) {
       try {
@@ -450,7 +457,7 @@
         html += `<div class="eq-experience"><p class="eq-experience-label">出先で助かった／困った経験</p>${esc(experience.body)}</div>`;
       }
 
-      html += `<a class="eq-footer-link" href="equipment.html">→ みんなの装備手帳を見る（一覧・積載率）</a>`;
+      html += `<a class="eq-footer-link" href="equipment.html">→ みんなの車載手帳を見る（一覧・積載率）</a>`;
 
       document.getElementById('equipmentContent').innerHTML = html;
       document.getElementById('equipmentSection').style.display = 'block';
