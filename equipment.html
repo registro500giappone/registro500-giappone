@@ -152,8 +152,15 @@
     }
     .row-exp { flex: 0 0 auto; font-size: 0.68rem; color: var(--ok, #1f7a45); }
     .row-right { flex: 0 0 auto; text-align: right; line-height: 1.35; }
-    .row-count { display: block; font-size: 0.85rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
-    .row-count small { font-size: 0.65rem; font-weight: 600; }
+    /* 数字の見せ方（2026-08-05 ユーザー指摘）。
+       当初は「38点」を太字＋アクセント青で右端に並べていたが、右端・太字・青・縦一列は
+       得点表の記号そのもので、「勝手に低い点数をつけられた」と読まれる恐れがあった
+       （助数詞の「点」がテストの点と同形であることも重なる）。
+       ①助数詞をやめ「装備数」というラベル＋実数にする＝個数であることを字で明示する
+       ②太字とアクセント色を外す＝事実は残し、得点表の演出だけを消す
+       序列に見せない方針（並びは更新順・進捗の分母は出さない）と揃える。 */
+    .row-count { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-sub); white-space: nowrap; }
+    .row-count-label { font-size: 0.62rem; font-weight: 500; margin-right: 4px; }
     .row-date { display: block; font-size: 0.65rem; color: var(--text-sub); white-space: nowrap; }
     /* 0件のときは行の器（枠・影）を消す。空メッセージ側が自前の破線枠を持つため二重になる */
     .public-list.is-empty { background: none; border: none; box-shadow: none; }
@@ -512,7 +519,7 @@
       const maestro = r.isMaestro ? '<span class="row-maestro">マエストロ</span>' : '';
       const exp = r.hasExperience ? '<span class="row-exp" title="経験談あり">✎</span>' : '';
       const count = (r.statsOk && r.loadedCount)
-        ? `<span class="row-count">${r.loadedCount}<small>点</small></span>` : '';
+        ? `<span class="row-count"><span class="row-count-label">装備数</span>${r.loadedCount}</span>` : '';
 
       return `
         <a class="owner-row" href="detail.html?doc=${encodeURIComponent(r.docId)}#equipment-notebook">
