@@ -1,0 +1,50 @@
+name: イベント個別ページ 生成（6時間おき/手動）
+
+# 登録した人に追加の操作をさせないための自動実行。
+# イベント登録は月に数件なので毎時は過剰、1日1回だと最大24時間待たせる。
+# 6時間おき＝最大6時間で個別ページが揃う、を落としどころにした。
+# 急ぐときは手動実行ボタン（workflow_dispatch）で即座に反映できる。
+on:
+  schedule:
+    - cron: '20 */6 * * *'   # JST 00:20 / 06:20 / 12:20 / 18:20（毎時0分は混みやすいので20分にずらす）
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write   # 生成したHTMLとURL対応表をコミットするため
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 依存関係インストール
+        run: pip install -r py/requirements.txt
+
+      - name: .env 作成
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
+
+      - name: イベント個別ページ 生成
+        run: python py/gen_event_pages.py
+
+      - name: 差分があればコミット
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add events event-slugs.json
+          if git diff --cached --quiet; then
+            echo "イベントページ 変更なし — スキップ"
+          else
+            git commit -m "chore(events): イベント個別ページ再生成 [skip ci]"
+            git push
+          fi

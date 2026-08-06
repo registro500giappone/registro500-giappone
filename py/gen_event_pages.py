@@ -1,0 +1,367 @@
+#!/usr/bin/env python3
+"""
+イベント個別ページ（/events/<slug>/）の静的HTMLを生成する。
+
+なぜ静的生成なのか
+------------------
+LINE・X・Facebook の共有カードを作るクローラーは JavaScript を実行しない。
+既存の detail.html / video.html のように「開いてからJSが中身を書く」方式だと、
+共有時にサイト名しか出ない（実際いまイベントを共有してもそうなっている）。
+そこでイベントページだけは骨格を本物のHTMLとして書き出す。
+
+- 骨格（イベント名・日時・場所・説明・OGP・JSON-LD）＝ ここで静的に埋める
+- 参加表明の顔ぶれ ＝ 焼き付けると古くなるのでブラウザ側で都度取得（ハイブリッド）
+
+日付の扱い（重要）
+------------------
+event.html は日付を `YYYY-MM-DDT00:00:00+09:00` の形で保存する。DBには
+UTCで入るため、UTCの日付部分をそのまま使うと1日ずれる。必ずJSTへ直してから
+日付を取り出すこと。またJSTで 00:00 ちょうどは「開催時刻が未入力」を意味する
+規約になっている（event.html の時間判定ロジックと同じ）。誤った時刻を
+構造化データに出すとGoogleのイベント情報の品質ガイドラインに触れるため、
+時刻が未入力なら startDate は日付のみで出す。
+
+URLの安定性
+-----------
+イベント名を後から直してもURLが変わらないよう、決めたslugを
+リポジトリ直下の event-slugs.json に記録する。一度書かれた対応は変更しない。
+英字の当て方を変えたいときはこのファイルを手で直せばよい（次回以降も維持される）。
+DBに列を足さないのは、本番DBの変更をローカルPCからに限る取り決めのため。
+
+env (py/.env): SUPABASE_URL / SUPABASE_KEY
+使い方: python py/gen_event_pages.py
+"""
+import html
+import json
+import os
+import re
+import sys
+import unicodedata
+from datetime import datetime, timedelta, timezone
+
+from dotenv import load_dotenv
+from supabase import create_client
+
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
+PY_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(PY_DIR)
+load_dotenv(os.path.join(PY_DIR, ".env"))
+
+SUPABASE_URL = os.environ["SUPABASE_URL"]
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY") or os.environ["SUPABASE_SERVICE_KEY"]
+
+SITE_BASE = "https://www.registro500.com"
+OUT_DIR = os.path.join(REPO_ROOT, "events")
+SLUG_MAP_PATH = os.path.join(REPO_ROOT, "event-slugs.json")
+JST = timezone(timedelta(hours=9))
+
+# 一覧ページからのリンクも sitemap 登録もまだ行わない段階のため、
+# 万一URLが外部に出回っても検索結果に載らないよう noindex を入れておく。
+# 公開の指示が出たらこれを False にして再生成する（1行の切り替えで済ませる）。
+NOINDEX = True
+
+# 都道府県（event.html の地域フィルタと同じ並び）。構造化データの addressRegion に使う。
+PREFECTURES = [
+    "北海道", "青森", "岩手", "宮城", "秋田", "山形", "福島",
+    "茨城", "栃木", "群馬", "埼玉", "千葉", "東京", "神奈川",
+    "新潟", "富山", "石川", "福井", "山梨", "長野", "岐阜", "静岡", "愛知",
+    "三重", "滋賀", "京都", "大阪", "兵庫", "奈良", "和歌山",
+    "鳥取", "島根", "岡山", "広島", "山口", "徳島", "香川", "愛媛", "高知",
+    "福岡", "佐賀", "長崎", "熊本", "大分", "宮崎", "鹿児島", "沖縄",
+]
+
+# pykakasi は外来語を音のままローマ字にする（ミーティング→miitingu）。
+# このサイトに繰り返し出る語だけ先に英語へ寄せて、読めるURLにする。
+# 長い語から順に置換したいので、適用時に長さ降順で回す。
+LOANWORDS = {
+    "ミーティング": "meeting", "クラシックカー": "classic-car", "オフ会": "offkai",
+    "フィアット": "fiat", "アバルト": "abarth", "ピクニック": "picnic",
+    "フェスタ": "festa", "ツーリング": "touring", "レビュー": "review",
+    "イベント": "event", "オーナーズ": "owners", "イタリア": "italia",
+    "ミーティン": "meeting", "パーツ": "parts", "カフェ": "cafe",
+    "レトロカー": "retro-car", "ラリー": "rally", "コンクール": "concours",
+    "日本海": "nihonkai", "全国": "zenkoku", "秋の部": "aki", "春の部": "haru",
+}
+
+
+def to_jst(ts: str):
+    """DBのタイムスタンプ文字列をJSTのdatetimeに直す。空ならNone。"""
+    if not ts:
+        return None
+    try:
+        return datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone(JST)
+    except ValueError:
+        return None
+
+
+def has_time(dt) -> bool:
+    """JSTで00:00ちょうどは『開催時刻の入力なし』という保存側の規約。"""
+    return not (dt.hour == 0 and dt.minute == 0)
+
+
+def romanize(text: str) -> str:
+    """日本語を含む文字列をURL向けのローマ字に。pykakasiが無い環境では素通し。"""
+    for word in sorted(LOANWORDS, key=len, reverse=True):
+        text = text.replace(word, f" {LOANWORDS[word]} ")
+    try:
+        import pykakasi
+    except ImportError:
+        return text
+    conv = pykakasi.kakasi()
+    return " ".join(item["hepburn"] for item in conv.convert(text))
+
+
+def slugify(event_name: str, year: int) -> str:
+    """イベント名と開催年から `2026-nikitou-meeting-7` 形式のslugを作る。"""
+    name = unicodedata.normalize("NFKC", event_name or "")
+    # 括弧の中は日本語読みの併記（La Festa Autunno（ラ フェスタ アウトゥンノ））や
+    # 補足（申請中・関東）がほとんどで、URLに入れると同じ語の繰り返しになる。
+    # ただし括弧を外すと何も残らない名前もあるので、その場合は外さない。
+    stripped = re.sub(r"[(（][^)）]*[)）]", " ", name)
+    if stripped.strip():
+        name = stripped
+    # 名前に既に年が入っている場合（La Festa Autunno 2026 など）は頭の年と重複するので落とす。
+    # 「フェスタ2026」のように前後が日本語だと \b が成立しないため境界は要求しない。
+    name = name.replace(str(year), " ")
+    name = romanize(name).lower()
+    name = re.sub(r"[^a-z0-9]+", "-", name).strip("-")
+    name = re.sub(r"-{2,}", "-", name)
+    if len(name) > 60:
+        name = name[:60].rsplit("-", 1)[0]
+    return f"{year}-{name}" if name else str(year)
+
+
+def assign_slugs(events, slug_map):
+    """未登録のイベントにだけslugを振る。既存の対応は絶対に変えない（URLを固定するため）。"""
+    used = set(slug_map.values())
+    added = []
+    for ev in events:
+        if ev["id"] in slug_map:
+            continue
+        start = to_jst(ev.get("event_date"))
+        base = slugify(ev.get("event_name"), start.year if start else 0)
+        slug, n = base, 2
+        while slug in used:
+            slug, n = f"{base}-{n}", n + 1
+        slug_map[ev["id"]] = slug
+        used.add(slug)
+        added.append((ev["id"], slug, ev.get("event_name")))
+    return added
+
+
+def find_prefecture(location: str):
+    for pref in PREFECTURES:
+        if pref in (location or ""):
+            return pref if pref == "北海道" else pref + ("都" if pref == "東京" else "府" if pref in ("大阪", "京都") else "県")
+    return None
+
+
+def build_jsonld(ev, start, end, url):
+    """schema.org/Event。推測で埋めないのが原則。
+
+    - organizer は外部主催のイベントも多く、こちらでは分からないので出さない
+      （Registro500 名義で出すと事実と異なる）
+    - offers は費用が自由記述（「3000円」「カンパ制」等）で価格を確実に取れないため出さない
+    - image はイベントごとの写真をまだ持っていないので出さない（第4段階で写真が付いたら足す）
+    """
+    data = {
+        "@context": "https://schema.org",
+        "@type": "Event",
+        "name": ev.get("event_name") or "",
+        "startDate": start.isoformat() if has_time(start) else start.strftime("%Y-%m-%d"),
+        "eventStatus": "https://schema.org/EventScheduled",
+        "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+        "url": url,
+    }
+    if end:
+        data["endDate"] = end.strftime("%Y-%m-%d")
+    loc = (ev.get("location") or "").strip()
+    if loc:
+        place = {"@type": "Place", "name": loc.splitlines()[0]}
+        address = {"@type": "PostalAddress", "addressCountry": "JP",
+                   "streetAddress": " ".join(loc.split())}
+        pref = find_prefecture(loc)
+        if pref:
+            address["addressRegion"] = pref
+        place["address"] = address
+        data["location"] = place
+    desc = (ev.get("description") or "").strip()
+    if desc:
+        data["description"] = " ".join(desc.split())[:300]
+    return data
+
+
+def fmt_date(start, end) -> str:
+    w = "月火水木金土日"[start.weekday()]
+    out = f"{start.year}年{start.month}月{start.day}日（{w}）"
+    if has_time(start):
+        out += f" {start:%H:%M}〜"
+    if end and end.date() != start.date():
+        out += f" 〜 {end.month}月{end.day}日"
+    return out
+
+
+def render(ev, slug, start, end) -> str:
+    e = lambda s: html.escape(str(s or ""), quote=True)
+    url = f"{SITE_BASE}/events/{slug}/"
+    name = ev.get("event_name") or "イベント"
+    date_label = fmt_date(start, end)
+    loc_first = (ev.get("location") or "").splitlines()[0] if ev.get("location") else ""
+    summary = f"{date_label}／{loc_first}".strip("／")
+    desc_meta = f"{name}｜{summary}｜クラシックFIAT 500/126 のイベント情報 - Registro500 Giappone"
+
+    car_type = {"500": "FIAT 500 対象", "126": "FIAT 126 対象"}.get(ev.get("target_car_type"), "")
+    rows = [("開催日", date_label), ("開催場所", ev.get("location")), ("費用", ev.get("fee"))]
+    rows_html = "\n".join(
+        f'      <div class="row"><span class="lbl">{e(k)}</span>'
+        f'<div class="val">{e(v).replace(chr(10), "<br>")}</div></div>'
+        for k, v in rows if v
+    )
+    desc_html = e(ev.get("description")).replace("\n", "<br>") if ev.get("description") else ""
+    link_html = (f'      <p class="ext">🔗 <a href="{e(ev.get("url"))}" target="_blank" '
+                 f'rel="noopener nofollow">主催者のページを見る</a></p>' if ev.get("url") else "")
+    jsonld = json.dumps(build_jsonld(ev, start, end, url), ensure_ascii=False, indent=2)
+
+    return f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+{'<meta name="robots" content="noindex, nofollow">' if NOINDEX else ''}
+<link rel="canonical" href="{url}">
+<title>{e(name)} | Registro500</title>
+<meta name="description" content="{e(desc_meta)}">
+<meta property="og:type" content="article">
+<meta property="og:title" content="{e(name)}">
+<meta property="og:description" content="{e(summary)}">
+<meta property="og:url" content="{url}">
+<meta property="og:image" content="{SITE_BASE}/logo_horizontal.png">
+<meta property="og:site_name" content="Registro500 Giappone">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/style.css">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){{dataLayer.push(arguments);}}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH');
+</script>
+<script type="application/ld+json">
+{jsonld}
+</script>
+<style>
+  :root {{ --bg-main:#f4f4f7; --card-bg:#fff; --accent:#2856a8; --text-main:#111827; --sub:#6b7280; --line:#e5e7eb; }}
+  @media (prefers-color-scheme: dark) {{
+    :root {{ --bg-main:#0f172a; --card-bg:#1e293b; --accent:#7aa2e3; --text-main:#e2e8f0; --sub:#94a3b8; --line:#334155; }}
+  }}
+  body {{ font-family:system-ui,sans-serif; background:var(--bg-main); color:var(--text-main); margin:0; padding:20px 16px 80px; line-height:1.6; }}
+  .page {{ max-width:800px; margin:0 auto; }}
+  .back {{ display:inline-block; color:var(--accent); text-decoration:none; font-size:.9rem; margin-bottom:14px; }}
+  .card {{ background:var(--card-bg); border:1px solid var(--line); border-radius:14px; padding:20px 22px; }}
+  h1 {{ font-size:1.35rem; margin:.1em 0 .5em; }}
+  .badge {{ display:inline-block; font-size:.72rem; background:var(--accent); color:#fff; border-radius:999px; padding:2px 10px; vertical-align:middle; margin-left:8px; }}
+  .row {{ display:flex; gap:12px; padding:9px 0; border-top:1px solid var(--line); }}
+  .lbl {{ flex:0 0 5.5em; color:var(--sub); font-size:.85rem; }}
+  .val {{ flex:1; }}
+  .desc {{ margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }}
+  .ext {{ margin-top:14px; font-size:.9rem; }}
+  .ext a {{ color:var(--accent); word-break:break-all; }}
+  .join {{ margin-top:18px; padding-top:14px; border-top:1px solid var(--line); }}
+  .join h2 {{ font-size:.95rem; margin:0 0 .5em; }}
+  .names {{ display:flex; flex-wrap:wrap; gap:6px; }}
+  .name {{ background:var(--bg-main); border:1px solid var(--line); border-radius:999px; padding:3px 12px; font-size:.85rem; }}
+  .muted {{ color:var(--sub); font-size:.85rem; }}
+  .foot {{ margin-top:22px; font-size:.8rem; color:var(--sub); }}
+</style>
+</head>
+<body>
+<div class="page">
+  <a class="back" href="/event">← イベント一覧へ</a>
+  <article class="card">
+    <h1>{e(name)}{f'<span class="badge">{e(car_type)}</span>' if car_type else ''}</h1>
+{rows_html}
+    {f'<div class="desc">{desc_html}</div>' if desc_html else ''}
+{link_html}
+    <div class="join">
+      <h2>参加予定</h2>
+      <div id="participants" class="muted">読み込み中…</div>
+    </div>
+    <p class="foot">掲載: {e(ev.get('owner_name'))}／情報は主催者の告知が最新です。お出かけ前に主催者のページでご確認ください。</p>
+  </article>
+</div>
+<script>
+// 参加表明は変動するので静的に焼かず、表示時に最新を取りに行く。
+// event_participants は匿名読み取り可（一覧ページと同じ扱い）。
+(async () => {{
+  const box = document.getElementById('participants');
+  try {{
+    const r = await fetch({json.dumps(SUPABASE_URL)} + '/rest/v1/event_participants?select=handle_name&event_id=eq.' +
+      encodeURIComponent({json.dumps(ev['id'])}), {{ headers: {{ apikey: {json.dumps(SUPABASE_KEY)} }} }});
+    const rows = await r.json();
+    if (!Array.isArray(rows) || rows.length === 0) {{
+      box.textContent = 'まだ参加表明はありません。';
+      return;
+    }}
+    box.className = 'names';
+    box.innerHTML = '';
+    for (const row of rows) {{
+      const span = document.createElement('span');
+      span.className = 'name';
+      span.textContent = row.handle_name || '(名称未設定)';
+      box.appendChild(span);
+    }}
+  }} catch (err) {{
+    box.textContent = '参加者の読み込みに失敗しました。';
+  }}
+}})();
+</script>
+</body>
+</html>
+"""
+
+
+def main():
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    events = (supabase.table("events")
+              .select("id,event_name,event_date,event_date_end,location,fee,url,"
+                      "description,target_car_type,owner_name")
+              .order("event_date").execute().data or [])
+
+    slug_map = {}
+    if os.path.exists(SLUG_MAP_PATH):
+        with open(SLUG_MAP_PATH, encoding="utf-8") as f:
+            slug_map = json.load(f)
+    added = assign_slugs(events, slug_map)
+
+    written = 0
+    for ev in events:
+        start = to_jst(ev.get("event_date"))
+        if not start:
+            print(f"  スキップ（開催日が読めない）: {ev.get('event_name')}")
+            continue
+        slug = slug_map[ev["id"]]
+        out_dir = os.path.join(OUT_DIR, slug)
+        os.makedirs(out_dir, exist_ok=True)
+        with open(os.path.join(out_dir, "index.html"), "w", encoding="utf-8", newline="\n") as f:
+            f.write(render(ev, slug, start, to_jst(ev.get("event_date_end"))))
+        written += 1
+
+    with open(SLUG_MAP_PATH, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(slug_map, f, ensure_ascii=False, indent=2, sort_keys=True)
+        f.write("\n")
+
+    print(f"生成: {written} ページ（events/<slug>/index.html）")
+    if added:
+        print(f"新しくURLを割り当てたイベント {len(added)} 件:")
+        for _id, slug, nm in added:
+            print(f"  /events/{slug}/  ← {nm}")
+    if NOINDEX:
+        print("※ NOINDEX=True のため検索避けが入っています（公開時に False へ）")
+
+
+if __name__ == "__main__":
+    main()
