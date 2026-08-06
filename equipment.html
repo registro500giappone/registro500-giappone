@@ -180,6 +180,26 @@
     .public-list-note { font-size: 0.75rem; color: var(--text-sub); margin: 10px 0 0; }
     .rates-note { font-size: 0.78rem; color: var(--text-sub); margin: -12px 0 20px; line-height: 1.7; }
 
+    /* 判定条件の開示。普段は1行に見えるよう控えめにする（達成ゲーム化を避けるため） */
+    .criteria {
+      margin-top: 28px; background: var(--card-bg); border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg); padding: 12px 16px;
+    }
+    .criteria > summary {
+      cursor: pointer; font-size: 0.82rem; font-weight: 600; color: var(--text-sub);
+      list-style: revert;
+    }
+    .criteria > summary:hover { color: var(--accent); }
+    .criteria-body { font-size: 0.8rem; color: var(--text-sub); line-height: 1.9; margin-top: 12px; }
+    .criteria-body p { margin: 0 0 10px; }
+    .criteria-body ul { margin: 0 0 10px; padding-left: 1.2em; }
+    .criteria-body li { margin-bottom: 4px; }
+    .criteria-body strong { color: var(--text-main); }
+    .criteria-note {
+      border-top: 1px dashed var(--border-soft); padding-top: 10px; margin-top: 4px;
+      font-size: 0.76rem;
+    }
+
     .page-footer { text-align: center; margin-top: 40px; }
     .page-footer a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
   </style>
@@ -235,6 +255,17 @@
     </div>
 
     <div id="categories"></div>
+
+    <!-- 車載マエストロの判定条件（2026-08-06 ユーザー確定）。
+         称号バッジが実際に並ぶこのページに置き、<details>で畳んで「探せば見つかる」距離感にする。
+         結果画面に堂々と出すと「45項目を目指す達成ゲーム」に変質し、
+         「全員に最大限積ませない・一歩先だけ見せる」という確定方針に反するため。
+         基準を隠したままだと、事実の提示でなく審査になる＝この機能の立場と矛盾する。
+         数字はコードから動的に埋める（手書きすると基準変更時に説明だけ古くなる）。 -->
+    <details id="maestro-criteria" class="criteria" style="display:none;">
+      <summary>車載マエストロの認定条件について</summary>
+      <div class="criteria-body" id="criteria-body"></div>
+    </details>
 
   </div><!-- /#content -->
 
@@ -519,7 +550,8 @@
         ? `<img src="${esc(r.photoMain)}" alt="" loading="lazy" decoding="async">`
         : '<span class="noimg">🚗</span>';
 
-      const maestro = r.isMaestro ? '<span class="row-maestro">マエストロ</span>' : '';
+      // 称号は正式名称で出す（2026-08-06）。結果画面のシール・判定条件の見出しと表記を揃える。
+      const maestro = r.isMaestro ? '<span class="row-maestro">車載マエストロ</span>' : '';
       const exp = r.hasExperience ? '<span class="row-exp" title="経験談あり">✎</span>' : '';
       const count = (r.statsOk && r.loadedCount)
         ? `<span class="row-count"><span class="row-count-label">装備数</span>${r.loadedCount}</span>` : '';
@@ -539,15 +571,59 @@
     }).join('');
   }
 
+  // 判定条件の本文。**数字と項目名は必ず実際の判定値から組み立てる**。
+  // 手書きにすると、基準を変えたときに説明文だけ古いまま残る（本日の文言総点検で
+  // 同じ型の事故が4件見つかっている）。itemsは項目マスター（名前の解決用）。
+  function renderCriteria(items) {
+    const M = EQ_MAESTRO;
+    const byId = {};
+    (items || []).forEach(i => { byId[i.id] = i; });
+    const nameOf = id => (byId[id] ? byId[id].name : 'ID' + id);
+
+    const existing = M.masterExistingItemIds(new Set((items || []).map(i => i.id)));
+    if (!existing.length) return; // 項目マスターが引けないときは何も出さない（嘘の数字を出さない）
+    const required = Math.ceil(existing.length * M.MAESTRO_THRESHOLD_RATIO);
+    const pct = Math.round(M.MAESTRO_THRESHOLD_RATIO * 100);
+
+    const supersedes = Object.keys(M.SUPERSEDES).map(k =>
+      `<li>${esc(nameOf(Number(k)))} を積んでいれば、${esc(M.SUPERSEDES[k].map(nameOf).join('・'))} も揃っているものとして数えます</li>`
+    ).join('');
+
+    document.getElementById('criteria-body').innerHTML = `
+      <p>車載マエストロは、次の<strong>2つを両方</strong>満たしたときだけ付く印です。順位ではないので、何人でも同時に該当します。</p>
+      <ul>
+        <li>編集部が選んだ<strong>マスター装備${existing.length}項目のうち${required}項目以上</strong>（${pct}%）を車載していること</li>
+        <li>かつ、<strong>安全・救援の${M.SAFETY_ITEM_IDS.length}点をすべて</strong>車載していること<br>
+            <span style="font-size:0.94em">（${esc(M.SAFETY_ITEM_IDS.map(nameOf).join('／'))}）</span></li>
+      </ul>
+      <p>${pct}%を満たしていても、安全・救援が1つでも欠けていれば認定されません。ここだけは数で埋め合わせできない扱いにしています。</p>
+      <p><strong>「丸ごと交換用の本体」を積んでいる場合</strong>は、その部品を持っていなくても揃っているものとして数えます。</p>
+      <ul>${supersedes}</ul>
+      <p class="criteria-note">
+        判定に使うのは<strong>選択肢から選んだ項目だけ</strong>です。自由記入で書き足した装備は、
+        同じ物であっても自動では数えられません。「積んでいるのに数えられていない」ものがあれば、
+        選択肢の側にもチェックを入れてください。<br>
+        なお、この条件は装備の量だけを見ています。<strong>整備の腕前や車の状態とは関係ありません。</strong>
+      </p>`;
+    document.getElementById('maestro-criteria').style.display = 'block';
+  }
+
   async function load() {
     try {
-      const [ratesRes, publicList] = await Promise.all([
+      // 項目マスターは判定条件の表示（項目名と件数の解決）に使う。
+      // 失敗しても一覧・集計は出せるので、ここでは落とさず条件表示だけ諦める。
+      const [ratesRes, publicList, itemsRes] = await Promise.all([
         supabaseClient.rpc('equipment_item_rates'),
-        loadPublicRecords().catch(e => { console.error('公開手帳一覧の読み込みに失敗:', e); return []; })
+        loadPublicRecords().catch(e => { console.error('公開手帳一覧の読み込みに失敗:', e); return []; }),
+        // ⚠️ クエリビルダは then だけを持つ thenable で .catch() を持たない。
+        //    直接 .catch() を繋ぐと TypeError になるため Promise.resolve() で包む。
+        Promise.resolve(supabaseClient.from('equipment_items').select('id, name'))
+          .catch(e => { console.error('項目マスターの読み込みに失敗:', e); return { data: null }; })
       ]);
       if (ratesRes.error) throw ratesRes.error;
       renderPublicList(publicList);
       renderRows(ratesRes.data || []);
+      if (itemsRes && !itemsRes.error && itemsRes.data) renderCriteria(itemsRes.data);
     } catch (e) {
       console.error(e);
       document.getElementById('loading').textContent = '読み込みに失敗しました。時間をおいて再度お試しください。';

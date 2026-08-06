@@ -1034,10 +1034,13 @@
   }
 
   // マエストロ未充足の場合の候補プール（マスターリストのうち未搭載のもの限定。リスト外は薦めない）。
-  // 安全・救援は専用ブロックで扱うため除外。90%方式ではOR条件が不要になったため単純なフィルタのみでよい。
+  // 安全・救援は専用ブロックで扱うため除外。
+  // 2026-08-06: 上位互換を展開してから未搭載を拾う。展開しないと「キャブレター本体を
+  // 積んでいる人に補修部品を薦める」ことになり、判定（充足扱い）と矛盾するため。
   function masterUnloadedCandidateIds(loadedIds) {
+    const effective = EQ_MAESTRO.expandLoadedIds(loadedIds);
     return MASTER_ITEM_IDS.filter(id =>
-      SAFETY_ITEM_IDS.indexOf(id) === -1 && !loadedIds.has(id));
+      SAFETY_ITEM_IDS.indexOf(id) === -1 && !effective.has(id));
   }
 
   // 「車載マエストロまであとN項目」のN＝必要数に対する搭載数の不足分。

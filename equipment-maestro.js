@@ -32,30 +32,68 @@
   // マエストロ認定の必要割合（90%）。ハードコードせず比率で定数化する（50項目なら45項目）。
   var MAESTRO_THRESHOLD_RATIO = 0.9;
 
+  // ===== 上位互換（2026-08-06 ユーザー確定） =====
+  // 「本体を丸ごと車載している人は、その配下の部品も充足とみなす」。
+  // 例: キャブレター本体(66)を積んでいれば、現地で開けて直すための補修部品(71)が
+  //     無くても、載せ替えで同じ故障に対処できる＝対応力としては上位。
+  // これを入れないと「本体を積んでいるのに補修部品が無い」と判定され、
+  // 実態より低く出てしまう（スシオさんの実データで発覚した）。
+  //
+  // ⚠️ 判定は equipment_public_list() のSQL側にも同じ関係が実装されている（二重管理）。
+  //    ここを変えたら public_list_rpc の SUPERSEDES 相当部分も必ず同期すること。
+  //
+  // ⚠️ id67（デスビ本体）のDB上のreasonは「キャップ・ローター単品とは別の備え方」と
+  //    書かれており、当初は上位互換でなく別アプローチとして設計されていた。
+  //    2026-08-06にユーザー判断で上位互換に改めた（同じ故障に対する備えのため）。
+  //    ポイント(15)・コンデンサー(16)は物理的にデスビ内部だが、消耗品として定期交換
+  //    する性格が強いため**あえて含めていない**（含めるかは要判断）。
+  var SUPERSEDES = {
+    66: [71],      // キャブレター本体 → キャブレターの補修部品
+    67: [19, 20]   // デスビ本体 → デスビキャップ・ローター
+  };
+
+  // 上位互換を展開した搭載セットを返す（元のSetは変更しない）。
+  // 判定に使うのは常にこの展開後のセット。
+  // 引数は Set でも配列でも受ける（別realmのSetでも動くよう new Set(...) で作り直す）。
+  function expandLoadedIds(loadedIds) {
+    var out = new Set(loadedIds ? Array.from(loadedIds) : []);
+    Object.keys(SUPERSEDES).forEach(function (key) {
+      if (out.has(Number(key))) {
+        SUPERSEDES[key].forEach(function (covered) { out.add(covered); });
+      }
+    });
+    return out;
+  }
+
   // MASTER_ITEM_IDS のうち、項目マスターに実在するものだけを判定対象にする。
   // 存在しない id を母数に含めると「どれだけ積んでも届かない基準」になり、
   // migration 適用前後でユーザーが不利益を被るため（equipment-edit.html の教訓）。
   // existingItemIds には項目マスターの id の集合（Set か配列）を渡す。
+  // ⚠️ instanceof Set ではなく has の有無で判定する。iframe など別realmで作られた Set は
+  //    instanceof が false になり、Setに対して indexOf を呼んで TypeError になるため。
   function masterExistingItemIds(existingItemIds) {
-    var has = existingItemIds instanceof Set
+    var has = (existingItemIds && typeof existingItemIds.has === 'function')
       ? function (id) { return existingItemIds.has(id); }
       : function (id) { return existingItemIds.indexOf(id) !== -1; };
     return MASTER_ITEM_IDS.filter(has);
   }
 
-  // マスター装備リストの充足状況（搭載数／必要数／不足数）。
+  // マスター装備リストの充足状況（搭載数／必要数／不足数）。上位互換を展開して数える。
   function computeMasterProgress(loadedIds, existingItemIds) {
+    var effective = expandLoadedIds(loadedIds);
     var existing = masterExistingItemIds(existingItemIds);
-    var loaded = existing.filter(function (id) { return loadedIds.has(id); }).length;
+    var loaded = existing.filter(function (id) { return effective.has(id); }).length;
     var required = Math.ceil(existing.length * MAESTRO_THRESHOLD_RATIO);
     return { loaded: loaded, required: required, remaining: Math.max(0, required - loaded) };
   }
 
   // 車載マエストロ判定：マスター装備リストの90%以上を搭載 かつ 安全・救援4点を全て搭載。
   // 安全・救援は90%の計算対象にも含まれるが、それとは別に必須条件でもある。
+  // 安全・救援4点に上位互換は無いが、判定の一貫性のため展開後のセットで見る。
   function computeIsMaster(loadedIds, existingItemIds) {
     var progress = computeMasterProgress(loadedIds, existingItemIds);
-    var safetyFull = SAFETY_ITEM_IDS.every(function (id) { return loadedIds.has(id); });
+    var effective = expandLoadedIds(loadedIds);
+    var safetyFull = SAFETY_ITEM_IDS.every(function (id) { return effective.has(id); });
     return progress.loaded >= progress.required && safetyFull;
   }
 
@@ -107,6 +145,8 @@
     SAFETY_ITEM_IDS: SAFETY_ITEM_IDS,
     MASTER_ITEM_IDS: MASTER_ITEM_IDS,
     MAESTRO_THRESHOLD_RATIO: MAESTRO_THRESHOLD_RATIO,
+    SUPERSEDES: SUPERSEDES,
+    expandLoadedIds: expandLoadedIds,
     masterExistingItemIds: masterExistingItemIds,
     computeMasterProgress: computeMasterProgress,
     computeIsMaster: computeIsMaster
