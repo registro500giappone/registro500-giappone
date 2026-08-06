@@ -170,6 +170,8 @@ git push origin main           # Cloudflare Pages 自動デプロイがトリガ
 - `126/index.html` → Fiat 126姉妹サイトのトップページ
 - `.claude/agents/` → 専用サブエージェント定義（Haikuモデル）
 - `youtube-portal/` → YouTube動画ポータル（クラシックFIAT 500/126動画キュレーション）の確定設計。`HANDOFF.md`（引き継ぎ書・全決定事項）＋`schema.sql`（適用済みスキーマ）
+- `events-portal/HANDOFF.md` → イベントページ再構成の引き継ぎ書・全決定事項（進行中。下記セクション参照）
+- `event-slugs.json` → イベント個別ページのURL対応表。**一度決めたslugは変更しない**（変えるとリンクが切れる）
 
 ---
 
@@ -184,6 +186,22 @@ registro500.com をクラシックFIAT 500/126ポータル化する施策。YouT
 - **タスク1（スキーマ適用）= 2026-06-29完了**。8テーブル＋ビュー`video_reco_counts`＋RLSを本番migration適用済（`youtube_portal_schema` / `youtube_portal_harden_set_updated_at`）。
 - **タスク2（初期マスタ投入）= 2026-06-29完了**。vehicles 5・part_tags 13・categories 親6＋中区分29＝計35 を投入（`youtube-portal/seed_master.sql`）。edit.htmlのモデル区分を search_aliases に反映済。
 - **次はタスク3（取得スクリプト）= YouTube Data API キーが前提**。キー所在・実行環境・AI分類用Anthropic APIを確認のうえ、規模が大きいのでPlan modeで計画化を推奨。
+
+---
+
+## イベントページ再構成（進行中の新規テーマ・2026-08-06 開始）
+
+`/event` はサイトの検索流入の54%を稼ぐ最重要ページ（Search Console 2026-07 実測・クリック102件）。
+個別イベント名で検索されているのに専用ページが無く5〜7位で頭打ちのため、再構成に着手した。
+**確定設計は `events-portal/HANDOFF.md` が正本。確定済みの判断を勝手に変えない**（不変条件は §7）。
+
+主要な不変条件: イベントを種別で分類しない（反応の量で見え方が変わる）／予備情報のない自動下書きを作らない・**公開の判断は必ず人間**／日付はJSTへ直してから使い JST 00:00 は「時刻未入力」／構造化データを推測で埋めない／一度決めたslugを変えない／`/event` を実験台にしない。
+
+- **第1段階（イベント個別ページ＋構造化データ）＝ 2026-08-06 実装済み・未公開**。
+  35件を `events/<slug>/index.html` に静的生成（`py/gen_event_pages.py`／6時間おきの自動更新）。
+  **リンク未接続・sitemap未登録・noindex の三重で塞いである。公開手順は HANDOFF §5**。
+- **次は確認用の一覧ページ（HANDOFF §6-1）**。着手直前でセッションが終了している。
+- 第2段階以降（貼るだけ投稿・「気になる」ボタン・写真機能の再設計・月次探索）は HANDOFF §3。
 
 ---
 
