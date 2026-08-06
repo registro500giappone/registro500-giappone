@@ -979,3 +979,31 @@ RPCを呼び、`error` が返ったら従来のクライアント集計にフォ
 **適用時に想定される見え方**: 現在の公開6件は 2026-08-05〜08-06 にテスターデータ正規化で `updated_at` が動いているため、**当面は6件すべてに赤丸が付く**（`created_at` は 07-23〜07-24）。異常ではなく、時間が経てば自然に消える。
 
 **残っているのは相変わらずメニュー追加のみ**（ユーザー指示待ち）。
+
+#### 【2026-08-06】migration控えの状態表記を実測で洗い直し／メニュー導線を開通
+
+**見つけた問題**: `equipment-notebook/*.sql` の**19本すべてが起案時の `★未適用★` 表記のまま**残っていた。実際には大半が適用済みで、**この控えを見た人が再実行しかねない**状態だった（`insert` を含むものもあり、再実行が無害とは限らない）。
+
+**確定のしかた（推測でなく実測）**: クラウドから migration 履歴は引けない（`SUPABASE_ACCESS_TOKEN` を置かない方針のため supabase MCP は Unauthorized で正常）。そこで**公開キーの読み取りだけで、各migrationの「観測できる効果」を1本ずつ確認**した。各ファイルの状態行の下に `-- 根拠:` を足してあるので、**あとから誰でも同じ確認を再現できる**。
+
+| 区分 | 本数 | 中身 |
+|---|---|---|
+| ✅適用済み | 18 | stop_modes_schema / items_feedback / public_read / master_items / purchase_links系4本 / stop_modes_realism / items_reason / category_safety_split・rename / tester_data_reconcile / amazon_tag_swap / public_list_rpc・supersedes・supersedes_v2・created_at / item_reason_supersedes |
+| ★未適用★ | 1 | `tasks_schema_2026-08-04.sql` … `equipment_tasks` が存在しない（PostgRESTが400を返す） |
+| ⚠️判定不能 | 1 | `public_default_2026-08-04.sql` … 列のdefaultは匿名RESTから見えない。**ローカルPCで `select column_default from information_schema.columns where table_name='equipment_records' and column_name='is_public';` を引いて確定させること** |
+
+**途中で自分の誤判定を1つ訂正した**: 「スタンダードスピードのリンクが0件＝未適用」と読みかけたが、URLは `standardspeed` でなく `nuova500.com/standard-speed`（ハイフンあり）で、**対象13項目すべてに入っていた＝適用済み**。検索語を実ファイルから取らずに書くと逆の結論が出る。
+
+**今後の運用**: migrationを適用したら控えの `-- 状態:` 行を `✅適用済み` に直す。根拠行も併せて書く。
+
+#### 【2026-08-06】メニュー追加＝公開導線の開通（ユーザー指示）
+
+`index.html` の `.dropdown-content` に `<a href="/equipment">🧰 みんなの車載手帳</a>` を追加（`92fd980`）。CLAUDE.md の「公開導線を勝手に作らない」ルールに従って指示を待っていたもので、**2026-08-06 にユーザーから明示の指示があったため実施**。
+
+置き場所は **📓 ガレージノートの直後**。どちらもオーナーが自分で書いて残す記録で、読み手にとって同じ性質のページとして並ぶため。
+
+- `/equipment` は本番で200が返る（clean URLは既に有効）。`_redirects` の変更は不要だった。
+- `sitemap.xml` には**2026-07-23の時点で既に `/equipment` が入っていた**ため追加不要。
+- ページ全体で `/equipment` へのリンクは1本のみ（重複なし）をDOMで確認。
+
+**これで導線は開いた**。残るは**お知らせの投稿（ユーザー本人・文案は `announcement_2026-08-06.md`）**のみ。
