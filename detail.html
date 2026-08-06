@@ -12,7 +12,10 @@
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://www.registro500.com/logo_horizontal.png">
   <meta name="twitter:card" content="summary">
-  <link rel="canonical" id="canonicalTag" href="https://www.registro500.com/detail">
+  <!-- canonical は読み込み後に JS が /detail?doc=... を入れる（updateOGP 参照）。
+       href を静的に置くと、JS実行前のクローラーに全車両ページが同じURLだと誤って伝わるため、
+       あえて href を書かない＝未指定＝自分自身が正、というGoogleの既定に委ねる。 -->
+  <link rel="canonical" id="canonicalTag">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
@@ -195,7 +198,7 @@
 <body>
    <header class="rg-header-bar">
      <div class="rg-back-link">
-       <a href="index.html">
+       <a href="/">
          <div>←</div>
          <div class="back-text">ガレージ<br class="back-br">に戻る</div>
        </a>
@@ -207,10 +210,10 @@
           <ul class="rg-dropdown-menu">
             <li><h6 class="rg-dropdown-header">車両管理</h6></li>
             <li><a class="rg-dropdown-item is-bold" href="#" id="editLink">✏️ この車両を編集</a></li>
-            <li><a class="rg-dropdown-item" href="episode-edit.html" id="addEpisodeLink">📖 ストーリーを追加</a></li>
-            <li><a class="rg-dropdown-item" href="edit.html?mode=new" id="newCarLink">➕ 2台目を登録する</a></li>
+            <li><a class="rg-dropdown-item" href="/episode-edit" id="addEpisodeLink">📖 ストーリーを追加</a></li>
+            <li><a class="rg-dropdown-item" href="/edit?mode=new" id="newCarLink">➕ 2台目を登録する</a></li>
             <li><hr class="rg-dropdown-divider"></li>
-            <li><a class="rg-dropdown-item is-muted" href="edit.html" id="carListLink">🏠 管理車両一覧へ</a></li>
+            <li><a class="rg-dropdown-item is-muted" href="/edit" id="carListLink">🏠 管理車両一覧へ</a></li>
             <li><hr class="rg-dropdown-divider"></li>
             <li><a class="rg-dropdown-item" href="#" id="deleteLink" style="color:#dc2626;" onclick="confirmDelete(); return false;">🗑️ この車両を削除</a></li>
           </ul>
@@ -272,7 +275,7 @@
                  末尾の一覧リンクは装備を全部スクロールしないと届かないため。 -->
             <!-- 車載マエストロの称号帯。一覧でチップを見て飛んできた先に称号が無いのを埋める（2026-08-05） -->
             <div id="equipmentMaestro" class="eq-maestro-band" style="display:none;"></div>
-            <a id="equipmentBackLink" class="eq-back-link" href="equipment.html" style="display:none;">← みんなの車載手帳へ戻る</a>
+            <a id="equipmentBackLink" class="eq-back-link" href="/equipment" style="display:none;">← みんなの車載手帳へ戻る</a>
             <div id="equipmentContent"></div>
           </section>
           <section class="rg-card"><h2 class="rg-section-title">共有・連絡</h2>
@@ -355,7 +358,7 @@
       // 126車の場合: 戻るリンクとロゴを切り替え
       if (car.car_type === '126') {
         const backLink = document.querySelector('.rg-back-link a');
-        if (backLink) backLink.href = '126/index.html';
+        if (backLink) backLink.href = '/126/';
         const logoImg = document.querySelector('.rg-header-logo img');
         if (logoImg) { logoImg.src = 'logo_horizontal126.png'; logoImg.alt = 'Registro126'; }
       }
@@ -512,7 +515,7 @@
         html += `<div class="eq-experience"><p class="eq-experience-label">出先で助かった／困った経験</p>${esc(experience.body)}</div>`;
       }
 
-      html += `<a class="eq-footer-link" href="equipment.html">→ みんなの車載手帳を見る（一覧・車載率）</a>`;
+      html += `<a class="eq-footer-link" href="/equipment">→ みんなの車載手帳を見る（一覧・車載率）</a>`;
 
       document.getElementById('equipmentContent').innerHTML = html;
       document.getElementById('equipmentSection').style.display = 'block';
@@ -587,12 +590,12 @@
       if(isOwner) {
         const carType = currentCar.car_type || '500';
         document.getElementById('ownerMenuArea').style.display = 'block';
-        document.getElementById('editLink').href = `edit.html?doc=${currentCar.document_id}&type=${carType}`;
-        document.getElementById('addEpisodeLink').href = `episode-edit.html?car=${currentCar.document_id}`;
-        document.getElementById('newCarLink').href = `edit.html?mode=new&type=${carType}`;
-        document.getElementById('carListLink').href = `edit.html?type=${carType}`;
+        document.getElementById('editLink').href = `/edit?doc=${currentCar.document_id}&type=${carType}`;
+        document.getElementById('addEpisodeLink').href = `/episode-edit?car=${currentCar.document_id}`;
+        document.getElementById('newCarLink').href = `/edit?mode=new&type=${carType}`;
+        document.getElementById('carListLink').href = `/edit?type=${carType}`;
         const addBtn = document.getElementById('addEpisodeBtn');
-        if (addBtn) { addBtn.style.display = 'block'; addBtn.onclick = () => location.href = `episode-edit.html?car=${currentCar.document_id}`; }
+        if (addBtn) { addBtn.style.display = 'block'; addBtn.onclick = () => location.href = `/episode-edit?car=${currentCar.document_id}`; }
       } else {
         if(currentCar.accept_inquiry !== false && !currentCar.is_sold) document.getElementById('contactArea').style.display = 'block';
       }
@@ -608,7 +611,7 @@
       const section = document.getElementById('acquisitionSection');
       if (isOwner) {
         section.style.display = 'block';
-        const href = `episode-edit.html?car=${encodeURIComponent(currentCar.document_id)}&type=acquisition`;
+        const href = `/episode-edit?car=${encodeURIComponent(currentCar.document_id)}&type=acquisition`;
         document.getElementById('acquisitionContent').innerHTML = `
           <div style="text-align:center;padding:1.25rem 0.75rem;border:1px dashed var(--rg-border);border-radius:8px;">
             <p style="font-size:0.95rem;color:var(--rg-muted);margin:0 0 0.9rem;line-height:1.7;">このチンクとの出会いのストーリーは<br>まだ書かれていません。</p>
@@ -732,7 +735,7 @@
         } else {
           alert('車両を削除しました。');
           const carType = currentCar.car_type || '500';
-          window.location.href = `edit.html?type=${carType}`;
+          window.location.href = `/edit?type=${carType}`;
         }
       } catch (e) {
         alert('削除処理でエラーが発生しました: ' + e.message);
@@ -777,7 +780,7 @@
           if (others.length > 3) {
             const more = document.getElementById('episodesMoreLink');
             more.style.display = 'block';
-            more.href = `stories.html?car=${encodeURIComponent(carDocId)}`;
+            more.href = `/stories?car=${encodeURIComponent(carDocId)}`;
           }
         }
       // #stories ハッシュで来た場合はエピソードセクションにスクロール
@@ -820,7 +823,7 @@
       const color = EPISODE_TYPE_COLORS[ep.type] || '#64748b';
       const dateStr = ep.episode_date ? formatEpisodeDate(ep.episode_date, ep.date_precision || 'day', !!ep.is_approximate) : '';
       const excerpt = ep.content ? (ep.content.length > 60 ? ep.content.slice(0, 60) + '…' : ep.content) : '';
-      const href = `episode.html?ep=${encodeURIComponent(ep.id)}`;
+      const href = `/episode?ep=${encodeURIComponent(ep.id)}`;
       const sourceBadge = ep.source_url
         ? ` <span style="display:inline-block;background:#f1ede4;color:#6b7280;font-size:0.68rem;letter-spacing:0.08em;padding:2px 8px;border-radius:10px;margin-left:4px;">🔗 外部掲載</span>`
         : '';
@@ -834,7 +837,7 @@
     fetchDetail();
   </script>
 <footer style="margin-top:48px;padding:20px 16px;border-top:1px solid #e5e7eb;text-align:center;">
-  <a href="goods.html" style="font-size:0.82rem;color:#6b7280;text-decoration:none;">📦 メンテナンスおすすめグッズ</a>
+  <a href="/goods" style="font-size:0.82rem;color:#6b7280;text-decoration:none;">📦 メンテナンスおすすめグッズ</a>
 </footer>
 <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "60f959409b1e4eb29308eeb53615812a"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
