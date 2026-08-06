@@ -1,8 +1,19 @@
 -- ============================================================
 -- 装備手帳: 公開の既定値を「公開」に変更する migration 起案
 -- migration名: equipment_notebook_public_default_2026_08_04
--- 状態: ⚠️適用状況 未確認（2026-08-04 起案）
--- 根拠: 列のdefaultは匿名RESTから見えないためクラウドから判定不能。ローカルPCで select column_default from information_schema.columns where table_name='equipment_records' and column_name='is_public'; を実行して確認すること
+-- 状態: ★未適用★（2026-08-04 起案・適用はローカルPCから）
+-- 根拠: 2026-08-06 にローカルPCで確認したところ column_default = false（＝この migration は流れていない）。
+--       select column_default from information_schema.columns
+--        where table_name='equipment_records' and column_name='is_public';
+--       ※ 列のdefaultは匿名RESTから見えないため、この確認はローカルPCからしか行えない。
+--
+-- ⚠️ 未適用だが実害はない（2026-08-06 全経路を調査して確認）。
+--   equipment_records への insert は equipment-edit.html の1箇所だけで、そこは
+--   is_public を必ず明示送信している（下の「補足」のとおり）。よって列のdefaultは使われない。
+--   新規の手帳が既定で公開になるかどうかは、いまもフロントのトグル初期状態が決めている。
+--   このmigrationは**DB側にも意図を残すための整合目的**なので、急いで流す必要はない。
+--   ただし将来スクリプトやバッチから直接 insert する経路を足すときは、
+--   このmigrationを先に適用するか、そちらでも is_public を明示すること。
 --
 -- 方針変更（2026-08-04 ユーザー判断）:
 --   フェーズB当初は「公開はオプトイン（既定 false）」で実装したが、

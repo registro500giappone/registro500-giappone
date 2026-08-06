@@ -990,7 +990,7 @@ RPCを呼び、`error` が返ったら従来のクライアント集計にフォ
 |---|---|---|
 | ✅適用済み | 18 | stop_modes_schema / items_feedback / public_read / master_items / purchase_links系4本 / stop_modes_realism / items_reason / category_safety_split・rename / tester_data_reconcile / amazon_tag_swap / public_list_rpc・supersedes・supersedes_v2・created_at / item_reason_supersedes |
 | ★未適用★ | 1 | `tasks_schema_2026-08-04.sql` … `equipment_tasks` が存在しない（PostgRESTが400を返す） |
-| ⚠️判定不能 | 1 | `public_default_2026-08-04.sql` … 列のdefaultは匿名RESTから見えない。**ローカルPCで `select column_default from information_schema.columns where table_name='equipment_records' and column_name='is_public';` を引いて確定させること** |
+| ★未適用★ | 1 | `public_default_2026-08-04.sql` … **【2026-08-06 追記】ローカルPCで確認して確定。`column_default = false` ＝未適用**（列のdefaultは匿名RESTから見えないためクラウドからは判定できなかった） |
 
 **途中で自分の誤判定を1つ訂正した**: 「スタンダードスピードのリンクが0件＝未適用」と読みかけたが、URLは `standardspeed` でなく `nuova500.com/standard-speed`（ハイフンあり）で、**対象13項目すべてに入っていた＝適用済み**。検索語を実ファイルから取らずに書くと逆の結論が出る。
 
@@ -1007,3 +1007,17 @@ RPCを呼び、`error` が返ったら従来のクライアント集計にフォ
 - ページ全体で `/equipment` へのリンクは1本のみ（重複なし）をDOMで確認。
 
 **これで導線は開いた**。残るは**お知らせの投稿（ユーザー本人・文案は `announcement_2026-08-06.md`）**のみ。
+
+##### 【2026-08-06 追記】`public_default_2026-08-04.sql` は未適用と確定。ただし実害なし
+
+ローカルPCでの確認結果は `column_default = false` ＝**このmigrationは流れていない**。
+
+**それでも新規の手帳は既定で公開になる**ので、公開開始を止める理由にはならない。全経路を調べたところ:
+
+- `equipment_records` への **insert は `equipment-edit.html` の1箇所だけ**（`grep "from('equipment_records')"` で全ファイル確認。他は detail.html / equipment.html の select のみ）
+- その1箇所は `is_public: document.getElementById('public-toggle').checked` を**必ず明示送信**している（insert・updateとも）
+- 新規記入時のトグル初期状態は `record ? !!record.is_public : true` ＝**チェック済み（公開）**
+
+つまり**列のdefaultは使われておらず、既定を決めているのはフロントのトグル**。migrationファイル自身の「補足」（L18-20）にも同じことが最初から書かれていた。
+
+**このmigrationはDB側にも意図を残すための整合目的**なので、急ぎではない。ただし**将来スクリプトやバッチから直接 insert する経路を足すときは、先にこれを適用するか、そちらでも `is_public` を明示すること**（さもないと新規行が黙って非公開になる）。ファイルの控えにも同じ注意を書いた。
