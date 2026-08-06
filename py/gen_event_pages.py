@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-イベント個別ページ（/events/<slug>/）の静的HTMLを生成する。
+イベント個別ページ（/event/<slug>/）の静的HTMLを生成する。
 
 なぜ静的生成なのか
 ------------------
@@ -55,7 +55,7 @@ SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY") or os.environ["SUPABASE_SERVICE_KEY"]
 
 SITE_BASE = "https://www.registro500.com"
-OUT_DIR = os.path.join(REPO_ROOT, "events")
+OUT_DIR = os.path.join(REPO_ROOT, "event")
 SLUG_MAP_PATH = os.path.join(REPO_ROOT, "event-slugs.json")
 JST = timezone(timedelta(hours=9))
 
@@ -207,7 +207,7 @@ def fmt_date(start, end) -> str:
 
 def render(ev, slug, start, end) -> str:
     e = lambda s: html.escape(str(s or ""), quote=True)
-    url = f"{SITE_BASE}/events/{slug}/"
+    url = f"{SITE_BASE}/event/{slug}/"
     name = ev.get("event_name") or "イベント"
     date_label = fmt_date(start, end)
     loc_first = (ev.get("location") or "").splitlines()[0] if ev.get("location") else ""
@@ -354,11 +354,11 @@ def main():
         json.dump(slug_map, f, ensure_ascii=False, indent=2, sort_keys=True)
         f.write("\n")
 
-    print(f"生成: {written} ページ（events/<slug>/index.html）")
+    print(f"生成: {written} ページ（event/<slug>/index.html）")
     if added:
         print(f"新しくURLを割り当てたイベント {len(added)} 件:")
         for _id, slug, nm in added:
-            print(f"  /events/{slug}/  ← {nm}")
+            print(f"  /event/{slug}/  ← {nm}")
     if NOINDEX:
         print("※ NOINDEX=True のため検索避けが入っています（公開時に False へ）")
 

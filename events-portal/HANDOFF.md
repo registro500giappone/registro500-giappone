@@ -98,19 +98,23 @@ X / Instagram / Facebook はいずれも外部からの検索収集を設計上�
 ### 成果物
 | ファイル | 役割 |
 |---|---|
-| `py/gen_event_pages.py` | `events/<slug>/index.html` を生成（35件） |
+| `py/gen_event_pages.py` | `event/<slug>/index.html` を生成（35件） |
 | `.github/workflows/event-pages.yml` | 6時間おき（`20 */6 * * *`）＋手動実行 |
 | `event-slugs.json` | URL対応表。**一度決めたslugは変更しない** |
-| `events/<slug>/index.html` | 生成物35件（コミット済み） |
+| `event/<slug>/index.html` | 生成物35件（コミット済み） |
 
 ### URL形式
 ```
-/events/2026-nikitou-meeting-7/
+/event/2026-nikitou-meeting-7/
 ```
-- **`/event/...` は使わない**。`event.html` が `/event` を占めており、フォルダを足すと
-  どちらを指すか曖昧になる。プレビュー環境が無く安全に試せないため、
-  月102クリックの `/event` を実験台にしない判断（→ `events` 複数形で衝突を回避）
+- `/event`（一覧＝`event.html`）の下に個別ページが並ぶ階層。サイトの慣習
+  （`/video`＝個別・`/videos`＝一覧）に照らしても、複数形を個別に使うのは逆行するため単数で揃えた
 - 年を頭に付ける理由：翌年の同名イベントと衝突しない／「◯◯ 2026」という実際の検索語に一致
+
+> 経緯: 当初は「`event.html` と `event/` フォルダが衝突するかもしれないが安全に試す方法が無い」として
+> `/events/`（複数形）を採用した。しかしこれは **プレビュー環境が無いという誤認** に基づく判断だった
+> （下記のURL短縮ルールを知らず404を見て「無効」と結論づけた）。プレビューで
+> `/event`（一覧）と `/event/<slug>/`（個別）が共存することを実測し、単数形に修正した。
 - カタカナは音のままローマ字化（`nikitou-meeting`）。`LOANWORDS` 辞書で主要な外来語だけ英語に寄せている
 - **英字が気に入らない場合は `event-slugs.json` を手で直す**。公開後の変更はリンクが切れるので公開前に
 
@@ -149,8 +153,8 @@ JSON-LD必須項目／canonicalとurlの一致／OGP4種／曜日の検算／表
 
 ### 公開するとき（ユーザーの指示が出てから）
 1. `py/gen_event_pages.py` の `NOINDEX = True` → `False`
-2. 再生成して全35件から noindex が消えたことを確認
-3. `event.html` のイベント名を `/events/<slug>/` へのリンクにする
+2. 再生成して全35件から noindex が消えたことを確認（`event/` 配下）
+3. `event.html` のイベント名を `/event/<slug>/` へのリンクにする
 4. `sitemap.xml` に35件を追加（または `sitemap-events.xml` を作り `robots.txt` に追記）
 5. **3と4は必ず別コミットにする**（導線の追加はユーザー承認が要る作業なので分離）
 
@@ -161,7 +165,7 @@ JSON-LD必須項目／canonicalとurlの一致／OGP4種／曜日の検算／表
 ### 6-1. すぐやる：確認用の一覧ページ（**着手直前で中断**）
 ユーザーから「A で作って」相当の了承あり（＝**確認専用の使い捨て**。公開用一覧は `/event` が担うため二重に持たない）。
 
-- `py/gen_event_pages.py` に `events/index.html` の生成を足す（イベント追加時も自動で最新に保たれる）
+- `py/gen_event_pages.py` に `event/index.html` の生成を足す（イベント追加時も自動で最新に保たれる）
 - 内容：開催日順（開催前→終了済み）に35件、各行に日付・イベント名・場所・参加人数・個別ページへのリンク
 - **noindex を付け、既存ページからは一切リンクしない**
 - 確認が済んだら削除する前提
@@ -169,10 +173,34 @@ JSON-LD必須項目／canonicalとurlの一致／OGP4種／曜日の検算／表
 ### 6-2. ユーザーからの回答待ち
 | 項目 | 状況 |
 |---|---|
-| Cloudflare プレビュー配信の有効化 | **ユーザーが実施予定**。Workers & Pages → 該当プロジェクト → Settings → Builds & deployments → Branch deployments → All non-Production branches |
 | 第1段階を main にマージするか | 未定。noindexが効いているのでマージしても誰にも見えない |
 | slug の英字表記の可否 | 未確認。全35件の一覧を見せる約束をしている |
 | 第2段階に進んでよいか | 未確認 |
+
+---
+
+## 6-3. プレビュー環境の使い方（ブランチの内容を実物で確認する）
+
+**Cloudflare Pages のプレビュー配信は既定で有効**（`All non-Production branches` が初期値）。
+設定変更は不要で、ブランチに push すれば自動でプレビューが作られる。
+
+```
+https://<短縮したブランチ名>.registro500-giappone.pages.dev/
+```
+
+**ブランチ名の短縮ルールを知らないと404を見て「無効」と誤解する**（実際に一度誤解した）。
+
+- `/` などの記号を `-` に置換
+- **28文字で切り捨て**、末尾のハイフンを除去
+
+```
+claude/analysis-explanation-ebztid  (34文字)
+  → claude-analysis-explanation      (27文字)
+  → https://claude-analysis-explanation.registro500-giappone.pages.dev/
+```
+
+本番に出す前の検証は**必ずここで行う**こと。`/event` は検索流入の54%を稼ぐため、
+ルーティングの実験を本番でやらない（§7-7）。
 
 ---
 
@@ -200,3 +228,9 @@ JSON-LD必須項目／canonicalとurlの一致／OGP4種／曜日の検算／表
 - **第1段階を実装**（ブランチ `claude/analysis-explanation-ebztid`・コミット `a412afd`・**未公開**）
   - イベント個別ページ35件を静的生成、6時間おきの自動更新を設定
 - 確認用一覧ページ（§6-1）は着手直前でセッション終了
+- **個別ページのURLを `/events/` → `/event/` へ変更**（コミット後述）。
+  当初「プレビューが無く安全に試せない」として複数形を選んだが、その前提が誤りだった。
+  Cloudflare のプレビューは既定で有効で、ブランチ名の短縮ルール（28文字切り捨て）を
+  知らずに404を見て「無効」と誤認していた（§6-3）。プレビューで `/event`（一覧）と
+  `/event/<slug>/`（個別）の共存を実測して単数形へ修正。slug自体は変えていないため
+  `event-slugs.json` は無変更。
