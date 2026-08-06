@@ -1453,6 +1453,6 @@ function escapeHtml(str) {
 }
 
 function memberLink(docId, displayName) {
-  return '<a href="detail.html?doc=' + encodeURIComponent(docId) + '" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:600">'
+  return '<a href="/detail?doc=' + encodeURIComponent(docId) + '" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:600">'
     + escapeHtml(displayName) + '</a>';
 }

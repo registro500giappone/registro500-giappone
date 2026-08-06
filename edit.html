@@ -121,7 +121,7 @@
 
   <header class="rg-header-bar">
     <div class="rg-back-link">
-      <a href="index.html" id="backLink">
+      <a href="/" id="backLink">
         <div>←</div>
         <div class="back-text">ガレージ<br class="back-br">に戻る</div>
       </a>
@@ -662,11 +662,11 @@
           if (!cars || cars.length === 0) { 
             showBlankForm(); 
           } else if (cars.length === 1) { 
-            window.location.href = `detail.html?doc=${cars[0].document_id}`; 
+            window.location.href = `/detail?doc=${cars[0].document_id}`; 
           } else {
             carSelectionArea.style.display = 'block';
             myCarList.innerHTML = cars.map(car => `
-              <div class="car-select-item" onclick="location.href='detail.html?doc=${car.document_id}'">
+              <div class="car-select-item" onclick="location.href='/detail?doc=${car.document_id}'">
                 <div><strong>${car.model_display_c || 'FIAT 500'}</strong><br><small>${car.handle_name}様</small></div>
                 <div style="color:var(--rg-accent)">管理する 〉</div>
               </div>`).join('');
@@ -698,8 +698,8 @@
       window.handleCancel = function() {
         const docId = document.getElementById('DocumentID').value;
         const carType = document.getElementById('CarType').value;
-        if (docId) window.location.href = `detail.html?doc=${docId}`;
-        else window.location.href = (carType === '126') ? '126/index.html' : 'index.html';
+        if (docId) window.location.href = `/detail?doc=${docId}`;
+        else window.location.href = (carType === '126') ? '/126/' : 'index.html';
       };
 
       function fillForm(data) {
@@ -902,7 +902,7 @@
             // GA4: 新規登録完了（獲得ファネルのゴール）。GA4管理画面で「キーイベント」に指定する
             if (typeof gtag === 'function') gtag('event', 'sign_up', { method: 'web_form', car_type: dbData.car_type });
           }
-          alert("保存しました！"); window.location.href = `detail.html?doc=${finalDocId}`;
+          alert("保存しました！"); window.location.href = `/detail?doc=${finalDocId}`;
         } catch (e) { alert("保存エラー: " + e.message); submitBtn.disabled = false; }
       };
 
@@ -1018,7 +1018,7 @@
         if (logoImg) { logoImg.src = 'logo_horizontal126.png'; logoImg.alt = 'Registro126'; }
         // 「ガレージに戻る」リンク
         const backLink = document.querySelector('.rg-back-link a');
-        if (backLink) backLink.href = '126/index.html';
+        if (backLink) backLink.href = '/126/';
         // ModelSelectB を126用に差し替え（500専用の選択肢を非表示・126用を追加）
         const selB = document.getElementById('ModelSelectB');
         if (selB) {

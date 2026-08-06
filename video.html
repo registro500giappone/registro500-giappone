@@ -13,7 +13,10 @@
   <meta property="og:description" id="ogDesc" content="クラシックFIAT 500/126 の整備動画と日本語解説">
   <meta property="og:type" content="video.other">
   <meta property="og:image" id="ogImage" content="https://www.registro500.com/logo_horizontal.png">
-  <link rel="canonical" id="canonicalTag" href="https://www.registro500.com/videos">
+  <!-- canonical は読み込み後に JS が /video?id=... を入れる（下部 updateOGP 参照）。
+       href を静的に置くと、JS実行前のクローラーに「この動画ページの正体は別URL」と誤って伝わるため、
+       あえて href を書かない＝未指定＝自分自身が正、というGoogleの既定に委ねる。 -->
+  <link rel="canonical" id="canonicalTag">
   <script type="application/ld+json" id="ldjson"></script>
 
   <link rel="icon" href="logo_horizontal.png">
@@ -162,13 +165,13 @@
 </head>
 <body>
   <nav class="vp-nav">
-    <a href="videos.html">← 動画一覧</a>
-    <a class="brand" href="index.html">Registro500</a>
+    <a href="/videos">← 動画一覧</a>
+    <a class="brand" href="/">Registro500</a>
   </nav>
 
   <div class="wrap">
     <div id="loading" class="loading">読み込み中…</div>
-    <div id="errbox" class="errbox" style="display:none;">動画が見つかりませんでした。<br><a href="videos.html">動画一覧へ戻る</a></div>
+    <div id="errbox" class="errbox" style="display:none;">動画が見つかりませんでした。<br><a href="/videos">動画一覧へ戻る</a></div>
 
     <div id="content" style="display:none;">
       <div class="player" id="player"></div>
@@ -386,9 +389,9 @@
 
       // バッジ（カテゴリ・箇所・車種）
       const b=[];
-      if(cat)b.push(`<a class="badge cat" href="videos.html?category=${esc(parentSlug(cat))}">${esc(cat.name_ja)}</a>`);
-      ptags.forEach(t=>b.push(`<a class="badge" href="videos.html?part=${esc(t.slug)}">${esc(t.name_ja)}</a>`));
-      vehs.forEach(ve=>b.push(`<a class="badge veh" href="videos.html?vehicle=${esc(ve.slug)}">${esc(ve.name_display)}</a>`));
+      if(cat)b.push(`<a class="badge cat" href="/videos?category=${esc(parentSlug(cat))}">${esc(cat.name_ja)}</a>`);
+      ptags.forEach(t=>b.push(`<a class="badge" href="/videos?part=${esc(t.slug)}">${esc(t.name_ja)}</a>`));
+      vehs.forEach(ve=>b.push(`<a class="badge veh" href="/videos?vehicle=${esc(ve.slug)}">${esc(ve.name_display)}</a>`));
       document.getElementById('vBadges').innerHTML=b.join('');
 
       // AI要約カード：steps_ja.kind で出し分け。howto=番号付き手順（ol）／points=要点まとめ（ul・見る/知る系）。
@@ -495,7 +498,7 @@
         .in('id',ids).order('is_howto',{ascending:false}).order('source_tier',{ascending:true,nullsFirst:false}).order('view_count',{ascending:false}).limit(6);
       if(!rel||!rel.length) return;
       document.getElementById('relGrid').innerHTML = rel.map(r=>
-        `<a class="rel-card" href="video.html?id=${encodeURIComponent(r.youtube_id)}">
+        `<a class="rel-card" href="/video?id=${encodeURIComponent(r.youtube_id)}">
           <div class="rel-thumb"><img src="${esc(r.thumbnail_url||NOIMG)}" loading="lazy" onerror="this.src='${NOIMG}'"></div>
           <div class="rel-t">${esc(r.title_ja||r.title_original)}</div>
         </a>`).join('');
