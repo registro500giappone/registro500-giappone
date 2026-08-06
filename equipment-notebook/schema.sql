@@ -32,7 +32,11 @@ create table if not exists public.equipment_records (
   model_year    text,
   usage_freq    text,
   longtrip_freq text,
-  owner_type    text,                              -- 現地修理型など分類結果（保存する場合）
+  owner_type    text,                              -- ⚠️【死列】4型判定（現地修理型/予防整備型/救援前提型/身軽型）の
+                                                   --   分類結果を入れる想定だったが、2026-08-04に4型判定を全廃したため
+                                                   --   **どのコードからも読み書きされていない**（2026-08-06 全ファイル調査で確認）。
+                                                   --   列を消しても誰も得をせず、drop column は不可逆で事故だけが残るため
+                                                   --   あえて残置。将来スキーマ整理をする機会があれば削除候補。
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
