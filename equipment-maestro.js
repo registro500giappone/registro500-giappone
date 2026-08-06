@@ -54,8 +54,9 @@
 
   // 上位互換を展開した搭載セットを返す（元のSetは変更しない）。
   // 判定に使うのは常にこの展開後のセット。
+  // 引数は Set でも配列でも受ける（別realmのSetでも動くよう new Set(...) で作り直す）。
   function expandLoadedIds(loadedIds) {
-    var out = new Set(loadedIds);
+    var out = new Set(loadedIds ? Array.from(loadedIds) : []);
     Object.keys(SUPERSEDES).forEach(function (key) {
       if (out.has(Number(key))) {
         SUPERSEDES[key].forEach(function (covered) { out.add(covered); });
@@ -68,8 +69,10 @@
   // 存在しない id を母数に含めると「どれだけ積んでも届かない基準」になり、
   // migration 適用前後でユーザーが不利益を被るため（equipment-edit.html の教訓）。
   // existingItemIds には項目マスターの id の集合（Set か配列）を渡す。
+  // ⚠️ instanceof Set ではなく has の有無で判定する。iframe など別realmで作られた Set は
+  //    instanceof が false になり、Setに対して indexOf を呼んで TypeError になるため。
   function masterExistingItemIds(existingItemIds) {
-    var has = existingItemIds instanceof Set
+    var has = (existingItemIds && typeof existingItemIds.has === 'function')
       ? function (id) { return existingItemIds.has(id); }
       : function (id) { return existingItemIds.indexOf(id) !== -1; };
     return MASTER_ITEM_IDS.filter(has);
