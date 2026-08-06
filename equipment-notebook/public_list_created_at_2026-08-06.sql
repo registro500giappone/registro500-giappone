@@ -1,23 +1,17 @@
 -- ============================================================
--- 車載手帳: equipment_public_list() の戻り値に created_at（初回登録日）を追加
+-- 車載手帳: equipment_public_list() の戻り値に created_at を追加
 -- migration名: equipment_notebook_public_list_created_at_2026_08_06
 -- 状態: ★未適用★（2026-08-06 起案・適用はローカルPCから）
 --
--- 背景:
---   一覧・車両ページに「更新日（初回登録日を含む）」を出すことになった。
---   一度も書き直していない手帳は『登録 7/23』、書き直した手帳は『更新 8/6』と
---   出し分けるため、created_at と updated_at の両方が要る。
---   ※ 並び順は従来どおり updated_at の新しい順（変更なし）。
+-- 目的: 表示用に追加するだけ（一覧の並び順は updated_at desc のまま変更しない）。
+-- 位置: 戻り値の列順は updated_at の直後に created_at を挿入。
 --
--- ⚠️ create or replace は使えない。
---   returns table の列構成を変えるため、PostgreSQL は
---   「cannot change return type of existing function」で必ず失敗する。
---   先に drop してから作り直す。**drop 中は一覧のRPCが一瞬使えなくなる**が、
---   フロントは失敗時にクライアント集計へフォールバックするので画面は落ちない。
---
--- ⚠️ 本体ロジックは public_list_supersedes_v2_2026-08-06.sql から
---   「created_at を pub CTE と select に足した」以外は一切変えていない。
---   判定基準の正本は equipment-maestro.js（JSとSQLの二重管理）。
+-- ⚠️ PostgreSQLは CREATE OR REPLACE FUNCTION で戻り値の型（列構成）を
+--    変更できないため、drop → create の手順を取る。
+-- ⚠️ 変更点は「戻り値の列定義に created_at を追加」「linked/pub CTEで
+--    r.created_at を持ち回る」「select リストに p.created_at を追加」の3箇所のみ。
+--    他のロジック（上位互換 supersedes 等）は
+--    public_list_supersedes_v2_2026-08-06.sql から一切変えていない。
 -- ============================================================
 
 drop function if exists public.equipment_public_list(int);
@@ -26,8 +20,8 @@ create function public.equipment_public_list(p_limit int default 24)
 returns table (
   record_id      uuid,
   vehicle_id     text,
-  created_at     timestamptz,
   updated_at     timestamptz,
+  created_at     timestamptz,
   handle_name    text,
   model_display  text,
   car_type       text,
@@ -74,7 +68,7 @@ required as (
   select ceil(count(*) * 0.9)::int as n from master_existing
 ),
 linked as (
-  select r.id, r.vehicle_id, r.created_at, r.updated_at
+  select r.id, r.vehicle_id, r.updated_at, r.created_at
     from equipment_records r
     join cars c on c.document_id = r.vehicle_id
    where r.is_public = true
@@ -109,8 +103,8 @@ loaded as (
 select
   p.id,
   p.vehicle_id::text,
-  p.created_at,
   p.updated_at,
+  p.created_at,
   c.handle_name::text,
   coalesce(
     nullif(c.model_display_c::text, ''),
@@ -143,8 +137,6 @@ $$;
 comment on function public.equipment_public_list(int) is
   '公開中の車載手帳を1行1レコードで返す。装備点数・車載マエストロ判定をDB側で集計し、'
   'ブラウザが全員ぶんの明細を引かずに済むようにする（PostgRESTの1000行上限対策）。'
-  '並びは updated_at の新しい順。created_at は「まだ書き直していない手帳」を判別して'
-  '一覧の表記を『登録』に切り替えるために使う。'
   '判定基準の正本は equipment-maestro.js（SUPERSEDES＝上位互換を含む）。変更時は両方を直すこと。';
 
 revoke all on function public.equipment_public_list(int) from public;
@@ -153,8 +145,8 @@ grant execute on function public.equipment_public_list(int) to anon, authenticat
 -- ============================================================
 -- 適用後の確認（結果をそのまま表示するだけ。判定は人が行う）
 -- ============================================================
--- 期待: created_at 列が増え、他の値は適用前と変わっていない
--- select handle_name, created_at, updated_at, loaded_count, is_maestro
+-- 期待: created_at 列が増え、他の値（loaded_count・is_maestro等）は変わっていない
+-- select record_id, handle_name, updated_at, created_at, loaded_count, is_maestro
 --   from public.equipment_public_list(24);
 --
 -- ------------------------------------------------------------
@@ -162,9 +154,4 @@ grant execute on function public.equipment_public_list(int) to anon, authenticat
 -- ------------------------------------------------------------
 --   U="https://ttlttclfovuzafvghvaq.supabase.co/rest/v1"
 --   K="sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt"
---   curl -s -X POST "$U/rpc/equipment_public_list" -H "apikey: $K" \
---        -H "Content-Type: application/json" -d '{"p_limit":24}'
---
--- ⚠️ 未適用でもフロントは壊れない。created_at が返らない間は updated_at で代用し、
---    すべて『登録 <更新日>』表記になる（嘘の日付は出ないが、初回登録日は出ない）。
---    適用すると『登録 7/23 ／ 更新 8/6』の出し分けが効くようになる。
+--   curl -s -X POST "$U/rpc/equipment_public_list" -H "apikey: $K" -H "Content-Type: application/json" -d '{"p_limit":24}'
