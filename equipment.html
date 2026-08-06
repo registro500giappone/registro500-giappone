@@ -130,8 +130,18 @@
     .owner-row:first-child { border-top: none; }
     .owner-row:hover { background: #f8faff; }
     .row-thumb {
-      width: 40px; height: 40px; flex: 0 0 40px; border-radius: 6px; overflow: hidden;
+      position: relative;
+      width: 40px; height: 40px; flex: 0 0 40px; border-radius: 6px; overflow: visible;
       background: var(--accent-soft); display: flex; align-items: center; justify-content: center;
+    }
+    .row-thumb img, .row-thumb .noimg { border-radius: 6px; }
+    /* 更新ドット印。index.html の .badge-update-dot と同じ意匠・同じ基準（7日以内）。
+       サイト全体で「赤丸＝最近動いた」という読み方を1つに揃えるため、色・径・白フチを合わせる。
+       ここでは行の右端でなく写真の左上に出す＝index.htmlのリスト表示と同じ位置。 */
+    .badge-update-dot {
+      position: absolute; top: -2px; left: -2px; width: 8px; height: 8px;
+      background: #e11d48; border-radius: 50%; border: 1px solid #fff;
+      z-index: 2; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     }
     .row-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .row-thumb .noimg { font-size: 1rem; opacity: 0.45; }
@@ -162,6 +172,7 @@
     .row-count { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-sub); white-space: nowrap; }
     .row-count-label { font-size: 0.62rem; font-weight: 500; margin-right: 4px; }
     .row-date { display: block; font-size: 0.65rem; color: var(--text-sub); white-space: nowrap; }
+    .row-date .lb { margin-right: 3px; opacity: 0.75; }
     /* 0件のときは行の器（枠・影）を消す。空メッセージ側が自前の破線枠を持つため二重になる */
     .public-list.is-empty { background: none; border: none; box-shadow: none; }
     .public-list-empty {
@@ -395,6 +406,10 @@
         prefecture: r.prefecture,
         year: r.car_year,
         updatedAt: r.updated_at,
+        // created_at は 2026-08-06 の migration で追加した列。まだ適用されていない環境では
+        // undefined が返るので updated_at で代用する（＝「一度も更新されていない」扱いになり、
+        // 表記が「登録」に寄るだけで、嘘の日付は出ない）。
+        createdAt: r.created_at || r.updated_at,
         statsOk: true,
         loadedCount: Number(r.loaded_count) || 0,
         hasExperience: !!r.has_experience,
@@ -410,7 +425,7 @@
     // count を取るのは「24件で黙って切れる」のを避けるため（超過分は注記で明示する）
     const { data: recs, error, count } = await supabaseClient
       .from('equipment_records')
-      .select('id, vehicle_id, updated_at', { count: 'exact' })
+      .select('id, vehicle_id, created_at, updated_at', { count: 'exact' })
       .eq('is_public', true)
       .order('updated_at', { ascending: false })
       .limit(PUBLIC_LIST_LIMIT);
@@ -477,6 +492,7 @@
           prefecture: car.prefecture,
           year: car.year,
           updatedAt: r.updated_at,
+          createdAt: r.created_at || r.updated_at,
           statsOk,
           loadedCount: loadedIds.size + (customCount[r.id] || 0),
           // 称号の判定基準は equipment-maestro.js（結果画面と同一の正本）
@@ -487,10 +503,50 @@
       .filter(Boolean);
   }
 
-  // 行に収めるため「更新」の語は落として日付だけ（意味は title 属性で補う）
-  function formatUpdated(iso) {
+  // compact=true のときは当年に限り年を省く（8/6）。行の右端に『更新』『登録』の語を足した分
+  // 幅が増え、車載マエストロのピルが付く行でハンドルネームが省略されてしまったため
+  // （実測: 名前枠が63px→45pxに縮んだ）。年を省くのは当年だけなので、
+  // 「年が書いていない＝今年」と読める。年をまたいだ手帳は従来どおり年から出す。
+  function formatUpdated(iso, compact) {
     const d = new Date(iso);
-    return isNaN(d) ? '' : `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+    if (isNaN(d)) return '';
+    const md = `${d.getMonth() + 1}/${d.getDate()}`;
+    if (compact && d.getFullYear() === new Date().getFullYear()) return md;
+    return `${d.getFullYear()}/${md}`;
+  }
+
+  // 「7日以内なら赤丸」は index.html の更新ドット印と同じ基準（index.html 行1130付近）。
+  // サイト内で赤丸の意味を1つに保つため、日数もここで勝手に変えない。
+  const RECENT_DAYS = 7;
+  function isRecent(iso) {
+    const d = new Date(iso);
+    if (isNaN(d)) return false;
+    return (Date.now() - d.getTime()) / 86400000 <= RECENT_DAYS;
+  }
+
+  // 同一日なら「一度も書き直していない手帳」とみなして『登録』と出す。
+  // 時刻まで見て厳密に比較すると、保存直後の1秒差で『更新』になってしまい、
+  // 書いたばかりの人に「もう更新した扱い」の日付が出る＝事実とズレるため日付単位で見る。
+  function isSameDay(a, b) {
+    const x = new Date(a), y = new Date(b);
+    if (isNaN(x) || isNaN(y)) return false;
+    return x.getFullYear() === y.getFullYear() && x.getMonth() === y.getMonth() && x.getDate() === y.getDate();
+  }
+
+  // 行の右端は1行しか余裕がないので、意味のあるほうの日付だけを出す。
+  //   まだ書き直していない → 「登録 7/23」（初回登録日そのもの）
+  //   書き直している       → 「更新 8/6」（並び順の基準と一致する日付）
+  // 両方を並べると行が3段になり、150人規模で一覧の走査性が落ちる（行の高さは57pxを守る）。
+  // 隠れるほうの日付は title で補い、車両ページでは両方を明記する。
+  function rowDateHtml(createdAt, updatedAt) {
+    const shown = formatUpdated(updatedAt, true);
+    if (!shown) return '';
+    const firstTime = !createdAt || isSameDay(createdAt, updatedAt);
+    const label = firstTime ? '登録' : '更新';
+    // title には省略なしの年月日を入れる（行の表示で年を省いた場合の補い）
+    const full = formatUpdated(updatedAt);
+    const title = firstTime ? `登録 ${full}` : `登録 ${formatUpdated(createdAt)} ／ 更新 ${full}`;
+    return `<span class="row-date" title="${esc(title)}"><span class="lb">${label}</span>${esc(shown)}</span>`;
   }
 
   function renderPublicList(list) {
@@ -543,6 +599,10 @@
         ? `<img src="${esc(r.photoMain)}" alt="" loading="lazy" decoding="async">`
         : '<span class="noimg">🚗</span>';
 
+      // 最近動いた手帳の赤丸。基準・意匠とも index.html と同じ（7日以内／8px／#e11d48）。
+      // 新規に書かれた手帳は created_at = updated_at なので、初回登録も同じ赤丸が付く。
+      const dot = isRecent(r.updatedAt) ? '<span class="badge-update-dot" title="1週間以内に更新"></span>' : '';
+
       // 称号は正式名称で出す（2026-08-06）。結果画面のシール・判定条件の見出しと表記を揃える。
       const maestro = r.isMaestro ? '<span class="row-maestro">車載マエストロ</span>' : '';
       const exp = r.hasExperience ? '<span class="row-exp" title="経験談あり">✎</span>' : '';
@@ -551,14 +611,14 @@
 
       return `
         <a class="owner-row" href="/detail?doc=${encodeURIComponent(r.docId)}#equipment-notebook">
-          <span class="row-thumb">${photo}</span>
+          <span class="row-thumb">${photo}${dot}</span>
           <span class="row-body">
             <span class="row-name"><span class="nm">${esc(r.handleName || '名称未設定')}さん</span>${maestro}${exp}</span>
             <span class="row-model">${esc(sub)}</span>
           </span>
           <span class="row-right">
             ${count}
-            <span class="row-date" title="最終更新">${esc(formatUpdated(r.updatedAt))}</span>
+            ${rowDateHtml(r.createdAt, r.updatedAt)}
           </span>
         </a>`;
     }).join('');

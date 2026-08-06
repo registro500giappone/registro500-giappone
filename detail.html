@@ -152,6 +152,19 @@
     }
     .eq-back-link:hover { border-color: var(--rg-accent); background: var(--rg-surface-sub); }
 
+    /* 手帳の日付。車両スペックの更新(.badge-new-item の「NEW」)とは別物なので、
+       同じNEWバッジは使わず赤丸にする＝「車の情報が変わった」と読み違えられない。
+       赤丸の基準・意匠は index.html / equipment.html と共通（7日以内・8px・#e11d48）。 */
+    .eq-meta {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      margin: -6px 0 14px; font-size: 0.75rem; color: var(--rg-muted);
+    }
+    .eq-meta .dot {
+      width: 8px; height: 8px; flex: 0 0 8px; background: #e11d48; border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .eq-meta .sep { opacity: 0.5; }
+
     .eq-cat { margin-bottom: 22px; }
     .eq-cat:last-child { margin-bottom: 0; }
     /* カテゴリ見出し。従来は 0.85rem・muted色で、明細行(0.9rem・通常色)より小さく薄く、
@@ -270,6 +283,9 @@
           <section class="rg-card" id="snsSection" style="display:none;"><h2 class="rg-section-title">SNS</h2><dl class="rg-spec-grid" id="snsGrid"></dl></section>
           <section class="rg-card" id="equipmentSection" style="display:none;">
             <h2 class="rg-section-title">車載手帳</h2>
+            <!-- いつ書かれ、いつ書き直された手帳なのか。装備の中身は年月で意味が変わる
+                 （2年前の手帳と先週の手帳を同じ顔で並べない）ため、内容より先に日付を出す。 -->
+            <p id="equipmentMeta" class="eq-meta" style="display:none;"></p>
             <!-- 一覧(#equipment-notebook付き)から飛んできたときだけ出す戻り道。
                  ヘッダーの「ガレージに戻る」は index.html 行きで一覧には戻れず、
                  末尾の一覧リンクは装備を全部スクロールしないと届かないため。 -->
@@ -433,7 +449,7 @@
       try {
         const { data: recs } = await supabaseClient
           .from('equipment_records')
-          .select('id')
+          .select('id, created_at, updated_at')
           .eq('vehicle_id', vehicleId)
           .eq('is_public', true)
           .order('updated_at', { ascending: false })
@@ -456,9 +472,41 @@
 
         renderEquipmentNotebook(entRes.data || [], cusRes.data || [], (expRes.data && expRes.data[0]) || null);
         renderEquipmentMaestro(entRes.data || [], itemsRes.error ? null : (itemsRes.data || []));
+        renderEquipmentMeta(eqRecord);
       } catch (e) {
         // 公開手帳の取得失敗は車両詳細の表示自体には影響させない
       }
+    }
+
+    // 手帳の登録日・更新日。一覧(equipment.html)は行幅の都合でどちらか一方しか出せないので、
+    // 「いつ書いて、いつ直したか」を両方見せるのはこの画面の役目にしている。
+    function renderEquipmentMeta(rec) {
+      if (!rec || !rec.updated_at) return;
+      if (document.getElementById('equipmentSection').style.display !== 'block') return;
+
+      const fmt = iso => {
+        const d = new Date(iso);
+        return isNaN(d) ? '' : `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+      };
+      const created = rec.created_at ? fmt(rec.created_at) : '';
+      const updated = fmt(rec.updated_at);
+      if (!updated) return;
+
+      // 日付単位で同じなら、まだ一度も書き直していない手帳（保存直後の秒差で「更新」に
+      // ならないよう時刻は見ない）。その場合は同じ日付を2つ並べず登録日だけ出す。
+      const sameDay = created && new Date(rec.created_at).toDateString() === new Date(rec.updated_at).toDateString();
+
+      let html = `<span>登録 ${esc(created || updated)}</span>`;
+      if (created && !sameDay) html += `<span class="sep">/</span><span>更新 ${esc(updated)}</span>`;
+
+      // 7日以内なら赤丸（index.html の更新ドット印と同じ基準）
+      if ((Date.now() - new Date(rec.updated_at).getTime()) / 86400000 <= 7) {
+        html += `<span class="dot" title="1週間以内に更新"></span>`;
+      }
+
+      const host = document.getElementById('equipmentMeta');
+      host.innerHTML = html;
+      host.style.display = 'flex';
     }
 
     // 車載マエストロの称号帯。判定基準・シール意匠とも equipment-maestro.js が正本で、
