@@ -102,6 +102,7 @@ X / Instagram / Facebook はいずれも外部からの検索収集を設計上�
 | `.github/workflows/event-pages.yml` | 6時間おき（`20 */6 * * *`）＋手動実行 |
 | `event-slugs.json` | URL対応表。**一度決めたslugは変更しない** |
 | `event/<slug>/index.html` | 生成物35件（コミット済み） |
+| `event-review.html` | 確認用の使い捨て一覧（`/event-review`・noindex・§6-1） |
 
 ### URL形式
 ```
@@ -162,13 +163,13 @@ JSON-LD必須項目／canonicalとurlの一致／OGP4種／曜日の検算／表
 
 ## 6. 次にやること（新セッションの入口）
 
-### 6-1. すぐやる：確認用の一覧ページ（**着手直前で中断**）
-ユーザーから「A で作って」相当の了承あり（＝**確認専用の使い捨て**。公開用一覧は `/event` が担うため二重に持たない）。
+### 6-1. 確認用の一覧ページ ＝ **完了**
+`/event-review`（`event-review.html`）。`py/gen_event_pages.py` が個別ページと同時に生成するので、
+イベントが増えても自動で最新に保たれる。**確認専用の使い捨て**で、確認が済んだら
+`event-review.html` と `render_review()` を消してよい（公開用一覧は `/event` が担う）。
 
-- `py/gen_event_pages.py` に `event/index.html` の生成を足す（イベント追加時も自動で最新に保たれる）
-- 内容：開催日順（開催前→終了済み）に35件、各行に日付・イベント名・場所・参加人数・個別ページへのリンク
-- **noindex を付け、既存ページからは一切リンクしない**
-- 確認が済んだら削除する前提
+> `event/index.html` に置かなかった理由: いま `/event/` は `/event` へ308で正規化されている。
+> そこにファイルを置くと `/event` と `/event/` が別の中身を返し、一覧の正規URLが濁る。
 
 ### 6-2. ユーザーからの回答待ち
 | 項目 | 状況 |
@@ -227,7 +228,11 @@ claude/analysis-explanation-ebztid  (34文字)
   - `manifest.json` の `start_url` を `/` へ（`id` を追加してPWAの同一性を維持）
 - **第1段階を実装**（ブランチ `claude/analysis-explanation-ebztid`・コミット `a412afd`・**未公開**）
   - イベント個別ページ35件を静的生成、6時間おきの自動更新を設定
-- 確認用一覧ページ（§6-1）は着手直前でセッション終了
+- 確認用一覧ページ（§6-1）を実装（`/event-review`）
+- **slugを21件手直し**（`koppaderuravooro-italia-nooopun…` → `coppa-del-lavoro-italiano-open` など、
+  カタカナの音写をイタリア語・英語の綴りへ）。公開前なのでリンク切れは発生しない
+- 生成スクリプトに**古いフォルダの掃除**を追加。slugを手で直したりイベントがDBから消えたとき、
+  古いフォルダが残ると消したはずのURLが生き続けるため
 - **個別ページのURLを `/events/` → `/event/` へ変更**（コミット後述）。
   当初「プレビューが無く安全に試せない」として複数形を選んだが、その前提が誤りだった。
   Cloudflare のプレビューは既定で有効で、ブランチ名の短縮ルール（28文字切り捨て）を

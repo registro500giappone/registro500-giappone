@@ -35,6 +35,7 @@ import html
 import json
 import os
 import re
+import shutil
 import sys
 import unicodedata
 from datetime import datetime, timedelta, timezone
@@ -57,6 +58,8 @@ SUPABASE_KEY = os.environ.get("SUPABASE_KEY") or os.environ["SUPABASE_SERVICE_KE
 SITE_BASE = "https://www.registro500.com"
 OUT_DIR = os.path.join(REPO_ROOT, "event")
 SLUG_MAP_PATH = os.path.join(REPO_ROOT, "event-slugs.json")
+# 確認用の使い捨て一覧。公開用の一覧は /event（event.html）が担う（render_review 参照）。
+REVIEW_PATH = os.path.join(REPO_ROOT, "event-review.html")
 JST = timezone(timedelta(hours=9))
 
 # 一覧ページからのリンクも sitemap 登録もまだ行わない段階のため、
@@ -324,6 +327,96 @@ def render(ev, slug, start, end) -> str:
 """
 
 
+def fetch_participant_counts(supabase):
+    """イベントごとの参加表明数。確認用一覧でだけ使う（個別ページは表示時に取りに行く）。"""
+    rows = supabase.table("event_participants").select("event_id").execute().data or []
+    counts = {}
+    for row in rows:
+        counts[row["event_id"]] = counts.get(row["event_id"], 0) + 1
+    return counts
+
+
+def render_review(live, counts) -> str:
+    """確認用の一覧（/event-review）。
+
+    公開用の一覧は `/event`（event.html）が担うので、これは**確認専用の使い捨て**。
+    同じ役割のページを2つ公開すると、どちらを育てるかで迷いが出て検索でも共倒れになる。
+    確認が済んだらこのファイルごと削除してよい。
+
+    `event/index.html` に置かない理由: いまは `/event/` が `/event` へ308で正規化されている。
+    そこにファイルを置くと `/event` と `/event/` が別々の中身を返すようになり、
+    一覧ページの正規URLが濁る。
+    """
+    e = lambda s: html.escape(str(s or ""), quote=True)
+    now = datetime.now(JST)
+    upcoming = [x for x in live if x[2] >= now]
+    past = sorted([x for x in live if x[2] < now], key=lambda x: x[2], reverse=True)
+
+    def rows(items):
+        out = []
+        for ev, slug, start in items:
+            n = counts.get(ev["id"], 0)
+            loc = (ev.get("location") or "").splitlines()[0]
+            out.append(
+                f'<tr><td class="d">{start:%Y/%m/%d}（{"月火水木金土日"[start.weekday()]}）'
+                f'{f"<br><small>{start:%H:%M}〜</small>" if has_time(start) else ""}</td>'
+                f'<td><a href="/event/{e(slug)}/">{e(ev.get("event_name"))}</a>'
+                f'<br><small class="u">/event/{e(slug)}/</small></td>'
+                f'<td class="l">{e(loc)}</td>'
+                f'<td class="n">{n if n else "—"}</td></tr>')
+        return "\n".join(out)
+
+    return f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>イベント個別ページ 確認用一覧</title>
+<style>
+  :root {{ --bg:#f4f4f7; --card:#fff; --accent:#2856a8; --ink:#111827; --sub:#6b7280; --line:#e5e7eb; }}
+  @media (prefers-color-scheme: dark) {{
+    :root {{ --bg:#0f172a; --card:#1e293b; --accent:#7aa2e3; --ink:#e2e8f0; --sub:#94a3b8; --line:#334155; }}
+  }}
+  body {{ font-family:system-ui,sans-serif; background:var(--bg); color:var(--ink); margin:0; padding:20px 16px 60px; line-height:1.5; }}
+  .page {{ max-width:1000px; margin:0 auto; }}
+  h1 {{ font-size:1.2rem; margin:.2em 0; }}
+  h2 {{ font-size:1rem; margin:1.6em 0 .4em; }}
+  .warn {{ background:#fff8e1; border:1px dashed #e0c060; color:#7a5c00; border-radius:10px; padding:10px 14px; font-size:.85rem; margin:12px 0 20px; }}
+  @media (prefers-color-scheme: dark) {{ .warn {{ background:#332a10; color:#e8cf8e; }} }}
+  table {{ width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; }}
+  th, td {{ text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); font-size:.88rem; vertical-align:top; }}
+  th {{ color:var(--sub); font-size:.76rem; font-weight:600; }}
+  td.d {{ white-space:nowrap; }} td.n {{ text-align:right; white-space:nowrap; }}
+  td.l {{ color:var(--sub); font-size:.82rem; }}
+  a {{ color:var(--accent); }}
+  small.u {{ color:var(--sub); font-size:.72rem; word-break:break-all; }}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>イベント個別ページ 確認用一覧（{len(live)}件）</h1>
+  <div class="warn">
+    <b>確認専用のページです。</b>どこからもリンクしておらず、検索避け（noindex）が入っています。
+    公開用の一覧は <a href="/event">/event</a> が担うので、確認が済んだらこのページは削除します。<br>
+    個別ページも現在すべて noindex です。公開手順は <code>events-portal/HANDOFF.md §5</code>。
+  </div>
+
+  <h2>開催前（{len(upcoming)}件）</h2>
+  <table><tr><th>開催日</th><th>イベント名 / URL</th><th>場所</th><th>参加</th></tr>
+{rows(upcoming)}
+  </table>
+
+  <h2>終了済み（{len(past)}件・新しい順）</h2>
+  <table><tr><th>開催日</th><th>イベント名 / URL</th><th>場所</th><th>参加</th></tr>
+{rows(past)}
+  </table>
+</div>
+</body>
+</html>
+"""
+
+
 def main():
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
     events = (supabase.table("events")
@@ -337,7 +430,7 @@ def main():
             slug_map = json.load(f)
     added = assign_slugs(events, slug_map)
 
-    written = 0
+    written, live = 0, []
     for ev in events:
         start = to_jst(ev.get("event_date"))
         if not start:
@@ -349,12 +442,30 @@ def main():
         with open(os.path.join(out_dir, "index.html"), "w", encoding="utf-8", newline="\n") as f:
             f.write(render(ev, slug, start, to_jst(ev.get("event_date_end"))))
         written += 1
+        live.append((ev, slug, start))
+
+    # 手で event-slugs.json のslugを直したときや、イベントがDBから消えたときに
+    # 古いフォルダが残り続けると、消したはずのURLが生き続けてしまう。毎回掃除する。
+    removed = []
+    keep = set(slug_map.values())
+    for name in os.listdir(OUT_DIR) if os.path.isdir(OUT_DIR) else []:
+        path = os.path.join(OUT_DIR, name)
+        if os.path.isdir(path) and name not in keep:
+            shutil.rmtree(path)
+            removed.append(name)
 
     with open(SLUG_MAP_PATH, "w", encoding="utf-8", newline="\n") as f:
         json.dump(slug_map, f, ensure_ascii=False, indent=2, sort_keys=True)
         f.write("\n")
 
+    with open(REVIEW_PATH, "w", encoding="utf-8", newline="\n") as f:
+        f.write(render_review(live, fetch_participant_counts(supabase)))
+
     print(f"生成: {written} ページ（event/<slug>/index.html）")
+    print(f"確認用一覧: {os.path.basename(REVIEW_PATH)} （/event-review）")
+    if removed:
+        print(f"古いフォルダを削除 {len(removed)} 件: {', '.join(removed[:5])}"
+              + (" ほか" if len(removed) > 5 else ""))
     if added:
         print(f"新しくURLを割り当てたイベント {len(added)} 件:")
         for _id, slug, nm in added:
