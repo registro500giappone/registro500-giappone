@@ -1,7 +1,8 @@
 -- ============================================================
 -- 車載手帳: Amazonトラッキングタグの差し替え（実行用・発行済みタグ反映）
 -- migration名: equipment_notebook_amazon_tag_swap_2026_08_05
--- 状態: ★未適用★（2026-08-05 タグ発行済み・適用はローカルPCから）
+-- 状態: ✅適用済み（2026-08-05 タグ発行済み ／ 2026-08-06 本番データで適用を実地確認）
+-- 根拠: equipment_items.purchase_links に registro500eq-22 が40件、旧タグ registro500-22 は0件
 --
 -- amazon_tag_swap_TEMPLATE.sql の NEW_TAG_HERE を実タグ registro500eq-22 に
 -- 埋めた実行用ファイル。テンプレート自体は次回以降のタグ変更に備えて残す。

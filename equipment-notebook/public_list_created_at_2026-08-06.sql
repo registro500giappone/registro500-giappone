@@ -1,7 +1,8 @@
 -- ============================================================
 -- 車載手帳: equipment_public_list() の戻り値に created_at を追加
 -- migration名: equipment_notebook_public_list_created_at_2026_08_06
--- 状態: ★未適用★（2026-08-06 起案・適用はローカルPCから）
+-- 状態: ✅適用済み（2026-08-06 起案 ／ 2026-08-06 本番データで適用を実地確認）
+-- 根拠: equipment_public_list() の戻り値に created_at 列がある
 --
 -- 目的: 表示用に追加するだけ（一覧の並び順は updated_at desc のまま変更しない）。
 -- 位置: 戻り値の列順は updated_at の直後に created_at を挿入。
