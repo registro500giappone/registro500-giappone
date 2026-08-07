@@ -1,6 +1,7 @@
 -- ============================================================
 -- migration名: equipment_stop_modes_schema
--- 2026-08-02起案・未適用（ローカルのSupabase MCPセッションで適用する）
+-- 状態: ✅適用済み（2026-08-02 起案 ／ 2026-08-06 本番データで適用を実地確認）
+-- 根拠: equipment_stop_modes テーブルと need_note 列が存在する
 -- 「止まり方マスター」（equipment-review.html の DATA[]・検収済み29件）を
 -- 装備手帳（equipment_items）と結び付けるためのテーブルを追加する。
 -- 規約は equipment-notebook/schema.sql・seed_items.sql の既存7テーブルに合わせる。

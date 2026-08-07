@@ -6,6 +6,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+## 🚫 公開導線を勝手に作らない（2026-08-05 ユーザー確定・全開発に適用）
+
+**ユーザーの明示的な指示がない限り、新しいページへの導線（リンク・ナビゲーション）を既存ページに追加してはいけない。** これは提案するのはよいが、**実装して勝手にコミットするのは明確に禁止**。
+
+### 禁止する対象
+
+- `index.html` のメニュー（`.dropdown-content`）への追加 ← **特に厳禁**
+- トップページ本文・ヘッダー・フッターからのリンク追加
+- 各ページ間の相互リンクの新設（例: `detail.html` から新ページへ）
+- `sitemap.xml` への新規URL追加、`_redirects` での新規パス公開
+
+### 理由（この判断の背景）
+
+**本番環境（Cloudflare Pages）にデプロイされていても、リンクが無ければ実質的に見られない。** この「デプロイ済みだが導線なし」の状態が、**本番データを使いながら安全に開発を続けるための作業場**になっている。勝手に導線を付けると、仕上がっていない画面がオーナーの目に触れる。
+
+導線を付けるタイミング＝**機能が仕上がったとユーザーが判断したとき**。その指示は**必ずユーザーから出す**ので、こちらから判断しない。「一覧ページを作ったのだから入口も要るはず」といった**善意の補完もしない**。
+
+### やってよいこと
+
+- 「導線をどこに付けるか」の**提案・下書きの提示**（実装せず文章で示す）
+- 新ページ自体の実装、既存ページ**内部**の改修
+- そのページを直接URLで開いての動作確認
+
+### 過去の違反例（同じ轍を踏まないため）
+
+- 2026-08-05: 装備手帳の公開一覧を実装した際、指示なく `index.html` のメニューに「🧰 みんなの装備手帳」を追加してコミットした（`b1560e9`）。ユーザー指示により即時撤回（`14043c9`）。**「一覧ページを作る」というタスクに導線の追加は含まれない**。
+
+---
+
 ## MCPサーバー構成
 
 このプロジェクトでは以下のMCPサーバーを利用可能（`C:\Users\akayu\.claude.json` で管理）：
@@ -16,7 +45,44 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `github` | PR作成・コミット・Issue管理 | GITHUB_PERSONAL_ACCESS_TOKEN |
 | `playwright` | ブラウザ自動操作・サイト確認 | 不要 |
 
-> ⚠️ `.mcp.json`（プロジェクトルート）はgitignore済み。トークンが入っているため**絶対にgit addしない**。
+### `.mcp.json` の方式変更（2026-08-03）
+
+**`.mcp.json` はgit管理対象になった**（旧: gitignore・git add禁止）。**トークンを直書きせず環境変数から展開する方式**に変更したため、ファイル自体に秘密情報が無い。
+
+- ファイル内の値は `"SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"` の形。**ファイルに秘密情報は入っていないのでコミットしてよい**。
+- 動かすには環境変数 `SUPABASE_ACCESS_TOKEN` の設定が必要。**ローカルPCのWindowsユーザー環境変数にのみ設定する**。
+- 環境変数が未設定でも設定ファイル自体は壊れない（`claude mcp list` に警告が出て、そのサーバーだけ認証に失敗する）。
+- トークンを直書きしたローカル専用設定を置きたい場合は `.mcp.local.json`（gitignore済み）を使う。
+
+> ⚠️ 秘密情報を`.mcp.json`に直書きして`git add`しないこと。トークンは必ず環境変数側に置く。
+
+### 🔒 Supabaseの個人アクセストークンをクラウド環境に置かない（2026-08-03 決定）
+
+**claude.ai/code のクラウド環境設定に `SUPABASE_ACCESS_TOKEN` を登録してはいけない。** 一度検討したうえで、以下の理由で見送った：
+
+1. クラウド環境には専用のシークレットストアが無く、公式ドキュメントが「資格情報を入れないこと」と明記している。
+2. セッション内の任意のコマンドから読め、セッションの記録・共有経由で漏れうる。
+3. **`--read-only` はMCPサーバー側の制御にすぎず、Supabase側で強制されない**。トークンが漏れれば無意味。
+4. Supabaseの個人アクセストークンはアカウント全体（プロジェクト削除を含む）に及び、本番DBには実在オーナーの個人情報が入っている。
+
+したがって**クラウドセッションでは supabase MCP は接続失敗のままが正常**。DBを変更する操作（migration適用など）は必ずローカルPCから行う。
+
+### クラウドから本番DBを確認する方法（公開キーを使う・秘密情報不要）
+
+`config.js` の `SUPABASE_ANON_KEY`（`sb_publishable_...`）は**元から全訪問者のブラウザに配られている公開値**なので、クラウドセッションから使ってよい。RLSが効いているため、**匿名訪問者に見えるものしか返らない**＝「公開設定が本当に効いているか」の検証にはこちらの方が確実（`pg_policies` を覗くより実地に近い）。
+
+```bash
+U="https://ttlttclfovuzafvghvaq.supabase.co/rest/v1"
+K="sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt"   # config.js と同じ公開キー
+
+# 公開設定された装備手帳が匿名から見えるか（フェーズBの決定的な検証）
+curl -s "$U/equipment_records?select=id,vehicle_id,is_public&is_public=eq.true" -H "apikey: $K"
+
+# マスターデータの値の確認（migration適用の実地確認）
+curl -s "$U/equipment_stop_modes?select=code,need_note&code=eq.E5" -H "apikey: $K"
+```
+
+できないのは `pg_policies` の一覧やmigration履歴などの管理系の照会のみ。それが必要なときだけローカルPCのsupabase MCPを使う。
 
 ---
 
@@ -97,12 +163,15 @@ git push origin main           # Cloudflare Pages 自動デプロイがトリガ
 ## 重要なファイル・パス
 
 - `MEMORY.md` → プロジェクト全体のナレッジベース（自動読み込み）
-- `.mcp.json` → MCPサーバー設定（**gitignore済み・ローカルのみ**、トークンが含まれるためgit管理外）
-- `.mcp.json.example` → トークンなしのテンプレート（gitに含む）
+- `.mcp.json` → MCPサーバー設定（**git管理対象**。トークンは直書きせず環境変数 `SUPABASE_ACCESS_TOKEN` から展開。詳細は上記「MCPサーバー構成」）
+- `.mcp.json.example` → 旧方式のテンプレート（github/brevo等の設定例として残置）
+- `.mcp.local.json` → トークン直書きのローカル専用設定を置く場合の名前（gitignore済み）
 - `py/` → クローラースクリプト群（**GitHub Actions用にgit管理対象**、`*.py` / `*.md` はコミット必須。ログ・CSV・機密ファイルは `py/.gitignore` で除外）
 - `126/index.html` → Fiat 126姉妹サイトのトップページ
 - `.claude/agents/` → 専用サブエージェント定義（Haikuモデル）
 - `youtube-portal/` → YouTube動画ポータル（クラシックFIAT 500/126動画キュレーション）の確定設計。`HANDOFF.md`（引き継ぎ書・全決定事項）＋`schema.sql`（適用済みスキーマ）
+- `events-portal/HANDOFF.md` → イベントページ再構成の引き継ぎ書・全決定事項（進行中。下記セクション参照）
+- `event-slugs.json` → イベント個別ページのURL対応表。**一度決めたslugは変更しない**（変えるとリンクが切れる）
 
 ---
 
@@ -117,6 +186,22 @@ registro500.com をクラシックFIAT 500/126ポータル化する施策。YouT
 - **タスク1（スキーマ適用）= 2026-06-29完了**。8テーブル＋ビュー`video_reco_counts`＋RLSを本番migration適用済（`youtube_portal_schema` / `youtube_portal_harden_set_updated_at`）。
 - **タスク2（初期マスタ投入）= 2026-06-29完了**。vehicles 5・part_tags 13・categories 親6＋中区分29＝計35 を投入（`youtube-portal/seed_master.sql`）。edit.htmlのモデル区分を search_aliases に反映済。
 - **次はタスク3（取得スクリプト）= YouTube Data API キーが前提**。キー所在・実行環境・AI分類用Anthropic APIを確認のうえ、規模が大きいのでPlan modeで計画化を推奨。
+
+---
+
+## イベントページ再構成（進行中の新規テーマ・2026-08-06 開始）
+
+`/event` はサイトの検索流入の54%を稼ぐ最重要ページ（Search Console 2026-07 実測・クリック102件）。
+個別イベント名で検索されているのに専用ページが無く5〜7位で頭打ちのため、再構成に着手した。
+**確定設計は `events-portal/HANDOFF.md` が正本。確定済みの判断を勝手に変えない**（不変条件は §7）。
+
+主要な不変条件: イベントを種別で分類しない（反応の量で見え方が変わる）／予備情報のない自動下書きを作らない・**公開の判断は必ず人間**／日付はJSTへ直してから使い JST 00:00 は「時刻未入力」／構造化データを推測で埋めない／一度決めたslugを変えない／`/event` を実験台にしない。
+
+- **第1段階（イベント個別ページ＋構造化データ）＝ 2026-08-06 実装済み・未公開**。
+  35件を `event/<slug>/index.html` に静的生成（`py/gen_event_pages.py`／6時間おきの自動更新）。
+  **リンク未接続・sitemap未登録・noindex の三重で塞いである。公開手順は HANDOFF §5**。
+- **次は確認用の一覧ページ（HANDOFF §6-1）**。着手直前でセッションが終了している。
+- 第2段階以降（貼るだけ投稿・「気になる」ボタン・写真機能の再設計・月次探索）は HANDOFF §3。
 
 ---
 

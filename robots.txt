@@ -1,15 +1,28 @@
+### 一般クローラー向け ###
+#
+# ⚠️ User-agent 行と規則行の間に空行・コメント行を挟まないこと。
+#    グループが途切れたとみなして規則ごと無視する実装がある（Python urllib.robotparser 等）。
+#    説明を足すときはこのブロックのように User-agent 行より上に書く。
+#
+# ・パスは前方一致。拡張子なしで書けば .html 付きも同時に塞げるため、拡張子なしURLを正とする
+#   サイト方針（Cloudflare Pages が /foo.html → /foo を308で返す）に合わせて拡張子なしで列挙する。
+# ・「Allow: /」は置かない。Googleは一致が長い行を優先するので無害だが、先に書かれた行を優先する
+#   素朴なクローラーでは以降の Disallow が全て無効になる。どの行にも当たらないURLは既定でクロール可。
+# ・Allow: /parts-shops を先頭に置く理由：/parts（比べ太郎の価格データ）と /parts-guide は非公開だが、
+#   前方一致のためパーツ調達ガイド /parts-shops まで巻き込んでいた（2026-08 のSearch Consoleで発覚。
+#   sitemap.xml に載せているのにクロール禁止という矛盾状態だった）。この行を Disallow より前かつ
+#   最長一致になるように置くことで、最長一致方式・先頭一致方式のどちらの実装でも公開側に倒れる。
 User-agent: *
-Allow: /
+Allow: /parts-shops
 Disallow: /cdn-cgi/
-Disallow: /edit.html
+Disallow: /edit
+Disallow: /episode-edit
 Disallow: /parts
 Disallow: /parts-guide
-Disallow: /edit
-Disallow: /episode-edit.html
-Disallow: /test.html
-Disallow: /test_map.html
-Disallow: /survey-results.html
-Disallow: /indexsub.html
+Disallow: /test
+Disallow: /test_map
+Disallow: /survey-results
+Disallow: /indexsub
 
 # AI学習クローラーをブロック
 User-agent: GPTBot

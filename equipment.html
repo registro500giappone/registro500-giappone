@@ -13,13 +13,15 @@
   </script>
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>装備手帳 集計レポート | Registro500 Giappone</title>
-  <meta name="description" content="空冷クラシックFiat 500オーナーの装備手帳から集計した、車載品の積載率レポート。工具・パーツ・ケミカル・非常時対応・洗車用品の各項目を、どれだけの人が積んでいるかで比較できます。">
+  <title>みんなの車載手帳 | Registro500 Giappone</title>
+  <meta name="description" content="空冷クラシックFiat 500・126オーナーが公開している車載手帳の一覧。誰が何を車載しているかを手帳ごとに見られます。あわせて全体の車載率（工具・パーツ・ケミカル・安全・救援・非常時対応・洗車用品）も集計しています。">
 
   <link rel="icon" href="logo_horizontal.png">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
+  <!-- 車載マエストロ判定の正本（equipment-edit.html と共有） -->
+  <script src="equipment-maestro.js"></script>
 
   <style>
     :root {
@@ -108,42 +110,151 @@
     .bar-fill.occasional { background: var(--occasional); }
     .stat-breakdown { font-size: 0.75rem; color: var(--text-sub); margin-top: 3px; }
 
+    /* ===== 公開手帳一覧 =====
+       このページの主役。「誰が何を積んでいるか」を見に来る導線なので集計より上に置く。
+       序列に見せないため、並びは更新順（新しい順）で固定し、点数での並べ替えはしない。 */
+    .public-list-section { margin-bottom: 28px; }
+    .public-list-lead { font-size: 0.82rem; color: var(--text-sub); margin: 0 0 14px; }
+    /* カードでなく行にする理由（2026-08-05 ユーザー指摘）:
+       カード1枚 約120px は、150人が公開すると約18,000px＝スマホ21画面ぶんになる。
+       一覧の目的は「誰がいるか見渡して、気になる人に入る」ことなので、装飾より走査性を採る。
+       写真は40pxで残す＝このサイトでは名前より車の写真で見分ける場面が多いため。1行 約57px。 */
+    .public-list {
+      background: var(--card-bg); border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-soft);
+    }
+    .owner-row {
+      display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+      text-decoration: none; color: var(--text-main); border-top: 1px solid var(--border-soft);
+    }
+    .owner-row:first-child { border-top: none; }
+    .owner-row:hover { background: #f8faff; }
+    .row-thumb {
+      position: relative;
+      width: 40px; height: 40px; flex: 0 0 40px; border-radius: 6px; overflow: visible;
+      background: var(--accent-soft); display: flex; align-items: center; justify-content: center;
+    }
+    .row-thumb img, .row-thumb .noimg { border-radius: 6px; }
+    /* 更新ドット印。index.html の .badge-update-dot と同じ意匠・同じ基準（7日以内）。
+       サイト全体で「赤丸＝最近動いた」という読み方を1つに揃えるため、色・径・白フチを合わせる。
+       ここでは行の右端でなく写真の左上に出す＝index.htmlのリスト表示と同じ位置。 */
+    .badge-update-dot {
+      position: absolute; top: -2px; left: -2px; width: 8px; height: 8px;
+      background: #e11d48; border-radius: 50%; border: 1px solid #fff;
+      z-index: 2; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .row-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .row-thumb .noimg { font-size: 1rem; opacity: 0.45; }
+    .row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .row-name {
+      font-size: 0.88rem; font-weight: 700; display: flex; align-items: center; gap: 5px; min-width: 0;
+    }
+    .row-name .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .row-model {
+      font-size: 0.73rem; color: var(--text-sub);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    /* 車載マエストロ＝唯一の称号。行では金の小さなピルにする（58pxのシールは車両ページ側で出す） */
+    .row-maestro {
+      flex: 0 0 auto; font-size: 0.65rem; font-weight: 700; border-radius: 999px; padding: 1px 7px;
+      background: linear-gradient(135deg, #f7e3a1 0%, #d9a92b 100%); color: #6b4a00;
+      border: 1px solid #c79a20; white-space: nowrap;
+    }
+    .row-exp { flex: 0 0 auto; font-size: 0.68rem; color: var(--ok, #1f7a45); }
+    .row-right { flex: 0 0 auto; text-align: right; line-height: 1.35; }
+    /* 数字の見せ方（2026-08-05 ユーザー指摘）。
+       当初は「38点」を太字＋アクセント青で右端に並べていたが、右端・太字・青・縦一列は
+       得点表の記号そのもので、「勝手に低い点数をつけられた」と読まれる恐れがあった
+       （助数詞の「点」がテストの点と同形であることも重なる）。
+       ①助数詞をやめ「装備数」というラベル＋実数にする＝個数であることを字で明示する
+       ②太字とアクセント色を外す＝事実は残し、得点表の演出だけを消す
+       序列に見せない方針（並びは更新順・進捗の分母は出さない）と揃える。 */
+    .row-count { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-sub); white-space: nowrap; }
+    .row-count-label { font-size: 0.62rem; font-weight: 500; margin-right: 4px; }
+    .row-date { display: block; font-size: 0.65rem; color: var(--text-sub); white-space: nowrap; }
+    .row-date .lb { margin-right: 3px; opacity: 0.75; }
+    /* 0件のときは行の器（枠・影）を消す。空メッセージ側が自前の破線枠を持つため二重になる */
+    .public-list.is-empty { background: none; border: none; box-shadow: none; }
+    .public-list-empty {
+      font-size: 0.85rem; color: var(--text-sub); margin: 0; background: var(--card-bg);
+      border: 1px dashed var(--border-soft); border-radius: var(--radius-lg); padding: 20px; text-align: center;
+    }
+
     .legend { display: flex; gap: 16px; font-size: 0.78rem; color: var(--text-sub); margin: 12px 0 20px; }
     .legend-item { display: flex; align-items: center; gap: 6px; }
     .legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
     .legend-dot.always { background: var(--accent); }
     .legend-dot.occasional { background: var(--occasional); }
 
-    .page-footer { text-align: center; margin-top: 40px; }
-    .page-footer a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+    #rates-heading { margin-bottom: 14px; }
+    .section-count { font-size: 0.82rem; font-weight: 600; color: var(--text-sub); margin-left: 2px; }
+    .public-list-note { font-size: 0.75rem; color: var(--text-sub); margin: 10px 0 0; }
+    .rates-note { font-size: 0.78rem; color: var(--text-sub); margin: -12px 0 20px; line-height: 1.7; }
+
+    /* 判定条件の開示。普段は1行に見えるよう控えめにする（達成ゲーム化を避けるため） */
+    .criteria {
+      margin-top: 28px; background: var(--card-bg); border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg); padding: 12px 16px;
+    }
+    .criteria > summary {
+      cursor: pointer; font-size: 0.82rem; font-weight: 600; color: var(--text-sub);
+      list-style: revert;
+    }
+    .criteria > summary:hover { color: var(--accent); }
+    .criteria-body { font-size: 0.8rem; color: var(--text-sub); line-height: 1.9; margin-top: 12px; }
+    .criteria-body p { margin: 0 0 10px; }
+    .criteria-body ul { margin: 0 0 10px; padding-left: 1.2em; }
+    .criteria-body li { margin-bottom: 4px; }
+    .criteria-body strong { color: var(--text-main); }
+    .criteria-note {
+      border-top: 1px dashed var(--border-soft); padding-top: 10px; margin-top: 4px;
+      font-size: 0.76rem;
+    }
   </style>
 </head>
 
 <body>
 <div class="page">
 
-  <a href="index.html" class="back-link">&larr; ガレージに戻る</a>
+  <a href="/" class="back-link">&larr; ガレージに戻る</a>
 
   <div class="brand-header">
     <img src="logo_horizontal.png" alt="Registro500 Giappone">
-    <h1>装備手帳 集計レポート</h1>
-    <p>みんなの車載品、積載率でみる</p>
+    <h1>みんなの車載手帳</h1>
+    <p>オーナーが公開した車載品リストと、全体の車載率</p>
   </div>
 
   <div id="loading">読み込み中…</div>
 
   <div id="content">
 
-    <div id="summary-badge" class="summary-badge"></div>
+    <div id="public-list-section" class="public-list-section" style="display:none;">
+      <div class="section-title"><span class="icon">📖</span> 公開中の手帳<span id="public-count" class="section-count"></span></div>
+      <p class="public-list-lead">オーナーが公開設定にした車載手帳です。タップすると、その車の車両ページで装備・メモ・経験談を見られます。</p>
+      <div id="public-list" class="public-list"></div>
+      <p id="public-list-note" class="public-list-note" style="display:none;"></p>
+    </div>
 
     <div class="cta-band">
-      <p>あなたの装備手帳はまだですか？ 記入すると、この集計にも反映されます。</p>
-      <a class="btn-cta" href="equipment-edit.html">装備手帳を書く・更新する →</a>
+      <!-- 2026-08-05: 「記入すると、この一覧と集計に反映されます」は不正確だった。
+           集計（車載率）は記入すれば必ず反映されるが、一覧に並ぶのは公開設定がONで
+           かつ車両ページに紐付いている手帳だけ。条件の違う2つを1文にまとめない。 -->
+      <p>あなたの車載手帳はまだですか？ 記入すると車載率の集計に反映され、公開設定にすればこの一覧にも並びます。</p>
+      <a class="btn-cta" href="/equipment-edit">車載手帳を書く・更新する →</a>
     </div>
+
+    <div id="rates-heading" class="section-title" style="display:none;">
+      <span class="icon">📊</span> みんなの車載率
+    </div>
+
+    <div id="summary-badge" class="summary-badge"></div>
+    <!-- 一覧のカード枚数と集計の母数が食い違って見えるため、理由を先に書いておく
+         （非公開の手帳も人数としては集計に入る＝公開しなくても貢献している、と伝える意図） -->
+    <p id="rates-note" class="rates-note">車載率は<strong>非公開の手帳も含めた全員</strong>から集計しています。公開していない方の装備も、この数字に反映されています。</p>
 
     <div id="empty-state" class="empty-state" style="display:none;">
       <p>まだ記録がありません。最初の1件はあなたです。</p>
-      <a class="btn-cta" href="equipment-edit.html">装備手帳を書いてみる →</a>
+      <a class="btn-cta" href="/equipment-edit">車載手帳を書いてみる →</a>
     </div>
 
     <div id="legend" class="legend" style="display:none;">
@@ -153,11 +264,18 @@
 
     <div id="categories"></div>
 
-  </div><!-- /#content -->
+    <!-- 車載マエストロの判定条件（2026-08-06 ユーザー確定）。
+         称号バッジが実際に並ぶこのページに置き、<details>で畳んで「探せば見つかる」距離感にする。
+         結果画面に堂々と出すと「45項目を目指す達成ゲーム」に変質し、
+         「全員に最大限積ませない・一歩先だけ見せる」という確定方針に反するため。
+         基準を隠したままだと、事実の提示でなく審査になる＝この機能の立場と矛盾する。
+         数字はコードから動的に埋める（手書きすると基準変更時に説明だけ古くなる）。 -->
+    <details id="maestro-criteria" class="criteria" style="display:none;">
+      <summary>車載マエストロの認定条件について</summary>
+      <div class="criteria-body" id="criteria-body"></div>
+    </details>
 
-  <div class="page-footer">
-    <a href="index.html">← トップページへ戻る</a>
-  </div>
+  </div><!-- /#content -->
 
 </div><!-- /.page -->
 
@@ -166,9 +284,10 @@
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // カテゴリの表示順（equipment_items.category と一致させる。equipment-edit.html と同じ並び）
-  const CATEGORIES = ['工具', 'パーツ', 'ケミカル', '非常時対応', '洗車・その他'];
+  const CATEGORIES = ['工具', 'パーツ', 'ケミカル', '安全・救援', '非常時対応', '洗車・その他'];
   const CATEGORY_ICONS = {
-    '工具': '🔧', 'パーツ': '⚙️', 'ケミカル': '🧴', '非常時対応': '🚨', '洗車・その他': '🧽'
+    '工具': '🔧', 'パーツ': '⚙️', 'ケミカル': '🧴',
+    '安全・救援': '⚠️', '非常時対応': '🚨', '洗車・その他': '🧽'
   };
 
   function esc(s) {
@@ -177,6 +296,8 @@
 
   function renderEmpty() {
     document.getElementById('summary-badge').style.display = 'none';
+    document.getElementById('rates-heading').style.display = 'none';
+    document.getElementById('rates-note').style.display = 'none';
     document.querySelector('.cta-band').style.display = 'none';
     document.getElementById('legend').style.display = 'none';
     document.getElementById('categories').innerHTML = '';
@@ -192,7 +313,8 @@
     }
 
     document.getElementById('summary-badge').textContent =
-      `${totalRecords}名の装備手帳から集計（複数回答・積載率）`;
+      `${totalRecords}名の車載手帳から集計（複数回答・車載率）`;
+    document.getElementById('rates-heading').style.display = 'flex';
     document.getElementById('legend').style.display = 'flex';
 
     const byCategory = {};
@@ -208,7 +330,7 @@
       const items = byCategory[cat];
       if (!items || !items.length) return;
 
-      // 積載率が高い順（0%の項目も含めて表示＝「まだ誰も挙げていない」ことも情報）
+      // 車載率が高い順（0%の項目も含めて表示＝「まだ誰も挙げていない」ことも情報）
       items.sort((a, b) => Number(b.load_rate) - Number(a.load_rate) || a.item_id - b.item_id);
 
       const section = document.createElement('div');
@@ -251,11 +373,310 @@
     });
   }
 
+  // ===== 公開手帳一覧 =====
+  // 一覧に出せるのは is_public=true の手帳だけ（RLSの公開SELECTポリシーが効いているので
+  // 匿名でもこのクエリで返るのは公開分のみ）。並びは更新順で固定＝点数で並べ替えると
+  // 序列表になってしまい、「互いの装備を見て気付く」という目的から外れるため。
+  // 一度に読む上限。超えた分は注記で件数だけ伝える（ページングは公開件数が増えてから）
+  const PUBLIC_LIST_LIMIT = 24;
+  let publicTotalCount = null;   // 公開手帳の総数（上限を無視した実数）
+  let publicLinkedCount = null;  // うち車両ページに紐付いていて一覧に出せるもの（RPC経由のときだけ判る）
+  let publicFetchedCount = 0;    // 実際に取得できた行数（フォールバック時の未表示件数の算出に使う）
+
+  // 一覧の取得は2経路ある。
+  //  ① equipment_public_list() ＝ DB側で集計して1レコード1行を返す。**こちらが本命**。
+  //     クライアント集計だと全員ぶんの equipment_entries を引くことになり、
+  //     PostgRESTの返却上限1000行（2026-08-05に本番実測）に公開25〜30人あたりで到達して
+  //     黙って切れる＝点数が小さく出て称号が消える。
+  //  ② ①の関数がまだ適用されていない環境向けのフォールバック（従来のクライアント集計）。
+  //     フロントを先にデプロイしてもこちらで動くので、migration適用まで一覧は壊れない。
+  async function loadPublicRecords() {
+    const rpc = await supabaseClient.rpc('equipment_public_list', { p_limit: PUBLIC_LIST_LIMIT });
+    if (!rpc.error) {
+      const rows = rpc.data || [];
+      publicTotalCount = rows.length ? Number(rows[0].total_public) : 0;
+      publicLinkedCount = rows.length ? Number(rows[0].total_linked) : 0;
+      publicFetchedCount = rows.length;
+      return rows.map(r => ({
+        docId: r.vehicle_id,
+        handleName: r.handle_name,
+        modelDisplay: r.model_display,
+        carType: r.car_type,
+        photoMain: r.photo_main,
+        prefecture: r.prefecture,
+        year: r.car_year,
+        updatedAt: r.updated_at,
+        // created_at は 2026-08-06 の migration で追加した列。まだ適用されていない環境では
+        // undefined が返るので updated_at で代用する（＝「一度も更新されていない」扱いになり、
+        // 表記が「登録」に寄るだけで、嘘の日付は出ない）。
+        createdAt: r.created_at || r.updated_at,
+        statsOk: true,
+        loadedCount: Number(r.loaded_count) || 0,
+        hasExperience: !!r.has_experience,
+        isMaestro: !!r.is_maestro
+      }));
+    }
+    console.info('equipment_public_list を使えないためクライアント側集計にフォールバックします:', rpc.error.message);
+    return loadPublicRecordsFallback();
+  }
+
+  async function loadPublicRecordsFallback() {
+    publicLinkedCount = null;
+    // count を取るのは「24件で黙って切れる」のを避けるため（超過分は注記で明示する）
+    const { data: recs, error, count } = await supabaseClient
+      .from('equipment_records')
+      .select('id, vehicle_id, created_at, updated_at', { count: 'exact' })
+      .eq('is_public', true)
+      .order('updated_at', { ascending: false })
+      .limit(PUBLIC_LIST_LIMIT);
+    if (error) throw error;
+
+    publicTotalCount = count;
+    publicFetchedCount = (recs || []).length;
+
+    // 車両未紐付けの公開手帳はリンク先（車両ページ）が無いため一覧に出せない（既知の仕様）
+    const withVehicle = (recs || []).filter(r => r.vehicle_id);
+    if (!withVehicle.length) return [];
+
+    const recordIds = withVehicle.map(r => r.id);
+    const vehicleIds = [...new Set(withVehicle.map(r => r.vehicle_id))];
+
+    // equipment_records.vehicle_id に実FKが無いためクライアント側で突き合わせる
+    const [carsRes, entriesRes, customRes, expRes, itemsRes] = await Promise.all([
+      supabaseClient.from('cars')
+        .select('document_id, handle_name, model_display_a, model_display_b, model_display_c, car_type, photo_main, prefecture, year')
+        .in('document_id', vehicleIds),
+      supabaseClient.from('equipment_entries').select('record_id, item_id, frequency').in('record_id', recordIds),
+      supabaseClient.from('equipment_custom_items').select('record_id, frequency').in('record_id', recordIds),
+      supabaseClient.from('equipment_experiences').select('record_id, body').in('record_id', recordIds),
+      supabaseClient.from('equipment_items').select('id')
+    ]);
+    if (carsRes.error) throw carsRes.error;
+
+    // 装備の内訳が引けなかった場合は点数・称号だけ伏せて一覧自体は出す（カードが消えるより良い）
+    const statsOk = !entriesRes.error && !itemsRes.error;
+    const existingItemIds = new Set((itemsRes.data || []).map(i => i.id));
+
+    const carMap = {};
+    (carsRes.data || []).forEach(c => { carMap[c.document_id] = c; });
+
+    const loadedByRecord = {};
+    (entriesRes.data || []).forEach(e => {
+      if (!e.frequency) return; // frequency 未設定＝未搭載（行があっても積んでいない）
+      (loadedByRecord[e.record_id] = loadedByRecord[e.record_id] || new Set()).add(e.item_id);
+    });
+
+    const customCount = {};
+    (customRes.data || []).forEach(c => {
+      if (!c.frequency) return;
+      customCount[c.record_id] = (customCount[c.record_id] || 0) + 1;
+    });
+
+    // 本文が空の行は「経験談あり」に数えない（車両ページの表示条件・RPCと揃える）
+    const hasExperience = new Set((expRes.data || [])
+      .filter(e => e.body && e.body.trim()).map(e => e.record_id));
+
+    // RPC経路と同じ形に正規化して返す（描画側が経路を意識しなくて済むように）
+    return withVehicle
+      .map(r => {
+        const car = carMap[r.vehicle_id];
+        if (!car) return null;
+        const loadedIds = loadedByRecord[r.id] || new Set();
+        return {
+          docId: car.document_id,
+          handleName: car.handle_name,
+          modelDisplay: car.model_display_c
+            || [car.model_display_a || '', car.model_display_b || ''].filter(Boolean).join(' '),
+          carType: car.car_type,
+          photoMain: car.photo_main,
+          prefecture: car.prefecture,
+          year: car.year,
+          updatedAt: r.updated_at,
+          createdAt: r.created_at || r.updated_at,
+          statsOk,
+          loadedCount: loadedIds.size + (customCount[r.id] || 0),
+          // 称号の判定基準は equipment-maestro.js（結果画面と同一の正本）
+          isMaestro: statsOk && EQ_MAESTRO.computeIsMaster(loadedIds, existingItemIds),
+          hasExperience: hasExperience.has(r.id)
+        };
+      })
+      .filter(Boolean);
+  }
+
+  // compact=true のときは当年に限り年を省く（8/6）。行の右端に『更新』『登録』の語を足した分
+  // 幅が増え、車載マエストロのピルが付く行でハンドルネームが省略されてしまったため
+  // （実測: 名前枠が63px→45pxに縮んだ）。年を省くのは当年だけなので、
+  // 「年が書いていない＝今年」と読める。年をまたいだ手帳は従来どおり年から出す。
+  function formatUpdated(iso, compact) {
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    const md = `${d.getMonth() + 1}/${d.getDate()}`;
+    if (compact && d.getFullYear() === new Date().getFullYear()) return md;
+    return `${d.getFullYear()}/${md}`;
+  }
+
+  // 「7日以内なら赤丸」は index.html の更新ドット印と同じ基準（index.html 行1130付近）。
+  // サイト内で赤丸の意味を1つに保つため、日数もここで勝手に変えない。
+  const RECENT_DAYS = 7;
+  function isRecent(iso) {
+    const d = new Date(iso);
+    if (isNaN(d)) return false;
+    return (Date.now() - d.getTime()) / 86400000 <= RECENT_DAYS;
+  }
+
+  // 同一日なら「一度も書き直していない手帳」とみなして『登録』と出す。
+  // 時刻まで見て厳密に比較すると、保存直後の1秒差で『更新』になってしまい、
+  // 書いたばかりの人に「もう更新した扱い」の日付が出る＝事実とズレるため日付単位で見る。
+  function isSameDay(a, b) {
+    const x = new Date(a), y = new Date(b);
+    if (isNaN(x) || isNaN(y)) return false;
+    return x.getFullYear() === y.getFullYear() && x.getMonth() === y.getMonth() && x.getDate() === y.getDate();
+  }
+
+  // 行の右端は1行しか余裕がないので、意味のあるほうの日付だけを出す。
+  //   まだ書き直していない → 「登録 7/23」（初回登録日そのもの）
+  //   書き直している       → 「更新 8/6」（並び順の基準と一致する日付）
+  // 両方を並べると行が3段になり、150人規模で一覧の走査性が落ちる（行の高さは57pxを守る）。
+  // 隠れるほうの日付は title で補い、車両ページでは両方を明記する。
+  function rowDateHtml(createdAt, updatedAt) {
+    const shown = formatUpdated(updatedAt, true);
+    if (!shown) return '';
+    const firstTime = !createdAt || isSameDay(createdAt, updatedAt);
+    const label = firstTime ? '登録' : '更新';
+    // title には省略なしの年月日を入れる（行の表示で年を省いた場合の補い）
+    const full = formatUpdated(updatedAt);
+    const title = firstTime ? `登録 ${full}` : `登録 ${formatUpdated(createdAt)} ／ 更新 ${full}`;
+    return `<span class="row-date" title="${esc(title)}"><span class="lb">${label}</span>${esc(shown)}</span>`;
+  }
+
+  function renderPublicList(list) {
+    const section = document.getElementById('public-list-section');
+    const host = document.getElementById('public-list');
+    const countEl = document.getElementById('public-count');
+    const noteEl = document.getElementById('public-list-note');
+    section.style.display = 'block';
+
+    if (!list.length) {
+      countEl.textContent = '';
+      host.classList.add('is-empty');
+      host.innerHTML = '<p class="public-list-empty">まだ公開されている手帳はありません。<br>あなたの手帳を公開すると、ここが最初の1件になります。</p>';
+      return;
+    }
+
+    host.classList.remove('is-empty');
+    countEl.textContent = `（${list.length}件）`;
+
+    // 上限で切れた分と、車両未紐付けで出せない分を黙って落とさず件数で伝える
+    const notes = [];
+    let hiddenNoVehicle;
+    if (publicLinkedCount != null) {
+      // RPC経路＝一覧に出せる総数（total_linked）が判るので、差をそのまま使える
+      if (publicLinkedCount > list.length) {
+        notes.push(`公開されている手帳は全${publicTotalCount}件です。更新が新しい順に${list.length}件を表示しています。`);
+      }
+      hiddenNoVehicle = publicTotalCount - publicLinkedCount;
+    } else {
+      // フォールバック経路＝取得できた行数と実際に描けた件数の差で出す。
+      // 総数から推定すると「取得行数＝min(総数,上限)」を前提にしてしまい、嘘の件数になる
+      if (publicTotalCount != null && publicTotalCount > PUBLIC_LIST_LIMIT) {
+        notes.push(`公開されている手帳は全${publicTotalCount}件です。更新が新しい順に${PUBLIC_LIST_LIMIT}件を表示しています。`);
+      }
+      hiddenNoVehicle = publicFetchedCount - list.length;
+    }
+    if (hiddenNoVehicle > 0) {
+      // 「うち」で始めると総数の注記が出ないときに係り先を失うため、単独で読める文にする
+      notes.push(`車両ページと紐付いていない手帳が${hiddenNoVehicle}件あるため、一覧には出していません。`);
+    }
+    noteEl.textContent = notes.join(' ');
+    noteEl.style.display = notes.length ? 'block' : 'none';
+
+    host.innerHTML = list.map(r => {
+      const carLabel = r.carType === '126' ? 'FIAT 126' : 'FIAT 500';
+      const sub = [r.modelDisplay || carLabel, r.year ? `${r.year}年` : '', r.prefecture || '']
+        .filter(Boolean).join('・');
+
+      const photo = r.photoMain
+        ? `<img src="${esc(r.photoMain)}" alt="" loading="lazy" decoding="async">`
+        : '<span class="noimg">🚗</span>';
+
+      // 最近動いた手帳の赤丸。基準・意匠とも index.html と同じ（7日以内／8px／#e11d48）。
+      // 新規に書かれた手帳は created_at = updated_at なので、初回登録も同じ赤丸が付く。
+      const dot = isRecent(r.updatedAt) ? '<span class="badge-update-dot" title="1週間以内に更新"></span>' : '';
+
+      // 称号は正式名称で出す（2026-08-06）。結果画面のシール・判定条件の見出しと表記を揃える。
+      const maestro = r.isMaestro ? '<span class="row-maestro">車載マエストロ</span>' : '';
+      const exp = r.hasExperience ? '<span class="row-exp" title="経験談あり">✎</span>' : '';
+      const count = (r.statsOk && r.loadedCount)
+        ? `<span class="row-count"><span class="row-count-label">装備数</span>${r.loadedCount}</span>` : '';
+
+      return `
+        <a class="owner-row" href="/detail?doc=${encodeURIComponent(r.docId)}#equipment-notebook">
+          <span class="row-thumb">${photo}${dot}</span>
+          <span class="row-body">
+            <span class="row-name"><span class="nm">${esc(r.handleName || '名称未設定')}さん</span>${maestro}${exp}</span>
+            <span class="row-model">${esc(sub)}</span>
+          </span>
+          <span class="row-right">
+            ${count}
+            ${rowDateHtml(r.createdAt, r.updatedAt)}
+          </span>
+        </a>`;
+    }).join('');
+  }
+
+  // 判定条件の本文。**数字と項目名は必ず実際の判定値から組み立てる**。
+  // 手書きにすると、基準を変えたときに説明文だけ古いまま残る（本日の文言総点検で
+  // 同じ型の事故が4件見つかっている）。itemsは項目マスター（名前の解決用）。
+  function renderCriteria(items) {
+    const M = EQ_MAESTRO;
+    const byId = {};
+    (items || []).forEach(i => { byId[i.id] = i; });
+    const nameOf = id => (byId[id] ? byId[id].name : 'ID' + id);
+
+    const existing = M.masterExistingItemIds(new Set((items || []).map(i => i.id)));
+    if (!existing.length) return; // 項目マスターが引けないときは何も出さない（嘘の数字を出さない）
+    const required = Math.ceil(existing.length * M.MAESTRO_THRESHOLD_RATIO);
+    const pct = Math.round(M.MAESTRO_THRESHOLD_RATIO * 100);
+
+    const supersedes = Object.keys(M.SUPERSEDES).map(k =>
+      `<li>${esc(nameOf(Number(k)))} を積んでいれば、${esc(M.SUPERSEDES[k].map(nameOf).join('・'))} も揃っているものとして数えます</li>`
+    ).join('');
+
+    document.getElementById('criteria-body').innerHTML = `
+      <p>車載マエストロは、次の<strong>2つを両方</strong>満たしたときだけ付く印です。順位ではないので、何人でも同時に該当します。</p>
+      <ul>
+        <li>編集部が選んだ<strong>マスター装備${existing.length}項目のうち${required}項目以上</strong>（${pct}%）を車載していること</li>
+        <li>かつ、<strong>安全・救援の${M.SAFETY_ITEM_IDS.length}点をすべて</strong>車載していること<br>
+            <span style="font-size:0.94em">（${esc(M.SAFETY_ITEM_IDS.map(nameOf).join('／'))}）</span></li>
+      </ul>
+      <p>${pct}%を満たしていても、安全・救援が1つでも欠けていれば認定されません。ここだけは数で埋め合わせできない扱いにしています。</p>
+      <p><strong>「丸ごと交換用の本体」を積んでいる場合</strong>は、その部品を持っていなくても揃っているものとして数えます。</p>
+      <ul>${supersedes}</ul>
+      <p class="criteria-note">
+        判定に使うのは<strong>選択肢から選んだ項目だけ</strong>です。自由記入で書き足した装備は、
+        同じ物であっても自動では数えられません。「積んでいるのに数えられていない」ものがあれば、
+        選択肢の側にもチェックを入れてください。<br>
+        なお、この条件は装備の量だけを見ています。<strong>整備の腕前や車の状態とは関係ありません。</strong>
+      </p>`;
+    document.getElementById('maestro-criteria').style.display = 'block';
+  }
+
   async function load() {
     try {
-      const { data, error } = await supabaseClient.rpc('equipment_item_rates');
-      if (error) throw error;
-      renderRows(data || []);
+      // 項目マスターは判定条件の表示（項目名と件数の解決）に使う。
+      // 失敗しても一覧・集計は出せるので、ここでは落とさず条件表示だけ諦める。
+      const [ratesRes, publicList, itemsRes] = await Promise.all([
+        supabaseClient.rpc('equipment_item_rates'),
+        loadPublicRecords().catch(e => { console.error('公開手帳一覧の読み込みに失敗:', e); return []; }),
+        // ⚠️ クエリビルダは then だけを持つ thenable で .catch() を持たない。
+        //    直接 .catch() を繋ぐと TypeError になるため Promise.resolve() で包む。
+        Promise.resolve(supabaseClient.from('equipment_items').select('id, name'))
+          .catch(e => { console.error('項目マスターの読み込みに失敗:', e); return { data: null }; })
+      ]);
+      if (ratesRes.error) throw ratesRes.error;
+      renderPublicList(publicList);
+      renderRows(ratesRes.data || []);
+      if (itemsRes && !itemsRes.error && itemsRes.data) renderCriteria(itemsRes.data);
     } catch (e) {
       console.error(e);
       document.getElementById('loading').textContent = '読み込みに失敗しました。時間をおいて再度お試しください。';
