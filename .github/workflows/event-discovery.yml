@@ -1,0 +1,46 @@
+name: イベント探索 週次メール（金曜朝/手動）
+
+# 日本国内の旧車・クラシックカー系イベントをウェブ検索で探し、まだサイトに
+# 載っていないものだけを候補として管理人にメールで送る。
+#
+# 機械の役割は「探す」だけ。events テーブルにもサイトにも一切書かない。
+# 載せる判断と入力は今までどおり人間が /event から手で行う
+# （events-portal/HANDOFF.md §2-6・不変条件2）。
+on:
+  schedule:
+    # 木 22:00 UTC = 金 07:00 JST。月曜朝の成長レポート（weekly-report.yml）とは
+    # 別便にする、という確定条件に合わせている。
+    - cron: '0 22 * * 4'
+  workflow_dispatch:
+
+# このワークフローはリポジトリに何もコミットしない。読み取りだけで足りる。
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30   # 40クエリ×検索グラウンディング＋URL実在確認の逐次処理を見込む
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # py/requirements.txt 全部だと selenium 等まで入って遅いので、
+      # find_events.py が実際に使う2つだけ入れる（weekly-report.yml と同じ流儀）。
+      - name: 依存関係インストール
+        run: pip install requests google-genai
+
+      - name: .env 作成
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
+          echo "SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}" >> py/.env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> py/.env
+          echo "BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}" >> py/.env
+
+      - name: イベント探索・候補メール送信
+        run: python py/find_events.py
