@@ -53,7 +53,31 @@ REPO_ROOT = os.path.dirname(PY_DIR)
 load_dotenv(os.path.join(PY_DIR, ".env"))
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
+# DB取得用。書き込み権限のある鍵が入りうるので、生成HTMLへは絶対に埋めない。
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY") or os.environ["SUPABASE_SERVICE_KEY"]
+
+
+def load_public_key() -> str:
+    """生成HTMLに埋める公開キーを config.js から読む。
+
+    取得用の SUPABASE_KEY を使い回さないこと。GitHub Actions の
+    secrets.SUPABASE_KEY はパーツクローラー等と共用で書き込み権限があり、
+    実際に service_role キーが35枚の公開HTMLへ焼かれ public リポジトリに
+    push された（2026-08-07・commit 5dc55f2）。ここで形式を検査して、
+    公開キーでなければ生成そのものを止める。
+    """
+    config_path = os.path.join(REPO_ROOT, "config.js")
+    with open(config_path, encoding="utf-8") as f:
+        m = re.search(r'SUPABASE_ANON_KEY\s*[:=]\s*"([^"]+)"', f.read())
+    if not m:
+        raise SystemExit("config.js から SUPABASE_ANON_KEY を読めませんでした。生成を中止します")
+    key = m.group(1)
+    if not key.startswith("sb_publishable_"):
+        raise SystemExit(f"公開キーの形式ではありません（{key[:12]}…）。生成を中止します")
+    return key
+
+
+PUBLIC_KEY = load_public_key()
 
 SITE_BASE = "https://www.registro500.com"
 OUT_DIR = os.path.join(REPO_ROOT, "event")
@@ -303,7 +327,7 @@ def render(ev, slug, start, end) -> str:
   const box = document.getElementById('participants');
   try {{
     const r = await fetch({json.dumps(SUPABASE_URL)} + '/rest/v1/event_participants?select=handle_name&event_id=eq.' +
-      encodeURIComponent({json.dumps(ev['id'])}), {{ headers: {{ apikey: {json.dumps(SUPABASE_KEY)} }} }});
+      encodeURIComponent({json.dumps(ev['id'])}), {{ headers: {{ apikey: {json.dumps(PUBLIC_KEY)} }} }});
     const rows = await r.json();
     if (!Array.isArray(rows) || rows.length === 0) {{
       box.textContent = 'まだ参加表明はありません。';
