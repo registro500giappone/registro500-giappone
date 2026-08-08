@@ -56,6 +56,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > ⚠️ 秘密情報を`.mcp.json`に直書きして`git add`しないこと。トークンは必ず環境変数側に置く。
 
+### ⛔ GASからSupabaseは叩けない（2026-08-08 確定・調べ直し禁止）
+
+**Google Apps Script から Supabase REST を呼ぶ手段は存在しない。** 復旧策を探し直しても同じ壁に当たるので、以下を前提にすること。
+
+1. **レガシーAPIキー（anon / service_role）は 2026-08-07 09:41 UTC に無効化済み。** 再有効化はダッシュボードから可能だが、**やってはいけない**。旧 service_role キーが `5dc55f2` で公開リポジトリのgit履歴に露出しており、有効化すると第三者がフルアクセスできる状態に戻る。
+2. **その露出鍵を無効化する手段が無い。** Supabase公式が「レガシーの anon / service / JWT secret のローテーションはもはやできない」と明記している。JWT署名鍵を移行・ローテーションしてもレガシーキーの値は再発行されない（revoke するには先に anon/service_role を無効化する必要がある、という関係）。
+3. **新形式のシークレットキー（`sb_secret_`）はGASから使えない。** Supabaseは `User-Agent` でブラウザ判定して401を返し、この判定は無効化できない。GASの `UrlFetchApp` は UA が `Mozilla/5.0 (compatible; Google-Apps-Script; beanserver; ...)` 固定で、カスタムUAを渡しても剥がされる（Google側の長年の既知制約）。
+
+したがって**GASからSupabaseを使う処理は、すべて外へ出す**。朝ダイジェストは 2026-08-08 に `py/send_digest.py` ＋ `.github/workflows/daily-digest.yml` へ移設済み。GASに残る `menuPostToTwitter` / `sendToMissingRecipients` / `showSettings` は同じ理由で壊れており、Pythonへ移すか廃止する（未対応）。
+
+なお公開キー（`sb_publishable_`）にはUA制限が無いので、**公開データの読み取りだけならGASからでも使える**。
+
 ### 🔒 Supabaseの個人アクセストークンをクラウド環境に置かない（2026-08-03 決定）
 
 **claude.ai/code のクラウド環境設定に `SUPABASE_ACCESS_TOKEN` を登録してはいけない。** 一度検討したうえで、以下の理由で見送った：
