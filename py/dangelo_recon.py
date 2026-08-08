@@ -32,6 +32,10 @@ BATCH_SIZE = 50
 PAGE_LIMIT = 100
 
 
+class BotChallenge(Exception):
+    """相手サイトのボット保護に阻まれた状態。待っても通らないので即座に中止する。"""
+
+
 def fetch_products_page(session, page, max_retries=5):
     """Store APIで1ページ分の商品を取得（202/5xxの一時エラーはリトライ）"""
     for attempt in range(1, max_retries + 1):
@@ -43,6 +47,15 @@ def fetch_products_page(session, page, max_retries=5):
             )
             print(f"  [DEBUG] ページ {page} HTTPステータス: {resp.status_code} (試行 {attempt}/{max_retries})")
 
+            # SiteGroundのボット保護は 202 + sg-captcha ヘッダで返ってくる。
+            # warm-up中の202と見分けがつかないまま23分リトライして落ちていたので、
+            # ヘッダで判別して即座に諦める（リトライしても永久に通らない）。
+            if resp.headers.get("sg-captcha"):
+                raise BotChallenge(
+                    f"ページ {page}: サイト側のボット保護に遮断されました"
+                    f"（sg-captcha: {resp.headers.get('sg-captcha')}）"
+                )
+
             # 202 Accepted = WordPressキャッシュのwarm-up中など。待機してリトライ
             if resp.status_code == 202 or resp.status_code >= 500:
                 wait = min(2 ** attempt, 30)
@@ -52,6 +65,8 @@ def fetch_products_page(session, page, max_retries=5):
 
             resp.raise_for_status()
             return resp.json(), resp.headers
+        except BotChallenge:
+            raise
         except Exception as e:
             print(f"  [ERROR] ページ {page} 取得失敗 (試行 {attempt}/{max_retries}): {e}")
             if attempt < max_retries:
@@ -130,7 +145,14 @@ def main():
     RETRY_WAITS_MIN = [3, 5, 5, 10]
     TOTAL_ATTEMPTS = len(RETRY_WAITS_MIN) + 1  # = 5
     for attempt in range(1, TOTAL_ATTEMPTS + 1):
-        first_data, first_headers = fetch_products_page(session, 1)
+        try:
+            first_data, first_headers = fetch_products_page(session, 1)
+        except BotChallenge as e:
+            print(f"[BLOCKED] {e}")
+            print("ショップ側が自動アクセスを拒否しています。リトライでは解決しません。")
+            print("再開するには、ショップにクロールの可否を確認し、許可が得られる場合は")
+            print("Bot UA/送信元の許可リスト登録を依頼する必要があります。")
+            sys.exit(1)
         if first_data:
             break
         if attempt < TOTAL_ATTEMPTS:
@@ -156,7 +178,12 @@ def main():
             elements = first_data
         else:
             time.sleep(1)
-            elements, _ = fetch_products_page(session, page)
+            try:
+                elements, _ = fetch_products_page(session, page)
+            except BotChallenge as e:
+                print(f"[BLOCKED] {e}")
+                print("途中からボット保護に遮断されました。ここまでの取得分で打ち切ります。")
+                break
             if not elements:
                 print(f"  [WARN] ページ {page} スキップ")
                 continue
