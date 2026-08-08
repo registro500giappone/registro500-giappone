@@ -898,7 +898,16 @@
           if (error) throw error;
           const finalDocId = savedData[0].document_id;
           if (isNew) {
-            fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'send_thanks_email', formData: { email: userEmail, handleName: raw.HandleName, docId: finalDocId } }) });
+            // 登録完了メール。宛先はサーバー側が docId から引くので渡さない。
+            // 旧実装は mode:'no-cors' で投げっぱなしにしており、GAS側に分岐が無く
+            // 落ちていたことに誰も気づけなかった。失敗はコンソールに残す。
+            fetch('/api/thanks', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ docId: finalDocId })
+            }).then(async res => {
+              if (!res.ok) console.error('サンクスメール送信に失敗:', res.status, await res.text());
+            }).catch(err => console.error('サンクスメール送信に失敗:', err));
             // GA4: 新規登録完了（獲得ファネルのゴール）。GA4管理画面で「キーイベント」に指定する
             if (typeof gtag === 'function') gtag('event', 'sign_up', { method: 'web_form', car_type: dbData.car_type });
           }

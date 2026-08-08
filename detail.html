@@ -687,10 +687,18 @@
       }
       const btn = document.getElementById('inqSubmitBtn'); btn.disabled = true; btn.textContent = "送信中...";
       try {
-        await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'inquiry', formData: { targetDocId: currentCar.document_id, senderName: name, senderEmail: currentUser.email, message: msg } }) });
+        // 応答を必ず見る。旧実装は fetch の結果を確認せず常に成功扱いにしていたため、
+        // 送信先が見つからない等で実際には届いていなくても「送信しました！」と出ていた。
+        const res = await fetch('/api/inquiry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetDocId: currentCar.document_id, senderName: name, senderEmail: currentUser.email, message: msg })
+        });
+        const result = await res.json().catch(() => ({}));
+        if (!res.ok || !result.success) throw new Error(result.error || "送信に失敗しました。時間をおいてお試しください。");
         localStorage.setItem(rateKey, String(Date.now()));
         alert("メッセージを送信しました！"); location.reload();
-      } catch(e) { alert("通信エラー"); btn.disabled = false; btn.textContent = "送信する"; }
+      } catch(e) { alert(e.message || "通信エラー"); btn.disabled = false; btn.textContent = "送信する"; }
     };
 
     function showQRCode() { openModal(`<div class="rg-modal-box" style="text-align:center;"><img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(location.href)}"><p class="rg-modal-note" style="margin-top:1rem;">カメラで読み取ってください</p></div>`); }
