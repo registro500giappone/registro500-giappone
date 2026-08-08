@@ -261,6 +261,15 @@ def main():
 
     if not (news or new_cars or new_events or new_episodes):
         log("配信対象なし")
+        if DRY_RUN:
+            # 対象が無い日でも Brevo 送信経路まで通しておかないと試運転の意味が薄い
+            log("DRY RUN: 配信対象が無いため、Supabase読み取り＋Brevo送信の疎通確認だけ行います")
+            send_broadcast(
+                [ADMIN_EMAIL], "[DRY RUN] 朝ダイジェスト 疎通確認",
+                "配信対象はありませんでした。\n"
+                "Supabaseの読み取りとBrevoの送信経路が通っていることの確認メールです。\n"
+                "実際のオーナーには送信していません。\n\n" + SITE + "/")
+            log(f"✅ DRY RUN: {ADMIN_EMAIL} に疎通確認メールを送信しました。")
         return
 
     # 5. 件名・本文（main.gs と同一の文面）
