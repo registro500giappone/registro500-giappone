@@ -8,19 +8,25 @@
   ② 登録のみ層（活性化）: 連携率・休眠・未連携名簿CSV
   ③ アクティブ層（満足）: 真アクティブ率・コホート定着・機能利用・死蔵機能
   ④ 収益（送客）     : アフィリクリック。GA4拡張計測ONで取得開始（フェーズ2）
-  流入（当面 Cloudflare、フェーズ3でGA4へ移管）
+  流入（2026-08-09〜 GA4 が主・Cloudflare は保険。下記「流入データの主従」を参照）
 
 時系列:
   - フロー指標（登録など）は created_at で遡及し前週比
   - ストック指標（連携率・アクティブ率）は weekly_metrics に毎週記録し前週比
 実行: python py/gen_report.py（週1回想定）
 """
-import json, urllib.request, datetime, os, html, csv
+import json, urllib.request, urllib.parse, datetime, os, html, csv
 from collections import defaultdict
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENV = os.path.join(BASE, "py", ".env")
 OUT = os.path.join(BASE, "report.html")
+
+# REPORT_DRY_RUN=1 で実行すると weekly_metrics への書き込みをスキップし、HTML も
+# report_dryrun.html へ出す。週次スナップショットの時系列を汚さずに動作確認するため。
+DRY_RUN = os.environ.get("REPORT_DRY_RUN") == "1"
+if DRY_RUN:
+    OUT = os.path.join(BASE, "report_dryrun.html")
 
 env = {}
 for line in open(ENV, encoding="utf-8"):
@@ -146,7 +152,7 @@ with open(CSV_OUT, "w", encoding="utf-8-sig", newline="") as f:
                     u.get("car_type"), (u.get("created_at") or "")[:10]])
 
 
-# ───────────────────────── 流入: Cloudflare ─────────────────────────
+# ───────────────────────── 流入: Cloudflare（保険・GA4が落ちたときの代替）─────────────────────────
 PAGE_LABEL = {
     "/": "トップ", "/detail": "車両個別ページ", "/event": "イベント",
     "/episode": "エピソード", "/stories": "ストーリー一覧", "/edit": "登録・編集",
@@ -160,6 +166,10 @@ REF_LABEL = {
     "www.google.com": "Google検索", "search.yahoo.co.jp": "Yahoo!検索",
     "t.co": "X (Twitter)", "l.instagram.com": "Instagram",
     "l.facebook.com": "Facebook", "www.facebook.com": "Facebook",
+    # GA4 の pageReferrer は Facebook のホストが分かれて出る（2026-08-09 実測で
+    # facebook.com / lm.facebook.com / l.facebook.com の3種を確認）ので全部ラベル化する
+    "facebook.com": "Facebook", "lm.facebook.com": "Facebook", "m.facebook.com": "Facebook",
+    "www.instagram.com": "Instagram", "instagram.com": "Instagram",
     "www.bing.com": "Bing検索", "note.com": "note",
     "accounts.google.com": "Googleログイン経由", "mail.google.com": "Gmail",
     "com.google.android.gm": "Gmailアプリ",
@@ -198,10 +208,25 @@ g1 = (today - datetime.timedelta(days=7)).isoformat()
 l1 = today.isoformat()
 g0 = (today - datetime.timedelta(days=14)).isoformat()
 l0 = g1
-cur = fetch(g1, l1)
-prev = fetch(g0, g1)
-prev_paths = dict(prev["paths"])
-prev_ref = dict(prev["ref"])
+
+
+def empty_traffic():
+    return {"pv": 0, "visits": 0, "byday": [], "paths": [], "ref": [], "country": [], "dev": []}
+
+
+# Cloudflare は 2026-08-09 の GA4 照合をもって「引退予定・保険」の位置づけに降格した。
+# 28日間の実測で総量は GA4 と +6%(PV)/+5%(訪問) の差に収まり整合したが、
+# Cloudflare 側はサンプリング外挿で日別が全て10の倍数に丸められており日次の精度が無い。
+# ユーザー数・イベント計測も取れないため主データには使わない。
+# ビーコンとトークンは GA4 が壊れたときの保険として残してあるので取得は続けるが、
+# **失敗してもレポートは止めない**（以前はここが素の呼び出しで、Cloudflare が落ちると
+# 週次レポート全体が例外で配信されなくなる主従逆転の状態だった）。
+cf_cur = cf_prev = None
+try:
+    cf_cur = fetch(g1, l1)
+    cf_prev = fetch(g0, g1)
+except Exception as e:
+    print("Cloudflare取得失敗（GA4のみでレポートを継続）:", e)
 
 # ───────────────────────── GA4 Data API（フェーズ2配線・失敗時はpending表示にフォールバック）─────────────────────────
 GA4_PROPERTY_ID = env.get("GA4_PROPERTY_ID")
@@ -211,23 +236,86 @@ GA4_EDIT_PATH = "/edit"
 ga4 = None
 
 
-def ga4_report(metrics, dimensions=None, dimension_filter=None):
+def ga4_report(metrics, dimensions=None, dimension_filter=None,
+               start="7daysAgo", end="today", limit=None, order_desc=None):
     from google.oauth2 import service_account
     from google.auth.transport.requests import Request as GARequest
     creds = service_account.Credentials.from_service_account_file(
         GA4_SA_JSON, scopes=["https://www.googleapis.com/auth/analytics.readonly"])
     creds.refresh(GARequest())
-    body = {"dateRanges": [{"startDate": "7daysAgo", "endDate": "today"}],
+    body = {"dateRanges": [{"startDate": start, "endDate": end}],
             "metrics": [{"name": m} for m in metrics]}
     if dimensions:
         body["dimensions"] = [{"name": d} for d in dimensions]
     if dimension_filter:
         body["dimensionFilter"] = dimension_filter
+    if limit:
+        body["limit"] = limit
+    if order_desc:
+        body["orderBys"] = [{"metric": {"metricName": order_desc}, "desc": True}]
     req = urllib.request.Request(
         f"https://analyticsdata.googleapis.com/v1beta/properties/{GA4_PROPERTY_ID}:runReport",
         data=json.dumps(body).encode(),
         headers={"Authorization": "Bearer " + creds.token, "Content-Type": "application/json"})
     return json.load(urllib.request.urlopen(req, timeout=40))
+
+
+SELF_HOSTS = ("www.registro500.com", "registro500.com")
+
+
+def ga4_traffic(start, end):
+    """流入データを GA4 から取り、Cloudflare の fetch() と同じ形の辞書で返す。
+
+    2026-08-09 以降はこちらが流入セクションの主データ。取得できなければ None を返し、
+    呼び出し側が Cloudflare → 空 の順にフォールバックする。
+    """
+    if not (GA4_PROPERTY_ID and os.path.exists(GA4_SA_JSON)):
+        return None
+    try:
+        trows = ga4_report(["screenPageViews", "sessions"], start=start, end=end).get("rows") or []
+        pv = int(trows[0]["metricValues"][0]["value"]) if trows else 0
+        visits = int(trows[0]["metricValues"][1]["value"]) if trows else 0
+
+        byday = []
+        for r in ga4_report(["screenPageViews", "sessions"], ["date"],
+                            start=start, end=end, limit=40).get("rows", []):
+            d = r["dimensionValues"][0]["value"]  # YYYYMMDD
+            byday.append((f"{d[:4]}-{d[4:6]}-{d[6:]}",
+                          int(r["metricValues"][0]["value"]),
+                          int(r["metricValues"][1]["value"])))
+        byday.sort()
+
+        paths = [(r["dimensionValues"][0]["value"], int(r["metricValues"][0]["value"]))
+                 for r in ga4_report(["screenPageViews"], ["pagePath"], start=start, end=end,
+                                     limit=12, order_desc="screenPageViews").get("rows", [])]
+
+        # 参照元は Cloudflare の refererHost に合わせてホスト名へ揃える（REF_LABELS がホスト名基準のため）。
+        # 自サイト内の遷移は流入ではないので除く。
+        agg = {}
+        label_rep = {}  # 同じ表示ラベルになるホストは1行にまとめる（Facebook が3ホストに割れるため）
+        # pageReferrer はフルURL単位で行が出るため件数が多い。ホスト集約の取りこぼしを
+        # 避けるので limit は大きめに取る（2026-08-09 実測: 直近7日で生100行→21ホスト）。
+        for r in ga4_report(["sessions"], ["pageReferrer"], start=start, end=end,
+                            limit=500, order_desc="sessions").get("rows", []):
+            raw = (r["dimensionValues"][0]["value"] or "").strip()
+            host = urllib.parse.urlparse(raw).netloc if "://" in raw else raw
+            if host in SELF_HOSTS:
+                continue  # サイト内の遷移は流入ではない（Cloudflare 版では「サイト内回遊」として混ざっていた）
+            host = host or "(直接)"
+            lab = REF_LABEL.get(host)
+            key = label_rep.setdefault(lab, host) if lab else host
+            agg[key] = agg.get(key, 0) + int(r["metricValues"][0]["value"])
+        ref = sorted(agg.items(), key=lambda x: -x[1])[:12]
+
+        dev = [(r["dimensionValues"][0]["value"], int(r["metricValues"][0]["value"]))
+               for r in ga4_report(["screenPageViews"], ["deviceCategory"],
+                                   start=start, end=end).get("rows", [])]
+
+        return {"pv": pv, "visits": visits, "byday": byday, "paths": paths,
+                "ref": ref, "country": [], "dev": dev}
+    except Exception as e:
+        print("GA4流入データ取得失敗（Cloudflareへフォールバック）:", e)
+        return None
 
 
 if GA4_PROPERTY_ID and os.path.exists(GA4_SA_JSON):
@@ -266,6 +354,24 @@ if GA4_PROPERTY_ID and os.path.exists(GA4_SA_JSON):
     except Exception as e:
         print("GA4取得失敗（pending表示にフォールバック）:", e)
 
+# ───────── 流入データの主従（2026-08-09〜）: GA4 が主・Cloudflare は保険 ─────────
+# どちらか片方が落ちてもレポートは必ず出る。両方落ちたときだけ流入セクションが空になる。
+_g_cur = ga4_traffic(g1, l1)
+_g_prev = ga4_traffic(g0, g1)
+if _g_cur:
+    cur, prev = _g_cur, (_g_prev or empty_traffic())
+    traffic_source = "GA4"
+elif cf_cur:
+    cur, prev = cf_cur, (cf_prev or empty_traffic())
+    traffic_source = "Cloudflare（GA4取得失敗のため代替）"
+else:
+    cur = prev = empty_traffic()
+    traffic_source = "取得失敗"
+    print("流入データを GA4・Cloudflare のどちらからも取得できませんでした。")
+prev_paths = dict(prev["paths"])
+prev_ref = dict(prev["ref"])
+
+
 # ───────────────────────── 週次スナップショット（前週比の起点）─────────────────────────
 _psnap = sb("weekly_metrics", "*", f"week_start=lt.{week_start}&order=week_start.desc&limit=1")
 prev_snap = _psnap[0] if _psnap else None
@@ -278,7 +384,10 @@ snap = {
     "rel_count": rel_want + rel_met, "rel_users": rel_users, "event_cars": event_cars,
     "fav_users": fav_users, "episodes_pub": ep_pub,
     "garage_notes": gnotes, "user_selections": usel,
-    "pv_7d": cur["pv"], "visits_7d": cur["visits"],
+    # pv_7d / visits_7d は Cloudflare 由来の時系列。GA4 の値は下の pv / visits に別カラムで入るので、
+    # 過去との継続性を壊さないよう混ぜない。Cloudflare が取れなかった週は null のままにする。
+    "pv_7d": cf_cur["pv"] if cf_cur else None,
+    "visits_7d": cf_cur["visits"] if cf_cur else None,
 }
 if ga4:
     snap.update({
@@ -287,7 +396,10 @@ if ga4:
         "signup_cvr": ga4["signup_cvr"],
         "affil_clicks": ga4["affil_clicks"], "affil_click_by_page": ga4["affil_click_by_page"],
     })
-sb_upsert("weekly_metrics", snap)
+if DRY_RUN:
+    print(f"[DRY RUN] weekly_metrics への upsert をスキップ（week_start={week_start}／流入ソース={traffic_source}）")
+else:
+    sb_upsert("weekly_metrics", snap)
 
 
 # ───────────────────────── 表示ヘルパ（前週比）─────────────────────────
@@ -509,7 +621,7 @@ HTML = f"""<!DOCTYPE html>
 <body>
 <div class="wrap">
 <h1>📊 成長レポート</h1>
-<div class="sub">対象週 {week_start} 〜（週次）／ 登録・定着=Supabase全期間・流入=Cloudflare直近7日／ 北極星は「質・活性化・満足・収益」</div>
+<div class="sub">対象週 {week_start} 〜（週次）／ 登録・定着=Supabase全期間・流入={traffic_source}直近7日／ 北極星は「質・活性化・満足・収益」</div>
 
 <div class="kpi-grid">
   <div class="kpi blue"><div class="k">累計 登録台数</div><div class="v">{total}</div><div class="d">500:{n_500} / 126:{n_126}</div></div>
@@ -574,7 +686,7 @@ HTML = f"""<!DOCTYPE html>
 <div class="seg-title">④ 収益 ― アフィリエイト送客</div>
 {revenue_html}
 
-<div class="seg-title">流入（Cloudflare 直近7日 / フェーズ3でGA4へ移管）</div>
+<div class="seg-title">流入（{traffic_source} 直近7日）</div>
 <div class="kpi-grid">
   <div class="kpi blue"><div class="k">ページビュー</div><div class="v">{cur['pv']:,}</div><div class="d">{delta(cur['pv'], prev['pv'])}</div></div>
   <div class="kpi blue"><div class="k">訪問数</div><div class="v">{cur['visits']:,}</div><div class="d">{delta(cur['visits'], prev['visits'])}</div></div>
@@ -586,7 +698,7 @@ HTML = f"""<!DOCTYPE html>
     <div class="cbox"><canvas id="cDay"></canvas></div>
   </div>
   <div class="cardbox">
-    <h3>流入元（前週比）</h3><div class="cap">どこから来ているか</div>
+    <h3>流入元（前週比）</h3><div class="cap">どこから来ているか（セッション数・サイト内の遷移は除く）</div>
     <table><tr><th>流入元</th><th class="num">今週</th><th class="num">前週</th><th>増減</th></tr>{ref_rows}</table>
   </div>
 </div>
