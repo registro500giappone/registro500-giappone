@@ -64,7 +64,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 2. **その露出鍵を無効化する手段が無い。** Supabase公式が「レガシーの anon / service / JWT secret のローテーションはもはやできない」と明記している。JWT署名鍵を移行・ローテーションしてもレガシーキーの値は再発行されない（revoke するには先に anon/service_role を無効化する必要がある、という関係）。
 3. **新形式のシークレットキー（`sb_secret_`）はGASから使えない。** Supabaseは `User-Agent` でブラウザ判定して401を返し、この判定は無効化できない。GASの `UrlFetchApp` は UA が `Mozilla/5.0 (compatible; Google-Apps-Script; beanserver; ...)` 固定で、カスタムUAを渡しても剥がされる（Google側の長年の既知制約）。
 
-したがって**GASからSupabaseを使う処理は、すべて外へ出す**。朝ダイジェストは 2026-08-08 に `py/send_digest.py` ＋ `.github/workflows/daily-digest.yml` へ移設済み。GASに残る `menuPostToTwitter` / `sendToMissingRecipients` / `showSettings` は同じ理由で壊れており、Pythonへ移すか廃止する（未対応）。
+したがって**GASからSupabaseを使う処理は、すべて外へ出す**。朝ダイジェストは 2026-08-08 に `py/send_digest.py` ＋ `.github/workflows/daily-digest.yml` へ移設済み。
+
+### 🛑 GAS はもう使わない（2026-08-09 ユーザー確定・掘り起こし禁止）
+
+**GAS に残っている機能はすべて廃止で確定した。移設もコード掃除もしない。残タスクとして数えない。**
+
+- **GAS 側の時間主導トリガーは削除済み**。定期実行はもう走らない。
+- **X（Twitter）投稿は不要**。`menuPostToTwitter` / `postToTwitter` / `getOAuth1Signature` は Python へ移さない。SNS は手作業で運用する。
+- `sendToMissingRecipients`（未達オーナー再送）・`showSettings` も**GAS からの実行は廃止**。必要が生じたらニュース配信の仕組みの中で作り直す（GAS へ戻さない）。
+- **レガシー分岐の削除（コード掃除）も行わない**。下記のとおり誰も呼んでいないため実害がない。
+
+**根拠（2026-08-09 に実地確認）**：`config.js` の `API_URL`（GAS WebアプリURL）を参照している**本番ページはゼロ**。参照は `spot_schedule.html`（機能ごと中止）・`test.html` / `test_map.html` のみ。`event.html` / `index.html` / `edit.html` は Supabase 直叩き＋`/api/*`（Pages Functions）へ移行済み。よって `doGet` の5モード（index/detail/edit_init/events/mycars）と `doPost` の4アクション（inquiry/save_event/delete_event/toggle_participation）は**全てデッドコード**であり、`main.gs` の Supabase 呼び出し16箇所が401で死んでいても影響がない。
+
+GAS で生きているのは `getEmailsFromGoogleSheets`（スプレッドシート読み取り）と配信ログシートまわりのみ。
 
 なお公開キー（`sb_publishable_`）にはUA制限が無いので、**公開データの読み取りだけならGASからでも使える**。
 
