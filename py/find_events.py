@@ -204,6 +204,42 @@ def normalize_event_name(name):
     return s.lower()
 
 
+def loose_event_name(name):
+    """開催回数の表記まで落とした、ゆるい比較用キー。
+
+    同じ回のイベントでも告知元によって「2026 vol.2」と書いたり
+    「第2回」と書いたりするため、回数を残したままでは突合できない
+    （実例＝西日本スポーツカーフェス at イオンモール高松 10/4 が、
+    この違いだけで3回メールに載った）。
+
+    ただし回数を落とすと、月例の定例イベントが回どうしで一致してしまう
+    （実例＝さくらモーニングクルーズ Vol.151 / 152 / 154 は別々の回）。
+    **このキーは開催日がほぼ同じ（HOST_DATE_PROXIMITY_DAYS 以内）と
+    分かっているときにだけ使うこと**。単独で同一判定に使ってはいけない。
+    """
+    if not name:
+        return ""
+    s = unicodedata.normalize("NFKC", name)
+    s = re.sub(r"第\s*\d+\s*回", " ", s)
+    s = re.sub(r"vol\s*\.?\s*\d+", " ", s, flags=re.IGNORECASE)
+    s = re.sub(r"#\s*\d+", " ", s)
+    return normalize_event_name(s)
+
+
+def same_day_variant(loose_key, event_date, other_loose_key, other_date):
+    """回数の書き方だけが違う「同じ日の同じイベント」か。
+
+    開催日がほぼ同じであることを先に確かめてから、回数を落とした名前で
+    突合する。日付という強い手がかりがあるため、定例イベントの別の回を
+    取り違える心配がない。
+    """
+    if not (event_date and other_date):
+        return False
+    if abs((event_date - other_date).days) > HOST_DATE_PROXIMITY_DAYS:
+        return False
+    return name_key_matches(loose_key, other_loose_key)
+
+
 def to_jst_date(ts):
     """DBのtimestamptz文字列をJSTの日付(date)に直す。空/不正ならNone。
     gen_event_pages.py の to_jst() と同じ考え方（UTCの日付部分をそのまま
@@ -234,13 +270,14 @@ def name_key_matches(name_key, known_name_key):
     return len(shorter) >= NAME_SUBSTR_MIN_LEN and shorter in longer
 
 
-def is_known_event(url_key, name_key, host, event_date, known_events):
+def is_known_event(url_key, name_key, loose_key, host, event_date, known_events):
     """候補が既存 events のいずれかと同一イベントかどうかを判定する。
-    次の3種類のいずれかで一致すれば既知とみなす。
+    次の4種類のいずれかで一致すれば既知とみなす。
     1. URL正規化キーの完全一致
     2. イベント名の正規化キーの一致（完全一致・部分一致）
     3. 同じホスト かつ 開催日の差が HOST_DATE_PROXIMITY_DAYS 日以内
        （日付不明の候補には適用しない）
+    4. 開催日がほぼ同じ かつ 回数の表記だけが違う同名イベント
     """
     for ke in known_events:
         if url_key and ke["url_key"] and url_key == ke["url_key"]:
@@ -250,20 +287,27 @@ def is_known_event(url_key, name_key, host, event_date, known_events):
         if (event_date and ke["date"] and host and ke["host"] and host == ke["host"]
                 and abs((event_date - ke["date"]).days) <= HOST_DATE_PROXIMITY_DAYS):
             return True
+        if same_day_variant(loose_key, event_date, ke["loose_key"], ke["date"]):
+            return True
     return False
 
 
-def is_already_sent(name_key, event_date, log_named):
+def is_already_sent(name_key, loose_key, event_date, log_named):
     """過去にメールした候補と同じ回の同じイベントか。
 
     URLだけで見ていると、同じイベントが別サイトのURLで毎週上がってくる
     （実例＝西日本スポーツカーフェスが arc-group.club と nicetown.co.jp）。
     ただし名前だけで切ると来年の同名イベントも消えるので、開催日が
     近いことを条件にする。どちらかの日付が無いときは同名なら同じとみなす。
+
+    名前が完全に揃わなくても、開催日がほぼ同じで回数の書き方だけが違う
+    ものは同じ回とみなす（同上の実例が3度目に「第2回 …」の表記で来た）。
     """
     if not name_key:
         return False
     for e in log_named:
+        if same_day_variant(loose_key, event_date, e["loose_key"], e["date"]):
+            return True
         if not name_key_matches(name_key, e["name_key"]):
             continue
         if event_date and e["date"]:
@@ -634,6 +678,7 @@ def main():
     known_events = [{
         "url_key": normalize_url(e.get("url")),
         "name_key": normalize_event_name(e.get("event_name")),
+        "loose_key": loose_event_name(e.get("event_name")),
         "host": extract_host(e.get("url")),
         "date": to_jst_date(e.get("event_date")),
     } for e in events]
@@ -646,6 +691,7 @@ def main():
     # 開催日が近いことも条件にする。
     log_named = [{
         "name_key": normalize_event_name(row.get("event_name")),
+        "loose_key": loose_event_name(row.get("event_name")),
         "date": to_jst_date(row.get("event_date")),
     } for row in log_rows if row.get("event_name")]
 
@@ -683,6 +729,9 @@ def main():
 
     seen_this_run = set()
     seen_names = set()
+    # 今回の実行で既に採用した候補（過去分＝log_named と同じ形で持ち、
+    # 回数の表記だけが違う同じ日のイベントを1回の実行の中でも弾く）。
+    seen_named = []
     kept_dated = []
     date_unknown = []
 
@@ -721,6 +770,7 @@ def main():
 
         url_key = normalize_url(url)
         name_key = normalize_event_name(c.get("event_name"))
+        loose_key = loose_event_name(c.get("event_name"))
         host = extract_host(url)
 
         # 開催日をここで解析する（3の「ホスト＋日付近接」判定に使うため、
@@ -753,7 +803,7 @@ def main():
         c["_url_ok"] = url_ok
 
         # 4. 既存イベントとの突合（URL一致／イベント名一致／ホスト＋日付近接）。
-        if is_known_event(url_key, name_key, host, parsed, known_events):
+        if is_known_event(url_key, name_key, loose_key, host, parsed, known_events):
             counters["known"] += 1
             continue
 
@@ -762,12 +812,14 @@ def main():
         if url_key in log_url_keys or url_key in seen_this_run:
             counters["log_dup"] += 1
             continue
-        if is_already_sent(name_key, parsed, log_named) or (name_key and name_key in seen_names):
+        if (is_already_sent(name_key, loose_key, parsed, log_named + seen_named)
+                or (name_key and name_key in seen_names)):
             counters["log_dup"] += 1
             continue
         seen_this_run.add(url_key)
         if name_key:
             seen_names.add(name_key)
+            seen_named.append({"name_key": name_key, "loose_key": loose_key, "date": parsed})
 
         c["url"] = strip_tracking_params(url)
         c["_url_key"] = url_key
