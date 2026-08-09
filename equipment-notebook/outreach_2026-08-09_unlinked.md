@@ -128,3 +128,11 @@ select count(*) from equipment_public_list();
 Registro500 Giappone
 https://www.registro500.com/
 ```
+
+---
+
+## 6. 送信記録
+
+- **2026-08-09 送信済み**（ユーザー本人が `yoda7jp@gmail.com` へ送付）。§5 の文面。
+- サイト側の文言修正は送信前にデプロイ済み（commit `8174469`）＝メール中の「案内の文言は修正しました」と本番の状態は一致している。
+- **待ちの状態**: ①返信 ②愛車の登録 ③手帳の再保存（`vehicle_id` が入る）。§4 のクエリで確認する。
