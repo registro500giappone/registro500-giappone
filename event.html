@@ -29,9 +29,6 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   </script>
 
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
-
   <style>
     :root {
       --bg-main: #f4f4f7;
@@ -203,62 +200,6 @@
 
 
 
-    /* ===== 写真ギャラリー ===== */
-    .photo-gallery-section {
-      margin-top: 20px; padding-top: 15px; border-top: 1px dashed #eee;
-    }
-    .photo-gallery-header {
-      display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
-    }
-    .photo-gallery-title {
-      font-size: 1rem; font-weight: 700; color: #444;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .photo-gallery-title::before { content: "📸"; }
-    .btn-add-photo {
-      background: #fff; border: 1px solid var(--accent); color: var(--accent);
-      padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; cursor: pointer;
-      font-weight: 600; transition: 0.2s;
-    }
-    .btn-add-photo:hover { background: var(--accent); color: #fff; }
-
-    .photo-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 8px; margin-top: 12px;
-    }
-    .photo-item {
-      position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 8px;
-      cursor: pointer; transition: transform 0.2s;
-    }
-    .photo-item:hover { transform: scale(1.05); }
-    .photo-item img {
-      width: 100%; height: 100%; object-fit: cover;
-    }
-    .photo-uploader {
-      position: absolute; bottom: 4px; left: 4px; right: 4px;
-      background: rgba(0,0,0,0.6); color: white; font-size: 0.7rem;
-      padding: 2px 6px; border-radius: 4px; white-space: nowrap;
-      overflow: hidden; text-overflow: ellipsis;
-    }
-
-    .photo-modal {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.9); z-index: 300; display: none;
-      align-items: center; justify-content: center; flex-direction: column;
-    }
-    .photo-modal img {
-      max-width: 90%; max-height: 80vh; border-radius: 8px;
-    }
-    .photo-modal-close {
-      position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2);
-      color: white; border: none; font-size: 2rem; cursor: pointer;
-      width: 50px; height: 50px; border-radius: 50%; display: flex;
-      align-items: center; justify-content: center;
-    }
-    .photo-modal-uploader {
-      color: white; font-size: 0.9rem; margin-top: 12px; opacity: 0.8;
-    }
-
     /* ===== カレンダー表示 ===== */
     .view-toggle { display: flex; gap: 8px; margin-bottom: 20px; }
     .view-toggle-btn {
@@ -353,11 +294,6 @@
       .calendar-nav-btn { border-color: #334155; color: #60a5fa; }
       .calendar-nav-btn:hover { background: #60a5fa; color: #fff; border-color: #60a5fa; }
       .calendar-month-label { color: #e2e8f0; }
-      .photo-gallery-section { border-top-color: #334155; }
-      .photo-gallery-title { color: #94a3b8; }
-      .btn-add-photo { background: #1e293b; border-color: #60a5fa; color: #60a5fa; }
-      .btn-add-photo:hover { background: #60a5fa; color: #fff; }
-      .photo-uploader { background: rgba(0,0,0,0.8); }
     }
   </style>
   <!-- 左下「一つ前に戻る」（ホーム画面起動時のみ）／右下「先頭へ」の浮かぶボタン -->
@@ -512,18 +448,9 @@
 </div>
 
 
-<div class="photo-modal" id="photoModal">
-  <button class="photo-modal-close" onclick="closePhotoModal()">×</button>
-  <img id="photoModalImg" src="" alt="">
-  <div class="photo-modal-uploader" id="photoModalUploader"></div>
-</div>
-
 
 
 <script>
-  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-  const storage = firebase.storage();
-
   const CACHE_KEY_EVENTS = 'registro500_event_data_v4';
   let currentUser = null;
   let myCarId = null;
@@ -717,14 +644,6 @@
     });
     document.getElementById('futureSection').style.display = (futureEl.children.length > 0) ? 'block' : 'none';
     document.getElementById('pastSection').style.display = (pastEl.children.length > 0) ? 'block' : 'none';
-
-    // 開催日当日以降のイベントの写真を読み込み。
-    // 要約カードには写真の置き場が無いので、個別ページを持つイベントは取りに行かない。
-    filtered.forEach(ev => {
-      if (eventSlugs[ev.EventID]) return;
-      const eventDate = new Date(ev.EventDate);
-      if (eventDate <= new Date()) loadEventPhotos(ev.EventID);
-    });
   }
 
   // 日付表示の組み立て。要約カード・詳細カードの両方から使う。
@@ -828,7 +747,6 @@
       <div class="ev-desc">${linkify(ev.Description)}</div>
       ${ev.URL ? `<div class="ev-url-row">🔗 参照URL: <a href="${ev.URL}" target="_blank">${esc(ev.URL)}</a></div>` : ''}
       ${isPast ? '' : `<div class="participation-area"><button class="btn-join ${isJoined ? 'joined' : ''}" onclick="toggleJoin('${ev.EventID}')">${isJoined ? '✅ 参加予定です' : '✋ 参加予定'}</button><div class="participants-list">${namesHtml}</div></div>`}
-      ${dateObj <= new Date() ? `<div class="photo-gallery-section" id="gallery-${ev.EventID}"><div class="photo-gallery-header"><div class="photo-gallery-title">写真ギャラリー</div>${currentUser ? `<button class="btn-add-photo" onclick="uploadPhoto('${ev.EventID}')">＋ 写真を追加</button>` : ''}</div><div class="photo-grid" id="photos-${ev.EventID}"></div></div>` : ''}
       <div class="ev-footer">${ev.OwnerID === 'ADMIN' ? `<span class="owner-badge">👤 ${esc(ev.OwnerName)}</span>` : `<a href="/detail?doc=${ev.OwnerID}" class="owner-badge" target="_blank">👤 ${esc(ev.OwnerName)}</a>`}</div>
     `;
     return div;
@@ -1047,101 +965,6 @@ window.submitEvent = async () => {
       return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + '</a>';
     });
   }
-
-  /* ===== 写真ギャラリー機能 ===== */
-  window.uploadPhoto = async (eventId) => {
-    if (!currentUser) return alert("ログインしてください");
-    if (!myCarId) return alert("車の登録が必要です");
-
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      if (file.size > 5 * 1024 * 1024) return alert("画像サイズは5MB以下にしてください");
-
-      try {
-        // Firebase Storageにアップロード
-        const timestamp = Date.now();
-        const storageRef = storage.ref(`event_photos/${eventId}/${timestamp}_${file.name}`);
-        await storageRef.put(file);
-        const imageUrl = await storageRef.getDownloadURL();
-
-        // ハンドルネーム取得
-        const { data: car } = await supabaseClient.from('cars').select('handle_name').eq('document_id', myCarId).single();
-        const handleName = car ? car.handle_name : 'オーナー';
-
-        // Supabaseに保存
-        const { error } = await supabaseClient.from('event_photos').insert([{
-          event_id: eventId,
-          image_url: imageUrl,
-          uploaded_by: handleName,
-          user_id: currentUser.id
-        }]);
-
-        if (error) throw error;
-
-        alert("写真をアップロードしました！");
-        loadEventPhotos(eventId);
-      } catch (e) {
-        console.error(e);
-        alert("アップロードに失敗しました");
-      }
-    };
-    input.click();
-  };
-
-  async function loadEventPhotos(eventId) {
-    try {
-      const { data, error } = await supabaseClient
-        .from('event_photos')
-        .select('id, image_url, uploaded_by')
-        .eq('event_id', eventId)
-        .order('uploaded_at', { ascending: false });
-
-      if (error) throw error;
-
-      const container = document.getElementById(`photos-${eventId}`);
-      if (!container) return;
-
-      if (!data || data.length === 0) {
-        container.innerHTML = '<p style="color:#999; font-size:0.85rem; padding:10px 0;">まだ写真がありません</p>';
-        return;
-      }
-
-      container.innerHTML = '';
-      data.forEach(photo => {
-        const item = document.createElement('div');
-        item.className = 'photo-item';
-        item.onclick = () => openPhotoModal(photo.image_url, photo.uploaded_by);
-        item.innerHTML = `
-          <img src="${photo.image_url}" alt="イベント写真" loading="lazy">
-          <div class="photo-uploader">${esc(photo.uploaded_by)}</div>
-        `;
-        container.appendChild(item);
-      });
-    } catch (e) {
-      console.error("写真読み込みエラー:", e);
-    }
-  }
-
-  function openPhotoModal(imageUrl, uploaderName) {
-    document.getElementById('photoModalImg').src = imageUrl;
-    document.getElementById('photoModalUploader').textContent = `📸 ${uploaderName}`;
-    document.getElementById('photoModal').style.display = 'flex';
-  }
-
-  window.closePhotoModal = () => {
-    document.getElementById('photoModal').style.display = 'none';
-  };
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && document.getElementById('photoModal').style.display === 'flex') {
-      closePhotoModal();
-    }
-  });
 
   /* ===== カレンダー表示 ===== */
   let calendarYear, calendarMonth; // 0-indexed month
