@@ -380,7 +380,8 @@ def render_review(live, counts) -> str:
         out = []
         for ev, slug, start in items:
             n = counts.get(ev["id"], 0)
-            loc = (ev.get("location") or "").splitlines()[0]
+            # 一覧に細かい住所は出さない（それは個別ページの仕事）。県名が無い登録だけ先頭行を短く。
+            loc = find_prefecture(ev.get("location")) or (ev.get("location") or "").splitlines()[0][:14]
             out.append(
                 f'<tr><td class="d">{start:%Y/%m/%d}（{"月火水木金土日"[start.weekday()]}）'
                 f'{f"<br><small>{start:%H:%M}〜</small>" if has_time(start) else ""}</td>'
@@ -402,19 +403,35 @@ def render_review(live, counts) -> str:
   @media (prefers-color-scheme: dark) {{
     :root {{ --bg:#0f172a; --card:#1e293b; --accent:#7aa2e3; --ink:#e2e8f0; --sub:#94a3b8; --line:#334155; }}
   }}
-  body {{ font-family:system-ui,sans-serif; background:var(--bg); color:var(--ink); margin:0; padding:20px 16px 60px; line-height:1.5; }}
+  body {{ font-family:system-ui,sans-serif; background:var(--bg); color:var(--ink); margin:0; padding:20px 16px 60px; line-height:1.6; font-size:17px; }}
   .page {{ max-width:1000px; margin:0 auto; }}
-  h1 {{ font-size:1.2rem; margin:.2em 0; }}
-  h2 {{ font-size:1rem; margin:1.6em 0 .4em; }}
-  .warn {{ background:#fff8e1; border:1px dashed #e0c060; color:#7a5c00; border-radius:10px; padding:10px 14px; font-size:.85rem; margin:12px 0 20px; }}
+  h1 {{ font-size:1.4rem; margin:.2em 0; }}
+  h2 {{ font-size:1.15rem; margin:1.6em 0 .4em; }}
+  .warn {{ background:#fff8e1; border:1px dashed #e0c060; color:#7a5c00; border-radius:10px; padding:12px 16px; font-size:.95rem; margin:12px 0 20px; }}
   @media (prefers-color-scheme: dark) {{ .warn {{ background:#332a10; color:#e8cf8e; }} }}
   table {{ width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; }}
-  th, td {{ text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); font-size:.88rem; vertical-align:top; }}
-  th {{ color:var(--sub); font-size:.76rem; font-weight:600; }}
+  th, td {{ text-align:left; padding:12px 14px; border-bottom:1px solid var(--line); font-size:1rem; vertical-align:top; }}
+  th {{ color:var(--sub); font-size:.85rem; font-weight:600; }}
   td.d {{ white-space:nowrap; }} td.n {{ text-align:right; white-space:nowrap; }}
-  td.l {{ color:var(--sub); font-size:.82rem; }}
+  td.d small {{ font-size:.9rem; color:var(--sub); }}
+  td.l {{ color:var(--ink); white-space:nowrap; }}
+  td a {{ font-size:1.05rem; font-weight:600; }}
   a {{ color:var(--accent); }}
-  small.u {{ color:var(--sub); font-size:.72rem; word-break:break-all; }}
+  small.u {{ color:var(--sub); font-size:.82rem; font-weight:400; word-break:break-all; }}
+  /* スマホでは4列が収まらず横スクロールになるので、1件を縦に積む */
+  @media (max-width: 640px) {{
+    table {{ border-radius:12px; }}
+    table tr {{ display:block; padding:12px 14px; border-bottom:1px solid var(--line); }}
+    table tr:first-child {{ display:none; }}  /* 見出し行 */
+    td {{ display:block; border:none; padding:2px 0; }}
+    td.d {{ color:var(--sub); font-size:.92rem; }}
+    td.d br {{ display:none; }}
+    td.d small {{ margin-left:.4em; }}
+    td.l {{ font-size:.95rem; }}
+    td.l::before {{ content:"📍 "; }}
+    td.n {{ text-align:left; font-size:.95rem; }}
+    td.n::before {{ content:"参加 "; color:var(--sub); }}
+  }}
 </style>
 </head>
 <body>
