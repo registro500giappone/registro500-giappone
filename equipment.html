@@ -25,16 +25,16 @@
 
   <style>
     :root {
-      --bg-main: #f4f4f7;
-      --card-bg: #ffffff;
-      --border-soft: #e5e7eb;
-      --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.08);
-      --text-main: #111827;
-      --text-sub: #6b7280;
-      --accent: #2856a8;
-      --accent-soft: #e6efff;
+      --bg-main: #f5f0e6;
+      --card-bg: #fffefb;
+      --border-soft: #d6c9b0;
+      --shadow-soft: 0 2px 8px rgba(70, 58, 40, 0.10);
+      --text-main: #2e2a24;
+      --text-sub: #7a705f;
+      --accent: #1f5c3d;
+      --accent-soft: #e7efe7;
       --occasional: #7c8db5;
-      --radius-lg: 12px;
+      --radius-lg: 8px;
       --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -71,14 +71,14 @@
     /* このページの立場を最初に言う帯。equipment-edit.html の .concept-band と同じ意匠に揃える
        （2つのページで別のものに見えると、書く側と読む側で目的が違うように受け取られる） */
     .concept-band {
-      background: linear-gradient(135deg, #1d3f8a 0%, #2856a8 100%);
+      background: linear-gradient(135deg, #17452e 0%, #1f5c3d 100%);
       color: #fff; border-radius: var(--radius-lg);
       padding: 20px 22px; margin-bottom: 24px; line-height: 1.9; font-size: 0.9rem;
     }
     .concept-band strong { font-weight: 700; }
 
     .cta-band {
-      background: var(--card-bg); border: 1px dashed #c2d4ff; border-radius: var(--radius-lg);
+      background: var(--card-bg); border: 1px dashed #c3d6c6; border-radius: var(--radius-lg);
       padding: 18px 20px; margin-bottom: 24px; text-align: center;
     }
     .cta-band p { margin: 0 0 12px; font-size: 0.9rem; color: var(--text-sub); }
@@ -86,7 +86,7 @@
       display: inline-block; background: var(--accent); color: #fff; text-decoration: none;
       border-radius: 8px; padding: 10px 22px; font-weight: 600; font-size: 0.9rem;
     }
-    .btn-cta:hover { background: #1d3f8a; }
+    .btn-cta:hover { background: #17452e; }
 
     /* ===== 母数ゼロ時 ===== */
     .empty-state {
@@ -114,7 +114,7 @@
     .stat-label { font-size: 0.9rem; margin-bottom: 4px; display: flex; justify-content: space-between; gap: 8px; }
     .stat-label .name { flex: 1; min-width: 0; overflow-wrap: break-word; }
     .stat-pct { font-weight: 700; color: var(--accent); white-space: nowrap; }
-    .bar-track { background: #e5e7eb; border-radius: 4px; height: 10px; overflow: hidden; display: flex; }
+    .bar-track { background: var(--border-soft); border-radius: 4px; height: 10px; overflow: hidden; display: flex; }
     .bar-fill { height: 100%; background: var(--accent); transition: width 0.6s ease; }
     .bar-fill.occasional { background: var(--occasional); }
     .stat-breakdown { font-size: 0.75rem; color: var(--text-sub); margin-top: 3px; }
@@ -133,7 +133,7 @@
 
     .eq-row {
       display: flex; align-items: center; gap: 8px; width: 100%;
-      padding: 8px 0; border: 0; border-bottom: 1px dotted #eef1f5;
+      padding: 8px 0; border: 0; border-bottom: 1px dotted var(--border-soft);
       background: none; text-align: left; font: inherit; color: inherit; cursor: pointer;
     }
     .eq-row:last-of-type { border-bottom: 0; }
@@ -146,18 +146,18 @@
     .eq-count b { font-size: 0.85rem; color: var(--text-main); font-weight: 700; }
 
     .dots { display: flex; gap: 2px; flex: none; }
-    .dots .d { width: 7px; height: 7px; border-radius: 50%; background: #e2e6ec; }
+    .dots .d { width: 7px; height: 7px; border-radius: 50%; background: #d6c9b0; }
     .dots .d.always { background: var(--accent); }
     .dots .d.occasional { background: var(--occasional); }
 
     /* 母数が増えるとドットは1行に収まらなくなるので、そのときだけ従来のバーに戻す */
-    .mini-bar { flex: none; width: 84px; height: 8px; border-radius: 4px; background: #e5e7eb; overflow: hidden; display: flex; }
+    .mini-bar { flex: none; width: 84px; height: 8px; border-radius: 4px; background: var(--border-soft); overflow: hidden; display: flex; }
     .mini-bar span { height: 100%; background: var(--accent); }
     .mini-bar span.occasional { background: var(--occasional); }
 
     .chips { display: flex; flex-wrap: wrap; gap: 6px; }
     .chip {
-      font: inherit; font-size: 0.75rem; border: 1px solid var(--border-soft); background: #fafbfc;
+      font: inherit; font-size: 0.75rem; border: 1px solid var(--border-soft); background: #faf6ec;
       border-radius: 999px; padding: 5px 11px; color: #374151; cursor: pointer;
     }
     .chip:hover, .chip[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
@@ -167,7 +167,7 @@
     /* 行を押すと開く中身＝この機能の主役。率だけ見せて終わりにせず、
        「誰が・どんな物を・なぜ」まで辿れるようにする（メモは公開手帳のぶんだけ出る） */
     .detail {
-      background: #f8fafd; border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0;
+      background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0;
       padding: 12px 14px; margin: 2px 0 10px;
     }
     .detail .d-head { font-size: 0.75rem; color: var(--text-sub); margin: 0 0 8px; }
@@ -182,7 +182,7 @@
     .detail .d-note { font-size: 0.72rem; color: var(--text-sub); margin: 8px 0 0; }
 
     .more-btn {
-      display: block; width: 100%; margin-top: 12px; background: #f3f6fb; border: 1px solid #dbe4f3;
+      display: block; width: 100%; margin-top: 12px; background: var(--accent-soft); border: 1px solid #c3d6c6;
       color: var(--accent); border-radius: 8px; padding: 9px; font: inherit; font-size: 0.8rem;
       font-weight: 600; text-align: center; cursor: pointer;
     }
@@ -193,7 +193,7 @@
        「なぜそれを積むのか」がいちばん濃く出るテキストなので、読める場所に出す。 */
     .exp-lead { font-size: 0.78rem; color: var(--text-sub); margin: 10px 0 16px; }
     .exp-card {
-      border-left: 3px solid var(--accent); background: #f8fafd;
+      border-left: 3px solid var(--accent); background: var(--accent-soft);
       border-radius: 0 8px 8px 0; padding: 14px 16px; margin-bottom: 12px;
     }
     .exp-card:last-of-type { margin-bottom: 0; }
@@ -220,7 +220,7 @@
       text-decoration: none; color: var(--text-main); border-top: 1px solid var(--border-soft);
     }
     .owner-row:first-child { border-top: none; }
-    .owner-row:hover { background: #f8faff; }
+    .owner-row:hover { background: var(--accent-soft); }
     .row-thumb {
       position: relative;
       width: 40px; height: 40px; flex: 0 0 40px; border-radius: 6px; overflow: visible;
@@ -348,7 +348,7 @@
     <div id="legend" class="legend" style="display:none;">
       <span class="legend-item"><span class="legend-dot always"></span>常時積んでいる</span>
       <span class="legend-item"><span class="legend-dot occasional"></span>随時（必要な時だけ）</span>
-      <span class="legend-item"><span class="legend-dot" style="background:#e2e6ec;"></span>積んでいない</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#d6c9b0;"></span>積んでいない</span>
     </div>
 
     <div id="categories"></div>

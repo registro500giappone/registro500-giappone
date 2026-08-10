@@ -27,17 +27,17 @@
 
   <style>
     :root {
-      --bg-main: #f4f4f7;
-      --card-bg: #ffffff;
-      --border-soft: #e5e7eb;
-      --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.08);
-      --text-main: #111827;
-      --text-sub: #6b7280;
-      --accent: #2856a8;
+      --bg-main: #f5f0e6;
+      --card-bg: #fffefb;
+      --border-soft: #d6c9b0;
+      --shadow-soft: 0 2px 8px rgba(70, 58, 40, 0.10);
+      --text-main: #2e2a24;
+      --text-sub: #7a705f;
+      --accent: #1f5c3d;
       --ok: #1f7a45;
-      --accent-soft: #e6efff;
+      --accent-soft: #e7efe7;
       --occasional: #7c8db5;
-      --radius-lg: 12px;
+      --radius-lg: 8px;
       --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -66,7 +66,7 @@
 
     /* ===== コンセプト帯 ===== */
     .concept-band {
-      background: linear-gradient(135deg, #1d3f8a 0%, #2856a8 100%);
+      background: linear-gradient(135deg, #17452e 0%, #1f5c3d 100%);
       color: #fff; border-radius: var(--radius-lg);
       padding: 20px 22px; margin-bottom: 20px; line-height: 1.9; font-size: 0.9rem;
     }
@@ -143,7 +143,7 @@
     .item-note { margin-top: 6px; flex: 1 1 100%; }  /* 項目行の下に全幅で出す（プロンプトを読み切れるように） */
     .item-note input {
       width: 100%; padding: 8px 10px; border: 1px solid var(--border-soft);
-      border-radius: 8px; font-size: 0.82rem; font-family: inherit; background: #fbfcff; color: var(--text-main);
+      border-radius: 8px; font-size: 0.82rem; font-family: inherit; background: #faf6ec; color: var(--text-main);
     }
 
     /* ===== 自由追加 ===== */
@@ -203,7 +203,7 @@
     .result-shell {
       /* .page(max-width:800px)+body padding を突き抜けて全幅にする。html に overflow-x:hidden があるので 100vw で溢れない */
       margin: 52px calc(50% - 50vw) 0; width: 100vw; padding: 0 0 30px;
-      background: linear-gradient(180deg, #0f2547 0%, #1d3f8a 58%, #24509e 100%);
+      background: linear-gradient(180deg, #0f2e1f 0%, #17452e 58%, #1f5c3d 100%);
       overflow: hidden;
     }
     .result-banner { text-align: center; color: #fff; padding: 34px 20px 24px; }
@@ -364,7 +364,7 @@
                style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:15px;">
         <button type="button" id="clearEmailBtn" style="display:none;background:none;border:0;color:#888;font-size:12px;cursor:pointer;align-self:flex-start;padding:0;">別のアドレスを使う</button>
         <button id="emailLoginBtn"
-                style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">
+                style="padding:12px;border:0;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;">
           確認コードを送信
         </button>
         <div style="display:flex;align-items:center;gap:8px;color:#aaa;font-size:12px;margin:4px 0;">
@@ -378,10 +378,10 @@
         <input type="text" id="otpCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"
                style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:22px;letter-spacing:8px;text-align:center;">
         <button id="otpVerifyBtn"
-                style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">
+                style="padding:12px;border:0;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;">
           ログイン
         </button>
-        <button id="otpResendBtn" style="background:none;border:0;color:#2856a8;cursor:pointer;font-size:13px;">確認コードを再送する</button>
+        <button id="otpResendBtn" style="background:none;border:0;color:var(--accent);cursor:pointer;font-size:13px;">確認コードを再送する</button>
       </div>
       <p id="otpErrorMsg" style="display:none;font-size:13px;color:#c62828;margin:8px 0 0;"></p>
     </div>
@@ -1394,15 +1394,15 @@
 
   // headColor省略時は本文と同じ黒。安全・救援の不足見出しだけ赤で強調するため差し替え可能にしている
   function layoutSection(mctx, cmds, y, cw, heading, itemsArr, fHead, fName, fReason, headColor) {
-    cmds.push({ y, text: heading, font: fHead, color: headColor || '#111827' });
+    cmds.push({ y, text: heading, font: fHead, color: headColor || '#2e2a24' });
     y += 10;
     itemsArr.forEach(item => {
       y += 24;
-      cmds.push({ y, text: item.name, font: fName, color: '#111827' });
+      cmds.push({ y, text: item.name, font: fName, color: '#2e2a24' });
       mctx.font = fReason;
       wrapText(mctx, item.reason || '', cw).forEach(line => {
         y += 19;
-        cmds.push({ y, text: line, font: fReason, color: '#6b7280' });
+        cmds.push({ y, text: line, font: fReason, color: '#7a705f' });
       });
     });
     return y;
@@ -1426,7 +1426,7 @@
       mctx.font = F_DESC;
       wrapText(mctx, '出先で必要になる装備を、ほぼ余さず積んでいます。', cw).forEach(line => {
         y += 22;
-        cmds.push({ y, text: line, font: F_DESC, color: '#111827' });
+        cmds.push({ y, text: line, font: F_DESC, color: '#2e2a24' });
       });
       if (data.isSpareEngineParts) {
         wrapText(mctx, '🌟 交換用のキャブレターとデスビまで積んだ、走る部品庫です。', cw).forEach(line => {
@@ -1533,11 +1533,11 @@
     const ctx = canvas.getContext('2d');
     ctx.scale(SCALE, SCALE);
 
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = '#fffefb';
     ctx.fillRect(0, 0, W, totalH);
 
     const grad = ctx.createLinearGradient(0, 0, W, 0);
-    grad.addColorStop(0, '#1d3f8a'); grad.addColorStop(1, '#2856a8');
+    grad.addColorStop(0, '#17452e'); grad.addColorStop(1, '#1f5c3d');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, HEADER_H);
 
@@ -1566,13 +1566,13 @@
       ctx.fillText(cmd.text, PAD, originY + cmd.y);
     });
 
-    ctx.strokeStyle = '#e5e7eb';
+    ctx.strokeStyle = '#d6c9b0';
     ctx.beginPath();
     ctx.moveTo(PAD, totalH - FOOTER_H);
     ctx.lineTo(W - PAD, totalH - FOOTER_H);
     ctx.stroke();
     ctx.font = '400 11px ' + CARD_FONT;
-    ctx.fillStyle = '#9ca3af';
+    ctx.fillStyle = '#7a705f';
     ctx.fillText(new Date().toLocaleDateString('ja-JP') + ' 時点の記録', PAD, totalH - FOOTER_H + 26);
     ctx.textAlign = 'right';
     ctx.fillText('registro500.com', W - PAD, totalH - FOOTER_H + 26);
