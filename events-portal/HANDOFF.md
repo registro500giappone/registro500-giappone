@@ -222,7 +222,19 @@ JSON-LD必須項目／canonicalとurlの一致／OGP4種／曜日の検算／表
 | 公開（noindex解除→一覧からリンク→sitemap登録） | **2026-08-10 完了**。§5 参照 |
 | slug の英字表記の可否 | 未確認。`/event-review` で全35件を見られる。**公開後もslugは変えない**（変えるとリンクが切れる） |
 | **ログインして参加ボタンを押す動作** | **2026-08-10 ユーザーが実機で確認済み**（公開直後。不具合の報告なし） |
+| **Search Console に `sitemap-events.xml` を送信** | **未実施＝ユーザー作業**（Claude Code からは操作できない。下記） |
 | Search Console への登録反映 | 公開直後。**個別ページがインデックスされ、イベント名の検索で順位が付くかを数週間かけて観察する**（それがこの再構成の目的） |
+
+#### Search Console への sitemap 送信のしかた（ユーザー作業）
+Google は Search Console のログインが要るため、**Claude Code からは実行できない**
+（2026-08-10 に Chrome 拡張経由を試みたが未接続だった）。次の手順で送る:
+
+1. https://search.google.com/search-console を開く（プロパティ＝`https://www.registro500.com/`）
+2. 左メニューの **サイトマップ**
+3. 「新しいサイトマップの追加」に **`sitemap-events.xml`** と入力して送信
+
+> `robots.txt` には登録済みなので**送信しなくてもいずれ発見される**。送信は発見を早めるだけ。
+> 旧「sitemap ping」（`google.com/ping?sitemap=`）は 2023年に廃止済みで、機械からは送れない。
 | 第2段階（貼るだけ投稿）に進んでよいか | 未確認 |
 
 **プレビュー**：`https://claude-event-list-slim.registro500-giappone.pages.dev/event`
