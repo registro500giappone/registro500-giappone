@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex, nofollow">
+
 <link rel="canonical" href="https://www.registro500.com/event/2026-nihonkai-classic-car-review-35/">
 <title>第35回日本海クラシックカーレビュー | Registro500</title>
 <meta name="description" content="第35回日本海クラシックカーレビュー｜2026年9月6日（日） 09:30〜／〒941-0056 新潟県糸魚川市一ノ宮１３１３｜クラシックFIAT 500/126 のイベント情報 - Registro500 Giappone">
@@ -15,6 +15,8 @@
 <meta property="og:site_name" content="Registro500 Giappone">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
+<script>const supabaseClient = supabase.createClient("https://ttlttclfovuzafvghvaq.supabase.co", "sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt");</script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -45,71 +47,354 @@
 }
 </script>
 <style>
-  :root { --bg-main:#f4f4f7; --card-bg:#fff; --accent:#2856a8; --text-main:#111827; --sub:#6b7280; --line:#e5e7eb; }
+  :root { --bg-main:#f4f4f7; --card-bg:#fff; --accent:#2856a8; --text-main:#111827; --sub:#6b7280; --line:#e5e7eb; --nav:#1A1A18; }
   @media (prefers-color-scheme: dark) {
     :root { --bg-main:#0f172a; --card-bg:#1e293b; --accent:#7aa2e3; --text-main:#e2e8f0; --sub:#94a3b8; --line:#334155; }
   }
-  body { font-family:system-ui,sans-serif; background:var(--bg-main); color:var(--text-main); margin:0; padding:20px 16px 80px; line-height:1.6; }
-  .page { max-width:800px; margin:0 auto; }
-  .back { display:inline-block; color:var(--accent); text-decoration:none; font-size:.9rem; margin-bottom:14px; }
-  .card { background:var(--card-bg); border:1px solid var(--line); border-radius:14px; padding:20px 22px; }
-  h1 { font-size:1.35rem; margin:.1em 0 .5em; }
-  .badge { display:inline-block; font-size:.72rem; background:var(--accent); color:#fff; border-radius:999px; padding:2px 10px; vertical-align:middle; margin-left:8px; }
-  .row { display:flex; gap:12px; padding:9px 0; border-top:1px solid var(--line); }
+  * { box-sizing:border-box; }
+  body { font-family:system-ui,sans-serif; background:var(--bg-main); color:var(--text-main); margin:0; padding:0 0 90px; line-height:1.6; }
+
+  /* サイトの一部だと分かるように、動画ページ(video.html)と同じ形のバーを載せる */
+  .ev-nav { position:sticky; top:0; z-index:50; height:46px; background:var(--nav);
+             display:flex; align-items:center; justify-content:space-between; padding:0 18px; }
+  .ev-nav a { color:rgba(255,255,255,.8); text-decoration:none; font-size:.82rem; letter-spacing:.06em; }
+  .ev-nav a:hover { color:#fff; }
+  .ev-nav .brand { letter-spacing:.25em; text-transform:uppercase; font-size:.72rem; color:rgba(255,255,255,.6); }
+
+  .page { max-width:800px; margin:0 auto; padding:18px 16px 0; }
+  .card { background:var(--card-bg); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+
+  /* 日付はこのページの主役。行の一つに埋めず、上に置いて最初に目に入るようにする */
+  .hero { background:var(--accent); color:#fff; padding:16px 22px 14px; }
+  .hero.past { background:#6b7280; }
+  .hero-y { font-size:.8rem; opacity:.85; letter-spacing:.08em; }
+  .hero-d { font-size:1.75rem; font-weight:700; line-height:1.25; margin-top:2px; }
+  .hero-d .wd { font-size:1.1rem; font-weight:600; margin-left:2px; }
+  .hero-sub { font-size:.95rem; opacity:.92; margin-top:2px; }
+  .hero-cd { display:inline-block; margin-top:10px; background:rgba(255,255,255,.18);
+              border-radius:999px; padding:3px 14px; font-size:.85rem; font-weight:600; }
+
+  .body { padding:18px 22px 22px; }
+  h1 { font-size:1.4rem; margin:0 0 .6em; line-height:1.4; }
+  .badge { display:inline-block; font-size:.72rem; border-radius:5px; padding:3px 9px;
+            vertical-align:middle; margin-left:8px; font-weight:600; }
+  .b500 { background:#e0f2fe; color:#0369a1; }
+  .b126 { background:#ffedd5; color:#9a3412; }
+  .row { display:flex; gap:12px; padding:10px 0; border-top:1px solid var(--line); }
   .lbl { flex:0 0 5.5em; color:var(--sub); font-size:.85rem; }
   .val { flex:1; }
+
+  .btn { display:block; text-align:center; text-decoration:none; border-radius:10px;
+          padding:11px 16px; font-size:.95rem; font-weight:600; margin-top:12px; }
+  /* 絵文字は環境によって豆腐や黒塗りになる（🗺で実際に発生）ので、ボタンには使わない */
+  .btn-map { background:var(--bg-main); color:var(--accent); border:1px solid var(--line); }
+  .btn-ext { background:var(--accent); color:#fff; }
+  .btn-ext::after { content:" →"; }
+  .ext-host { text-align:center; font-size:.78rem; color:var(--sub); margin:6px 0 0; word-break:break-all; }
+  /* 共有は「行く人が仲間を誘う」動線なので参加予定の直後に置く。地図と同じ控えめな見た目にして、
+     このページで一番押してほしい参加ボタン（塗り）と主役を争わせない。button なので font 継承が要る */
+  .btn-share { background:var(--bg-main); color:var(--accent); border:1px solid var(--line);
+                width:100%; cursor:pointer; font-family:inherit; }
+  @media (prefers-color-scheme: dark) { .btn-map, .btn-share { background:#0f172a; } }
+
   .desc { margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
-  .ext { margin-top:14px; font-size:.9rem; }
-  .ext a { color:var(--accent); word-break:break-all; }
+  .desc a { color:var(--accent); word-break:break-all; }
   .join { margin-top:18px; padding-top:14px; border-top:1px solid var(--line); }
-  .join h2 { font-size:.95rem; margin:0 0 .5em; }
+  .join h2 { font-size:1rem; margin:0 0 .6em; }
   .names { display:flex; flex-wrap:wrap; gap:6px; }
-  .name { background:var(--bg-main); border:1px solid var(--line); border-radius:999px; padding:3px 12px; font-size:.85rem; }
-  .muted { color:var(--sub); font-size:.85rem; }
-  .foot { margin-top:22px; font-size:.8rem; color:var(--sub); }
+  .name { background:var(--bg-main); border:1px solid var(--line); border-radius:999px; padding:4px 13px; font-size:.88rem; }
+  a.name { color:var(--accent); text-decoration:none; font-weight:600; }
+  a.name:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+  @media (prefers-color-scheme: dark) { .name { background:#0f172a; } }
+  .muted { color:var(--sub); font-size:.9rem; }
+  .foot { margin-top:20px; font-size:.8rem; color:var(--sub); }
+  .back-bottom { display:block; text-align:center; margin:18px 0 0; padding:12px;
+                  color:var(--accent); text-decoration:none; font-size:.92rem; }
+
+  /* 参加表明ボタン（video.htmlのいいねボタンと同じ位置づけ。終了イベントではJSが隠す） */
+  .btn-join { display:block; width:100%; text-align:center; border:0; border-radius:10px;
+               padding:11px 16px; font-size:.95rem; font-weight:700; margin:0 0 12px;
+               background:var(--accent); color:#fff; cursor:pointer; }
+  .btn-join.joined { background:var(--bg-main); color:var(--accent); border:1px solid var(--line); }
+  @media (prefers-color-scheme: dark) { .btn-join.joined { background:#0f172a; } }
+  .btn-join:disabled { opacity:.6; cursor:default; }
+  .join-hint { margin:0 0 12px; font-size:.9rem; color:var(--sub); }
+  .join-hint a { color:var(--accent); }
+
+  /* ログインモーダル（video.htmlと同じメールOTPコード方式。配色だけこのページの変数に合わせる） */
+  #loginModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:10000;
+                 align-items:center; justify-content:center; padding:16px; }
+  #loginModal .box { background:var(--card-bg); color:var(--text-main); padding:26px 22px; border-radius:16px;
+                       max-width:340px; width:100%; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.25); }
+  #loginModal input { padding:11px; border:1px solid var(--line); border-radius:8px; font-size:15px;
+                        width:100%; background:var(--bg-main); color:var(--text-main); }
+  #loginModal .pri { padding:12px; border:0; border-radius:8px; background:var(--accent); color:#fff;
+                       font-weight:700; cursor:pointer; width:100%; font-size:.95rem; }
 </style>
 </head>
 <body>
+<nav class="ev-nav">
+  <a href="/event">← イベント一覧</a>
+  <a class="brand" href="/">Registro500</a>
+</nav>
 <div class="page">
-  <a class="back" href="/event">← イベント一覧へ</a>
   <article class="card">
-    <h1>第35回日本海クラシックカーレビュー</h1>
-      <div class="row"><span class="lbl">開催日</span><div class="val">2026年9月6日（日） 09:30〜</div></div>
-      <div class="row"><span class="lbl">開催場所</span><div class="val">〒941-0056 新潟県糸魚川市一ノ宮１３１３<br>フォッサマグナミュージアム</div></div>
-    <div class="desc">お問い合わせ<br>新潟県糸魚川市大町1-7-11　ヒスイ王国館1階<br>糸魚川市観光協会(旧デンカ跡)<br><br>電話　025-553-0318　メールアドレス　ccrstaff@gmail.com</div>
-      <p class="ext">🔗 <a href="https://ccr.ikaduchi.com/" target="_blank" rel="noopener nofollow">主催者のページを見る</a></p>
-    <div class="join">
-      <h2>参加予定</h2>
-      <div id="participants" class="muted">読み込み中…</div>
+    <div class="hero" id="hero" data-last-day="2026-09-06">
+      <div class="hero-y">2026年</div>
+      <div class="hero-d">9月6日<span class="wd">（日）</span></div>
+      
+      <div class="hero-sub">09:30〜</div>
+      <div class="hero-cd" id="countdown" hidden></div>
     </div>
-    <p class="foot">掲載: 管理者／情報は主催者の告知が最新です。お出かけ前に主催者のページでご確認ください。</p>
+    <div class="body">
+      <h1>第35回日本海クラシックカーレビュー</h1>
+      <div class="row"><span class="lbl">開催場所</span><div class="val">〒941-0056 新潟県糸魚川市一ノ宮１３１３<br>フォッサマグナミュージアム</div></div>
+    <a class="btn btn-map" href="https://www.google.com/maps/search/?api=1&amp;query=%E3%80%92941-0056%20%E6%96%B0%E6%BD%9F%E7%9C%8C%E7%B3%B8%E9%AD%9A%E5%B7%9D%E5%B8%82%E4%B8%80%E3%83%8E%E5%AE%AE%EF%BC%91%EF%BC%93%EF%BC%91%EF%BC%93%20%E3%83%95%E3%82%A9%E3%83%83%E3%82%B5%E3%83%9E%E3%82%B0%E3%83%8A%E3%83%9F%E3%83%A5%E3%83%BC%E3%82%B8%E3%82%A2%E3%83%A0" target="_blank" rel="noopener">Googleマップで開く</a>
+      <div class="desc">お問い合わせ<br>新潟県糸魚川市大町1-7-11　ヒスイ王国館1階<br>糸魚川市観光協会(旧デンカ跡)<br><br>電話　025-553-0318　メールアドレス　ccrstaff@gmail.com</div>
+    <a class="btn btn-ext" href="https://ccr.ikaduchi.com/" target="_blank" rel="noopener nofollow">詳しい情報を見る</a>
+    <p class="ext-host">ccr.ikaduchi.com</p>
+      <div class="join">
+        <h2 id="joinHead">参加予定</h2>
+        <button type="button" class="btn-join" id="joinBtn" style="display:none;">✋ 参加する</button>
+        <p class="join-hint" id="joinHint" style="display:none;"></p>
+        <div id="participants" class="muted">読み込み中…</div>
+      </div>
+      <button type="button" class="btn btn-share" id="shareBtn" onclick="shareThisEvent()">このイベントを共有する</button>
+      <p class="foot">掲載: 管理者／内容が変わることがあります。お出かけ前に最新の告知をご確認ください。</p>
+    </div>
   </article>
+  <a class="back-bottom" href="/event">← イベント一覧へ戻る</a>
 </div>
+
+<!-- ログインモーダル（メールOTPコード方式・video.htmlと共通の認証方式） -->
+<div id="loginModal">
+  <div class="box">
+    <h3 style="margin-top:0;">ログイン</h3>
+    <p style="font-size:13px;color:var(--sub);margin:0 0 16px;">登録したメールアドレスにコードを送ってログインします</p>
+    <div id="otpStep1" style="display:flex;flex-direction:column;gap:10px;text-align:left;">
+      <input type="email" id="emailLoginInput" placeholder="登録したメールアドレス" autocomplete="email">
+      <button type="button" id="clearEmailBtn" onclick="clearLoginEmail()" style="display:none;background:none;border:0;color:var(--sub);font-size:12px;cursor:pointer;align-self:flex-start;padding:0;">別のアドレスを使う</button>
+      <button id="emailLoginBtn" class="pri" onclick="sendOtpCode()">確認コードを送信</button>
+    </div>
+    <div id="otpStep2" style="display:none;flex-direction:column;gap:10px;text-align:left;">
+      <p style="font-size:13px;color:#2e7d32;margin:0;">✅ <span id="otpSentEmail" style="font-weight:700;"></span> に6桁の確認コードを送信しました。届いたコードを入力してください。</p>
+      <input type="text" id="otpCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"
+             style="font-size:22px;letter-spacing:8px;text-align:center;">
+      <button id="otpVerifyBtn" class="pri" onclick="verifyOtpCode()">ログイン</button>
+      <button onclick="resendOtpCode()" style="background:none;border:0;color:var(--accent);cursor:pointer;font-size:13px;">確認コードを再送する</button>
+    </div>
+    <p id="otpErrorMsg" style="display:none;font-size:13px;color:#c62828;margin:8px 0 0;"></p>
+    <button onclick="closeLoginModal()" style="margin-top:16px;background:none;border:0;color:var(--sub);cursor:pointer;font-size:13px;">閉じる</button>
+  </div>
+</div>
+<script src="/fab-nav.js" defer></script>
 <script>
-// 参加表明は変動するので静的に焼かず、表示時に最新を取りに行く。
-// event_participants は匿名読み取り可（一覧ページと同じ扱い）。
-(async () => {
-  const box = document.getElementById('participants');
+// 「あと何日」「終了しました」は今日を基準に変わる。6時間おきの生成で焼き込むと
+// 日付をまたいだ瞬間に嘘になるので、表示時に出す。
+var rgIsPast = (function () {
+  var hero = document.getElementById('hero');
+  var cd = document.getElementById('countdown');
+  var p = hero.dataset.lastDay.split('-');
+  var last = new Date(+p[0], +p[1] - 1, +p[2]);   // 開催最終日のローカル(JST)0時
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var days = Math.round((last - today) / 86400000);
+  if (days < 0) { hero.classList.add('past'); cd.textContent = '終了しました'; }
+  else if (days === 0) { cd.textContent = '本日開催'; }
+  else if (days === 1) { cd.textContent = '明日開催'; }
+  else { cd.textContent = 'あと' + days + '日'; }
+  cd.hidden = false;
+  return days < 0;
+})();
+
+const EVENT_ID = "EVT_1782880087106";
+const EVENT_NAME = "第35回日本海クラシックカーレビュー";
+
+// 共有。スマホでは共有シート（LINE等が並ぶ）、対応していない環境ではリンクをコピーする。
+// alert を出さずボタンの文字で結果を伝える＝押した指の近くで完結し、閉じる操作が要らない。
+// 配るURLは canonical と同じ /event/<slug>/ に固定する（クエリやハッシュが付いた状態で
+// 共有されると、同じページが別URLとして出回りSNSのシェア数も分散するため）。
+function shareThisEvent() {
+  const url = location.origin + location.pathname;
+  const btn = document.getElementById('shareBtn');
+  if (navigator.share) {
+    navigator.share({ title: EVENT_NAME, url: url }).catch(function () {});
+    return;   // 共有をやめた場合も含め、ここで完了
+  }
+  navigator.clipboard.writeText(url).then(function () {
+    const before = btn.textContent;
+    btn.textContent = 'リンクをコピーしました';
+    setTimeout(function () { btn.textContent = before; }, 2000);
+  }).catch(function () {
+    prompt('このリンクをコピーしてください:', url);
+  });
+}
+
+let currentUser = null;
+let myCarId = null;
+let myCarHandle = null;
+
+// ── ログインモーダル（video.htmlと同じメールOTPコード方式）──
+let otpEmail = '';
+function openLoginModal(){
+  const m = document.getElementById('loginModal'); if (m) m.style.display = 'flex';
+  const inp = document.getElementById('emailLoginInput'), cb = document.getElementById('clearEmailBtn');
+  const saved = localStorage.getItem('r500_login_email');
+  if (saved && inp) { inp.value = saved; if (cb) cb.style.display = 'block'; }
+}
+function clearLoginEmail(){
+  const inp = document.getElementById('emailLoginInput'), cb = document.getElementById('clearEmailBtn');
+  if (inp) { inp.value = ''; inp.focus(); }
+  localStorage.removeItem('r500_login_email');
+  if (cb) cb.style.display = 'none';
+}
+function closeLoginModal(){
+  const m = document.getElementById('loginModal'); if (m) m.style.display = 'none';
+  const s1 = document.getElementById('otpStep1'), s2 = document.getElementById('otpStep2');
+  if (s1) s1.style.display = 'flex'; if (s2) s2.style.display = 'none';
+  showOtpError('');
+}
+function showOtpError(msg){
+  const el = document.getElementById('otpErrorMsg'); if (!el) return;
+  if (!msg) { el.style.display = 'none'; return; }
+  el.textContent = msg; el.style.display = 'block';
+}
+async function sendOtpCode(){
+  const email = document.getElementById('emailLoginInput').value.trim();
+  if (!email) { alert('メールアドレスを入力してください'); return; }
+  const btn = document.getElementById('emailLoginBtn');
+  btn.disabled = true; btn.textContent = '送信中…';
+  const { error } = await supabaseClient.auth.signInWithOtp({ email });
+  btn.disabled = false; btn.textContent = '確認コードを送信';
+  if (error) { showOtpError('送信に失敗しました：' + error.message); return; }
+  otpEmail = email;
+  localStorage.setItem('r500_login_email', email);
+  document.getElementById('otpSentEmail').textContent = email;
+  document.getElementById('otpStep1').style.display = 'none';
+  document.getElementById('otpStep2').style.display = 'flex';
+  showOtpError('');
+}
+async function verifyOtpCode(){
+  const code = document.getElementById('otpCodeInput').value.trim();
+  if (!code) { alert('確認コードを入力してください'); return; }
+  const btn = document.getElementById('otpVerifyBtn');
+  btn.disabled = true; btn.textContent = '確認中…';
+  const { error } = await supabaseClient.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
+  btn.disabled = false; btn.textContent = 'ログイン';
+  if (error) { showOtpError('コードが正しくないか、期限切れです。もう一度お試しください。'); return; }
+  closeLoginModal();  // 成功 → onAuthStateChange が参加ボタンを更新
+}
+async function resendOtpCode(){
+  if (!otpEmail) return;
+  const { error } = await supabaseClient.auth.signInWithOtp({ email: otpEmail });
+  showOtpError(error ? ('再送に失敗しました：' + error.message) : '');
+  if (!error) alert('確認コードを再送しました。');
+}
+
+// ── 参加表明。event_participants は匿名読み取り可（一覧ページと同じ扱い）──
+async function checkMyCar(user){
   try {
-    const r = await fetch("https://ttlttclfovuzafvghvaq.supabase.co" + '/rest/v1/event_participants?select=handle_name&event_id=eq.' +
-      encodeURIComponent("EVT_1782880087106"), { headers: { apikey: "sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt" } });
-    const rows = await r.json();
-    if (!Array.isArray(rows) || rows.length === 0) {
-      box.textContent = 'まだ参加表明はありません。';
-      return;
+    const { data: cars } = await supabaseClient.from('cars')
+      .select('document_id, handle_name').eq('owner_user_id', user.id);
+    if (cars && cars.length > 0) { myCarId = cars[0].document_id; myCarHandle = cars[0].handle_name; }
+    else { myCarId = null; myCarHandle = null; }
+  } catch (e) { myCarId = null; myCarHandle = null; }
+}
+
+function updateJoinButton(rows){
+  const btn = document.getElementById('joinBtn');
+  const hint = document.getElementById('joinHint');
+  if (!btn || rgIsPast) return;  // 終了したイベントには参加ボタンを出さない
+  hint.style.display = 'none';
+  if (!currentUser) {
+    btn.textContent = '✋ 参加する';
+    btn.classList.remove('joined');
+    btn.onclick = openLoginModal;
+    btn.style.display = 'block';
+    return;
+  }
+  // event_participants は car_id だけで人を見分けており、車両未登録だと
+  // 全員が同じ値に集約されて互いの参加表明を消せてしまう。ここでは登録を促す。
+  if (!myCarId) {
+    btn.style.display = 'none';
+    hint.innerHTML = '愛車を登録すると参加表明できます。<a href="/edit">車両を登録する</a>';
+    hint.style.display = 'block';
+    return;
+  }
+  const joined = rows.some((r) => r.car_id === myCarId);
+  btn.textContent = joined ? '✅ 参加予定です' : '✋ 参加する';
+  btn.classList.toggle('joined', joined);
+  btn.onclick = toggleJoin;
+  btn.style.display = 'block';
+}
+
+async function refreshParticipants(){
+  const box = document.getElementById('participants');
+  const head = document.getElementById('joinHead');
+  try {
+    const { data: rows, error } = await supabaseClient.from('event_participants')
+      .select('car_id, handle_name').eq('event_id', EVENT_ID);
+    if (error) throw error;
+    const list = rows || [];
+    if (list.length === 0) {
+      box.textContent = rgIsPast ? '参加表明はありませんでした。' : 'まだ参加表明はありません。';
+      box.className = 'muted';
+    } else {
+      head.textContent = list.length + '人が参加' + (rgIsPast ? 'しました' : '予定');
+      box.className = 'names';
+      box.innerHTML = '';
+      for (const row of list) {
+        // 名前から愛車のページへ行けるようにする。オーナー同士が繋がるための
+        // 導線で、ここがこのサイトの本筋（検索流入はあくまで副次的）。
+        // 同じタブで開くので、detail 側の戻るボタン（fab-nav.js）でも
+        // ブラウザの戻るでも、このイベントページへ帰ってこられる。
+        // car_id が 'ADMIN' の行は車両を持たない参加者なのでリンクにしない。
+        const linkable = row.car_id && row.car_id !== 'ADMIN';
+        const el = document.createElement(linkable ? 'a' : 'span');
+        el.className = 'name';
+        if (linkable) el.href = '/detail?doc=' + encodeURIComponent(row.car_id);
+        el.textContent = row.handle_name || '(名称未設定)';
+        box.appendChild(el);
+      }
     }
-    box.className = 'names';
-    box.innerHTML = '';
-    for (const row of rows) {
-      const span = document.createElement('span');
-      span.className = 'name';
-      span.textContent = row.handle_name || '(名称未設定)';
-      box.appendChild(span);
-    }
+    updateJoinButton(list);
   } catch (err) {
     box.textContent = '参加者の読み込みに失敗しました。';
   }
-})();
+}
+
+async function toggleJoin(){
+  const btn = document.getElementById('joinBtn');
+  if (!myCarId) return;   // 車両未登録には上で案内を出しており、ここへは来ない
+  btn.disabled = true;
+  try {
+    const { data: existing } = await supabaseClient.from('event_participants')
+      .select('id').eq('event_id', EVENT_ID).eq('car_id', myCarId).maybeSingle();
+    if (existing) {
+      const { error } = await supabaseClient.from('event_participants').delete().eq('id', existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabaseClient.from('event_participants').insert([
+        { event_id: EVENT_ID, car_id: myCarId, handle_name: myCarHandle || 'オーナー' }
+      ]);
+      if (error) throw error;
+    }
+    await refreshParticipants();
+  } catch (e) {
+    alert('通信エラーが発生しました');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+supabaseClient.auth.onAuthStateChange((event, session) => {
+  const user = session ? session.user : null;
+  currentUser = user;
+  (async () => {
+    if (user) await checkMyCar(user); else { myCarId = null; myCarHandle = null; }
+    await refreshParticipants();
+  })();
+});
+refreshParticipants();
 </script>
 </body>
 </html>

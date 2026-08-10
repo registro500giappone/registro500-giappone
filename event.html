@@ -29,9 +29,6 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   </script>
 
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
-
   <style>
     :root {
       --bg-main: #f4f4f7;
@@ -96,7 +93,22 @@
       border-left: 5px solid var(--accent);
     }
     .event-card.past { border-left-color: #999; opacity: 0.8; background: #f9f9f9; }
-    
+
+    /* 一覧は「日付・名前・都道府県・参加人数」だけの要約。
+       住所の詳細・説明文・参加ボタン・写真は個別ページ /event/<slug>/ が持つ。 */
+    .event-card.slim { padding: 16px 18px; margin-bottom: 12px; }
+    .slim-link { display: block; text-decoration: none; color: inherit; }
+    .slim-link:hover .slim-title { text-decoration: underline; }
+    .slim-date { font-weight: bold; color: var(--accent); font-size: 1.05rem; }
+    .slim-time { font-weight: normal; color: #666; font-size: 0.92rem; margin-left: 6px; }
+    .slim-title { margin: 4px 0 8px; font-size: 1.25rem; font-weight: bold; line-height: 1.4; }
+    .slim-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; font-size: 1rem; color: #444; }
+    .slim-pref { font-weight: 600; }
+    .slim-join { color: var(--accent); font-weight: 600; }
+    /* 右端に寄せると、右下に固定されている投稿ボタン（＋）と重なって読めなくなる */
+    .slim-more { font-size: 0.9rem; color: var(--accent); white-space: nowrap; }
+
+
     .ev-admin-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; }
     .btn-edit, .btn-delete, .btn-share {
       background: #f0f0f0; border: 1px solid #ccc; color: #555;
@@ -153,6 +165,9 @@
       display: flex; align-items: center; justify-content: center; font-size: 30px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer; z-index: 100;
     }
+    /* fab-nav.js の「先頭へ」は右下に出るため、この投稿ボタンの真下に隠れてしまう。
+       投稿ボタン(60px)＋間隔の分だけ上へ逃がす。左下の「戻る」は重ならないので動かさない。 */
+    .rg-fab-top { bottom: calc(92px + env(safe-area-inset-bottom, 0px)) !important; }
     .modal-overlay {
       position: fixed; top:0; left:0; width:100%; height:100%;
       background: rgba(0,0,0,0.5); z-index: 200; display: none; align-items: center; justify-content: center;
@@ -184,62 +199,6 @@
 
 
 
-
-    /* ===== 写真ギャラリー ===== */
-    .photo-gallery-section {
-      margin-top: 20px; padding-top: 15px; border-top: 1px dashed #eee;
-    }
-    .photo-gallery-header {
-      display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
-    }
-    .photo-gallery-title {
-      font-size: 1rem; font-weight: 700; color: #444;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .photo-gallery-title::before { content: "📸"; }
-    .btn-add-photo {
-      background: #fff; border: 1px solid var(--accent); color: var(--accent);
-      padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; cursor: pointer;
-      font-weight: 600; transition: 0.2s;
-    }
-    .btn-add-photo:hover { background: var(--accent); color: #fff; }
-
-    .photo-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 8px; margin-top: 12px;
-    }
-    .photo-item {
-      position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 8px;
-      cursor: pointer; transition: transform 0.2s;
-    }
-    .photo-item:hover { transform: scale(1.05); }
-    .photo-item img {
-      width: 100%; height: 100%; object-fit: cover;
-    }
-    .photo-uploader {
-      position: absolute; bottom: 4px; left: 4px; right: 4px;
-      background: rgba(0,0,0,0.6); color: white; font-size: 0.7rem;
-      padding: 2px 6px; border-radius: 4px; white-space: nowrap;
-      overflow: hidden; text-overflow: ellipsis;
-    }
-
-    .photo-modal {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.9); z-index: 300; display: none;
-      align-items: center; justify-content: center; flex-direction: column;
-    }
-    .photo-modal img {
-      max-width: 90%; max-height: 80vh; border-radius: 8px;
-    }
-    .photo-modal-close {
-      position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2);
-      color: white; border: none; font-size: 2rem; cursor: pointer;
-      width: 50px; height: 50px; border-radius: 50%; display: flex;
-      align-items: center; justify-content: center;
-    }
-    .photo-modal-uploader {
-      color: white; font-size: 0.9rem; margin-top: 12px; opacity: 0.8;
-    }
 
     /* ===== カレンダー表示 ===== */
     .view-toggle { display: flex; gap: 8px; margin-bottom: 20px; }
@@ -308,6 +267,8 @@
       .event-card.past { background: #1a2234; opacity: 0.8; }
       .ev-info-row { color: #e2e8f0; }
       .ev-label { color: #94a3b8; }
+      .slim-time { color: #94a3b8; }
+      .slim-meta { color: #cbd5e1; }
       .ev-desc { border-top-color: #334155; color: #94a3b8; }
       .btn-edit, .btn-delete, .btn-share { background: #334155; border-color: #475569; color: #94a3b8; }
       .btn-edit:hover { background: #475569; }
@@ -333,11 +294,6 @@
       .calendar-nav-btn { border-color: #334155; color: #60a5fa; }
       .calendar-nav-btn:hover { background: #60a5fa; color: #fff; border-color: #60a5fa; }
       .calendar-month-label { color: #e2e8f0; }
-      .photo-gallery-section { border-top-color: #334155; }
-      .photo-gallery-title { color: #94a3b8; }
-      .btn-add-photo { background: #1e293b; border-color: #60a5fa; color: #60a5fa; }
-      .btn-add-photo:hover { background: #60a5fa; color: #fff; }
-      .photo-uploader { background: rgba(0,0,0,0.8); }
     }
   </style>
   <!-- 左下「一つ前に戻る」（ホーム画面起動時のみ）／右下「先頭へ」の浮かぶボタン -->
@@ -358,7 +314,7 @@
       Registro500では、オーナー同士が繋がれる機会を増やすため、皆様からのイベント情報の投稿を幅広く募集しています。
     </div>
     <ul class="guide-list">
-      <li>クラシックFIAT 500対象のイベント</li>
+      <li>クラシックFIAT 500・126 対象のイベント</li>
       <li>オーナー発信の小規模オフ会・ミーティング</li>
     </ul>
     <div class="guide-text">
@@ -492,24 +448,46 @@
 </div>
 
 
-<div class="photo-modal" id="photoModal">
-  <button class="photo-modal-close" onclick="closePhotoModal()">×</button>
-  <img id="photoModalImg" src="" alt="">
-  <div class="photo-modal-uploader" id="photoModalUploader"></div>
-</div>
-
 
 
 <script>
-  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-  const storage = firebase.storage();
-
   const CACHE_KEY_EVENTS = 'registro500_event_data_v4';
   let currentUser = null;
   let myCarId = null;
   let allEventsData = [];
   let currentRegion = 'all';
   const urlType = new URLSearchParams(window.location.search).get('type') || '500';
+
+  // 個別ページ（/event/<slug>/）のURL対応表。gen_event_pages.py が6時間おきに更新する。
+  // 登録直後でまだ生成されていないイベントは slug を持たないため、その場合だけ
+  // 従来どおり詳細を一覧に出す（一覧から情報が消えて行き先も無い、を避ける）。
+  let eventSlugs = {};
+
+  // 北から南の順。「東京都」を「京都」より先に判定させるためこの順序を崩さない。
+  const PREFECTURES = [
+    "北海道","青森","岩手","宮城","秋田","山形","福島",
+    "茨城","栃木","群馬","埼玉","千葉","東京","神奈川",
+    "新潟","富山","石川","福井","山梨","長野","岐阜","静岡","愛知",
+    "三重","滋賀","京都","大阪","兵庫","奈良","和歌山",
+    "鳥取","島根","岡山","広島","山口","徳島","香川","愛媛","高知",
+    "福岡","佐賀","長崎","熊本","大分","宮崎","鹿児島","沖縄"
+  ];
+
+  // 住所から都道府県だけを取り出す（一覧に細かい住所は出さない）。
+  // 見つからないときは先頭行を短く出す（「原宿・明治神宮」のように県名が無い登録がある）。
+  function prefectureOf(location) {
+    const loc = location || '';
+    for (const p of PREFECTURES) {
+      if (loc.includes(p)) {
+        if (p === '北海道') return p;
+        if (p === '東京') return '東京都';
+        if (p === '大阪' || p === '京都') return p + '府';
+        return p + '県';
+      }
+    }
+    const head = loc.split('\n')[0].trim();
+    return head.length > 14 ? head.slice(0, 14) + '…' : head;
+  }
 
   const REGION_MAP = {
     '北海道・東北': ['北海道','青森','岩手','宮城','秋田','山形','福島'],
@@ -527,6 +505,7 @@
       document.title = 'イベント情報 | Registro126 Giappone';
       document.getElementById('evSubtitle').textContent = 'FIAT 126 イベント・ミーティング情報';
     }
+    loadSlugs();
     initFromCache();
     fetchEvents();
     supabaseClient.auth.onAuthStateChange((event, session) => {
@@ -560,6 +539,15 @@
       });
     });
   });
+
+  async function loadSlugs() {
+    try {
+      const r = await fetch('/event-slugs.json', { cache: 'no-cache' });
+      if (!r.ok) return;
+      eventSlugs = await r.json();
+      if (allEventsData.length) renderEvents();
+    } catch (e) { /* 取れなくても一覧は出す（詳細付きのカードに落ちるだけ） */ }
+  }
 
   function initFromCache() {
     const cached = localStorage.getItem(CACHE_KEY_EVENTS);
@@ -656,15 +644,83 @@
     });
     document.getElementById('futureSection').style.display = (futureEl.children.length > 0) ? 'block' : 'none';
     document.getElementById('pastSection').style.display = (pastEl.children.length > 0) ? 'block' : 'none';
-
-    // 開催日当日以降のイベントの写真を読み込み
-    filtered.forEach(ev => {
-      const eventDate = new Date(ev.EventDate);
-      if (eventDate <= new Date()) loadEventPhotos(ev.EventID);
-    });
   }
 
-function createEventCard(ev, isPast, dateObj) {
+  // 日付表示の組み立て。要約カード・詳細カードの両方から使う。
+  // JSTローカル時刻で扱い、00:00 ちょうどは「開催時刻の入力なし」とみなす（保存側の規約）。
+  function buildDateDisplay(ev, dateObj) {
+    const W = ['日','月','火','水','木','金','土'];
+    const hh = dateObj.getHours(), mm = dateObj.getMinutes();
+    const timeStr = (hh === 0 && mm === 0) ? '' : ` ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}〜`;
+
+    let dateEndStr = "";
+    if (ev.EventDateEnd) {
+      const endD = new Date(ev.EventDateEnd);
+      const sameDay = dateObj.getFullYear() === endD.getFullYear() && dateObj.getMonth() === endD.getMonth() && dateObj.getDate() === endD.getDate();
+      if (!sameDay) {
+        dateEndStr = (dateObj.getFullYear() === endD.getFullYear() && dateObj.getMonth() === endD.getMonth())
+          ? ` ～ ${endD.getDate()} (${W[endD.getDay()]})`                       // 同月なので月を省略
+          : ` ～ ${endD.getMonth()+1}/${endD.getDate()} (${W[endD.getDay()]})`;
+      }
+    }
+    const dateHead = `${dateObj.getFullYear()}/${dateObj.getMonth()+1}/${dateObj.getDate()} (${W[dateObj.getDay()]})${dateEndStr}`;
+    return { dateHead, timeStr, dateDisplay: dateHead + timeStr };
+  }
+
+  function carTypeBadgeHtml(ev) {
+    if (ev.TargetCarType === '500') return '<span style="display:inline-block; margin-left:8px; padding:2px 8px; background:#e0f2fe; color:#0369a1; border-radius:4px; font-size:0.75rem; font-weight:600;">500</span>';
+    if (ev.TargetCarType === '126') return '<span style="display:inline-block; margin-left:8px; padding:2px 8px; background:#ffedd5; color:#9a3412; border-radius:4px; font-size:0.75rem; font-weight:600;">126</span>';
+    return ''; // 'both' はバッジなし（デフォルト）
+  }
+
+  // slim=true（要約カード）ではシェアを出さない。個別ページのURLをそのまま配れるので
+  // 一覧に置く必要が無く、置くと要約が読みにくくなる。編集・削除は一覧からしか行えないので残す。
+  function adminRowHtml(ev, slim) {
+    const isOwner = currentUser && (ev.OwnerID === myCarId || myCarId === 'ADMIN');
+    const edit = `<button class="btn-edit" onclick="openEdit('${ev.EventID}')">✏️ 編集</button><button class="btn-delete" onclick="deleteEvent('${ev.EventID}')">🗑️ 削除</button>`;
+    const share = `<button class="btn-share" onclick="shareEvent('${ev.EventID}')">🔗 シェア</button>`;
+    if (slim) return isOwner ? `<div class="ev-admin-row">${edit}</div>` : '';
+    if (isOwner) return `<div class="ev-admin-row">${edit}${share}</div>`;
+    return `<div class="ev-admin-row">${share}</div>`; // 管理者でなくてもシェアは出す
+  }
+
+  // 一覧のカード。日付・名前・都道府県・参加人数だけを出し、
+  // 住所の詳細／説明文／参加ボタン／写真は個別ページ /event/<slug>/ が持つ。
+  function createEventCard(ev, isPast, dateObj) {
+    const slug = eventSlugs[ev.EventID];
+    // 登録直後で個別ページがまだ生成されていないイベントは行き先が無いので、
+    // 従来どおり詳細付きのカードで出す（情報も行き先も無い、という状態を作らない）。
+    if (!slug) return createFullCard(ev, isPast, dateObj);
+
+    const div = document.createElement('div');
+    div.className = 'event-card slim' + (isPast ? ' past' : '');
+    div.id = 'event-' + ev.EventID; // パーマリンク用ID
+
+    const participants = (ev.Participants || []).filter(p => p.OwnerID && p.HandleName && p.OwnerID !== 'undefined');
+    const isJoined = participants.some(p => p.OwnerID === myCarId);
+    const { dateHead, timeStr } = buildDateDisplay(ev, dateObj);
+
+    let joinHtml = '';
+    if (isJoined) joinHtml = '<span class="slim-join">✅ 参加予定です</span>';
+    else if (participants.length) joinHtml = `<span class="slim-join">✋ ${participants.length}人が参加${isPast ? '' : '予定'}</span>`;
+
+    div.innerHTML = `
+      ${adminRowHtml(ev, true)}
+      <a class="slim-link" href="/event/${slug}/">
+        <div class="slim-date">${esc(dateHead)}${timeStr ? `<span class="slim-time">${esc(timeStr.trim())}</span>` : ''}</div>
+        <h3 class="slim-title">${esc(ev.EventName)}${carTypeBadgeHtml(ev)}</h3>
+        <div class="slim-meta">
+          <span class="slim-pref">📍 ${esc(prefectureOf(ev.Location))}</span>
+          ${joinHtml}
+          <span class="slim-more">詳しく見る →</span>
+        </div>
+      </a>
+    `;
+    return div;
+  }
+
+  // 個別ページがまだ無いイベント用のフォールバック（従来のカード）。
+  function createFullCard(ev, isPast, dateObj) {
     const div = document.createElement('div');
     div.className = 'event-card' + (isPast ? ' past' : '');
     div.id = 'event-' + ev.EventID; // パーマリンク用ID
@@ -678,55 +734,9 @@ function createEventCard(ev, isPast, dateObj) {
         return `<a href="/detail?doc=${p.OwnerID}" target="_blank" class="participant-link">${esc(p.HandleName)}</a>`;
     }).join('');
 
-    const w = ['日','月','火','水','木','金','土'][dateObj.getDay()];
-
-    // --- ここから時間の判定ロジック ---
-    const hh = dateObj.getHours();
-    const mm = dateObj.getMinutes();
-
-    // 時間が 00:00 の場合は「時間設定なし」とみなして表示しない
-    let timeStr = "";
-    if (!(hh === 0 && mm === 0)) {
-        timeStr = ` ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}〜`;
-    }
-    // --- ここまで ---
-
-    // 終了日表示の組み立て
-    let dateEndStr = "";
-    if (ev.EventDateEnd) {
-      const endD = new Date(ev.EventDateEnd);
-      // 開始日と同日なら表示しない
-      const sameDay = dateObj.getFullYear() === endD.getFullYear() && dateObj.getMonth() === endD.getMonth() && dateObj.getDate() === endD.getDate();
-      if (!sameDay) {
-        const endW = ['日','月','火','水','木','金','土'][endD.getDay()];
-        if (dateObj.getMonth() === endD.getMonth() && dateObj.getFullYear() === endD.getFullYear()) {
-          // 同月: 月を省略
-          dateEndStr = ` ～ ${endD.getDate()} (${endW})`;
-        } else {
-          // 別月
-          dateEndStr = ` ～ ${endD.getMonth()+1}/${endD.getDate()} (${endW})`;
-        }
-      }
-    }
-
-    const dateDisplay = `${dateObj.getFullYear()}/${dateObj.getMonth()+1}/${dateObj.getDate()} (${w})${dateEndStr}${timeStr}`;
-
-    let adminHtml = '';
-    if (currentUser && (ev.OwnerID === myCarId || myCarId === 'ADMIN')) {
-      adminHtml = `<div class="ev-admin-row"><button class="btn-edit" onclick="openEdit('${ev.EventID}')">✏️ 編集</button><button class="btn-delete" onclick="deleteEvent('${ev.EventID}')">🗑️ 削除</button><button class="btn-share" onclick="shareEvent('${ev.EventID}')">🔗 シェア</button></div>`;
-    } else {
-      // 管理者でなくてもシェアボタンは表示
-      adminHtml = `<div class="ev-admin-row"><button class="btn-share" onclick="shareEvent('${ev.EventID}')">🔗 シェア</button></div>`;
-    }
-
-    // 車両タイプバッジ
-    let carTypeBadge = '';
-    if (ev.TargetCarType === '500') {
-      carTypeBadge = '<span style="display:inline-block; margin-left:8px; padding:2px 8px; background:#e0f2fe; color:#0369a1; border-radius:4px; font-size:0.75rem; font-weight:600;">500</span>';
-    } else if (ev.TargetCarType === '126') {
-      carTypeBadge = '<span style="display:inline-block; margin-left:8px; padding:2px 8px; background:#ffedd5; color:#9a3412; border-radius:4px; font-size:0.75rem; font-weight:600;">126</span>';
-    }
-    // 'both'の場合はバッジなし（デフォルト）
+    const { dateDisplay } = buildDateDisplay(ev, dateObj);
+    const adminHtml = adminRowHtml(ev);
+    const carTypeBadge = carTypeBadgeHtml(ev);
 
     div.innerHTML = `
       ${adminHtml}
@@ -737,7 +747,6 @@ function createEventCard(ev, isPast, dateObj) {
       <div class="ev-desc">${linkify(ev.Description)}</div>
       ${ev.URL ? `<div class="ev-url-row">🔗 参照URL: <a href="${ev.URL}" target="_blank">${esc(ev.URL)}</a></div>` : ''}
       ${isPast ? '' : `<div class="participation-area"><button class="btn-join ${isJoined ? 'joined' : ''}" onclick="toggleJoin('${ev.EventID}')">${isJoined ? '✅ 参加予定です' : '✋ 参加予定'}</button><div class="participants-list">${namesHtml}</div></div>`}
-      ${dateObj <= new Date() ? `<div class="photo-gallery-section" id="gallery-${ev.EventID}"><div class="photo-gallery-header"><div class="photo-gallery-title">写真ギャラリー</div>${currentUser ? `<button class="btn-add-photo" onclick="uploadPhoto('${ev.EventID}')">＋ 写真を追加</button>` : ''}</div><div class="photo-grid" id="photos-${ev.EventID}"></div></div>` : ''}
       <div class="ev-footer">${ev.OwnerID === 'ADMIN' ? `<span class="owner-badge">👤 ${esc(ev.OwnerName)}</span>` : `<a href="/detail?doc=${ev.OwnerID}" class="owner-badge" target="_blank">👤 ${esc(ev.OwnerName)}</a>`}</div>
     `;
     return div;
@@ -957,101 +966,6 @@ window.submitEvent = async () => {
     });
   }
 
-  /* ===== 写真ギャラリー機能 ===== */
-  window.uploadPhoto = async (eventId) => {
-    if (!currentUser) return alert("ログインしてください");
-    if (!myCarId) return alert("車の登録が必要です");
-
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      if (file.size > 5 * 1024 * 1024) return alert("画像サイズは5MB以下にしてください");
-
-      try {
-        // Firebase Storageにアップロード
-        const timestamp = Date.now();
-        const storageRef = storage.ref(`event_photos/${eventId}/${timestamp}_${file.name}`);
-        await storageRef.put(file);
-        const imageUrl = await storageRef.getDownloadURL();
-
-        // ハンドルネーム取得
-        const { data: car } = await supabaseClient.from('cars').select('handle_name').eq('document_id', myCarId).single();
-        const handleName = car ? car.handle_name : 'オーナー';
-
-        // Supabaseに保存
-        const { error } = await supabaseClient.from('event_photos').insert([{
-          event_id: eventId,
-          image_url: imageUrl,
-          uploaded_by: handleName,
-          user_id: currentUser.id
-        }]);
-
-        if (error) throw error;
-
-        alert("写真をアップロードしました！");
-        loadEventPhotos(eventId);
-      } catch (e) {
-        console.error(e);
-        alert("アップロードに失敗しました");
-      }
-    };
-    input.click();
-  };
-
-  async function loadEventPhotos(eventId) {
-    try {
-      const { data, error } = await supabaseClient
-        .from('event_photos')
-        .select('id, image_url, uploaded_by')
-        .eq('event_id', eventId)
-        .order('uploaded_at', { ascending: false });
-
-      if (error) throw error;
-
-      const container = document.getElementById(`photos-${eventId}`);
-      if (!container) return;
-
-      if (!data || data.length === 0) {
-        container.innerHTML = '<p style="color:#999; font-size:0.85rem; padding:10px 0;">まだ写真がありません</p>';
-        return;
-      }
-
-      container.innerHTML = '';
-      data.forEach(photo => {
-        const item = document.createElement('div');
-        item.className = 'photo-item';
-        item.onclick = () => openPhotoModal(photo.image_url, photo.uploaded_by);
-        item.innerHTML = `
-          <img src="${photo.image_url}" alt="イベント写真" loading="lazy">
-          <div class="photo-uploader">${esc(photo.uploaded_by)}</div>
-        `;
-        container.appendChild(item);
-      });
-    } catch (e) {
-      console.error("写真読み込みエラー:", e);
-    }
-  }
-
-  function openPhotoModal(imageUrl, uploaderName) {
-    document.getElementById('photoModalImg').src = imageUrl;
-    document.getElementById('photoModalUploader').textContent = `📸 ${uploaderName}`;
-    document.getElementById('photoModal').style.display = 'flex';
-  }
-
-  window.closePhotoModal = () => {
-    document.getElementById('photoModal').style.display = 'none';
-  };
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && document.getElementById('photoModal').style.display === 'flex') {
-      closePhotoModal();
-    }
-  });
-
   /* ===== カレンダー表示 ===== */
   let calendarYear, calendarMonth; // 0-indexed month
 
@@ -1193,7 +1107,12 @@ window.submitEvent = async () => {
 
   // パーマリンク機能
   window.shareEvent = function(eventId) {
-    const url = window.location.origin + window.location.pathname + '#event-' + eventId;
+    // 個別ページがあるならそちらを配る（共有カードにイベント名と日付が出る）。
+    // 無ければ従来どおり一覧内のアンカー。
+    const slug = eventSlugs[eventId];
+    const url = slug
+      ? window.location.origin + '/event/' + slug + '/'
+      : window.location.origin + window.location.pathname + '#event-' + eventId;
     navigator.clipboard.writeText(url).then(() => {
       alert('リンクをコピーしました！\n' + url + '\n\nSNSで共有できます。');
     }).catch(err => {
