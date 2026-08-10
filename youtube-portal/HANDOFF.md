@@ -84,10 +84,18 @@ YouTube 動画を「整備箇所別・人気順・日本語」で見られるよ
 | abarth | Abarth (595/695) | アバルト | fiat-500 | Abarth 595, Abarth 695, 595 SS, 695 SS | 2 |
 | giannini | Giannini | ジャンニーニ | fiat-500 | Giannini, Giannini 590, Giannini 126 GP | 2 |
 
-注: 登録フォーム(edit.html)の細かいモデル区分（500: F/L/R/D/Giardiniera/Sport/N Normale/Prima Serie/595/595SS/695/695SS、
-126: Fiat 126/Personal/Polski 126p/126p FL/BIS/EL/ELX/Maluch/Zastava/Steyr-Puch/FSM Niki/Bambino/Happy End/Giannini 126 GP/Cabriolet/Bis Cabriolet de Plage/Savio Jungla/Malubats Cabriolet/Moretti Minimaxi）
-は**車両登録用の正本**。動画ポータルの vehicles はそれを上表の粗い粒度に畳む。両者は base_vehicle_id 的な対応で緩く紐づける。
+注: 登録フォーム(edit.html)の細かいモデル区分は**車両登録用の正本**。動画ポータルの vehicles はそれを上表の粗い粒度に畳む。
+両者は base_vehicle_id 的な対応で緩く紐づける。
 **edit.html の最新区分を Claude Code が実環境で確認し、エイリアスに反映すること。**
+
+【2026-08-10 追記】**500と126で区分の階層が違うのは正しい**。揃えようとしないこと。
+- 500＝「シリーズ×グレード」の2階層（F/L/R は同時期に併存する仕様差なので2軸が実態に合う）。
+- 126＝**時系列でモデル名そのものが変わる1階層**。日本語Wikipedia・旧車メディア（Nostalgic Hero）もこの並べ方で、
+  日本の中古車サイト（みんカラ／グーネット／カーセンサー）に至っては126の名称管理自体が無い。
+  一度126を2階層へ畳む改修を検討したが、**それこそが独自ルールになる**と分かったため撤回した。
+- **Maluch は愛称ではなく1997年からの正式なモデル名**（旧車誌の表記は「マルチ」）。ポーランド製126全般の通称という理解は誤り。
+  また**1992年に「ポルスキ」の名は消滅**しており、2000年前後の車を Polski Fiat 126p と呼ぶのは年代的に誤り。
+- search_aliases に Maluch を残すのは正しい（エイリアスは細かく、が不変条件）。
 
 ### categories（親 › 中区分） — 緑=フェーズ1取得対象
 

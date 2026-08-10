@@ -686,7 +686,7 @@
           .select('*')
           .eq('is_active', true).order('sort_order'),
         supabaseClient.from('cars')
-          .select('document_id, model_display_a, model_display_b, year, car_type')
+          .select('document_id, model_display_a, model_display_b, model_display_c, year, car_type')
           .eq('owner_user_id', currentUser.id),
         supabaseClient.from('equipment_records')
           .select('*').eq('user_id', currentUser.id)
@@ -740,7 +740,9 @@
   // 対象車のラベル（例: Nuova500 F ／ 1971年式）
   function carLabel(c) {
     if (!c) return '';
-    const model = [c.model_display_a || c.car_type || 'Fiat', c.model_display_b || ''].filter(Boolean).join(' ');
+    // display_c はDB側で組み立て済み（126の「標準」を結合しない等の規則が入っている）ので、そちらを優先する
+    const model = c.model_display_c
+      || [c.model_display_a || c.car_type || 'Fiat', c.model_display_b || ''].filter(Boolean).join(' ');
     return c.year ? model + ' ／ ' + c.year + '年式' : model;
   }
   function selectedCar() {

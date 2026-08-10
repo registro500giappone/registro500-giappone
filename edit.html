@@ -249,24 +249,31 @@
           <!-- 500の選択肢 -->
           <option value="Nuova500" data-car-type="500">Nuova500</option>
           <option value="FIAT ABARTH" data-car-type="500">FIAT ABARTH</option>
-          <!-- 126の選択肢（完全版：20種類） -->
-          <!-- 基本モデル（Fiat本家・イタリア） -->
-          <option value="Fiat 126" data-car-type="126">Fiat 126</option>          
+          <!-- 126の選択肢。
+               500と違い126は「シリーズ×グレード」ではなく時系列でモデル名そのものが変わるため、
+               1階層で並べるのが日本国内の流通表記（日本語Wikipedia・旧車メディア）と一致する。
+               ここを500に合わせて2階層に畳むと、かえって独自ルールになるので変えないこと。
+               ・1992年に「ポルスキ」の名は消滅し、以降のポーランド製も単に Fiat 126 を名乗る
+               ・Maluch は愛称ではなく1997年からの正式なモデル名（日本の旧車誌では「マルチ」表記） -->
+          <!-- イタリア製（1972-1980） -->
+          <option value="Fiat 126" data-car-type="126">Fiat 126</option>
+          <option value="Fiat 126E" data-car-type="126">Fiat 126E</option>
           <option value="Fiat 126 Personal" data-car-type="126">Fiat 126 Personal</option>
           <!-- ポーランド製 -->
-          <option value="Polski Fiat 126p" data-car-type="126">Polski Fiat 126p</option>
+          <option value="Polski Fiat 126p" data-car-type="126">Polski Fiat 126p（1973-1987）</option>
           <option value="Polski Fiat 126p FL" data-car-type="126">Polski Fiat 126p FL</option>
-          <option value="Fiat 126 BIS" data-car-type="126">Fiat 126 BIS</option>
-          <option value="Fiat 126 EL" data-car-type="126">Fiat 126 EL</option>
-          <option value="Fiat 126 ELX" data-car-type="126">Fiat 126 ELX</option>
-          <option value="Fiat 126 Maluch" data-car-type="126">Fiat 126 Maluch</option>
+          <option value="Fiat 126 BIS" data-car-type="126">Fiat 126 BIS（1987-1991）</option>
+          <option value="Fiat 126 EL" data-car-type="126">Fiat 126 EL（1994-1996）</option>
+          <option value="Fiat 126 ELX" data-car-type="126">Fiat 126 ELX（1996-1999）</option>
+          <option value="Fiat 126 Maluch" data-car-type="126">Fiat 126 Maluch（マルチ・1997-1998）</option>
+          <option value="Fiat 126 Maluch Town" data-car-type="126">Fiat 126 Maluch Town（1998-2000）</option>
           <!-- ライセンス生産版 -->
           <option value="Zastava 126 (126 PGL)" data-car-type="126">Zastava 126 (126 PGL)</option>
           <option value="Steyr-Puch 126" data-car-type="126">Steyr-Puch 126</option>
           <option value="FSM Niki" data-car-type="126">FSM Niki</option>
           <!-- 特別仕様・地域限定 -->
           <option value="Fiat 126 Bambino" data-car-type="126">Fiat 126 Bambino</option>
-          <option value="Fiat 126 Happy End" data-car-type="126">Fiat 126 Happy End</option>
+          <option value="Fiat 126 Happy End" data-car-type="126">Fiat 126 Happy End（2000）</option>
           <!-- パフォーマンス・コーチビルド -->
           <option value="Giannini 126 GP" data-car-type="126">Giannini 126 GP</option>
           <option value="Fiat 126 Cabriolet" data-car-type="126">Fiat 126 Cabriolet</option>
@@ -712,6 +719,12 @@
       };
 
       function fillForm(data) {
+        // 値を入れる前に車種ごとのUIを確定させる。126の選択肢は差し替えで作られるため、
+        // 順序が逆だとモデル詳細やエンジン形式が「選択肢に無い値」となって空に落ちる。
+        if (data.car_type) {
+          document.getElementById('CarType').value = data.car_type;
+          applyCarTypeUi();
+        }
         const mapping = {
           document_id: 'DocumentID', car_type: 'CarType', handle_name: 'HandleName', prefecture: 'Prefecture',
           model_select_a: 'ModelSelectA', model_text_a: 'ModelTextA', model_select_b: 'ModelSelectB', model_text_b: 'ModelTextB',
@@ -848,6 +861,10 @@
           ['ModelSelectA', '車両モデル'], ['ModelSelectB', 'モデル詳細'],
           ['Year', '年式'], ['PhotoMain', 'メイン写真']
         ];
+        // 「その他」を選んだのに中身が空だと、車名やエンジン形式が表示から消えたまま保存される
+        if (raw.ModelSelectA === 'その他') requiredFields.push(['ModelTextA', '車種名']);
+        if (raw.ModelSelectB === 'その他') requiredFields.push(['ModelTextB', 'モデル詳細']);
+        if (raw.EngineTypeSelect === 'その他') requiredFields.push(['EngineTypeText', 'エンジン形式']);
         const missing = requiredFields.find(([k]) => !raw[k] || String(raw[k]).trim() === '');
         if (missing) {
           const [key, label] = missing;
@@ -1042,9 +1059,15 @@
         document.getElementById('CarTypeDisplay').textContent = `FIAT ${typeParam}`;
       }
 
-      // 126サイト用のUI切り替え
-      const is126 = document.getElementById('CarType').value === '126';
-      if (is126) {
+      // 126サイト用のUI切り替え。
+      // URLに ?type=126 が無い入口（メール・ブックマーク等）から既存の126車両を開く経路があるため、
+      // 車両データを読み込んだ後（fillForm の冒頭）からも呼べるように関数にしてある。
+      // 選択肢を差し替えると選択済みの値が消えるので、必ず値をセットする前に呼ぶこと。
+      let is126Applied = false;
+      function applyCarTypeUi() {
+        if (document.getElementById('CarType').value !== '126' || is126Applied) return;
+        is126Applied = true;
+        document.getElementById('CarTypeDisplay').textContent = 'FIAT 126';
         // タイトル
         document.title = 'マイガレージ - Registro126 Giappone';
         // ヘッダーロゴ
@@ -1053,7 +1076,8 @@
         // 「ガレージに戻る」リンク
         const backLink = document.querySelector('.rg-back-link a');
         if (backLink) backLink.href = '/126/';
-        // ModelSelectB を126用に差し替え（500専用の選択肢を非表示・126用を追加）
+        // ModelSelectB を126用に差し替え（500専用の選択肢を非表示・126用を追加）。
+        // 126はモデル名自体が世代を表すため、ここに入れる区分は無い。「標準」のままでよい。
         const selB = document.getElementById('ModelSelectB');
         if (selB) {
           selB.innerHTML = `
@@ -1062,22 +1086,27 @@
             <option value="その他">その他</option>`;
         }
         // エンジン形式を126用に差し替え
+        // ※594ccの型式は 126A.000。かつて「126A1.048（594cc・空冷）」という誤った組み合わせを
+        //   出していたため、その値を持つ既存車が編集時に空へ落ちないよう旧値も残してある。
         const selE = document.getElementById('EngineTypeSelect');
         if (selE) {
           selE.innerHTML = `
             <option value="">選択してください</option>
-            <option value="126A1.048（594cc・空冷）">126A1.048（594cc・空冷）</option>
+            <option value="126A.000（594cc・空冷）">126A.000（594cc・空冷）</option>
             <option value="126A1.048（652cc・空冷）">126A1.048（652cc・空冷）</option>
             <option value="BIS（704cc・水冷）">BIS（704cc・水冷）</option>
+            <option value="126A1.048（594cc・空冷）">126A1.048（594cc・空冷）※旧表記</option>
             <option value="不明">不明</option>
             <option value="その他">その他</option>`;
         }
         // 冷却方式セクションを表示
         const coolingSection = document.getElementById('coolingTypeSection');
         if (coolingSection) coolingSection.style.display = '';
+        updateModelOptions();
       }
 
       // 初期表示時にもフィルタを適用
+      applyCarTypeUi();
       updateModelOptions();
 
       document.getElementById('googleLoginBtn').onclick = () => supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
