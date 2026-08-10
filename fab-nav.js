@@ -75,7 +75,6 @@
 
   var ICON = {
     back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
-    home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5"/></svg>',
     up:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>'
   };
 
@@ -105,10 +104,12 @@
 
     var home = body.dataset.fabHome || '/';
 
-    // 戻れるときは矢印、戻る先が無いときは家（行き先を偽らないため見た目を変える）
+    // 見た目は常に左矢印で固定する。戻る先の有無でアイコンを変えると
+    // 「なぜここだけ違うのか」という疑問を生むため（2026-08-10 ユーザー確定）。
+    // 読み上げ用のラベルだけは実際の行き先に合わせる。
     fabs.push(makeFab(
       'rg-fab-back',
-      goesBack ? ICON.back : ICON.home,
+      ICON.back,
       goesBack ? '一つ前のページに戻る' : 'ガレージに戻る',
       function () { if (goesBack) history.back(); else location.href = home; }
     ));
