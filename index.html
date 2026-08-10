@@ -231,6 +231,12 @@
     .header-nav { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 0.8rem; color: var(--text-sub); margin-top: 8px; }
     .header-nav a { color: var(--text-sub); text-decoration: none; position: relative; display: flex; align-items: center; }
     .header-nav a:hover { text-decoration: underline; }
+    #headerLoginBtn {
+      display: none; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--text-sub);
+      background: none; border: 1px solid var(--border-soft); border-radius: 6px;
+      padding: 3px 10px; cursor: pointer; line-height: 1.4; font-family: inherit;
+    }
+    #headerLoginBtn:hover { color: var(--accent); border-color: var(--accent); }
 
     /* ===== 「今」の帯（直近イベント・新着車両） ===== */
     .top-band {
@@ -563,6 +569,7 @@
           <a href="/videos">🎬 動画</a>
           <span>｜</span>
           <a href="/edit?type=500">🚗 マイガレージ</a>
+          <button id="headerLoginBtn" onclick="openLoginModal()">🔑 ログイン</button>
         </nav>
       </div>
     </header>
@@ -1131,6 +1138,7 @@ async function checkNewsBadge() {
       const userInfo = document.getElementById('menuUserInfo');
 
       const partsBtn = document.getElementById('menuPartsBtn');
+      const headerLoginBtn = document.getElementById('headerLoginBtn');
       if (user) {
         console.log("User logged in:", user.id);
         currentUser.uid = user.id;
@@ -1140,6 +1148,7 @@ async function checkNewsBadge() {
         if(loginBtn) loginBtn.style.display = 'none';
         if(logoutBtn) logoutBtn.style.display = 'block';
         if(partsBtn) partsBtn.style.display = 'block';
+        if(headerLoginBtn) headerLoginBtn.style.display = 'none';
         if(userInfo) {
           userInfo.style.display = 'block';
           userInfo.textContent = user.email;
@@ -1156,6 +1165,7 @@ async function checkNewsBadge() {
         if(logoutBtn) logoutBtn.style.display = 'none';
         if(partsBtn) partsBtn.style.display = 'none';
         if(userInfo) userInfo.style.display = 'none';
+        if(headerLoginBtn) headerLoginBtn.style.display = 'flex';
 
         updateStatusSummary();
         const sortVal = document.getElementById('sortSelect').value;
