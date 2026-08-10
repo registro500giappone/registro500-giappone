@@ -24,15 +24,15 @@
 </script>
 
   <style>
-    :root { --accent: #2856a8; --accent126: #D4541A; --bg: #f4f4f7; --card: #fff; --radius: 12px; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: #333; }
+    :root { --accent: #1f5c3d; --accent126: #D4541A; --bg: #f5f0e6; --card: #fffefb; --radius: 12px; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: #2e2a24; }
     .page { max-width: 1000px; margin: 0 auto; }
     .header { text-align: center; margin-bottom: 20px; }
     .header h1 { color: var(--accent); margin: 0; font-size: 1.6rem; }
     .note { font-size: 0.8rem; color: #d32f2f; margin-top: 10px; background: #fff; display: inline-block; padding: 5px 12px; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .tabs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 20px; }
     .tab-btn { width: 100%; padding: 12px 0; border: none; background: #ddd; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: 0.2s; text-align: center; }
-    .tab-btn.active { background: var(--accent); color: white; }
+    .tab-btn.active { background: var(--accent); color: #fff; }
     .tab-content { display: none; }
     .tab-content.active { display: grid; grid-template-columns: 1fr; gap: 20px; }
     @media (min-width: 768px) { .tab-content.active { grid-template-columns: 1fr 1fr; } .full { grid-column: span 2; } }
@@ -57,17 +57,18 @@
 
     /* ダークモード */
     @media (prefers-color-scheme: dark) {
-      :root { --bg: #0f172a; --card: #1e293b; --accent: #60a5fa; }
-      body { color: #e2e8f0; color-scheme: dark; }
-      .header h1 { color: #60a5fa; }
-      .note { background: #1e293b; color: #f87171; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-      .tab-btn { background: #334155; color: #94a3b8; }
-      .tab-btn.active { background: #60a5fa; color: #fff; }
-      .chart-card { background: #1e293b; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-      .chart-title { border-bottom-color: #334155; color: #e2e8f0; }
-      .back-link { color: #60a5fa; }
-      #loading { color: #94a3b8; }
-      .car-type-btn { background: #334155; border-color: #475569; color: #94a3b8; }
+      :root { --bg: #1a1714; --card: #2b2721; --accent: #7fb894; }
+      body { color: #ece6d9; color-scheme: dark; }
+      .header h1 { color: var(--accent); }
+      .note { background: #2b2721; color: #f2b8b5; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+      .tab-btn { background: #403a30; color: #a89e8c; }
+      .tab-btn.active { background: var(--accent); color: #1a1714; }
+      .chart-card { background: #2b2721; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+      .chart-title { border-bottom-color: #403a30; color: #ece6d9; }
+      .back-link { color: var(--accent); }
+      #loading { color: #a89e8c; }
+      .car-type-btn { background: #403a30; border-color: #4d453a; color: #a89e8c; }
+      .car-type-btn.active-500 { color: #1a1714; }
       body.mode-126 .header h1 { color: #f97316; }
     }
   </style>
@@ -145,8 +146,8 @@
   const ITALIAN_COLORS = ['#008C45', '#E1E1E1', '#CD212A', '#0039A6', '#FBC02D', '#757575'];
 
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const chartTextColor = isDark ? '#94a3b8' : '#666';
-  const chartLabelColor = isDark ? '#cbd5e1' : '#444';
+  const chartTextColor = isDark ? '#a89e8c' : '#666';
+  const chartLabelColor = isDark ? '#ece6d9' : '#444';
 
   // URLパラメータで初期車種を決定
   let currentCarType = new URLSearchParams(window.location.search).get('type') || '500';
@@ -184,7 +185,7 @@
   window.addEventListener('DOMContentLoaded', () => {
     Chart.register(ChartDataLabels);
     Chart.defaults.color = chartTextColor;
-    Chart.defaults.scale.grid = { color: isDark ? '#334155' : undefined };
+    Chart.defaults.scale.grid = { color: isDark ? '#403a30' : undefined };
     applyCarTypeUI(currentCarType);
     initTabs();
     fetchData();
@@ -482,7 +483,7 @@
     }
     chartInstances[id] = new Chart(canvas, {
       type: 'pie',
-      data: { labels: data.map(d => d[0]), datasets: [{ data: data.map(d => d[1]), backgroundColor: bgColors, borderColor: isDark ? '#1e293b' : '#fff', borderWidth: 2 }] },
+      data: { labels: data.map(d => d[0]), datasets: [{ data: data.map(d => d[1]), backgroundColor: bgColors, borderColor: isDark ? '#2b2721' : '#fff', borderWidth: 2 }] },
       options: { 
         responsive: true, maintainAspectRatio: false,
         plugins: { 
