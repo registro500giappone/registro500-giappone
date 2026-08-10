@@ -96,7 +96,22 @@
       border-left: 5px solid var(--accent);
     }
     .event-card.past { border-left-color: #999; opacity: 0.8; background: #f9f9f9; }
-    
+
+    /* 一覧は「日付・名前・都道府県・参加人数」だけの要約。
+       住所の詳細・説明文・参加ボタン・写真は個別ページ /event/<slug>/ が持つ。 */
+    .event-card.slim { padding: 16px 18px; margin-bottom: 12px; }
+    .slim-link { display: block; text-decoration: none; color: inherit; }
+    .slim-link:hover .slim-title { text-decoration: underline; }
+    .slim-date { font-weight: bold; color: var(--accent); font-size: 1.05rem; }
+    .slim-time { font-weight: normal; color: #666; font-size: 0.92rem; margin-left: 6px; }
+    .slim-title { margin: 4px 0 8px; font-size: 1.25rem; font-weight: bold; line-height: 1.4; }
+    .slim-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; font-size: 1rem; color: #444; }
+    .slim-pref { font-weight: 600; }
+    .slim-join { color: var(--accent); font-weight: 600; }
+    /* 右端に寄せると、右下に固定されている投稿ボタン（＋）と重なって読めなくなる */
+    .slim-more { font-size: 0.9rem; color: var(--accent); white-space: nowrap; }
+
+
     .ev-admin-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; }
     .btn-edit, .btn-delete, .btn-share {
       background: #f0f0f0; border: 1px solid #ccc; color: #555;
@@ -308,6 +323,8 @@
       .event-card.past { background: #1a2234; opacity: 0.8; }
       .ev-info-row { color: #e2e8f0; }
       .ev-label { color: #94a3b8; }
+      .slim-time { color: #94a3b8; }
+      .slim-meta { color: #cbd5e1; }
       .ev-desc { border-top-color: #334155; color: #94a3b8; }
       .btn-edit, .btn-delete, .btn-share { background: #334155; border-color: #475569; color: #94a3b8; }
       .btn-edit:hover { background: #475569; }
@@ -511,6 +528,37 @@
   let currentRegion = 'all';
   const urlType = new URLSearchParams(window.location.search).get('type') || '500';
 
+  // 個別ページ（/event/<slug>/）のURL対応表。gen_event_pages.py が6時間おきに更新する。
+  // 登録直後でまだ生成されていないイベントは slug を持たないため、その場合だけ
+  // 従来どおり詳細を一覧に出す（一覧から情報が消えて行き先も無い、を避ける）。
+  let eventSlugs = {};
+
+  // 北から南の順。「東京都」を「京都」より先に判定させるためこの順序を崩さない。
+  const PREFECTURES = [
+    "北海道","青森","岩手","宮城","秋田","山形","福島",
+    "茨城","栃木","群馬","埼玉","千葉","東京","神奈川",
+    "新潟","富山","石川","福井","山梨","長野","岐阜","静岡","愛知",
+    "三重","滋賀","京都","大阪","兵庫","奈良","和歌山",
+    "鳥取","島根","岡山","広島","山口","徳島","香川","愛媛","高知",
+    "福岡","佐賀","長崎","熊本","大分","宮崎","鹿児島","沖縄"
+  ];
+
+  // 住所から都道府県だけを取り出す（一覧に細かい住所は出さない）。
+  // 見つからないときは先頭行を短く出す（「原宿・明治神宮」のように県名が無い登録がある）。
+  function prefectureOf(location) {
+    const loc = location || '';
+    for (const p of PREFECTURES) {
+      if (loc.includes(p)) {
+        if (p === '北海道') return p;
+        if (p === '東京') return '東京都';
+        if (p === '大阪' || p === '京都') return p + '府';
+        return p + '県';
+      }
+    }
+    const head = loc.split('\n')[0].trim();
+    return head.length > 14 ? head.slice(0, 14) + '…' : head;
+  }
+
   const REGION_MAP = {
     '北海道・東北': ['北海道','青森','岩手','宮城','秋田','山形','福島'],
     '関東': ['茨城','栃木','群馬','埼玉','千葉','東京','神奈川','山梨'],
@@ -527,6 +575,7 @@
       document.title = 'イベント情報 | Registro126 Giappone';
       document.getElementById('evSubtitle').textContent = 'FIAT 126 イベント・ミーティング情報';
     }
+    loadSlugs();
     initFromCache();
     fetchEvents();
     supabaseClient.auth.onAuthStateChange((event, session) => {
@@ -560,6 +609,15 @@
       });
     });
   });
+
+  async function loadSlugs() {
+    try {
+      const r = await fetch('/event-slugs.json', { cache: 'no-cache' });
+      if (!r.ok) return;
+      eventSlugs = await r.json();
+      if (allEventsData.length) renderEvents();
+    } catch (e) { /* 取れなくても一覧は出す（詳細付きのカードに落ちるだけ） */ }
+  }
 
   function initFromCache() {
     const cached = localStorage.getItem(CACHE_KEY_EVENTS);
@@ -657,14 +715,90 @@
     document.getElementById('futureSection').style.display = (futureEl.children.length > 0) ? 'block' : 'none';
     document.getElementById('pastSection').style.display = (pastEl.children.length > 0) ? 'block' : 'none';
 
-    // 開催日当日以降のイベントの写真を読み込み
+    // 開催日当日以降のイベントの写真を読み込み。
+    // 要約カードには写真の置き場が無いので、個別ページを持つイベントは取りに行かない。
     filtered.forEach(ev => {
+      if (eventSlugs[ev.EventID]) return;
       const eventDate = new Date(ev.EventDate);
       if (eventDate <= new Date()) loadEventPhotos(ev.EventID);
     });
   }
 
-function createEventCard(ev, isPast, dateObj) {
+  // 日付表示の組み立て。要約カード・詳細カードの両方から使う。
+  // JSTローカル時刻で扱い、00:00 ちょうどは「開催時刻の入力なし」とみなす（保存側の規約）。
+  function buildDateDisplay(ev, dateObj) {
+    const W = ['日','月','火','水','木','金','土'];
+    const hh = dateObj.getHours(), mm = dateObj.getMinutes();
+    const timeStr = (hh === 0 && mm === 0) ? '' : ` ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}〜`;
+
+    let dateEndStr = "";
+    if (ev.EventDateEnd) {
+      const endD = new Date(ev.EventDateEnd);
+      const sameDay = dateObj.getFullYear() === endD.getFullYear() && dateObj.getMonth() === endD.getMonth() && dateObj.getDate() === endD.getDate();
+      if (!sameDay) {
+        dateEndStr = (dateObj.getFullYear() === endD.getFullYear() && dateObj.getMonth() === endD.getMonth())
+          ? ` ～ ${endD.getDate()} (${W[endD.getDay()]})`                       // 同月なので月を省略
+          : ` ～ ${endD.getMonth()+1}/${endD.getDate()} (${W[endD.getDay()]})`;
+      }
+    }
+    const dateHead = `${dateObj.getFullYear()}/${dateObj.getMonth()+1}/${dateObj.getDate()} (${W[dateObj.getDay()]})${dateEndStr}`;
+    return { dateHead, timeStr, dateDisplay: dateHead + timeStr };
+  }
+
+  function carTypeBadgeHtml(ev) {
+    if (ev.TargetCarType === '500') return '<span style="display:inline-block; margin-left:8px; padding:2px 8px; background:#e0f2fe; color:#0369a1; border-radius:4px; font-size:0.75rem; font-weight:600;">500</span>';
+    if (ev.TargetCarType === '126') return '<span style="display:inline-block; margin-left:8px; padding:2px 8px; background:#ffedd5; color:#9a3412; border-radius:4px; font-size:0.75rem; font-weight:600;">126</span>';
+    return ''; // 'both' はバッジなし（デフォルト）
+  }
+
+  // slim=true（要約カード）ではシェアを出さない。個別ページのURLをそのまま配れるので
+  // 一覧に置く必要が無く、置くと要約が読みにくくなる。編集・削除は一覧からしか行えないので残す。
+  function adminRowHtml(ev, slim) {
+    const isOwner = currentUser && (ev.OwnerID === myCarId || myCarId === 'ADMIN');
+    const edit = `<button class="btn-edit" onclick="openEdit('${ev.EventID}')">✏️ 編集</button><button class="btn-delete" onclick="deleteEvent('${ev.EventID}')">🗑️ 削除</button>`;
+    const share = `<button class="btn-share" onclick="shareEvent('${ev.EventID}')">🔗 シェア</button>`;
+    if (slim) return isOwner ? `<div class="ev-admin-row">${edit}</div>` : '';
+    if (isOwner) return `<div class="ev-admin-row">${edit}${share}</div>`;
+    return `<div class="ev-admin-row">${share}</div>`; // 管理者でなくてもシェアは出す
+  }
+
+  // 一覧のカード。日付・名前・都道府県・参加人数だけを出し、
+  // 住所の詳細／説明文／参加ボタン／写真は個別ページ /event/<slug>/ が持つ。
+  function createEventCard(ev, isPast, dateObj) {
+    const slug = eventSlugs[ev.EventID];
+    // 登録直後で個別ページがまだ生成されていないイベントは行き先が無いので、
+    // 従来どおり詳細付きのカードで出す（情報も行き先も無い、という状態を作らない）。
+    if (!slug) return createFullCard(ev, isPast, dateObj);
+
+    const div = document.createElement('div');
+    div.className = 'event-card slim' + (isPast ? ' past' : '');
+    div.id = 'event-' + ev.EventID; // パーマリンク用ID
+
+    const participants = (ev.Participants || []).filter(p => p.OwnerID && p.HandleName && p.OwnerID !== 'undefined');
+    const isJoined = participants.some(p => p.OwnerID === myCarId);
+    const { dateHead, timeStr } = buildDateDisplay(ev, dateObj);
+
+    let joinHtml = '';
+    if (isJoined) joinHtml = '<span class="slim-join">✅ 参加予定です</span>';
+    else if (participants.length) joinHtml = `<span class="slim-join">✋ ${participants.length}人が参加${isPast ? '' : '予定'}</span>`;
+
+    div.innerHTML = `
+      ${adminRowHtml(ev, true)}
+      <a class="slim-link" href="/event/${slug}/">
+        <div class="slim-date">${esc(dateHead)}${timeStr ? `<span class="slim-time">${esc(timeStr.trim())}</span>` : ''}</div>
+        <h3 class="slim-title">${esc(ev.EventName)}${carTypeBadgeHtml(ev)}</h3>
+        <div class="slim-meta">
+          <span class="slim-pref">📍 ${esc(prefectureOf(ev.Location))}</span>
+          ${joinHtml}
+          <span class="slim-more">詳しく見る →</span>
+        </div>
+      </a>
+    `;
+    return div;
+  }
+
+  // 個別ページがまだ無いイベント用のフォールバック（従来のカード）。
+  function createFullCard(ev, isPast, dateObj) {
     const div = document.createElement('div');
     div.className = 'event-card' + (isPast ? ' past' : '');
     div.id = 'event-' + ev.EventID; // パーマリンク用ID
@@ -678,55 +812,9 @@ function createEventCard(ev, isPast, dateObj) {
         return `<a href="/detail?doc=${p.OwnerID}" target="_blank" class="participant-link">${esc(p.HandleName)}</a>`;
     }).join('');
 
-    const w = ['日','月','火','水','木','金','土'][dateObj.getDay()];
-
-    // --- ここから時間の判定ロジック ---
-    const hh = dateObj.getHours();
-    const mm = dateObj.getMinutes();
-
-    // 時間が 00:00 の場合は「時間設定なし」とみなして表示しない
-    let timeStr = "";
-    if (!(hh === 0 && mm === 0)) {
-        timeStr = ` ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}〜`;
-    }
-    // --- ここまで ---
-
-    // 終了日表示の組み立て
-    let dateEndStr = "";
-    if (ev.EventDateEnd) {
-      const endD = new Date(ev.EventDateEnd);
-      // 開始日と同日なら表示しない
-      const sameDay = dateObj.getFullYear() === endD.getFullYear() && dateObj.getMonth() === endD.getMonth() && dateObj.getDate() === endD.getDate();
-      if (!sameDay) {
-        const endW = ['日','月','火','水','木','金','土'][endD.getDay()];
-        if (dateObj.getMonth() === endD.getMonth() && dateObj.getFullYear() === endD.getFullYear()) {
-          // 同月: 月を省略
-          dateEndStr = ` ～ ${endD.getDate()} (${endW})`;
-        } else {
-          // 別月
-          dateEndStr = ` ～ ${endD.getMonth()+1}/${endD.getDate()} (${endW})`;
-        }
-      }
-    }
-
-    const dateDisplay = `${dateObj.getFullYear()}/${dateObj.getMonth()+1}/${dateObj.getDate()} (${w})${dateEndStr}${timeStr}`;
-
-    let adminHtml = '';
-    if (currentUser && (ev.OwnerID === myCarId || myCarId === 'ADMIN')) {
-      adminHtml = `<div class="ev-admin-row"><button class="btn-edit" onclick="openEdit('${ev.EventID}')">✏️ 編集</button><button class="btn-delete" onclick="deleteEvent('${ev.EventID}')">🗑️ 削除</button><button class="btn-share" onclick="shareEvent('${ev.EventID}')">🔗 シェア</button></div>`;
-    } else {
-      // 管理者でなくてもシェアボタンは表示
-      adminHtml = `<div class="ev-admin-row"><button class="btn-share" onclick="shareEvent('${ev.EventID}')">🔗 シェア</button></div>`;
-    }
-
-    // 車両タイプバッジ
-    let carTypeBadge = '';
-    if (ev.TargetCarType === '500') {
-      carTypeBadge = '<span style="display:inline-block; margin-left:8px; padding:2px 8px; background:#e0f2fe; color:#0369a1; border-radius:4px; font-size:0.75rem; font-weight:600;">500</span>';
-    } else if (ev.TargetCarType === '126') {
-      carTypeBadge = '<span style="display:inline-block; margin-left:8px; padding:2px 8px; background:#ffedd5; color:#9a3412; border-radius:4px; font-size:0.75rem; font-weight:600;">126</span>';
-    }
-    // 'both'の場合はバッジなし（デフォルト）
+    const { dateDisplay } = buildDateDisplay(ev, dateObj);
+    const adminHtml = adminRowHtml(ev);
+    const carTypeBadge = carTypeBadgeHtml(ev);
 
     div.innerHTML = `
       ${adminHtml}
@@ -1193,7 +1281,12 @@ window.submitEvent = async () => {
 
   // パーマリンク機能
   window.shareEvent = function(eventId) {
-    const url = window.location.origin + window.location.pathname + '#event-' + eventId;
+    // 個別ページがあるならそちらを配る（共有カードにイベント名と日付が出る）。
+    // 無ければ従来どおり一覧内のアンカー。
+    const slug = eventSlugs[eventId];
+    const url = slug
+      ? window.location.origin + '/event/' + slug + '/'
+      : window.location.origin + window.location.pathname + '#event-' + eventId;
     navigator.clipboard.writeText(url).then(() => {
       alert('リンクをコピーしました！\n' + url + '\n\nSNSで共有できます。');
     }).catch(err => {
