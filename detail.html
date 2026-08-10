@@ -103,7 +103,9 @@
     /* 送り操作は写真の上に重ねず、下端中央の帯にまとめる。
        以前は左右に不透明な白い丸を置いていたが、.rg-modal-wrap の幅は写真の幅と等しいため
        left/right:10px が「写真の内側10px」を意味し、44pxの丸が被写体に丸ごと重なっていた。 */
-    .rg-gallery-bar { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 2px; background: rgba(15,23,42,0.55); border-radius: 999px; padding: 2px; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 10; }
+    /* 写真の外（下）に置く。位置指定で浮かせず、写真の下に積む並びにしてあるので
+       縦長の写真でも画面外へはみ出さない（.rg-gallery-img の max-height と対で効く）。 */
+    .rg-gallery-bar { display: flex; align-items: center; gap: 2px; background: rgba(255,255,255,0.12); border-radius: 999px; padding: 2px; }
     .rg-gallery-nav { background: none; border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 1.5rem; line-height: 1; padding: 0; cursor: pointer; color: #fff; display: flex; align-items: center; justify-content: center; }
     .rg-gallery-nav:hover { background: rgba(255,255,255,0.18); }
     .rg-gallery-counter { color: #fff; font-size: 0.85rem; min-width: 46px; text-align: center; font-variant-numeric: tabular-nums; }
@@ -743,8 +745,10 @@
           + '<button class="rg-gallery-nav rg-gallery-next" aria-label="次の写真">&#8250;</button>'
           + '</div>'
         : '';
-      m.innerHTML = `<div class="rg-modal-wrap" style="display:flex;align-items:center;justify-content:center;">
-        <img class="rg-gallery-img" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px;">
+      // 写真とバーを縦に積む。max-height は 閉じる✕(上35px) と バー(下58px) の分を差し引いてあり、
+      // 縦長の写真でもバーが画面外に出ない。
+      m.innerHTML = `<div class="rg-modal-wrap" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+        <img class="rg-gallery-img" style="max-width:90vw;max-height:calc(100vh - 140px);object-fit:contain;border-radius:8px;">
         ${navBar}
         <button class="rg-modal-close" aria-label="閉じる">✕</button>
       </div>`;
