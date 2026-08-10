@@ -371,6 +371,8 @@ def render(ev, slug, start, end) -> str:
   .join h2 {{ font-size:1rem; margin:0 0 .6em; }}
   .names {{ display:flex; flex-wrap:wrap; gap:6px; }}
   .name {{ background:var(--bg-main); border:1px solid var(--line); border-radius:999px; padding:4px 13px; font-size:.88rem; }}
+  a.name {{ color:var(--accent); text-decoration:none; font-weight:600; }}
+  a.name:hover {{ background:var(--accent); color:#fff; border-color:var(--accent); }}
   @media (prefers-color-scheme: dark) {{ .name {{ background:#0f172a; }} }}
   .muted {{ color:var(--sub); font-size:.9rem; }}
   .foot {{ margin-top:20px; font-size:.8rem; color:var(--sub); }}
@@ -585,10 +587,17 @@ async function refreshParticipants(){{
       box.className = 'names';
       box.innerHTML = '';
       for (const row of list) {{
-        const span = document.createElement('span');
-        span.className = 'name';
-        span.textContent = row.handle_name || '(名称未設定)';
-        box.appendChild(span);
+        // 名前から愛車のページへ行けるようにする。オーナー同士が繋がるための
+        // 導線で、ここがこのサイトの本筋（検索流入はあくまで副次的）。
+        // 同じタブで開くので、detail 側の戻るボタン（fab-nav.js）でも
+        // ブラウザの戻るでも、このイベントページへ帰ってこられる。
+        // car_id が 'ADMIN' の行は車両を持たない参加者なのでリンクにしない。
+        const linkable = row.car_id && row.car_id !== 'ADMIN';
+        const el = document.createElement(linkable ? 'a' : 'span');
+        el.className = 'name';
+        if (linkable) el.href = '/detail?doc=' + encodeURIComponent(row.car_id);
+        el.textContent = row.handle_name || '(名称未設定)';
+        box.appendChild(el);
       }}
     }}
     updateJoinButton(list);
