@@ -39,7 +39,7 @@ import shutil
 import sys
 import unicodedata
 from datetime import datetime, timedelta, timezone
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 from dotenv import load_dotenv
 from supabase import create_client
@@ -271,9 +271,22 @@ def render(ev, slug, start, end) -> str:
         f'<div class="val">{e(v).replace(chr(10), "<br>")}</div></div>'
         for k, v in rows if v
     )
-    desc_html = e(ev.get("description")).replace("\n", "<br>") if ev.get("description") else ""
-    link_html = (f'    <a class="btn btn-ext" href="{e(ev.get("url"))}" target="_blank" '
-                 f'rel="noopener nofollow">主催者のページを見る</a>' if ev.get("url") else "")
+    desc_html = ""
+    if ev.get("description"):
+        desc_html = e(ev["description"]).replace("\n", "<br>")
+        # 説明文に書かれたURLは押せるようにする（一覧の linkify と同じ扱い）。
+        # エスケープ済みなので & は &amp; になっているが、href の中では正しい書き方。
+        desc_html = re.sub(r"(https?://[^\s<]+)",
+                           r'<a href="\1" target="_blank" rel="noopener nofollow">\1</a>', desc_html)
+    # リンク先は主催者のサイトとは限らない。実データでは個人ブログ4件・SNS5件・
+    # チケット販売・会場のページなどが混じっているので「主催者の」とは名乗らせない。
+    # 代わりに飛び先のドメインを添えて、押す前にどこへ行くか分かるようにする。
+    link_html = ""
+    if ev.get("url"):
+        host = urlparse(ev["url"]).netloc.replace("www.", "")
+        link_html = (f'    <a class="btn btn-ext" href="{e(ev.get("url"))}" target="_blank" '
+                     f'rel="noopener nofollow">詳しい情報を見る</a>\n'
+                     f'    <p class="ext-host">{e(host)}</p>')
     jsonld = json.dumps(build_jsonld(ev, start, end, url), ensure_ascii=False, indent=2)
 
     return f"""<!DOCTYPE html>
@@ -349,9 +362,11 @@ def render(ev, slug, start, end) -> str:
   .btn-map {{ background:var(--bg-main); color:var(--accent); border:1px solid var(--line); }}
   .btn-ext {{ background:var(--accent); color:#fff; }}
   .btn-ext::after {{ content:" →"; }}
+  .ext-host {{ text-align:center; font-size:.78rem; color:var(--sub); margin:6px 0 0; word-break:break-all; }}
   @media (prefers-color-scheme: dark) {{ .btn-map {{ background:#0f172a; }} }}
 
   .desc {{ margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }}
+  .desc a {{ color:var(--accent); word-break:break-all; }}
   .join {{ margin-top:18px; padding-top:14px; border-top:1px solid var(--line); }}
   .join h2 {{ font-size:1rem; margin:0 0 .6em; }}
   .names {{ display:flex; flex-wrap:wrap; gap:6px; }}
@@ -409,7 +424,7 @@ def render(ev, slug, start, end) -> str:
         <p class="join-hint" id="joinHint" style="display:none;"></p>
         <div id="participants" class="muted">読み込み中…</div>
       </div>
-      <p class="foot">掲載: {e(ev.get('owner_name'))}／情報は主催者の告知が最新です。お出かけ前に主催者のページでご確認ください。</p>
+      <p class="foot">掲載: {e(ev.get('owner_name'))}／内容が変わることがあります。お出かけ前に最新の告知をご確認ください。</p>
     </div>
   </article>
   <a class="back-bottom" href="/event">← イベント一覧へ戻る</a>
