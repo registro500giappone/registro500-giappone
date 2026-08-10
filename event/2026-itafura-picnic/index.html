@@ -15,6 +15,8 @@
 <meta property="og:site_name" content="Registro500 Giappone">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
+<script>const supabaseClient = supabase.createClient("https://ttlttclfovuzafvghvaq.supabase.co", "sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt");</script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -101,6 +103,26 @@
   .foot { margin-top:20px; font-size:.8rem; color:var(--sub); }
   .back-bottom { display:block; text-align:center; margin:18px 0 0; padding:12px;
                   color:var(--accent); text-decoration:none; font-size:.92rem; }
+
+  /* 参加表明ボタン（video.htmlのいいねボタンと同じ位置づけ。終了イベントではJSが隠す） */
+  .btn-join { display:block; width:100%; text-align:center; border:0; border-radius:10px;
+               padding:11px 16px; font-size:.95rem; font-weight:700; margin:0 0 12px;
+               background:var(--accent); color:#fff; cursor:pointer; }
+  .btn-join.joined { background:var(--bg-main); color:var(--accent); border:1px solid var(--line); }
+  @media (prefers-color-scheme: dark) { .btn-join.joined { background:#0f172a; } }
+  .btn-join:disabled { opacity:.6; cursor:default; }
+  .join-hint { margin:0 0 12px; font-size:.9rem; color:var(--sub); }
+  .join-hint a { color:var(--accent); }
+
+  /* ログインモーダル（video.htmlと同じメールOTPコード方式。配色だけこのページの変数に合わせる） */
+  #loginModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:10000;
+                 align-items:center; justify-content:center; padding:16px; }
+  #loginModal .box { background:var(--card-bg); color:var(--text-main); padding:26px 22px; border-radius:16px;
+                       max-width:340px; width:100%; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.25); }
+  #loginModal input { padding:11px; border:1px solid var(--line); border-radius:8px; font-size:15px;
+                        width:100%; background:var(--bg-main); color:var(--text-main); }
+  #loginModal .pri { padding:12px; border:0; border-radius:8px; background:var(--accent); color:#fff;
+                       font-weight:700; cursor:pointer; width:100%; font-size:.95rem; }
 </style>
 </head>
 <body>
@@ -126,12 +148,36 @@
 
       <div class="join">
         <h2 id="joinHead">参加予定</h2>
+        <button type="button" class="btn-join" id="joinBtn" style="display:none;">✋ 参加する</button>
+        <p class="join-hint" id="joinHint" style="display:none;"></p>
         <div id="participants" class="muted">読み込み中…</div>
       </div>
       <p class="foot">掲載: 管理者／情報は主催者の告知が最新です。お出かけ前に主催者のページでご確認ください。</p>
     </div>
   </article>
   <a class="back-bottom" href="/event">← イベント一覧へ戻る</a>
+</div>
+
+<!-- ログインモーダル（メールOTPコード方式・video.htmlと共通の認証方式） -->
+<div id="loginModal">
+  <div class="box">
+    <h3 style="margin-top:0;">ログイン</h3>
+    <p style="font-size:13px;color:var(--sub);margin:0 0 16px;">登録したメールアドレスにコードを送ってログインします</p>
+    <div id="otpStep1" style="display:flex;flex-direction:column;gap:10px;text-align:left;">
+      <input type="email" id="emailLoginInput" placeholder="登録したメールアドレス" autocomplete="email">
+      <button type="button" id="clearEmailBtn" onclick="clearLoginEmail()" style="display:none;background:none;border:0;color:var(--sub);font-size:12px;cursor:pointer;align-self:flex-start;padding:0;">別のアドレスを使う</button>
+      <button id="emailLoginBtn" class="pri" onclick="sendOtpCode()">確認コードを送信</button>
+    </div>
+    <div id="otpStep2" style="display:none;flex-direction:column;gap:10px;text-align:left;">
+      <p style="font-size:13px;color:#2e7d32;margin:0;">✅ <span id="otpSentEmail" style="font-weight:700;"></span> に6桁の確認コードを送信しました。届いたコードを入力してください。</p>
+      <input type="text" id="otpCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"
+             style="font-size:22px;letter-spacing:8px;text-align:center;">
+      <button id="otpVerifyBtn" class="pri" onclick="verifyOtpCode()">ログイン</button>
+      <button onclick="resendOtpCode()" style="background:none;border:0;color:var(--accent);cursor:pointer;font-size:13px;">確認コードを再送する</button>
+    </div>
+    <p id="otpErrorMsg" style="display:none;font-size:13px;color:#c62828;margin:8px 0 0;"></p>
+    <button onclick="closeLoginModal()" style="margin-top:16px;background:none;border:0;color:var(--sub);cursor:pointer;font-size:13px;">閉じる</button>
+  </div>
 </div>
 <script src="/fab-nav.js" defer></script>
 <script>
@@ -152,32 +198,166 @@ var rgIsPast = (function () {
   return days < 0;
 })();
 
-// 参加表明は変動するので静的に焼かず、表示時に最新を取りに行く。
-// event_participants は匿名読み取り可（一覧ページと同じ扱い）。
-(async () => {
+const EVENT_ID = "EVT_1777126612431";
+let currentUser = null;
+let myCarId = null;
+let myCarHandle = null;
+
+// ── ログインモーダル（video.htmlと同じメールOTPコード方式）──
+let otpEmail = '';
+function openLoginModal(){
+  const m = document.getElementById('loginModal'); if (m) m.style.display = 'flex';
+  const inp = document.getElementById('emailLoginInput'), cb = document.getElementById('clearEmailBtn');
+  const saved = localStorage.getItem('r500_login_email');
+  if (saved && inp) { inp.value = saved; if (cb) cb.style.display = 'block'; }
+}
+function clearLoginEmail(){
+  const inp = document.getElementById('emailLoginInput'), cb = document.getElementById('clearEmailBtn');
+  if (inp) { inp.value = ''; inp.focus(); }
+  localStorage.removeItem('r500_login_email');
+  if (cb) cb.style.display = 'none';
+}
+function closeLoginModal(){
+  const m = document.getElementById('loginModal'); if (m) m.style.display = 'none';
+  const s1 = document.getElementById('otpStep1'), s2 = document.getElementById('otpStep2');
+  if (s1) s1.style.display = 'flex'; if (s2) s2.style.display = 'none';
+  showOtpError('');
+}
+function showOtpError(msg){
+  const el = document.getElementById('otpErrorMsg'); if (!el) return;
+  if (!msg) { el.style.display = 'none'; return; }
+  el.textContent = msg; el.style.display = 'block';
+}
+async function sendOtpCode(){
+  const email = document.getElementById('emailLoginInput').value.trim();
+  if (!email) { alert('メールアドレスを入力してください'); return; }
+  const btn = document.getElementById('emailLoginBtn');
+  btn.disabled = true; btn.textContent = '送信中…';
+  const { error } = await supabaseClient.auth.signInWithOtp({ email });
+  btn.disabled = false; btn.textContent = '確認コードを送信';
+  if (error) { showOtpError('送信に失敗しました：' + error.message); return; }
+  otpEmail = email;
+  localStorage.setItem('r500_login_email', email);
+  document.getElementById('otpSentEmail').textContent = email;
+  document.getElementById('otpStep1').style.display = 'none';
+  document.getElementById('otpStep2').style.display = 'flex';
+  showOtpError('');
+}
+async function verifyOtpCode(){
+  const code = document.getElementById('otpCodeInput').value.trim();
+  if (!code) { alert('確認コードを入力してください'); return; }
+  const btn = document.getElementById('otpVerifyBtn');
+  btn.disabled = true; btn.textContent = '確認中…';
+  const { error } = await supabaseClient.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
+  btn.disabled = false; btn.textContent = 'ログイン';
+  if (error) { showOtpError('コードが正しくないか、期限切れです。もう一度お試しください。'); return; }
+  closeLoginModal();  // 成功 → onAuthStateChange が参加ボタンを更新
+}
+async function resendOtpCode(){
+  if (!otpEmail) return;
+  const { error } = await supabaseClient.auth.signInWithOtp({ email: otpEmail });
+  showOtpError(error ? ('再送に失敗しました：' + error.message) : '');
+  if (!error) alert('確認コードを再送しました。');
+}
+
+// ── 参加表明。event_participants は匿名読み取り可（一覧ページと同じ扱い）──
+async function checkMyCar(user){
+  try {
+    const { data: cars } = await supabaseClient.from('cars')
+      .select('document_id, handle_name').eq('owner_user_id', user.id);
+    if (cars && cars.length > 0) { myCarId = cars[0].document_id; myCarHandle = cars[0].handle_name; }
+    else { myCarId = null; myCarHandle = null; }
+  } catch (e) { myCarId = null; myCarHandle = null; }
+}
+
+function updateJoinButton(rows){
+  const btn = document.getElementById('joinBtn');
+  const hint = document.getElementById('joinHint');
+  if (!btn || rgIsPast) return;  // 終了したイベントには参加ボタンを出さない
+  hint.style.display = 'none';
+  if (!currentUser) {
+    btn.textContent = '✋ 参加する';
+    btn.classList.remove('joined');
+    btn.onclick = openLoginModal;
+    btn.style.display = 'block';
+    return;
+  }
+  // event_participants は car_id だけで人を見分けており、車両未登録だと
+  // 全員が同じ値に集約されて互いの参加表明を消せてしまう。ここでは登録を促す。
+  if (!myCarId) {
+    btn.style.display = 'none';
+    hint.innerHTML = '愛車を登録すると参加表明できます。<a href="/edit">車両を登録する</a>';
+    hint.style.display = 'block';
+    return;
+  }
+  const joined = rows.some((r) => r.car_id === myCarId);
+  btn.textContent = joined ? '✅ 参加予定です' : '✋ 参加する';
+  btn.classList.toggle('joined', joined);
+  btn.onclick = toggleJoin;
+  btn.style.display = 'block';
+}
+
+async function refreshParticipants(){
   const box = document.getElementById('participants');
   const head = document.getElementById('joinHead');
   try {
-    const r = await fetch("https://ttlttclfovuzafvghvaq.supabase.co" + '/rest/v1/event_participants?select=handle_name&event_id=eq.' +
-      encodeURIComponent("EVT_1777126612431"), { headers: { apikey: "sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt" } });
-    const rows = await r.json();
-    if (!Array.isArray(rows) || rows.length === 0) {
+    const { data: rows, error } = await supabaseClient.from('event_participants')
+      .select('car_id, handle_name').eq('event_id', EVENT_ID);
+    if (error) throw error;
+    const list = rows || [];
+    if (list.length === 0) {
       box.textContent = rgIsPast ? '参加表明はありませんでした。' : 'まだ参加表明はありません。';
-      return;
+      box.className = 'muted';
+    } else {
+      head.textContent = list.length + '人が参加' + (rgIsPast ? 'しました' : '予定');
+      box.className = 'names';
+      box.innerHTML = '';
+      for (const row of list) {
+        const span = document.createElement('span');
+        span.className = 'name';
+        span.textContent = row.handle_name || '(名称未設定)';
+        box.appendChild(span);
+      }
     }
-    head.textContent = rows.length + '人が参加' + (rgIsPast ? 'しました' : '予定');
-    box.className = 'names';
-    box.innerHTML = '';
-    for (const row of rows) {
-      const span = document.createElement('span');
-      span.className = 'name';
-      span.textContent = row.handle_name || '(名称未設定)';
-      box.appendChild(span);
-    }
+    updateJoinButton(list);
   } catch (err) {
     box.textContent = '参加者の読み込みに失敗しました。';
   }
-})();
+}
+
+async function toggleJoin(){
+  const btn = document.getElementById('joinBtn');
+  if (!myCarId) return;   // 車両未登録には上で案内を出しており、ここへは来ない
+  btn.disabled = true;
+  try {
+    const { data: existing } = await supabaseClient.from('event_participants')
+      .select('id').eq('event_id', EVENT_ID).eq('car_id', myCarId).maybeSingle();
+    if (existing) {
+      const { error } = await supabaseClient.from('event_participants').delete().eq('id', existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabaseClient.from('event_participants').insert([
+        { event_id: EVENT_ID, car_id: myCarId, handle_name: myCarHandle || 'オーナー' }
+      ]);
+      if (error) throw error;
+    }
+    await refreshParticipants();
+  } catch (e) {
+    alert('通信エラーが発生しました');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+supabaseClient.auth.onAuthStateChange((event, session) => {
+  const user = session ? session.user : null;
+  currentUser = user;
+  (async () => {
+    if (user) await checkMyCar(user); else { myCarId = null; myCarHandle = null; }
+    await refreshParticipants();
+  })();
+});
+refreshParticipants();
 </script>
 </body>
 </html>
