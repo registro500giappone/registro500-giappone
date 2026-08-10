@@ -188,6 +188,20 @@
     }
     .more-btn:hover { background: var(--accent-soft); }
 
+    /* ===== 出先の経験談（2026-08-10 追加） =====
+       本文はこれまで各車両ページにしか無く、この一覧では行に付く ✎ の記号だけだった。
+       「なぜそれを積むのか」がいちばん濃く出るテキストなので、読める場所に出す。 */
+    .exp-lead { font-size: 0.78rem; color: var(--text-sub); margin: 10px 0 16px; }
+    .exp-card {
+      border-left: 3px solid var(--accent); background: #f8fafd;
+      border-radius: 0 8px 8px 0; padding: 14px 16px; margin-bottom: 12px;
+    }
+    .exp-card:last-of-type { margin-bottom: 0; }
+    .exp-body { font-size: 0.88rem; white-space: pre-wrap; line-height: 1.9; overflow-wrap: break-word; margin: 0; }
+    .exp-who { display: block; font-size: 0.75rem; margin-top: 10px; color: var(--accent); text-decoration: none; }
+    a.exp-who:hover { text-decoration: underline; }
+    .exp-note { font-size: 0.75rem; color: var(--text-sub); margin: 12px 0 0; }
+
     /* ===== 公開手帳一覧 =====
        このページの主役。「誰が何を積んでいるか」を見に来る導線なので集計より上に置く。
        序列に見せないため、並びは更新順（新しい順）で固定し、点数での並べ替えはしない。 */
@@ -336,6 +350,16 @@
     </div>
 
     <div id="categories"></div>
+
+    <!-- 出先の経験談（2026-08-10 ユーザー確定）。公開中の手帳の直前に置く。
+         装備そのもの（何を積むか）を見たあとに、その理由にあたる話が来る順番。
+         本文はこれまで各車両ページにしか無く、この一覧では ✎ の記号だけだった。 -->
+    <div id="experience-section" class="section" style="display:none;">
+      <div class="section-title"><span class="icon">✎</span> 出先で助かった／困った経験<span id="experience-count" class="section-count"></span></div>
+      <p class="exp-lead">オーナーが実際に出先で経験したことです。<strong>なぜそれを積むのか</strong>が、いちばん濃く出ています。</p>
+      <div id="experience-list"></div>
+      <p id="experience-note" class="exp-note" style="display:none;"></p>
+    </div>
 
     <!-- 公開中の手帳＝車載率の下に置く（2026-08-09 ユーザー確定）。
          先頭に置くと名前と装備数が並んだ「順位表」に見え、数を競うページだと誤解される。
@@ -638,6 +662,39 @@
     panel.innerHTML = await detailHtml(Number(btn.dataset.item));
   }
 
+  // ===== 出先の経験談（2026-08-10 追加） =====
+  // RLS により返るのは公開手帳のぶんだけ。本文が空の行は数えない（車両ページ・RPCの条件と揃える）。
+  const EXPERIENCE_LIMIT = 8;
+
+  async function loadExperiences() {
+    const res = await supabaseClient
+      .from('equipment_experiences')
+      .select('record_id, body, created_at')
+      .order('created_at', { ascending: false });
+    if (res.error) { console.error('経験談を読めませんでした:', res.error.message); return []; }
+    return (res.data || []).filter(e => e.body && e.body.trim());
+  }
+
+  function renderExperiences(list) {
+    if (!list || !list.length) return;   // 0件のときは見出しごと出さない
+    const shown = list.slice(0, EXPERIENCE_LIMIT);
+    document.getElementById('experience-list').innerHTML = shown.map(e => {
+      const o = recordOwners[e.record_id] || {};
+      const link = o.docId ? `/detail?doc=${encodeURIComponent(o.docId)}#equipment-notebook` : null;
+      const who = (link && o.handleName)
+        ? `<a class="exp-who" href="${link}">${esc(o.handleName)}さんの手帳を見る →</a>`
+        : `<span class="exp-who">（車両ページ未登録のオーナー）</span>`;
+      return `<div class="exp-card"><p class="exp-body">${esc(e.body.trim())}</p>${who}</div>`;
+    }).join('');
+    document.getElementById('experience-count').textContent = `（${list.length}件）`;
+    if (list.length > shown.length) {
+      const note = document.getElementById('experience-note');
+      note.textContent = `ほかに${list.length - shown.length}件あります。公開中の手帳から、それぞれの車両ページで読めます。`;
+      note.style.display = 'block';
+    }
+    document.getElementById('experience-section').style.display = 'block';
+  }
+
   // ===== 公開手帳一覧 =====
   // 一覧に出せるのは is_public=true の手帳だけ（RLSの公開SELECTポリシーが効いているので
   // 匿名でもこのクエリで返るのは公開分のみ）。並びは更新順で固定＝点数で並べ替えると
@@ -930,13 +987,14 @@
     try {
       // 項目マスターは判定条件の表示（項目名と件数の解決）に使う。
       // 失敗しても一覧・集計は出せるので、ここでは落とさず条件表示だけ諦める。
-      const [ratesRes, publicList, itemsRes] = await Promise.all([
+      const [ratesRes, publicList, itemsRes, expList] = await Promise.all([
         supabaseClient.rpc('equipment_item_rates'),
         loadPublicRecords().catch(e => { console.error('公開手帳一覧の読み込みに失敗:', e); return []; }),
         // ⚠️ クエリビルダは then だけを持つ thenable で .catch() を持たない。
         //    直接 .catch() を繋ぐと TypeError になるため Promise.resolve() で包む。
         Promise.resolve(supabaseClient.from('equipment_items').select('id, name'))
-          .catch(e => { console.error('項目マスターの読み込みに失敗:', e); return { data: null }; })
+          .catch(e => { console.error('項目マスターの読み込みに失敗:', e); return { data: null }; }),
+        loadExperiences().catch(e => { console.error('経験談の読み込みに失敗:', e); return []; })
       ]);
       if (ratesRes.error) throw ratesRes.error;
       renderPublicList(publicList);
@@ -945,6 +1003,8 @@
       // 押されるまでに間に合えばよいので、ここでは待たずに走らせる（detailHtml 側で待つ）。
       ownersReady = loadRecordOwners(publicList)
         .catch(e => { console.error('公開手帳の対応表の作成に失敗:', e); });
+      // 経験談は書いた人の名前と手帳へのリンクに対応表が要るので、それができてから描く
+      ownersReady.then(() => renderExperiences(expList));
       if (itemsRes && !itemsRes.error && itemsRes.data) renderCriteria(itemsRes.data);
     } catch (e) {
       console.error(e);
