@@ -277,7 +277,10 @@
           <!-- 共通 -->
           <option value="その他">その他</option>
         </select>
-        <div id="ModelSelectAWrapper" style="display:none;"><input type="text" name="ModelTextA" placeholder="車種名を入力"></div>
+        <div id="ModelSelectAWrapper" style="display:none;">
+          <input type="text" name="ModelTextA" placeholder="車種名のみ（例：Steyr-Puch）">
+          <p style="font-size:0.8rem; color:var(--rg-muted); margin:0.4rem 0 0; line-height:1.6;">車種名だけをご記入ください。F・L・R などのグレードは下の「モデル詳細」でお選びいただけます。</p>
+        </div>
 
         <label>モデル詳細 <span class="badge-required">必須</span></label>
         <select name="ModelSelectB" id="ModelSelectB" required>
@@ -291,7 +294,11 @@
         </select>
         <div id="ModelSelectBWrapper" style="display:none;"><input type="text" name="ModelTextB" placeholder="グレード詳細を入力"></div>
 
-        <div><label>年式 <span class="badge-required">必須</span></label><input type="text" name="Year" placeholder="1970等" pattern="[0-9]{4}" title="4桁の西暦で入力してください" required></div>
+        <div>
+          <label>年式 <span class="badge-required">必須</span></label>
+          <input type="text" name="Year" placeholder="1970等" pattern="[0-9]{4}" title="4桁の西暦で入力してください" required>
+          <p style="font-size:0.8rem; color:var(--rg-muted); margin:0.4rem 0 0; line-height:1.6;">製造年（分かる範囲で）をご記入ください。レストアなどで車検証の初度登録年しか分からない場合は、そちらでも構いません。</p>
+        </div>
 
         <div class="photo-grid main-photo-solo">
           <div class="photo-upload-box js-photo-upload" data-target="PhotoMain">
@@ -818,8 +825,24 @@
         }, 'image/jpeg', 0.85);
       };
 
+      // 入力のゆれを保存前にそろえる。
+      // ・「その他」以外を選び直したのに残った自由入力欄は捨てる（表示に使われないまま残り続けるため）
+      // ・車種名・グレードの前後／連続の空白（全角含む）を詰める
+      // ・年式の全角数字を半角に直す（このボタンはtype=buttonでpattern検証が走らないため）
+      function normalizeRaw(raw) {
+        [['ModelSelectA', 'ModelTextA'], ['ModelSelectB', 'ModelTextB'], ['EngineTypeSelect', 'EngineTypeText']]
+          .forEach(([selKey, textKey]) => { if (raw[selKey] !== 'その他') raw[textKey] = ''; });
+        ['ModelTextA', 'ModelTextB', 'EngineTypeText'].forEach(k => {
+          if (typeof raw[k] === 'string') raw[k] = raw[k].replace(/[\s　]+/g, ' ').trim();
+        });
+        if (typeof raw.Year === 'string') {
+          raw.Year = raw.Year.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).trim();
+        }
+      }
+
       submitBtn.onclick = async () => {
         const fd = new FormData(carForm); const raw = {}; fd.forEach((v, k) => raw[k] = v);
+        normalizeRaw(raw);
         const requiredFields = [
           ['HandleName', 'ハンドルネーム'], ['Prefecture', '都道府県'],
           ['ModelSelectA', '車両モデル'], ['ModelSelectB', 'モデル詳細'],

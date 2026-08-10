@@ -206,6 +206,8 @@
         .from('cars')
         .select(`
           CarType:car_type,
+          Model_DisplayA:model_display_a,
+          Model_DisplayB:model_display_b,
           Model_DisplayC:model_display_c,
           BodyColor:body_color,
           Steering:steering,
@@ -268,23 +270,27 @@
     return s;
   }
 
-  function getNormalizedModel(v) {
-    if (!v) return null;
-    let s = String(v);
-    if (s.includes('Nuova 500')) return 'Nuova 500';
-    if (s.includes('500 D')) return '500 D';
-    if (s.includes('500 F')) return '500 F';
-    if (s.includes('500 L')) return '500 L';
-    if (s.includes('500 R')) return '500 R';
-    if (s.includes('Giardiniera') || s.includes('ジャルディニエラ')) return 'Giardiniera';
-    return s.split('(')[0].trim();
+  // 車種名(display_a)とグレード(display_b)で分類する。
+  // どちらもプルダウン由来なので、表記ゆれで別カテゴリに割れることがない。
+  // ※以前は結合済みの display_c を '500 L' のようなスペース込みの部分一致で判定しており、
+  //   「FIAT500L L」のような入力が「500 L」に集計されず独立した棒になっていた。
+  function getNormalizedModel(car) {
+    const a = String(car.Model_DisplayA || '').trim();
+    const b = String(car.Model_DisplayB || '').trim();
+    if (!a && !b) return null;
+    // 126はグレードが「標準」なので車種名だけで分ける
+    if (car.CarType === '126') return a || null;
+    if (b === 'Giardiniera') return 'Giardiniera';
+    if (a === 'Nuova500' && ['D', 'F', 'L', 'R'].includes(b)) return '500 ' + b;
+    // アバルト・派生モデル・その他車種は車種名＋グレードで1カテゴリ
+    return (a + ' ' + b).trim();
   }
 
   function renderAllCharts(cars) {
     document.getElementById('totalCount').innerText = cars.length;
     Object.values(chartInstances).forEach(ins => ins.destroy());
 
-    renderBar('modelChart', cars, c => getNormalizedModel(c.Model_DisplayC), '#2856a8');
+    renderBar('modelChart', cars, c => getNormalizedModel(c), '#2856a8');
 
     renderPie('colorChart', cars, c => getColorGroup(c.BodyColor), 'palette');
     renderPie('steeringChart', cars, c => {
