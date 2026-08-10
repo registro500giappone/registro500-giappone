@@ -55,8 +55,14 @@
     '  box-shadow:0 3px 12px rgba(15,23,42,.16);',
     '  color:#334155; cursor:pointer; -webkit-tap-highlight-color:transparent;',
     '  transition:opacity .25s, visibility .25s, transform .1s, background-color .2s;',
+    // iOS のスクロール中に、固定したはずのボタンが本文に付いて画面半ばまで上がる
+    // 現象が出た（2026-08-10・イベント一覧の実機）。fixed をコンポジタで持たせ続けるよう
+    // レイヤーに載せて、本文のスクロールと切り離す。translateZ(0) は見た目を変えない。
+    // ※ :active の scale と同じ transform プロパティなので、押した時も併記が要る。
+    '  transform:translateZ(0); -webkit-transform:translateZ(0);',
+    '  backface-visibility:hidden; -webkit-backface-visibility:hidden;',
     '}',
-    '.rg-fab:active{ transform:scale(.94); background:rgba(255,255,255,.92); }',
+    '.rg-fab:active{ transform:scale(.94) translateZ(0); background:rgba(255,255,255,.92); }',
     '.rg-fab svg{ width:24px; height:24px; display:block; }',
     '.rg-fab-back{ left:14px; }',
     '.rg-fab-top{ right:14px; opacity:0; visibility:hidden; }',
