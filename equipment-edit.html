@@ -330,15 +330,8 @@
     .btn-save:disabled { opacity: .55; cursor: default; }
 
     /* ===== 上に戻る（項目数が多く縦に長いため。保存バーの真上に置く） ===== */
-    .to-top {
-      position: fixed; right: 16px; bottom: calc(74px + env(safe-area-inset-bottom)); z-index: 49;
-      width: 44px; height: 44px; border-radius: 50%;
-      background: rgba(255,255,255,0.97); border: 1px solid var(--border-soft);
-      box-shadow: 0 4px 12px rgba(15,23,42,0.12);
-      color: var(--accent); font-size: 1.15rem; line-height: 1; cursor: pointer;
-      display: none; align-items: center; justify-content: center; font-family: inherit;
-    }
-    .to-top.show { display: flex; }
+
+
 
     /* ===== ログインオーバーレイ ===== */
     #loginOverlay {
@@ -355,8 +348,10 @@
 
     #loading { text-align: center; color: var(--text-sub); font-size: 0.88rem; padding: 40px 0; }
   </style>
+  <!-- 左下「一つ前に戻る」（ホーム画面起動時のみ）／右下「先頭へ」の浮かぶボタン -->
+  <script src="fab-nav.js" defer></script>
 </head>
-<body>
+<body data-fab-above=".save-bar">
 
 <!-- ============ ログイン（OTPコード方式・edit.html と同型） ============ -->
 <div id="loginOverlay">
@@ -532,7 +527,6 @@
   </div>
 </div>
 
-<button class="to-top" id="toTopBtn" type="button" aria-label="ページの先頭に戻る">↑</button>
 
 <div class="save-bar" id="save-bar" style="display:none;">
   <span class="save-status" id="save-status"></span>
@@ -1674,15 +1668,6 @@
     dirty = true;
     document.getElementById('save-status').textContent = '未保存の変更があります';
   }
-  // 上に戻る（63項目あって縦に長いため。保存バーに隠れない位置に出す）
-  (function () {
-    const btn = document.getElementById('toTopBtn');
-    const sync = () => btn.classList.toggle('show', window.scrollY > 400);
-    window.addEventListener('scroll', sync, { passive: true });
-    btn.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
-    sync();
-  })();
-
   ['usage-freq', 'longtrip-freq', 'experience-body', 'vehicle-select'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', markDirty);

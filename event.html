@@ -181,34 +181,9 @@
     .btn-back { background: #bbb; color: white; flex: 1; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
     .btn-final { background: var(--danger); color: white; flex: 1; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
     
-    .scroll-top-button {
-      position: fixed;
-      bottom: 90px;
-      right: 28px;
-      width: 40px;
-      height: 40px;
-      background: rgba(0,0,0,0.4);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 90;
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.3s;
-      border: none;
-      padding: 0;
-    }
-    .scroll-top-button.visible {
-      opacity: 1;
-      visibility: visible;
-    }
-    .scroll-top-button svg {
-      width: 24px;
-      height: 24px;
-      fill: white;
-    }
+
+
+
 
     /* ===== 写真ギャラリー ===== */
     .photo-gallery-section {
@@ -365,6 +340,8 @@
       .photo-uploader { background: rgba(0,0,0,0.8); }
     }
   </style>
+  <!-- 左下「一つ前に戻る」（ホーム画面起動時のみ）／右下「先頭へ」の浮かぶボタン -->
+  <script src="fab-nav.js" defer></script>
 </head>
 <body>
 
@@ -514,9 +491,6 @@
   </div>
 </div>
 
-<button id="scrollTopBtn" class="scroll-top-button" onclick="window.scrollTo({top: 0, behavior: 'smooth'});" aria-label="トップへ戻る">
-  <svg viewBox="0 0 24 24"><path d="M12 4l-8 8h6v8h4v-8h6z"></path></svg>
-</button>
 
 <div class="photo-modal" id="photoModal">
   <button class="photo-modal-close" onclick="closePhotoModal()">×</button>
@@ -524,17 +498,7 @@
   <div class="photo-modal-uploader" id="photoModalUploader"></div>
 </div>
 
-<script>
-  // スクロールトップボタンの表示制御
-  window.addEventListener('scroll', () => {
-    const btn = document.getElementById('scrollTopBtn');
-    if (window.scrollY > 100) {
-      btn.classList.add('visible');
-    } else {
-      btn.classList.remove('visible');
-    }
-  });
-</script>
+
 
 <script>
   if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);

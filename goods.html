@@ -282,18 +282,9 @@
     }
 
     /* ページトップボタン */
-    .scroll-top-btn {
-      position: fixed; bottom: 24px; right: 20px;
-      width: 44px; height: 44px;
-      background: var(--accent); color: #fff;
-      border: none; border-radius: 50%;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; opacity: 0; visibility: hidden;
-      transition: all 0.3s; z-index: 999;
-    }
-    .scroll-top-btn.visible { opacity: 1; visibility: visible; }
-    .scroll-top-btn svg { width: 22px; height: 22px; fill: #fff; }
+
+
+
 
     /* オイル粘度ビジュアル */
     .oil-grade-visual {
@@ -543,6 +534,8 @@
       .tier-band { color: #0f172a; }
     }
   </style>
+  <!-- 左下「一つ前に戻る」（ホーム画面起動時のみ）／右下「先頭へ」の浮かぶボタン -->
+  <script src="fab-nav.js" defer></script>
 </head>
 <body>
 <div class="page">
@@ -1498,9 +1491,6 @@
   <div>© Registro500 Giappone</div>
 </footer>
 
-<button class="scroll-top-btn" id="scrollTopBtn" aria-label="ページトップへ" onclick="window.scrollTo({top:0,behavior:'smooth'})">
-  <svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
-</button>
 
 <script>
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -1593,9 +1583,7 @@
     });
   });
 
-  window.addEventListener('scroll', () => {
-    document.getElementById('scrollTopBtn').classList.toggle('visible', window.scrollY > 400);
-  });
+
 
   /* Amazonは画像未登録のASINに対し 1x1 の透明GIF（43バイト）を HTTP 200 で返す。
      この場合 onerror は発火せず空の箱が残るため、実寸を見て畳む。 */
