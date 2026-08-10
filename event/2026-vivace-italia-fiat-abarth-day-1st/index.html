@@ -45,60 +45,126 @@
 }
 </script>
 <style>
-  :root { --bg-main:#f4f4f7; --card-bg:#fff; --accent:#2856a8; --text-main:#111827; --sub:#6b7280; --line:#e5e7eb; }
+  :root { --bg-main:#f4f4f7; --card-bg:#fff; --accent:#2856a8; --text-main:#111827; --sub:#6b7280; --line:#e5e7eb; --nav:#1A1A18; }
   @media (prefers-color-scheme: dark) {
     :root { --bg-main:#0f172a; --card-bg:#1e293b; --accent:#7aa2e3; --text-main:#e2e8f0; --sub:#94a3b8; --line:#334155; }
   }
-  body { font-family:system-ui,sans-serif; background:var(--bg-main); color:var(--text-main); margin:0; padding:20px 16px 80px; line-height:1.6; }
-  .page { max-width:800px; margin:0 auto; }
-  .back { display:inline-block; color:var(--accent); text-decoration:none; font-size:.9rem; margin-bottom:14px; }
-  .card { background:var(--card-bg); border:1px solid var(--line); border-radius:14px; padding:20px 22px; }
-  h1 { font-size:1.35rem; margin:.1em 0 .5em; }
-  .badge { display:inline-block; font-size:.72rem; background:var(--accent); color:#fff; border-radius:999px; padding:2px 10px; vertical-align:middle; margin-left:8px; }
-  .row { display:flex; gap:12px; padding:9px 0; border-top:1px solid var(--line); }
+  * { box-sizing:border-box; }
+  body { font-family:system-ui,sans-serif; background:var(--bg-main); color:var(--text-main); margin:0; padding:0 0 90px; line-height:1.6; }
+
+  /* サイトの一部だと分かるように、動画ページ(video.html)と同じ形のバーを載せる */
+  .ev-nav { position:sticky; top:0; z-index:50; height:46px; background:var(--nav);
+             display:flex; align-items:center; justify-content:space-between; padding:0 18px; }
+  .ev-nav a { color:rgba(255,255,255,.8); text-decoration:none; font-size:.82rem; letter-spacing:.06em; }
+  .ev-nav a:hover { color:#fff; }
+  .ev-nav .brand { letter-spacing:.25em; text-transform:uppercase; font-size:.72rem; color:rgba(255,255,255,.6); }
+
+  .page { max-width:800px; margin:0 auto; padding:18px 16px 0; }
+  .card { background:var(--card-bg); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+
+  /* 日付はこのページの主役。行の一つに埋めず、上に置いて最初に目に入るようにする */
+  .hero { background:var(--accent); color:#fff; padding:16px 22px 14px; }
+  .hero.past { background:#6b7280; }
+  .hero-y { font-size:.8rem; opacity:.85; letter-spacing:.08em; }
+  .hero-d { font-size:1.75rem; font-weight:700; line-height:1.25; margin-top:2px; }
+  .hero-d .wd { font-size:1.1rem; font-weight:600; margin-left:2px; }
+  .hero-sub { font-size:.95rem; opacity:.92; margin-top:2px; }
+  .hero-cd { display:inline-block; margin-top:10px; background:rgba(255,255,255,.18);
+              border-radius:999px; padding:3px 14px; font-size:.85rem; font-weight:600; }
+
+  .body { padding:18px 22px 22px; }
+  h1 { font-size:1.4rem; margin:0 0 .6em; line-height:1.4; }
+  .badge { display:inline-block; font-size:.72rem; border-radius:5px; padding:3px 9px;
+            vertical-align:middle; margin-left:8px; font-weight:600; }
+  .b500 { background:#e0f2fe; color:#0369a1; }
+  .b126 { background:#ffedd5; color:#9a3412; }
+  .row { display:flex; gap:12px; padding:10px 0; border-top:1px solid var(--line); }
   .lbl { flex:0 0 5.5em; color:var(--sub); font-size:.85rem; }
   .val { flex:1; }
+
+  .btn { display:block; text-align:center; text-decoration:none; border-radius:10px;
+          padding:11px 16px; font-size:.95rem; font-weight:600; margin-top:12px; }
+  /* 絵文字は環境によって豆腐や黒塗りになる（🗺で実際に発生）ので、ボタンには使わない */
+  .btn-map { background:var(--bg-main); color:var(--accent); border:1px solid var(--line); }
+  .btn-ext { background:var(--accent); color:#fff; }
+  .btn-ext::after { content:" →"; }
+  @media (prefers-color-scheme: dark) { .btn-map { background:#0f172a; } }
+
   .desc { margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
-  .ext { margin-top:14px; font-size:.9rem; }
-  .ext a { color:var(--accent); word-break:break-all; }
   .join { margin-top:18px; padding-top:14px; border-top:1px solid var(--line); }
-  .join h2 { font-size:.95rem; margin:0 0 .5em; }
+  .join h2 { font-size:1rem; margin:0 0 .6em; }
   .names { display:flex; flex-wrap:wrap; gap:6px; }
-  .name { background:var(--bg-main); border:1px solid var(--line); border-radius:999px; padding:3px 12px; font-size:.85rem; }
-  .muted { color:var(--sub); font-size:.85rem; }
-  .foot { margin-top:22px; font-size:.8rem; color:var(--sub); }
+  .name { background:var(--bg-main); border:1px solid var(--line); border-radius:999px; padding:4px 13px; font-size:.88rem; }
+  @media (prefers-color-scheme: dark) { .name { background:#0f172a; } }
+  .muted { color:var(--sub); font-size:.9rem; }
+  .foot { margin-top:20px; font-size:.8rem; color:var(--sub); }
+  .back-bottom { display:block; text-align:center; margin:18px 0 0; padding:12px;
+                  color:var(--accent); text-decoration:none; font-size:.92rem; }
 </style>
 </head>
 <body>
+<nav class="ev-nav">
+  <a href="/event">← イベント一覧</a>
+  <a class="brand" href="/">Registro500</a>
+</nav>
 <div class="page">
-  <a class="back" href="/event">← イベント一覧へ</a>
   <article class="card">
-    <h1>VIVACE ITALIA FIAT &amp; ABARTH DAY 1st</h1>
-      <div class="row"><span class="lbl">開催日</span><div class="val">2026年9月5日（土） 09:00〜</div></div>
+    <div class="hero" id="hero" data-last-day="2026-09-05">
+      <div class="hero-y">2026年</div>
+      <div class="hero-d">9月5日<span class="wd">（土）</span></div>
+      
+      <div class="hero-sub">09:00〜</div>
+      <div class="hero-cd" id="countdown" hidden></div>
+    </div>
+    <div class="body">
+      <h1>VIVACE ITALIA FIAT &amp; ABARTH DAY 1st</h1>
       <div class="row"><span class="lbl">開催場所</span><div class="val">〒441-8077 愛知県豊橋市神野新田町シノ割１−３<br>とよはし産業人材育成センター</div></div>
       <div class="row"><span class="lbl">費用</span><div class="val">1台3,000円</div></div>
-    <div class="desc">主催者: ウイングオート<br>募集：200台<br>応募締切	<br>2026年8月31日(月) 18:00まで　<br>※定員に達しましたら申し込みを締め切り</div>
-      <p class="ext">🔗 <a href="https://vivaceabarth.hp.peraichi.com/" target="_blank" rel="noopener nofollow">主催者のページを見る</a></p>
-    <div class="join">
-      <h2>参加予定</h2>
-      <div id="participants" class="muted">読み込み中…</div>
+    <a class="btn btn-map" href="https://www.google.com/maps/search/?api=1&amp;query=%E3%80%92441-8077%20%E6%84%9B%E7%9F%A5%E7%9C%8C%E8%B1%8A%E6%A9%8B%E5%B8%82%E7%A5%9E%E9%87%8E%E6%96%B0%E7%94%B0%E7%94%BA%E3%82%B7%E3%83%8E%E5%89%B2%EF%BC%91%E2%88%92%EF%BC%93%20%E3%81%A8%E3%82%88%E3%81%AF%E3%81%97%E7%94%A3%E6%A5%AD%E4%BA%BA%E6%9D%90%E8%82%B2%E6%88%90%E3%82%BB%E3%83%B3%E3%82%BF%E3%83%BC" target="_blank" rel="noopener">Googleマップで開く</a>
+      <div class="desc">主催者: ウイングオート<br>募集：200台<br>応募締切	<br>2026年8月31日(月) 18:00まで　<br>※定員に達しましたら申し込みを締め切り</div>
+    <a class="btn btn-ext" href="https://vivaceabarth.hp.peraichi.com/" target="_blank" rel="noopener nofollow">主催者のページを見る</a>
+      <div class="join">
+        <h2 id="joinHead">参加予定</h2>
+        <div id="participants" class="muted">読み込み中…</div>
+      </div>
+      <p class="foot">掲載: 管理者／情報は主催者の告知が最新です。お出かけ前に主催者のページでご確認ください。</p>
     </div>
-    <p class="foot">掲載: 管理者／情報は主催者の告知が最新です。お出かけ前に主催者のページでご確認ください。</p>
   </article>
+  <a class="back-bottom" href="/event">← イベント一覧へ戻る</a>
 </div>
+<script src="/fab-nav.js" defer></script>
 <script>
+// 「あと何日」「終了しました」は今日を基準に変わる。6時間おきの生成で焼き込むと
+// 日付をまたいだ瞬間に嘘になるので、表示時に出す。
+var rgIsPast = (function () {
+  var hero = document.getElementById('hero');
+  var cd = document.getElementById('countdown');
+  var p = hero.dataset.lastDay.split('-');
+  var last = new Date(+p[0], +p[1] - 1, +p[2]);   // 開催最終日のローカル(JST)0時
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var days = Math.round((last - today) / 86400000);
+  if (days < 0) { hero.classList.add('past'); cd.textContent = '終了しました'; }
+  else if (days === 0) { cd.textContent = '本日開催'; }
+  else if (days === 1) { cd.textContent = '明日開催'; }
+  else { cd.textContent = 'あと' + days + '日'; }
+  cd.hidden = false;
+  return days < 0;
+})();
+
 // 参加表明は変動するので静的に焼かず、表示時に最新を取りに行く。
 // event_participants は匿名読み取り可（一覧ページと同じ扱い）。
 (async () => {
   const box = document.getElementById('participants');
+  const head = document.getElementById('joinHead');
   try {
     const r = await fetch("https://ttlttclfovuzafvghvaq.supabase.co" + '/rest/v1/event_participants?select=handle_name&event_id=eq.' +
       encodeURIComponent("EVT_1782874721317"), { headers: { apikey: "sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt" } });
     const rows = await r.json();
     if (!Array.isArray(rows) || rows.length === 0) {
-      box.textContent = 'まだ参加表明はありません。';
+      box.textContent = rgIsPast ? '参加表明はありませんでした。' : 'まだ参加表明はありません。';
       return;
     }
+    head.textContent = rows.length + '人が参加' + (rgIsPast ? 'しました' : '予定');
     box.className = 'names';
     box.innerHTML = '';
     for (const row of rows) {

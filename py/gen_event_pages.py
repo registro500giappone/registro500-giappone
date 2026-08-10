@@ -39,6 +39,7 @@ import shutil
 import sys
 import unicodedata
 from datetime import datetime, timedelta, timezone
+from urllib.parse import quote
 
 from dotenv import load_dotenv
 from supabase import create_client
@@ -237,20 +238,42 @@ def render(ev, slug, start, end) -> str:
     url = f"{SITE_BASE}/event/{slug}/"
     name = ev.get("event_name") or "イベント"
     date_label = fmt_date(start, end)
-    loc_first = (ev.get("location") or "").splitlines()[0] if ev.get("location") else ""
+    loc_lines = [x.strip() for x in (ev.get("location") or "").splitlines() if x.strip()]
+    loc_first = loc_lines[0] if loc_lines else ""
     summary = f"{date_label}／{loc_first}".strip("／")
     desc_meta = f"{name}｜{summary}｜クラシックFIAT 500/126 のイベント情報 - Registro500 Giappone"
 
-    car_type = {"500": "FIAT 500 対象", "126": "FIAT 126 対象"}.get(ev.get("target_car_type"), "")
-    rows = [("開催日", date_label), ("開催場所", ev.get("location")), ("費用", ev.get("fee"))]
+    # --- 日付は個別ページの主役なので、行の一つではなく上部に大きく出す ---
+    weekday = "月火水木金土日"[start.weekday()]
+    time_str = f"{start:%H:%M}〜" if has_time(start) else ""
+    end_str = ""
+    if end and end.date() != start.date():
+        end_str = f"〜 {end.month}月{end.day}日（{'月火水木金土日'[end.weekday()]}）"
+    # 開催済みかの判定と残り日数はJSに任せる。6時間おきの生成では日付をまたいだ瞬間に古くなるため。
+    last_day = (end or start).strftime("%Y-%m-%d")
+
+    # 車種バッジは一覧カードと同じ配色に揃える（ページごとに色が違うと別サイトに見える）
+    badge = ""
+    if ev.get("target_car_type") == "500":
+        badge = '<span class="badge b500">500</span>'
+    elif ev.get("target_car_type") == "126":
+        badge = '<span class="badge b126">126</span>'
+
+    # 地図は施設名と住所を両方入れた方が当たる（例:「静岡県磐田市豊浜4127 福田漁港」）
+    map_html = ""
+    if loc_lines:
+        map_html = (f'    <a class="btn btn-map" href="https://www.google.com/maps/search/?api=1&amp;query='
+                    f'{quote(" ".join(loc_lines))}" target="_blank" rel="noopener">Googleマップで開く</a>')
+
+    rows = [("開催場所", ev.get("location")), ("費用", ev.get("fee"))]
     rows_html = "\n".join(
         f'      <div class="row"><span class="lbl">{e(k)}</span>'
         f'<div class="val">{e(v).replace(chr(10), "<br>")}</div></div>'
         for k, v in rows if v
     )
     desc_html = e(ev.get("description")).replace("\n", "<br>") if ev.get("description") else ""
-    link_html = (f'      <p class="ext">🔗 <a href="{e(ev.get("url"))}" target="_blank" '
-                 f'rel="noopener nofollow">主催者のページを見る</a></p>' if ev.get("url") else "")
+    link_html = (f'    <a class="btn btn-ext" href="{e(ev.get("url"))}" target="_blank" '
+                 f'rel="noopener nofollow">主催者のページを見る</a>' if ev.get("url") else "")
     jsonld = json.dumps(build_jsonld(ev, start, end, url), ensure_ascii=False, indent=2)
 
     return f"""<!DOCTYPE html>
@@ -281,58 +304,125 @@ def render(ev, slug, start, end) -> str:
 {jsonld}
 </script>
 <style>
-  :root {{ --bg-main:#f4f4f7; --card-bg:#fff; --accent:#2856a8; --text-main:#111827; --sub:#6b7280; --line:#e5e7eb; }}
+  :root {{ --bg-main:#f4f4f7; --card-bg:#fff; --accent:#2856a8; --text-main:#111827; --sub:#6b7280; --line:#e5e7eb; --nav:#1A1A18; }}
   @media (prefers-color-scheme: dark) {{
     :root {{ --bg-main:#0f172a; --card-bg:#1e293b; --accent:#7aa2e3; --text-main:#e2e8f0; --sub:#94a3b8; --line:#334155; }}
   }}
-  body {{ font-family:system-ui,sans-serif; background:var(--bg-main); color:var(--text-main); margin:0; padding:20px 16px 80px; line-height:1.6; }}
-  .page {{ max-width:800px; margin:0 auto; }}
-  .back {{ display:inline-block; color:var(--accent); text-decoration:none; font-size:.9rem; margin-bottom:14px; }}
-  .card {{ background:var(--card-bg); border:1px solid var(--line); border-radius:14px; padding:20px 22px; }}
-  h1 {{ font-size:1.35rem; margin:.1em 0 .5em; }}
-  .badge {{ display:inline-block; font-size:.72rem; background:var(--accent); color:#fff; border-radius:999px; padding:2px 10px; vertical-align:middle; margin-left:8px; }}
-  .row {{ display:flex; gap:12px; padding:9px 0; border-top:1px solid var(--line); }}
+  * {{ box-sizing:border-box; }}
+  body {{ font-family:system-ui,sans-serif; background:var(--bg-main); color:var(--text-main); margin:0; padding:0 0 90px; line-height:1.6; }}
+
+  /* サイトの一部だと分かるように、動画ページ(video.html)と同じ形のバーを載せる */
+  .ev-nav {{ position:sticky; top:0; z-index:50; height:46px; background:var(--nav);
+             display:flex; align-items:center; justify-content:space-between; padding:0 18px; }}
+  .ev-nav a {{ color:rgba(255,255,255,.8); text-decoration:none; font-size:.82rem; letter-spacing:.06em; }}
+  .ev-nav a:hover {{ color:#fff; }}
+  .ev-nav .brand {{ letter-spacing:.25em; text-transform:uppercase; font-size:.72rem; color:rgba(255,255,255,.6); }}
+
+  .page {{ max-width:800px; margin:0 auto; padding:18px 16px 0; }}
+  .card {{ background:var(--card-bg); border:1px solid var(--line); border-radius:14px; overflow:hidden; }}
+
+  /* 日付はこのページの主役。行の一つに埋めず、上に置いて最初に目に入るようにする */
+  .hero {{ background:var(--accent); color:#fff; padding:16px 22px 14px; }}
+  .hero.past {{ background:#6b7280; }}
+  .hero-y {{ font-size:.8rem; opacity:.85; letter-spacing:.08em; }}
+  .hero-d {{ font-size:1.75rem; font-weight:700; line-height:1.25; margin-top:2px; }}
+  .hero-d .wd {{ font-size:1.1rem; font-weight:600; margin-left:2px; }}
+  .hero-sub {{ font-size:.95rem; opacity:.92; margin-top:2px; }}
+  .hero-cd {{ display:inline-block; margin-top:10px; background:rgba(255,255,255,.18);
+              border-radius:999px; padding:3px 14px; font-size:.85rem; font-weight:600; }}
+
+  .body {{ padding:18px 22px 22px; }}
+  h1 {{ font-size:1.4rem; margin:0 0 .6em; line-height:1.4; }}
+  .badge {{ display:inline-block; font-size:.72rem; border-radius:5px; padding:3px 9px;
+            vertical-align:middle; margin-left:8px; font-weight:600; }}
+  .b500 {{ background:#e0f2fe; color:#0369a1; }}
+  .b126 {{ background:#ffedd5; color:#9a3412; }}
+  .row {{ display:flex; gap:12px; padding:10px 0; border-top:1px solid var(--line); }}
   .lbl {{ flex:0 0 5.5em; color:var(--sub); font-size:.85rem; }}
   .val {{ flex:1; }}
+
+  .btn {{ display:block; text-align:center; text-decoration:none; border-radius:10px;
+          padding:11px 16px; font-size:.95rem; font-weight:600; margin-top:12px; }}
+  /* 絵文字は環境によって豆腐や黒塗りになる（🗺で実際に発生）ので、ボタンには使わない */
+  .btn-map {{ background:var(--bg-main); color:var(--accent); border:1px solid var(--line); }}
+  .btn-ext {{ background:var(--accent); color:#fff; }}
+  .btn-ext::after {{ content:" →"; }}
+  @media (prefers-color-scheme: dark) {{ .btn-map {{ background:#0f172a; }} }}
+
   .desc {{ margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }}
-  .ext {{ margin-top:14px; font-size:.9rem; }}
-  .ext a {{ color:var(--accent); word-break:break-all; }}
   .join {{ margin-top:18px; padding-top:14px; border-top:1px solid var(--line); }}
-  .join h2 {{ font-size:.95rem; margin:0 0 .5em; }}
+  .join h2 {{ font-size:1rem; margin:0 0 .6em; }}
   .names {{ display:flex; flex-wrap:wrap; gap:6px; }}
-  .name {{ background:var(--bg-main); border:1px solid var(--line); border-radius:999px; padding:3px 12px; font-size:.85rem; }}
-  .muted {{ color:var(--sub); font-size:.85rem; }}
-  .foot {{ margin-top:22px; font-size:.8rem; color:var(--sub); }}
+  .name {{ background:var(--bg-main); border:1px solid var(--line); border-radius:999px; padding:4px 13px; font-size:.88rem; }}
+  @media (prefers-color-scheme: dark) {{ .name {{ background:#0f172a; }} }}
+  .muted {{ color:var(--sub); font-size:.9rem; }}
+  .foot {{ margin-top:20px; font-size:.8rem; color:var(--sub); }}
+  .back-bottom {{ display:block; text-align:center; margin:18px 0 0; padding:12px;
+                  color:var(--accent); text-decoration:none; font-size:.92rem; }}
 </style>
 </head>
 <body>
+<nav class="ev-nav">
+  <a href="/event">← イベント一覧</a>
+  <a class="brand" href="/">Registro500</a>
+</nav>
 <div class="page">
-  <a class="back" href="/event">← イベント一覧へ</a>
   <article class="card">
-    <h1>{e(name)}{f'<span class="badge">{e(car_type)}</span>' if car_type else ''}</h1>
-{rows_html}
-    {f'<div class="desc">{desc_html}</div>' if desc_html else ''}
-{link_html}
-    <div class="join">
-      <h2>参加予定</h2>
-      <div id="participants" class="muted">読み込み中…</div>
+    <div class="hero" id="hero" data-last-day="{last_day}">
+      <div class="hero-y">{start.year}年</div>
+      <div class="hero-d">{start.month}月{start.day}日<span class="wd">（{weekday}）</span></div>
+      {f'<div class="hero-sub">{e(end_str)}</div>' if end_str else ''}
+      {f'<div class="hero-sub">{e(time_str)}</div>' if time_str else ''}
+      <div class="hero-cd" id="countdown" hidden></div>
     </div>
-    <p class="foot">掲載: {e(ev.get('owner_name'))}／情報は主催者の告知が最新です。お出かけ前に主催者のページでご確認ください。</p>
+    <div class="body">
+      <h1>{e(name)}{badge}</h1>
+{rows_html}
+{map_html}
+      {f'<div class="desc">{desc_html}</div>' if desc_html else ''}
+{link_html}
+      <div class="join">
+        <h2 id="joinHead">参加予定</h2>
+        <div id="participants" class="muted">読み込み中…</div>
+      </div>
+      <p class="foot">掲載: {e(ev.get('owner_name'))}／情報は主催者の告知が最新です。お出かけ前に主催者のページでご確認ください。</p>
+    </div>
   </article>
+  <a class="back-bottom" href="/event">← イベント一覧へ戻る</a>
 </div>
+<script src="/fab-nav.js" defer></script>
 <script>
+// 「あと何日」「終了しました」は今日を基準に変わる。6時間おきの生成で焼き込むと
+// 日付をまたいだ瞬間に嘘になるので、表示時に出す。
+var rgIsPast = (function () {{
+  var hero = document.getElementById('hero');
+  var cd = document.getElementById('countdown');
+  var p = hero.dataset.lastDay.split('-');
+  var last = new Date(+p[0], +p[1] - 1, +p[2]);   // 開催最終日のローカル(JST)0時
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var days = Math.round((last - today) / 86400000);
+  if (days < 0) {{ hero.classList.add('past'); cd.textContent = '終了しました'; }}
+  else if (days === 0) {{ cd.textContent = '本日開催'; }}
+  else if (days === 1) {{ cd.textContent = '明日開催'; }}
+  else {{ cd.textContent = 'あと' + days + '日'; }}
+  cd.hidden = false;
+  return days < 0;
+}})();
+
 // 参加表明は変動するので静的に焼かず、表示時に最新を取りに行く。
 // event_participants は匿名読み取り可（一覧ページと同じ扱い）。
 (async () => {{
   const box = document.getElementById('participants');
+  const head = document.getElementById('joinHead');
   try {{
     const r = await fetch({json.dumps(SUPABASE_URL)} + '/rest/v1/event_participants?select=handle_name&event_id=eq.' +
       encodeURIComponent({json.dumps(ev['id'])}), {{ headers: {{ apikey: {json.dumps(PUBLIC_KEY)} }} }});
     const rows = await r.json();
     if (!Array.isArray(rows) || rows.length === 0) {{
-      box.textContent = 'まだ参加表明はありません。';
+      box.textContent = rgIsPast ? '参加表明はありませんでした。' : 'まだ参加表明はありません。';
       return;
     }}
+    head.textContent = rows.length + '人が参加' + (rgIsPast ? 'しました' : '予定');
     box.className = 'names';
     box.innerHTML = '';
     for (const row of rows) {{
