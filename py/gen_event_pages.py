@@ -87,10 +87,13 @@ SLUG_MAP_PATH = os.path.join(REPO_ROOT, "event-slugs.json")
 REVIEW_PATH = os.path.join(REPO_ROOT, "event-review.html")
 JST = timezone(timedelta(hours=9))
 
-# 一覧ページからのリンクも sitemap 登録もまだ行わない段階のため、
-# 万一URLが外部に出回っても検索結果に載らないよう noindex を入れておく。
-# 公開の指示が出たらこれを False にして再生成する（1行の切り替えで済ませる）。
-NOINDEX = True
+# 2026-08-10 公開（ユーザー指示）。一覧からのリンク・sitemap 登録と揃えて False にした。
+# 再び伏せたくなったらここを True に戻して再生成すれば、35件すべてに検索避けが戻る。
+NOINDEX = False
+
+# 個別ページの sitemap。イベントは増減するので手書きの sitemap.xml には載せず、
+# 生成のたびに作り直す専用ファイルにする（sitemap-videos.xml と同じ考え方）。
+SITEMAP_PATH = os.path.join(REPO_ROOT, "sitemap-events.xml")
 
 # 都道府県（event.html の地域フィルタと同じ並び）。構造化データの addressRegion に使う。
 PREFECTURES = [
@@ -363,7 +366,11 @@ def render(ev, slug, start, end) -> str:
   .btn-ext {{ background:var(--accent); color:#fff; }}
   .btn-ext::after {{ content:" →"; }}
   .ext-host {{ text-align:center; font-size:.78rem; color:var(--sub); margin:6px 0 0; word-break:break-all; }}
-  @media (prefers-color-scheme: dark) {{ .btn-map {{ background:#0f172a; }} }}
+  /* 共有は「行く人が仲間を誘う」動線なので参加予定の直後に置く。地図と同じ控えめな見た目にして、
+     このページで一番押してほしい参加ボタン（塗り）と主役を争わせない。button なので font 継承が要る */
+  .btn-share {{ background:var(--bg-main); color:var(--accent); border:1px solid var(--line);
+                width:100%; cursor:pointer; font-family:inherit; }}
+  @media (prefers-color-scheme: dark) {{ .btn-map, .btn-share {{ background:#0f172a; }} }}
 
   .desc {{ margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }}
   .desc a {{ color:var(--accent); word-break:break-all; }}
@@ -426,6 +433,7 @@ def render(ev, slug, start, end) -> str:
         <p class="join-hint" id="joinHint" style="display:none;"></p>
         <div id="participants" class="muted">読み込み中…</div>
       </div>
+      <button type="button" class="btn btn-share" id="shareBtn" onclick="shareThisEvent()">このイベントを共有する</button>
       <p class="foot">掲載: {e(ev.get('owner_name'))}／内容が変わることがあります。お出かけ前に最新の告知をご確認ください。</p>
     </div>
   </article>
@@ -473,6 +481,28 @@ var rgIsPast = (function () {{
 }})();
 
 const EVENT_ID = {json.dumps(ev['id'])};
+const EVENT_NAME = {json.dumps(name, ensure_ascii=False)};
+
+// 共有。スマホでは共有シート（LINE等が並ぶ）、対応していない環境ではリンクをコピーする。
+// alert を出さずボタンの文字で結果を伝える＝押した指の近くで完結し、閉じる操作が要らない。
+// 配るURLは canonical と同じ /event/<slug>/ に固定する（クエリやハッシュが付いた状態で
+// 共有されると、同じページが別URLとして出回りSNSのシェア数も分散するため）。
+function shareThisEvent() {{
+  const url = location.origin + location.pathname;
+  const btn = document.getElementById('shareBtn');
+  if (navigator.share) {{
+    navigator.share({{ title: EVENT_NAME, url: url }}).catch(function () {{}});
+    return;   // 共有をやめた場合も含め、ここで完了
+  }}
+  navigator.clipboard.writeText(url).then(function () {{
+    const before = btn.textContent;
+    btn.textContent = 'リンクをコピーしました';
+    setTimeout(function () {{ btn.textContent = before; }}, 2000);
+  }}).catch(function () {{
+    prompt('このリンクをコピーしてください:', url);
+  }});
+}}
+
 let currentUser = null;
 let myCarId = null;
 let myCarHandle = null;
@@ -752,11 +782,39 @@ def render_review(live, counts) -> str:
 """
 
 
+def render_sitemap(live):
+    """個別ページ全件の sitemap を組み立てる。
+
+    lastmod に生成日時を入れてはいけない。6時間おきの再生成のたびに全35件が
+    「更新された」ことになり、Googleへ嘘の更新シグナルを送り続けることになる。
+    events に updated_at は無いので、動かない値である created_at（登録日）を使う。
+
+    changefreq は開催前だけ weekly（参加者が増える・詳細が埋まる）。
+    終了したイベントはもう変わらないので yearly にして、クロール枠を開催前へ回す。
+    """
+    today = datetime.now(JST).date()
+    lines = ['<?xml version="1.0" encoding="UTF-8"?>',
+             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for ev, slug, start in live:
+        created = to_jst(ev.get("created_at"))
+        upcoming = start.date() >= today
+        lines.append("  <url>")
+        lines.append(f"    <loc>{SITE_BASE}/event/{slug}/</loc>")
+        if created:
+            lines.append(f"    <lastmod>{created.date().isoformat()}</lastmod>")
+        lines.append(f"    <changefreq>{'weekly' if upcoming else 'yearly'}</changefreq>")
+        lines.append(f"    <priority>{'0.7' if upcoming else '0.4'}</priority>")
+        lines.append("  </url>")
+    lines.append("</urlset>")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def main():
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
     events = (supabase.table("events")
               .select("id,event_name,event_date,event_date_end,location,fee,url,"
-                      "description,target_car_type,owner_name")
+                      "description,target_car_type,owner_name,created_at")
               .order("event_date").execute().data or [])
 
     slug_map = {}
@@ -796,7 +854,11 @@ def main():
     with open(REVIEW_PATH, "w", encoding="utf-8", newline="\n") as f:
         f.write(render_review(live, fetch_participant_counts(supabase)))
 
+    with open(SITEMAP_PATH, "w", encoding="utf-8", newline="\n") as f:
+        f.write(render_sitemap(live))
+
     print(f"生成: {written} ページ（event/<slug>/index.html）")
+    print(f"sitemap: {os.path.basename(SITEMAP_PATH)} （{len(live)} URL）")
     print(f"確認用一覧: {os.path.basename(REVIEW_PATH)} （/event-review）")
     if removed:
         print(f"古いフォルダを削除 {len(removed)} 件: {', '.join(removed[:5])}"
