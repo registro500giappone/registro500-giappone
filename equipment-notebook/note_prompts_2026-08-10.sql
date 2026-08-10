@@ -52,3 +52,12 @@ where code in (
   'tool_spanner_set','tool_torque_wrench','tool_feeler_gauge','tool_timing_light',
   'tool_wire_crimp','tool_point_file','emg_wiring_manual','emg_air_pump','emg_booster_cable'
 );
+
+-- 追補（2026-08-10 ユーザー指示）：プライヤー2項目。
+-- 同じ「プライヤー」でも指すものが人によって違い、銘柄でも使い勝手が大きく変わるため。
+update equipment_items set note_prompt = case code
+  when 'tool_pliers'            then '銘柄・種類は？（ラジオペンチ／ニッパー／両方 など）'
+  when 'tool_water_pump_pliers' then '銘柄・サイズは？（プライヤーレンチ／ウォーターポンププライヤー など）'
+  else note_prompt
+end
+where code in ('tool_pliers','tool_water_pump_pliers');
