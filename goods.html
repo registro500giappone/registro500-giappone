@@ -1502,7 +1502,7 @@
 
   function renderRanking(listId, totalId, entries, total, linkFn) {
     const totalEl = document.getElementById(totalId);
-    if (totalEl) totalEl.textContent = '（' + total + '台中）';
+    if (totalEl) totalEl.textContent = '（回答' + total + '台中）';
     const el = document.getElementById(listId);
     if (!el) return;
     if (entries.length === 0) { el.innerHTML = '<span class="ranking-loading">集計データなし</span>'; return; }
@@ -1524,16 +1524,22 @@
       const { data, error } = await supabaseClient
         .from('cars')
         .select('engine_oil')
-        .eq('car_type', '500');
+        .eq('car_type', '500')
+        .eq('is_sold', false);
       if (error || !data) throw error;
-      const total = data.length;
+      // 分母は「登録台数」ではなく「オイルを答えた台数」。
+      // 全台数を分母にすると、10台使われている銘柄が6%に見えてしまう。
+      let answered = 0;
       const counts = {};
       data.forEach(c => {
+        if (getBrandJa(c.engine_oil)) answered++;
+        // 通販で買えない銘柄はランキングから外すが、回答したことに変わりはないので
+        // 分母には数える
         const b = getBrandJa(c.engine_oil, { excludeRetailUnavailable: true });
         if (b) counts[b] = (counts[b] || 0) + 1;
       });
       const top5 = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
-      renderRanking('oilRankingList', 'oilRankingTotal', top5, total,
+      renderRanking('oilRankingList', 'oilRankingTotal', top5, answered,
         brand => 'https://www.amazon.co.jp/s?k=' + encodeURIComponent(brand + ' エンジンオイル 旧車') + '&tag=registro500-22');
     } catch (e) {
       const el = document.getElementById('oilRankingList');
