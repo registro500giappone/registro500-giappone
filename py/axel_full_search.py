@@ -5,6 +5,7 @@ Axel Gerstl クローラー（再構築版）
 - GitHub Actions 6h制限に余裕で収まるように
 """
 
+import sys
 import time
 import requests
 import re
@@ -25,11 +26,43 @@ TEST_MODE = False
 TEST_TARGET = 10
 
 
+class BotChallenge(Exception):
+    """相手サイトのボット保護に阻まれた状態。待っても通らないので即座に中止する。"""
+
+
+def is_bot_challenge(res):
+    """Cloudflareのチャレンジ応答か判定する。
+
+    Axel Gerstl は 2026-08-03 頃に Cloudflare のボット保護を有効化し、
+    サイトマップも商品ページも 403 + インタースティシャルHTML を返すようになった。
+    HTMLなので例外は出ず、<loc> が0件 → 商品URL 0件 → 正常終了に見えてしまっていた。
+    """
+    if res.headers.get("cf-mitigated") == "challenge":
+        return True
+    if res.status_code in (403, 503) and "just a moment" in res.text[:2000].lower():
+        return True
+    return False
+
+
 def get_all_urls():
     """サイトマップから商品URLを取得（深さ3以上 = category/subcategory/product）"""
     print("1. サイトマップを読み込み中...")
     try:
-        res = requests.get(f"{SITE_BASE_URL}/sitemap.xml", timeout=30)
+        res = requests.get(f"{SITE_BASE_URL}/sitemap.xml", timeout=30,
+                           headers={"User-Agent": BOT_USER_AGENT})
+    except Exception as e:
+        print(f"   サイトマップエラー: {e}")
+        return []
+
+    if is_bot_challenge(res):
+        raise BotChallenge(
+            f"サイトマップの取得がボット保護に遮断されました（HTTP {res.status_code}）"
+        )
+    if res.status_code != 200:
+        print(f"   サイトマップエラー: HTTP {res.status_code}")
+        return []
+
+    try:
         all_locs = re.findall(r'<loc>(.*?)</loc>', res.text)
 
         # /de/ → /en/ に統一、画像・PDF・アカウントページを除外
@@ -52,7 +85,7 @@ def get_all_urls():
         print(f"   ★商品URL: {len(product_urls)} 件")
         return product_urls
     except Exception as e:
-        print(f"   サイトマップエラー: {e}")
+        print(f"   サイトマップの解析エラー: {e}")
         return []
 
 
@@ -156,10 +189,19 @@ def main():
     print(f"開始時刻: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
 
-    urls = get_all_urls()
+    try:
+        urls = get_all_urls()
+    except BotChallenge as e:
+        print(f"[BLOCKED] {e}")
+        print("ショップ側が自動アクセスを拒否しています。リトライでは解決しません。")
+        print("再開するには、ショップにクロールの可否を確認し、許可が得られる場合は")
+        print("Bot UA/送信元の許可リスト登録を依頼する必要があります。")
+        sys.exit(1)
+
     if not urls:
+        # 0件は「商品が無い」ではなく取得失敗。successで終わると気づけないので落とす
         print("[ERROR] URLを取得できませんでした")
-        return
+        sys.exit(1)
 
     total = len(urls)
     print(f"\n2. 商品詳細の収集を開始します（{total} 件）...")
@@ -204,6 +246,11 @@ def main():
     print(f"所要時間: {elapsed_total:.1f}分")
     print(f"成功: {success}件 / スキップ: {skip}件 / 合計URL: {total}件")
     print("=" * 60)
+
+    # URLはあるのに1件も取れない＝商品ページ側が遮断されている等の異常
+    if success == 0:
+        print("[ERROR] 1件も取得できませんでした（商品ページ側が遮断された可能性）")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
