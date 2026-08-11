@@ -352,7 +352,9 @@
             transform: translateX(-50%) translateY(0); /* 中央配置 + デフォルト開いた状態 */
             width: 100%;
             max-width: 1400px; /* モーダルと同じ幅に統一 */
-            height: 400px;
+            /* 高さにホームインジケーター分を加える。閉じたときの translateY は据え置きなので、
+               その分だけヘッダーが下に伸びて画面下端まで届く（隙間を作らない） */
+            height: calc(400px + env(safe-area-inset-bottom, 0px));
             background: var(--rg-surface);
             box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
             border-radius: 12px 12px 0 0;
@@ -361,16 +363,19 @@
             display: flex;
             flex-direction: column;
         }
-        /* 閉じた状態。ホームインジケーター分だけ持ち上げて、バーが潜り込まないようにする。
-           持ち上げてできた下の隙間はトレイ本体が覗くので、背景をヘッダーと同じ濃緑にする
-           （開いているときは元のサーフェス色のまま） */
         #comparison-tray.collapsed {
-            transform: translateX(-50%) translateY(calc(280px - env(safe-area-inset-bottom, 0px)));
-            background: #17452e;
+            transform: translateX(-50%) translateY(280px); /* 閉じた状態 */
+        }
+        /* 閉じているときだけヘッダーをインジケーター分だけ下に伸ばす。
+           中身は上の40px内に収まるので、バーが潜り込まず隙間からトレイの中身も覗かない */
+        #comparison-tray.collapsed .tray-header {
+            height: calc(40px + env(safe-area-inset-bottom, 0px));
+            padding-bottom: env(safe-area-inset-bottom, 0px);
         }
 
         .tray-header {
             height: 40px;
+            box-sizing: border-box; /* 閉じたとき padding-bottom を高さに含める */
             background: #17452e; /* ブランドの濃緑（常時ダーク） */
             color: #fff;
             display: flex;
@@ -889,10 +894,10 @@
         }
         @media (max-width: 768px) {
             #comparison-tray {
-                height: 260px; /* スマホでは高さを制限 */
+                height: calc(260px + env(safe-area-inset-bottom, 0px)); /* スマホでは高さを制限 */
             }
             #comparison-tray.collapsed {
-                transform: translateX(-50%) translateY(calc(220px - env(safe-area-inset-bottom, 0px))); /* スマホ閉じ状態 */
+                transform: translateX(-50%) translateY(220px); /* スマホ閉じ状態 */
             }
             #floating-collapse-btn {
                 bottom: calc(280px + env(safe-area-inset-bottom, 0px));
