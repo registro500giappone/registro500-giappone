@@ -42,7 +42,7 @@
     .opt-section > *:not(summary) { margin-left:1rem; margin-right:1rem; }
     .opt-section[open] > *:last-child { margin-bottom:0.9rem; }
     /* 「ここまでで登録できます」案内 */
-    .req-note { background:#eef6ee; border:1px solid #cfe6cf; border-radius:8px; padding:0.7rem 0.9rem; font-size:0.85rem; line-height:1.6; color:#2e6b2e; margin:0.5rem 0 1.1rem; }
+    .req-note { background:var(--rg-accent-soft); border:1px solid var(--rg-accent-border); border-radius:8px; padding:0.7rem 0.9rem; font-size:0.85rem; line-height:1.6; color:var(--rg-accent); margin:0.5rem 0 1.1rem; }
     .main-photo-solo { margin:0.3rem 0 0.2rem; max-width:240px; }
     
     input[type="text"], input[type="number"], textarea, select { width: 100%; padding: 0.7rem; border-radius: 0.5rem; border: 1px solid #d1d5db; font-size: 1rem; margin-bottom: 0.5rem; box-sizing: border-box; }
@@ -74,7 +74,7 @@
     #submitButton { flex: 2; max-width: 400px; padding: 0.8rem; border-radius: 999px; border: none; background: var(--rg-primary-red); color: white; font-weight: bold; font-size: 1rem; cursor: pointer; }
     #cancelButton { flex: 1; max-width: 150px; padding: 0.8rem; border-radius: 999px; border: 1.5px solid #ccc; background: #fff; color: #666; font-weight: bold; font-size: 1rem; cursor: pointer; }
     
-    #loginOverlay { position: fixed; inset: 0; background: rgba(244, 246, 248, 0.98); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    #loginOverlay { position: fixed; inset: 0; background: rgba(245, 240, 230, 0.98); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     #loginOverlay.hidden { display: none; }
     .btn-google { background: #4285F4; color: white; border: none; border-radius: 999px; padding: 12px 24px; font-weight: bold; cursor: pointer; }
     
@@ -89,16 +89,19 @@
 
     /* ダークモード */
     @media (prefers-color-scheme: dark) {
-      input[type="text"], input[type="number"], textarea, select { background: #0f172a; color: #e2e8f0; border-color: #334155; }
-      .photo-upload-box { background: #1e293b; border-color: #334155; color: #e2e8f0; }
-      .preview-area { background: #334155; }
-      .photo-label { color: #94a3b8; }
-      .submit-bar { background: rgba(15, 23, 42, 0.98); border-top-color: #334155; }
-      #cancelButton { background: #1e293b; color: #94a3b8; border-color: #334155; }
-      #loginOverlay { background: rgba(15, 23, 42, 0.98); }
-      .car-select-item { background: #1e293b; color: #e2e8f0; }
+      input[type="text"], input[type="number"], textarea, select { background: #221f1a; color: #ece6d9; border-color: #403a30; }
+      .photo-upload-box { background: #2b2721; border-color: #403a30; color: #ece6d9; }
+      .preview-area { background: #403a30; }
+      .photo-label { color: #a89e8c; }
+      .submit-bar { background: rgba(26, 23, 20, 0.98); border-top-color: #403a30; }
+      #cancelButton { background: #2b2721; color: #a89e8c; border-color: #403a30; }
+      #loginOverlay { background: rgba(26, 23, 20, 0.98); }
+      .car-select-item { background: #2b2721; color: #ece6d9; }
       .car-select-item:hover { background: var(--rg-accent-soft); }
       .risk-note { background: #2d1a1e; border-color: #5c2830; }
+      .opt-section { background: #2b2721; }
+      /* アクセント塗り潰しボタンは暗地で淡緑になるため、文字は白ではなく濃色にする */
+      #emailLoginBtn, #otpVerifyBtn, #emailChangeSendBtn, #emailChangeVerifyBtn { color: #1a1714 !important; }
     }
 
     /* ─── ナンバーマスキングモーダル ─── */
@@ -133,7 +136,7 @@
   </header>
 
   <div id="loginOverlay" class="hidden">
-    <div style="background:white; padding:40px; border-radius:20px; text-align:center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+    <div style="background:var(--rg-surface); color:var(--rg-text); padding:40px; border-radius:20px; text-align:center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
       <h2 style="margin-top:0;">オーナー認証</h2>
       <p>マイガレージを利用するにはログインが必要です。</p>
       <div style="display:flex;flex-direction:column;gap:10px;max-width:320px;margin:0 auto;text-align:left;">
@@ -143,7 +146,7 @@
                  style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:15px;">
           <button type="button" id="clearEmailBtn" style="display:none;background:none;border:0;color:#888;font-size:12px;cursor:pointer;align-self:flex-start;padding:0;">別のアドレスを使う</button>
           <button id="emailLoginBtn"
-                  style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">
+                  style="padding:12px;border:0;border-radius:8px;background:var(--rg-accent);color:#fff;font-weight:700;cursor:pointer;">
             確認コードを送信
           </button>
           <div style="display:flex;align-items:center;gap:8px;color:#aaa;font-size:12px;margin:4px 0;">
@@ -159,10 +162,10 @@
           <input type="text" id="otpCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"
                  style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:22px;letter-spacing:8px;text-align:center;">
           <button id="otpVerifyBtn"
-                  style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">
+                  style="padding:12px;border:0;border-radius:8px;background:var(--rg-accent);color:#fff;font-weight:700;cursor:pointer;">
             ログイン
           </button>
-          <button id="otpResendBtn" style="background:none;border:0;color:#2856a8;cursor:pointer;font-size:13px;">確認コードを再送する</button>
+          <button id="otpResendBtn" style="background:none;border:0;color:var(--rg-accent);cursor:pointer;font-size:13px;">確認コードを再送する</button>
         </div>
         <p id="otpErrorMsg" style="display:none;font-size:13px;color:#c62828;margin:8px 0 0;"></p>
       </div>
@@ -174,19 +177,19 @@
       <h1 class="page-title">マイガレージ</h1>
       <p style="text-align:center; font-size:0.9rem; margin:0;">
         ログイン中: <span id="userEmailDisplay">確認中...</span>
-        <button id="logoutBtn" style="font-size:0.7rem; padding:2px 6px; cursor:pointer; margin-left:10px; border-radius:4px; border:1px solid #ccc; background:#fff;">ログアウト</button>
+        <button id="logoutBtn" style="font-size:0.7rem; padding:2px 6px; cursor:pointer; margin-left:10px; border-radius:4px; border:1px solid var(--rg-border); background:var(--rg-surface); color:var(--rg-text);">ログアウト</button>
       </p>
       <!-- メールアドレス変更（折りたたみ・OTPコード方式） -->
       <div style="text-align:center; margin-top:8px;">
-        <button type="button" id="emailChangeToggle" style="background:none;border:0;color:#2856a8;cursor:pointer;font-size:0.8rem;text-decoration:underline;">メールアドレスを変更</button>
+        <button type="button" id="emailChangeToggle" style="background:none;border:0;color:var(--rg-accent);cursor:pointer;font-size:0.8rem;text-decoration:underline;">メールアドレスを変更</button>
       </div>
-      <div id="emailChangePanel" style="display:none; max-width:320px; margin:10px auto 0; text-align:left; background:#f7f9fc; border:1px solid #e0e6f0; border-radius:10px; padding:16px;">
+      <div id="emailChangePanel" style="display:none; max-width:320px; margin:10px auto 0; text-align:left; background:var(--rg-surface-sub); border:1px solid var(--rg-border); border-radius:10px; padding:16px;">
         <!-- ステップ1: 新しいメールアドレス入力 -->
         <div id="emailChangeStep1" style="display:flex;flex-direction:column;gap:10px;">
           <input type="email" id="newEmailInput" placeholder="新しいメールアドレス" autocomplete="email"
                  style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:15px;">
           <button id="emailChangeSendBtn"
-                  style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">確認コードを送信</button>
+                  style="padding:12px;border:0;border-radius:8px;background:var(--rg-accent);color:#fff;font-weight:700;cursor:pointer;">確認コードを送信</button>
           <p style="font-size:12px;color:#888;margin:0;">新しいメールアドレスに6桁の確認コードを送ります。届いたコードで変更を確定すると、以降のログインと各種お知らせの宛先が新しいアドレスに切り替わります。</p>
         </div>
         <!-- ステップ2: 確認コード入力 -->
@@ -195,8 +198,8 @@
           <input type="text" id="emailChangeCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"
                  style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:22px;letter-spacing:8px;text-align:center;">
           <button id="emailChangeVerifyBtn"
-                  style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">変更を確定</button>
-          <button id="emailChangeResendBtn" style="background:none;border:0;color:#2856a8;cursor:pointer;font-size:13px;">確認コードを再送する</button>
+                  style="padding:12px;border:0;border-radius:8px;background:var(--rg-accent);color:#fff;font-weight:700;cursor:pointer;">変更を確定</button>
+          <button id="emailChangeResendBtn" style="background:none;border:0;color:var(--rg-accent);cursor:pointer;font-size:13px;">確認コードを再送する</button>
         </div>
         <p id="emailChangeMsg" style="display:none;font-size:13px;margin:8px 0 0;"></p>
       </div>
@@ -217,7 +220,7 @@
         <input type="hidden" id="DocumentID" name="DocumentID">
 
         <h2 class="rg-section-title">まずはこれだけ（必須）</h2>
-        <p class="req-note" style="background:#eef4ff; border-color:#cfe0fb; color:#1f4a8a;">登録に必要なのは下の6項目だけ。まずは気軽に登録して、あとから愛車の情報を少しずつ育てていけます。</p>
+        <p class="req-note" style="background:var(--rg-accent-soft); border-color:var(--rg-accent-border); color:var(--rg-accent);">登録に必要なのは下の6項目だけ。まずは気軽に登録して、あとから愛車の情報を少しずつ育てていけます。</p>
 
         <!-- 車両タイプは入り口（index）で確定済み -->
         <input type="hidden" id="CarType" name="CarType" value="500">

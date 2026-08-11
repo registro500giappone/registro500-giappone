@@ -23,17 +23,31 @@
 
   <style>
     :root {
-      --bg-main: #f4f4f7;
-      --card-bg: #ffffff;
-      --border-soft: #e5e7eb;
-      --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.08);
-      --text-main: #111827;
-      --text-sub: #6b7280;
-      --accent: #2856a8;
-      --accent-soft: #e6efff;
-      --accent-border: #c2d4ff;
-      --radius-lg: 12px;
+      --bg-main: #f5f0e6;
+      --card-bg: #fffefb;
+      --border-soft: #d6c9b0;
+      --shadow-soft: 0 2px 8px rgba(70, 58, 40, 0.10);
+      --text-main: #2e2a24;
+      --text-sub: #7a705f;
+      --accent: #1f5c3d;
+      --accent-soft: #e7efe7;
+      --accent-border: #c3d6c6;
+      --radius-lg: 8px;
       --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-main: #1a1714;
+        --card-bg: #2b2721;
+        --border-soft: #403a30;
+        --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.35);
+        --text-main: #ece6d9;
+        --text-sub: #a89e8c;
+        --accent: #7fb894;
+        --accent-soft: #24382c;
+        --accent-border: #3d6b4d;
+      }
     }
 
     * { box-sizing: border-box; }
@@ -222,6 +236,18 @@
     }
     .footer a { color: var(--text-sub); text-decoration: none; }
     .footer a:hover { color: var(--accent); }
+
+    /* ダークモード：CSS変数だけでは追随できない直書き色（案A・暖色系パレット）
+       ※ 同名セレクタの基本スタイルより後ろに置くこと（先に置くと後続の基本スタイルに上書きされる） */
+    @media (prefers-color-scheme: dark) {
+      .header-logo { mix-blend-mode: normal; filter: brightness(1.12); }
+      .onetime-card.legend {
+        background: linear-gradient(135deg, #3a2f1a 0%, #2b2721 100%);
+      }
+      .btn-onetime { background: #3a352c; }
+      .onetime-card.legend .btn-onetime { background: #4a3418; color: #f0c987; }
+      .onetime-card.legend .btn-onetime:hover { background: #6b5326; color: #f0c987; }
+    }
   </style>
   <!-- 左下「一つ前に戻る」（ホーム画面起動時のみ）／右下「先頭へ」の浮かぶボタン -->
   <script src="fab-nav.js" defer></script>

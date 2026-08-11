@@ -27,17 +27,17 @@
 
   <style>
     :root {
-      --bg-main: #f4f4f7;
-      --card-bg: #ffffff;
-      --border-soft: #e5e7eb;
-      --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.08);
-      --text-main: #111827;
-      --text-sub: #6b7280;
-      --accent: #2856a8;
+      --bg-main: #f5f0e6;
+      --card-bg: #fffefb;
+      --border-soft: #d6c9b0;
+      --shadow-soft: 0 2px 8px rgba(70, 58, 40, 0.10);
+      --text-main: #2e2a24;
+      --text-sub: #7a705f;
+      --accent: #1f5c3d;
       --ok: #1f7a45;
-      --accent-soft: #e6efff;
+      --accent-soft: #e7efe7;
       --occasional: #7c8db5;
-      --radius-lg: 12px;
+      --radius-lg: 8px;
       --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -66,7 +66,7 @@
 
     /* ===== コンセプト帯 ===== */
     .concept-band {
-      background: linear-gradient(135deg, #1d3f8a 0%, #2856a8 100%);
+      background: linear-gradient(135deg, #17452e 0%, #1f5c3d 100%);
       color: #fff; border-radius: var(--radius-lg);
       padding: 20px 22px; margin-bottom: 20px; line-height: 1.9; font-size: 0.9rem;
     }
@@ -143,7 +143,7 @@
     .item-note { margin-top: 6px; flex: 1 1 100%; }  /* 項目行の下に全幅で出す（プロンプトを読み切れるように） */
     .item-note input {
       width: 100%; padding: 8px 10px; border: 1px solid var(--border-soft);
-      border-radius: 8px; font-size: 0.82rem; font-family: inherit; background: #fbfcff; color: var(--text-main);
+      border-radius: 8px; font-size: 0.82rem; font-family: inherit; background: #faf6ec; color: var(--text-main);
     }
 
     /* ===== 自由追加 ===== */
@@ -203,7 +203,7 @@
     .result-shell {
       /* .page(max-width:800px)+body padding を突き抜けて全幅にする。html に overflow-x:hidden があるので 100vw で溢れない */
       margin: 52px calc(50% - 50vw) 0; width: 100vw; padding: 0 0 30px;
-      background: linear-gradient(180deg, #0f2547 0%, #1d3f8a 58%, #24509e 100%);
+      background: linear-gradient(180deg, #0f2e1f 0%, #17452e 58%, #1f5c3d 100%);
       overflow: hidden;
     }
     .result-banner { text-align: center; color: #fff; padding: 34px 20px 24px; }
@@ -347,6 +347,51 @@
     .login-box p.lead { font-size: 0.85rem; color: var(--text-sub); margin: 0 0 18px; line-height: 1.7; }
 
     #loading { text-align: center; color: var(--text-sub); font-size: 0.88rem; padding: 40px 0; }
+
+    /* ダークモード（案A・暖色系） */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-main: #1a1714;
+        --card-bg: #2b2721;
+        --border-soft: #403a30;
+        --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.35);
+        --text-main: #ece6d9;
+        --text-sub: #a89e8c;
+        --accent: #7fb894;
+        --ok: #8fd6a3;
+        --accent-soft: #24382c;
+        --occasional: #9aa9cc;
+      }
+      .brand-header img { mix-blend-mode: normal; filter: brightness(1.12); }
+      /* 白背景固定のフォーム欄（変数化されていない箇所） */
+      .field select, .field input[type="text"] { background: #221f1a; }
+      .freq-btn { background: #221f1a; }
+      .item-note input { background: #221f1a; }
+      .custom-row input { background: #221f1a; color: var(--text-main); }
+      /* 公開設定トグルの未ONトラック */
+      .switch-slider { background-color: #4b5563; }
+      /* 公開設定の注意書き（橙系の警告色。色相は変えず明度のみ調整） */
+      .public-warning { background: #3a2a15; border-color: #6b4a1f; color: #e8b878; }
+      /* 安全・救援ブロック（警告の赤系。案Aの差し色 #d98a7e で明度のみ調整） */
+      .safety-block { background: #3a231e; border-color: #5c3530; border-left-color: #d98a7e; }
+      .safety-heading, .safety-gauge-label { color: #d98a7e; }
+      .safety-gauge { background: #4a2b28; }
+      .safety-gauge-fill { background: #d98a7e; }
+      .safety-ok { background: #1c2e22; }
+      /* 「走る部品庫」付記（琥珀色。暗いカード上でも読める明るい金へ） */
+      .master-note { color: #f0c14b; }
+      #loginOverlay { background: rgba(26, 23, 20, 0.97); }
+      /* ログインカードは常にライト配色で固定する（edit.htmlの同型UIと同じ扱い。
+         内部のinputやボタンはインライン style で白地前提のため、変数だけライト値に戻して崩れを防ぐ） */
+      .login-box {
+        --accent: #1f5c3d;
+        --text-main: #2e2a24;
+        --text-sub: #7a705f;
+        color: #2e2a24;
+        color-scheme: light;
+      }
+      .save-bar { background: rgba(26, 23, 20, 0.97); }
+    }
   </style>
   <!-- 左下「一つ前に戻る」（ホーム画面起動時のみ）／右下「先頭へ」の浮かぶボタン -->
   <script src="fab-nav.js" defer></script>
@@ -364,7 +409,7 @@
                style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:15px;">
         <button type="button" id="clearEmailBtn" style="display:none;background:none;border:0;color:#888;font-size:12px;cursor:pointer;align-self:flex-start;padding:0;">別のアドレスを使う</button>
         <button id="emailLoginBtn"
-                style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">
+                style="padding:12px;border:0;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;">
           確認コードを送信
         </button>
         <div style="display:flex;align-items:center;gap:8px;color:#aaa;font-size:12px;margin:4px 0;">
@@ -378,10 +423,10 @@
         <input type="text" id="otpCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"
                style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:22px;letter-spacing:8px;text-align:center;">
         <button id="otpVerifyBtn"
-                style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">
+                style="padding:12px;border:0;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;">
           ログイン
         </button>
-        <button id="otpResendBtn" style="background:none;border:0;color:#2856a8;cursor:pointer;font-size:13px;">確認コードを再送する</button>
+        <button id="otpResendBtn" style="background:none;border:0;color:var(--accent);cursor:pointer;font-size:13px;">確認コードを再送する</button>
       </div>
       <p id="otpErrorMsg" style="display:none;font-size:13px;color:#c62828;margin:8px 0 0;"></p>
     </div>
@@ -1394,15 +1439,15 @@
 
   // headColor省略時は本文と同じ黒。安全・救援の不足見出しだけ赤で強調するため差し替え可能にしている
   function layoutSection(mctx, cmds, y, cw, heading, itemsArr, fHead, fName, fReason, headColor) {
-    cmds.push({ y, text: heading, font: fHead, color: headColor || '#111827' });
+    cmds.push({ y, text: heading, font: fHead, color: headColor || '#2e2a24' });
     y += 10;
     itemsArr.forEach(item => {
       y += 24;
-      cmds.push({ y, text: item.name, font: fName, color: '#111827' });
+      cmds.push({ y, text: item.name, font: fName, color: '#2e2a24' });
       mctx.font = fReason;
       wrapText(mctx, item.reason || '', cw).forEach(line => {
         y += 19;
-        cmds.push({ y, text: line, font: fReason, color: '#6b7280' });
+        cmds.push({ y, text: line, font: fReason, color: '#7a705f' });
       });
     });
     return y;
@@ -1426,7 +1471,7 @@
       mctx.font = F_DESC;
       wrapText(mctx, '出先で必要になる装備を、ほぼ余さず積んでいます。', cw).forEach(line => {
         y += 22;
-        cmds.push({ y, text: line, font: F_DESC, color: '#111827' });
+        cmds.push({ y, text: line, font: F_DESC, color: '#2e2a24' });
       });
       if (data.isSpareEngineParts) {
         wrapText(mctx, '🌟 交換用のキャブレターとデスビまで積んだ、走る部品庫です。', cw).forEach(line => {
@@ -1533,11 +1578,11 @@
     const ctx = canvas.getContext('2d');
     ctx.scale(SCALE, SCALE);
 
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = '#fffefb';
     ctx.fillRect(0, 0, W, totalH);
 
     const grad = ctx.createLinearGradient(0, 0, W, 0);
-    grad.addColorStop(0, '#1d3f8a'); grad.addColorStop(1, '#2856a8');
+    grad.addColorStop(0, '#17452e'); grad.addColorStop(1, '#1f5c3d');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, HEADER_H);
 
@@ -1566,13 +1611,13 @@
       ctx.fillText(cmd.text, PAD, originY + cmd.y);
     });
 
-    ctx.strokeStyle = '#e5e7eb';
+    ctx.strokeStyle = '#d6c9b0';
     ctx.beginPath();
     ctx.moveTo(PAD, totalH - FOOTER_H);
     ctx.lineTo(W - PAD, totalH - FOOTER_H);
     ctx.stroke();
     ctx.font = '400 11px ' + CARD_FONT;
-    ctx.fillStyle = '#9ca3af';
+    ctx.fillStyle = '#7a705f';
     ctx.fillText(new Date().toLocaleDateString('ja-JP') + ' 時点の記録', PAD, totalH - FOOTER_H + 26);
     ctx.textAlign = 'right';
     ctx.fillText('registro500.com', W - PAD, totalH - FOOTER_H + 26);
