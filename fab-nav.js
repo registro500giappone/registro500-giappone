@@ -50,8 +50,7 @@
     '  width:52px; height:52px; padding:0; border-radius:50%;',
     '  display:flex; align-items:center; justify-content:center;',
     '  border:1px solid rgba(15,23,42,.10);',
-    '  background:rgba(255,255,255,.72);',
-    '  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);',
+    '  background:rgba(255,255,255,.94);',
     '  box-shadow:0 3px 12px rgba(15,23,42,.16);',
     '  color:#334155; cursor:pointer; -webkit-tap-highlight-color:transparent;',
     '  transition:opacity .25s, visibility .25s, transform .1s, background-color .2s;',
@@ -62,15 +61,19 @@
     '  transform:translateZ(0); -webkit-transform:translateZ(0);',
     '  backface-visibility:hidden; -webkit-backface-visibility:hidden;',
     '}',
-    '.rg-fab:active{ transform:scale(.94) translateZ(0); background:rgba(255,255,255,.92); }',
+    // 2026-08-11追記: translateZ(0) だけでは直らず再発した。原因は backdrop-filter
+    // （iOS はスクロール中の再ラスタライズで fixed 要素の backdrop-filter が
+    // 位置ズレを起こす既知の不具合）。blur は諦めて削除し、代わりに背景を
+    // 不透明寄りにして視認性を保った。
+    '.rg-fab:active{ transform:scale(.94) translateZ(0); background:rgba(255,255,255,.98); }',
     '.rg-fab svg{ width:24px; height:24px; display:block; }',
     '.rg-fab-back{ left:14px; }',
     '.rg-fab-top{ right:14px; opacity:0; visibility:hidden; }',
     '.rg-fab-top.is-on{ opacity:1; visibility:visible; }',
     '@media (prefers-color-scheme: dark){',
-    '  .rg-fab{ background:rgba(30,41,59,.72); border-color:rgba(255,255,255,.12); color:#e2e8f0;',
+    '  .rg-fab{ background:rgba(30,41,59,.94); border-color:rgba(255,255,255,.12); color:#e2e8f0;',
     '           box-shadow:0 3px 12px rgba(0,0,0,.4); }',
-    '  .rg-fab:active{ background:rgba(30,41,59,.92); }',
+    '  .rg-fab:active{ background:rgba(30,41,59,.98); }',
     '}',
     '@media print{ .rg-fab{ display:none; } }'
   ].join('\n');
