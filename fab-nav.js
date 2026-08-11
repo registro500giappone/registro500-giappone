@@ -49,10 +49,10 @@
     '  bottom:calc(16px + env(safe-area-inset-bottom, 0px));',
     '  width:52px; height:52px; padding:0; border-radius:50%;',
     '  display:flex; align-items:center; justify-content:center;',
-    '  border:1px solid rgba(15,23,42,.10);',
-    '  background:rgba(255,255,255,.94);',
-    '  box-shadow:0 3px 12px rgba(15,23,42,.16);',
-    '  color:#334155; cursor:pointer; -webkit-tap-highlight-color:transparent;',
+    '  border:1px solid rgba(70,58,40,.14);',
+    '  background:rgba(255,254,251,.94);',
+    '  box-shadow:0 3px 12px rgba(70,58,40,.16);',
+    '  color:#4a4239; cursor:pointer; -webkit-tap-highlight-color:transparent;',
     '  transition:opacity .25s, visibility .25s, transform .1s, background-color .2s;',
     // iOS のスクロール中に、固定したはずのボタンが本文に付いて画面半ばまで上がる
     // 現象が出た（2026-08-10・イベント一覧の実機）。fixed をコンポジタで持たせ続けるよう
@@ -65,15 +65,15 @@
     // （iOS はスクロール中の再ラスタライズで fixed 要素の backdrop-filter が
     // 位置ズレを起こす既知の不具合）。blur は諦めて削除し、代わりに背景を
     // 不透明寄りにして視認性を保った。
-    '.rg-fab:active{ transform:scale(.94) translateZ(0); background:rgba(255,255,255,.98); }',
+    '.rg-fab:active{ transform:scale(.94) translateZ(0); background:rgba(255,254,251,.98); }',
     '.rg-fab svg{ width:24px; height:24px; display:block; }',
     '.rg-fab-back{ left:14px; }',
     '.rg-fab-top{ right:14px; opacity:0; visibility:hidden; }',
     '.rg-fab-top.is-on{ opacity:1; visibility:visible; }',
     '@media (prefers-color-scheme: dark){',
-    '  .rg-fab{ background:rgba(30,41,59,.94); border-color:rgba(255,255,255,.12); color:#e2e8f0;',
+    '  .rg-fab{ background:rgba(43,39,33,.94); border-color:rgba(255,255,255,.12); color:#ece6d9;',
     '           box-shadow:0 3px 12px rgba(0,0,0,.4); }',
-    '  .rg-fab:active{ background:rgba(30,41,59,.98); }',
+    '  .rg-fab:active{ background:rgba(43,39,33,.98); }',
     '}',
     '@media print{ .rg-fab{ display:none; } }'
   ].join('\n');
