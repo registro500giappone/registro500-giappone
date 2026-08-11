@@ -248,7 +248,7 @@
       #headerLoginBtn { font-size: 0.78rem; }
     }
 
-    /* ===== 「今」の帯（直近イベント・新着車両） ===== */
+    /* ===== 「今」の帯（お知らせ・みんなの動き） ===== */
     .top-band {
       background-color: var(--card-bg); border: 1px solid var(--border-soft); border-radius: 10px;
       padding: 8px 14px; margin: 10px 0 12px; font-size: 0.82rem; line-height: 1.5;
@@ -531,7 +531,9 @@
               <a href="/spot-guide">📍 出没スポット</a>
               <div class="menu-group-heading">ℹ️ サイト情報</div>
               <a href="/howto" data-updated="2026-07-04">初めての方へ<span class="news-badge page-badge" style="display:none;"></span></a>
-              <a href="/news" data-updated="2026-04-11">お知らせ<span id="newsBadge" class="news-badge page-badge" style="display:none;"></span></a>
+              <!-- お知らせの赤丸は checkNewsBadge() が news テーブルの最新日から動的に判定する。
+                   data-updated（静的な日付）を書くと二重管理になり実際の更新日とズレるため置かない。 -->
+              <a href="/news">お知らせ<span id="newsBadge" class="news-badge page-badge" style="display:none;"></span></a>
               <a href="/support">☕ サイトを支援</a>
               <a href="/policy" data-updated="2026-04-05">ポリシー<span class="news-badge page-badge" style="display:none;"></span></a>
               <a href="126/" id="link126Site">🚗 126サイトへ</a>
@@ -591,8 +593,8 @@
     </header>
 
     <div id="topBand" class="top-band" style="display:none;">
-      <a href="/event" id="topBandEvent" class="top-band-line" style="display:none;"></a>
-      <a href="#" id="topBandNewCar" class="top-band-line" style="display:none;"></a>
+      <a href="/news" id="topBandNews" class="top-band-line" style="display:none;"></a>
+      <a href="#" id="topBandActivity" class="top-band-line" style="display:none;"></a>
     </div>
 
     <div id="loading">読み込んでいます...</div>
@@ -794,7 +796,7 @@
       fetchCars();
       checkNewsBadge();
       checkPageBadges();
-      loadNextEventForBand();
+      loadLatestPostForBand();
       initAuth();
       // fetchCars()との競合を避けるため5秒遅延してから実行
       setTimeout(() => prefetch126Data(), 5000);
@@ -821,6 +823,7 @@ async function fetchCars() {
             HandleName:handle_name,
             DocumentID:document_id,
             updatedAt:updated_at,
+            createdAt:created_at,
             last_update_date,
             IsSold:is_sold
           `)
@@ -946,26 +949,50 @@ async function fetchCars() {
     } catch(e) {}
   }
 
-async function checkNewsBadge() {
+// news.date は 'YYYY-MM-DD' 想定だが、過去データに 'YYYY.MM.DD' 形式が混じる（news.html でも置換している）
+    function parseNewsDate(dateStr) {
+      const m = /^(\d{4})[-.\/](\d{1,2})[-.\/](\d{1,2})/.exec(String(dateStr || ''));
+      return m ? { y: +m[1], mo: +m[2] - 1, d: +m[3] } : null;
+    }
+
+    // お知らせの最新1件を取得し、メニュー内の赤丸とトップの帯の1行目を「1回の通信」でまかなう。
+    // 車種の絞り込みは news.html:111 と同じ許可方式（both・自車種・null）に揃える。
+    // ← 揃えないと、126限定のお知らせで500トップの赤丸だけ点灯し、/news を開いても該当記事が無い状態になる。
+    async function checkNewsBadge() {
       try {
         // JST (UTC+9) で今日の日付を取得（UTC使用だと0〜9時台に前日扱いになるバグを防ぐ）
         const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
         const today = jstNow.toISOString().split('T')[0];
         const { data, error } = await supabaseClient
           .from('news')
-          .select('date')
+          .select('date, title')
+          .or('target_car_type.eq.both,target_car_type.eq.500,target_car_type.is.null')
           .not('date', 'is', null)
           .lte('date', today)
           .order('date', { ascending: false })
           .limit(1);
 
-        if (!error && data && data.length > 0) {
-          const latestDate = new Date(data[0].date + 'T00:00:00+09:00');
-          const diffMs = Date.now() - latestDate.getTime();
-          const diff = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-          if (diff <= 7) document.getElementById('newsBadge').style.display = 'inline-block';
+        if (error || !data || !data.length) return;
+        const latest = data[0];
+        const parts = parseNewsDate(latest.date);
+        if (!parts) return;
+
+        const postedMs = Date.UTC(parts.y, parts.mo, parts.d) - 9 * 60 * 60 * 1000; // JST 0時を実時刻に直す
+        const diff = Math.ceil((Date.now() - postedMs) / (1000 * 60 * 60 * 24));
+
+        if (diff <= 7) document.getElementById('newsBadge').style.display = 'inline-block';
+
+        // 帯に出すのは30日以内のものだけ。古い告知を居座らせないための鮮度の担保で、
+        // 空いた場合は2行目（みんなの動き）だけの1行になる。
+        if (diff <= 30 && latest.title) {
+          const el = document.getElementById('topBandNews');
+          const dot = diff <= 7 ? '<span class="news-badge"></span>' : '';
+          el.innerHTML = `<span class="top-band-line-text">📢 ${parts.mo + 1}/${parts.d} ${esc(latest.title)}</span>`
+                       + `<span class="top-band-line-suffix">${dot}</span>`;
+          el.style.display = 'flex';
+          document.getElementById('topBand').style.display = 'block';
         }
-      } catch (e) {}
+      } catch (e) { /* 静かに失敗（トップ表示をブロックしない） */ }
     }
     function checkPageBadges() {
       document.querySelectorAll('a[data-updated]').forEach(link => {
@@ -979,55 +1006,120 @@ async function checkNewsBadge() {
     }
     function parseDocNumber(id) { const m = /^DOC_(\d+)$/.exec(String(id)); return m ? parseInt(m[1], 10) : 0; }
 
-    // ===== 「今」の帯：直近イベント・新着車両 =====
+    // ===== 「今」の帯：お知らせ・みんなの動き =====
     // どんなDateオブジェクトからもJSTの日付・時刻の内訳を取り出す（ブラウザのタイムゾーンに依存しない）
     function toJstParts(dateObj) {
       const jst = new Date(dateObj.getTime() + 9 * 60 * 60 * 1000);
       return { y: jst.getUTCFullYear(), mo: jst.getUTCMonth(), d: jst.getUTCDate(), hh: jst.getUTCHours(), mm: jst.getUTCMinutes() };
     }
 
-    // 直近イベント（開催日が今日(JST)以降で最も近い1件）。event.htmlと同じ events テーブルを使う。
-    // 失敗してもトップの表示はブロックしない（静かに非表示のまま）。
-    async function loadNextEventForBand() {
-      try {
-        const nowParts = toJstParts(new Date());
-        const todayStr = `${nowParts.y}-${String(nowParts.mo + 1).padStart(2, '0')}-${String(nowParts.d).padStart(2, '0')}`;
-        const { data, error } = await supabaseClient
-          .from('events')
-          .select('EventName:event_name, EventDate:event_date, TargetCarType:target_car_type')
-          .gte('event_date', todayStr + 'T00:00:00+09:00')
-          .order('event_date', { ascending: true })
-          .limit(5);
-
-        if (error || !data || !data.length) return;
-        const next = data.find(ev => ev.TargetCarType !== '126'); // 500サイトなので126限定は除外
-        if (!next) return;
-
-        const evParts = toJstParts(new Date(next.EventDate));
-        const todayUtcMidnight = Date.UTC(nowParts.y, nowParts.mo, nowParts.d);
-        const evUtcMidnight = Date.UTC(evParts.y, evParts.mo, evParts.d);
-        const diffDays = Math.round((evUtcMidnight - todayUtcMidnight) / (1000 * 60 * 60 * 24));
-
-        const dateLabel = `${evParts.mo + 1}/${evParts.d}`;
-        const remainLabel = diffDays <= 0 ? '本日開催' : `あと${diffDays}日`;
-
-        const el = document.getElementById('topBandEvent');
-        el.innerHTML = `<span class="top-band-line-text">📅 ${dateLabel} ${esc(next.EventName)}</span><span class="top-band-line-suffix">（${remainLabel}）</span>`;
-        el.style.display = 'flex';
-        document.getElementById('topBand').style.display = 'block';
-      } catch (e) { /* 静かに失敗（トップ表示をブロックしない） */ }
+    // 帯に載せる長文（経験談の本文など）を1行分に潰す。
+    // CSS側でも省略するが、DOMに数百文字を流し込まないための足切り。
+    function trimForBand(s, max) {
+      const flat = String(s || '').replace(/\s+/g, ' ').trim();
+      const n = max || 34;
+      return flat.length > n ? flat.slice(0, n) + '…' : flat;
     }
 
-    // 新着車両（既にfetchCars()で読み込み済みのcarsDataを使う。追加の通信はしない）
-    function renderNewCarLineForBand() {
-      try {
-        if (!carsData || !carsData.length) return;
-        const newest = [...carsData].sort((a, b) => parseDocNumber(b.DocumentID) - parseDocNumber(a.DocumentID))[0];
-        if (!newest) return;
+    // 帯の2行目「みんなの動き」。
+    // 出すのは "人が手を動かした痕跡" だけで、新規登録は入れない（左上の新着カードと重複するため）。
+    // 濃い投稿（経験談・ストーリー）が30日以内にあればそれを優先し、無ければ車両の更新で埋める。
+    let bandPost = null;        // 取得できた最新の投稿（無ければ null）
+    let bandPostLoaded = false; // 取得を試み終えたか（失敗時も true にして車両更新へ落とす）
 
-        const el = document.getElementById('topBandNewCar');
-        el.innerHTML = `<span class="top-band-line-text">🆕 新着: ${esc(newest.HandleName || newest.Model_DisplayC || '')}</span>`;
-        el.href = `/detail?doc=${encodeURIComponent(newest.DocumentID)}`;
+    async function loadLatestPostForBand() {
+      try {
+        const [expRes, epiRes] = await Promise.all([
+          // 公開されている手帳の経験談のみ。RLS側でも is_public で絞られるが、条件は明示しておく。
+          supabaseClient
+            .from('equipment_experiences')
+            .select('body, created_at, equipment_records!inner(vehicle_id, is_public)')
+            .eq('equipment_records.is_public', true)
+            .order('created_at', { ascending: false })
+            .limit(1),
+          supabaseClient
+            .from('car_episodes')
+            .select('car_id, title, created_at')
+            .eq('is_published', true)
+            .order('created_at', { ascending: false })
+            .limit(1)
+        ]);
+
+        const found = [];
+        const exp = (!expRes.error && expRes.data && expRes.data[0]) || null;
+        if (exp && exp.equipment_records && exp.body) {
+          found.push({ icon: '🧰', at: new Date(exp.created_at), docId: exp.equipment_records.vehicle_id, body: exp.body });
+        }
+        const epi = (!epiRes.error && epiRes.data && epiRes.data[0]) || null;
+        if (epi && epi.title) {
+          found.push({ icon: '📖', at: new Date(epi.created_at), docId: epi.car_id, body: epi.title });
+        }
+        found.sort((a, b) => b.at - a.at);
+        const top = found[0] || null;
+
+        // 投稿者の名前は cars から引く。500・126どちらのオーナーの投稿でも出す
+        // （入口は分けているが兄弟車で、同じ話題に興味があるという判断）。
+        // cars と equipment_records / car_episodes の間には外部キーが無く embed できないため、ここだけ1本引く。
+        if (top && top.docId) {
+          const { data: owner } = await supabaseClient
+            .from('cars')
+            .select('handle_name')
+            .eq('document_id', top.docId)
+            .limit(1);
+          top.name = (owner && owner[0] && owner[0].handle_name) || 'オーナー';
+        }
+        bandPost = top;
+      } catch (e) {
+        bandPost = null;
+      } finally {
+        bandPostLoaded = true;
+        renderActivityLineForBand();
+      }
+    }
+
+    // 投稿の取得が済んでから描く（フォールバックの車両更新のほうは carsData を使う）。
+    // どちらが先に終わっても描けるよう、fetchCars 側とこの取得側の2箇所から呼ぶ。
+    function renderActivityLineForBand() {
+      try {
+        if (!bandPostLoaded) return;
+
+        let line = null;
+
+        // ① 30日以内の投稿。500・126どちらのオーナーのものでも出す。
+        if (bandPost && bandPost.docId) {
+          const days = Math.ceil((Date.now() - bandPost.at.getTime()) / (1000 * 60 * 60 * 24));
+          if (days <= 30) {
+            const p = toJstParts(bandPost.at);
+            line = {
+              docId: bandPost.docId,
+              html: `${bandPost.icon} ${p.mo + 1}/${p.d} ${esc(bandPost.name || 'オーナー')}さん「${esc(trimForBand(bandPost.body))}」`
+            };
+          }
+        }
+
+        // ② 投稿が無ければ、このサイトに載っている車の更新で埋める。
+        //    登録直後は updated_at ≒ created_at で、それは左上の新着カードと同じものになるので除く。
+        if (!line && carsData && carsData.length) {
+          const DAY = 24 * 60 * 60 * 1000;
+          const edited = carsData
+            .filter(c => {
+              if (!c.updatedAt || !c.createdAt) return false;                          // 旧いlocalStorageキャッシュには createdAt が無い
+              if (new Date(c.updatedAt) - new Date(c.createdAt) <= DAY) return false;  // 登録直後＝左上の新着カードと同じもの
+              return (Date.now() - new Date(c.updatedAt)) <= 30 * DAY;                 // お知らせ行と同じ30日の鮮度制限
+            })
+            .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))[0];
+          if (edited) {
+            const p = toJstParts(new Date(edited.updatedAt));
+            const name = edited.HandleName || edited.Model_DisplayC || 'オーナー';
+            line = { docId: edited.DocumentID, html: `🔧 ${p.mo + 1}/${p.d} ${esc(name)}さんが愛車の記録を更新` };
+          }
+        }
+
+        const el = document.getElementById('topBandActivity');
+        if (!line) { el.style.display = 'none'; return; }
+
+        el.innerHTML = `<span class="top-band-line-text">${line.html}</span>`;
+        el.href = `/detail?doc=${encodeURIComponent(line.docId)}`;
         el.style.display = 'flex';
         document.getElementById('topBand').style.display = 'block';
       } catch (e) { /* 静かに失敗（トップ表示をブロックしない） */ }
@@ -1316,7 +1408,7 @@ async function checkNewsBadge() {
       });
       applySearchFilter();
       updateStatusSummary();
-      renderNewCarLineForBand();
+      renderActivityLineForBand();
     }
 
     // ステータス集計更新
