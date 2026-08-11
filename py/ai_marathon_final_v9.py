@@ -9,7 +9,8 @@ from dotenv import load_dotenv
 # --- 設定 ---
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_KEY"]
+# 書込用キーは SUPABASE_SERVICE_KEY を優先（ローカルの SUPABASE_KEY は公開キーで書けない）
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ["SUPABASE_KEY"]
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 # ------------------------------------
 

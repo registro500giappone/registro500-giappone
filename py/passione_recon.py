@@ -195,3 +195,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    crawler_common.exit_if_upsert_failed()

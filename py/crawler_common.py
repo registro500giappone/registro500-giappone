@@ -19,6 +19,7 @@ batch_upsert・detect_target_cars・BOT_USER_AGENT）の共通置き場。
 
 import os
 import re
+import sys
 
 from dotenv import load_dotenv
 from supabase import create_client
@@ -28,10 +29,16 @@ BOT_USER_AGENT_SHORT = "Registro500Bot/1.0 (+https://www.registro500.com)"
 
 
 def get_supabase():
-    """py/.env を読み込み、Supabaseクライアントを生成して返す"""
+    """py/.env を読み込み、Supabaseクライアントを生成して返す
+
+    書込用キーは SUPABASE_SERVICE_KEY を優先し、無ければ SUPABASE_KEY を使う。
+    GitHub Actions の secrets.SUPABASE_KEY は書込権限のあるキーだが、
+    ローカルの py/.env では SUPABASE_KEY が公開キー（sb_publishable_）で
+    書き込めないため、両方の環境で動くようフォールバックにしている。
+    """
     load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
     url = os.environ["SUPABASE_URL"]
-    key = os.environ["SUPABASE_KEY"]
+    key = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ["SUPABASE_KEY"]
     return create_client(url, key)
 
 
@@ -48,11 +55,38 @@ def detect_target_cars(name, url):
     return ", ".join(cars) if cars else "Fiat 500"
 
 
+# upsert に失敗したバッチ数。exit_if_upsert_failed() で参照する
+_upsert_failed_batches = 0
+
+
 def batch_upsert(supabase, batch):
     """バッチでSupabaseにupsert"""
+    global _upsert_failed_batches
     try:
         supabase.table("parts").upsert(batch, on_conflict="product_no").execute()
         return True
     except Exception as e:
+        _upsert_failed_batches += 1
         print(f"  [Batch Upsert Error] {e}")
         return False
+
+
+def exit_if_upsert_failed():
+    """upsert が1件でも失敗していたら警告して異常終了する
+
+    各クローラーの最後に呼ぶ。クロール自体は成功していても保存が全滅している
+    状態（キーの権限不足・RLS違反など）を「成功」で終わらせないための歯止め。
+    実際に FD Ricambi はこれが無かったため、書き込みが RLS で弾かれ続けた
+    2026-05-26〜08-08 の約3ヶ月間、[OK] 表示のまま更新が止まっていた。
+    """
+    if _upsert_failed_batches == 0:
+        return
+    print("")
+    print("=" * 60)
+    print(f"[FAILED] クロールは完了しましたが、Supabaseへの保存に失敗しました"
+          f"（失敗バッチ数: {_upsert_failed_batches}）")
+    print("  上の [Batch Upsert Error] を確認してください。よくある原因:")
+    print("  - SUPABASE_SERVICE_KEY / SUPABASE_KEY が書き込み権限のないキー")
+    print("  - parts テーブルのRLSポリシー違反")
+    print("=" * 60)
+    sys.exit(1)
