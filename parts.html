@@ -897,10 +897,25 @@
     /* オーナー限定ゲート */
     #ownerGate { position: fixed; inset: 0; background: rgba(245,240,230,0.98); z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 1rem; }
     #ownerGate.hidden { display: none; }
-    #ownerGate .gate-card { background: var(--rg-surface); padding: 36px 32px; border-radius: 16px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.12); max-width: 460px; }
+    #ownerGate .gate-card { background: var(--rg-surface); padding: 36px 32px; border-radius: 16px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.12); max-width: 460px; width: 100%; box-sizing: border-box; }
     #ownerGate h2 { margin: 0 0 12px; font-size: 1.25rem; color: var(--rg-text); }
     #ownerGate p { color: var(--rg-muted); line-height: 1.7; margin: 0 0 1rem; font-size: 0.95rem; }
-    #ownerGate .btn-google { background: #4285F4; color: #fff; border: none; border-radius: 999px; padding: 12px 28px; font-weight: 700; cursor: pointer; font-size: 0.95rem; margin: 8px 0; }
+    /* ログイン（メールOTP優先・マイガレージのログインモーダルと同じ構成） */
+    #ownerGate .gate-form { display: flex; flex-direction: column; gap: 10px; text-align: left; margin-top: 16px; }
+    #ownerGate .gate-form input { box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid var(--rg-border); border-radius: 8px; font-size: 15px; background: var(--rg-surface); color: var(--rg-text); }
+    #ownerGate #otpCodeInput { font-size: 22px; letter-spacing: 8px; text-align: center; }
+    #ownerGate .gate-btn-primary { box-sizing: border-box; width: 100%; padding: 12px; border: 0; border-radius: 8px; background: var(--rg-accent); color: #fff; font-weight: 700; cursor: pointer; font-size: 0.95rem; }
+    #ownerGate .gate-btn-primary:disabled { opacity: 0.6; cursor: default; }
+    #ownerGate .gate-btn-text { background: none; border: 0; color: var(--rg-muted); font-size: 12px; cursor: pointer; align-self: flex-start; padding: 0; }
+    #ownerGate .gate-btn-link { background: none; border: 0; color: var(--rg-accent); font-size: 13px; cursor: pointer; padding: 0; }
+    #ownerGate .gate-or { display: flex; align-items: center; gap: 8px; color: var(--rg-muted); font-size: 12px; margin: 4px 0; }
+    #ownerGate .gate-or span { flex: 1; height: 1px; background: var(--rg-border); }
+    #ownerGate .gate-sent { font-size: 13px; color: #2e7d32; margin: 0; line-height: 1.6; }
+    #ownerGate .gate-error { font-size: 13px; color: #c62828; margin: 12px 0 0; }
+    #ownerGate .btn-google { box-sizing: border-box; width: 100%; background: var(--rg-surface); color: var(--rg-text); border: 1px solid var(--rg-border); border-radius: 8px; padding: 12px; font-weight: 700; cursor: pointer; font-size: 0.95rem; }
+    @media (max-width: 400px) {
+      #ownerGate .gate-card { padding: 24px 18px; }
+    }
     #ownerGate .gate-sub-link { font-size: 0.85rem; color: var(--rg-muted); text-decoration: none; }
     #ownerGate .gate-sub-link:hover { text-decoration: underline; }
     body.gate-active { overflow: hidden; }
@@ -911,9 +926,12 @@
       #ownerGate { background: rgba(26,23,20,0.98); }
 
       /* アクセント塗り潰し（ダークではアクセントが明るい緑になるため文字を暗色に） */
-      .search-btn, .add-btn:hover, .load-btn, .cat-sub-chip:hover {
+      .search-btn, .add-btn:hover, .load-btn, .cat-sub-chip:hover,
+      #ownerGate .gate-btn-primary {
         color: #1a1714;
       }
+      #ownerGate .gate-sent { color: #81c784; }
+      #ownerGate .gate-error { color: #ef9a9a; }
       .search-btn:hover { background-color: #6ba580; }
       .add-btn:hover { background: #6ba580; }
       .cat-sub-chip:hover { background: #6ba580; border-color: #6ba580; }
@@ -933,7 +951,25 @@
         <h2>登録オーナー限定の機能です</h2>
         <p>「比べ太郎」は Registro500 / 126 のオーナー向けに提供している<br>パーツ価格比較ツールです。</p>
         <p>ご利用には<strong>マイガレージへのオーナー登録（無料）</strong>が必要です。</p>
-        <button class="btn-google" id="ownerLoginBtn">Googleでログイン</button>
+
+        <!-- ステップ1: メールアドレス入力 -->
+        <div id="otpStep1" class="gate-form">
+          <input type="email" id="emailLoginInput" placeholder="登録したメールアドレス" autocomplete="email">
+          <button type="button" id="clearEmailBtn" class="gate-btn-text" style="display:none;">別のアドレスを使う</button>
+          <button type="button" id="emailLoginBtn" class="gate-btn-primary">確認コードを送信</button>
+          <div class="gate-or"><span></span>または<span></span></div>
+          <button type="button" class="btn-google" id="ownerLoginBtn">Googleでログイン（従来方式）</button>
+        </div>
+
+        <!-- ステップ2: 確認コード入力 -->
+        <div id="otpStep2" class="gate-form" style="display:none;">
+          <p class="gate-sent">✅ <span id="otpSentEmail" style="font-weight:700;"></span> に6桁の確認コードを送信しました。届いたコードを入力してください。</p>
+          <input type="text" id="otpCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+          <button type="button" id="otpVerifyBtn" class="gate-btn-primary">ログイン</button>
+          <button type="button" id="otpResendBtn" class="gate-btn-link">確認コードを再送する</button>
+        </div>
+        <p id="otpErrorMsg" class="gate-error" style="display:none;"></p>
+
         <p style="font-size:0.85rem; margin-top:1rem;">
           初めての方は<a href="/edit" class="gate-sub-link" style="color:var(--rg-accent);">マイガレージ登録</a>から
         </p>
@@ -1153,8 +1189,75 @@
           };
           sb.auth.getSession().then(({ data: { session } }) => { if (session && session.user) closeGate(); });
           sb.auth.onAuthStateChange((event, session) => { if (session && session.user) closeGate(); });
+
+          // Googleログイン（従来方式）
           const btn = document.getElementById('ownerLoginBtn');
           if (btn) btn.onclick = () => sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+
+          // メールOTPコードでのログイン（マイガレージのログインモーダルと同じ流れ）
+          const $ = (id) => document.getElementById(id);
+          let otpEmail = '';
+          const showOtpError = (msg) => {
+            const el = $('otpErrorMsg'); if (!el) return;
+            if (!msg) { el.style.display = 'none'; return; }
+            el.textContent = msg; el.style.display = 'block';
+          };
+
+          // 前回ログインしたメールのプリフィル（共用端末向けにクリアも用意）
+          const saved = localStorage.getItem('r500_login_email');
+          if (saved) { $('emailLoginInput').value = saved; $('clearEmailBtn').style.display = 'block'; }
+          $('clearEmailBtn').onclick = () => {
+            $('emailLoginInput').value = '';
+            $('emailLoginInput').focus();
+            localStorage.removeItem('r500_login_email');
+            $('clearEmailBtn').style.display = 'none';
+          };
+
+          // ステップ1: 確認コード（6桁）を送信
+          $('emailLoginBtn').onclick = async () => {
+            const email = $('emailLoginInput').value.trim();
+            if (!email) { showOtpError('メールアドレスを入力してください'); return; }
+            const b = $('emailLoginBtn');
+            b.disabled = true; b.textContent = '送信中…';
+            const { error } = await sb.auth.signInWithOtp({ email });
+            b.disabled = false; b.textContent = '確認コードを送信';
+            if (error) { showOtpError('送信に失敗しました：' + error.message); return; }
+            otpEmail = email;
+            localStorage.setItem('r500_login_email', email);
+            $('otpSentEmail').textContent = email;
+            $('otpStep1').style.display = 'none';
+            $('otpStep2').style.display = 'flex';
+            showOtpError('');
+            $('otpCodeInput').focus();
+          };
+
+          // ステップ2: 確認コードを検証（成功すると onAuthStateChange がゲートを閉じる）
+          $('otpVerifyBtn').onclick = async () => {
+            const code = $('otpCodeInput').value.trim();
+            if (!code) { showOtpError('確認コードを入力してください'); return; }
+            const b = $('otpVerifyBtn');
+            b.disabled = true; b.textContent = '確認中…';
+            const { error } = await sb.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
+            b.disabled = false; b.textContent = 'ログイン';
+            if (error) { showOtpError('コードが正しくないか、期限切れです。もう一度お試しください。'); return; }
+            showOtpError('');
+          };
+
+          // 確認コードの再送
+          $('otpResendBtn').onclick = async () => {
+            if (!otpEmail) return;
+            const b = $('otpResendBtn');
+            b.disabled = true;
+            const { error } = await sb.auth.signInWithOtp({ email: otpEmail });
+            if (error) {
+              b.disabled = false;
+              showOtpError('再送に失敗しました：' + error.message);
+              return;
+            }
+            showOtpError('');
+            b.textContent = '確認コードを再送しました';
+            setTimeout(() => { b.textContent = '確認コードを再送する'; b.disabled = false; }, 5000);
+          };
         })();
     </script>
     <script src="parts.js"></script>
