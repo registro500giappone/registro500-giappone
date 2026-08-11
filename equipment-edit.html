@@ -187,6 +187,18 @@
     .public-warning.show { display: block; }
 
     /* ===== 経験談 ===== */
+    /* 2026-08-11: 経験談は公開一覧にハンドルネーム付きで全文そのまま載る。
+       公開設定のカードは経験談より下にあり、書く時点では気づけないため、
+       入力欄の直前で公開トグルの状態に連動して伝える。 */
+    .exp-public-note {
+      margin: 0 0 10px; padding: 10px 12px; border-radius: 8px;
+      font-size: 0.78rem; line-height: 1.7;
+      background: #f3f4f6; border: 1px solid var(--border-soft); color: var(--text-sub);
+    }
+    .exp-public-note.is-public {
+      background: #fff7ed; border-color: #fed7aa; color: #9a3412;
+    }
+    .exp-public-note a { color: inherit; }
     #experience-body {
       width: 100%; min-height: 120px; padding: 12px; border: 1px solid var(--border-soft);
       border-radius: 8px; font-size: 0.9rem; font-family: inherit; line-height: 1.7; resize: vertical;
@@ -372,6 +384,9 @@
       .switch-slider { background-color: #4b5563; }
       /* 公開設定の注意書き（橙系の警告色。色相は変えず明度のみ調整） */
       .public-warning { background: #3a2a15; border-color: #6b4a1f; color: #e8b878; }
+      /* 経験談の公開注記（公開ON時は上の警告と同じ橙系、OFF時は落ち着いたグレー） */
+      .exp-public-note { background: #221f1a; }
+      .exp-public-note.is-public { background: #3a2a15; border-color: #6b4a1f; color: #e8b878; }
       /* 安全・救援ブロック（警告の赤系。案Aの差し色 #d98a7e で明度のみ調整） */
       .safety-block { background: #3a231e; border-color: #5c3530; border-left-color: #d98a7e; }
       .safety-heading, .safety-gauge-label { color: #d98a7e; }
@@ -508,6 +523,10 @@
     <section class="card">
       <h2>出先で助かった／困った経験</h2>
       <p class="card-lead">「これがあって助かった」「これが無くて詰んだ」という話をぜひ。他のオーナーにとって、装備リストそのものより役に立つことがあります。</p>
+      <!-- 既定＝公開なので、初期表示は公開ONの文面。以降は togglePublicWarning() が書き替える。 -->
+      <p class="exp-public-note is-public" id="exp-public-note">
+        ここに書いた内容は、<strong>そのまま全文が公開されます</strong>。<a href="/equipment" target="_blank" rel="noopener">「みんなの車載手帳」の一覧</a>とあなたの車両ページに、ハンドルネームとあわせて表示されます（あとから書き直し・削除できます）。
+      </p>
       <textarea id="experience-body" placeholder="例: 箱根の帰りにVベルトが切れたが、予備とスパナがあったので路肩で20分ほどで復帰できた。"></textarea>
     </section>
 
@@ -843,6 +862,15 @@
   function togglePublicWarning() {
     const on = document.getElementById('public-toggle').checked;
     document.getElementById('public-warning').classList.toggle('show', on);
+    // 2026-08-11: 経験談は公開一覧にハンドルネーム付きで全文そのまま載る（equipment.html の
+    // renderExperiences）。書く前にそれが分かるよう、入力欄の注記もこのトグルに連動させる。
+    const expNote = document.getElementById('exp-public-note');
+    if (expNote) {
+      expNote.classList.toggle('is-public', on);
+      expNote.innerHTML = on
+        ? 'ここに書いた内容は、<strong>そのまま全文が公開されます</strong>。<a href="/equipment" target="_blank" rel="noopener">「みんなの車載手帳」の一覧</a>とあなたの車両ページに、ハンドルネームとあわせて表示されます（あとから書き直し・削除できます）。'
+        : 'いまは下の「この手帳の公開設定」がオフのため、ここに書いた内容は誰にも表示されません。公開に切り替えると、<a href="/equipment" target="_blank" rel="noopener">「みんなの車載手帳」の一覧</a>とあなたの車両ページに、ハンドルネームとあわせて全文が表示されます。';
+    }
   }
 
   function renderCategories() {
