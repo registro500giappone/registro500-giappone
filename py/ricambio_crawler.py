@@ -5,6 +5,7 @@ Shopify JSON APIを使用（Selenium不要、高速）
 通貨: GBP → EUR換算
 """
 
+import sys
 import requests
 import time
 
@@ -59,6 +60,12 @@ def get_all_products():
 
         except Exception as e:
             print(f"エラー: {e}")
+            # 1ページ目で落ちる＝APIに到達できていない。
+            # 部分データを返して成功扱いにすると気づけないので落とす
+            if page == 1:
+                print("[ERROR] 商品APIにアクセスできませんでした")
+                sys.exit(1)
+            print(f"[WARN] ページ {page} 以降を取得できず打ち切ります（部分データ）")
             break
 
     print(f"\n合計 {len(all_products)}商品取得")
@@ -132,6 +139,12 @@ def main():
     fiat_products = [p for p in all_products if is_fiat_500_related(p)]
 
     print(f"\nFIAT 500関連商品: {len(fiat_products)}件")
+
+    # 0件は「商品が無い」ではなく取得か絞り込みの異常。successで終わると気づけない
+    if not fiat_products:
+        print("[ERROR] 対象商品が0件でした（取得または絞り込みの異常）")
+        sys.exit(1)
+
     print("\nSupabaseに保存中...\n")
 
     success_count = 0
@@ -159,6 +172,17 @@ def main():
     if len(fiat_products) > 0:
         print(f"平均速度: {elapsed/len(fiat_products):.2f}秒/商品")
     print("=" * 60)
+
+    # 保存が全滞り＝書込キー・RLSの問題（FD Ricambi で実際に3ヶ月気づかなかった）
+    failed = len(fiat_products) - success_count
+    if success_count == 0:
+        print("[ERROR] 1件も保存できませんでした（書込キー・権限・RLSを確認）")
+        sys.exit(1)
+    if failed > len(fiat_products) // 2:
+        print(f"[ERROR] 保存失敗が半数を超えました（{failed}/{len(fiat_products)}件）")
+        sys.exit(1)
+    if failed:
+        print(f"[WARN] 保存に失敗した商品が {failed} 件あります")
 
 if __name__ == "__main__":
     main()
