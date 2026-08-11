@@ -17,6 +17,8 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1" integrity="sha384-9MhbyIRcBVQiiC7FSd7T38oJNj2Zh+EfxS7/vjhBi4OOT78NlHSnzM31EZRWR1LZ" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.1.0" integrity="sha384-oNhsL0VlXEGzrmRTe8izHyibjJ6j7mgL/Pxa4Jgq1KF+2n4w5Hwn/l57UrDsMjbk" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js" integrity="sha384-Ukv1p/xTma6P4/2bY5KzWBw+ydSpXmhCMtyciIQVDJ1RmOxtCYNMF1uXT9T63H67" crossorigin="anonymous"></script>
   <script src="config.js"></script>
   <script src="stats-core.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
@@ -52,6 +54,41 @@
     body.mode-126 { --accent: var(--accent126); }
     body.mode-126 .header h1 { color: var(--accent126); }
 
+    /* サマリータイル：タブを開かなくても全体像が分かる4つの数字 */
+    .summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+    @media (min-width: 768px) { .summary { grid-template-columns: repeat(4, 1fr); } }
+    .tile { background: var(--card); border-radius: var(--radius); padding: 14px 10px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .tile-label { font-size: 0.75rem; color: #7a705f; margin-bottom: 4px; }
+    .tile-value { font-size: 1.5rem; font-weight: bold; color: var(--accent); line-height: 1.2; }
+    .tile-value .unit { font-size: 0.85rem; font-weight: normal; margin-left: 2px; }
+    .tile-sub { font-size: 0.72rem; color: #7a705f; margin-top: 4px; }
+
+    /* 都道府県別の分布地図（濃淡） */
+    .map-wrap { position: relative; max-width: 620px; margin: 0 auto; }
+    /* 母数が少ないと塗られる県がわずかで、大きく出すと余白ばかりになる */
+    .map-wrap.compact { max-width: 420px; }
+    .map-wrap svg { width: 100%; height: auto; display: block; }
+    .pref-shape { stroke: #d6c9b0; stroke-width: 0.5px; }
+    /* 文字色(fill)と縁取り色(stroke)は塗りの濃さに応じてJS側で1県ずつ指定する。
+       ここで fill を書くとCSSが属性に勝ってしまうので指定しない。 */
+    .pref-count { font-size: 13px; font-weight: 900; font-family: sans-serif; text-anchor: middle; dominant-baseline: central; pointer-events: none; paint-order: stroke; stroke-width: 3px; stroke-linecap: round; stroke-linejoin: round; }
+    .map-inset-box { fill: none; stroke: #d6c9b0; stroke-width: 2; }
+    .map-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 12px; font-size: 0.75rem; color: #7a705f; }
+    .map-legend span { display: inline-flex; align-items: center; gap: 4px; }
+    .map-legend i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; border: 1px solid rgba(0,0,0,0.1); }
+    .map-note { text-align: center; font-size: 0.75rem; color: #7a705f; margin-top: 10px; }
+
+    /* 母数が少ないときは円グラフをやめ、1台=1粒のドットで示す */
+    .chart-container.as-dots { height: auto; min-height: 0; }
+    .dot-list { display: grid; gap: 10px; }
+    .dot-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
+    .dot-row .label { font-size: 0.9rem; }
+    .dot-row .dots { color: var(--accent); font-size: 1.1rem; letter-spacing: 2px; }
+    .dot-row .count { font-size: 0.85rem; color: #7a705f; white-space: nowrap; }
+
+    /* 有効回答が全体より少ない項目は、グラフの見出しに母数を出す */
+    .sample-n { display: block; font-size: 0.72rem; font-weight: normal; color: #7a705f; margin-top: 4px; }
+
 
 
 
@@ -71,6 +108,11 @@
       .car-type-btn { background: #403a30; border-color: #4d453a; color: #a89e8c; }
       .car-type-btn.active-500 { color: #1a1714; }
       body.mode-126 .header h1 { color: #f97316; }
+      .tile { background: #2b2721; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+      .tile-label, .tile-sub, .map-legend, .map-note, .sample-n, .dot-row .count { color: #a89e8c; }
+      .pref-shape { stroke: #4d453a; }
+      .map-inset-box { stroke: #403a30; }
+      .map-legend i { border-color: rgba(255,255,255,0.15); }
     }
   </style>
   <!-- 左下「一つ前に戻る」（ホーム画面起動時のみ）／右下「先頭へ」の浮かぶボタン -->
@@ -82,13 +124,19 @@
   <a id="backLink" href="/" class="back-link">← ガレージに戻る</a>
   <div class="header">
     <h1 id="pageTitle">Registro500 Statistics</h1>
-    <p>現在の登録車両: <span id="totalCount">-</span> 台</p>
     <div class="note">※未記入を除いた有効回答のみ集計</div>
   </div>
 
   <div class="car-type-switcher">
     <button class="car-type-btn active-500" id="btn500" onclick="switchCarType('500')">🚗 Fiat 500</button>
     <button class="car-type-btn" id="btn126" onclick="switchCarType('126')">🚗 Fiat 126</button>
+  </div>
+
+  <div class="summary" id="summary">
+    <div class="tile"><div class="tile-label">登録台数</div><div class="tile-value" id="tileCount">-</div><div class="tile-sub" id="tileCountSub">&nbsp;</div></div>
+    <div class="tile"><div class="tile-label">年式</div><div class="tile-value" id="tileYear">-</div><div class="tile-sub" id="tileYearSub">&nbsp;</div></div>
+    <div class="tile"><div class="tile-label">分布</div><div class="tile-value" id="tilePref">-</div><div class="tile-sub" id="tilePrefSub">&nbsp;</div></div>
+    <div class="tile"><div class="tile-label">ハンドル位置</div><div class="tile-value" id="tileSteering">-</div><div class="tile-sub" id="tileSteeringSub">&nbsp;</div></div>
   </div>
 
   <div class="tabs">
@@ -101,6 +149,12 @@
   <div id="loading">データを集計・分析中...</div>
 
   <div id="basic" class="tab-content active">
+    <div class="chart-card full">
+      <div class="chart-title">🗾 都道府県別の分布</div>
+      <div class="map-wrap" id="mapWrap"></div>
+      <div class="map-legend" id="mapLegend"></div>
+      <div class="map-note" id="mapNote"></div>
+    </div>
     <div class="chart-card full"><div class="chart-title">🚗 モデル別分布</div><div class="chart-container tall"><canvas id="modelChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">🎨 ボディカラー</div><div class="chart-container"><canvas id="colorChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">🎡 ハンドル位置</div><div class="chart-container"><canvas id="steeringChart"></canvas></div></div>
@@ -138,7 +192,10 @@
 
 <script>
   let chartInstances = {};
-  
+  let totalCars = 0;
+  // これ未満の母数では割合表示（円グラフ・パーセント）をやめ、台数そのもので見せる
+  const SMALL_SAMPLE = 15;
+
   const COLOR_PALETTE = {
     '白/アイボリー系': '#f8f8f8', '赤系': '#CD212A', '黄系': '#FBC02D', 'ブルー系': '#0039A6', '水色系': '#81D4FA', '緑系': '#008C45', 'グレー系': '#757575', 'ベージュ系': '#D7CCC8', '黒系': '#212121', 'オレンジ系': '#F57C00', 'その他': '#CFD8DC'
   };
@@ -175,7 +232,8 @@
     if (currentCarType === type) return;
     currentCarType = type;
     applyCarTypeUI(type);
-    document.getElementById('totalCount').textContent = '-';
+    document.querySelectorAll('.tile-value').forEach(el => el.textContent = '-');
+    document.querySelectorAll('.tile-sub').forEach(el => el.innerHTML = '&nbsp;');
     document.getElementById('loading').style.display = '';
     document.getElementById('loading').textContent = 'データを集計・分析中...';
     Object.values(chartInstances).forEach(ins => ins.destroy());
@@ -208,6 +266,8 @@
         .from('cars')
         .select(`
           CarType:car_type,
+          Prefecture:prefecture,
+          Year:year,
           Model_DisplayA:model_display_a,
           Model_DisplayB:model_display_b,
           Model_DisplayC:model_display_c,
@@ -249,8 +309,12 @@
   // stats-core.js に集約した。goods.html など他ページとの二重管理をやめるため。
 
   function renderAllCharts(cars) {
-    document.getElementById('totalCount').innerText = cars.length;
     Object.values(chartInstances).forEach(ins => ins.destroy());
+    totalCars = cars.length;
+    resetDotLists();
+
+    renderSummary(cars);
+    renderMap(cars);
 
     renderBar('modelChart', cars, c => getNormalizedModel(c), '#2856a8');
 
@@ -289,6 +353,222 @@
     }, '#9e9e9e');
   }
 
+  // ---- サマリータイル ------------------------------------------------------
+  // タブを開かなくても全体像が掴めるように、埋充率が高く表記ゆれの無い項目だけを使う。
+  function renderSummary(cars) {
+    const set = (id, v, sub) => {
+      document.getElementById(id).innerHTML = v;
+      document.getElementById(id + 'Sub').innerHTML = sub || '&nbsp;';
+    };
+
+    set('tileCount', cars.length + '<span class="unit">台</span>',
+        currentCarType === '126' ? 'Fiat 126' : 'Fiat 500');
+
+    const years = cars.map(c => String(c.Year || '').match(/\d{4}/))
+                      .filter(Boolean).map(m => parseInt(m[0], 10));
+    if (years.length) {
+      const min = Math.min(...years), max = Math.max(...years);
+      const byYear = {};
+      years.forEach(y => { byYear[y] = (byYear[y] || 0) + 1; });
+      const top = Object.entries(byYear).sort((a, b) => b[1] - a[1])[0];
+      set('tileYear', `${min}<span class="unit">〜</span>${max}`,
+          `最も多いのは ${top[0]}年（${top[1]}台）`);
+    } else {
+      set('tileYear', '-', '');
+    }
+
+    const prefs = {};
+    cars.forEach(c => {
+      const p = normalizePrefecture(c.Prefecture);
+      if (p) prefs[p] = (prefs[p] || 0) + 1;
+    });
+    const prefEntries = Object.entries(prefs).sort((a, b) => b[1] - a[1]);
+    set('tilePref', Object.keys(prefs).length + '<span class="unit">都道府県</span>',
+        prefEntries.length ? `最も多いのは ${prefEntries[0][0]}（${prefEntries[0][1]}台）` : '');
+
+    const steer = { left: 0, right: 0 };
+    cars.forEach(c => {
+      const s = String(c.Steering || '');
+      if (s.includes('左')) steer.left++;
+      else if (s.includes('右')) steer.right++;
+    });
+    const answered = steer.left + steer.right;
+    if (answered === 0) {
+      set('tileSteering', '-', '');
+    } else if (answered < SMALL_SAMPLE) {
+      // 母数が小さいときに割合を出すと1台の増減で大きく振れるので台数で示す
+      set('tileSteering', `${steer.left}<span class="unit">/${answered}台が左</span>`,
+          steer.right ? `右ハンドルは ${steer.right}台` : '全車が左ハンドル');
+    } else {
+      set('tileSteering', Math.round(steer.left / answered * 100) + '<span class="unit">% が左</span>',
+          `右ハンドルは ${steer.right}台（回答 ${answered}台）`);
+    }
+  }
+
+  // ---- 都道府県別の分布地図（濃淡） ----------------------------------------
+  // mappa.html は「その県の車を見る」ための地図なので有無の2値塗り。
+  // こちらは分布の偏りを読むためのページなので台数の濃淡で塗る。
+  const MAP_BUCKETS = [
+    { min: 1,  label: '1台' },
+    { min: 2,  label: '2〜3台' },
+    { min: 4,  label: '4〜7台' },
+    { min: 8,  label: '8〜15台' },
+    { min: 16, label: '16台〜' }
+  ];
+  const MAP_SCALES = {
+    '500': { light: ['#dbe9df', '#a9cbb6', '#74ac8c', '#427f5e', '#1f5c3d'],
+             dark:  ['#33463b', '#3f6650', '#4f8a67', '#63ad7e', '#7fb894'] },
+    '126': { light: ['#fbe6d8', '#f5c3a1', '#ee9a6c', '#e2703d', '#d4541a'],
+             dark:  ['#46332a', '#654433', '#8a583a', '#b06c3f', '#f97316'] }
+  };
+  const MAP_EMPTY_FILL = isDark ? '#403a30' : '#faf6ec';
+  let mapDataPromise = null;
+
+  function bucketIndex(n) {
+    let idx = 0;
+    MAP_BUCKETS.forEach((b, i) => { if (n >= b.min) idx = i; });
+    return idx;
+  }
+
+  function renderMap(cars) {
+    const counts = {};
+    cars.forEach(c => {
+      const p = normalizePrefecture(c.Prefecture);
+      if (p) counts[p] = (counts[p] || 0) + 1;
+    });
+    if (!mapDataPromise) mapDataPromise = fetch('prefectures.json').then(r => r.json());
+    mapDataPromise.then(mapData => drawMap(mapData, counts))
+                  .catch(e => { console.error(e); document.getElementById('mapWrap').style.display = 'none'; });
+  }
+
+  function drawMap(mapData, counts) {
+    const palette = (MAP_SCALES[currentCarType] || MAP_SCALES['500'])[isDark ? 'dark' : 'light'];
+    const wrap = d3.select('#mapWrap');
+    wrap.select('svg').remove();
+    wrap.classed('compact', totalCars < SMALL_SAMPLE);
+    const width = 800, height = 800;
+    const svg = wrap.append('svg').attr('viewBox', `0 0 ${width} ${height}`);
+
+    const objKey = mapData.objects.japan ? 'japan'
+                 : (mapData.objects.prefectures ? 'prefectures' : Object.keys(mapData.objects)[0]);
+    const all = topojson.feature(mapData, mapData.objects[objKey]).features;
+    const isOkinawa = d => d.id == 47 || d.properties.id == 47;
+
+    const mainProjection = d3.geoMercator().center([137.5, 38.3]).scale(2300).translate([width / 2, height / 2]);
+    const mainPath = d3.geoPath().projection(mainProjection);
+    paint(svg, all.filter(d => !isOkinawa(d)), mainPath, counts, palette);
+
+    const okinawa = all.filter(isOkinawa);
+    if (okinawa.length) {
+      const boxX = 20, boxY = 20, boxW = 160, boxH = 120;
+      const inset = d3.geoMercator().center([127.8, 26.5]).scale(6000).translate([boxX + boxW / 2, boxY + boxH / 2]);
+      svg.append('rect').attr('x', boxX).attr('y', boxY).attr('width', boxW).attr('height', boxH).attr('class', 'map-inset-box');
+      paint(svg, okinawa, d3.geoPath().projection(inset), counts, palette);
+    }
+
+    // viewBoxは800x800のまま。投影の外に出る小笠原・南西諸島はSVGが自動で切る。
+    // （描画物のbboxで詰めるとその離島まで含んでしまい、逆に本土が小さくなる）
+
+    // 凡例は実際に使っている段階だけ出す（126の6台で「16台〜」を並べても意味がない）
+    const maxCount = Math.max(0, ...Object.values(counts));
+    document.getElementById('mapLegend').innerHTML =
+      `<span><i style="background:${MAP_EMPTY_FILL}"></i>0台</span>` +
+      MAP_BUCKETS.filter(b => b.min <= maxCount)
+        .map((b, i) => `<span><i style="background:${palette[i]}"></i>${b.label}</span>`).join('');
+
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    document.getElementById('mapNote').textContent = top
+      ? `${Object.keys(counts).length}都道府県に${total}台。最も多いのは${top[0]}の${top[1]}台。`
+      : '';
+  }
+
+  function paint(svg, features, path, counts, palette) {
+    const nameOf = d => {
+      const p = d.properties || {};
+      return normalizePrefecture(p.nam_ja || p.name || p.nam || '') || null;
+    };
+    const g = svg.append('g');
+    g.selectAll('path').data(features).enter().append('path')
+      .attr('class', 'pref-shape')
+      .attr('d', path)
+      .attr('fill', d => { const n = counts[nameOf(d)] || 0; return n ? palette[bucketIndex(n)] : MAP_EMPTY_FILL; })
+      .append('title')
+      .text(d => { const name = nameOf(d); return name ? `${name} ${counts[name] || 0}台` : ''; });
+
+    svg.append('g').selectAll('text').data(features).enter().append('text')
+      .attr('class', 'pref-count')
+      .attr('transform', d => {
+        const c = path.centroid(d);
+        if (isNaN(c[0])) return 'translate(-999,-999)';
+        let x = c[0], y = c[1];
+        const name = nameOf(d) || '';
+        // 首都圏は県が小さく数字も大きいので、重ならない向きへ逃がす
+        if (name.includes('東京')) { y -= 30; x -= 14; }
+        if (name.includes('神奈川')) { y += 10; x -= 8; }
+        if (name.includes('千葉')) { x += 8; }
+        if (name.includes('埼玉')) { y -= 6; x -= 6; }
+        if (name.includes('長崎')) x += 5;
+        if (name.includes('鹿児島')) y -= 10;
+        if (name.includes('兵庫')) y -= 5;
+        return `translate(${x},${y})`;
+      })
+      // 薄い塗りの上では白抜き文字が読めないので、濃さに応じて文字色を反転させる
+      .attr('fill', d => {
+        const idx = bucketIndex(counts[nameOf(d)] || 0);
+        if (isDark) return idx >= 3 ? '#1a1714' : '#ece6d9';
+        return idx >= 2 ? '#fff' : '#2e2a24';
+      })
+      .attr('stroke', d => { const n = counts[nameOf(d)] || 0; return n ? palette[bucketIndex(n)] : MAP_EMPTY_FILL; })
+      .text(d => counts[nameOf(d)] || '');
+  }
+
+  // ---- 母数が少ないときのドット表示 ----------------------------------------
+  // 6台で円グラフを描くと「17%」のような数字が独り歩きするため、1台=1粒で見せる。
+  function renderDots(id, cars, extractor, sortOrder = null) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    const data = aggregate(cars, extractor, sortOrder);
+    const container = canvas.parentElement;
+    canvas.style.display = 'none';
+    container.classList.add('as-dots');
+    const box = document.createElement('div');
+    box.className = 'dot-list';
+    box.innerHTML = data.map(([label, n]) =>
+      `<div class="dot-row"><span class="label">${esc(label)}</span>` +
+      `<span class="count"><span class="dots">${'●'.repeat(n)}</span> ${n}台</span></div>`).join('');
+    container.appendChild(box);
+    setSampleCount(id, data.reduce((a, d) => a + d[1], 0));
+  }
+
+  function resetDotLists() {
+    document.querySelectorAll('.dot-list').forEach(el => el.remove());
+    document.querySelectorAll('.chart-container.as-dots').forEach(el => {
+      el.classList.remove('as-dots');
+      const c = el.querySelector('canvas');
+      if (c) c.style.display = '';
+    });
+    document.querySelectorAll('.sample-n').forEach(el => el.remove());
+  }
+
+  // 有効回答が全体より少ない項目は、見出しに母数を出す。
+  // これが無いと「68台中10台」が「161台中10台」に見えて割合を読み違える。
+  function setSampleCount(id, n) {
+    const card = document.getElementById(id) && document.getElementById(id).closest('.chart-card');
+    if (!card || n >= totalCars) return;
+    const title = card.querySelector('.chart-title');
+    if (!title || title.querySelector('.sample-n')) return;
+    const el = document.createElement('span');
+    el.className = 'sample-n';
+    el.textContent = `回答 ${n}台 / 全${totalCars}台`;
+    title.appendChild(el);
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  }
+
   function aggregate(cars, extractor, sortOrder = null) {
     const counts = {};
     cars.forEach(c => {
@@ -315,6 +595,8 @@
     if (!canvas) return;
     const data = aggregate(cars, extractor, sortOrder);
     if (data.length === 0) return;
+    if (totalCars < SMALL_SAMPLE) { renderDots(id, cars, extractor, sortOrder); return; }
+    setSampleCount(id, data.reduce((a, d) => a + d[1], 0));
     chartInstances[id] = new Chart(canvas, {
       type: 'bar',
       data: { labels: data.map(d => d[0]), datasets: [{ data: data.map(d => d[1]), backgroundColor: color, borderRadius: 4 }] },
@@ -335,6 +617,8 @@
     if (!canvas) return;
     const data = aggregate(cars, extractor);
     if (data.length === 0) return;
+    if (totalCars < SMALL_SAMPLE) { renderDots(id, cars, extractor); return; }
+    setSampleCount(id, data.reduce((a, d) => a + d[1], 0));
     let bgColors;
     if (data.length === 2) { bgColors = ITALY_2COLOR; } 
     else {

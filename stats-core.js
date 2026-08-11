@@ -107,6 +107,50 @@ function getBrandJa(t, opts) {
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
+// 47都道府県（地図・集計の突き合わせ用の正解リスト）
+const PREFECTURES_JA = [
+  "北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県",
+  "茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県",
+  "新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県",
+  "静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県",
+  "奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県",
+  "徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県",
+  "熊本県","大分県","宮崎県","鹿児島県","沖縄県"
+];
+
+// ローマ字表記・市区町村まで書かれた住所を、47都道府県のどれかに寄せる。
+// 実データにある例：「TOYAMA」「高知県四万十市」「横浜市神奈川区」。
+// どれにも当てはまらなければ null（地図に塗らない）。
+function normalizePrefecture(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return null;
+  const exact = PREFECTURES_JA.find(p => p === s);
+  if (exact) return exact;
+  const en = {
+    'HOKKAIDO':'北海道','AOMORI':'青森県','IWATE':'岩手県','MIYAGI':'宮城県','AKITA':'秋田県',
+    'YAMAGATA':'山形県','FUKUSHIMA':'福島県','IBARAKI':'茨城県','TOCHIGI':'栃木県','GUNMA':'群馬県',
+    'SAITAMA':'埼玉県','CHIBA':'千葉県','TOKYO':'東京都','KANAGAWA':'神奈川県','NIIGATA':'新潟県',
+    'TOYAMA':'富山県','ISHIKAWA':'石川県','FUKUI':'福井県','YAMANASHI':'山梨県','NAGANO':'長野県',
+    'GIFU':'岐阜県','SHIZUOKA':'静岡県','AICHI':'愛知県','MIE':'三重県','SHIGA':'滋賀県',
+    'KYOTO':'京都府','OSAKA':'大阪府','HYOGO':'兵庫県','NARA':'奈良県','WAKAYAMA':'和歌山県',
+    'TOTTORI':'鳥取県','SHIMANE':'島根県','OKAYAMA':'岡山県','HIROSHIMA':'広島県','YAMAGUCHI':'山口県',
+    'TOKUSHIMA':'徳島県','KAGAWA':'香川県','EHIME':'愛媛県','KOCHI':'高知県','FUKUOKA':'福岡県',
+    'SAGA':'佐賀県','NAGASAKI':'長崎県','KUMAMOTO':'熊本県','OITA':'大分県','MIYAZAKI':'宮崎県',
+    'KAGOSHIMA':'鹿児島県','OKINAWA':'沖縄県'
+  }[s.toUpperCase().replace(/[\s-]/g, '')];
+  if (en) return en;
+  // 「高知県四万十市」のように県名を丸ごと含む場合
+  const contains = PREFECTURES_JA.find(p => s.includes(p));
+  if (contains) return contains;
+  // 「横浜市神奈川区」のように末尾の都道府県を落として書かれている場合。
+  // 「北海道」は語幹が取れないので上の判定で拾い切っている。
+  const stem = PREFECTURES_JA.find(p => {
+    const base = p.replace(/[都府県]$/, '');
+    return base.length >= 2 && s.includes(base);
+  });
+  return stem || null;
+}
+
 function getColorGroup(t) {
   if (!t) return null;
   const v = String(t).toLowerCase();
