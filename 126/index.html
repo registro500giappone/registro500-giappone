@@ -136,8 +136,13 @@
       text-decoration: none; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
       white-space: nowrap;
     }
-    .btn-owner { background-color: var(--accent); color: #ffffff; border-color: var(--accent-border); }
-    .btn-owner:hover { opacity: 0.9; transform: translateY(-1px); }
+    .view-toggle-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-soft);
+      background-color: var(--card-bg); color: var(--text-sub); font-size: 0.78rem; font-weight: 600;
+      cursor: pointer; white-space: nowrap; transition: all 0.2s ease;
+    }
+    .view-toggle-btn:hover { background-color: var(--bg-main); color: var(--accent); }
 
     @media (max-width: 767px) {
       .sort-area { 
@@ -162,35 +167,31 @@
         font-size: 0.9rem;
       }
       
-      /* 2行目: 左から [ソート] [マイガレージ] [メニュー] */
-      
-      /* ソート (表示に戻す) */
-      .sort-left { 
-        display: flex; 
-        order: 2; 
+      /* 2行目: 左から [ソート+表示切替] [メニュー] */
+
+      /* ソート・表示切替 (表示に戻す) */
+      .sort-left {
+        display: flex;
+        order: 2;
         flex: 1; /* スペースを分け合う */
         min-width: 0; /* 縮小可能に */
+        gap: 6px;
       }
       .sort-select {
-        width: 100%; /* 親に合わせて伸縮 */
+        flex: 1; /* 親に合わせて伸縮 */
+        min-width: 0;
         padding: 8px 4px; /* パディングを詰める */
         font-size: 0.8rem;
       }
-      
-      /* マイガレージボタン */
-      .btn-owner { 
-        order: 3; 
-        margin: 0 !important; 
-        width: auto; 
-        padding: 8px 12px; 
-        font-size: 0.8rem;
-        white-space: nowrap;
-        flex: 0 0 auto; /* 文字数分だけ確保 */
+      .view-toggle-btn {
+        flex: 0 0 auto;
+        font-size: 0.75rem;
+        padding: 8px 8px;
       }
-      
+
       /* 表示切り替えメニュー */
-      .dropdown { 
-        order: 4; 
+      .dropdown {
+        order: 3;
         flex: 0 0 auto; /* 必要分だけ確保 */
       }
       .dropdown .btn-secondary {
@@ -215,17 +216,58 @@
     }
     .dropdown-content a:hover, .dropdown-content button:hover { background-color: var(--bg-main); color: var(--accent); }
     .dropdown.open .dropdown-content { display: block; }
-    
+
+    /* メニュー内のグループ見出し（クリック不可） */
+    .menu-group-heading {
+      padding: 8px 16px 4px; font-size: 0.72rem; font-weight: 700; color: var(--text-sub);
+      background-color: var(--bg-main); border-bottom: 1px solid var(--border-soft);
+      letter-spacing: 0.02em;
+    }
+    .menu-divider { height: 1px; background-color: var(--border-soft); margin: 4px 0; }
+
     .mosaic-toggle-item { display: none !important; }
     @media (min-width: 1025px) { .mosaic-toggle-item { display: block !important; } }
 
     /* ===== ナビゲーションとお知らせバッジ ===== */
-    .header-nav { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 0.8rem; color: var(--text-sub); margin-top: 8px; }
-    .header-nav a { color: var(--text-sub); text-decoration: none; position: relative; display: flex; align-items: center; }
+    .header-nav {
+      display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 0.8rem;
+      color: var(--text-sub); margin-top: 10px; flex-wrap: nowrap;
+      overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    }
+    .header-nav::-webkit-scrollbar { display: none; }
+    .header-nav a { color: var(--text-sub); text-decoration: none; position: relative; display: flex; align-items: center; white-space: nowrap; }
     .header-nav a:hover { text-decoration: underline; }
+    #headerLoginBtn {
+      display: none; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--text-sub);
+      background: none; border: 1px solid var(--border-soft); border-radius: 6px;
+      padding: 3px 10px; cursor: pointer; line-height: 1.4; font-family: inherit; white-space: nowrap;
+    }
+    #headerLoginBtn:hover { color: var(--accent); border-color: var(--accent); }
+
+    @media (max-width: 640px) {
+      .header-nav { font-size: 0.78rem; gap: 8px; }
+      #headerLoginBtn { font-size: 0.78rem; }
+    }
+
+    /* ===== 「今」の帯（直近イベント・新着車両） ===== */
+    .top-band {
+      background-color: var(--card-bg); border: 1px solid var(--border-soft); border-radius: 10px;
+      padding: 8px 14px; margin: 10px 0 12px; font-size: 0.82rem; line-height: 1.5;
+    }
+    .top-band-line {
+      display: flex; align-items: baseline; gap: 4px; color: var(--text-sub); text-decoration: none;
+      overflow: hidden;
+    }
+    .top-band-line:hover { color: var(--accent); text-decoration: underline; }
+    .top-band-line + .top-band-line { margin-top: 2px; }
+    .top-band-line-text {
+      min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .top-band-line-suffix { flex-shrink: 0; white-space: nowrap; }
     .news-badge {
-      position: absolute; top: -2px; right: -10px; width: 8px; height: 8px;
+      position: relative; top: -3px; display: inline-block; width: 8px; height: 8px;
       background-color: #e11d48; border-radius: 50%; border: 1px solid white;
+      flex-shrink: 0; margin-left: 3px;
     }
     .x-icon-link svg { width: 16px; height: 16px; fill: currentColor; }
 
@@ -238,6 +280,7 @@
       .logo-pc { display: block; height: 110px; width: auto; mix-blend-mode: multiply; margin-left: -5px; }
       .page-header-right { align-items: flex-end; }
       .header-nav { justify-content: flex-end; margin-top: 0; }
+      .top-band { margin: 14px 0; }
     }
 
     /* ===== カードリスト ===== */
@@ -345,6 +388,14 @@
     }
 
     .footer { margin-top: 60px; padding: 40px 16px; border-top: 1px solid var(--border-soft); text-align: center; color: var(--text-sub); font-size: 0.85rem; }
+    .footer-links-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px 12px;
+      text-align: left; max-width: 640px; margin: 0 auto; font-size: 0.78rem;
+    }
+    @media (min-width: 768px) { .footer-links-grid { grid-template-columns: repeat(4, 1fr); max-width: 900px; } }
+    .footer-col-title { font-weight: 700; color: var(--text-main); margin-bottom: 6px; font-size: 0.78rem; }
+    .footer-col a { display: block; color: #5c5346; text-decoration: none; padding: 3px 0; font-size: 0.78rem; }
+    .footer-col a:hover { color: var(--accent); text-decoration: underline; }
     .share-btn { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); text-decoration: none; font-weight: 600; cursor: pointer; border: 1px solid var(--accent-border); padding: 10px 24px; border-radius: 999px; background: #fff; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
     .share-btn:hover { background: var(--accent-soft); transform: translateY(-1px); }
 
@@ -374,10 +425,12 @@
       .search-input { background-color: var(--card-bg); color: var(--text-main); border-color: var(--border-soft); }
       .sort-select { background-color: var(--card-bg); color: var(--text-main); border-color: var(--border-soft); }
       .btn-secondary { background-color: var(--card-bg); color: var(--accent); }
-      .btn-owner { background-color: var(--accent); color: #1a1714; }
+      .view-toggle-btn { background-color: var(--card-bg); color: var(--text-sub); }
       .dropdown-content { background-color: var(--card-bg); border-color: var(--border-soft); }
       .dropdown-content a, .dropdown-content button { color: var(--text-main); border-bottom-color: var(--border-soft); }
       .dropdown-content a:hover, .dropdown-content button:hover { background-color: var(--bg-main); }
+      .menu-group-heading { background-color: var(--bg-main); color: var(--text-sub); border-bottom-color: var(--border-soft); }
+      .menu-divider { background-color: var(--border-soft); }
       .car-image-wrap { background: var(--border-soft); }
       .car-list.view-list .car-card { border-color: var(--border-soft); }
       .car-list.view-list .car-card:hover { background-color: var(--border-soft); }
@@ -388,6 +441,7 @@
       .share-btn { background: var(--card-bg); }
       .news-badge { border-color: var(--card-bg); }
       .refresh-button { color: #1a1714; }
+      .footer-col a { color: var(--text-sub); }
       img { opacity: 0.92; }
     }
   </style>
@@ -421,33 +475,37 @@
               <option value="year_asc">年式 (古い順)</option>
               <option value="status_priority" id="sortStatusOption" style="display:none;">面識ステータス順</option>
             </select>
+            <button id="viewToggleBtn" class="view-toggle-btn" onclick="toggleViewMode()">📋 リスト表示</button>
           </div>
 
           <div class="dropdown">
             <button class="btn-secondary" aria-expanded="false" aria-haspopup="true">メニュー ▾</button>
             <div class="dropdown-content">
               <div id="menuUserInfo" style="padding: 8px 16px; font-size: 0.8rem; color: var(--text-sub); border-bottom: 1px solid var(--border-soft); display: none;"></div>
-              <a href="/stories?type=126">📖 マイ126ストーリー</a>
-              <a href="/videos">🎬 動画ガイド（FIAT 500/126）</a>
-              <a href="/mappa?type=126">🗺️ Mappa (地図)</a>
-              <a href="/stats?type=126">📊 統計データ</a>
-              <a href="/event?type=126">📅 イベント掲示板</a>
-              <a href="/spot-guide?type=126">🗺️ 出没スポット</a>
-              <a href="/parts-shops">🏪 パーツ調達ガイド</a>
-              <a href="/owners-creation">✦ オーナーズ・オリジナル・クリエーション</a>
-              <a href="/goods">📦 メンテナンスおすすめグッズ</a>
-              <a href="/garage-notes">📓 ガレージノート</a>
+              <div class="menu-group-heading">🔧 整備と道具</div>
               <a href="/equipment">🧰 みんなの車載手帳</a>
+              <a href="/goods">📦 メンテナンスおすすめグッズ</a>
+              <a href="/parts-shops">🏪 パーツ調達ガイド</a>
               <a href="/parts-guide" id="menuPartsBtn" style="display:none;">🔧 比べ太郎（価格比較）</a>
-              <button onclick="shareSite()">🔗 サイトをシェア</button>
-              <button id="viewToggleBtn" onclick="toggleViewMode()">📋 リスト表示</button>
-              <button id="menuLoginBtn" onclick="openLoginModal()">🔑 ログイン</button>
+              <div class="menu-group-heading">📖 読みもの・データ</div>
+              <a href="/stories?type=126">📖 マイ126ストーリー</a>
+              <a href="/garage-notes">📓 ガレージノート</a>
+              <a href="/owners-creation">✦ オーナーズ・オリジナル・クリエーション</a>
+              <a href="/stats?type=126">📊 統計データ</a>
+              <a href="/mappa?type=126">🗺️ Mappa（地図）</a>
+              <a href="/spot-guide?type=126">📍 出没スポット</a>
+              <div class="menu-group-heading">ℹ️ サイト情報</div>
+              <a href="/howto?from=126" data-updated="2026-07-04">初めての方へ<span class="news-badge page-badge" style="display:none;"></span></a>
+              <a href="/news?type=126" data-updated="2026-04-11">お知らせ<span id="newsBadge" class="news-badge page-badge" style="display:none;"></span></a>
+              <a href="/support">☕ サイトを支援</a>
+              <a href="/policy?from=126" data-updated="2026-04-05">ポリシー<span class="news-badge page-badge" style="display:none;"></span></a>
               <a href="/">🚗 500サイトへ</a>
+              <div class="menu-divider"></div>
+              <button onclick="shareSite()">🔗 サイトをシェア</button>
+              <button id="menuLoginBtn" onclick="openLoginModal()">🔑 ログイン</button>
               <button id="menuLogoutBtn" onclick="logout()" style="display:none;">🚪 ログアウト</button>
             </div>
           </div>
-
-          <a href="/edit?type=126" class="btn-secondary btn-owner">マイガレージ</a>
 
           <div id="loginModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;">
             <div style="background:#fff;padding:28px 24px;border-radius:16px;max-width:340px;width:90%;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.2);">
@@ -489,15 +547,18 @@
           <a href="https://x.com/registro500" target="_blank" rel="noopener" class="x-icon-link" title="公式𝕏">
             <svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
           </a>
-          <span>｜</span>
-          <a href="/news?type=126" data-updated="2026-04-11">お知らせ<span id="newsBadge" class="news-badge page-badge" style="display:none;"></span></a>
-          <span>｜</span>
-          <a href="/policy?from=126" data-updated="2026-04-05">ポリシー<span class="news-badge page-badge" style="display:none;"></span></a>
-          <span>｜</span>
-          <a href="/howto?from=126" data-updated="2026-07-04">初めての方へ<span class="news-badge page-badge" style="display:none;"></span></a>
+          <a href="/event?type=126">📅 イベント</a>
+          <a href="/videos">🎬 動画</a>
+          <a href="/edit?type=126">🚗 マイガレージ</a>
+          <button id="headerLoginBtn" onclick="openLoginModal()">🔑 ログイン</button>
         </nav>
       </div>
     </header>
+
+    <div id="topBand" class="top-band" style="display:none;">
+      <a href="/event?type=126" id="topBandEvent" class="top-band-line" style="display:none;"></a>
+      <a href="#" id="topBandNewCar" class="top-band-line" style="display:none;"></a>
+    </div>
 
     <div id="loading">読み込んでいます...</div>
     
@@ -518,9 +579,39 @@
     <div id="carList" class="car-list"></div>
 
     <footer class="footer">
-      <div onclick="shareSite()" class="share-btn">🔗 このサイトをシェアする</div>
-      <p style="margin-top:14px;"><a href="/goods" style="font-size:0.82rem;color:var(--text-sub);text-decoration:none;">📦 メンテナンスおすすめグッズ</a></p>
-      <p style="margin-top:8px;">© Registro126 Giappone</p>
+      <div class="footer-links-grid">
+        <div class="footer-col">
+          <div class="footer-col-title">見る</div>
+          <a href="/126/">トップ</a>
+          <a href="/event?type=126">イベント</a>
+          <a href="/videos">動画</a>
+          <a href="/stats?type=126">統計</a>
+          <a href="/mappa?type=126">Mappa</a>
+        </div>
+        <div class="footer-col">
+          <div class="footer-col-title">整備と道具</div>
+          <a href="/equipment">車載手帳</a>
+          <a href="/goods">グッズ</a>
+          <a href="/parts-shops">パーツ調達</a>
+        </div>
+        <div class="footer-col">
+          <div class="footer-col-title">読みもの</div>
+          <a href="/stories?type=126">ストーリー</a>
+          <a href="/garage-notes">ガレージノート</a>
+          <a href="/owners-creation">クリエーション</a>
+          <a href="/spot-guide?type=126">出没スポット</a>
+        </div>
+        <div class="footer-col">
+          <div class="footer-col-title">サイト情報</div>
+          <a href="/howto?from=126">初めての方へ</a>
+          <a href="/news?type=126">お知らせ</a>
+          <a href="/support">サイトを支援</a>
+          <a href="/policy?from=126">ポリシー</a>
+          <a href="/">500サイトへ</a>
+        </div>
+      </div>
+      <div onclick="shareSite()" class="share-btn" style="margin-top:24px;">🔗 このサイトをシェアする</div>
+      <p style="margin-top:12px;">© Registro126 Giappone</p>
     </footer>
   </div>
 
@@ -660,6 +751,7 @@
       fetchCars();
       checkNewsBadge();
       checkPageBadges();
+      loadNextEventForBand();
       initAuth();
     }
 
@@ -806,7 +898,7 @@ async function checkNewsBadge() {
       } catch (e) {}
     }
     function checkPageBadges() {
-      document.querySelectorAll('.header-nav a[data-updated]').forEach(link => {
+      document.querySelectorAll('a[data-updated]').forEach(link => {
         const updated = new Date(link.dataset.updated + 'T00:00:00+09:00');
         const diff = Math.ceil((Date.now() - updated.getTime()) / (1000 * 60 * 60 * 24));
         if (diff <= 7) {
@@ -816,6 +908,61 @@ async function checkNewsBadge() {
       });
     }
     function parseDocNumber(id) { const m = /^DOC_(\d+)$/.exec(String(id)); return m ? parseInt(m[1], 10) : 0; }
+
+    // ===== 「今」の帯：直近イベント・新着車両 =====
+    // どんなDateオブジェクトからもJSTの日付・時刻の内訳を取り出す（ブラウザのタイムゾーンに依存しない）
+    function toJstParts(dateObj) {
+      const jst = new Date(dateObj.getTime() + 9 * 60 * 60 * 1000);
+      return { y: jst.getUTCFullYear(), mo: jst.getUTCMonth(), d: jst.getUTCDate(), hh: jst.getUTCHours(), mm: jst.getUTCMinutes() };
+    }
+
+    // 直近イベント（開催日が今日(JST)以降で最も近い1件）。event.htmlと同じ events テーブルを使う。
+    // 失敗してもトップの表示はブロックしない（静かに非表示のまま）。
+    async function loadNextEventForBand() {
+      try {
+        const nowParts = toJstParts(new Date());
+        const todayStr = `${nowParts.y}-${String(nowParts.mo + 1).padStart(2, '0')}-${String(nowParts.d).padStart(2, '0')}`;
+        const { data, error } = await supabaseClient
+          .from('events')
+          .select('EventName:event_name, EventDate:event_date, TargetCarType:target_car_type')
+          .gte('event_date', todayStr + 'T00:00:00+09:00')
+          .order('event_date', { ascending: true })
+          .limit(5);
+
+        if (error || !data || !data.length) return;
+        const next = data.find(ev => ev.TargetCarType !== '500'); // 126サイトなので500限定は除外
+
+        if (!next) return;
+
+        const evParts = toJstParts(new Date(next.EventDate));
+        const todayUtcMidnight = Date.UTC(nowParts.y, nowParts.mo, nowParts.d);
+        const evUtcMidnight = Date.UTC(evParts.y, evParts.mo, evParts.d);
+        const diffDays = Math.round((evUtcMidnight - todayUtcMidnight) / (1000 * 60 * 60 * 24));
+
+        const dateLabel = `${evParts.mo + 1}/${evParts.d}`;
+        const remainLabel = diffDays <= 0 ? '本日開催' : `あと${diffDays}日`;
+
+        const el = document.getElementById('topBandEvent');
+        el.innerHTML = `<span class="top-band-line-text">📅 ${dateLabel} ${esc(next.EventName)}</span><span class="top-band-line-suffix">（${remainLabel}）</span>`;
+        el.style.display = 'flex';
+        document.getElementById('topBand').style.display = 'block';
+      } catch (e) { /* 静かに失敗（トップ表示をブロックしない） */ }
+    }
+
+    // 新着車両（既にfetchCars()で読み込み済みのcarsDataを使う。追加の通信はしない）
+    function renderNewCarLineForBand() {
+      try {
+        if (!carsData || !carsData.length) return;
+        const newest = [...carsData].sort((a, b) => parseDocNumber(b.DocumentID) - parseDocNumber(a.DocumentID))[0];
+        if (!newest) return;
+
+        const el = document.getElementById('topBandNewCar');
+        el.innerHTML = `<span class="top-band-line-text">🆕 新着: ${esc(newest.HandleName || newest.Model_DisplayC || '')}</span>`;
+        el.href = `/detail?doc=${encodeURIComponent(newest.DocumentID)}`;
+        el.style.display = 'flex';
+        document.getElementById('topBand').style.display = 'block';
+      } catch (e) { /* 静かに失敗（トップ表示をブロックしない） */ }
+    }
 
     // ログインユーザー情報
     let currentUser = { uid: null, docId: null };
@@ -931,6 +1078,7 @@ async function checkNewsBadge() {
       const loginBtn = document.getElementById('menuLoginBtn');
       const logoutBtn = document.getElementById('menuLogoutBtn');
       const userInfo = document.getElementById('menuUserInfo');
+      const headerLoginBtn = document.getElementById('headerLoginBtn');
 
       if (user) {
         console.log("User logged in:", user.id);
@@ -942,6 +1090,7 @@ async function checkNewsBadge() {
         if(logoutBtn) logoutBtn.style.display = 'block';
         const partsBtn = document.getElementById('menuPartsBtn');
         if(partsBtn) partsBtn.style.display = 'block';
+        if(headerLoginBtn) headerLoginBtn.style.display = 'none';
         if(userInfo) {
           userInfo.style.display = 'block';
           userInfo.textContent = user.email;
@@ -958,6 +1107,7 @@ async function checkNewsBadge() {
         if(logoutBtn) logoutBtn.style.display = 'none';
         const partsBtn = document.getElementById('menuPartsBtn');
         if(partsBtn) partsBtn.style.display = 'none';
+        if(headerLoginBtn) headerLoginBtn.style.display = 'flex';
         if(userInfo) userInfo.style.display = 'none';
 
         updateStatusSummary();
@@ -1094,6 +1244,7 @@ async function checkNewsBadge() {
       });
       applySearchFilter();
       updateStatusSummary();
+      renderNewCarLineForBand();
     }
 
     // ステータス集計更新
