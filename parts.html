@@ -20,10 +20,11 @@
             color: var(--rg-text);
             font-family: system-ui, -apple-system, sans-serif;
             margin: 0;
-            padding-bottom: 420px; /* 下部トレイ用（開いた状態の高さ分） */
+            /* 下部トレイ用（開いた状態の高さ分）＋ホームインジケーター分 */
+            padding-bottom: calc(420px + env(safe-area-inset-bottom, 0px));
         }
         body.tray-collapsed {
-            padding-bottom: 140px; /* 閉じた状態 */
+            padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px)); /* 閉じた状態 */
         }
 
         /* 2カラムレイアウトのコンテナ - 画面幅を最大限活用 */
@@ -357,8 +358,12 @@
             display: flex;
             flex-direction: column;
         }
+        /* 閉じた状態。ホームインジケーター分だけ持ち上げて、バーが潜り込まないようにする。
+           持ち上げてできた下の隙間はトレイ本体が覗くので、背景をヘッダーと同じ濃緑にする
+           （開いているときは元のサーフェス色のまま） */
         #comparison-tray.collapsed {
-            transform: translateX(-50%) translateY(280px); /* 閉じた状態 */
+            transform: translateX(-50%) translateY(calc(280px - env(safe-area-inset-bottom, 0px)));
+            background: #17452e;
         }
 
         .tray-header {
@@ -869,11 +874,11 @@
                 max-height: none;
             }
             #floating-collapse-btn {
-                bottom: 420px;
+                bottom: calc(420px + env(safe-area-inset-bottom, 0px));
                 right: 16px;
             }
             body.tray-collapsed #floating-collapse-btn.visible {
-                bottom: 140px;
+                bottom: calc(140px + env(safe-area-inset-bottom, 0px));
             }
             #comparison-tray {
                 border-radius: 0;
@@ -884,14 +889,14 @@
                 height: 260px; /* スマホでは高さを制限 */
             }
             #comparison-tray.collapsed {
-                transform: translateX(-50%) translateY(220px); /* スマホ閉じ状態 */
+                transform: translateX(-50%) translateY(calc(220px - env(safe-area-inset-bottom, 0px))); /* スマホ閉じ状態 */
             }
             #floating-collapse-btn {
-                bottom: 280px;
+                bottom: calc(280px + env(safe-area-inset-bottom, 0px));
                 right: 12px;
             }
             body.tray-collapsed #floating-collapse-btn.visible {
-                bottom: 80px;
+                bottom: calc(80px + env(safe-area-inset-bottom, 0px));
             }
         }
     /* オーナー限定ゲート */
