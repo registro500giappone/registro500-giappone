@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script src="config.js"></script>
+  <script src="stats-core.js"></script>
   <style>
     :root {
       --accent: #1f5c3d;
@@ -1495,37 +1496,9 @@
 <script>
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  function getBrandJa(t) {
-    if (!t) return null;
-    let v = String(t).toLowerCase().trim();
-    if (v.match(/不明|未記入|無し|メーカー不定|不定|普通|わからない|不定期|知らん/)) return null;
-    if (v.match(/motul|モチュール/)) return 'モチュール';
-    if (v.match(/lubross|ルブロス/)) return 'ルブロス';
-    if (v.match(/automaister|オートマイスター/)) return null; // プロショップ専売品・通販不可のため除外
-    if (v.match(/kendall|ケンドル/)) return 'ケンドル';
-    if (v.match(/amalie|アマリー/)) return 'アマリー';
-    if (v.match(/spectro|スペクトロ/)) return 'スペクトロ';
-    if (v.match(/sunoco|スノコ/)) return 'スノコ';
-    if (v.match(/liquimol|リキモリ/)) return 'リキモリ';
-    if (v.match(/chevron|シェブロン/)) return 'シェブロン';
-    if (v.match(/\belf\b/)) return 'elf';
-    if (v.match(/unil.?opal|ユニルオパール|ユニルオパル/)) return 'ユニルオパール';
-    if (v.match(/castrol|カストロール/)) return 'カストロール';
-    if (v.match(/wako|ワコーズ/)) return 'ワコーズ';
-    if (v.match(/agip|eni|アジップ/)) return 'Agip / eni';
-    if (v.match(/gulf|ガルフ/)) return 'ガルフ';
-    if (v.match(/nutec|ニューテック/)) return 'NUTEC';
-    if (v.match(/\ba\.s\.h\b|ash oil|アッシュ/)) return 'A.S.H';
-    if (v.match(/pennzoil|ペンズオイル|ペンズ/)) return 'ペンズオイル';
-    if (v.match(/valvoline|バルボリン/)) return 'バルボリン';
-    if (v.match(/revtech|レブテック/)) return 'RevTech';
-    if (v.match(/polo lubr|polo turbo|polo classic/)) return 'POLO Lubricants';
-    if (v.match(/ontario|オンタリオ/)) return 'オンタリオSS';
-    if (v.match(/tcガレージ|tcgarage/)) return 'TCガレージ';
-    if (v.match(/omega|オメガ/)) return 'オメガ';
-    if (v.match(/bp |bp$/)) return 'BP';
-    return t.charAt(0).toUpperCase() + t.slice(1);
-  }
+  // getBrandJa は stats-core.js に集約した。
+  // このページは購入リンクを併記するので、通販で買えない銘柄を除く
+  // { excludeRetailUnavailable: true } 付きで呼ぶ。
 
   function renderRanking(listId, totalId, entries, total, linkFn) {
     const totalEl = document.getElementById(totalId);
@@ -1556,7 +1529,7 @@
       const total = data.length;
       const counts = {};
       data.forEach(c => {
-        const b = getBrandJa(c.engine_oil);
+        const b = getBrandJa(c.engine_oil, { excludeRetailUnavailable: true });
         if (b) counts[b] = (counts[b] || 0) + 1;
       });
       const top5 = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
