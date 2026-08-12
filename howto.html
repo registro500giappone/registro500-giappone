@@ -17,7 +17,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>初めての方へ｜Registro500 Giappone / Registro126 Giappone</title>
-  <meta name="description" content="Registro500へようこそ。Fiat 500・Fiat 126オーナーのための登録制コミュニティの使い方を紹介。ガレージ登録・パーツ比較・出没スポット・イベント情報・整備動画ガイド（AI日本語要約付き）の活用方法。">
+  <meta name="description" content="Registro500 Giappone / Registro126 Giappone の使い方。クラシックFIAT 500・126オーナーのためのオーナーズクラブです。愛車の登録方法、みんなの車載手帳、統計データ、整備動画ガイド（AI日本語要約付き）、パーツ価格比較の使い方をご案内します。">
   <style>
     body { padding: 20px 16px 96px; line-height: 1.8; }
     .rg-page { max-width: 800px; margin: 0 auto; }
@@ -107,9 +107,93 @@
       line-height: 1.6;
       margin: 0;
     }
+    /* リンクになる機能カード（a要素） */
+    a.feature-card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      word-break: normal;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    a.feature-card:hover {
+      background: var(--rg-accent-soft);
+      border-color: var(--rg-accent-border);
+    }
+    .feature-card .fc-where {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 400;
+      color: var(--rg-muted);
+      margin-top: 8px;
+    }
+    /* 機能一覧のグループ見出し */
+    .fg-group {
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: var(--rg-muted);
+      letter-spacing: 0.04em;
+      margin: 28px 0 10px;
+    }
+    .fg-group:first-of-type { margin-top: 4px; }
     @media (max-width: 560px) {
       .feature-grid { grid-template-columns: 1fr; }
     }
+
+    /* 登録への誘導ボタン */
+    .rg-cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--rg-accent);
+      color: #fff;
+      text-decoration: none;
+      word-break: normal;
+      font-weight: 800;
+      font-size: 1rem;
+      padding: 16px 20px;
+      border-radius: 10px;
+      margin: 4px 0 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    .rg-cta:hover { filter: brightness(1.08); }
+    .rg-cta-note {
+      font-size: 0.85rem;
+      color: var(--rg-muted);
+      text-align: center;
+      margin: 0 0 4px;
+    }
+
+    /* 折りたたみ（こまかい使い方） */
+    .rg-details {
+      border: 1px solid var(--rg-border);
+      border-radius: 10px;
+      background: var(--rg-surface-sub);
+      padding: 0 18px;
+      margin-bottom: 12px;
+    }
+    .rg-details > summary {
+      cursor: pointer;
+      padding: 16px 0;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--rg-text);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .rg-details > summary::-webkit-details-marker { display: none; }
+    .rg-details > summary::after {
+      content: '▾';
+      margin-left: auto;
+      color: var(--rg-muted);
+      font-size: 0.85rem;
+      transition: transform 0.15s;
+    }
+    .rg-details[open] > summary::after { transform: rotate(180deg); }
+    .rg-details-body { padding-bottom: 18px; }
+    .rg-details-body > *:last-child { margin-bottom: 0; }
 
     /* ステップUI */
     .steps { display: flex; flex-direction: column; }
@@ -238,6 +322,13 @@
       .feature-card { background: var(--rg-surface); border-color: var(--rg-border); }
       .feature-card .fc-title { color: var(--rg-text); }
       .feature-card .fc-desc { color: var(--rg-muted); }
+      .feature-card .fc-where { color: var(--rg-muted); }
+      a.feature-card:hover { background: var(--rg-accent-soft); border-color: var(--rg-accent-border); }
+      /* ダークのアクセントは明るい色なので、乗せる文字は暗くする（.step-num と同じ考え方） */
+      .rg-cta { color: #1a1714; box-shadow: none; }
+      .rg-details { background: var(--rg-surface); border-color: var(--rg-border); }
+      .rg-details > summary { color: var(--rg-text); }
+      .rg-details > summary::after { color: var(--rg-muted); }
       .step-num { color: #1a1714; }
       .step-body .sb-title { color: var(--rg-text); }
       .step-body p { color: var(--rg-muted); }
@@ -279,13 +370,8 @@
         どれ一台として同じ仕様ではない――そこがまた面白いところですよね！
       </p>
       <p>
-        Registro500 Giappone / Registro126 Giappone は、日本のクラシック FIAT（500・126）オーナーのためのオンラインガレージです。
-        オーナーのみなさんが愛車の情報を登録し、その仕様やこだわりを記録・共有することで、
-        全国の仲間と繋がることができます。
-      </p>
-      <p>
-        登録された情報は、ほかのオーナーの参考になるだけでなく、
-        これから FIAT 500 / 126 に乗ってみたい「オーナー予備軍」の方にも役立つことを願っています。
+        Registro500 Giappone / Registro126 Giappone は、日本のクラシック FIAT（500・126）オーナーズクラブです。
+        オーナーのみなさんが愛車の情報を登録し、その仕様やこだわりを記録・共有することで、全国の仲間と繋がることができます。
       </p>
     </div>
 
@@ -296,129 +382,29 @@
         <h2>このサイトでできること</h2>
       </div>
 
-      <p>登録済みの FIAT 500 / FIAT 126 の一覧はどなたでも閲覧できます。気になる車両をクリックすると、年式・仕様・こだわりポイントなどの詳細情報を確認できます。</p>
-      <p>トップページ右上の<strong>「メニュー ▾」</strong>から、以下のコンテンツを利用できます。</p>
+      <p><strong>見るだけなら、登録もログインも要りません。</strong>登録済みの FIAT 500 / FIAT 126 の一覧はどなたでもご覧いただけます。気になる車両をクリックすると、年式・仕様・こだわりポイントなどの詳細を確認できます。整備動画ガイド、みんなの車載手帳、統計データ、パーツショップの情報も、そのまま読めます。</p>
 
-      <div class="feature-grid">
-        <div class="feature-card">
-          <div class="fc-icon">🎬</div>
-          <div class="fc-title">動画ガイド</div>
-          <p class="fc-desc">FIAT 500 / 126 の整備動画を「整備箇所別」に探せます。外国語の動画はAIによる日本語要約付きで、点火時期調整やタペット調整などの作業内容がひと目で分かります。</p>
-        </div>
-        <div class="feature-card">
-          <div class="fc-icon">📖</div>
-          <div class="fc-title">マイ500/126ストーリー</div>
-          <p class="fc-desc">オーナーと愛車との出会いから始まる記録を、テキストと写真で残せます。他のオーナーの物語も読めます。</p>
-        </div>
-        <div class="feature-card">
-          <div class="fc-icon">🗺️</div>
-          <div class="fc-title">Mappa (地図)</div>
-          <p class="fc-desc">全国の仲間がどこにいるか地図上で確認できます。</p>
-        </div>
-        <div class="feature-card">
-          <div class="fc-icon">📊</div>
-          <div class="fc-title">統計データ</div>
-          <p class="fc-desc">エンジン形式の分布やカラー統計など、マニアックなデータを閲覧できます。</p>
-        </div>
-        <div class="feature-card">
-          <div class="fc-icon">📅</div>
-          <div class="fc-title">イベント掲示板</div>
-          <p class="fc-desc">オフ会やイベント情報の共有、参加表明が可能です。</p>
-        </div>
-        <div class="feature-card">
-          <div class="fc-icon">📍</div>
-          <div class="fc-title">出没スポット</div>
-          <p class="fc-desc">オーナーがよく立ち寄るスポットの共有や、出没予定の登録ができます。</p>
-        </div>
-        <div class="feature-card">
-          <div class="fc-icon">🏪</div>
-          <div class="fc-title">パーツ調達ガイド</div>
-          <p class="fc-desc">国内外のFIAT 500 / 126パーツショップ情報をまとめたガイドです。</p>
-        </div>
-        <div class="feature-card">
-          <div class="fc-icon">📦</div>
-          <div class="fc-title">メンテナンスおすすめグッズ</div>
-          <p class="fc-desc">オーナーの日常に役立つグッズ・工具・ケア用品などを紹介しています。</p>
-        </div>
-        <div class="feature-card">
-          <div class="fc-icon">📓</div>
-          <div class="fc-title">ガレージノート</div>
-          <p class="fc-desc">オーナーが愛車の整備記録やこだわりを自由に書き残せるノートです。</p>
-        </div>
-        <div class="feature-card">
-          <div class="fc-icon">🧰</div>
-          <div class="fc-title">みんなの車載手帳</div>
-          <p class="fc-desc">オーナーが出先のトラブルに備えて車載しているものを、理由つきで記録・公開できます。他の方が何を積んでいるかを見られるほか、項目ごとの車載率も集計しています。</p>
-        </div>
-      </div>
+      <p><strong>愛車を登録すると、記録する場所ができます。</strong>仕様やこだわりを残し、ストーリーや整備記録を書き、車載しているものを手帳にまとめられます。イベントへの参加表明や、国内外のパーツ価格を横断比較する「比べ太郎」も使えるようになります。</p>
+
+      <p><strong>これから 500 / 126 に乗ってみたい方にも。</strong>空冷 FIAT は、出先で止まることがあります。そのとき自分で対処できるかどうかは、<strong>何を積んでいるか</strong>で決まります。「みんなの車載手帳」には、先輩オーナーが実際に積んでいるものが<strong>なぜそれを積むのかという理由つき</strong>で並んでいます。手に入れる前に眺めておくと、心構えの準備になるかもしれません。</p>
     </div>
 
     <hr class="rg-divider">
 
-    <!-- みんなの車載手帳 -->
-    <div class="rg-section">
-      <div class="rg-section-header">
-        <span class="sh-icon">🧰</span>
-        <h2>みんなの車載手帳</h2>
-      </div>
-      <p>空冷FIATは、出先で止まることがあります。そのとき自分で対処できるかどうかは、<strong>何を積んでいるか</strong>で決まります。</p>
-      <p>「みんなの車載手帳」では、オーナーが公開した車載品リストをご覧いただけます。工具・パーツ・ケミカル・安全・救援まで、<strong>なぜそれを積むのか</strong>という理由つきです。他の方の手帳を眺めていると、「その手があったか」と思うことがあります。</p>
-      <p><strong>手に入れたばかりの方、そして「オーナー予備軍」の方にも。</strong>何を備えておけばいいのか、皆さんどのくらいの装備で走っているのか。<strong>先輩オーナーの実物のリストが、そのまま参考になります。</strong>手に入れる前に眺めておくと、心構えの準備にもなるかもしれません。</p>
-      <p>ガレージに愛車を登録されている方は、ご自身の手帳も作れます。書き足しはいつでもできますし、公開したくなければ非公開のままでも構いません。<strong>よろしければ、あなたの一台の中身も聞かせてください。</strong></p>
-    </div>
-
-    <hr class="rg-divider">
-
-    <!-- リスト表示 -->
-    <div class="rg-section">
-      <div class="rg-section-header">
-        <span class="sh-icon">📋</span>
-        <h2>リスト表示の使い方</h2>
-      </div>
-      <p>トップページ右上の<strong>「メニュー ▾」</strong>から<strong>「📋 リスト表示」</strong>を選ぶと、一覧が行形式になります。</p>
-      <ul class="rg-list">
-        <li>名前・年式などを横並びで確認でき、比較しやすい形式になります。</li>
-        <li>画面上部に<strong>集計バー</strong>が表示され、左端の<strong>「🏠 ガレージに戻る」</strong>からカード表示へ戻せます。</li>
-        <li>スマホでは次の切り替え操作でカード表示に戻る仕様です。</li>
-        <li><strong>面識ステータス順</strong>のソートが選べるようになります（<strong>オーナー限定機能</strong>・ログインが必要）。</li>
-      </ul>
-    </div>
-
-    <hr class="rg-divider">
-
-    <!-- 動画ガイド -->
-    <div class="rg-section">
-      <div class="rg-section-header">
-        <span class="sh-icon">🎬</span>
-        <h2>動画ガイドの使い方</h2>
-      </div>
-      <p>トップページ右上の<strong>「メニュー ▾」</strong>から<strong>「🎬 動画ガイド」</strong>を選ぶと、FIAT 500 / 126 の整備・レストア・チューニング動画を集めたページが開きます。</p>
-      <ul class="rg-list">
-        <li><strong>整備箇所別</strong>に動画を探せます。「エンジン」「ボディ・内装」「電装」などの系統から、点火時期調整やタペット調整といった作業内容までたどれます。</li>
-        <li><strong>車種で絞り込み</strong>できます。FIAT 500 / 126 など、見たい車種の動画だけを表示できます。</li>
-        <li>外国語の動画には<strong>AIによる日本語要約</strong>が付きます。手順動画は番号付きの手順、その他の動画は要点まとめで、作業の中身が日本語で分かります（<strong>AIが自動生成</strong>したものです。実際の作業は元動画と整備書で必ずご確認ください）。</li>
-        <li>YouTube側に字幕がある動画は、プレーヤー右上の<strong>⚙️（設定）</strong>から<strong>「字幕 → 自動翻訳 → 日本語」</strong>を選ぶと日本語字幕を表示できます（機械翻訳のため精度には限界があります）。</li>
-        <li><strong>ログイン中</strong>は、気に入った動画に<strong>「👍 いいね」</strong>を付けられます。</li>
-        <li><strong>ログイン中</strong>は、動画に<strong>「車種＋ひとこと」のコメント</strong>（例:「うちの500でもやりました」）を残せます。他のオーナーの実践コメントも読めます。</li>
-      </ul>
-    </div>
-
-    <hr class="rg-divider">
-
-    <!-- オーナーとして参加 -->
+    <!-- 参加のしかた -->
     <div class="rg-section">
       <div class="rg-section-header">
         <span class="sh-icon">🔑</span>
-        <h2>オーナーとして参加・管理するには</h2>
+        <h2>オーナーとして参加する</h2>
       </div>
-      <p>自分の愛車を登録したり、情報を管理したりするには<strong>「マイガレージ」</strong>を利用します。</p>
+      <p>自分の愛車を登録したり、情報を管理したりするには<strong>「マイガレージ」</strong>を使います。</p>
 
       <div class="steps">
         <div class="step">
           <div class="step-num">1</div>
           <div class="step-body">
-            <p class="sb-title">「マイガレージ」ボタンを押す</p>
-            <p>ガレージ（トップページ）右上の<strong>「マイガレージ」</strong>ボタンを押します。</p>
+            <p class="sb-title">「🚗 マイガレージ」を押す</p>
+            <p>ガレージ（トップページ）の<strong>画面右上</strong>にいつも出ているボタンです。</p>
           </div>
         </div>
         <div class="step">
@@ -452,12 +438,118 @@
         </div>
       </div>
 
-      <p>登録したメールアドレスは、ログイン後にマイガレージの<strong>「メールアドレスを変更」</strong>からご自身で変更できます（お知らせの届け先と、次回ログイン時に確認コードが届く先が切り替わります）。</p>
+      <a href="/edit?type=500" class="rg-cta" id="ctaGarage">🚗 マイガレージへ進む</a>
+      <p class="rg-cta-note">初めての方はここから登録できます。写真は1枚あれば始められます。</p>
+    </div>
 
-      <p>ログイン後はメニューに<strong>「🔧 比べ太郎」</strong>が表示され、国内外のパーツショップの価格を横断比較できます。</p>
+    <hr class="rg-divider">
 
-      <p>また、マイガレージのメニューから<strong>「📖 ストーリーを追加」</strong>を選ぶと、愛車との出会いや手元に来てからの出来事を記録できます（テキスト＋写真カバー1枚＋追加6枚まで）。すでにアメブロ・みんカラ等で記事を公開している方は、本文に短めの導入を書いて「元記事のURL」欄にリンクを貼る形でもご投稿いただけます。</p>
+    <!-- 機能一覧 -->
+    <div class="rg-section">
+      <div class="rg-section-header">
+        <span class="sh-icon">🧭</span>
+        <h2>どこに何があるか</h2>
+      </div>
+      <p>ガレージ（トップページ）から、以下のページへ移動できます。</p>
 
+      <p class="fg-group">画面上部にいつも出ています</p>
+      <div class="feature-grid">
+        <a href="/event" class="feature-card">
+          <div class="fc-icon">📅</div>
+          <div class="fc-title">イベント</div>
+          <p class="fc-desc">オフ会やイベントの情報。1件ごとに詳細ページがあり、登録オーナーは参加表明ができます。</p>
+        </a>
+        <a href="/videos" class="feature-card">
+          <div class="fc-icon">🎬</div>
+          <div class="fc-title">動画ガイド</div>
+          <p class="fc-desc">FIAT 500 / 126 の整備動画を「整備箇所別」に探せます。外国語の動画はAIによる日本語要約付きで、点火時期調整やタペット調整などの作業内容がひと目で分かります。</p>
+        </a>
+      </div>
+
+      <p class="fg-group">「メニュー ▾」→ 🔧 整備と道具</p>
+      <div class="feature-grid">
+        <a href="/equipment" class="feature-card">
+          <div class="fc-icon">🧰</div>
+          <div class="fc-title">みんなの車載手帳</div>
+          <p class="fc-desc">出先のトラブルに備えて車載しているものを、理由つきで記録・公開できます。他の方が何を積んでいるかを見られるほか、項目ごとの車載率も集計しています。公開したくなければ非公開のままでも構いません。</p>
+        </a>
+        <a href="/goods" class="feature-card">
+          <div class="fc-icon">📦</div>
+          <div class="fc-title">メンテナンスおすすめグッズ</div>
+          <p class="fc-desc">オーナーの日常に役立つグッズ・工具・ケア用品などを紹介しています。</p>
+        </a>
+        <a href="/parts-shops" class="feature-card">
+          <div class="fc-icon">🏪</div>
+          <div class="fc-title">パーツ調達ガイド</div>
+          <p class="fc-desc">国内外の FIAT 500 / 126 パーツショップ情報をまとめたガイドです。</p>
+        </a>
+        <a href="/parts-guide" class="feature-card">
+          <div class="fc-icon">🔧</div>
+          <div class="fc-title">比べ太郎</div>
+          <p class="fc-desc">国内外のパーツショップの価格を横断比較できます。</p>
+          <span class="fc-where">※ログイン中のみメニューに表示されます</span>
+        </a>
+        <a href="wiring-preview" class="feature-card">
+          <div class="fc-icon">⚡</div>
+          <div class="fc-title">配線図ビューア</div>
+          <p class="fc-desc">FIAT 500F の配線図を、ヘッドライトやウインカーなど16の系統ごとに色分けして表示します。紙の図では追いにくい1系統だけを浮かび上がらせて確認できます。</p>
+        </a>
+      </div>
+
+      <p class="fg-group">「メニュー ▾」→ 📖 読みもの・データ</p>
+      <div class="feature-grid">
+        <a href="/stories?type=500" class="feature-card">
+          <div class="fc-icon">📖</div>
+          <div class="fc-title">マイ500/126ストーリー</div>
+          <p class="fc-desc">オーナーと愛車との出会いから始まる記録を、テキストと写真で残せます。他のオーナーの物語も読めます。</p>
+        </a>
+        <a href="/garage-notes" class="feature-card">
+          <div class="fc-icon">📓</div>
+          <div class="fc-title">ガレージノート</div>
+          <p class="fc-desc">愛車の整備記録やこだわりを自由に書き残せるノートです。</p>
+        </a>
+        <a href="/owners-creation" class="feature-card">
+          <div class="fc-icon">✦</div>
+          <div class="fc-title">オーナーズ・オリジナル・クリエーション</div>
+          <p class="fc-desc">オーナーが自ら生み出した作品・自作パーツ・創作物を紹介するページです。</p>
+        </a>
+        <a href="/stats" class="feature-card">
+          <div class="fc-icon">📊</div>
+          <div class="fc-title">統計データ</div>
+          <p class="fc-desc">登録車両の全体像を、都道府県ランキング・年式・ボディカラー・エンジンなどの分布で見られます。オーナーが実際に使っているキャブやプラグなどの<strong>製品名の実例</strong>も一覧にしています。</p>
+        </a>
+        <a href="/mappa" class="feature-card">
+          <div class="fc-icon">🗺️</div>
+          <div class="fc-title">Mappa（地図）</div>
+          <p class="fc-desc">全国の仲間がどこにいるかを地図の濃淡で表します。都道府県を選ぶと、その県のオーナーが表示されます。</p>
+        </a>
+        <a href="/spot-guide" class="feature-card">
+          <div class="fc-icon">📍</div>
+          <div class="fc-title">出没スポット</div>
+          <p class="fc-desc">オーナーがよく立ち寄るスポットの共有や、出没予定の登録ができます。使い方はガイドページで解説しています。</p>
+        </a>
+      </div>
+
+      <p style="margin-top:24px;">このほか「メニュー ▾」の<strong>ℹ️ サイト情報</strong>には、お知らせ・ポリシー・サイトの支援・126サイトへの切り替えがあります。一覧の並べ替えや<strong>リスト表示</strong>への切り替えは、ガレージ上部の並び順の選択欄のとなりにあります（下の「一覧を『リスト表示』で見る」を参照）。</p>
+    </div>
+
+    <hr class="rg-divider">
+
+    <!-- 登録の前に -->
+    <div class="rg-section">
+      <div class="rg-section-header">
+        <span class="sh-icon">🔒</span>
+        <h2>登録の前に知っておいていただきたいこと</h2>
+      </div>
+      <p>
+        <strong>ナンバープレートを自動で隠す機能はありません。</strong>
+        公開しても問題のない写真を、あらかじめご自身でマスク・加工したうえでアップロードしてください。
+      </p>
+      <p>
+        情報の登録にあたっては、
+        <a href="/policy">利用規約・プライバシーポリシー</a> への同意が必要です。
+        本サービスを利用して情報を登録した時点で、これらに同意したものとみなされます。
+      </p>
       <div class="contact-note">
         登録済み車両の削除を希望される場合は、お手数ですが
         <a href="mailto:registro500giappone@gmail.com">registro500giappone@gmail.com</a> までご連絡ください。
@@ -466,124 +558,129 @@
 
     <hr class="rg-divider">
 
-    <!-- 写真とトリミング -->
-    <div class="rg-section">
-      <div class="rg-section-header">
-        <span class="sh-icon">✂️</span>
-        <h2>写真の表示とトリミング機能について</h2>
-      </div>
-      <p>当サイトでは、ガレージ（一覧・詳細画面）のデザイン統一のため、写真を<strong>「正方形」</strong>で表示します。</p>
-
-      <div class="callout callout-info">
-        <span class="callout-icon">📸</span>
-        <div>
-          <strong>新規登録・写真を変更する場合</strong><br>
-          写真を選択すると自動的にトリミング（範囲調整）画面が開きます。愛車が一番美しく見える範囲を調整して「確定」してください。長方形の写真は、この工程で正方形に切り抜かれて保存されます。
-        </div>
-      </div>
-
-      <div class="callout callout-info">
-        <span class="callout-icon">🖼️</span>
-        <div>
-          <strong>登録済みの写真を調整する場合</strong><br>
-          マイガレージ（編集画面）の各写真にある<strong>「✂ 範囲調整」ボタン</strong>から、いつでも切り抜き範囲をやり直すことが可能です。
-        </div>
-      </div>
-
-      <div class="callout callout-warn">
-        <span class="callout-icon">⚠️</span>
-        <div>
-          <strong>ご注意</strong><br>
-          トリミング機能を使って保存（上書き）した写真は、拡大表示した際も「正方形」となります。切り抜く前の「元の画角（長方形）」のデータはサーバーから削除されますのでご注意ください（ご自身のスマホ内の元写真は消えません）。
-          <small>※本機能の導入前に登録された写真は、再編集を行わない限り、これまで通り拡大時に長方形の全体が表示されます。</small>
-        </div>
-      </div>
-    </div>
-
-    <hr class="rg-divider">
-
-    <!-- プライバシー -->
-    <div class="rg-section">
-      <div class="rg-section-header">
-        <span class="sh-icon">🔒</span>
-        <h2>プライバシー保護と画像圧縮</h2>
-      </div>
-      <p>
-        ナンバープレートを自動で隠す機能はありません。
-        公開しても問題のない写真を、あらかじめご自身でマスク・加工したうえでアップロードしてください。
-      </p>
-      <p>
-        当サイトには<strong>「画像自動圧縮機能」</strong>が搭載されています。
-        大きな写真も選択時に自動で最適化されてからアップロードされますので、事前のリサイズは不要です。スマホで撮ったそのままの写真をアップロードしてください。
-      </p>
-    </div>
-
-    <hr class="rg-divider">
-
-    <!-- 利用規約 -->
-    <div class="rg-section">
-      <div class="rg-section-header">
-        <span class="sh-icon">📄</span>
-        <h2>利用規約とポリシーへの同意について</h2>
-      </div>
-      <p>
-        情報の登録にあたっては、
-        <a href="/policy">利用規約・プライバシーポリシー</a> への同意が必要です。
-        本サービスを利用して情報を登録した時点で、これらに同意したものとみなされます。
-      </p>
-    </div>
-
-    <hr class="rg-divider">
-
-    <!-- ホーム画面追加 -->
-    <div class="rg-section">
-      <div class="rg-section-header">
-        <span class="sh-icon">📱</span>
-        <h2>スマホのホーム画面に追加する</h2>
-      </div>
-      <p>このサイトはスマホのホーム画面に追加することで、アプリのようにワンタップでアクセスできます。Safari（iPhone）・Chrome（Android）どちらにも対応しています。</p>
-      <a href="/howto-homescreen" class="link-card" id="homescreenLink">
-        <span class="lc-icon">📖</span>
-        <span>ホーム画面への追加方法<span class="lc-sub">画面付きでわかりやすく解説しています</span></span>
-      </a>
-    </div>
-
-    <hr class="rg-divider">
-
-    <!-- 配線図ビューア -->
-    <div class="rg-section">
-      <div class="rg-section-header">
-        <span class="sh-icon">⚡</span>
-        <h2>配線図ビューアの使い方</h2>
-      </div>
-      <p>クラシック・フィアット500F（チンクエチェント）の<strong>配線図</strong>を、系統ごとに色分けして見られるビューアです。紙の配線図は全系統が1枚に重なっていて追いにくいものですが、ここでは<strong>見たい系統だけ</strong>を浮かび上がらせて確認できます。</p>
-      <p>上部（スマホは下部）の<strong>「見たい系統」</strong>からヘッドライト・ウインカー・ワイパーなど16の系統を選ぶと、その回路だけが色付きで表示されます（ほかはグレーに沈みます）。<strong>「全表示」</strong>で全系統をまとめて表示します。スマホは<strong>タップで拡大／2本指でズーム／拡大中はドラッグで移動</strong>、パソコンはマウスホイールでズーム・←→キーで系統切替ができます。</p>
-      <p>電装の基本はF型・L型（Lusso）共通で、この図は<strong>L型でもほぼそのまま</strong>お使いいただけます（違いはページ内の「L型（Lusso）との違い ›」で解説）。年式・仕向け地・改造によって細部は異なりますので、作業の際は必ず実車とつき合わせてご確認ください。</p>
-      <a href="wiring-preview" class="link-card">
-        <span class="lc-icon">⚡</span>
-        <span>FIAT 500F 配線図ビューア<span class="lc-sub">16の系統を色分け表示・スマホ対応</span></span>
-      </a>
-      <p style="font-size:0.85rem;color:var(--rg-muted);margin-top:6px;">Special Thanks：配線図の作図＝OTSUKA氏（F型ベース）／系統別のレイヤー分け＝スシオ氏。</p>
-    </div>
-
-    <hr class="rg-divider">
-
-    <!-- もっと詳しく -->
+    <!-- こまかい使い方 -->
     <div class="rg-section">
       <div class="rg-section-header">
         <span class="sh-icon">📚</span>
-        <h2>もっと詳しく知りたい方へ</h2>
+        <h2>こまかい使い方</h2>
       </div>
-      <p>FIAT 500 の基本整備やトラブルシュートについては、外部サイト<strong>「FIAT500 ONLINE MANUAL」</strong>もあわせてご参照ください。</p>
-      <a href="https://w.atwiki.jp/fiat500-onlinemanual/" target="_blank" rel="noopener" class="link-card">
-        <span class="lc-icon">🔧</span>
-        <span>FIAT500 ONLINE MANUAL<span class="lc-sub">https://w.atwiki.jp/fiat500-onlinemanual/</span></span>
-      </a>
-      <p>FIAT 126 の情報については、外部サイト<strong>「Fiat 126 - Wikipedia」</strong>などもあわせてご参照ください。</p>
-      <a href="https://ja.wikipedia.org/wiki/フィアット・126" target="_blank" rel="noopener" class="link-card">
-        <span class="lc-icon">🌐</span>
-        <span>フィアット・126 — Wikipedia<span class="lc-sub">https://ja.wikipedia.org/wiki/フィアット・126</span></span>
-      </a>
+      <p>必要になったときに開いてください。</p>
+
+      <details class="rg-details">
+        <summary>📋 一覧を「リスト表示」で見る</summary>
+        <div class="rg-details-body">
+          <p>ガレージ上部の<strong>並び順の選択欄のとなり</strong>にある<strong>「📋 リスト表示」</strong>ボタンを押すと、一覧が行形式になります。</p>
+          <ul class="rg-list">
+            <li>名前・年式などを横並びで確認でき、比較しやすい形式になります。</li>
+            <li>画面上部に<strong>集計バー</strong>が表示され、左端の<strong>「🏠 ガレージに戻る」</strong>からカード表示へ戻せます。</li>
+            <li><strong>面識ステータス順</strong>のソートが選べるようになります（<strong>オーナー限定機能</strong>・ログインが必要）。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="rg-details">
+        <summary>🎬 動画ガイドをくわしく使う</summary>
+        <div class="rg-details-body">
+          <ul class="rg-list">
+            <li><strong>整備箇所別</strong>に動画を探せます。「エンジン」「ボディ・内装」「電装」などの系統から、点火時期調整やタペット調整といった作業内容までたどれます。</li>
+            <li><strong>車種で絞り込み</strong>できます。FIAT 500 / 126 など、見たい車種の動画だけを表示できます。</li>
+            <li>外国語の動画には<strong>AIによる日本語要約</strong>が付きます。手順動画は番号付きの手順、その他の動画は要点まとめで、作業の中身が日本語で分かります（<strong>AIが自動生成</strong>したものです。実際の作業は元動画と整備書で必ずご確認ください）。</li>
+            <li>YouTube側に字幕がある動画は、プレーヤー右上の<strong>⚙️（設定）</strong>から<strong>「字幕 → 自動翻訳 → 日本語」</strong>を選ぶと日本語字幕を表示できます（機械翻訳のため精度には限界があります）。</li>
+            <li><strong>ログイン中</strong>は、気に入った動画に<strong>「👍 いいね」</strong>を付けられます。</li>
+            <li><strong>ログイン中</strong>は、動画に<strong>「車種＋ひとこと」のコメント</strong>（例:「うちの500でもやりました」）を残せます。他のオーナーの実践コメントも読めます。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="rg-details">
+        <summary>✂️ 写真の表示とトリミング</summary>
+        <div class="rg-details-body">
+          <p>当サイトでは、ガレージ（一覧・詳細画面）のデザイン統一のため、写真を<strong>「正方形」</strong>で表示します。</p>
+
+          <div class="callout callout-info">
+            <span class="callout-icon">📸</span>
+            <div>
+              <strong>新規登録・写真を変更する場合</strong><br>
+              写真を選択すると自動的にトリミング（範囲調整）画面が開きます。愛車が一番美しく見える範囲を調整して「確定」してください。長方形の写真は、この工程で正方形に切り抜かれて保存されます。
+            </div>
+          </div>
+
+          <div class="callout callout-info">
+            <span class="callout-icon">🖼️</span>
+            <div>
+              <strong>登録済みの写真を調整する場合</strong><br>
+              マイガレージ（編集画面）の各写真にある<strong>「✂ 範囲調整」ボタン</strong>から、いつでも切り抜き範囲をやり直すことが可能です。
+            </div>
+          </div>
+
+          <div class="callout callout-warn">
+            <span class="callout-icon">⚠️</span>
+            <div>
+              <strong>ご注意</strong><br>
+              トリミング機能を使って保存（上書き）した写真は、拡大表示した際も「正方形」となります。切り抜く前の「元の画角（長方形）」のデータはサーバーから削除されますのでご注意ください（ご自身のスマホ内の元写真は消えません）。
+              <small>※本機能の導入前に登録された写真は、再編集を行わない限り、これまで通り拡大時に長方形の全体が表示されます。</small>
+            </div>
+          </div>
+
+          <p>なお当サイトには<strong>「画像自動圧縮機能」</strong>が搭載されています。大きな写真も選択時に自動で最適化されてからアップロードされますので、事前のリサイズは不要です。スマホで撮ったそのままの写真をアップロードしてください。</p>
+        </div>
+      </details>
+
+      <details class="rg-details">
+        <summary>📖 ストーリーを書く</summary>
+        <div class="rg-details-body">
+          <p>マイガレージのメニューから<strong>「📖 ストーリーを追加」</strong>を選ぶと、愛車との出会いや手元に来てからの出来事を記録できます（テキスト＋写真カバー1枚＋追加6枚まで）。</p>
+          <p>すでにアメブロ・みんカラ等で記事を公開している方は、本文に短めの導入を書いて<strong>「元記事のURL」欄</strong>にリンクを貼る形でもご投稿いただけます。</p>
+        </div>
+      </details>
+
+      <details class="rg-details">
+        <summary>✉️ 登録メールアドレスを変える</summary>
+        <div class="rg-details-body">
+          <p>登録したメールアドレスは、ログイン後にマイガレージの<strong>「メールアドレスを変更」</strong>からご自身で変更できます（お知らせの届け先と、次回ログイン時に確認コードが届く先が切り替わります）。</p>
+        </div>
+      </details>
+
+      <details class="rg-details" id="wiringDetails">
+        <summary>⚡ 配線図ビューアの使い方</summary>
+        <div class="rg-details-body">
+          <p>クラシック・フィアット500F（チンクエチェント）の<strong>配線図</strong>を、系統ごとに色分けして見られるビューアです。紙の配線図は全系統が1枚に重なっていて追いにくいものですが、ここでは<strong>見たい系統だけ</strong>を浮かび上がらせて確認できます。</p>
+          <p>上部（スマホは下部）の<strong>「見たい系統」</strong>からヘッドライト・ウインカー・ワイパーなど16の系統を選ぶと、その回路だけが色付きで表示されます（ほかはグレーに沈みます）。<strong>「全表示」</strong>で全系統をまとめて表示します。スマホは<strong>タップで拡大／2本指でズーム／拡大中はドラッグで移動</strong>、パソコンはマウスホイールでズーム・←→キーで系統切替ができます。</p>
+          <p>電装の基本はF型・L型（Lusso）共通で、この図は<strong>L型でもほぼそのまま</strong>お使いいただけます（違いはページ内の「L型（Lusso）との違い ›」で解説）。年式・仕向け地・改造によって細部は異なりますので、作業の際は必ず実車とつき合わせてご確認ください。</p>
+          <a href="wiring-preview" class="link-card">
+            <span class="lc-icon">⚡</span>
+            <span>FIAT 500F 配線図ビューア<span class="lc-sub">16の系統を色分け表示・スマホ対応</span></span>
+          </a>
+          <p style="font-size:0.85rem;color:var(--rg-muted);margin-top:6px;">Special Thanks：配線図の作図＝OTSUKA氏（F型ベース）／系統別のレイヤー分け＝スシオ氏。</p>
+        </div>
+      </details>
+
+      <details class="rg-details">
+        <summary>📱 スマホのホーム画面に追加する</summary>
+        <div class="rg-details-body">
+          <p>このサイトはスマホのホーム画面に追加することで、アプリのようにワンタップでアクセスできます。Safari（iPhone）・Chrome（Android）どちらにも対応しています。</p>
+          <a href="/howto-homescreen" class="link-card" id="homescreenLink">
+            <span class="lc-icon">📖</span>
+            <span>ホーム画面への追加方法<span class="lc-sub">画面付きでわかりやすく解説しています</span></span>
+          </a>
+        </div>
+      </details>
+
+      <details class="rg-details">
+        <summary>📚 さらに詳しい整備情報（外部サイト）</summary>
+        <div class="rg-details-body">
+          <p>FIAT 500 の基本整備やトラブルシュートについては、外部サイト<strong>「FIAT500 ONLINE MANUAL」</strong>もあわせてご参照ください。</p>
+          <a href="https://w.atwiki.jp/fiat500-onlinemanual/" target="_blank" rel="noopener" class="link-card">
+            <span class="lc-icon">🔧</span>
+            <span>FIAT500 ONLINE MANUAL<span class="lc-sub">https://w.atwiki.jp/fiat500-onlinemanual/</span></span>
+          </a>
+          <p>FIAT 126 の情報については、外部サイト<strong>「Fiat 126 - Wikipedia」</strong>などもあわせてご参照ください。</p>
+          <a href="https://ja.wikipedia.org/wiki/フィアット・126" target="_blank" rel="noopener" class="link-card">
+            <span class="lc-icon">🌐</span>
+            <span>フィアット・126 — Wikipedia<span class="lc-sub">https://ja.wikipedia.org/wiki/フィアット・126</span></span>
+          </a>
+        </div>
+      </details>
     </div>
 
     <div class="rg-back" style="margin-top:8px;">
@@ -601,6 +698,29 @@
         document.getElementById('backLinkFooter').href = href;
         const homescreenLink = document.getElementById('homescreenLink');
         if (homescreenLink) homescreenLink.href = '/howto-homescreen?from=126';
+
+        // 126サイトのメニューと同じ行き先に揃える（126/index.html の dropdown-content と対応）
+        const rewrite = {
+          '/edit?type=500': '/edit?type=126',
+          '/stories?type=500': '/stories?type=126',
+          '/event': '/event?type=126',
+          '/stats': '/stats?type=126',
+          '/mappa': '/mappa?type=126',
+          '/spot-guide': '/spot-guide?type=126'
+        };
+        document.querySelectorAll('a.feature-card, a.rg-cta').forEach(function(a) {
+          const to = rewrite[a.getAttribute('href')];
+          if (to) a.setAttribute('href', to);
+        });
+
+        const storyTitle = document.querySelector('a[href="/stories?type=126"] .fc-title');
+        if (storyTitle) storyTitle.textContent = 'マイ126ストーリー';
+
+        // 配線図ビューアは500F専用で126サイトのメニューには無いため、126からは案内しない
+        const wiringCard = document.querySelector('a.feature-card[href="wiring-preview"]');
+        if (wiringCard) wiringCard.style.display = 'none';
+        const wiringDetails = document.getElementById('wiringDetails');
+        if (wiringDetails) wiringDetails.style.display = 'none';
       }
     })();
   </script>
