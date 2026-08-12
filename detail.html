@@ -23,6 +23,8 @@
   <script src="fab-nav.js" defer></script>
   <!-- 車載マエストロの判定基準とシール意匠の正本（equipment-edit.html / equipment.html と共有） -->
   <script src="equipment-maestro.js"></script>
+  <!-- 「この車の立ち位置」の集計で使う正規化関数（stats.html と共有） -->
+  <script src="stats-core.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>  
 
@@ -211,6 +213,18 @@
       .btn-contact { background-color: var(--rg-accent); }
       body.is-sold-page #content .rg-card { background: #2b2721; }
     }
+
+    /* この車の立ち位置。--rg-* はダーク側でも定義済みなので配色の追記は要らない */
+    .standing-lead { font-size: 0.82rem; color: var(--rg-muted); margin: 0 0 14px; line-height: 1.6; }
+    .standing-row { margin-bottom: 14px; }
+    .standing-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+    .standing-label { font-size: 0.78rem; color: var(--rg-muted); }
+    .standing-value { font-size: 0.92rem; font-weight: bold; text-align: right; }
+    .standing-bar { height: 6px; border-radius: 3px; background: var(--rg-surface-sub); margin: 6px 0 4px; overflow: hidden; }
+    .standing-bar span { display: block; height: 100%; background: var(--rg-accent); border-radius: 3px; }
+    .standing-meta { font-size: 0.74rem; color: var(--rg-muted); }
+    .standing-tag { font-size: 0.68rem; border: 1px solid var(--rg-accent-border); background: var(--rg-accent-soft); color: var(--rg-accent); border-radius: 10px; padding: 1px 7px; margin-left: 6px; white-space: nowrap; }
+    .standing-note { font-size: 0.72rem; color: var(--rg-muted); margin: 16px 0 0; line-height: 1.6; }
   </style>
 </head>
 <body>
@@ -279,6 +293,12 @@
           <section class="rg-card"><h2 class="rg-section-title">オイル・バッテリー</h2><dl class="rg-spec-grid js-auto-hide">
             <dt data-field="engine_oil">エンジンオイル</dt><dd id="val_EngineOil"></dd><dt data-field="engine_oil_interval">周期</dt><dd id="val_EngineOilInterval"></dd><dt data-field="transmission_oil">ミッションオイル</dt><dd id="val_TransmissionOil"></dd><dt data-field="transmission_oil_interval">周期</dt><dd id="val_TransmissionOilInterval"></dd><dt data-field="battery">バッテリー</dt><dd id="val_Battery"></dd>
           </dl></section>
+          <section class="rg-card" id="standingSection" style="display:none;">
+            <h2 class="rg-section-title">この車の立ち位置</h2>
+            <p class="standing-lead" id="standingLead"></p>
+            <div id="standingRows"></div>
+            <p class="standing-note">数が多いほど良い、という意味ではありません。自由記入のため答えが揃わない項目（オイルの銘柄など）はここに出していません。</p>
+          </section>
           <section class="rg-card" id="highlightsSection" style="display:none;"><h2 class="rg-section-title" id="highlightsTitle" data-field="highlights">こだわり</h2><p id="val_Highlights" style="white-space:pre-wrap;"></p></section>
           <section class="rg-card" id="acquisitionSection" style="display:none;">
             <h2 class="rg-section-title" id="stories">この車との出会い</h2>
@@ -447,6 +467,83 @@
       document.getElementById('shareLINE').href = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(location.href)}`;
       fetchEpisodes(car.document_id);
       fetchEquipmentNotebook(car.document_id);
+      fetchStanding(car);
+    }
+
+    // ─── この車の立ち位置 ───
+    // 「あなたの車」ではなく「この車」として書く。detail.html は他人の車も見る
+    // ページなので、自分の車のときだけ出す作りにすると大半の閲覧で死ぬ。
+    //
+    // 使うのは選択式など答えが揃う項目だけ。オイルの銘柄のような自由記入は、
+    // 全体統計なら1台の誤分類が161分の1の誤差で済むが、ここでは目の前の1台に
+    // 対する100%の誤りになるので出さない。
+    // 順位・点数は付けない（多数派か少数派かの事実提示にとどめる）。
+    const STANDING_FIELDS = [
+      { label: '年式',       value: c => { const m = String(c.year || '').match(/\d{4}/); return m ? m[0] + '年' : null; } },
+      { label: 'モデル',     value: c => getNormalizedModel({ Model_DisplayA: c.model_display_a, Model_DisplayB: c.model_display_b, Model_DisplayC: c.model_display_c, CarType: c.car_type }) },
+      { label: '所在地', metaLabel: '都道府県', value: c => normalizePrefecture(c.prefecture) },
+      { label: 'ボディカラー', value: c => getColorGroup(c.body_color) },
+      { label: '排気量',     value: c => getEngineCategory(c.engine_cc) },
+      { label: '点火方式',   value: c => c.ignition_type || null },
+      { label: 'ハンドル',   value: c => { const s = String(c.steering || ''); return s.includes('左') ? '左ハンドル' : (s.includes('右') ? '右ハンドル' : null); } },
+      { label: 'ホイール',   value: c => c.wheel || null },
+      { label: 'タイヤ形式', value: c => c.tire_type || null }
+    ];
+
+    async function fetchStanding(car) {
+      try {
+        const { data, error } = await supabaseClient
+          .from('cars')
+          .select('year, prefecture, body_color, engine_cc, ignition_type, steering, wheel, tire_type, model_display_a, model_display_b, model_display_c, car_type')
+          .eq('car_type', car.car_type)
+          .eq('is_sold', false);
+        if (error || !data || data.length === 0) return;
+        renderStanding(car, data);
+      } catch (e) {
+        // 立ち位置は補助情報なので、出せなくてもページ本体には影響させない
+        console.error(e);
+      }
+    }
+
+    function renderStanding(car, population) {
+      const rows = [];
+      STANDING_FIELDS.forEach(f => {
+        const mine = f.value(car);
+        if (!mine) return;
+        let same = 0, answered = 0;
+        const kinds = new Set();
+        population.forEach(o => {
+          const v = f.value(o);
+          if (!v) return;
+          answered++;
+          kinds.add(v);
+          if (v === mine) same++;
+        });
+        // 回答が集まっていない項目は割合が暴れるので出さない
+        if (answered < 10 || same === 0) return;
+        const pct = same / answered * 100;
+        // 多数派/少数派は選択肢が少ない項目でしか意味を持たない。
+        // 年式のように40種類もある項目は、どの車もほぼ必ず1割未満になり
+        // 「少数派」が実態を表さない。
+        let tag = '';
+        if (kinds.size <= 5) {
+          if (pct >= 50) tag = '<span class="standing-tag">多数派</span>';
+          else if (pct <= 10) tag = '<span class="standing-tag">少数派</span>';
+        }
+        const metaLabel = f.metaLabel || f.label;
+        rows.push(
+          `<div class="standing-row">
+             <div class="standing-head"><span class="standing-label">${esc(f.label)}</span><span class="standing-value">${esc(mine)}${tag}</span></div>
+             <div class="standing-bar"><span style="width:${Math.max(2, Math.round(pct))}%"></span></div>
+             <div class="standing-meta">同じ${esc(metaLabel)}は ${same}台（回答${answered}台中 ${pct.toFixed(0)}%）</div>
+           </div>`);
+      });
+      if (rows.length === 0) return;
+      const carLabel = car.car_type === '126' ? 'FIAT 126' : 'FIAT 500';
+      document.getElementById('standingLead').textContent =
+        `登録されている${carLabel} ${population.length}台と、この車を項目ごとに比べたものです。`;
+      document.getElementById('standingRows').innerHTML = rows.join('');
+      document.getElementById('standingSection').style.display = 'block';
     }
 
     // ─── 車載手帳（公開分の埋め込み） ───
