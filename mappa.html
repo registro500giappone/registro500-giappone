@@ -10,7 +10,7 @@
       gtag('js', new Date());
       gtag('config', 'G-27SHHC4JYH');
     </script>
-    
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro 500 - Mappa</title>
     <meta name="description" content="日本全国のFIAT 500オーナーの分布を地図で確認。都道府県別に登録車両を閲覧できます。">
@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="style.css">
 
     <script src="config.js"></script>
+    <script src="stats-core.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
     <script>
       const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -29,41 +30,50 @@
 
     <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js" integrity="sha384-Ukv1p/xTma6P4/2bY5KzWBw+ydSpXmhCMtyciIQVDJ1RmOxtCYNMF1uXT9T63H67" crossorigin="anonymous"></script>
-    
+    <script src="stats-map.js"></script>
+
     <style>
         body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; padding: 0; background: #f5f0e6; color: #2e2a24; }
         header { background: #fffefb; padding: 15px; text-align: center; border-bottom: 1px solid #d6c9b0; position: sticky; top: 0; z-index: 100; }
         h1 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; }
         .back-link { display: inline-block; margin-top: 8px; color: #1f5c3d; text-decoration: none; font-size: 0.85rem; padding: 4px 12px; border: 1px solid #d6c9b0; border-radius: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; padding: 20px 10px; text-align: center; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px 10px 40px; }
 
-        #map-container {
-            width: 100%;
-            max-width: 800px;
-            margin: 0 auto;
-            background: #fffefb;
-            position: relative;
-            aspect-ratio: 1 / 1;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            overflow: hidden;
-        }
+        .card { background: #fffefb; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 20px; }
 
-        svg { width: 100%; height: 100%; display: block; }
+        /* 地図 */
+        .map-wrap { position: relative; max-width: 620px; margin: 0 auto; }
+        .map-wrap svg { width: 100%; height: auto; display: block; }
+        .pref-shape { stroke: #d6c9b0; stroke-width: 0.5px; transition: opacity 0.15s; }
+        .pref-shape.has-cars { cursor: pointer; }
+        .pref-shape.has-cars:hover { opacity: 0.75; }
+        .pref-shape.selected { stroke: #2e2a24; stroke-width: 2px; }
+        /* 文字色(fill)と縁取り色(stroke)は塗りの濃さに応じてJS側で1県ずつ指定する。
+           ここで fill を書くとCSSが属性に勝ってしまうので指定しない。 */
+        .pref-count { font-size: 13px; font-weight: 900; font-family: sans-serif; text-anchor: middle; dominant-baseline: central; pointer-events: none; paint-order: stroke; stroke-width: 3px; stroke-linecap: round; stroke-linejoin: round; }
+        .map-inset-box { fill: none; stroke: #d6c9b0; stroke-width: 2; }
+        .map-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 12px; font-size: 0.75rem; color: #7a705f; }
+        .map-legend span { display: inline-flex; align-items: center; gap: 4px; }
+        .map-legend i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; border: 1px solid rgba(0,0,0,0.1); }
+        .map-note { text-align: center; font-size: 0.75rem; color: #7a705f; margin-top: 10px; }
 
-        .prefecture {
-            fill: #faf6ec; stroke: #d6c9b0; stroke-width: 0.5px; cursor: pointer; transition: fill 0.2s;
-        }
-        .prefecture:hover { fill: #e7efe7; }
+        /* 都道府県の一覧。スマホでは首都圏の県が小さすぎて地図を押せないので、
+           ここが実質の操作面になる。 */
+        .pref-list-title { font-size: 0.8rem; color: #7a705f; text-align: center; margin: 24px 0 10px; }
+        .pref-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+        .pref-btn { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid #d6c9b0; background: #fffefb; border-radius: 8px; cursor: pointer; font-size: 0.85rem; color: #2e2a24; font-family: inherit; text-align: left; }
+        .pref-btn:hover { background: #f0ece0; }
+        .pref-btn.selected { border-color: #1f5c3d; background: #e7efe7; font-weight: bold; }
+        .pref-btn .n { color: #7a705f; font-size: 0.8rem; white-space: nowrap; }
 
-        /* 案A：500の識別色（アクセント緑） */
-        .active-pref { fill: #1f5c3d !important; stroke: #163f2a !important; }
-        .selected-pref { fill: #e11d48 !important; stroke: #9f1239 !important; }
-
-        /* 126カラー */
-        body.type-126 .active-pref { fill: #D4541A !important; stroke: #B8421A !important; }
-        body.type-126 .pref-label { stroke: #D4541A; }
-        body.type-126 #info-panel { border-left-color: #D4541A; }
+        /* オーナー一覧 */
+        #garage-area { display: none; margin-top: 20px; background: #fffefb; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .area-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #d6c9b0; padding-bottom: 10px; }
+        .garage-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 15px; justify-items: center; }
+        .garage-item { width: 100%; cursor: pointer; text-align: center; }
+        .garage-icon-lg { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid #faf6ec; background: #faf6ec; }
+        .garage-name { font-size: 0.7rem; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .close-btn { border: none; background: #faf6ec; padding: 5px 15px; border-radius: 15px; cursor: pointer; font-family: inherit; }
 
         /* 車種切り替えボタン */
         .type-toggle { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
@@ -71,58 +81,26 @@
         .toggle-btn.active-500 { background: #1f5c3d; color: #fff; border-color: #1f5c3d; }
         .toggle-btn.active-126 { background: #D4541A; color: #fff; border-color: #D4541A; }
 
-        /* 数字を大きく、白抜きにして視認性を向上 */
-        .pref-label {
-            fill: #fff;
-            font-size: 14px; /* 11pxから拡大 */
-            font-weight: 900;
-            font-family: sans-serif;
-            text-anchor: middle;
-            dominant-baseline: central;
-            pointer-events: none;
-            /* 縁取りをつけてさらに読みやすく */
-            paint-order: stroke;
-            stroke: #1f5c3d;
-            stroke-width: 3px;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
-        .selected-pref + .pref-label { stroke: #e11d48; }
+        body.type-126 .pref-btn.selected { border-color: #D4541A; background: #fbe6d8; }
 
-        .inset-box { fill: #fffefb; stroke: #d6c9b0; stroke-width: 2; }
-
-        #info-panel {
-            position: absolute; bottom: 20px; right: 20px;
-            background: rgba(255, 254, 251, 0.95); color: #2e2a24;
-            padding: 10px 20px; border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-            font-weight: bold; font-size: 14px;
-            border-left: 5px solid #1f5c3d;
-            pointer-events: none; opacity: 0; transition: opacity 0.2s;
-            z-index: 20; min-width: 120px; text-align: center;
-        }
-
-        #garage-area { display: none; margin-top: 20px; background: #fffefb; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: left; }
-        .area-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #d6c9b0; padding-bottom: 10px; }
-        .garage-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 15px; justify-items: center; }
-        .garage-item { width: 100%; cursor: pointer; text-align: center; }
-        .garage-icon-lg { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid #faf6ec; background: #faf6ec; }
-        .garage-name { font-size: 0.7rem; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .close-btn { border: none; background: #faf6ec; padding: 5px 15px; border-radius: 15px; cursor: pointer; }
-        
-        #loading { margin: 50px 0; color: #777; }
+        #loading { margin: 50px 0; color: #777; text-align: center; }
 
         /* ダークモード */
         @media (prefers-color-scheme: dark) {
-            body { background: #1a1714; color: #ece6d9; }
+            body { background: #1a1714; color: #ece6d9; color-scheme: dark; }
             header { background: #2b2721; border-bottom-color: #403a30; }
             h1 { color: #ece6d9; }
             .back-link { color: #7fb894; border-color: #403a30; }
-            #map-container { background: #2b2721; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-            .prefecture { fill: #403a30; stroke: #4d453a; }
-            .prefecture:hover { fill: #4d453a; }
-            .inset-box { fill: #2b2721; stroke: #403a30; }
-            #info-panel { background: rgba(43, 39, 33, 0.95); color: #ece6d9; border-left-color: #7fb894; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+            .card { background: #2b2721; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+            .pref-shape { stroke: #4d453a; }
+            .pref-shape.selected { stroke: #ece6d9; }
+            .map-inset-box { stroke: #403a30; }
+            .map-legend, .map-note, .pref-list-title { color: #a89e8c; }
+            .map-legend i { border-color: rgba(255,255,255,0.15); }
+            .pref-btn { background: #2b2721; border-color: #403a30; color: #ece6d9; }
+            .pref-btn:hover { background: #403a30; }
+            .pref-btn.selected { border-color: #7fb894; background: #33413a; }
+            .pref-btn .n { color: #a89e8c; }
             #garage-area { background: #2b2721; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
             .area-header { border-bottom-color: #403a30; }
             .close-btn { background: #403a30; color: #ece6d9; }
@@ -130,8 +108,7 @@
             #loading { color: #a89e8c; }
             .toggle-btn { border-color: #403a30; color: #a89e8c; }
             .toggle-btn.active-500 { background: #7fb894; border-color: #7fb894; color: #1a1714; }
-            .active-pref { fill: #7fb894 !important; stroke: #3d6b4d !important; }
-            .pref-label { stroke: #7fb894; }
+            body.type-126 .pref-btn.selected { border-color: #f97316; background: #46332a; }
         }
     </style>
   <!-- 左下「一つ前に戻る」（ホーム画面起動時のみ）／右下「先頭へ」の浮かぶボタン -->
@@ -151,8 +128,12 @@
 <div class="container">
     <div id="loading">地図データを取得中...</div>
 
-    <div id="map-container">
-        <div id="info-panel"></div>
+    <div class="card" id="map-card" style="display:none;">
+        <div class="map-wrap" id="mapWrap"></div>
+        <div class="map-legend" id="mapLegend"></div>
+        <div class="map-note" id="mapNote"></div>
+        <div class="pref-list-title">都道府県を選ぶとオーナーが表示されます</div>
+        <div class="pref-list" id="prefList"></div>
     </div>
 
     <div id="garage-area">
@@ -165,33 +146,14 @@
 </div>
 
 <script>
-    const CACHE_KEY_MAP = 'registro500_map_cars_v5';
-    const MAP_FILE_URL = "prefectures.json";
-
     function esc(s) {
       if (!s) return '';
       return s.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
-    const ID_MAP = {
-        1:"北海道",2:"青森県",3:"岩手県",4:"宮城県",5:"秋田県",6:"山形県",7:"福島県",
-        8:"茨城県",9:"栃木県",10:"群馬県",11:"埼玉県",12:"千葉県",13:"東京都",14:"神奈川県",
-        15:"新潟県",16:"富山県",17:"石川県",18:"福井県",19:"山梨県",20:"長野県",21:"岐阜県",
-        22:"静岡県",23:"愛知県",24:"三重県",25:"滋賀県",26:"京都府",27:"大阪府",28:"兵庫県",
-        29:"奈良県",30:"和歌山県",31:"鳥取県",32:"島根県",33:"岡山県",34:"広島県",35:"山口県",
-        36:"徳島県",37:"香川県",38:"愛媛県",39:"高知県",40:"福岡県",41:"佐賀県",42:"長崎県",
-        43:"熊本県",44:"大分県",45:"宮崎県",46:"鹿児島県",47:"沖縄県"
-    };
-
-    const EN_MAP = {
-        'TOKYO':'東京都', 'OSAKA':'大阪府', 'AICHI':'愛知県', 'KANAGAWA':'神奈川県', 'CHIBA':'千葉県', 'SAITAMA':'埼玉県', 'TOYAMA':'富山県',
-        'KYOTO':'京都府', 'FUKUOKA':'福岡県', 'HYOGO':'兵庫県', 'HOKKAIDO':'北海道', 'NAGANO':'長野県', 'SHIZUOKA':'静岡県',
-        'IBARAKI':'茨城県', 'GUNMA':'群馬県', 'TOCHIGI':'栃木県', 'MIE':'三重県', 'GIFU':'岐阜県', 'FUKUSHIMA':'福島県',
-        'HIROSHIMA':'広島県', 'OKAYAMA':'岡山県', 'NARA':'奈良県', 'SHIGA':'滋賀県'
-    };
-
-    // URLパラメータで500/126を切り替え
     const urlCarType = new URLSearchParams(window.location.search).get('type') || '500';
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
     if (urlCarType === '126') {
       document.body.classList.add('type-126');
       document.getElementById('pageTitle').textContent = 'REGISTRO126 MAPPA';
@@ -202,16 +164,11 @@
       document.getElementById('btn500').classList.add('active-500');
     }
 
+    // 県名 → その県の車の配列
+    let carsByPref = {};
+
     async function init() {
         try {
-            const mapRes = await fetch(MAP_FILE_URL);
-            const mapData = await mapRes.json();
-
-            const cached = localStorage.getItem(CACHE_KEY_MAP);
-            if (cached) {
-                drawMap(mapData, JSON.parse(cached));
-            }
-
             const { data: cars, error } = await supabaseClient
               .from('cars')
               .select(`
@@ -222,14 +179,36 @@
                 Model_DisplayC:model_display_c,
                 PhotoMain:photo_main
               `)
-              .eq('car_type', urlCarType);
+              .eq('car_type', urlCarType)
+              .eq('is_sold', false);
 
             if (error) throw error;
-            
-            if (cars) {
-                localStorage.setItem(CACHE_KEY_MAP, JSON.stringify(cars));
-                drawMap(mapData, cars);
-            }
+
+            carsByPref = {};
+            (cars || []).forEach(car => {
+                const p = normalizePrefecture(car.Prefecture);
+                if (!p) return;
+                if (!carsByPref[p]) carsByPref[p] = [];
+                carsByPref[p].push(car);
+            });
+
+            const counts = {};
+            Object.keys(carsByPref).forEach(p => { counts[p] = carsByPref[p].length; });
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('map-card').style.display = '';
+
+            await drawChoropleth({
+                container: '#mapWrap',
+                counts: counts,
+                carType: urlCarType,
+                dark: isDark,
+                legendEl: document.getElementById('mapLegend'),
+                noteEl: document.getElementById('mapNote'),
+                onClick: (name) => selectPref(name)
+            });
+
+            renderPrefList(counts);
 
         } catch (e) {
             console.error(e);
@@ -237,89 +216,29 @@
         }
     }
 
-    function drawMap(mapData, cars) {
-        document.getElementById('loading').style.display = 'none';
-        const prefData = {};
-        cars.forEach(car => {
-            let pName = (car.Prefecture || "").trim();
-            if(EN_MAP[pName.toUpperCase()]) pName = EN_MAP[pName.toUpperCase()];
-            if(!prefData[pName]) prefData[pName] = [];
-            prefData[pName].push(car);
+    function renderPrefList(counts) {
+        const entries = Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ja'));
+        document.getElementById('prefList').innerHTML = entries.map(([name, n]) =>
+            `<button type="button" class="pref-btn" data-pref="${esc(name)}">` +
+            `<span>${esc(name)}</span><span class="n">${n}台</span></button>`).join('');
+        document.querySelectorAll('.pref-btn').forEach(btn => {
+            btn.addEventListener('click', () => selectPref(btn.dataset.pref));
         });
-
-        const width = 800, height = 800;
-        const container = d3.select("#map-container");
-        container.select("svg").remove();
-        const svg = container.append("svg").attr("viewBox", `0 0 ${width} ${height}`);
-        const panel = document.getElementById('info-panel');
-
-        let objKey = mapData.objects.japan ? "japan" : (mapData.objects.prefectures ? "prefectures" : Object.keys(mapData.objects)[0]);
-        const allFeatures = topojson.feature(mapData, mapData.objects[objKey]).features;
-        const okinawaFeatures = allFeatures.filter(d => d.id == 47 || d.properties.id == 47);
-        const mainFeatures = allFeatures.filter(d => d.id != 47 && d.properties.id != 47);
-
-        const mainProjection = d3.geoMercator().center([137.5, 38.3]).scale(2300).translate([width / 2, height / 2]);
-        const mainPath = d3.geoPath().projection(mainProjection);
-        renderFeatures(svg, mainFeatures, mainPath, prefData, panel);
-
-        if (okinawaFeatures.length > 0) {
-            const boxX = 20, boxY = 20, boxW = 160, boxH = 120;
-            const insetProjection = d3.geoMercator().center([127.8, 26.5]).scale(6000).translate([boxX + boxW/2, boxY + boxH/2]);
-            const insetPath = d3.geoPath().projection(insetProjection);
-            svg.append("rect").attr("x", boxX).attr("y", boxY).attr("width", boxW).attr("height", boxH).attr("class", "inset-box");
-            renderFeatures(svg, okinawaFeatures, insetPath, prefData, panel);
-        }
     }
 
-    function renderFeatures(svg, features, path, prefData, panel) {
-        svg.append("g")
-            .selectAll("path")
-            .data(features)
-            .enter()
-            .append("path")
-            .attr("class", "prefecture")
-            .attr("d", path)
-            .each(function(d) {
-                const p = d.properties;
-                const candidates = [p.nam_ja, p.name, p.nam, ID_MAP[d.id], String(d.id)].map(v => String(v));
-                const matchKey = Object.keys(prefData).find(key => candidates.some(val => val && (val.includes(key) || key.includes(val))));
-                if(matchKey) {
-                    d3.select(this).classed("active-pref", true);
-                    d.carList = prefData[matchKey];
-                    d.displayName = matchKey;
-                }
-                d.dispName = (p.nam_ja || p.name || p.nam || (d.id ? ID_MAP[d.id] : "Unknown"));
-            })
-            .on("click", function(event, d) {
-                if(d.carList) {
-                    d3.selectAll(".selected-pref").classed("selected-pref", false);
-                    d3.select(this).classed("selected-pref", true);
-                    showGarage(d.displayName, d.carList);
-                }
-            })
-            .on("mouseover", function(event, d) {
-                panel.style.opacity = 1;
-                panel.innerText = d.dispName + (d.carList ? ` (${d.carList.length}台)` : "");
-            })
-            .on("mouseout", function() { panel.style.opacity = 0; });
-
-        svg.append("g")
-            .selectAll("text")
-            .data(features)
-            .enter()
-            .append("text")
-            .attr("class", "pref-label")
-            .attr("transform", function(d) {
-                const centroid = path.centroid(d);
-                if (isNaN(centroid[0])) return "translate(-999,-999)";
-                let x = centroid[0], y = centroid[1];
-                if (d.dispName.includes("東京")) { y -= 26; x -= 5; }
-                if (d.dispName.includes("長崎")) x += 5;
-                if (d.dispName.includes("鹿児島")) y -= 10;
-                if (d.dispName.includes("兵庫")) y -= 5;
-                return `translate(${x},${y})`;
-            })
-            .text(d => (d.carList && d.carList.length > 0) ? d.carList.length : "");
+    function selectPref(name) {
+        const cars = carsByPref[name];
+        if (!cars) return;
+        document.querySelectorAll('.pref-shape.selected').forEach(el => el.classList.remove('selected'));
+        document.querySelectorAll('.pref-btn.selected').forEach(el => el.classList.remove('selected'));
+        // 地図側は沖縄インセットも含めて同名の図形が複数ありうるので title で引く
+        document.querySelectorAll('.pref-shape').forEach(el => {
+            const t = el.querySelector('title');
+            if (t && t.textContent.indexOf(name + ' ') === 0) el.classList.add('selected');
+        });
+        const btn = document.querySelector(`.pref-btn[data-pref="${CSS.escape(name)}"]`);
+        if (btn) btn.classList.add('selected');
+        showGarage(name, cars);
     }
 
     function showGarage(name, cars) {
