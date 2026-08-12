@@ -98,13 +98,29 @@ function getBrandJa(t, opts) {
   if (v.match(/tcガレージ|tcgarage/)) return 'TCガレージ';
   if (v.match(/omega|オメガ/)) return 'オメガ';
   if (v.match(/bp |bp$/)) return 'BP';
+  if (v.match(/penngrade|ペングレード/)) return 'Penn Grade 1';
+  if (v.match(/liquimol|liquimor|liqui\s?moly|リキモリ/)) return 'リキモリ';
+  if (v.match(/red\s?line|レッドライン/)) return 'レッドライン';
+  if (v.match(/respo|レスポ/)) return 'RESPO';
+  if (v.match(/pertamin|pertamian|ペルタミナ/)) return 'ペルタミナ';
+  if (v.match(/shell|シェル/)) return 'シェル';
+  if (v.match(/yamaha|ヤマハ/)) return 'ヤマハ';
+  if (v.match(/nissan|日産/)) return '日産';
+  if (v.match(/広島高潤/)) return '広島高潤';
   // ---- タイヤブランド ----
+  // 綴りの揺れ・打ち間違いもここで吸収する（dunlpop / dunrop / pirerri は実データにある）
   if (v.match(/michelin|ミシュラン/)) return 'ミシュラン';
-  if (v.match(/pirelli|ピレリ|cinturato|チンチュラート/)) return 'ピレリ';
-  if (v.match(/bridgestone|ブリヂストン|ブリジストン|sneaker|スニーカー/)) return 'ブリヂストン';
+  if (v.match(/pirelli|pirerri|ピレリ|cinturato|チンチュラート/)) return 'ピレリ';
+  if (v.match(/bridgestone|ブリヂストン|ブリジストン|sneaker|スニーカー|^bs\b/)) return 'ブリヂストン';
   if (v.match(/yokohama|ヨコハマ|横浜|advan|アドバン/)) return 'ヨコハマ';
-  if (v.match(/dunlop|ダンロップ|digityer|dunlpop/)) return 'ダンロップ';
-  if (v.match(/toyo|トーヨー/)) return 'トーヨー';
+  if (v.match(/dunlop|dunrop|dunlpop|ダンロップ|digityer/)) return 'ダンロップ';
+  // オープンカントリーはトーヨーのブランド名
+  if (v.match(/toyo|トーヨー|open\s?country|オープンカントリー/)) return 'トーヨー';
+  if (v.match(/radar|レーダー/)) return 'RADAR';
+  if (v.match(/minerva|ミネルバ/)) return 'ミネルバ';
+  if (v.match(/deestone|ディーストーン/)) return 'ディーストーン';
+  if (v.match(/goodyear|グッドイヤー/)) return 'グッドイヤー';
+  if (v.match(/\bceat\b/)) return 'CEAT';
   if (v.match(/falken|ファルケン/)) return 'ファルケン';
   if (v.match(/hankook|ハンコック/)) return 'ハンコック';
   if (v.match(/continental|コンチネンタル/)) return 'コンチネンタル';
