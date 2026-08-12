@@ -220,9 +220,17 @@
     .standing-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
     .standing-label { font-size: 0.78rem; color: var(--rg-muted); }
     .standing-value { font-size: 0.92rem; font-weight: bold; text-align: right; }
-    .standing-bar { height: 6px; border-radius: 3px; background: var(--rg-surface-sub); margin: 6px 0 4px; overflow: hidden; }
-    .standing-bar span { display: block; height: 100%; background: var(--rg-accent); border-radius: 3px; }
+    /* その項目の全体の内訳を1本の帯にし、この車が当たる区画だけ色を付ける。
+       「割合が何%か」ではなく「どういう内訳の中のどこか」を見せるための形。 */
+    .standing-strip { display: flex; height: 14px; border-radius: 3px; overflow: hidden; margin: 7px 0 5px; background: var(--rg-surface-sub); }
+    .standing-seg { background: var(--rg-border); min-width: 2px; box-shadow: inset -1px 0 0 var(--rg-surface); }
+    .standing-seg:last-child { box-shadow: none; }
+    .standing-seg.mine { background: var(--rg-accent); }
     .standing-meta { font-size: 0.74rem; color: var(--rg-muted); }
+    .standing-mine { color: var(--rg-accent); font-weight: bold; }
+    .standing-legend { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--rg-muted); margin: 14px 0 0; }
+    .standing-key { width: 10px; height: 10px; border-radius: 2px; background: var(--rg-border); display: inline-block; }
+    .standing-key.mine { background: var(--rg-accent); }
     .standing-tag { font-size: 0.68rem; border: 1px solid var(--rg-accent-border); background: var(--rg-accent-soft); color: var(--rg-accent); border-radius: 10px; padding: 1px 7px; margin-left: 6px; white-space: nowrap; }
     .standing-note { font-size: 0.72rem; color: var(--rg-muted); margin: 16px 0 0; line-height: 1.6; }
   </style>
@@ -297,6 +305,7 @@
             <h2 class="rg-section-title">この車の立ち位置</h2>
             <p class="standing-lead" id="standingLead"></p>
             <div id="standingRows"></div>
+            <p class="standing-legend"><span class="standing-key mine"></span>この車<span class="standing-key" style="margin-left:8px;"></span>ほかの選択肢</p>
             <p class="standing-note">数が多いほど良い、という意味ではありません。自由記入のため答えが揃わない項目（オイルの銘柄など）はここに出していません。</p>
           </section>
           <section class="rg-card" id="highlightsSection" style="display:none;"><h2 class="rg-section-title" id="highlightsTitle" data-field="highlights">こだわり</h2><p id="val_Highlights" style="white-space:pre-wrap;"></p></section>
@@ -510,32 +519,47 @@
       STANDING_FIELDS.forEach(f => {
         const mine = f.value(car);
         if (!mine) return;
-        let same = 0, answered = 0;
-        const kinds = new Set();
+        const counts = new Map();
+        let answered = 0;
         population.forEach(o => {
           const v = f.value(o);
           if (!v) return;
           answered++;
-          kinds.add(v);
-          if (v === mine) same++;
+          counts.set(v, (counts.get(v) || 0) + 1);
         });
+        const same = counts.get(mine) || 0;
         // 回答が集まっていない項目は割合が暴れるので出さない
         if (answered < 10 || same === 0) return;
+        const entries = [...counts.entries()].sort((a, b) => b[1] - a[1]);
         const pct = same / answered * 100;
+
+        // 帯は多い順に並べる。選択肢が2つなら太い2ブロック、年式のように
+        // 40種類あれば細かいモザイクになり、その項目がどれだけ多様かも同時に伝わる。
+        const segs = entries.map(([label, n]) =>
+          `<span class="standing-seg${label === mine ? ' mine' : ''}" style="width:${n / answered * 100}%" title="${esc(label)} ${n}台"></span>`).join('');
+
         // 多数派/少数派は選択肢が少ない項目でしか意味を持たない。
         // 年式のように40種類もある項目は、どの車もほぼ必ず1割未満になり
         // 「少数派」が実態を表さない。
         let tag = '';
-        if (kinds.size <= 5) {
+        if (entries.length <= 5) {
           if (pct >= 50) tag = '<span class="standing-tag">多数派</span>';
           else if (pct <= 10) tag = '<span class="standing-tag">少数派</span>';
         }
+
+        // 選択肢が少ないときは内訳をそのまま書ける。多いときは書ききれないので、
+        // 何種類あるかとこの車の台数だけ示す。
         const metaLabel = f.metaLabel || f.label;
+        const meta = entries.length <= 4
+          ? entries.map(([label, n]) =>
+              `<span class="${label === mine ? 'standing-mine' : ''}">${esc(label)} ${n}台（${Math.round(n / answered * 100)}%）</span>`).join('／')
+          : `${entries.length}種類のうちのひとつ。同じ${esc(metaLabel)}は ${same}台（回答${answered}台中 ${pct.toFixed(0)}%）`;
+
         rows.push(
           `<div class="standing-row">
              <div class="standing-head"><span class="standing-label">${esc(f.label)}</span><span class="standing-value">${esc(mine)}${tag}</span></div>
-             <div class="standing-bar"><span style="width:${Math.max(2, Math.round(pct))}%"></span></div>
-             <div class="standing-meta">同じ${esc(metaLabel)}は ${same}台（回答${answered}台中 ${pct.toFixed(0)}%）</div>
+             <div class="standing-strip">${segs}</div>
+             <div class="standing-meta">${meta}</div>
            </div>`);
       });
       if (rows.length === 0) return;
