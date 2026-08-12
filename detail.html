@@ -476,7 +476,7 @@
       document.getElementById('shareLINE').href = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(location.href)}`;
       fetchEpisodes(car.document_id);
       fetchEquipmentNotebook(car.document_id);
-      fetchStanding(car);
+      scheduleStanding(car);
     }
 
     // ─── この車の立ち位置 ───
@@ -499,7 +499,26 @@
       { label: 'タイヤ形式', value: c => c.tire_type || null }
     ];
 
+    // 立ち位置は本文より下にある補助情報なので、車両本体の描画と写真の読み込みが
+    // 済んでから取りに行く。手が空いたときに動かし、遅くとも3秒後には走らせる。
+    function scheduleStanding(car) {
+      const run = () => fetchStanding(car);
+      if ('requestIdleCallback' in window) requestIdleCallback(run, { timeout: 3000 });
+      else setTimeout(run, 1500);
+    }
+
     async function fetchStanding(car) {
+      // 同じ車種なら母集団は共通なので、車を渡り歩くたびに取り直さない。
+      // 30分で捨てる（登録が増えても、その日のうちには反映される程度）。
+      const cacheKey = 'rg_standing_pop_' + car.car_type;
+      try {
+        const hit = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+        if (hit && Date.now() - hit.t < 30 * 60 * 1000 && Array.isArray(hit.d) && hit.d.length) {
+          renderStanding(car, hit.d);
+          return;
+        }
+      } catch (e) { /* キャッシュが壊れていても取り直せばよい */ }
+
       try {
         const { data, error } = await supabaseClient
           .from('cars')
@@ -507,6 +526,7 @@
           .eq('car_type', car.car_type)
           .eq('is_sold', false);
         if (error || !data || data.length === 0) return;
+        try { sessionStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), d: data })); } catch (e) { /* 容量超過は無視 */ }
         renderStanding(car, data);
       } catch (e) {
         // 立ち位置は補助情報なので、出せなくてもページ本体には影響させない
