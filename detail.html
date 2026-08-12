@@ -490,7 +490,6 @@
     const STANDING_FIELDS = [
       { label: '年式',       value: c => { const m = String(c.year || '').match(/\d{4}/); return m ? m[0] + '年' : null; } },
       { label: 'モデル',     value: c => getNormalizedModel({ Model_DisplayA: c.model_display_a, Model_DisplayB: c.model_display_b, Model_DisplayC: c.model_display_c, CarType: c.car_type }) },
-      { label: '所在地', metaLabel: '都道府県', value: c => normalizePrefecture(c.prefecture) },
       { label: 'ボディカラー', value: c => getColorGroup(c.body_color) },
       { label: '排気量',     value: c => getEngineCategory(c.engine_cc) },
       { label: '点火方式',   value: c => c.ignition_type || null },
@@ -522,7 +521,7 @@
       try {
         const { data, error } = await supabaseClient
           .from('cars')
-          .select('year, prefecture, body_color, engine_cc, ignition_type, steering, wheel, tire_type, model_display_a, model_display_b, model_display_c, car_type')
+          .select('year, body_color, engine_cc, ignition_type, steering, wheel, tire_type, model_display_a, model_display_b, model_display_c, car_type')
           .eq('car_type', car.car_type)
           .eq('is_sold', false);
         if (error || !data || data.length === 0) return;
@@ -569,11 +568,10 @@
 
         // 選択肢が少ないときは内訳をそのまま書ける。多いときは書ききれないので、
         // 何種類あるかとこの車の台数だけ示す。
-        const metaLabel = f.metaLabel || f.label;
         const meta = entries.length <= 4
           ? entries.map(([label, n]) =>
               `<span class="${label === mine ? 'standing-mine' : ''}">${esc(label)} ${n}台（${Math.round(n / answered * 100)}%）</span>`).join('／')
-          : `${entries.length}種類のうちのひとつ。同じ${esc(metaLabel)}は ${same}台（回答${answered}台中 ${pct.toFixed(0)}%）`;
+          : `${entries.length}種類のうちのひとつ。同じ${esc(f.label)}は ${same}台（回答${answered}台中 ${pct.toFixed(0)}%）`;
 
         rows.push(
           `<div class="standing-row">
