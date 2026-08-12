@@ -201,7 +201,7 @@
        上のタブとは別の性格のものとして下に並べる。 -->
   <section class="products" id="productsSection" style="display:none">
     <h2>🔧 みんなが使っている製品</h2>
-    <p class="products-lead">オーナーが車両登録の自由記入欄に書いたものを、書かれたままの言葉で集めました。多い少ないを競うものではありません。純正のままの車も、あえて純正を選んでいる車も、いま何が付いているか分からない車もあります。空欄の人も多く、ここに出ているのは書いた人の分だけです。</p>
+    <p class="products-lead">オーナーが車両登録の自由記入欄に書いたものを、書かれたままの言葉で並べています。表記のゆれは直していないので、同じ製品でも書き方が違えば別々に並びます（まったく同じ書き方のものだけ ×2 とまとめています）。多い少ないを競うものではありません。純正のままの車も、あえて純正を選んでいる車も、いま何が付いているか分からない車もあります。ここに出ているのは書いた人の分だけです。</p>
     <div class="product-cards" id="productCards"></div>
   </section>
 
@@ -392,15 +392,30 @@
   // 統計ではなく実例カタログ。グループ見出しは目印にすぎず、読ませたいのは明細（原文）。
   // 1台しか書いていない回答（「ハーレー用5Ω」「三菱アクティー用」）が一番の読みどころ
   // なので、少数を「その他」に丸めて消さない。
+  // byNumber: 明細を「回答に最初に出てくる数字」の順に並べる欄。
+  // キャブなら口径、プラグなら熱価、バッテリーならサイズ、オイルなら粘度にあたり、
+  // 同じものを別の書き方で書いた回答（「Weber 26 IMB」と「26IMB」）が隣同士に来る。
+  // タイヤ・コイル・ポンプは数字が意味を持たない（「Dunlop R7」の7）ので台数順のまま。
   const PRODUCT_FIELDS = [
-    { key: 'carburetor', label: '🌀 キャブレター',     col: 'CarburetorName' },
-    { key: 'plug',       label: '⚡ スパークプラグ',   col: 'PlugName' },
+    { key: 'carburetor', label: '🌀 キャブレター',     col: 'CarburetorName',      byNumber: true },
+    { key: 'plug',       label: '⚡ スパークプラグ',   col: 'PlugName',            byNumber: true },
     { key: 'coil',       label: '🔌 点火コイル',       col: 'CoilName' },
     { key: 'pump',       label: '⛽ 電磁ポンプ',       col: 'ElectricPumpName' },
     { key: 'tire',       label: '🏁 タイヤ銘柄',       col: 'TireBrandName' },
-    { key: 'oil',        label: '🛢️ エンジンオイル',   col: 'EngineOil' },
-    { key: 'battery',    label: '🔋 バッテリー',       col: 'Battery' }
+    { key: 'oil',        label: '🛢️ エンジンオイル',   col: 'EngineOil',           byNumber: true },
+    { key: 'battery',    label: '🔋 バッテリー',       col: 'Battery',             byNumber: true }
   ];
+
+  // 並べ替えに使う数字。名寄せはしない（寄せると「Weber26IMB10」の10のような違いが
+  // 消える）ので、同じと思われるものを近くに置くだけにとどめる。
+  // 「Valvoline VR1 RACING 20W-50」のVR1を拾わないよう2桁を先に探す。
+  function productSortNum(s) {
+    const k = productDedupKey(s);
+    const m2 = k.match(/\d{2}/);
+    if (m2) return parseInt(m2[0]);
+    const m1 = k.match(/\d/);
+    return m1 ? parseInt(m1[0]) : 9999;   // 数字を含まない回答は末尾へ
+  }
 
   // 見出しの並びは台数の多い順。ただし性格の違うこの3つだけは必ず最後に置く
   // （「そのほか」が上に来ると、分類できなかっただけのものが主役に見えてしまう）。
@@ -451,15 +466,18 @@
         html += '<div class="pc-group">';
         html += `<div class="pc-brand">${esc(g.name)}<span class="n">${g.n}台</span></div>`;
         html += '<div class="pc-items">';
-        // 同じ書き方をした台数が多いものから並べる。表記は、その書き方の中で
-        // 一番多く使われた原文をそのまま出す（こちらで整えた形にはしない）。
-        [...g.items.values()]
-          .sort((a, b) => b.count - a.count)
-          .forEach(it => {
-            const form = [...it.forms.entries()].sort((a, b) => b[1] - a[1])[0][0];
-            html += `<span class="pc-item">${esc(form)}`
-                  + (it.count > 1 ? `<span class="x">×${it.count}</span>` : '') + '</span>';
-          });
+        // 表記は、その書き方の中で一番多く使われた原文をそのまま出す
+        // （こちらで整えた形にはしない）。
+        const details = [...g.items.values()].map(it => ({
+          count: it.count,
+          form: [...it.forms.entries()].sort((a, b) => b[1] - a[1])[0][0]
+        }));
+        details.sort((a, b) => (f.byNumber ? productSortNum(a.form) - productSortNum(b.form) : 0)
+                             || b.count - a.count);
+        details.forEach(d => {
+          html += `<span class="pc-item">${esc(d.form)}`
+                + (d.count > 1 ? `<span class="x">×${d.count}</span>` : '') + '</span>';
+        });
         html += '</div></div>';
       });
 
