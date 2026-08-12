@@ -251,7 +251,8 @@
             const item = document.createElement('div');
             item.className = 'garage-item';
             item.innerHTML = `<img src="${car.PhotoMain || 'https://placehold.co/100x100?text=No+Img'}" class="garage-icon-lg" loading="lazy"><div class="garage-name">${esc(car.HandleName || "No Name")}</div>`;
-            item.onclick = () => window.location.href = `${urlCarType === '126' ? '126/' : ''}detail.html?doc=${car.DocumentID}`;
+            // 126の車も車両ページは同じ /detail を使う（126/detail.html は存在しない）
+            item.onclick = () => window.location.href = `/detail?doc=${encodeURIComponent(car.DocumentID)}`;
             list.appendChild(item);
         });
         setTimeout(() => { area.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
