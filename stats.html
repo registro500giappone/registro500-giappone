@@ -8,9 +8,9 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
   <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-27SHHC4JYH');</script>
   <title>統計データ | Registro500 Giappone</title>
-  <meta name="description" content="Registro500に登録されたFIAT 500の統計データ。モデル別・都道府県別の分布など。">
+  <meta name="description" content="Registro500に登録されたFIAT 500の統計データ。モデル別・都道府県別の分布と、オーナーが使っているキャブレター・プラグ・タイヤなどの実例。">
   <meta property="og:title" content="統計データ - Registro500 Giappone">
-  <meta property="og:description" content="Registro500に登録されたFIAT 500の統計データ。モデル別・都道府県別の分布など。">
+  <meta property="og:description" content="Registro500に登録されたFIAT 500の統計データ。モデル別・都道府県別の分布と、オーナーが使っているキャブレター・プラグ・タイヤなどの実例。">
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://www.registro500.com/logo_horizontal.png">
   <meta name="twitter:card" content="summary">
@@ -80,8 +80,27 @@
     /* 有効回答が全体より少ない項目は、グラフの見出しに母数を出す */
     .sample-n { display: block; font-size: 0.72rem; font-weight: normal; color: #7a705f; margin-top: 4px; }
 
-
-
+    /* ── みんなが使っている製品 ──
+       グラフではなく、オーナーが書いた言葉そのものを読ませる欄。
+       グループの見出しは目印にすぎないので控えめにし、明細（原文）を主役にする。 */
+    .products { margin-top: 36px; }
+    .products h2 { font-size: 1.15rem; color: var(--accent); margin: 0 0 8px; text-align: center; }
+    .products-lead { font-size: 0.8rem; color: #7a705f; line-height: 1.8; margin: 0 auto 20px; max-width: 640px; }
+    .product-cards { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 768px) { .product-cards { grid-template-columns: 1fr 1fr; } }
+    .product-card { background: var(--card); border-radius: var(--radius); padding: 18px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .pc-head { border-bottom: 2px solid var(--bg); padding-bottom: 10px; margin-bottom: 14px; }
+    .pc-title { font-size: 1rem; font-weight: bold; }
+    .pc-n { display: block; font-size: 0.72rem; font-weight: normal; color: #7a705f; margin-top: 4px; }
+    .pc-group { margin-bottom: 14px; }
+    .pc-brand { font-size: 0.85rem; font-weight: bold; color: var(--accent); margin-bottom: 6px; }
+    .pc-brand .n { font-weight: normal; color: #7a705f; font-size: 0.75rem; margin-left: 6px; }
+    .pc-items { display: flex; flex-wrap: wrap; gap: 6px; }
+    .pc-item { font-size: 0.78rem; background: var(--bg); border-radius: 12px; padding: 4px 10px; line-height: 1.5; }
+    .pc-item .x { color: #7a705f; margin-left: 4px; font-size: 0.72rem; }
+    /* 純正のまま・不明。数の少ない側に見えないよう、他と同じ大きさで最後に置く */
+    .pc-stock { border-top: 1px dashed #ddd6c6; padding-top: 12px; margin-top: 14px; font-size: 0.78rem; color: #7a705f; line-height: 1.7; }
+    .pc-stock b { color: inherit; }
 
 
     /* ダークモード */
@@ -101,6 +120,12 @@
       body.mode-126 .header h1 { color: #f97316; }
       .tile { background: #2b2721; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
       .tile-label, .tile-sub, .sample-n, .dot-row .count { color: #a89e8c; }
+      .product-card { background: #2b2721; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+      .pc-head { border-bottom-color: #403a30; }
+      .pc-title { color: #ece6d9; }
+      .products-lead, .pc-n, .pc-brand .n, .pc-item .x, .pc-stock { color: #a89e8c; }
+      .pc-item { background: #403a30; color: #ece6d9; }
+      .pc-stock { border-top-color: #403a30; }
     }
   </style>
   <!-- 左下「一つ前に戻る」（ホーム画面起動時のみ）／右下「先頭へ」の浮かぶボタン -->
@@ -171,6 +196,14 @@
     <div class="chart-card"><div class="chart-title">🛞 ホイール</div><div class="chart-container"><canvas id="wheelChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">↔️ リム幅（J）</div><div class="chart-container"><canvas id="rimChart"></canvas></div></div>
   </div>
+
+  <!-- タブの外に置く。グラフで傾向を見る欄ではなく、書かれた言葉そのものを読む欄なので、
+       上のタブとは別の性格のものとして下に並べる。 -->
+  <section class="products" id="productsSection" style="display:none">
+    <h2>🔧 みんなが使っている製品</h2>
+    <p class="products-lead">オーナーが車両登録の自由記入欄に書いたものを、書かれたままの言葉で集めました。多い少ないを競うものではありません。純正のままの車も、あえて純正を選んでいる車も、いま何が付いているか分からない車もあります。空欄の人も多く、ここに出ているのは書いた人の分だけです。</p>
+    <div class="product-cards" id="productCards"></div>
+  </section>
 
   <p class="page-outro">1台ずつの車両ページでは、その車がこの統計の中でどのあたりにいるかを「この車の立ち位置」として見られます。<a id="garageLink" href="/">車両一覧を見る →</a></p>
 
@@ -278,7 +311,12 @@
           TireSize:tire_size,
           Wheel:wheel,
           RimDiameter_in:rim_diameter_in,
-          RimWidth_in:rim_width_in
+          RimWidth_in:rim_width_in,
+          CarburetorName:carburetor_name,
+          PlugName:plug_name,
+          CoilName:coil_name,
+          ElectricPumpName:electric_pump_name,
+          Battery:battery
         `)
         .eq('car_type', currentCarType)
         .eq('is_sold', false);
@@ -346,6 +384,96 @@
     // リム径は出さない。タイヤサイズに必ず含まれる冗長な情報で、しかも回答数が少ない。
     // タイヤサイズからは分からないリム幅(J)だけがここでの独自情報になる。
     renderBar('rimChart', cars, c => normalizeRimWidth(c.RimWidth_in), '#9e9e9e');
+
+    renderProducts(cars);
+  }
+
+  // ---- みんなが使っている製品 ----------------------------------------------
+  // 統計ではなく実例カタログ。グループ見出しは目印にすぎず、読ませたいのは明細（原文）。
+  // 1台しか書いていない回答（「ハーレー用5Ω」「三菱アクティー用」）が一番の読みどころ
+  // なので、少数を「その他」に丸めて消さない。
+  const PRODUCT_FIELDS = [
+    { key: 'carburetor', label: '🌀 キャブレター',     col: 'CarburetorName' },
+    { key: 'plug',       label: '⚡ スパークプラグ',   col: 'PlugName' },
+    { key: 'coil',       label: '🔌 点火コイル',       col: 'CoilName' },
+    { key: 'pump',       label: '⛽ 電磁ポンプ',       col: 'ElectricPumpName' },
+    { key: 'tire',       label: '🏁 タイヤ銘柄',       col: 'TireBrandName' },
+    { key: 'oil',        label: '🛢️ エンジンオイル',   col: 'EngineOil' },
+    { key: 'battery',    label: '🔋 バッテリー',       col: 'Battery' }
+  ];
+
+  // 見出しの並びは台数の多い順。ただし性格の違うこの3つだけは必ず最後に置く
+  // （「そのほか」が上に来ると、分類できなかっただけのものが主役に見えてしまう）。
+  const PRODUCT_TAIL_GROUPS = ['そのほか', '純正のまま', '不明'];
+
+  function renderProducts(cars) {
+    const host = document.getElementById('productCards');
+    const section = document.getElementById('productsSection');
+    host.innerHTML = '';
+    let shown = 0;
+
+    PRODUCT_FIELDS.forEach(f => {
+      const written = cars.filter(c => c[f.col] && String(c[f.col]).trim());
+      if (written.length === 0) return;   // 誰も書いていない欄は出さない（126側で起きる）
+      shown++;
+
+      // グループ → 原文の重複をまとめたもの
+      const groups = new Map();
+      written.forEach(c => {
+        const raw = String(c[f.col]).trim();
+        const g = getProductGroup(f.key, raw);
+        if (!groups.has(g)) groups.set(g, new Map());
+        const items = groups.get(g);
+        const k = productDedupKey(raw);
+        if (!items.has(k)) items.set(k, { count: 0, forms: new Map() });
+        const it = items.get(k);
+        it.count++;
+        it.forms.set(raw, (it.forms.get(raw) || 0) + 1);
+      });
+
+      const total = [...groups.values()].reduce((s, m) => s + [...m.values()].reduce((a, b) => a + b.count, 0), 0);
+      const ordered = [...groups.entries()]
+        .map(([name, items]) => ({ name, items, n: [...items.values()].reduce((a, b) => a + b.count, 0) }))
+        .sort((a, b) => {
+          const ta = PRODUCT_TAIL_GROUPS.indexOf(a.name), tb = PRODUCT_TAIL_GROUPS.indexOf(b.name);
+          if (ta !== tb) return (ta === -1 ? -1 : ta) - (tb === -1 ? -1 : tb);
+          return b.n - a.n;
+        });
+
+      const stock = ordered.filter(g => g.name === '純正のまま' || g.name === '不明');
+      const brands = ordered.filter(g => g.name !== '純正のまま' && g.name !== '不明');
+
+      let html = '<div class="product-card">';
+      html += `<div class="pc-head"><div class="pc-title">${esc(f.label)}`
+            + `<span class="pc-n">${totalCars}台のうち${total}台が記入</span></div></div>`;
+
+      brands.forEach(g => {
+        html += '<div class="pc-group">';
+        html += `<div class="pc-brand">${esc(g.name)}<span class="n">${g.n}台</span></div>`;
+        html += '<div class="pc-items">';
+        // 同じ書き方をした台数が多いものから並べる。表記は、その書き方の中で
+        // 一番多く使われた原文をそのまま出す（こちらで整えた形にはしない）。
+        [...g.items.values()]
+          .sort((a, b) => b.count - a.count)
+          .forEach(it => {
+            const form = [...it.forms.entries()].sort((a, b) => b[1] - a[1])[0][0];
+            html += `<span class="pc-item">${esc(form)}`
+                  + (it.count > 1 ? `<span class="x">×${it.count}</span>` : '') + '</span>';
+          });
+        html += '</div></div>';
+      });
+
+      if (stock.length) {
+        const parts = stock.map(g => `${g.name === '不明' ? '分からない' : '純正のまま'} <b>${g.n}台</b>`);
+        html += `<div class="pc-stock">${parts.join('　/　')}<br>`
+              + 'あえて純正を選んでいる人も、いま何が付いているか分からない人もいます。どちらもそのまま数えています。</div>';
+      }
+
+      html += '</div>';
+      host.innerHTML += html;
+    });
+
+    section.style.display = shown ? '' : 'none';
   }
 
   // ---- サマリータイル ------------------------------------------------------

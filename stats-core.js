@@ -259,3 +259,123 @@ function getCycleTimeJa(t) {
   if (!v.match(/[0-9０-９]0{2}/)) return t;
   return null;
 }
+
+// ───────────────────────────────────────────────
+// 製品名の自由記入欄（キャブ・コイル・プラグ・電磁ポンプ・タイヤ・オイル・バッテリー）
+//
+// これは統計ではなく「実例カタログ」として扱う。ここでの分類はグループの見出しを
+// 作るためだけのもので、明細は必ず原文のまま出す。
+// 「ハーレー用5Ω」「SUBARU 22434KA010」「三菱アクティー用」のように1台しか
+// 書いていない回答こそがこの欄の読みどころなので、少数派を「その他」へ丸めて
+// 消してはいけない（統計の作法と逆になる）。
+// ───────────────────────────────────────────────
+
+// 「純正のまま」「分からない」と書かれた回答。
+// これは欠けた回答ではなく（あえて純正のままの人も、いま何が付いているか
+// 分からない人もいる）、製品名の一覧とは混ぜずに別枠でそのまま数える。
+//
+// 判定は回答全体がその言葉だけのときに限る。「Honda 純正 16700-ZA0-971」
+// 「su製っぽいやつ詳細不明」は流用ネタとして価値があるので製品名側に残す。
+function getStockOrUnknown(raw) {
+  if (!raw) return null;
+  const v = String(raw).toLowerCase().replace(/[\s　・。、]/g, '');
+  if (/^(不明|不詳|未確認|わからない|分からない|わかりません|メーカー不定|不定|普通|なし|特になし)$/.test(v)) return '不明';
+  if (/^(純正|ノーマル|ノーマルタイプ|normal|nomal|stock|オリジナル|標準)(のまま)?$/.test(v)) return '純正のまま';
+  return null;
+}
+
+// 製品名 → グループ見出し。上から順に当てるので、並び順に意味がある。
+const PRODUCT_BRANDS = {
+  carburetor: [
+    // 「26IMB」「40DCOE」のようにメーカー名を書かず型式だけの回答がある。
+    // IMB・DCOE・IBA はWEBERの型式記号なのでWEBERとして扱う（mib は imb の打ち間違い）。
+    // 口径だけの「28」は、他社にも同じ口径があるので決めつけずそのほかに残す。
+    [/weber|werber|waber|ウェーバー|ウエーバー|\d{2}\s?(imb|mib|ibm)|\bimb\s?\d{2}|dcoe|\d{2}\s?iba/, 'WEBER'],
+    [/dell'?\s?orto|dellorto|デロルト|デロルト/, "デロルト（Dell'Orto）"],
+    [/solex|ソレックス/, 'SOLEX'],
+    [/mikuni|ミクニ|tmr|hsr/, 'ミクニ'],
+    [/fcr|keihin|ケーヒン/, 'ケーヒン FCR'],
+    [/インジェクタ|ecu|injection|efi/, 'インジェクション化'],
+    [/\bfos\b/, 'FoS']
+  ],
+  plug: [
+    // 型番だけの回答（BP6HS / B6HS / BU8H など）はNGKの型番なのでここで拾う。
+    // BOSCHより先に置くと「イリジウムプラグBPR6HIX」もNGK側に入る。
+    [/ngk|\bbp\d|\bb\dhs|\bbpr\d|\bbu\dh|\bbp\d?\b/, 'NGK'],
+    [/bosch|ボッシュ|ぼっしゅ|w8ac/, 'BOSCH'],
+    [/brisk/, 'BRISK'],
+    [/denso|デンソー|日本特殊陶業/, 'デンソー']
+  ],
+  coil: [
+    [/ウオタニ|ウオタニ|uotani|sp2|sp-2/, 'ウオタニ'],
+    [/bosch|ボッシュ/, 'BOSCH'],
+    [/永井電子|ultra|ウルトラ/, '永井電子（ULTRA）'],
+    [/ハーレー|harley/, 'ハーレー用を流用'],
+    [/subaru|スバル|22434ka|22433ka|ダイアモンド|ダイヤモンド/, 'スバル系を流用'],
+    [/marelli|マレリ/, 'マレリ'],
+    [/lucas|ルーカス/, 'ルーカス'],
+    [/\bngk\b/, 'NGK'],
+    [/beru/, 'BERU'],
+    [/wako/, 'WAKO'],
+    [/ツインコイル|ダブルコイル|twin|閉磁/, 'ツイン／ダブルコイル']
+  ],
+  pump: [
+    [/ミツバ|mitsuba/, 'ミツバ'],
+    [/facet|フェセット/, 'Facet'],
+    [/nismo|ニスモ/, 'ニスモ'],
+    [/三菱|mitsubishi|アクティ/, '三菱系を流用'],
+    [/honda|ホンダ|today/, 'ホンダ系を流用'],
+    [/mazda|マツダ/, 'マツダ系を流用'],
+    [/denso|デンソー/, 'デンソー'],
+    [/\bsu\b|su製/, 'SU']
+  ],
+  battery: [
+    [/panasonic|パナソニック|caos|カオス/, 'パナソニック（カオス）'],
+    [/bosch|ボッシュ/, 'BOSCH'],
+    [/varta/, 'VARTA'],
+    [/yuasa|ユアサ/, 'GSユアサ'],
+    [/acデルコ|ac ?delco|delco/, 'ACデルコ'],
+    [/optima|オプティマ/, 'オプティマ'],
+    [/aisin|アイシン/, 'アイシン'],
+    [/\btab\b/, 'TAB'],
+    [/\bfb\b/, 'FB（古河電池）'],
+    [/カインズ|コーナン|量販店|ホームセンター/, 'ホームセンター・量販店'],
+    // 「40B19R」「55B24R」のようにサイズだけの回答。銘柄は分からないが、
+    // 何が積めるかを知りたい人には一番効く情報なので独立させる。
+    // 「40BR19R」のように綴りが前後したものも拾う。
+    [/^[^a-zａ-ｚア-ンぁ-ん一-龥]*\d{2,3}\s?[bdn]r?\s?\d{2}\s?[rl]?[^a-z]*$/, 'サイズのみ記入']
+  ]
+};
+
+// field: carburetor / plug / coil / pump / battery / tire / oil
+function getProductGroup(field, raw) {
+  if (!raw || !String(raw).trim()) return null;
+  const stock = getStockOrUnknown(raw);
+  if (stock) return stock;
+  const v = String(raw).toLowerCase().trim();
+  const dict = PRODUCT_BRANDS[field];
+  if (dict) {
+    for (const [re, name] of dict) if (re.test(v)) return name;
+  }
+  // タイヤ・オイルは既存のブランド辞書をそのまま使う。
+  if (field === 'tire' || field === 'oil') {
+    const b = getBrandJa(raw);
+    // getBrandJa は辞書に無いと原文をそのまま返す。銘柄を名乗っているもの
+    // （Bianco・デビカ）はそれで正しいが、「ハーレー用のヤーツ 20W-50」のような
+    // 文章がそのまま見出しになってしまうので、粘度を含むものは見出しにしない。
+    if (b && !/\d{1,2}\s?w\s?-?\s?\d{2}/i.test(b)) return b;
+    // 銘柄を書かず粘度だけ答えたもの。「何番手を入れているか」はそれ自体が
+    // 知りたい情報なので、分類できなかった扱いにせず独立させる。
+    if (field === 'oil' && /\d{1,2}\s?w\s?-?\s?\d{2}|\d{2}の\d{2}/i.test(v)) return '粘度のみ記入';
+  }
+  return 'そのほか';
+}
+
+// 同じものを別の書き方で書いた回答（「WEBER 26 IMB」「WEBER26IMB」「weber26imb」）を
+// 突き合わせるためのキー。表示に使うのはあくまで原文の方。
+function productDedupKey(raw) {
+  return String(raw)
+    .toLowerCase()
+    .replace(/[Ａ-Ｚａ-ｚ０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/[\s　・．\.\-ー/／,、()（）]/g, '');
+}
