@@ -69,6 +69,11 @@
     .dot-row .dots { color: var(--accent); font-size: 1.1rem; letter-spacing: 2px; }
     .dot-row .count { font-size: 0.85rem; color: #7a705f; white-space: nowrap; }
 
+    /* カード下部のリンク。色を明示しないとダークで既定の青・訪問済みの紫が出る */
+    .card-link { margin: 14px 0 0; text-align: right; font-size: 0.8rem; }
+    .card-link a { color: var(--accent); text-decoration: none; }
+    .card-link a:hover { text-decoration: underline; }
+
     /* 有効回答が全体より少ない項目は、グラフの見出しに母数を出す */
     .sample-n { display: block; font-size: 0.72rem; font-weight: normal; color: #7a705f; margin-top: 4px; }
 
@@ -130,7 +135,11 @@
 
   <div id="basic" class="tab-content active">
     <div class="chart-card full"><div class="chart-title">🚗 モデル別分布</div><div class="chart-container tall"><canvas id="modelChart"></canvas></div></div>
-    <div class="chart-card full"><div class="chart-title">🗾 都道府県別の台数</div><div class="chart-container tall"><canvas id="prefChart"></canvas></div></div>
+    <div class="chart-card full">
+      <div class="chart-title">🗾 都道府県別の台数</div>
+      <div class="chart-container tall"><canvas id="prefChart"></canvas></div>
+      <p class="card-link"><a id="mapLink" href="/mappa">🗾 地図で見る・その県のオーナーを見る →</a></p>
+    </div>
     <div class="chart-card"><div class="chart-title">🎨 ボディカラー</div><div class="chart-container"><canvas id="colorChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">🎡 ハンドル位置</div><div class="chart-container"><canvas id="steeringChart"></canvas></div></div>
   </div>
@@ -190,6 +199,7 @@
     const btn126 = document.getElementById('btn126');
     btn500.className = 'car-type-btn' + (type === '500' ? ' active-500' : '');
     btn126.className = 'car-type-btn' + (type === '126' ? ' active-126' : '');
+    document.getElementById('mapLink').href = type === '126' ? '/mappa?type=126' : '/mappa';
     if (type === '126') {
       document.getElementById('pageTitle').textContent = 'Registro126 Statistics';
       document.getElementById('backLink').href = '/126/';
