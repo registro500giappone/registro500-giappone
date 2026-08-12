@@ -303,7 +303,11 @@
 
     renderBar('modelChart', cars, c => getNormalizedModel(c), '#2856a8');
 
-    renderPie('colorChart', cars, c => getColorGroup(c.BodyColor), 'palette');
+    // ボディカラーは円グラフにしない。凡例と扇の対応が色だけになり、
+    // 2型色覚では黄系・赤系・オレンジ系がほぼ同色に見えて読めなくなるため。
+    // 横棒なら軸にラベルが付くので色に頼らずに読める（塗りは実際の車体色のまま）。
+    renderBar('colorChart', cars, c => getColorGroup(c.BodyColor),
+              label => COLOR_PALETTE[label] || '#CFD8DC');
     renderPie('steeringChart', cars, c => {
       if (!c.Steering) return null;
       if (String(c.Steering).includes('左')) return '左ハンドル';
@@ -498,7 +502,15 @@
     if (!canvas) return;
     chartInstances[id] = new Chart(canvas, {
       type: 'bar',
-      data: { labels: data.map(d => d[0]), datasets: [{ data: data.map(d => d[1]), backgroundColor: color, borderRadius: 4 }] },
+      // color には棒ごとに色を変えたいとき関数を渡せる（ボディカラー用）。
+      // 白や黒の棒はカードの地色に沈むので、常に細い枠線を付けて輪郭を残す。
+      data: { labels: data.map(d => d[0]), datasets: [{
+        data: data.map(d => d[1]),
+        backgroundColor: typeof color === 'function' ? data.map(d => color(d[0])) : color,
+        borderColor: isDark ? '#4d453a' : '#d6c9b0',
+        borderWidth: 1,
+        borderRadius: 4
+      }] },
       options: { 
         indexAxis: 'y', responsive: true, maintainAspectRatio: false,
         layout: { padding: { right: 50 } },
