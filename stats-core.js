@@ -172,17 +172,48 @@ function getColorGroup(t) {
   return 'その他';
 }
 
-// 「125/12」「125/80/12」「125r12」「125Ｒ12」(全角)を 125R12 に寄せる。
-// 大文字化と空白除去を先に済ませてから前方・後方の数字だけで判定するので、
-// 区切り文字が何であっても拾える。
+// タイヤサイズを「幅・扁平率・リム径」に分解して組み立て直す。
+//
+// 実データは「125R12」「145/70-12」「125R12 62S」「165/70/R10」「135／80R12」のように
+// 区切りも大文字小文字も全角半角もばらばらなので、数字だけを順に拾って解釈する。
+//
+// 扁平率が書かれていないものは80とみなす（125R12 = 125/80R12 という旧車の慣習）。
+// 表示はオーナーが実際に口にする短い形にし、80以外のときだけ扁平率を書く。
+// ※以前は「145で始まり12で終わる」を全部 145/70R12 に寄せており、扁平80の
+//   145R12（外径が違う別サイズ）を混ぜてしまっていた。
+// ※リム径が読み取れないもの（「145」「165/70R」だけの回答）は集計に入れない。
 function normalizeTireSize(t) {
   if (!t) return null;
-  let v = String(t).toUpperCase().replace(/\s+/g, '');
+  const v = String(t).replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
   if (v.match(/不明|未記入/)) return null;
-  if (v.match(/^125.*12$/)) return '125R12';
-  if (v.match(/^135.*12$/)) return '135/80R12';
-  if (v.match(/^145.*12$/)) return '145/70R12';
-  return v;
+
+  const nums = (v.match(/\d+/g) || []).map(Number);
+  const width = nums.find(n => n >= 100 && n <= 235);
+  if (!width) return null;
+  const rest = nums.slice(nums.indexOf(width) + 1);
+  // リム径は8〜16インチ。扁平率(30〜90)より先に現れることはない
+  const rimIdx = rest.findIndex(n => n >= 8 && n <= 16);
+  if (rimIdx === -1) return null;
+  const rim = rest[rimIdx];
+  const aspect = rest.slice(0, rimIdx).find(n => n >= 30 && n <= 90) || 80;
+  return aspect === 80 ? `${width}R${rim}` : `${width}/${aspect}R${rim}`;
+}
+
+// 正規化済みのタイヤサイズからリム径(インチ)を取り出す。
+// リム幅と違い、径はタイヤサイズに必ず含まれている冗長な情報なので、
+// rim_diameter_in を別に集計せずこちらから導く（回答数もこちらの方が多い）。
+function rimDiameterFromTireSize(label) {
+  const m = /R(\d{1,2})$/.exec(String(label || ''));
+  return m ? m[1] : null;
+}
+
+// リム幅(J)。3〜7インチの範囲外は誤入力として捨てる
+// （タイヤ幅を書いた「125」、3.5の打ち間違いの「35」が実データにある）。
+// 打ち間違いを直すのは推測になるので拾わない。
+function normalizeRimWidth(v) {
+  const n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.]/g, ''));
+  if (!isFinite(n) || n < 3 || n > 7) return null;
+  return n + 'J';
 }
 
 function getCycleDistJa(t) {
