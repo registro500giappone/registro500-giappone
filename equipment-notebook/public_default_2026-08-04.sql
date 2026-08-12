@@ -1,12 +1,17 @@
 -- ============================================================
 -- 装備手帳: 公開の既定値を「公開」に変更する migration 起案
 -- migration名: equipment_notebook_public_default_2026_08_04
--- 状態: ★未適用★（2026-08-04 起案・適用はローカルPCから）
--- 根拠: 2026-08-06 にローカルPCで確認したところ column_default = false（＝この migration は流れていない）。
+-- 状態: ★適用済み★（2026-08-12 ローカルPCから適用・migration名は上記のとおり登録済み）
+--       適用前 column_default = false → 適用後 true を確認。
+--       既存行への影響なし（適用の前後とも is_public=true が14件・false は0件）。
+--       ※ 2026-08-04 起案時に最重要の注意点だった「パイロット6件を false のまま守る」は、
+--         適用時点で既に本人たちが公開に切り替えており false の行が0件だったため、
+--         守るべき既存行そのものが存在しなかった。
+--       ※ 列のdefaultは匿名RESTから見えないため、確認はローカルPCからしか行えない。
 --       select column_default from information_schema.columns
 --        where table_name='equipment_records' and column_name='is_public';
---       ※ 列のdefaultは匿名RESTから見えないため、この確認はローカルPCからしか行えない。
 --
+-- 【以下は起案当時（2026-08-04〜08-06）の記録。経緯として残す】
 -- ⚠️ 未適用だが実害はない（2026-08-06 全経路を調査して確認）。
 --   equipment_records への insert は equipment-edit.html の1箇所だけで、そこは
 --   is_public を必ず明示送信している（下の「補足」のとおり）。よって列のdefaultは使われない。
@@ -35,7 +40,8 @@ alter table public.equipment_records
   alter column is_public set default true;
 
 -- ============================================================
--- 適用後の確認（既存6件が false のままであることを必ず見る）
+-- 適用後の確認（2026-08-12 に実施済み。結果は冒頭の「状態」を見ること）
+-- ※ 以下の期待値は起案当時の想定。実際の適用時は false の行が0件だった。
 --   select is_public, count(*) from public.equipment_records group by is_public;
 --     → 方針変更の直後は false が6件・true が0件（または本人が公開した分のみ）
 --   select column_default from information_schema.columns
