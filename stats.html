@@ -169,7 +169,7 @@
     <div class="chart-card"><div class="chart-title">🏁 タイヤ ブランド</div><div class="chart-container tall"><canvas id="tireBrandChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">📏 タイヤ サイズ</div><div class="chart-container tall"><canvas id="tireSizeChart"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">🛞 ホイール</div><div class="chart-container"><canvas id="wheelChart"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">↔️ リム径/幅</div><div class="chart-container"><canvas id="rimChart"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">↔️ リム幅（J）</div><div class="chart-container"><canvas id="rimChart"></canvas></div></div>
   </div>
 
   <p class="page-outro">1台ずつの車両ページでは、その車がこの統計の中でどのあたりにいるかを「この車の立ち位置」として見られます。<a id="garageLink" href="/">車両一覧を見る →</a></p>
@@ -341,11 +341,11 @@
 
     renderBar('tireBrandChart', cars, c => getBrandJa(c.TireBrandName), '#2196f3');
     renderBar('tireSizeChart', cars, c => normalizeTireSize(c.TireSize), '#00bcd4');
+    noteRimDiameters('tireSizeChart', cars);
     renderPie('wheelChart', cars, c => c.Wheel, 'italy');
-    renderBar('rimChart', cars, c => {
-      if(!c.RimDiameter_in) return null;
-      return c.RimDiameter_in + 'インチ' + (c.RimWidth_in ? '(' + c.RimWidth_in + 'J)' : '');
-    }, '#9e9e9e');
+    // リム径は出さない。タイヤサイズに必ず含まれる冗長な情報で、しかも回答数が少ない。
+    // タイヤサイズからは分からないリム幅(J)だけがここでの独自情報になる。
+    renderBar('rimChart', cars, c => normalizeRimWidth(c.RimWidth_in), '#9e9e9e');
   }
 
   // ---- サマリータイル ------------------------------------------------------
@@ -455,6 +455,18 @@
   function setSampleCount(id, n) {
     if (n >= totalCars) return;
     setCardNote(id, `回答 ${n}台 / 全${totalCars}台`);
+  }
+
+  // リム径はタイヤサイズから導いて注記で添える（専用のグラフは持たない）。
+  function noteRimDiameters(id, cars) {
+    const counts = {};
+    cars.forEach(c => {
+      const rim = rimDiameterFromTireSize(normalizeTireSize(c.TireSize));
+      if (rim) counts[rim] = (counts[rim] || 0) + 1;
+    });
+    const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    if (entries.length === 0) return;
+    setCardNote(id, 'リム径は ' + entries.map(([d, n]) => `${d}インチ ${n}台`).join(' / '));
   }
 
   // グラフ見出しの下に添える小さな注記。resetDotLists() でまとめて消える。
