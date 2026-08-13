@@ -209,6 +209,27 @@
       letter-spacing: -0.01em; white-space: nowrap;
     }
 
+    /* 締め付け順序の図。既定は畳む */
+    .tq-seq { margin-top: 10px; }
+    .tq-seq summary {
+      cursor: pointer; font-size: 0.85rem; font-weight: 700; color: var(--rg-accent);
+      list-style: none; padding: 6px 0;
+    }
+    .tq-seq summary::-webkit-details-marker { display: none; }
+    .tq-seq summary::before { content: '▸ '; }
+    .tq-seq[open] summary::before { content: '▾ '; }
+    .tq-seq-body-wrap { padding-top: 2px; }
+    .tq-seq-svg { display: block; width: 100%; max-width: 320px; height: auto; margin: 2px 0 4px; }
+    .tq-seq-body { fill: var(--rg-surface-sub); stroke: var(--rg-border); stroke-width: 2; }
+    .tq-seq-plug { fill: var(--rg-bg); stroke: var(--rg-border); stroke-width: 2; }
+    .tq-seq-hole { fill: var(--rg-accent-soft); stroke: var(--rg-accent); stroke-width: 2; }
+    .tq-seq-num {
+      fill: var(--rg-accent); font-size: 19px; font-weight: 800;
+      text-anchor: middle; font-family: inherit;
+    }
+    .tq-seq-label { font-size: 0.8rem; font-weight: 700; margin: 8px 0 2px; color: var(--rg-text); }
+    .tq-seq-meta { font-size: 0.72rem; color: var(--rg-muted); line-height: 1.6; margin: 0 0 6px; }
+
     .tq-notes { margin: 8px 0 0; padding-left: 1.1em; font-size: 0.82rem; color: var(--rg-muted); line-height: 1.65; }
     .tq-notes li { margin-bottom: 3px; }
 
@@ -668,6 +689,56 @@
     );
   }
 
+  // ============================================================
+  // 締め付け順序の図
+  // ------------------------------------------------------------
+  // 原典の図を貼るのではなく、番号の並びだけを取って描き起こす（マニュアルPDFを
+  // 持ち出さない方針。図の体裁ではなく「どの穴を何番目に締めるか」が要るもの）。
+  // 既定は畳んでおく。作業中の画面で常時場所を取る情報ではないため。
+  // ============================================================
+  function seqSvg(seq) {
+    // head8＝上下2列×4本。原典の図と同じ左→右の並びで置く。
+    var xs = [46, 112, 188, 254];
+    var rows = [[seq.top, 82], [seq.bottom, 128]];
+    var svg = '<svg class="tq-seq-svg" viewBox="0 0 300 172" role="img" '
+            + 'aria-label="締め付け順序: 上段 ' + seq.top.join('・') + '、下段 ' + seq.bottom.join('・') + '">';
+    svg += '<rect class="tq-seq-body" x="14" y="16" width="272" height="140" rx="16"/>';
+    // 中央上の穴は点火プラグ。上下どちら向きの図か分かるようにするための目印。
+    svg += '<circle class="tq-seq-plug" cx="150" cy="44" r="11"/>';
+    for (var r = 0; r < rows.length; r++) {
+      var nums = rows[r][0], cy = rows[r][1];
+      for (var i = 0; i < nums.length; i++) {
+        svg += '<circle class="tq-seq-hole" cx="' + xs[i] + '" cy="' + cy + '" r="17"/>';
+        svg += '<text class="tq-seq-num" x="' + xs[i] + '" y="' + (cy + 6) + '">' + nums[i] + '</text>';
+      }
+    }
+    svg += '</svg>';
+    return svg;
+  }
+
+  function renderSequences(item) {
+    var seqs = (item.sequences || []).filter(function (s) {
+      // 形式を選んでいるときは、その形式の図だけ出す（順序は形式で違う）
+      if (currentEngine === 'all' || !s.engines) return true;
+      return s.engines.indexOf(currentEngine) !== -1;
+    });
+    if (!seqs.length) return '';
+
+    var html = '<details class="tq-seq"><summary>締め付け順序の図を見る</summary><div class="tq-seq-body-wrap">'
+             + '<p class="tq-seq-meta">数字が締める順番。中央上の丸は点火プラグ穴で、'
+             + '原典の図と同じ向きに並べています。</p>';
+    for (var i = 0; i < seqs.length; i++) {
+      var s = seqs[i];
+      // 形式で順序が違うので、2つ以上出るときはどの形式のものか必ず添える
+      if (seqs.length > 1) html += '<p class="tq-seq-label">' + esc(s.label) + '</p>';
+      html += seqSvg(s);
+      html += '<p class="tq-seq-meta">出典: ' + srcLabel(s.source, s.ref)
+            + '（番号の並びのみ。図は当ページで描き起こし）</p>';
+    }
+    html += '</div></details>';
+    return html;
+  }
+
   // ---- カード1枚 ----
   function renderCard(item) {
     var cls = 'tq-card';
@@ -743,6 +814,8 @@
       }
       html += '</ul>';
     }
+
+    html += renderSequences(item);
 
     if (item.source) {
       var srcLine = srcLabel(item.source, item.source_id);
