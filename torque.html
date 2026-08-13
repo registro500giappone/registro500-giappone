@@ -1375,12 +1375,17 @@
     return name + (car.engine_display ? '・' + car.engine_display : '');
   }
 
-  // 帯の1行目用。オーナーの登録どおりの長い表記ではなく、当ページの区分名で短く出す。
-  // 対応づかないエンジンは「ベース車体のみ」＝実際にそう絞り込むので、そのまま書く。
-  function myCarShort(car) {
-    var name = car.model_display_a || (car.car_type === '126' ? 'FIAT 126' : 'FIAT 500');
-    var e = engineDef(usableEngineFamily(car));
-    return name + ' ／ ' + (e ? e.label : 'ベース車体のみ');
+  // 帯の1行目。車名も系統名も出さない。
+  // ⚠️ ここで絞り込みの中身を繰り返さないこと＝常時見えている上の1行（renderFitSummary）に
+  //    「車: FIAT 500 ／ 500系エンジン」と出ている。帯はその下の階層なので、状態だけで足りる。
+  // ⚠️ ただし「エンジンがまだ絞れていない」ことだけは残す。登録の値から判定できない車が
+  //    26%（44台）あり、黙って「合わせています」と出すとエンジン側も合っていると誤読される。
+  //    この一言が、開いて2択に答えてもらうための入口になる。
+  function myCarHead(car, matched) {
+    if (!matched) return 'ご登録の車に合わせる';
+    return usableEngineFamily(car)
+      ? 'ご登録の車に合わせています'
+      : 'ご登録の車に合わせています（エンジンは未設定）';
   }
 
   // 絞り込みを入れる／外す。外したあとも帯は残し、いつでも入れ直せるようにする。
@@ -1410,7 +1415,7 @@
 
     var matched = myCarMatches();
     // 1行目は「車名 ／ エンジン系統」だけ。作業中に読む文字数を最小にする。
-    var head = '🚗 ' + esc(myCarShort(car)) + (matched ? ' に合わせています' : ' に合わせる');
+    var head = '🚗 ' + esc(myCarHead(car, matched));
 
     var body = '';
     if (myCars.length > 1) {
