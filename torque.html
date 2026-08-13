@@ -57,7 +57,7 @@
     .tq-warn li { margin-bottom: 4px; }
 
     /* ===== 検索バー ===== */
-    /* 適合の絞り込み（エンジン形式・車体） */
+    /* 適合の絞り込み（ベース車体・エンジン系統） */
     .tq-fit-wrap {
       background: var(--rg-surface-sub); border: 1px solid var(--rg-border);
       border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;
@@ -161,6 +161,10 @@
       border: 1px solid var(--rg-accent); background: transparent; color: var(--rg-accent);
     }
     .tq-mycar-sub { display: block; margin-top: 4px; color: var(--rg-muted); font-size: 0.78rem; }
+    /* 登録の値では系統が判定できない車に、その場で2択で聞くための行 */
+    .tq-mycar-ask { display: block; margin-top: 8px; font-size: 0.82rem; font-weight: 700; }
+    .tq-mycar-ask-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+    .tq-mycar-ask-row .tq-mycar-btn { margin-top: 0; flex: 1 1 auto; }
 
     /* ===== トルクカード ===== */
     .tq-card {
@@ -380,7 +384,7 @@
     </ul>
   </details>
 
-  <!-- ===== 車のえらび方（エンジンと車体を別々に選ぶ） ===== -->
+  <!-- ===== 車のえらび方（ベース車体とエンジンを別々に選ぶ） ===== -->
   <!-- 普段は「いま何で絞っているか」の1行だけ。押すと選び直せる。
        一度選んだら滅多に変えない設定なので、作業中の画面から場所を取らせない。 -->
   <details class="tq-fit-wrap" id="tqFitBox">
@@ -390,18 +394,19 @@
       <details class="tq-mycar" id="tqMyCar" style="display:none"></details>
       <div class="tq-fit-row">
         <label class="tq-fit">
-          <span class="tq-fit-label">エンジン形式</span>
-          <select id="tqEngine" class="tq-fit-select"></select>
+          <span class="tq-fit-label">ベース車体</span>
+          <select id="tqChassis" class="tq-fit-select"></select>
         </label>
         <label class="tq-fit">
-          <span class="tq-fit-label">車体</span>
-          <select id="tqChassis" class="tq-fit-select"></select>
+          <span class="tq-fit-label">エンジン</span>
+          <select id="tqEngine" class="tq-fit-select"></select>
         </label>
       </div>
       <p class="tq-fit-note">
-        エンジンを載せ替えている車が多いので、<strong>エンジンと車体は別々に選びます</strong>。
+        エンジンを載せ替えている車が多いので、<strong>ベース車体とエンジンは別々に選びます</strong>。
         分からなければ「すべて表示」のまま。選んだ内容はこの端末に記憶されます。
       </p>
+      <p class="tq-fit-note" id="tqEngineNote"></p>
     </div>
   </details>
 
@@ -675,19 +680,18 @@
   }
 
   // ---- その項目が「どれ向けの値か」の表示 ----
-  // エンジン形式で決まる部品はエンジン形式を、車体側の部品は車体を出す。
+  // エンジンに付く部品はエンジン系統を、車体側の部品はベース車体を出す。
   function fitsLabel(item) {
     var f = item.fits || {};
     var out = [];
     if (f.engine) {
       for (var i = 0; i < f.engine.length; i++) {
         var e = engineDef(f.engine[i]);
-        // 排気量は付けない。4形式並ぶと3行になって、肝心のトルク値が画面から押し出される
-        if (e) out.push(esc(e.label));
+        if (e && out.indexOf(esc(e.label)) === -1) out.push(esc(e.label));
       }
-      // 全形式に当たるなら列挙しない。ここは「自分の車が対象か」を確かめる行なので、
-      // 全部が対象なら形式名を4つ読ませる意味がない。
-      if (out.length === (DATA.engines || []).length) return '対象エンジン: 全形式共通';
+      // 両系統に当たるなら列挙しない。ここは「自分の車が対象か」を確かめる行なので、
+      // 全部が対象なら系統名を2つ読ませる意味がない。
+      if (out.length === (DATA.engines || []).length) return '対象エンジン: 全エンジン共通';
       return '対象エンジン: ' + (out.join(' ／ ') || '—');
     }
     if (f.chassis) {
@@ -695,16 +699,28 @@
         var c = chassisName(f.chassis[j]);
         if (c) out.push(esc(c));
       }
-      return '対象車体: ' + (out.join(' ／ ') || '—');
+      return '対象のベース車体: ' + (out.join(' ／ ') || '—');
     }
     return '対象: 共通';
   }
 
+  // 系統IDで引く。fits.engine に形式ID（110F 等）が書かれていても、
+  // その形式を含む系統を返す＝将来ここだけ形式単位で分岐させる逃げ道（_readme 参照）。
   function engineDef(id) {
-    for (var i = 0; i < (DATA.engines || []).length; i++) {
-      if (DATA.engines[i].id === id) return DATA.engines[i];
+    var list = DATA.engines || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === id) return list[i];
+    }
+    for (var j = 0; j < list.length; j++) {
+      if ((list[j].forms || []).indexOf(id) !== -1) return list[j];
     }
     return null;
+  }
+
+  // その系統に属する形式IDか（順序図の出し分けと、保存済み設定の読み替えに使う）
+  function engineHasForm(engineId, formId) {
+    var e = engineDef(engineId);
+    return !!e && (e.forms || []).indexOf(formId) !== -1;
   }
 
   // 値を持っているか。原典が lb·ft しか書いていない項目もあるので kgm だけで判定しない。
@@ -763,9 +779,14 @@
 
   function renderSequences(item) {
     var seqs = (item.sequences || []).filter(function (s) {
-      // 形式を選んでいるときは、その形式の図だけ出す（順序は形式で違う）
+      // 系統を選んでいるときは、その系統に属する形式の図だけ出す。
+      // 順序が形式で違うのはヘッドナットだけで、値は系統で共通（データの _readme 参照）。
+      // 500系は2枚とも該当するが、選ばせずに2枚並べて車名ラベルで見分けさせる。
       if (currentEngine === 'all' || !s.engines) return true;
-      return s.engines.indexOf(currentEngine) !== -1;
+      for (var i = 0; i < s.engines.length; i++) {
+        if (engineHasForm(currentEngine, s.engines[i])) return true;
+      }
+      return false;
     });
     if (!seqs.length) return '';
 
@@ -775,7 +796,8 @@
              + '原典の図と同じ向きに並べています。</p>';
     for (var i = 0; i < seqs.length; i++) {
       var s = seqs[i];
-      // 形式で順序が違うので、2つ以上出るときはどの形式のものか必ず添える
+      // 形式で順序が違うので、2つ以上出るときはどの車のものか必ず添える。
+      // エンジン形式は選ばせないので、ラベルは車名を先頭にしてある（データ側）。
       if (seqs.length > 1) html += '<p class="tq-seq-label">' + esc(s.label) + '</p>';
       html += seqSvg(s);
       html += '<p class="tq-seq-meta">出典: ' + srcLabel(s.source, s.ref)
@@ -917,11 +939,19 @@
   }
 
   // ---- 一覧の描画 ----
-  // 選んだエンジン形式・車体に、その項目が当てはまるか
+  // 選んだエンジン系統・ベース車体に、その項目が当てはまるか。
+  // ⚠️ エンジンに付く部品はエンジンだけで、車体側の部品は車体だけで判定する（この早期returnを崩さない）。
+  //    載せ替え車（500の車体に126エンジン＝実データで35台）を正しく引ける唯一の形。
   function fitsSelection(item) {
     var f = item.fits || {};
     if (f.engine) {
-      return currentEngine === 'all' || f.engine.indexOf(currentEngine) !== -1;
+      if (currentEngine === 'all') return true;
+      // 系統IDで書かれていれば直接、形式ID（110F 等）で書かれていればその系統に属するかで判定
+      for (var i = 0; i < f.engine.length; i++) {
+        if (f.engine[i] === currentEngine) return true;
+        if (engineHasForm(currentEngine, f.engine[i])) return true;
+      }
+      return false;
     }
     if (f.chassis) {
       return currentChassis === 'all' || f.chassis.indexOf(currentChassis) !== -1;
@@ -1005,15 +1035,16 @@
     var countEl = document.getElementById('tqCount');
     countEl.textContent = list.length + ' 件（うち値あり ' + withValue + ' 件）';
 
-    // 選んだ形式の値をまだ持っていないときは、はっきりそう言う。
-    // 黙って空にすると「この形式は締めなくていい」と読まれかねないため。
+    // 選んだ系統の値をまだ持っていないときは、はっきりそう言う。
+    // 黙って空にすると「ここは締めなくていい」と読まれかねないため。
+    // 現在は両系統・両車体とも値があるので発火しないが、区分を足したときの安全網として残す。
     var msgs = [];
     if (currentEngine !== 'all' && !hasValueFor('engine', currentEngine)) {
       msgs.push(esc(engineName(currentEngine)) + ' の<strong>エンジン側</strong>のトルク値は、まだ収録できていません。'
-              + '他の形式の値で代用しないでください。');
+              + '他の系統の値で代用しないでください。');
     }
     if (currentChassis !== 'all' && !hasValueFor('chassis', currentChassis)) {
-      msgs.push(esc(chassisName(currentChassis)) + ' の<strong>車体側</strong>（足回り・ブレーキ・ステアリング）の'
+      msgs.push(esc(chassisName(currentChassis)) + ' の<strong>ベース車体側</strong>（足回り・ブレーキ・ステアリング）の'
               + 'トルク値は、まだ収録できていません。他の車体の値で代用しないでください。');
     }
 
@@ -1062,22 +1093,40 @@
     });
   }
 
-  // ---- 適合の絞り込み（エンジン形式・車体）----
+  // ---- 適合の絞り込み（エンジン系統・ベース車体）----
   function renderFitSelectors() {
     var eng = document.getElementById('tqEngine');
     var cha = document.getElementById('tqChassis');
 
-    // 形式名だけを出す。排気量・車名を足すと1行が長くなり、スマホでは末尾が切れて
-    // かえって選びにくい（形式が分かっている人が選ぶ欄なので、形式名だけで足りる）。
-    eng.innerHTML = '<option value="all">すべて表示（形式が分からないとき）</option>'
+    // 選択肢は「系統」の2つだけ。細かい形式は出さない（値が形式で分かれている項目が0件のため）。
+    // 排気量を添えるのは、形式名を知らなくても排気量なら答えられる人が多いから。
+    // 選択肢が2つしかないので、排気量を足しても1行に収まる。
+    eng.innerHTML = '<option value="all">すべて表示（分からないとき）</option>'
       + (DATA.engines || []).map(function (e) {
-          return '<option value="' + esc(e.id) + '">' + esc(e.label) + '</option>';
+          return '<option value="' + esc(e.id) + '">'
+               + esc(e.label) + (e.cc ? '（' + esc(e.cc) + '）' : '') + '</option>';
         }).join('');
 
     cha.innerHTML = '<option value="all">すべて表示</option>'
       + (DATA.chassis || []).map(function (c) {
           return '<option value="' + esc(c.id) + '">' + esc(c.label) + '</option>';
         }).join('');
+
+    // なぜ形式まで分けないのかと、各系統の値の出どころ。
+    // 126系は 594cc と 652cc、さらに Nuova500 R の 126A5.000 で値を共有しているので、
+    // その根拠と留保をここで一度だけ明かす（カードごとに繰り返すと本文が読めなくなる）。
+    var noteEl = document.getElementById('tqEngineNote');
+    if (noteEl) {
+      noteEl.innerHTML =
+        'エンジンは<strong>形式（110F.000 など）まで分けていません</strong>。'
+        + '手持ちの資料を全項目つき合わせた結果、締め付けトルクが形式によって変わる箇所が1つも無かったためです。'
+        + '形式で違うのはヘッドの締め付け順序だけで、その図は該当するものをすべて出しています。'
+        + (DATA.engines || []).map(function (e) {
+            if (!e.note) return '';
+            return '<br><strong>' + esc(e.label) + '</strong>'
+                 + (e.form_labels ? '（' + esc(e.form_labels) + '）' : '') + '＝' + esc(e.note);
+          }).join('');
+    }
 
     // 前回この端末で選んだ内容があれば復元する（オーナーでなくても効く）
     var saved = loadSavedFits();
@@ -1115,10 +1164,10 @@
     var c = currentChassis === 'all' ? '' : chassisName(currentChassis);
 
     var txt;
-    if (!e && !c) txt = 'すべて表示（エンジン形式・車体をえらぶ）';
+    if (!e && !c) txt = 'すべて表示（ベース車体・エンジンをえらぶ）';
     else if (e && c) txt = c + ' ／ ' + e;
     else if (c) txt = c + '（エンジンはすべて）';
-    else txt = e + '（車体はすべて）';
+    else txt = e + '（ベース車体はすべて）';
 
     // 登録車両と一致しているときだけ印を出す。ログインしていない人には出ない。
     var mark = myCarMatches() ? ' 🚗ご登録の車' : '';
@@ -1126,7 +1175,7 @@
   }
 
   // ============================================================
-  // 選んだエンジン形式・車体をこの端末に覚えておく
+  // 選んだエンジン系統・ベース車体をこの端末に覚えておく
   // ------------------------------------------------------------
   // 早見帳は「自分の車の値を何度も見に来る」使い方をするページなので、
   // 開き直すたびに選び直させない。保存するのは選択IDだけで、個人情報は持たない。
@@ -1150,9 +1199,16 @@
     var v;
     try { v = JSON.parse(raw); } catch (e) { return null; }
     if (!v) return null;
-    // データ側の区分が変わっている可能性があるので、現在の一覧に無いIDは捨てる
+    // データ側の区分が変わっている可能性があるので、現在の一覧に無いIDは捨てる。
+    // ただし旧・形式ID（110F 等）が入っている端末は、その形式が属する系統へ読み替える。
+    // 系統2択に作り替える前の保存を、黙って「すべて表示」に落とさないため。
+    var eng = v.engine;
+    if (!idExists(DATA.engines, eng)) {
+      var def = eng ? engineDef(eng) : null;   // engineDef は forms も見る
+      eng = def ? def.id : 'all';
+    }
     return {
-      engine: idExists(DATA.engines, v.engine) ? v.engine : 'all',
+      engine: eng,
       chassis: idExists(DATA.chassis, v.chassis) ? v.chassis : 'all'
     };
   }
@@ -1170,15 +1226,11 @@
     return loadSavedFits() !== null;
   }
 
-  // 選択中のエンジン形式・車体の表示名（メッセージ用）
-  // 排気量・車名は付けない。形式名だけで通じるうえ、プルダウンの表示とも揃う。
+  // 選択中のエンジン系統・ベース車体の表示名（メッセージ用）
+  // 排気量・車名は付けない。系統名だけで通じるうえ、他の表示とも揃う。
   function engineName(id) {
-    for (var i = 0; i < (DATA.engines || []).length; i++) {
-      if (DATA.engines[i].id === id) {
-        return DATA.engines[i].label;
-      }
-    }
-    return '';
+    var e = engineDef(id);
+    return e ? e.label : '';
   }
   function chassisName(id) {
     for (var i = 0; i < (DATA.chassis || []).length; i++) {
@@ -1268,39 +1320,54 @@
   }
 
   // ============================================================
-  // ログイン済みオーナーの登録車両で、エンジン形式と車体の初期値を入れる
+  // ログイン済みオーナーの登録車両で、エンジン系統とベース車体の初期値を入れる
   // ------------------------------------------------------------
   // このページは閲覧にログインを要求しない。未ログイン・車両未登録・
   // ライブラリ未読込のときは、何も出さずに黙って終わること。
   // ============================================================
   var myCars = [];
   var myCarIndex = 0;
+  // 「積んでいるエンジンはどちら？」に本人が答えた内容（登録の値では判定できない車のため）。
+  // この場かぎりの保持で、DBには書かない。押した時点で saveFits() が端末に残す。
+  var myCarAnswer = {};
 
   // 帯の文言は「いま実際にその車の条件になっているか」で決める。
   // プルダウンを手で戻したときにも表示が実態とズレないようにするため。
   function myCarMatches() {
     var car = myCars[myCarIndex];
     if (!car) return false;
+    // ⚠️ engineFamilyFromCar ではなく usableEngineFamily で比べること。
+    //    BIS（当ページの資料が対象にしていない）は applyMyCar が 'all' を入れるので、
+    //    'bis' と比べると永久に不一致になり「この車に合わせる」が押しても消えない。
     return currentChassis === (car.car_type === '126' ? '126' : '500')
-      && currentEngine === (engineIdFromCar(car) || 'all');
+      && currentEngine === (usableEngineFamily(car) || 'all');
   }
 
-  // engine_type_select（edit.html のプルダウンの値）を当ページのエンジンIDへ写す。
+  // engine_type_select（edit.html のプルダウンの値）を当ページのエンジン系統へ写す。
   // 「110F.000 （ABA205）」のような括弧書き・全角空白・ドットを落として頭で判定する。
-  // 確実に対応づけられないもの（126A5.000／その他／不明／未記入）は null を返し、
-  // 車体だけ合わせる。適合はエンジン形式で判断するページなので、推測で埋めない。
-  function engineIdFromCar(car) {
-    if (!car || !car.engine_type_select) return null;
+  // ⚠️ 系統2択なので判定は2分岐で足りる。形式まで見ていた頃は 126A1 を 126A より先に
+  //    見ないと誤爆したが、その順序依存そのものが無くなった。
+  //   ・126… → 126系（126A.000 / 126A1.000 / 126A1.048 / 126A5.000＝Nuova500 R）
+  //   ・110… / 120… → 500系
+  //   ・BIS（704cc・水冷）→ 'bis'。当ページの資料が対象にしていないので絞り込みには使わない
+  //   ・その他 / 不明 / 未記入 → null。推測で埋めず、帯で本人に2択を聞く
+  function engineFamilyFromCar(car) {
+    if (!car) return null;
+    if (myCarAnswer[car.document_id]) return myCarAnswer[car.document_id];
+    if (!car.engine_type_select) return null;
     var k = String(car.engine_type_select).toUpperCase()
       .replace(/[（(].*$/, '')
       .replace(/[\s.\-　]/g, '');
-    if (/^126A1/.test(k)) return '126A1';
-    if (/^126A0/.test(k)) return '126A';
-    if (/^110D/.test(k)) return '110D';
-    if (/^110F/.test(k)) return '110F';
-    if (/^120/.test(k)) return '120';
-    if (/^110/.test(k)) return '110';
+    if (/^126/.test(k)) return 'e126';
+    if (/^110/.test(k) || /^120/.test(k)) return 'e500';
+    if (/^BIS/.test(k)) return 'bis';
     return null;
+  }
+
+  // 絞り込みに使える系統かどうか（'bis' と null は使えない）
+  function usableEngineFamily(car) {
+    var f = engineFamilyFromCar(car);
+    return engineDef(f) ? f : null;
   }
 
   function myCarLabel(car) {
@@ -1309,15 +1376,11 @@
   }
 
   // 帯の1行目用。オーナーの登録どおりの長い表記ではなく、当ページの区分名で短く出す。
-  // 対応づかないエンジンは「車体のみ」＝実際にそう絞り込むので、そのまま書く。
+  // 対応づかないエンジンは「ベース車体のみ」＝実際にそう絞り込むので、そのまま書く。
   function myCarShort(car) {
     var name = car.model_display_a || (car.car_type === '126' ? 'FIAT 126' : 'FIAT 500');
-    var eid = engineIdFromCar(car);
-    var elabel = '車体のみ';
-    for (var i = 0; i < (DATA.engines || []).length; i++) {
-      if (DATA.engines[i].id === eid) { elabel = DATA.engines[i].label; break; }
-    }
-    return name + ' ／ ' + elabel;
+    var e = engineDef(usableEngineFamily(car));
+    return name + ' ／ ' + (e ? e.label : 'ベース車体のみ');
   }
 
   // 絞り込みを入れる／外す。外したあとも帯は残し、いつでも入れ直せるようにする。
@@ -1327,7 +1390,7 @@
     if (!car) return;
     if (on) {
       currentChassis = (car.car_type === '126') ? '126' : '500';
-      currentEngine = engineIdFromCar(car) || 'all';
+      currentEngine = usableEngineFamily(car) || 'all';
     } else {
       currentChassis = 'all';
       currentEngine = 'all';
@@ -1346,7 +1409,7 @@
     if (!car) { box.style.display = 'none'; return; }
 
     var matched = myCarMatches();
-    // 1行目は「車名 ／ エンジン形式」だけ。作業中に読む文字数を最小にする。
+    // 1行目は「車名 ／ エンジン系統」だけ。作業中に読む文字数を最小にする。
     var head = '🚗 ' + esc(myCarShort(car)) + (matched ? ' に合わせています' : ' に合わせる');
 
     var body = '';
@@ -1358,14 +1421,28 @@
           }).join('')
         + '</select>';
     }
-    if (!engineIdFromCar(car)) {
-      // 未記入・「その他」「不明」のほか、当ページに区分の無い形式（126A5 など）もここに来る。
-      // どちらなのか読む人に分かるよう、登録されている値があればそのまま出す。
+    var fam = engineFamilyFromCar(car);
+    if (fam === 'bis') {
+      // 126 BIS（704cc・水冷）。手持ちの4資料がどれも対象にしていないので、2択も聞かない。
+      body += '<span class="tq-mycar-sub">'
+            + 'ご登録の BIS（704cc・水冷）は、当ページの資料が対象にしていません。'
+            + 'ベース車体の値のみ表示しています。</span>';
+    } else if (!fam) {
+      // 未記入・「その他」「不明」。形式は知らなくても排気量の系統なら答えられる人が多いので、
+      // ここで2択だけ聞く。推測で埋めるのではなく本人に選んでもらう＝§8「推測で埋めない」を守る形。
       body += '<span class="tq-mycar-sub">'
             + (car.engine_type_select
-                ? 'ご登録のエンジン形式（' + esc(car.engine_type_select) + '）は当ページの区分に対応づけられないため、'
+                ? 'ご登録のエンジン形式（' + esc(car.engine_type_select) + '）からは判断できないため、'
                 : 'エンジン形式が未記入のため、')
-            + '車体だけ合わせます。積んでいるエンジンが分かる場合は、上の「エンジン形式」からお選びください。</span>';
+            + 'ベース車体だけ合わせています。</span>'
+            + '<span class="tq-mycar-ask">積んでいるエンジンはどちらですか？</span>'
+            + '<span class="tq-mycar-ask-row">'
+            + (DATA.engines || []).map(function (e) {
+                return '<button type="button" class="tq-mycar-btn tq-mycar-ask-btn" data-eng="'
+                     + esc(e.id) + '">' + esc(e.label)
+                     + (e.cc ? '（' + esc(e.cc) + '）' : '') + '</button>';
+              }).join('')
+            + '</span>';
     }
     body += matched
       ? '<button type="button" class="tq-mycar-btn" id="tqMyCarOff">すべて表示に戻す</button>'
@@ -1387,6 +1464,16 @@
     if (off) off.addEventListener('click', function () { applyMyCar(false, true); });
     var on = document.getElementById('tqMyCarOn');
     if (on) on.addEventListener('click', function () { applyMyCar(true, true); });
+
+    // 2択の答え。本人が押した選択なので端末に保存してよい（byUser=true）。
+    // 保持はこの場かぎりで、DBの登録内容は書き換えない。
+    var asks = box.querySelectorAll('.tq-mycar-ask-btn');
+    for (var a = 0; a < asks.length; a++) {
+      asks[a].addEventListener('click', function () {
+        myCarAnswer[car.document_id] = this.getAttribute('data-eng');
+        applyMyCar(true, true);
+      });
+    }
   }
 
   function loadMyCar() {
@@ -1425,7 +1512,7 @@
   // 「直したはずの内容が出ない」が起きる（実際に順序図とタブ名で発生した）。
   // 新しいSWは更新バナーをタップするまで有効にならないので、SW側の修正だけでは間に合わない。
   // クエリを変えるとキャッシュのキーが変わるので、SWの世代に関係なく取り直せる。
-  var DATA_VERSION = '2026-08-13c';
+  var DATA_VERSION = '2026-08-14a';
   fetch('torque-data.json?v=' + DATA_VERSION)
     .then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -1442,6 +1529,9 @@
       var srcLabels = DATA.sources.map(function (s) { return s.label; }).join('、');
       document.getElementById('tqDisclaimer').textContent =
         '出典: ' + srcLabels + '。'
+        + 'ベース車体側（足回り・ステアリング・ブレーキ・ボディ）の値は、Nuova500 の N/D・F/L・R で共通として扱っています。'
+        + '根拠は、Fiat 純正の R 差分補遺（500 VARIANTI）に足回り・ステアリング・ブレーキ機構の変更が1件も挙がっていないこと、'
+        + 'および N/D と F/L で2資料を照合した18項目に差が無かったことです。'
         + 'ここに載せている値は参考情報であり、正確性を保証するものではありません。'
         + '作業は必ずご自身の責任で、お手元の整備書と照らし合わせて行ってください。'
         + '値の誤り・追加したい箇所にお気づきの方はご連絡ください。';
