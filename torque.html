@@ -471,11 +471,19 @@
     return null;
   }
 
+  // 値を持っているか。原典が lb·ft しか書いていない項目もあるので kgm だけで判定しない。
+  function itemHasValue(i) {
+    return i.kgm !== null && i.kgm !== undefined
+        || i.lbft !== null && i.lbft !== undefined
+        || !!i.procedure;
+  }
+
   // ---- カード1枚 ----
   function renderCard(item) {
     var cls = 'tq-card';
     if (item.critical) cls += ' is-critical';
-    var hasValue = item.kgm !== null && item.kgm !== undefined;
+    var hasValue = (item.kgm !== null && item.kgm !== undefined)
+                || (item.lbft !== null && item.lbft !== undefined);
     var hasProc = !!item.procedure;
     if (!hasValue && !hasProc) cls += ' is-empty';
 
@@ -495,19 +503,28 @@
             + '<span class="tq-procedure-label">締めっぱなしにしない箇所です</span>'
             + esc(item.procedure) + '</div>';
     } else if (hasValue) {
-      var nmMin = item.kgm * KGM_TO_NM;
-      var nmMax = (item.kgm_max !== null && item.kgm_max !== undefined) ? item.kgm_max * KGM_TO_NM : null;
+      // 原典が lb·ft しか書いていない項目もある（純正独語版に対応する記述が無い箇所）。
+      // 原典に無い値は換算で作らない方針なので、その場合は kgf·m を持たない。
+      // N·m は「持っている方の原値」から計算する。
+      var hasKgm = item.kgm !== null && item.kgm !== undefined;
+      var nmMin = hasKgm ? item.kgm * KGM_TO_NM : item.lbft * LBFT_TO_NM;
+      var nmMax = hasKgm
+        ? ((item.kgm_max !== null && item.kgm_max !== undefined) ? item.kgm_max * KGM_TO_NM : null)
+        : ((item.lbft_max !== null && item.lbft_max !== undefined) ? item.lbft_max * LBFT_TO_NM : null);
 
       html += '<div class="tq-value">';
       html += '<div class="tq-nm">' + fmtNm(nmMin)
             + (nmMax !== null ? '〜' + fmtNm(nmMax) : '')
             + '<span class="tq-nm-unit">N·m</span></div>';
 
-      var sub = fmtRaw(item.kgm) + (item.kgm_max ? '〜' + fmtRaw(item.kgm_max) : '') + ' kgf·m';
-      if (item.lbft !== null && item.lbft !== undefined) {
-        sub += ' ／ ' + fmtRaw(item.lbft) + (item.lbft_max ? '〜' + fmtRaw(item.lbft_max) : '') + ' lb·ft';
+      var sub = [];
+      if (hasKgm) {
+        sub.push(fmtRaw(item.kgm) + (item.kgm_max ? '〜' + fmtRaw(item.kgm_max) : '') + ' kgf·m');
       }
-      html += '<div class="tq-sub">' + esc(sub) + '</div>';
+      if (item.lbft !== null && item.lbft !== undefined) {
+        sub.push(fmtRaw(item.lbft) + (item.lbft_max ? '〜' + fmtRaw(item.lbft_max) : '') + ' lb·ft');
+      }
+      html += '<div class="tq-sub">' + esc(sub.join(' ／ ')) + '</div>';
       html += '</div>';
     } else {
       html += '<p class="tq-novalue"><strong>値は未登録です。</strong>'
@@ -547,12 +564,20 @@
         for (var k = 0; k < diffs.length; k++) {
           var dx = diffs[k];
           html += '<div class="tq-diff">';
-          if (dx.kgm !== null && dx.kgm !== undefined) {
-            var dNmMin = dx.kgm * KGM_TO_NM;
-            var dNmMax = (dx.kgm_max !== null && dx.kgm_max !== undefined) ? dx.kgm_max * KGM_TO_NM : null;
+          // 相手の資料が lb·ft でしか書いていない場合もある（英語版WSM）。
+          // その場合は lb·ft を原値として N·m を出す。原典に無い kgf·m は作らない。
+          var dHasKgm = dx.kgm !== null && dx.kgm !== undefined;
+          var dHasLbft = dx.lbft !== null && dx.lbft !== undefined;
+          if (dHasKgm || dHasLbft) {
+            var dBase = dHasKgm ? dx.kgm : dx.lbft;
+            var dBaseMax = dHasKgm
+              ? ((dx.kgm_max !== null && dx.kgm_max !== undefined) ? dx.kgm_max : null)
+              : ((dx.lbft_max !== null && dx.lbft_max !== undefined) ? dx.lbft_max : null);
+            var dFactor = dHasKgm ? KGM_TO_NM : LBFT_TO_NM;
+            var dUnit = dHasKgm ? ' kgf·m' : ' lb·ft';
             html += '<span class="tq-diff-val">別の資料では '
-                  + fmtNm(dNmMin) + (dNmMax !== null ? '〜' + fmtNm(dNmMax) : '') + ' N·m'
-                  + '（' + fmtRaw(dx.kgm) + (dx.kgm_max ? '〜' + fmtRaw(dx.kgm_max) : '') + ' kgf·m）'
+                  + fmtNm(dBase * dFactor) + (dBaseMax !== null ? '〜' + fmtNm(dBaseMax * dFactor) : '') + ' N·m'
+                  + '（' + fmtRaw(dBase) + (dBaseMax !== null ? '〜' + fmtRaw(dBaseMax) : '') + dUnit + '）'
                   + '</span>';
           }
           if (dx.note) html += '<span class="tq-diff-note">' + esc(dx.note) + '</span>';
@@ -595,8 +620,8 @@
 
     // 値のあるものを先に、その中で重要保安を先に
     list.sort(function (a, b) {
-      var av = (a.kgm !== null || a.procedure) ? 0 : 1;
-      var bv = (b.kgm !== null || b.procedure) ? 0 : 1;
+      var av = itemHasValue(a) ? 0 : 1;
+      var bv = itemHasValue(b) ? 0 : 1;
       if (av !== bv) return av - bv;
       return (b.critical ? 1 : 0) - (a.critical ? 1 : 0);
     });
@@ -609,7 +634,7 @@
       el.innerHTML = list.map(renderCard).join('');
     }
 
-    var withValue = list.filter(function (i) { return i.kgm !== null || i.procedure; }).length;
+    var withValue = list.filter(itemHasValue).length;
     var countEl = document.getElementById('tqCount');
     countEl.textContent = list.length + ' 件（うち値あり ' + withValue + ' 件）';
 
@@ -635,7 +660,7 @@
     return DATA.items.some(function (i) {
       return i.fits && i.fits[axis]
         && i.fits[axis].indexOf(id) !== -1
-        && (i.kgm !== null || i.procedure);
+        && itemHasValue(i);
     });
   }
 
