@@ -491,7 +491,9 @@
 
     html += '<p class="tq-card-name">' + esc(item.name);
     if (item.critical) html += '<span class="tq-flag tq-flag-critical">⚠️ 重要保安</span>';
-    if (!item.verified) html += '<span class="tq-flag tq-flag-unverified">未確認</span>';
+    // no_spec は「原典を当たった結果、指定が無かった」と確認済みの項目。
+    // 未調査ではないので「未確認」バッジは出さない（下の tq-novalue で理由を説明する）。
+    if (!item.verified && !item.no_spec) html += '<span class="tq-flag tq-flag-unverified">未確認</span>';
     html += '</p>';
 
     // 同じ部位でも 500 と 126 で値が違うものがある。絞り込みを「すべて」で見ていると
@@ -526,6 +528,13 @@
       }
       html += '<div class="tq-sub">' + esc(sub.join(' ／ ')) + '</div>';
       html += '</div>';
+    } else if (item.no_spec) {
+      // 「まだ調べていない」と「調べたが原典に無い」は読む人にとって意味が違う。
+      // 後者は探しても見つからないので、その旨を書いて無駄足を止める。
+      html += '<p class="tq-novalue"><strong>整備書に締め付けトルクの指定がありません。</strong>'
+            + '当ページの出典（英語版WSM・純正独語版とそのジャルディニエラ補遺・126の2資料）について、'
+            + '締付トルクの一覧表と本文をすべて確認しましたが、この箇所の指定は見つかりませんでした。'
+            + '下の「ねじサイズから目安を調べる」で、ねじ径からの一般的な目安をご確認ください。</p>';
     } else {
       html += '<p class="tq-novalue"><strong>値は未登録です。</strong>'
             + '下の「ねじサイズから目安を調べる」か、お手元の整備書をご確認ください。</p>';
