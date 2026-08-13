@@ -661,9 +661,78 @@
     drawBar(id, data, color);
   }
 
+  // 横棒グラフの左側（y軸）のラベル。
+  // 以前は文字数で切って「…」を付けていたが、頭が同じラベルが並ぶ項目
+  // （「Nuova500 Prima Serie」「Nuova500 Giannini 500TV Fタイプ」など）だと
+  // 切ったあとがどれも同じ文字列になり、どの棒が何なのか読めなくなっていた。
+  // 切らずに折り返す（Chart.js は配列を返すと複数行として描く）。
+  // 幅は半角1・全角2で数える。単語の途中で割らずに済むなら半角スペースで折る。
+  function wrapTickLabel(label) {
+    const s = String(label == null ? '' : label).trim();
+    if (!s) return s;
+    const maxW = window.innerWidth <= 480 ? 16 : 24;
+    const MAX_LINES = 3;
+    const w = str => [...str].reduce((n, ch) => n + (/[\x20-\x7E｡-ﾟ]/.test(ch) ? 1 : 2), 0);
+
+    // 1語で1行に収まらないもの（長い日本語など）は文字単位で割る。
+    // 割った続きは sp:false にして、繋ぎ直すときスペースを入れない。
+    const tokens = [];
+    s.split(/\s+/).filter(Boolean).forEach(word => {
+      let cur = '', head = true;
+      [...word].forEach(ch => {
+        if (cur && w(cur + ch) > maxW) { tokens.push({ text: cur, sp: head }); cur = ''; head = false; }
+        cur += ch;
+      });
+      if (cur) tokens.push({ text: cur, sp: head });
+    });
+
+    const lines = [];
+    tokens.forEach(tk => {
+      if (!lines.length) { lines.push(tk.text); return; }
+      const joined = lines[lines.length - 1] + (tk.sp ? ' ' : '') + tk.text;
+      if (w(joined) <= maxW) lines[lines.length - 1] = joined;
+      else lines.push(tk.text);
+    });
+
+    if (lines.length <= MAX_LINES) return lines;
+    const kept = lines.slice(0, MAX_LINES);
+    kept[MAX_LINES - 1] += '…';
+    return kept;
+  }
+
+  // 折り返しでラベルが2〜3行になると、CSSで決め打ちした高さのままでは
+  // 行同士が上下の棒に食い込んで重なる。ラベルの行数から必要な高さを出して
+  // コンテナ側を伸ばす（縮めはしない＝元の高さが下限）。
+  function fitBarHeight(canvas, labels) {
+    const box = canvas.parentElement;
+    if (!box || !labels || !labels.length) return;
+    const base = parseFloat(box.dataset.baseHeight || '') || box.clientHeight;
+    if (!base) return;
+    box.dataset.baseHeight = base;
+    const need = labels.reduce((sum, l) => {
+      const lines = wrapTickLabel(l);
+      const n = Array.isArray(lines) ? lines.length : 1;
+      return sum + Math.max(n * 17 + 12, 28); // 1行約17px＋余白。棒1本の最小は28px
+    }, 0) + 60; // x軸の目盛りとその余白
+    box.style.height = Math.max(base, need) + 'px';
+  }
+
+  // 画面幅が変われば1行に入る文字数も変わる＝行数が変わるので高さを取り直す。
+  let fitTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(fitTimer);
+    fitTimer = setTimeout(() => {
+      Object.values(chartInstances).forEach(ins => {
+        if (!ins || !ins.canvas || ins.config.type !== 'bar') return;
+        fitBarHeight(ins.canvas, ins.data.labels);
+      });
+    }, 200);
+  });
+
   function drawBar(id, data, color) {
     const canvas = document.getElementById(id);
     if (!canvas) return;
+    fitBarHeight(canvas, data.map(d => d[0]));
     chartInstances[id] = new Chart(canvas, {
       type: 'bar',
       // color には棒ごとに色を変えたいとき関数を渡せる（ボディカラー用）。
@@ -682,7 +751,7 @@
           legend: { display: false }, 
           datalabels: { anchor: 'end', align: 'end', formatter: v => v + '台', color: chartLabelColor, font: { weight: 'bold' } } 
         },
-        scales: { x: { beginAtZero: true, grid: { display: false } }, y: { grid: { display: false }, ticks: { autoSkip: false, callback: function(value) { const label = this.getLabelForValue(value); const max = window.innerWidth <= 480 ? 10 : 16; return label.length > max ? label.slice(0, max) + '…' : label; } } } }
+        scales: { x: { beginAtZero: true, grid: { display: false } }, y: { grid: { display: false }, ticks: { autoSkip: false, callback: function(value) { return wrapTickLabel(this.getLabelForValue(value)); } } } }
       }
     });
   }
