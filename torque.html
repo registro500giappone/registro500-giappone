@@ -21,6 +21,7 @@
 
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
+  <script src="config.js"></script>
   <script src="fab-nav.js" defer></script>
 
   <style>
@@ -113,6 +114,25 @@
     }
 
     .tq-count { font-size: 0.78rem; color: var(--rg-muted); margin: 6px 2px 10px; }
+
+    /* ログイン済みオーナーの登録車両にそろえたときの帯 */
+    .tq-mycar {
+      background: var(--rg-accent-soft); border: 1px solid var(--rg-accent-border);
+      border-radius: 6px; padding: 10px 12px; margin: 0 0 12px;
+      font-size: 0.82rem; line-height: 1.7; color: var(--rg-text);
+    }
+    .tq-mycar-pick {
+      display: block; width: 100%; margin: 6px 0; padding: 7px 8px;
+      font-size: 0.85rem; font-family: inherit;
+      border: 1px solid var(--rg-border); border-radius: 6px;
+      background: var(--rg-surface); color: var(--rg-text);
+    }
+    .tq-mycar-btn {
+      margin-top: 6px; font-size: 0.78rem; font-weight: 700; font-family: inherit;
+      padding: 5px 12px; border-radius: 999px; cursor: pointer;
+      border: 1px solid var(--rg-accent); background: transparent; color: var(--rg-accent);
+    }
+    .tq-mycar-sub { display: block; margin-top: 4px; color: var(--rg-muted); font-size: 0.78rem; }
 
     /* ===== トルクカード ===== */
     .tq-card {
@@ -302,6 +322,8 @@
 
   <!-- ===== 車のえらび方（エンジンと車体を別々に選ぶ） ===== -->
   <div class="tq-fit-wrap">
+    <!-- ログイン済みオーナーの登録車両にそろえる帯。未ログインなら出さない -->
+    <div class="tq-mycar" id="tqMyCar" style="display:none"></div>
     <div class="tq-fit-row">
       <label class="tq-fit">
         <span class="tq-fit-label">エンジン形式</span>
@@ -388,6 +410,8 @@
 
 </div>
 
+<!-- ログイン済みオーナーの登録車両を読むためだけに使う。閲覧にログインは要らない -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0"></script>
 <script>
 (function () {
   'use strict';
@@ -818,6 +842,132 @@
     bind(lbEl, function (v) { return v * LBFT_TO_NM; });
   }
 
+  // ============================================================
+  // ログイン済みオーナーの登録車両で、エンジン形式と車体の初期値を入れる
+  // ------------------------------------------------------------
+  // このページは閲覧にログインを要求しない。未ログイン・車両未登録・
+  // ライブラリ未読込のときは、何も出さずに黙って終わること。
+  // ============================================================
+  var myCars = [];
+  var myCarIndex = 0;
+  var myCarApplied = false;
+
+  // engine_type_select（edit.html のプルダウンの値）を当ページのエンジンIDへ写す。
+  // 「110F.000 （ABA205）」のような括弧書き・全角空白・ドットを落として頭で判定する。
+  // 確実に対応づけられないもの（126A5.000／その他／不明／未記入）は null を返し、
+  // 車体だけ合わせる。適合はエンジン形式で判断するページなので、推測で埋めない。
+  function engineIdFromCar(car) {
+    if (!car || !car.engine_type_select) return null;
+    var k = String(car.engine_type_select).toUpperCase()
+      .replace(/[（(].*$/, '')
+      .replace(/[\s.\-　]/g, '');
+    if (/^126A1/.test(k)) return '126A1';
+    if (/^126A0/.test(k)) return '126A';
+    if (/^110D/.test(k)) return '110D';
+    if (/^110F/.test(k)) return '110F';
+    if (/^120/.test(k)) return '120';
+    if (/^110/.test(k)) return '110';
+    return null;
+  }
+
+  function myCarLabel(car) {
+    var name = car.model_display_a || (car.car_type === '126' ? 'FIAT 126' : 'FIAT 500');
+    return name + (car.engine_display ? '・' + car.engine_display : '');
+  }
+
+  // 絞り込みを入れる／外す。外したあとも帯は残し、いつでも入れ直せるようにする。
+  function applyMyCar(on) {
+    var car = myCars[myCarIndex];
+    if (!car) return;
+    myCarApplied = !!on;
+    if (myCarApplied) {
+      currentChassis = (car.car_type === '126') ? '126' : '500';
+      currentEngine = engineIdFromCar(car) || 'all';
+    } else {
+      currentChassis = 'all';
+      currentEngine = 'all';
+    }
+    document.getElementById('tqEngine').value = currentEngine;
+    document.getElementById('tqChassis').value = currentChassis;
+    renderList();
+    renderMyCarNotice();
+  }
+
+  function renderMyCarNotice() {
+    var box = document.getElementById('tqMyCar');
+    var car = myCars[myCarIndex];
+    if (!car) { box.style.display = 'none'; return; }
+
+    var html = '';
+    if (myCars.length > 1) {
+      html += '<select id="tqMyCarPick" class="tq-mycar-pick">'
+        + myCars.map(function (c, i) {
+            return '<option value="' + i + '"' + (i === myCarIndex ? ' selected' : '') + '>'
+              + esc(myCarLabel(c)) + '</option>';
+          }).join('')
+        + '</select>';
+    }
+
+    if (myCarApplied) {
+      html += '🚗 ご登録の<strong>「' + esc(myCarLabel(car)) + '」</strong>に合わせて絞り込んでいます。';
+      if (!engineIdFromCar(car)) {
+        // 未記入・「その他」「不明」のほか、当ページに区分の無い形式（126A5 など）もここに来る。
+        // どちらなのか読む人に分かるよう、登録されている値があればそのまま出す。
+        html += '<span class="tq-mycar-sub">'
+              + (car.engine_type_select
+                  ? 'ご登録のエンジン形式（' + esc(car.engine_type_select) + '）は当ページの区分に対応づけられなかったため、'
+                  : 'エンジン形式が未記入のため、')
+              + '車体だけ合わせています。'
+              + '積んでいるエンジンが分かる場合は、上の「エンジン形式」からお選びください。</span>';
+      }
+      html += '<br><button type="button" class="tq-mycar-btn" id="tqMyCarOff">すべて表示に戻す</button>';
+    } else {
+      html += '🚗 ご登録の<strong>「' + esc(myCarLabel(car)) + '」</strong>に合わせて絞り込めます。';
+      html += '<br><button type="button" class="tq-mycar-btn" id="tqMyCarOn">この車に合わせる</button>';
+    }
+    box.innerHTML = html;
+    box.style.display = '';
+
+    var pick = document.getElementById('tqMyCarPick');
+    if (pick) {
+      pick.addEventListener('change', function () {
+        myCarIndex = parseInt(pick.value, 10) || 0;
+        applyMyCar(myCarApplied);
+      });
+    }
+    var off = document.getElementById('tqMyCarOff');
+    if (off) off.addEventListener('click', function () { applyMyCar(false); });
+    var on = document.getElementById('tqMyCarOn');
+    if (on) on.addEventListener('click', function () { applyMyCar(true); });
+  }
+
+  function loadMyCar() {
+    if (typeof supabase === 'undefined' || typeof SUPABASE_URL === 'undefined') return;
+    var client;
+    try {
+      client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } catch (e) { return; }
+
+    client.auth.getSession().then(function (res) {
+      var user = res && res.data && res.data.session && res.data.session.user;
+      if (!user) return null;
+      return client
+        .from('cars')
+        .select('document_id, car_type, engine_type_select, engine_display, model_display_a, is_sold')
+        .eq('owner_user_id', user.id);
+    }).then(function (res) {
+      if (!res || res.error || !res.data || !res.data.length) return;
+      // 手放した車は後ろへ。複数台のオーナーは帯のプルダウンで切り替えられる。
+      myCars = res.data.slice().sort(function (a, b) {
+        return (a.is_sold ? 1 : 0) - (b.is_sold ? 1 : 0);
+      });
+      myCarIndex = 0;
+      applyMyCar(true);
+    }).catch(function (e) {
+      console.warn('[torque] 登録車両の読み込みに失敗:', e);
+    });
+  }
+
   // ---- 起動 ----
   fetch('torque-data.json')
     .then(function (r) {
@@ -842,6 +992,7 @@
       renderList();
       renderGeneric();
       setupConverter();
+      loadMyCar();
 
       var searchEl = document.getElementById('tqSearch');
       searchEl.addEventListener('input', function () {
