@@ -338,6 +338,7 @@
       エンジンを載せ替えている車が多いので、<strong>エンジンと車体は別々に選びます</strong>。
       500 R はもともと 126 のエンジン（126.A・594cc）を積んでいます。
       分からなければ「すべて表示」のままで構いません。
+      選んだ内容はこの端末に記憶され、次に開いたときも同じ状態で表示されます。
     </p>
   </div>
 
@@ -733,17 +734,73 @@
           return '<option value="' + esc(c.id) + '">' + esc(c.label) + '</option>';
         }).join('');
 
+    // 前回この端末で選んだ内容があれば復元する（オーナーでなくても効く）
+    var saved = loadSavedFits();
+    if (saved) {
+      currentEngine = saved.engine;
+      currentChassis = saved.chassis;
+    }
+
     eng.value = currentEngine;
     cha.value = currentChassis;
 
     eng.addEventListener('change', function () {
       currentEngine = eng.value;
+      saveFits();
       renderList();
+      renderMyCarNotice();
     });
     cha.addEventListener('change', function () {
       currentChassis = cha.value;
+      saveFits();
       renderList();
+      renderMyCarNotice();
     });
+  }
+
+  // ============================================================
+  // 選んだエンジン形式・車体をこの端末に覚えておく
+  // ------------------------------------------------------------
+  // 早見帳は「自分の車の値を何度も見に来る」使い方をするページなので、
+  // 開き直すたびに選び直させない。保存するのは選択IDだけで、個人情報は持たない。
+  // 保存するのは本人が選んだときだけ＝登録車両からの自動プリセットは保存しない
+  // （自動で入った値を「本人の選択」として固定してしまわないため）。
+  // ============================================================
+  var FITS_KEY = 'torque.fits.v1';
+
+  function saveFits() {
+    try {
+      localStorage.setItem(FITS_KEY, JSON.stringify({
+        engine: currentEngine, chassis: currentChassis
+      }));
+    } catch (e) { /* プライベートブラウズ等で使えなくても機能は落とさない */ }
+  }
+
+  function loadSavedFits() {
+    var raw;
+    try { raw = localStorage.getItem(FITS_KEY); } catch (e) { return null; }
+    if (!raw) return null;
+    var v;
+    try { v = JSON.parse(raw); } catch (e) { return null; }
+    if (!v) return null;
+    // データ側の区分が変わっている可能性があるので、現在の一覧に無いIDは捨てる
+    return {
+      engine: idExists(DATA.engines, v.engine) ? v.engine : 'all',
+      chassis: idExists(DATA.chassis, v.chassis) ? v.chassis : 'all'
+    };
+  }
+
+  function idExists(list, id) {
+    if (id === 'all') return true;
+    for (var i = 0; i < (list || []).length; i++) {
+      if (list[i].id === id) return true;
+    }
+    return false;
+  }
+
+  // 読めない値が入っていたら「保存なし」と同じ扱いにする（登録車両の自動プリセットが効く）
+  function hasSavedFits() {
+    return loadSavedFits() !== null;
   }
 
   // 選択中のエンジン形式・車体の表示名（メッセージ用）
@@ -850,7 +907,15 @@
   // ============================================================
   var myCars = [];
   var myCarIndex = 0;
-  var myCarApplied = false;
+
+  // 帯の文言は「いま実際にその車の条件になっているか」で決める。
+  // プルダウンを手で戻したときにも表示が実態とズレないようにするため。
+  function myCarMatches() {
+    var car = myCars[myCarIndex];
+    if (!car) return false;
+    return currentChassis === (car.car_type === '126' ? '126' : '500')
+      && currentEngine === (engineIdFromCar(car) || 'all');
+  }
 
   // engine_type_select（edit.html のプルダウンの値）を当ページのエンジンIDへ写す。
   // 「110F.000 （ABA205）」のような括弧書き・全角空白・ドットを落として頭で判定する。
@@ -876,11 +941,11 @@
   }
 
   // 絞り込みを入れる／外す。外したあとも帯は残し、いつでも入れ直せるようにする。
-  function applyMyCar(on) {
+  // byUser=true（ボタン・プルダウン操作）のときだけ、選んだ内容を端末に保存する。
+  function applyMyCar(on, byUser) {
     var car = myCars[myCarIndex];
     if (!car) return;
-    myCarApplied = !!on;
-    if (myCarApplied) {
+    if (on) {
       currentChassis = (car.car_type === '126') ? '126' : '500';
       currentEngine = engineIdFromCar(car) || 'all';
     } else {
@@ -889,6 +954,7 @@
     }
     document.getElementById('tqEngine').value = currentEngine;
     document.getElementById('tqChassis').value = currentChassis;
+    if (byUser) saveFits();
     renderList();
     renderMyCarNotice();
   }
@@ -908,7 +974,7 @@
         + '</select>';
     }
 
-    if (myCarApplied) {
+    if (myCarMatches()) {
       html += '🚗 ご登録の<strong>「' + esc(myCarLabel(car)) + '」</strong>に合わせて絞り込んでいます。';
       if (!engineIdFromCar(car)) {
         // 未記入・「その他」「不明」のほか、当ページに区分の無い形式（126A5 など）もここに来る。
@@ -932,13 +998,13 @@
     if (pick) {
       pick.addEventListener('change', function () {
         myCarIndex = parseInt(pick.value, 10) || 0;
-        applyMyCar(myCarApplied);
+        applyMyCar(true, true);
       });
     }
     var off = document.getElementById('tqMyCarOff');
-    if (off) off.addEventListener('click', function () { applyMyCar(false); });
+    if (off) off.addEventListener('click', function () { applyMyCar(false, true); });
     var on = document.getElementById('tqMyCarOn');
-    if (on) on.addEventListener('click', function () { applyMyCar(true); });
+    if (on) on.addEventListener('click', function () { applyMyCar(true, true); });
   }
 
   function loadMyCar() {
@@ -962,7 +1028,10 @@
         return (a.is_sold ? 1 : 0) - (b.is_sold ? 1 : 0);
       });
       myCarIndex = 0;
-      applyMyCar(true);
+      // この端末で本人が選んだ内容がすでにあるなら、それを自動で上書きしない。
+      // 帯は出して「この車に合わせる」といつでも押せるようにしておく。
+      if (hasSavedFits()) renderMyCarNotice();
+      else applyMyCar(true, false);
     }).catch(function (e) {
       console.warn('[torque] 登録車両の読み込みに失敗:', e);
     });
