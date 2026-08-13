@@ -31,7 +31,7 @@
     "【注記の中の単位】注記・手順・差分説明の中でトルク値に触れるときは、必ず N·m を先頭に書く。日本で流通するトルクレンチは N·m が主流で、注記の中だけ kgf·m や lb·ft しか無いと使えないため。併記する N·m は kgf·m × 9.80665 の計算値に統一し、原典の丸めた N·m はそのまま書かない。",
     "【lb·ft の扱い】原典に書かれていない lb·ft を換算で作らない。片側しか記載が無ければ片側だけ載せる。英語版WSMは kg m から換算した小数1桁（18.1 / 23.9 等）で書いている章と、整数（14 to 18 / 39 to 43）で書いている章があり、どちらも原典の記載なのでそのまま入れる。"
   ],
-  "version": "2026-08-14",
+  "version": "2026-08-14b",
   "target": "FIAT 500 / FIAT 126（エンジン系統とベース車体で絞り込める）",
   "sources": [
     {
@@ -53,6 +53,16 @@
       "id": "buch126",
       "label": "Verlag Bucheli「Fiat 126」整備書 独語版",
       "note": "対象は 126.A1（652cc）のみ。純正ではない。表は本 p91-92 で、冒頭に「Angaben in Nm; um mkp-Werte zu erhalten, sind die Nm-Werte durch 10 zu dividieren」＝N·m 表記・10で割ると kgf·m、と単位が明記されている。⚠️ ただし本書の N·m は kgf·m を10倍しただけの簡便表記で、正確な換算（×9.80665）ではない。当ページの N·m は kgf·m から正確に換算しているため、本書の紙面の数字より少し小さく出る（例＝本書 70 N·m ＝ 7.0 kgf·m ＝ 当ページ 69 N·m）。"
+    },
+    {
+      "id": "haynes500",
+      "label": "Haynes「FIAT 500 1957-73」日本語版（ヴィンテージ・パブリケーションズ）",
+      "note": "記載単位は kgf-m。対象は 479 / 499 / 594cc で、1973年型（エンジン 126.000・594cc）＝500 R まで明示的にカバーする唯一の資料。締付トルクの表は章ごとに分かれていて、エンジン p22・クラッチ p83・ミッション p90・ブレーキ p107・リアサス p137・フロントサス／ステアリング p143 の6つ。本書は N·m を併記していないため、当ページの N·m は kgf·m から換算した値（×9.80665）。"
+    },
+    {
+      "id": "haynes126",
+      "label": "Haynes「Fiat 126 Owners Workshop Manual」英語版",
+      "note": "対象は 126 全モデル（594 & 652cc）。記載は lb·ft と N·m の2列で、表はエンジン p13・ギアボックス p53・ブレーキ p66・サスペンション／ステアリング p89。⚠️ 本書の N·m 列は丸めた値で、正確な換算ではない（例＝29 lb·ft を 40 N·m と書いているが、正確には 39.3 N·m）。当ページの N·m は kgf·m から正確に換算しているため、本書の紙面の数字と少し食い違うのは正常。"
     }
   ],
   "areas": [
@@ -134,7 +144,14 @@
       "source": "wsm",
       "source_id": "1-17-1",
       "verified": true,
-      "critical": true
+      "critical": true,
+      "cross": [
+        {
+          "id": "haynes500",
+          "ref": "p22",
+          "agree": true
+        }
+      ]
     },
     {
       "id": "rocker-shaft-support",
@@ -152,7 +169,14 @@
       "source": "wsm",
       "source_id": "1-17-2",
       "verified": true,
-      "critical": false
+      "critical": false,
+      "cross": [
+        {
+          "id": "haynes500",
+          "ref": "p22",
+          "agree": true
+        }
+      ]
     },
     {
       "id": "main-bearing-carrier",
@@ -174,7 +198,13 @@
       "source_id": "p57 ANZUGSDREHMOMENTE DES MOTORS",
       "verified": true,
       "critical": true,
-      "cross": []
+      "cross": [
+        {
+          "id": "haynes500",
+          "ref": "p22",
+          "agree": true
+        }
+      ]
     },
     {
       "id": "conrod-cap",
@@ -198,6 +228,11 @@
           "id": "oem",
           "ref": "p32",
           "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p22",
+          "agree": true
         }
       ]
     },
@@ -217,7 +252,14 @@
       "source": "wsm",
       "source_id": "1-12",
       "verified": true,
-      "critical": true
+      "critical": true,
+      "cross": [
+        {
+          "id": "haynes500",
+          "ref": "p22",
+          "agree": true
+        }
+      ]
     },
     {
       "id": "centrifugal-filter-bolt",
@@ -252,22 +294,28 @@
       "fits": {
         "engine": ["e500"]
       },
-      "kgm": 1.1,
+      "kgm": 0.9,
       "kgm_max": null,
-      "lbft": null,
+      "lbft": 6.5,
       "lbft_max": null,
-      "notes": ["126（594/652cc）の同じ箇所は 1.0 kgf·m ＝ 10 N·m で、こちらに近い。"],
-      "source": "oem",
-      "source_id": "p57 ANZUGSDREHMOMENTE DES MOTORS",
+      "notes": ["126（594/652cc）の同じ箇所は 1.0 kgf·m ＝ 10 N·m で、ちょうど中間にあたる。"],
+      "source": "haynes500",
+      "source_id": "p22 カムチェーンスプロケット",
       "verified": true,
       "critical": false,
       "cross": [
         {
           "id": "wsm",
           "ref": "本 p28",
+          "agree": true,
+          "lbft": 6.5
+        },
+        {
+          "id": "oem",
+          "ref": "p57 ANZUGSDREHMOMENTE DES MOTORS",
           "agree": false,
-          "lbft": 6.5,
-          "note": "英語版WSMは 6.5 lb·ft ＝ 約 8.8 N·m と低い。純正独語版は 1.1 kgf·m ＝ 11 N·m。126 の整備書が 1.0 kgf·m ＝ 10 N·m なので、当ページは独語版の値を主にしている。"
+          "kgm": 1.1,
+          "note": "純正独語版だけが 1.1 kgf·m ＝ 11 N·m と高い。英語版WSM の 6.5 lb·ft（＝約 8.8 N·m）と Haynes 日本語版 p22 の 0.9 kgf·m ＝ 8.8 N·m が一致するため、当ページは 0.9 kgf·m を主にしている。"
         }
       ]
     },
@@ -322,6 +370,11 @@
           "id": "oem",
           "ref": "p223",
           "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p22",
+          "agree": true
         }
       ]
     },
@@ -374,6 +427,11 @@
           "agree": false,
           "lbft": 14.5,
           "note": "英語版WSMはプーリーとファンを1行にまとめて 14.5 lb·ft ＝ 約 20 N·m と書いている。純正独語版はファンのナットを別行で 3.5 kgf·m ＝ 34 N·m としており、126 の整備書2冊も 3.5 kgf·m 側と一致する。"
+        },
+        {
+          "id": "haynes500",
+          "ref": "p22",
+          "agree": true
         }
       ]
     },
@@ -393,7 +451,14 @@
       "source": "wsm",
       "source_id": "3-8",
       "verified": true,
-      "critical": false
+      "critical": false,
+      "cross": [
+        {
+          "id": "haynes500",
+          "ref": "p22",
+          "agree": true
+        }
+      ]
     },
     {
       "id": "clutch-cover",
@@ -411,7 +476,14 @@
       "source": "wsm",
       "source_id": "5-5",
       "verified": true,
-      "critical": true
+      "critical": true,
+      "cross": [
+        {
+          "id": "haynes500",
+          "ref": "p83",
+          "agree": true
+        }
+      ]
     },
     {
       "id": "gearbox-primary-shaft",
@@ -434,6 +506,11 @@
         {
           "id": "oem",
           "ref": "p205",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p90",
           "agree": true
         }
       ]
@@ -459,6 +536,11 @@
         {
           "id": "oem",
           "ref": "p205",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p90",
           "agree": true
         }
       ]
@@ -486,6 +568,11 @@
         {
           "id": "oem",
           "ref": "p205",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p90",
           "agree": true
         }
       ]
@@ -576,6 +663,11 @@
           "id": "oem",
           "ref": "p205",
           "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p90",
+          "agree": true
         }
       ]
     },
@@ -600,6 +692,11 @@
         {
           "id": "oem",
           "ref": "p127 / p206",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p90",
           "agree": true
         }
       ]
@@ -645,6 +742,11 @@
           "id": "oem",
           "ref": "p206",
           "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p143",
+          "agree": true
         }
       ]
     },
@@ -670,6 +772,11 @@
           "id": "oem",
           "ref": "p158 / p206",
           "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p137",
+          "agree": true
         }
       ]
     },
@@ -694,6 +801,11 @@
         {
           "id": "oem",
           "ref": "p158 / p206",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p137",
           "agree": true
         }
       ]
@@ -741,6 +853,11 @@
           "id": "oem",
           "ref": "p206",
           "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p143",
+          "agree": true
         }
       ]
     },
@@ -766,6 +883,11 @@
           "id": "oem",
           "ref": "p206",
           "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p143",
+          "agree": true
         }
       ]
     },
@@ -790,6 +912,11 @@
         {
           "id": "oem",
           "ref": "p141 / p206",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p143",
           "agree": true
         }
       ]
@@ -836,7 +963,14 @@
       "source": "oem",
       "source_id": "p193 / p205",
       "verified": true,
-      "critical": true
+      "critical": true,
+      "cross": [
+        {
+          "id": "haynes500",
+          "ref": "p107 / p143",
+          "agree": true
+        }
+      ]
     },
     {
       "id": "brake-backplate-rear",
@@ -858,7 +992,14 @@
       "source": "oem",
       "source_id": "p193 / p206",
       "verified": true,
-      "critical": true
+      "critical": true,
+      "cross": [
+        {
+          "id": "haynes500",
+          "ref": "p107",
+          "agree": true
+        }
+      ]
     },
     {
       "id": "pitman-arm-nut",
@@ -885,6 +1026,11 @@
           "id": "oem",
           "ref": "p179 / p206",
           "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p143",
+          "agree": true
         }
       ]
     },
@@ -910,6 +1056,11 @@
           "id": "oem",
           "ref": "p179 / p206",
           "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p143",
+          "agree": true
         }
       ]
     },
@@ -934,6 +1085,11 @@
         {
           "id": "oem",
           "ref": "p179 / p206",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p143",
           "agree": true
         }
       ]
@@ -961,6 +1117,11 @@
         {
           "id": "oem",
           "ref": "p179 / p206",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p143",
           "agree": true
         }
       ]
@@ -1008,6 +1169,11 @@
         {
           "id": "oem",
           "ref": "p179 / p206",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p143",
           "agree": true
         }
       ]
@@ -1058,15 +1224,18 @@
       "fits": {
         "engine": ["e500", "e126"]
       },
-      "kgm": null,
+      "kgm": 2.5,
       "kgm_max": null,
       "lbft": null,
       "lbft_max": null,
-      "notes": ["熱で緩むので、しばらく走ってから増し締めする"],
-      "no_spec": true,
-      "source": "",
-      "source_id": "",
-      "verified": false,
+      "notes": [
+        "熱で緩むので、しばらく走ってから増し締めする",
+        "値はマニホールド → シリンダーヘッドのもの。出典は kgf·m のみの記載（2.5 kgf·m ＝ 24.5 N·m）で、原典に無い値は換算で作らない方針のため lb·ft は載せていない。",
+        "この箇所の指定があるのは Haynes 日本語版だけで、英語版WSM・純正独語版・126 の整備書2冊には対応する行が無い。"
+      ],
+      "source": "haynes500",
+      "source_id": "p22 エキゾーストマニホールド→シリンダーヘッド",
+      "verified": true,
       "critical": false
     },
     {
@@ -1300,6 +1469,11 @@
           "id": "buch126",
           "ref": "本 p91-92",
           "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p13",
+          "agree": true
         }
       ]
     },
@@ -1324,6 +1498,11 @@
         {
           "id": "buch126",
           "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p13",
           "agree": true
         }
       ]
@@ -1350,6 +1529,11 @@
           "id": "buch126",
           "ref": "本 p91-92",
           "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p13",
+          "agree": true
         }
       ]
     },
@@ -1374,6 +1558,11 @@
         {
           "id": "buch126",
           "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p13",
           "agree": true
         }
       ]
@@ -1400,6 +1589,11 @@
           "id": "buch126",
           "ref": "本 p91-92",
           "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p13",
+          "agree": true
         }
       ]
     },
@@ -1425,6 +1619,11 @@
           "id": "buch126",
           "ref": "本 p91-92",
           "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p13",
+          "agree": true
         }
       ]
     },
@@ -1449,6 +1648,11 @@
         {
           "id": "buch126",
           "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p13",
           "agree": true
         }
       ]
@@ -1524,6 +1728,11 @@
         {
           "id": "buch126",
           "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p13",
           "agree": true
         }
       ]
@@ -1710,6 +1919,11 @@
           "id": "buch126",
           "ref": "本 p91-92",
           "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p53",
+          "agree": true
         }
       ]
     },
@@ -1734,6 +1948,11 @@
         {
           "id": "buch126",
           "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p53",
           "agree": true
         }
       ]
@@ -1760,6 +1979,11 @@
           "id": "buch126",
           "ref": "本 p91-92",
           "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p53",
+          "agree": true
         }
       ]
     },
@@ -1784,6 +2008,11 @@
         {
           "id": "buch126",
           "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p53",
           "agree": true
         }
       ]
@@ -1885,6 +2114,11 @@
           "id": "buch126",
           "ref": "本 p91-92",
           "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p53",
+          "agree": true
         }
       ]
     },
@@ -1981,7 +2215,12 @@
           "ref": "本 p91-92",
           "agree": false,
           "kgm": 7.0,
-          "note": "652cc の Bucheli は 69 N·m（7.0 kgf·m）と、594cc の Autobook より4割高い。FD Ricambi のサイトの表は 49 N·m（5.0 kgf·m）側。低い方に合わせるのが無難だが、車体の年式・ホイールのボルトサイズを確認して判断すること。"
+          "note": "652cc の Bucheli は 69 N·m（7.0 kgf·m）と、594cc の Autobook より4割高い。Haynes126 p89 は 36 lb·ft／50 N·m ＝ 5.0 kgf·m で Autobook 側と一致し、FD Ricambi のサイトの表も 49 N·m（5.0 kgf·m）側。当ページは 5.0 kgf·m を主にしているが、車体の年式・ホイールのボルトサイズを確認して判断すること。"
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
         }
       ]
     },
@@ -2083,7 +2322,12 @@
           "ref": "本 p91-92",
           "agree": false,
           "kgm": 5.0,
-          "note": "652cc の Bucheli は 49 N·m（5.0 kgf·m）。年式による違いか誤植か判別できていない。"
+          "note": "652cc の Bucheli だけが 49 N·m（5.0 kgf·m）と高い。594cc の Autobook（29 N·m ＝ 3.0 kgf·m）と Haynes126 p89（22 lb·ft／30 N·m ＝ 3.0 kgf·m）が一致するため、当ページは 3.0 kgf·m を主にしている。"
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
         }
       ]
     },
@@ -2110,7 +2354,12 @@
           "ref": "本 p91-92",
           "agree": false,
           "kgm": 5.0,
-          "note": "652cc の Bucheli は 49 N·m（5.0 kgf·m）。年式による違いか誤植か判別できていない。"
+          "note": "652cc の Bucheli だけが 49 N·m（5.0 kgf·m）と高い。594cc の Autobook（29 N·m ＝ 3.0 kgf·m）と Haynes126 p89（22 lb·ft／30 N·m ＝ 3.0 kgf·m）が一致するため、当ページは 3.0 kgf·m を主にしている。"
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
         }
       ]
     },
@@ -2137,7 +2386,12 @@
           "ref": "本 p91-92",
           "agree": false,
           "kgm": 7.0,
-          "note": "652cc の Bucheli は自己ロックナット 69 N·m（7.0 kgf·m）。ナットの種類が違う可能性がある。"
+          "note": "652cc の Bucheli は自己ロックナット 69 N·m（7.0 kgf·m）としている。ナットの種類が違う可能性はあるが、594cc の Autobook（59 N·m ＝ 6.0 kgf·m）と Haynes126 p89（44 lb·ft／61 N·m ＝ 6.0 kgf·m）が一致するため、当ページは 6.0 kgf·m を主にしている。"
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
         }
       ]
     },
@@ -2162,6 +2416,11 @@
         {
           "id": "buch126",
           "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
           "agree": true
         }
       ]
@@ -2219,6 +2478,11 @@
           "id": "buch126",
           "ref": "本 p91-92",
           "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p66",
+          "agree": true
         }
       ]
     },
@@ -2269,6 +2533,11 @@
           "id": "buch126",
           "ref": "本 p91-92",
           "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
         }
       ]
     },
@@ -2293,6 +2562,11 @@
         {
           "id": "buch126",
           "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
           "agree": true
         }
       ]
@@ -2319,6 +2593,11 @@
           "id": "buch126",
           "ref": "本 p91-92",
           "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
         }
       ]
     },
@@ -2344,6 +2623,11 @@
           "id": "buch126",
           "ref": "本 p91-92",
           "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p66",
+          "agree": true
         }
       ]
     },
@@ -2368,6 +2652,11 @@
         {
           "id": "buch126",
           "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p66",
           "agree": true
         }
       ]
@@ -2414,6 +2703,11 @@
           "id": "buch126",
           "ref": "本 p91-92",
           "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
         }
       ]
     },
@@ -2438,6 +2732,11 @@
         {
           "id": "buch126",
           "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
           "agree": true
         }
       ]
@@ -2464,6 +2763,11 @@
           "id": "buch126",
           "ref": "本 p91-92",
           "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
         }
       ]
     },
@@ -2488,6 +2792,11 @@
         {
           "id": "buch126",
           "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
           "agree": true
         }
       ]
@@ -2515,7 +2824,12 @@
           "ref": "本 p91-92",
           "agree": false,
           "kgm": 1.0,
-          "note": "Bucheli は「Lenkhebelbefestigungsmutter 10」＝9.8 N·m（1.0 kgf·m）と読める書き方をしているが、594cc の Autobook が 98 N·m（10 kgf·m／72 lb·ft）、500 も 98〜108 N·m（10〜11 kgf·m）。Bucheli 側が桁を落とした誤植と判断した。9.8 N·m では絶対に締め足りない。FD Ricambi のサイトの表も同じ「10」をそのまま転載している。"
+          "note": "Bucheli は「Lenkhebelbefestigungsmutter 10」＝9.8 N·m（1.0 kgf·m）と読める書き方をしているが、594cc の Autobook が 98 N·m（10 kgf·m／72 lb·ft）、500 も 98〜108 N·m（10〜11 kgf·m）。Bucheli 側が桁を落とした誤植と判断した。9.8 N·m では絶対に締め足りない。Haynes126 p89 も「Drop arm nut 72 lb·ft／100 N·m」＝10.0 kgf·m 側で、3冊目の資料で誤植と確定した。FD Ricambi のサイトの表は Bucheli の「10」をそのまま転載している。"
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
         }
       ]
     },
@@ -2540,6 +2854,11 @@
         {
           "id": "buch126",
           "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
           "agree": true
         }
       ]
@@ -2566,6 +2885,11 @@
           "id": "buch126",
           "ref": "本 p91-92",
           "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
         }
       ]
     },
@@ -2590,6 +2914,11 @@
         {
           "id": "buch126",
           "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
           "agree": true
         }
       ]
@@ -2616,6 +2945,11 @@
           "id": "buch126",
           "ref": "本 p91-92",
           "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
         }
       ]
     },
@@ -2636,7 +2970,13 @@
       "source_id": "本 p91-92",
       "verified": true,
       "critical": true,
-      "cross": []
+      "cross": [
+        {
+          "id": "haynes126",
+          "ref": "p66",
+          "agree": true
+        }
+      ]
     },
     {
       "id": "brake-hose-union-126",
@@ -2678,6 +3018,11 @@
         {
           "id": "buch126",
           "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p66",
           "agree": true
         }
       ]
