@@ -1383,7 +1383,9 @@
   //    出すとエンジン側も合っていると誤読されるため、状態をそのまま出す。
   function myCarHead(car, matched) {
     if (engineFamilyFromCar(car) === 'bis') return 'エンジンは資料の対象外です';
-    if (!matched) return 'ご登録のエンジンに合わせる';
+    // 自分で「すべて表示に戻す」を押した状態。エンジン軸だけ見ると次の「選んでください」と
+    // 同じ（どちらも絞られていない）ので、依頼文にせず状態をそのまま書いて取り違えを防ぐ。
+    if (!matched) return 'すべて表示中';
     var fam = usableEngineFamily(car);
     // label は「500系エンジン」なので、末尾を落として「エンジンは 500系 に…」と重複させない。
     return fam ? 'エンジンは ' + engineName(fam).replace(/エンジン$/, '') + ' に合わせています'
