@@ -1375,17 +1375,19 @@
     return name + (car.engine_display ? '・' + car.engine_display : '');
   }
 
-  // 帯の1行目。車名も系統名も出さない。
-  // ⚠️ ここで絞り込みの中身を繰り返さないこと＝常時見えている上の1行（renderFitSummary）に
-  //    「車: FIAT 500 ／ 500系エンジン」と出ている。帯はその下の階層なので、状態だけで足りる。
-  // ⚠️ ただし「エンジンがまだ絞れていない」ことだけは残す。登録の値から判定できない車が
-  //    26%（44台）あり、黙って「合わせています」と出すとエンジン側も合っていると誤読される。
-  //    この一言が、開いて2択に答えてもらうための入口になる。
+  // 帯の1行目。エンジンのことだけを言う。
+  // ⚠️ 車（ベース車体）には触れないこと＝500の人は500の入口から、126の人は126の入口から来るので
+  //    車種はもともと合っている前提。しかも `car_type` から機械的に決まるので外れようがない。
+  //    外れうるのはエンジン側だけ（登録の値から判定できるのは74%）なので、確認を求めるのもそこだけ。
+  // ⚠️ 「選んでください」は判定できなかった26%（44台）への誘導。黙って「合わせています」と
+  //    出すとエンジン側も合っていると誤読されるため、状態をそのまま出す。
   function myCarHead(car, matched) {
-    if (!matched) return 'ご登録の車に合わせる';
-    return usableEngineFamily(car)
-      ? 'ご登録の車に合わせています'
-      : 'ご登録の車に合わせています（エンジンは未設定）';
+    if (engineFamilyFromCar(car) === 'bis') return 'エンジンは資料の対象外です';
+    if (!matched) return 'ご登録のエンジンに合わせる';
+    var fam = usableEngineFamily(car);
+    // label は「500系エンジン」なので、末尾を落として「エンジンは 500系 に…」と重複させない。
+    return fam ? 'エンジンは ' + engineName(fam).replace(/エンジン$/, '') + ' に合わせています'
+               : 'エンジンを選んでください';
   }
 
   // 絞り込みを入れる／外す。外したあとも帯は残し、いつでも入れ直せるようにする。
@@ -1414,8 +1416,8 @@
     if (!car) { box.style.display = 'none'; return; }
 
     var matched = myCarMatches();
-    // 1行目は「車名 ／ エンジン系統」だけ。作業中に読む文字数を最小にする。
-    var head = '🚗 ' + esc(myCarHead(car, matched));
+    // 1行目はエンジンの状態だけ。作業中に読む文字数を最小にする。
+    var head = '⚙️ ' + esc(myCarHead(car, matched));
 
     var body = '';
     if (myCars.length > 1) {
@@ -1431,7 +1433,7 @@
       // 126 BIS（704cc・水冷）。手持ちの4資料がどれも対象にしていないので、2択も聞かない。
       body += '<span class="tq-mycar-sub">'
             + 'ご登録の BIS（704cc・水冷）は、当ページの資料が対象にしていません。'
-            + 'ベース車体の値のみ表示しています。</span>';
+            + 'エンジンでの絞り込みはしていません。</span>';
     } else if (!fam) {
       // 未記入・「その他」「不明」。形式は知らなくても排気量の系統なら答えられる人が多いので、
       // ここで2択だけ聞く。推測で埋めるのではなく本人に選んでもらう＝§8「推測で埋めない」を守る形。
@@ -1439,7 +1441,7 @@
             + (car.engine_type_select
                 ? 'ご登録のエンジン形式（' + esc(car.engine_type_select) + '）からは判断できないため、'
                 : 'エンジン形式が未記入のため、')
-            + 'ベース車体だけ合わせています。</span>'
+            + 'エンジンでの絞り込みができていません。</span>'
             + '<span class="tq-mycar-ask">積んでいるエンジンはどちらですか？</span>'
             + '<span class="tq-mycar-ask-row">'
             + (DATA.engines || []).map(function (e) {
@@ -1451,7 +1453,7 @@
     }
     body += matched
       ? '<button type="button" class="tq-mycar-btn" id="tqMyCarOff">すべて表示に戻す</button>'
-      : '<button type="button" class="tq-mycar-btn" id="tqMyCarOn">この車に合わせる</button>';
+      : '<button type="button" class="tq-mycar-btn" id="tqMyCarOn">ご登録の内容で絞り込む</button>';
 
     var wasOpen = box.hasAttribute('open');
     box.innerHTML = '<summary>' + head + '</summary><div class="tq-mycar-body">' + body + '</div>';
