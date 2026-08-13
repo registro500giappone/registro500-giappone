@@ -233,7 +233,7 @@
     .tq-seq-body-wrap { padding-top: 2px; }
     .tq-seq-svg { display: block; width: 100%; max-width: 320px; height: auto; margin: 2px 0 4px; }
     .tq-seq-body { fill: var(--rg-surface-sub); stroke: var(--rg-border); stroke-width: 2; }
-    .tq-seq-plug { fill: var(--rg-bg); stroke: var(--rg-border); stroke-width: 2; }
+    .tq-seq-intake { fill: var(--rg-bg); stroke: var(--rg-border); stroke-width: 2; }
     .tq-seq-hole { fill: var(--rg-accent-soft); stroke: var(--rg-accent); stroke-width: 2; }
     .tq-seq-num {
       fill: var(--rg-accent); font-size: 19px; font-weight: 800;
@@ -739,12 +739,17 @@
   function seqSvg(seq) {
     // head8＝上下2列×4本。原典の図と同じ左→右の並びで置く。
     var xs = [46, 112, 188, 254];
-    var rows = [[seq.top, 82], [seq.bottom, 128]];
-    var svg = '<svg class="tq-seq-svg" viewBox="0 0 300 172" role="img" '
-            + 'aria-label="締め付け順序: 上段 ' + seq.top.join('・') + '、下段 ' + seq.bottom.join('・') + '">';
-    svg += '<rect class="tq-seq-body" x="14" y="16" width="272" height="140" rx="16"/>';
-    // 中央上の穴は点火プラグ。上下どちら向きの図か分かるようにするための目印。
-    svg += '<circle class="tq-seq-plug" cx="150" cy="44" r="11"/>';
+    var rows = [[seq.top, 62], [seq.bottom, 112]];
+    var svg = '<svg class="tq-seq-svg" viewBox="0 0 300 190" role="img" '
+            + 'aria-label="締め付け順序: 上段 ' + seq.top.join('・') + '、下段 ' + seq.bottom.join('・')
+            + '。下辺中央がキャブレターの載る吸気の合流口">';
+    svg += '<rect class="tq-seq-body" x="14" y="12" width="272" height="140" rx="16"/>';
+    // 下辺中央の張り出し＝キャブレターが載る吸気の合流口（左右のシリンダーへ分かれる）。
+    // 上下どちら向きの図か分かるようにするための目印なので、原典の図と同じ「下側」に置く。
+    // ⚠️ 以前ここを「点火プラグ穴」として上側に描いていたのは誤り。500 の点火プラグは
+    //    ヘッドの左右側面に1本ずつ入っており、中央には無い。
+    svg += '<path class="tq-seq-body" d="M106 148 L194 148 L180 180 L120 180 Z"/>';
+    svg += '<circle class="tq-seq-intake" cx="150" cy="163" r="12"/>';
     for (var r = 0; r < rows.length; r++) {
       var nums = rows[r][0], cy = rows[r][1];
       for (var i = 0; i < nums.length; i++) {
@@ -765,7 +770,8 @@
     if (!seqs.length) return '';
 
     var html = '<details class="tq-seq"><summary>締め付け順序の図を見る</summary><div class="tq-seq-body-wrap">'
-             + '<p class="tq-seq-meta">数字が締める順番。中央上の丸は点火プラグ穴で、'
+             + '<p class="tq-seq-meta">数字が締める順番。下辺中央の丸は、'
+             + 'キャブレターが載る吸気の合流口（左右のシリンダーへ分かれる通り道）です。'
              + '原典の図と同じ向きに並べています。</p>';
     for (var i = 0; i < seqs.length; i++) {
       var s = seqs[i];
@@ -1419,7 +1425,7 @@
   // 「直したはずの内容が出ない」が起きる（実際に順序図とタブ名で発生した）。
   // 新しいSWは更新バナーをタップするまで有効にならないので、SW側の修正だけでは間に合わない。
   // クエリを変えるとキャッシュのキーが変わるので、SWの世代に関係なく取り直せる。
-  var DATA_VERSION = '2026-08-13b';
+  var DATA_VERSION = '2026-08-13c';
   fetch('torque-data.json?v=' + DATA_VERSION)
     .then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
