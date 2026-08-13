@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="canonical" href="https://www.registro500.com/torque">
+  <!-- 公開導線を付けるまでは検索に出さない。正式公開時にこの行を外す。 -->
+  <meta name="robots" content="noindex">
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-27SHHC4JYH');
+  </script>
+
+  <title>締め付けトルク早見帳 | Registro500 Giappone</title>
+  <meta name="description" content="クラシックFIAT 500の締め付けトルクを部位名から検索。N·m / kgf·m / lb·ft を同時表示。ねじサイズからの目安と単位換算も。">
+
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+  <script src="fab-nav.js" defer></script>
+
+  <style>
+    /* このページ内だけ border-box に揃える（幅+paddingのはみ出し防止） */
+    .tq-page, .tq-page * { box-sizing: border-box; }
+
+    .tq-page {
+      max-width: 720px; margin: 0 auto; padding: 16px 14px 60px;
+    }
+
+    .tq-back { display: inline-block; margin-bottom: 14px; font-size: 0.85rem; font-weight: 600; }
+    .tq-back a { color: var(--rg-accent); text-decoration: none; }
+    .tq-back a:hover { text-decoration: underline; }
+
+    .tq-head { text-align: center; margin-bottom: 18px; }
+    .tq-head img { height: 26px; width: auto; mix-blend-mode: multiply; }
+    .tq-head h1 { font-size: 1.4rem; margin: 10px 0 4px; color: var(--rg-text); }
+    .tq-head .tq-target {
+      font-size: 0.82rem; color: var(--rg-muted); margin: 0;
+    }
+
+    /* ===== 安全上の注意 ===== */
+    .tq-warn {
+      border: 1px solid #d9a441; background: #fdf6e6; color: #6b4e12;
+      border-radius: var(--rg-radius-card); padding: 10px 12px; margin-bottom: 16px;
+      font-size: 0.82rem; line-height: 1.6;
+    }
+    .tq-warn summary { cursor: pointer; font-weight: 700; list-style: none; }
+    .tq-warn summary::-webkit-details-marker { display: none; }
+    .tq-warn summary::after { content: " ▾"; font-weight: 400; }
+    .tq-warn[open] summary::after { content: " ▴"; }
+    .tq-warn ul { margin: 8px 0 0; padding-left: 1.2em; }
+    .tq-warn li { margin-bottom: 4px; }
+
+    /* ===== 検索バー ===== */
+    /* 適合の絞り込み（エンジン形式・車体） */
+    .tq-fit-wrap {
+      background: var(--rg-surface-sub); border: 1px solid var(--rg-border);
+      border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;
+    }
+    .tq-fit-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .tq-fit { flex: 1 1 190px; display: block; min-width: 0; }
+    .tq-fit-label {
+      display: block; font-size: 0.72rem; font-weight: 700;
+      color: var(--rg-muted); margin-bottom: 4px; letter-spacing: 0.03em;
+    }
+    .tq-fit-select {
+      width: 100%; box-sizing: border-box;
+      padding: 9px 10px; font-size: 0.92rem; font-family: inherit;
+      color: var(--rg-text); background: var(--rg-surface);
+      border: 1px solid var(--rg-border); border-radius: 6px;
+    }
+    .tq-fit-select:focus { outline: none; border-color: var(--rg-accent); }
+    .tq-fit-note {
+      margin: 10px 0 0; font-size: 0.75rem; line-height: 1.7; color: var(--rg-muted);
+    }
+    .tq-fit-note strong { color: var(--rg-text); }
+
+    .tq-fit-warn {
+      background: #fdf3e3; border: 1px solid #d9a441; color: #6b4400;
+      border-radius: 6px; padding: 10px 12px; margin-bottom: 12px;
+      font-size: 0.82rem; line-height: 1.7;
+    }
+
+    .tq-search-wrap {
+      position: sticky; top: 0; z-index: 50;
+      background: var(--rg-bg); padding: 8px 0 6px; margin-bottom: 4px;
+    }
+    .tq-search {
+      width: 100%; font-size: 1.05rem; padding: 12px 14px;
+      border: 2px solid var(--rg-border); border-radius: 10px;
+      background: var(--rg-surface); color: var(--rg-text);
+      font-family: inherit; -webkit-appearance: none;
+    }
+    .tq-search:focus { outline: none; border-color: var(--rg-accent); }
+    .tq-search::placeholder { color: var(--rg-muted); }
+
+    .tq-tabs {
+      display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 4px;
+      scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    }
+    .tq-tabs::-webkit-scrollbar { display: none; }
+    .tq-tab {
+      flex: 0 0 auto; font-size: 0.8rem; padding: 6px 12px; border-radius: 999px;
+      border: 1px solid var(--rg-border); background: var(--rg-surface);
+      color: var(--rg-muted); cursor: pointer; white-space: nowrap;
+      font-family: inherit; font-weight: 600;
+    }
+    .tq-tab.is-on {
+      background: var(--rg-accent); color: #fff; border-color: var(--rg-accent);
+    }
+
+    .tq-count { font-size: 0.78rem; color: var(--rg-muted); margin: 6px 2px 10px; }
+
+    /* ===== トルクカード ===== */
+    .tq-card {
+      background: var(--rg-surface); border: 1px solid var(--rg-border);
+      border-radius: var(--rg-radius-card); padding: 14px; margin-bottom: 10px;
+    }
+    .tq-card.is-critical { border-left: 5px solid #c0392b; }
+    .tq-card.is-empty { background: var(--rg-surface-sub); }
+
+    .tq-card-name {
+      font-size: 1rem; font-weight: 700; color: var(--rg-text);
+      margin: 0 0 8px; line-height: 1.4;
+    }
+    .tq-flag {
+      display: inline-block; font-size: 0.68rem; font-weight: 700;
+      padding: 2px 7px; border-radius: 4px; margin-left: 6px;
+      vertical-align: 2px; white-space: nowrap;
+    }
+    .tq-flag-critical { background: #fbe9e7; color: #c0392b; border: 1px solid #e6b0aa; }
+    .tq-flag-unverified { background: var(--rg-bg); color: var(--rg-muted); border: 1px solid var(--rg-border); }
+
+    /* どれ向けの値か。500 と 126 で値が違う部位があるので必ず出す */
+    .tq-fits {
+      margin: -4px 0 0; font-size: 0.72rem; font-weight: 700;
+      color: var(--rg-muted); letter-spacing: 0.02em;
+    }
+
+    .tq-value { margin: 10px 0 6px; }
+    .tq-nm {
+      font-size: 2rem; font-weight: 800; color: var(--rg-accent);
+      line-height: 1.1; letter-spacing: -0.01em;
+    }
+    .tq-nm-unit { font-size: 1rem; font-weight: 700; margin-left: 3px; }
+    .tq-sub {
+      font-size: 0.9rem; color: var(--rg-muted); margin-top: 4px; font-weight: 600;
+    }
+
+    .tq-procedure {
+      background: var(--rg-accent-soft); border: 1px solid var(--rg-accent-border);
+      border-radius: 6px; padding: 10px 12px; margin: 8px 0 6px;
+      font-size: 0.86rem; line-height: 1.7; color: var(--rg-text);
+      white-space: pre-line;
+    }
+    .tq-procedure-label {
+      display: block; font-size: 0.72rem; font-weight: 700;
+      color: var(--rg-accent); margin-bottom: 4px; letter-spacing: 0.03em;
+    }
+
+    .tq-novalue { font-size: 0.88rem; color: var(--rg-muted); margin: 8px 0; }
+    .tq-novalue strong { color: var(--rg-text); }
+
+    .tq-notes { margin: 8px 0 0; padding-left: 1.1em; font-size: 0.82rem; color: var(--rg-muted); line-height: 1.65; }
+    .tq-notes li { margin-bottom: 3px; }
+
+    /* 複数の資料で値が突き合わせ済みであることの表示 */
+    .tq-crosscheck {
+      display: inline-block; margin-top: 10px;
+      background: var(--rg-accent-soft); border: 1px solid var(--rg-accent-border);
+      border-radius: 999px; padding: 2px 10px;
+      font-size: 0.72rem; font-weight: 700; color: var(--rg-accent);
+    }
+    .tq-crosscheck.is-diff {
+      background: var(--rg-warn-soft, #fdf3e3); border-color: #d9a441; color: #8a5a00;
+    }
+
+    /* 資料間で値が違うとき、相手の値も隠さず出す */
+    .tq-diff {
+      margin-top: 8px; padding: 8px 10px; border-radius: 6px;
+      background: var(--rg-warn-soft, #fdf3e3); border: 1px solid #e0c48a;
+    }
+    .tq-diff-val {
+      display: block; font-size: 0.86rem; font-weight: 700; color: #8a5a00;
+    }
+    .tq-diff-note {
+      display: block; margin-top: 4px; font-size: 0.78rem;
+      line-height: 1.65; color: var(--rg-text);
+    }
+
+    .tq-meta {
+      margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--rg-border);
+      font-size: 0.72rem; color: var(--rg-muted);
+    }
+
+    .tq-empty-msg {
+      text-align: center; color: var(--rg-muted); font-size: 0.9rem;
+      padding: 30px 10px; line-height: 1.8;
+    }
+
+    /* ===== 下部ツール（一般値・換算） ===== */
+    .tq-tool {
+      background: var(--rg-surface); border: 1px solid var(--rg-border);
+      border-radius: var(--rg-radius-card); padding: 16px; margin-top: 16px;
+    }
+    .tq-tool h2 {
+      font-size: 1rem; margin: 0 0 4px; color: var(--rg-accent);
+    }
+    .tq-tool .tq-tool-lead {
+      font-size: 0.8rem; color: var(--rg-muted); margin: 0 0 14px; line-height: 1.6;
+    }
+
+    .tq-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .tq-field { flex: 1 1 130px; min-width: 0; }
+    .tq-field label {
+      display: block; font-size: 0.75rem; font-weight: 700;
+      color: var(--rg-muted); margin-bottom: 4px;
+    }
+    .tq-field select, .tq-field input {
+      width: 100%; font-size: 1rem; padding: 9px 10px;
+      border: 1px solid var(--rg-border); border-radius: 8px;
+      background: var(--rg-surface); color: var(--rg-text);
+      font-family: inherit; -webkit-appearance: none;
+    }
+    .tq-field select { -webkit-appearance: menulist; }
+    .tq-field input:focus, .tq-field select:focus { outline: none; border-color: var(--rg-accent); }
+
+    .tq-generic-out {
+      margin-top: 14px; padding: 12px; border-radius: 8px;
+      background: var(--rg-accent-soft); border: 1px solid var(--rg-accent-border);
+      text-align: center;
+    }
+    .tq-generic-out .tq-nm { font-size: 1.8rem; }
+
+    .tq-table-wrap { overflow-x: auto; margin-top: 14px; }
+    table.tq-table { border-collapse: collapse; width: 100%; font-size: 0.82rem; min-width: 330px; }
+    table.tq-table th, table.tq-table td {
+      border: 1px solid var(--rg-border); padding: 6px 8px; text-align: right;
+    }
+    table.tq-table th { background: var(--rg-surface-sub); color: var(--rg-muted); font-weight: 700; }
+    table.tq-table td:first-child, table.tq-table th:first-child { text-align: left; font-weight: 700; }
+
+    .tq-cautions { margin: 12px 0 0; padding-left: 1.1em; font-size: 0.78rem; color: var(--rg-muted); line-height: 1.7; }
+
+    .tq-conv-eq { font-size: 0.75rem; color: var(--rg-muted); margin-top: 10px; text-align: center; }
+
+    .tq-footer { text-align: center; margin-top: 30px; font-size: 0.8rem; }
+    .tq-footer a { color: var(--rg-accent); text-decoration: none; }
+    .tq-footer a:hover { text-decoration: underline; }
+    .tq-disclaimer {
+      font-size: 0.75rem; color: var(--rg-muted); line-height: 1.7;
+      margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--rg-border);
+    }
+
+    /* ===== ダークモード ===== */
+    @media (prefers-color-scheme: dark) {
+      .tq-head img { mix-blend-mode: normal; filter: brightness(1.12); }
+      .tq-warn { background: #33291a; border-color: #7a5f2a; color: #e8d5a8; }
+      .tq-card.is-critical { border-left-color: #e57373; }
+      .tq-flag-critical { background: #3a2320; color: #ff8a80; border-color: #6d3b35; }
+      .tq-crosscheck.is-diff { background: #33291a; border-color: #7a5f2a; color: #e8d5a8; }
+      .tq-fit-warn { background: #33291a; border-color: #7a5f2a; color: #e8d5a8; }
+      .tq-diff { background: #33291a; border-color: #7a5f2a; }
+      .tq-diff-val { color: #f0c774; }
+      .tq-tab.is-on { color: #1a1714; }
+      table.tq-table th { background: var(--rg-surface-sub); }
+    }
+
+    @media (min-width: 700px) {
+      .tq-head h1 { font-size: 1.6rem; }
+      .tq-nm { font-size: 2.3rem; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="tq-page">
+
+  <div class="tq-back"><a href="/">← ガレージに戻る</a></div>
+
+  <div class="tq-head">
+    <a href="/"><img src="logo_horizontal.png" alt="Registro500 Giappone"></a>
+    <h1>🔩 締め付けトルク早見帳</h1>
+    <p class="tq-target" id="tqTarget"></p>
+  </div>
+
+  <details class="tq-warn">
+    <summary>⚠️ 使う前に（必ずお読みください）</summary>
+    <ul>
+      <li>ここに載せている値は<strong>参考情報</strong>です。最終的な判断は、お手元の整備書とご自身の責任でお願いします。</li>
+      <li>ブレーキ・ハブ・ホイール・ステアリング・シートベルトなど<strong>⚠️印の箇所は、間違えると走行中の事故につながります</strong>。</li>
+      <li>同じ箇所でも年式・仕様・使っている部品によって値が違うことがあります。</li>
+      <li>ねじが錆びている・かじっている場合、規定トルクまで締めても必要な締結力は出ません。</li>
+      <li>値が入っていない項目は、まだ調べがついていない箇所です。空欄を推測で埋めないでください。</li>
+    </ul>
+  </details>
+
+  <!-- ===== 車のえらび方（エンジンと車体を別々に選ぶ） ===== -->
+  <div class="tq-fit-wrap">
+    <div class="tq-fit-row">
+      <label class="tq-fit">
+        <span class="tq-fit-label">エンジン形式</span>
+        <select id="tqEngine" class="tq-fit-select"></select>
+      </label>
+      <label class="tq-fit">
+        <span class="tq-fit-label">車体</span>
+        <select id="tqChassis" class="tq-fit-select"></select>
+      </label>
+    </div>
+    <p class="tq-fit-note">
+      エンジンを載せ替えている車が多いので、<strong>エンジンと車体は別々に選びます</strong>。
+      500 R はもともと 126 のエンジン（126.A・594cc）を積んでいます。
+      分からなければ「すべて表示」のままで構いません。
+    </p>
+  </div>
+
+  <!-- ===== 検索 ===== -->
+  <div class="tq-search-wrap">
+    <input type="search" id="tqSearch" class="tq-search" placeholder="🔍 部位を検索（例: プラグ、ドレン、ホイール）" autocomplete="off">
+    <div class="tq-tabs" id="tqTabs"></div>
+  </div>
+
+  <div class="tq-count" id="tqCount"></div>
+  <div class="tq-fit-warn" id="tqFitWarn" style="display:none"></div>
+  <div id="tqList"></div>
+
+  <!-- ===== ねじサイズから調べる ===== -->
+  <div class="tq-tool">
+    <h2>🔧 ねじサイズから目安を調べる</h2>
+    <p class="tq-tool-lead">
+      早見帳に載っていない箇所のための、一般的な目安です。<strong>特定車種の規定値ではありません。</strong>
+      鋼どうし・並目・乾式（油気なし）が前提。
+    </p>
+    <div class="tq-row">
+      <div class="tq-field">
+        <label for="tqSize">ねじサイズ</label>
+        <select id="tqSize"></select>
+      </div>
+      <div class="tq-field">
+        <label for="tqGrade">強度区分</label>
+        <select id="tqGrade"></select>
+      </div>
+    </div>
+    <div class="tq-generic-out">
+      <div class="tq-nm" id="tqGenericNm">—</div>
+      <div class="tq-sub" id="tqGenericSub"></div>
+    </div>
+
+    <div class="tq-table-wrap">
+      <table class="tq-table" id="tqGenericTable"></table>
+    </div>
+    <ul class="tq-cautions" id="tqCautions"></ul>
+  </div>
+
+  <!-- ===== 単位換算 ===== -->
+  <div class="tq-tool">
+    <h2>🔄 単位換算</h2>
+    <p class="tq-tool-lead">
+      整備書は kgf·m、トルクレンチの目盛は N·m ということがよくあります。どれか1つに入れると残りが変わります。
+    </p>
+    <div class="tq-row">
+      <div class="tq-field">
+        <label for="tqNm">N·m（ニュートンメートル）</label>
+        <input type="number" id="tqNm" inputmode="decimal" step="0.1" placeholder="0">
+      </div>
+      <div class="tq-field">
+        <label for="tqKgm">kgf·m（キロ）</label>
+        <input type="number" id="tqKgm" inputmode="decimal" step="0.1" placeholder="0">
+      </div>
+      <div class="tq-field">
+        <label for="tqLbft">lb·ft（ポンドフィート）</label>
+        <input type="number" id="tqLbft" inputmode="decimal" step="0.1" placeholder="0">
+      </div>
+    </div>
+    <p class="tq-conv-eq">1 kgf·m = 9.80665 N·m ／ 1 lb·ft = 1.35582 N·m</p>
+  </div>
+
+  <p class="tq-disclaimer" id="tqDisclaimer"></p>
+
+  <div class="tq-footer">
+    <a href="/">← トップページへ戻る</a>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var KGM_TO_NM = 9.80665;
+  var LBFT_TO_NM = 1.35582;
+
+  var DATA = null;
+  var currentArea = 'all';
+  var currentEngine = 'all';
+  var currentChassis = 'all';
+  var currentQuery = '';
+
+  // ---- 表示用の数値整形（10未満は小数1桁、以上は整数）----
+  function fmtNm(nm) {
+    if (nm === null || nm === undefined) return '';
+    return nm < 10 ? (Math.round(nm * 10) / 10).toFixed(1) : String(Math.round(nm));
+  }
+  function fmtRaw(v) {
+    if (v === null || v === undefined) return '';
+    return String(Math.round(v * 100) / 100);
+  }
+
+  // ---- 出典IDを表示用のラベルに変換する（ref は原本での位置）----
+  function srcLabel(id, ref) {
+    for (var j = 0; j < DATA.sources.length; j++) {
+      if (DATA.sources[j].id === id) {
+        return esc(DATA.sources[j].label) + (ref ? '（' + esc(ref) + '）' : '');
+      }
+    }
+    return '';
+  }
+
+  // ---- 検索用の正規化（カタカナ→ひらがな、全角英数→半角、小文字化）----
+  function normalize(s) {
+    if (!s) return '';
+    return String(s)
+      .replace(/[ァ-ヶ]/g, function (c) {
+        return String.fromCharCode(c.charCodeAt(0) - 0x60);
+      })
+      .replace(/[Ａ-Ｚａ-ｚ０-９]/g, function (c) {
+        return String.fromCharCode(c.charCodeAt(0) - 0xFEE0);
+      })
+      .replace(/[ー・\s　]/g, '')
+      .toLowerCase();
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ---- その項目が「どれ向けの値か」の表示 ----
+  // エンジン形式で決まる部品はエンジン形式を、車体側の部品は車体を出す。
+  function fitsLabel(item) {
+    var f = item.fits || {};
+    var out = [];
+    if (f.engine) {
+      for (var i = 0; i < f.engine.length; i++) {
+        var e = engineDef(f.engine[i]);
+        if (e) out.push(esc(e.label) + ' ' + esc(e.cc));
+      }
+      return '対象エンジン: ' + (out.join(' ／ ') || '—');
+    }
+    if (f.chassis) {
+      for (var j = 0; j < f.chassis.length; j++) {
+        var c = chassisName(f.chassis[j]);
+        if (c) out.push(esc(c));
+      }
+      return '対象車体: ' + (out.join(' ／ ') || '—');
+    }
+    return '対象: 共通';
+  }
+
+  function engineDef(id) {
+    for (var i = 0; i < (DATA.engines || []).length; i++) {
+      if (DATA.engines[i].id === id) return DATA.engines[i];
+    }
+    return null;
+  }
+
+  // ---- カード1枚 ----
+  function renderCard(item) {
+    var cls = 'tq-card';
+    if (item.critical) cls += ' is-critical';
+    var hasValue = item.kgm !== null && item.kgm !== undefined;
+    var hasProc = !!item.procedure;
+    if (!hasValue && !hasProc) cls += ' is-empty';
+
+    var html = '<div class="' + cls + '">';
+
+    html += '<p class="tq-card-name">' + esc(item.name);
+    if (item.critical) html += '<span class="tq-flag tq-flag-critical">⚠️ 重要保安</span>';
+    if (!item.verified) html += '<span class="tq-flag tq-flag-unverified">未確認</span>';
+    html += '</p>';
+
+    // 同じ部位でも 500 と 126 で値が違うものがある。絞り込みを「すべて」で見ていると
+    // 名前だけでは見分けられず取り違えるので、どれ向けの値かを必ず出す。
+    html += '<p class="tq-fits">' + fitsLabel(item) + '</p>';
+
+    if (hasProc) {
+      html += '<div class="tq-procedure">'
+            + '<span class="tq-procedure-label">締めっぱなしにしない箇所です</span>'
+            + esc(item.procedure) + '</div>';
+    } else if (hasValue) {
+      var nmMin = item.kgm * KGM_TO_NM;
+      var nmMax = (item.kgm_max !== null && item.kgm_max !== undefined) ? item.kgm_max * KGM_TO_NM : null;
+
+      html += '<div class="tq-value">';
+      html += '<div class="tq-nm">' + fmtNm(nmMin)
+            + (nmMax !== null ? '〜' + fmtNm(nmMax) : '')
+            + '<span class="tq-nm-unit">N·m</span></div>';
+
+      var sub = fmtRaw(item.kgm) + (item.kgm_max ? '〜' + fmtRaw(item.kgm_max) : '') + ' kgf·m';
+      if (item.lbft !== null && item.lbft !== undefined) {
+        sub += ' ／ ' + fmtRaw(item.lbft) + (item.lbft_max ? '〜' + fmtRaw(item.lbft_max) : '') + ' lb·ft';
+      }
+      html += '<div class="tq-sub">' + esc(sub) + '</div>';
+      html += '</div>';
+    } else {
+      html += '<p class="tq-novalue"><strong>値は未登録です。</strong>'
+            + '下の「ねじサイズから目安を調べる」か、お手元の整備書をご確認ください。</p>';
+    }
+
+    if (item.notes && item.notes.length) {
+      html += '<ul class="tq-notes">';
+      for (var i = 0; i < item.notes.length; i++) {
+        html += '<li>' + esc(item.notes[i]) + '</li>';
+      }
+      html += '</ul>';
+    }
+
+    if (item.source) {
+      var srcLine = srcLabel(item.source, item.source_id);
+      if (srcLine) {
+        // 2つ目以降の出典（cross）があれば併記する。値が一致していればその旨も出す。
+        var extra = [], allAgree = true, diffs = [];
+        if (item.cross && item.cross.length) {
+          for (var c = 0; c < item.cross.length; c++) {
+            var x = item.cross[c];
+            var xl = srcLabel(x.id, x.ref);
+            if (xl) extra.push(xl);
+            if (!x.agree) {
+              allAgree = false;
+              diffs.push(x);
+            }
+          }
+        }
+        if (extra.length) {
+          html += '<div class="tq-crosscheck' + (allAgree ? '' : ' is-diff') + '">'
+                + (allAgree ? '✓ ' + (extra.length + 1) + '資料で一致' : '⚠ 資料間で値に差あり')
+                + '</div>';
+        }
+        // 差があるときは相手の値を伏せない。どちらを採るかは読む人が決められるようにする。
+        for (var k = 0; k < diffs.length; k++) {
+          var dx = diffs[k];
+          html += '<div class="tq-diff">';
+          if (dx.kgm !== null && dx.kgm !== undefined) {
+            var dNmMin = dx.kgm * KGM_TO_NM;
+            var dNmMax = (dx.kgm_max !== null && dx.kgm_max !== undefined) ? dx.kgm_max * KGM_TO_NM : null;
+            html += '<span class="tq-diff-val">別の資料では '
+                  + fmtNm(dNmMin) + (dNmMax !== null ? '〜' + fmtNm(dNmMax) : '') + ' N·m'
+                  + '（' + fmtRaw(dx.kgm) + (dx.kgm_max ? '〜' + fmtRaw(dx.kgm_max) : '') + ' kgf·m）'
+                  + '</span>';
+          }
+          if (dx.note) html += '<span class="tq-diff-note">' + esc(dx.note) + '</span>';
+          html += '</div>';
+        }
+        html += '<div class="tq-meta">出典: ' + srcLine
+              + (extra.length ? '<br>照合: ' + extra.join('<br>照合: ') : '') + '</div>';
+      }
+    }
+
+    html += '</div>';
+    return html;
+  }
+
+  // ---- 一覧の描画 ----
+  // 選んだエンジン形式・車体に、その項目が当てはまるか
+  function fitsSelection(item) {
+    var f = item.fits || {};
+    if (f.engine) {
+      return currentEngine === 'all' || f.engine.indexOf(currentEngine) !== -1;
+    }
+    if (f.chassis) {
+      return currentChassis === 'all' || f.chassis.indexOf(currentChassis) !== -1;
+    }
+    return true;
+  }
+
+  function renderList() {
+    var q = normalize(currentQuery);
+    var list = DATA.items.filter(function (item) {
+      if (currentArea !== 'all' && item.area !== currentArea) return false;
+      if (!fitsSelection(item)) return false;
+      if (!q) return true;
+      if (normalize(item.name).indexOf(q) !== -1) return true;
+      for (var i = 0; i < (item.aliases || []).length; i++) {
+        if (normalize(item.aliases[i]).indexOf(q) !== -1) return true;
+      }
+      return false;
+    });
+
+    // 値のあるものを先に、その中で重要保安を先に
+    list.sort(function (a, b) {
+      var av = (a.kgm !== null || a.procedure) ? 0 : 1;
+      var bv = (b.kgm !== null || b.procedure) ? 0 : 1;
+      if (av !== bv) return av - bv;
+      return (b.critical ? 1 : 0) - (a.critical ? 1 : 0);
+    });
+
+    var el = document.getElementById('tqList');
+    if (!list.length) {
+      el.innerHTML = '<p class="tq-empty-msg">見つかりませんでした。<br>'
+        + '別の呼び方でも探せます（例:「デスビ」「ドラシャ」）。</p>';
+    } else {
+      el.innerHTML = list.map(renderCard).join('');
+    }
+
+    var withValue = list.filter(function (i) { return i.kgm !== null || i.procedure; }).length;
+    var countEl = document.getElementById('tqCount');
+    countEl.textContent = list.length + ' 件（うち値あり ' + withValue + ' 件）';
+
+    // 選んだ形式の値をまだ持っていないときは、はっきりそう言う。
+    // 黙って空にすると「この形式は締めなくていい」と読まれかねないため。
+    var msgs = [];
+    if (currentEngine !== 'all' && !hasValueFor('engine', currentEngine)) {
+      msgs.push(esc(engineName(currentEngine)) + ' の<strong>エンジン側</strong>のトルク値は、まだ収録できていません。'
+              + '他の形式の値で代用しないでください。');
+    }
+    if (currentChassis !== 'all' && !hasValueFor('chassis', currentChassis)) {
+      msgs.push(esc(chassisName(currentChassis)) + ' の<strong>車体側</strong>（足回り・ブレーキ・ステアリング）の'
+              + 'トルク値は、まだ収録できていません。他の車体の値で代用しないでください。');
+    }
+
+    var noteEl = document.getElementById('tqFitWarn');
+    noteEl.innerHTML = msgs.map(function (m) { return '⚠️ ' + m; }).join('<br>');
+    noteEl.style.display = msgs.length ? '' : 'none';
+  }
+
+  // その軸のその値に、実際の数値を持つ項目があるか
+  function hasValueFor(axis, id) {
+    return DATA.items.some(function (i) {
+      return i.fits && i.fits[axis]
+        && i.fits[axis].indexOf(id) !== -1
+        && (i.kgm !== null || i.procedure);
+    });
+  }
+
+  // ---- 部位タブ ----
+  function renderTabs() {
+    var tabs = [{ id: 'all', label: 'すべて', icon: '' }].concat(DATA.areas);
+    var el = document.getElementById('tqTabs');
+    el.innerHTML = tabs.map(function (a) {
+      return '<button type="button" class="tq-tab' + (a.id === currentArea ? ' is-on' : '') + '" data-area="'
+        + esc(a.id) + '">' + esc((a.icon ? a.icon + ' ' : '') + a.label) + '</button>';
+    }).join('');
+
+    el.querySelectorAll('.tq-tab').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        currentArea = btn.getAttribute('data-area');
+        renderTabs();
+        renderList();
+      });
+    });
+  }
+
+  // ---- 適合の絞り込み（エンジン形式・車体）----
+  function renderFitSelectors() {
+    var eng = document.getElementById('tqEngine');
+    var cha = document.getElementById('tqChassis');
+
+    eng.innerHTML = '<option value="all">すべて表示（形式が分からないとき）</option>'
+      + (DATA.engines || []).map(function (e) {
+          return '<option value="' + esc(e.id) + '">'
+            + esc(e.label + '（' + e.cc + '）　' + e.cars) + '</option>';
+        }).join('');
+
+    cha.innerHTML = '<option value="all">すべて表示</option>'
+      + (DATA.chassis || []).map(function (c) {
+          return '<option value="' + esc(c.id) + '">' + esc(c.label) + '</option>';
+        }).join('');
+
+    eng.value = currentEngine;
+    cha.value = currentChassis;
+
+    eng.addEventListener('change', function () {
+      currentEngine = eng.value;
+      renderList();
+    });
+    cha.addEventListener('change', function () {
+      currentChassis = cha.value;
+      renderList();
+    });
+  }
+
+  // 選択中のエンジン形式・車体の表示名（メッセージ用）
+  function engineName(id) {
+    for (var i = 0; i < (DATA.engines || []).length; i++) {
+      if (DATA.engines[i].id === id) {
+        return DATA.engines[i].label + '（' + DATA.engines[i].cc + '）';
+      }
+    }
+    return '';
+  }
+  function chassisName(id) {
+    for (var i = 0; i < (DATA.chassis || []).length; i++) {
+      if (DATA.chassis[i].id === id) return DATA.chassis[i].label;
+    }
+    return '';
+  }
+
+  // ---- ねじサイズからの一般値 ----
+  function renderGeneric() {
+    var g = DATA.generic;
+    var sizeEl = document.getElementById('tqSize');
+    var gradeEl = document.getElementById('tqGrade');
+
+    // 初期値は実際に手を出すことが多い M8 にしておく（先頭の M5 だと大半の人が選び直すため）
+    sizeEl.innerHTML = g.table.map(function (r) {
+      return '<option value="' + esc(r.size) + '"' + (r.size === 'M8' ? ' selected' : '') + '>'
+        + esc(r.size) + '</option>';
+    }).join('');
+    gradeEl.innerHTML = g.grades.map(function (gr) {
+      return '<option value="' + esc(gr.id) + '"' + (gr.id === '8.8' ? ' selected' : '') + '>'
+        + esc(gr.label) + '</option>';
+    }).join('');
+
+    function update() {
+      var size = sizeEl.value, grade = gradeEl.value, row = null;
+      for (var i = 0; i < g.table.length; i++) if (g.table[i].size === size) row = g.table[i];
+      if (!row || row[grade] == null) {
+        document.getElementById('tqGenericNm').textContent = '—';
+        document.getElementById('tqGenericSub').textContent = '';
+        return;
+      }
+      var nm = row[grade];
+      document.getElementById('tqGenericNm').innerHTML =
+        fmtNm(nm) + '<span class="tq-nm-unit">N·m</span>';
+      document.getElementById('tqGenericSub').textContent =
+        fmtRaw(nm / KGM_TO_NM) + ' kgf·m ／ ' + fmtRaw(nm / LBFT_TO_NM) + ' lb·ft';
+    }
+    sizeEl.addEventListener('change', update);
+    gradeEl.addEventListener('change', update);
+    update();
+
+    // 一覧表
+    var th = '<tr><th>サイズ</th>' + g.grades.map(function (gr) {
+      return '<th>' + esc(gr.id) + '</th>';
+    }).join('') + '</tr>';
+    var tb = g.table.map(function (r) {
+      return '<tr><td>' + esc(r.size) + '</td>' + g.grades.map(function (gr) {
+        return '<td>' + (r[gr.id] != null ? fmtNm(r[gr.id]) : '—') + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+    document.getElementById('tqGenericTable').innerHTML =
+      '<thead>' + th + '</thead><tbody>' + tb + '</tbody>';
+
+    document.getElementById('tqCautions').innerHTML =
+      g.cautions.map(function (c) { return '<li>' + esc(c) + '</li>'; }).join('');
+  }
+
+  // ---- 単位換算 ----
+  function setupConverter() {
+    var nmEl = document.getElementById('tqNm');
+    var kgmEl = document.getElementById('tqKgm');
+    var lbEl = document.getElementById('tqLbft');
+    var lock = false;
+
+    function round(v) { return Math.round(v * 100) / 100; }
+
+    function bind(el, toNm) {
+      el.addEventListener('input', function () {
+        if (lock) return;
+        lock = true;
+        var v = parseFloat(el.value);
+        if (isNaN(v)) {
+          [nmEl, kgmEl, lbEl].forEach(function (o) { if (o !== el) o.value = ''; });
+        } else {
+          var nm = toNm(v);
+          if (nmEl !== el) nmEl.value = round(nm);
+          if (kgmEl !== el) kgmEl.value = round(nm / KGM_TO_NM);
+          if (lbEl !== el) lbEl.value = round(nm / LBFT_TO_NM);
+        }
+        lock = false;
+      });
+    }
+    bind(nmEl, function (v) { return v; });
+    bind(kgmEl, function (v) { return v * KGM_TO_NM; });
+    bind(lbEl, function (v) { return v * LBFT_TO_NM; });
+  }
+
+  // ---- 起動 ----
+  fetch('torque-data.json')
+    .then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function (json) {
+      DATA = json;
+
+      document.getElementById('tqTarget').textContent =
+        '対象: ' + DATA.target + ' ／ 全 ' + DATA.items.length + ' 項目';
+
+      var srcLabels = DATA.sources.map(function (s) { return s.label; }).join('、');
+      document.getElementById('tqDisclaimer').textContent =
+        '出典: ' + srcLabels + '。'
+        + 'ここに載せている値は参考情報であり、正確性を保証するものではありません。'
+        + '作業は必ずご自身の責任で、お手元の整備書と照らし合わせて行ってください。'
+        + '値の誤り・追加したい箇所にお気づきの方はご連絡ください。';
+
+      renderFitSelectors();
+      renderTabs();
+      renderList();
+      renderGeneric();
+      setupConverter();
+
+      var searchEl = document.getElementById('tqSearch');
+      searchEl.addEventListener('input', function () {
+        currentQuery = searchEl.value;
+        renderList();
+      });
+    })
+    .catch(function (e) {
+      document.getElementById('tqList').innerHTML =
+        '<p class="tq-empty-msg">データを読み込めませんでした。<br>時間をおいて再度お試しください。</p>';
+      console.error('[torque] データ読み込み失敗:', e);
+    });
+})();
+</script>
+
+<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "60f959409b1e4eb29308eeb53615812a"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
