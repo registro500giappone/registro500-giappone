@@ -96,6 +96,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // データJSON: NetworkFirst（中身が更新されるので古いものを先に返さない）
+  // fetch() で取るJSONは destination が空になり、下の「その他」に落ちて
+  // StaleWhileRevalidate になっていた＝更新した内容が1回遅れて出る。
+  // 実害が出た例＝torque-data.json（新しいタブ名や締め付け順序の図が出なかった）。
+  if (url.pathname.endsWith('.json')) {
+    event.respondWith(networkFirst(req, RUNTIME_CACHE));
+    return;
+  }
+
   // 画像: CacheFirst
   if (req.destination === 'image') {
     event.respondWith(cacheFirst(req, RUNTIME_CACHE));
@@ -123,6 +132,8 @@ async function networkFirst(req, cacheName) {
   } catch (err) {
     const cached = await cache.match(req);
     if (cached) return cached;
+    // JSON に index.html を返すと JSON.parse で落ちるだけなので、素直に投げる
+    if (new URL(req.url).pathname.endsWith('.json')) throw err;
     // HTML が無ければ index.html のキャッシュをフォールバック
     const fallback = await cache.match('/') || await cache.match('/index.html');
     if (fallback) return fallback;

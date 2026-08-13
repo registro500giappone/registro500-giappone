@@ -60,8 +60,18 @@
     /* 適合の絞り込み（エンジン形式・車体） */
     .tq-fit-wrap {
       background: var(--rg-surface-sub); border: 1px solid var(--rg-border);
-      border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;
+      border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;
     }
+    /* 畳んでいるときは必ず1行。長い車名が入っても折り返さず「…」で切る */
+    .tq-fit-summary {
+      cursor: pointer; list-style: none; font-size: 0.88rem; font-weight: 700;
+      color: var(--rg-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tq-fit-summary::-webkit-details-marker { display: none; }
+    .tq-fit-summary::after { content: ' ▾'; color: var(--rg-muted); font-weight: 400; }
+    .tq-fit-wrap[open] .tq-fit-summary::after { content: ' ▴'; }
+    .tq-fit-summary .tq-fit-sum-lead { color: var(--rg-muted); font-weight: 400; margin-right: 4px; }
+    .tq-fit-body { margin-top: 10px; }
     .tq-fit-row { display: flex; gap: 10px; flex-wrap: wrap; }
     .tq-fit { flex: 1 1 190px; display: block; min-width: 0; }
     .tq-fit-label {
@@ -114,6 +124,8 @@
     .tq-tab.is-on {
       background: var(--rg-accent); color: #fff; border-color: var(--rg-accent);
     }
+    /* 絞り込みではなくページ下部へ飛ぶタブ。破線で「性格が違う」と分かるようにする */
+    .tq-tab.is-jump { border-style: dashed; color: var(--rg-muted); }
 
     .tq-count { font-size: 0.78rem; color: var(--rg-muted); margin: 6px 2px 10px; }
 
@@ -268,6 +280,8 @@
     }
 
     /* ===== 下部ツール（一般値・換算） ===== */
+    /* 検索欄とタブが sticky で上に居座るので、飛んだときに見出しが隠れないよう逃がす */
+    #tqSizeTool { scroll-margin-top: 184px; }
     .tq-tool {
       background: var(--rg-surface); border: 1px solid var(--rg-border);
       border-radius: var(--rg-radius-card); padding: 16px; margin-top: 16px;
@@ -367,24 +381,29 @@
   </details>
 
   <!-- ===== 車のえらび方（エンジンと車体を別々に選ぶ） ===== -->
-  <div class="tq-fit-wrap">
-    <!-- ログイン済みオーナーの登録車両にそろえる帯。未ログインなら出さない -->
-    <details class="tq-mycar" id="tqMyCar" style="display:none"></details>
-    <div class="tq-fit-row">
-      <label class="tq-fit">
-        <span class="tq-fit-label">エンジン形式</span>
-        <select id="tqEngine" class="tq-fit-select"></select>
-      </label>
-      <label class="tq-fit">
-        <span class="tq-fit-label">車体</span>
-        <select id="tqChassis" class="tq-fit-select"></select>
-      </label>
+  <!-- 普段は「いま何で絞っているか」の1行だけ。押すと選び直せる。
+       一度選んだら滅多に変えない設定なので、作業中の画面から場所を取らせない。 -->
+  <details class="tq-fit-wrap" id="tqFitBox">
+    <summary class="tq-fit-summary" id="tqFitSummary">車をえらぶ</summary>
+    <div class="tq-fit-body">
+      <!-- ログイン済みオーナーの登録車両にそろえる帯。未ログインなら出さない -->
+      <details class="tq-mycar" id="tqMyCar" style="display:none"></details>
+      <div class="tq-fit-row">
+        <label class="tq-fit">
+          <span class="tq-fit-label">エンジン形式</span>
+          <select id="tqEngine" class="tq-fit-select"></select>
+        </label>
+        <label class="tq-fit">
+          <span class="tq-fit-label">車体</span>
+          <select id="tqChassis" class="tq-fit-select"></select>
+        </label>
+      </div>
+      <p class="tq-fit-note">
+        エンジンを載せ替えている車が多いので、<strong>エンジンと車体は別々に選びます</strong>。
+        分からなければ「すべて表示」のまま。選んだ内容はこの端末に記憶されます。
+      </p>
     </div>
-    <p class="tq-fit-note">
-      エンジンを載せ替えている車が多いので、<strong>エンジンと車体は別々に選びます</strong>。
-      分からなければ「すべて表示」のまま。選んだ内容はこの端末に記憶されます。
-    </p>
-  </div>
+  </details>
 
   <!-- ===== 検索 ===== -->
   <div class="tq-search-wrap">
@@ -397,7 +416,8 @@
   <div id="tqList"></div>
 
   <!-- ===== ねじサイズから調べる ===== -->
-  <div class="tq-tool">
+  <!-- id はタブ「ねじサイズ」からの飛び先。付け替えるとタブが効かなくなる -->
+  <div class="tq-tool" id="tqSizeTool">
     <h2>🔧 ねじサイズから目安を調べる</h2>
     <p class="tq-tool-lead">
       早見帳に載っていない箇所のための、一般的な目安です。<strong>特定車種の規定値ではありません。</strong>
@@ -617,6 +637,18 @@
     return out;
   }
 
+  // 濁点・半濁点を落とす。かな入力の打ち間違いで一番多いのがこれで、
+  // 実例＝「シリンダーベッドナット」（ヘ→ベ）で0件になった。1文字違うだけなので
+  // 飛び石照合でも拾えない。最後の手段の照合でだけ使い、通常の一致には影響させない。
+  function stripDakuten(s) {
+    var VOICED = 'がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゔ';
+    var PLAIN  = 'かきくけこさしすせそたちつてとはひふへほはひふへほう';
+    return s.replace(/[ぁ-ゖ]/g, function (c) {
+      var i = VOICED.indexOf(c);
+      return i === -1 ? c : PLAIN.charAt(i);
+    });
+  }
+
   // 飛び石照合：q の文字が text に順番どおり現れるか
   function isSubsequence(q, text) {
     var i = 0;
@@ -650,8 +682,12 @@
     if (f.engine) {
       for (var i = 0; i < f.engine.length; i++) {
         var e = engineDef(f.engine[i]);
-        if (e) out.push(esc(e.label) + ' ' + esc(e.cc));
+        // 排気量は付けない。4形式並ぶと3行になって、肝心のトルク値が画面から押し出される
+        if (e) out.push(esc(e.label));
       }
+      // 全形式に当たるなら列挙しない。ここは「自分の車が対象か」を確かめる行なので、
+      // 全部が対象なら形式名を4つ読ませる意味がない。
+      if (out.length === (DATA.engines || []).length) return '対象エンジン: 全形式共通';
       return '対象エンジン: ' + (out.join(' ／ ') || '—');
     }
     if (f.chassis) {
@@ -682,9 +718,13 @@
   // 数値欄が空で文章でしかトルクを示せない項目のためのもの。kgf·m / lb·ft は括弧の中の
   // 補足なので触らない（全部大きくすると結局どれを見ればいいか分からなくなる）。
   // esc() 済みの文字列に対して当てること。
+  // 数値の書き方は「1.5」「25〜34」「1.37 ± 0.09」の3通りがある。
+  // ± を入れ忘れると「1.37 ± 0.09 N·m」の 0.09 だけが大きくなり、本体の 1.37 が
+  // 小さいまま残る（実際にそう出ていた）。範囲と誤差は続けて書かれることもあるので
+  // どちらも省略可の形で並べておく。
   function emphasizeNm(escaped) {
     return escaped.replace(
-      /(\d+(?:\.\d+)?(?:\s*[〜~]\s*\d+(?:\.\d+)?)?)(\s*N·m)/g,
+      /(\d+(?:\.\d+)?(?:\s*[〜~-]\s*\d+(?:\.\d+)?)?(?:\s*(?:±|\+\/-)\s*\d+(?:\.\d+)?)?)(\s*N·m)/g,
       '<span class="tq-nm-inline">$1$2</span>'
     );
   }
@@ -918,6 +958,15 @@
         });
         loose = list.length > 0;
       }
+      // 3段目＝濁点の打ち間違いを疑う。ここまで来て0件のときだけ
+      if (!list.length) {
+        var qd = stripDakuten(q);
+        list = base.filter(function (item) {
+          item.__hit = 2;
+          return isSubsequence(qd, stripDakuten(searchText(item)));
+        });
+        loose = list.length > 0;
+      }
     }
 
     // 検索中は「名前に当たったもの」を最優先。その次に値のあるもの、重要保安。
@@ -982,17 +1031,28 @@
     var el = document.getElementById('tqTabs');
     // 4列に収めるため、絵文字は付けず短い方の名前（short）を使う。
     // 絵文字と長い名前を入れると1つが2行になり、押しにくくなる。
-    el.innerHTML = tabs.map(function (a) {
+    var html = tabs.map(function (a) {
       return '<button type="button" class="tq-tab' + (a.id === currentArea ? ' is-on' : '') + '" data-area="'
         + esc(a.id) + '">' + esc(a.short || a.label) + '</button>';
     }).join('');
 
-    el.querySelectorAll('.tq-tab').forEach(function (btn) {
+    // 8個目＝早見帳に無い箇所のための「ねじサイズから目安を調べる」への近道。
+    // 絞り込みではないので is-on にはならず、押すとページ下部へ飛ぶだけ。
+    // ちょうど 4×2 に収まるので、この1個で行が増えることはない。
+    html += '<button type="button" class="tq-tab is-jump" id="tqSizeJump">ねじサイズ</button>';
+    el.innerHTML = html;
+
+    el.querySelectorAll('.tq-tab[data-area]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         currentArea = btn.getAttribute('data-area');
         renderTabs();
         renderList();
       });
+    });
+
+    document.getElementById('tqSizeJump').addEventListener('click', function () {
+      var target = document.getElementById('tqSizeTool');
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
 
@@ -1001,10 +1061,11 @@
     var eng = document.getElementById('tqEngine');
     var cha = document.getElementById('tqChassis');
 
+    // 形式名だけを出す。排気量・車名を足すと1行が長くなり、スマホでは末尾が切れて
+    // かえって選びにくい（形式が分かっている人が選ぶ欄なので、形式名だけで足りる）。
     eng.innerHTML = '<option value="all">すべて表示（形式が分からないとき）</option>'
       + (DATA.engines || []).map(function (e) {
-          return '<option value="' + esc(e.id) + '">'
-            + esc(e.label + '（' + e.cc + '）　' + e.cars) + '</option>';
+          return '<option value="' + esc(e.id) + '">' + esc(e.label) + '</option>';
         }).join('');
 
     cha.innerHTML = '<option value="all">すべて表示</option>'
@@ -1027,13 +1088,35 @@
       saveFits();
       renderList();
       renderMyCarNotice();
+      renderFitSummary();
     });
     cha.addEventListener('change', function () {
       currentChassis = cha.value;
       saveFits();
       renderList();
       renderMyCarNotice();
+      renderFitSummary();
     });
+
+    renderFitSummary();
+  }
+
+  // 畳んだときに出る1行。いま何で絞っているかだけを見せる。
+  function renderFitSummary() {
+    var el = document.getElementById('tqFitSummary');
+    if (!el) return;
+    var e = currentEngine === 'all' ? '' : engineName(currentEngine);
+    var c = currentChassis === 'all' ? '' : chassisName(currentChassis);
+
+    var txt;
+    if (!e && !c) txt = 'すべて表示（エンジン形式・車体をえらぶ）';
+    else if (e && c) txt = c + ' ／ ' + e;
+    else if (c) txt = c + '（エンジンはすべて）';
+    else txt = e + '（車体はすべて）';
+
+    // 登録車両と一致しているときだけ印を出す。ログインしていない人には出ない。
+    var mark = myCarMatches() ? ' 🚗ご登録の車' : '';
+    el.innerHTML = '<span class="tq-fit-sum-lead">車:</span>' + esc(txt) + esc(mark);
   }
 
   // ============================================================
@@ -1082,10 +1165,11 @@
   }
 
   // 選択中のエンジン形式・車体の表示名（メッセージ用）
+  // 排気量・車名は付けない。形式名だけで通じるうえ、プルダウンの表示とも揃う。
   function engineName(id) {
     for (var i = 0; i < (DATA.engines || []).length; i++) {
       if (DATA.engines[i].id === id) {
-        return DATA.engines[i].label + '（' + DATA.engines[i].cc + '）';
+        return DATA.engines[i].label;
       }
     }
     return '';
@@ -1247,6 +1331,7 @@
     if (byUser) saveFits();
     renderList();
     renderMyCarNotice();
+    renderFitSummary();
   }
 
   function renderMyCarNotice() {
@@ -1321,7 +1406,7 @@
       myCarIndex = 0;
       // この端末で本人が選んだ内容がすでにあるなら、それを自動で上書きしない。
       // 帯は出して「この車に合わせる」といつでも押せるようにしておく。
-      if (hasSavedFits()) renderMyCarNotice();
+      if (hasSavedFits()) { renderMyCarNotice(); renderFitSummary(); }
       else applyMyCar(true, false);
     }).catch(function (e) {
       console.warn('[torque] 登録車両の読み込みに失敗:', e);
@@ -1329,7 +1414,13 @@
   }
 
   // ---- 起動 ----
-  fetch('torque-data.json')
+  // ⚠️ torque-data.json を書き換えたら DATA_VERSION も必ず上げること。
+  // 古い Service Worker が端末に残っている間は Cache Storage から古いJSONが返り、
+  // 「直したはずの内容が出ない」が起きる（実際に順序図とタブ名で発生した）。
+  // 新しいSWは更新バナーをタップするまで有効にならないので、SW側の修正だけでは間に合わない。
+  // クエリを変えるとキャッシュのキーが変わるので、SWの世代に関係なく取り直せる。
+  var DATA_VERSION = '2026-08-13b';
+  fetch('torque-data.json?v=' + DATA_VERSION)
     .then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();

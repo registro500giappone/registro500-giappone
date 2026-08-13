@@ -18,6 +18,13 @@
 /*.css
   Cache-Control: no-cache, no-store, must-revalidate
 
+# データJSONもキャッシュさせない（中身の更新がすぐ反映されるように）
+# ⚠️ここだけでは足りない。fetch() のJSONは Service Worker 側でも
+#   NetworkFirst にしてある（sw.js）。古いSWが残っている端末向けには
+#   ページ側で ?v= を付けて取っている（torque.html の DATA_VERSION）。
+/*.json
+  Cache-Control: no-cache, no-store, must-revalidate
+
 # 配線図の系統別画像は内容が変わらないので長期キャッシュ（2回目以降は再取得しない）
 # ⚠️図を差し替えるときはファイル名を変えること（immutable のため上書きしても反映されない）
 /wiring-img/*
