@@ -91,7 +91,7 @@
       background: var(--rg-bg); padding: 8px 0 6px; margin-bottom: 4px;
     }
     .tq-search {
-      width: 100%; font-size: 1.05rem; padding: 12px 14px;
+      width: 100%; font-size: 1.1rem; padding: 14px 14px;
       border: 2px solid var(--rg-border); border-radius: 10px;
       background: var(--rg-surface); color: var(--rg-text);
       font-family: inherit; -webkit-appearance: none;
@@ -99,15 +99,17 @@
     .tq-search:focus { outline: none; border-color: var(--rg-accent); }
     .tq-search::placeholder { color: var(--rg-muted); }
 
-    /* 横スクロールだと画面外のタブに気づけない（スマホで7個中3個しか見えなかった）ので折り返す */
+    /* 作業中に手で押すので、指の当たる大きさにする。
+       4列グリッドにしてあるのは、7個が必ず2行に収まることを幅に依存せず保証するため
+       （折り返しだと文字数しだいで3行になる。以前は横スクロールで半分見えていなかった）。 */
     .tq-tabs {
-      display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0 4px;
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 8px 0 4px;
     }
     .tq-tab {
-      flex: 0 0 auto; font-size: 0.8rem; padding: 6px 12px; border-radius: 999px;
+      font-size: 0.9rem; padding: 12px 4px; border-radius: 8px;
       border: 1px solid var(--rg-border); background: var(--rg-surface);
-      color: var(--rg-muted); cursor: pointer; white-space: nowrap;
-      font-family: inherit; font-weight: 600;
+      color: var(--rg-text); cursor: pointer; white-space: nowrap;
+      font-family: inherit; font-weight: 700;
     }
     .tq-tab.is-on {
       background: var(--rg-accent); color: #fff; border-color: var(--rg-accent);
@@ -115,12 +117,26 @@
 
     .tq-count { font-size: 0.78rem; color: var(--rg-muted); margin: 6px 2px 10px; }
 
-    /* ログイン済みオーナーの登録車両にそろえたときの帯 */
+    /* 飛び石照合で拾ったときの断り書き */
+    .tq-loose {
+      font-size: 0.8rem; color: var(--rg-muted); margin: 0 2px 10px; line-height: 1.6;
+    }
+
+    /* ログイン済みオーナーの登録車両にそろえたときの帯。
+       作業中は情報を削ぎたいので、既定は1行。押すと切り替えと注記が出る。 */
     .tq-mycar {
       background: var(--rg-accent-soft); border: 1px solid var(--rg-accent-border);
-      border-radius: 6px; padding: 10px 12px; margin: 0 0 12px;
-      font-size: 0.82rem; line-height: 1.7; color: var(--rg-text);
+      border-radius: 6px; padding: 8px 12px; margin: 0 0 12px;
+      font-size: 0.82rem; line-height: 1.6; color: var(--rg-text);
     }
+    .tq-mycar summary {
+      cursor: pointer; font-weight: 700; list-style: none;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tq-mycar summary::-webkit-details-marker { display: none; }
+    .tq-mycar summary::after { content: ' ▾'; color: var(--rg-muted); font-weight: 400; }
+    .tq-mycar[open] summary::after { content: ' ▴'; }
+    .tq-mycar-body { margin-top: 8px; }
     .tq-mycar-pick {
       display: block; width: 100%; margin: 6px 0; padding: 7px 8px;
       font-size: 0.85rem; font-family: inherit;
@@ -142,9 +158,10 @@
     .tq-card.is-critical { border-left: 5px solid #c0392b; }
     .tq-card.is-empty { background: var(--rg-surface-sub); }
 
+    /* 「どこを締めるか」と「何 N·m か」が対で主役。名前を数値と釣り合う大きさにする */
     .tq-card-name {
-      font-size: 1rem; font-weight: 700; color: var(--rg-text);
-      margin: 0 0 8px; line-height: 1.4;
+      font-size: 1.25rem; font-weight: 700; color: var(--rg-text);
+      margin: 0 0 8px; line-height: 1.35;
     }
     .tq-flag {
       display: inline-block; font-size: 0.68rem; font-weight: 700;
@@ -183,6 +200,14 @@
 
     .tq-novalue { font-size: 0.88rem; color: var(--rg-muted); margin: 8px 0; }
     .tq-novalue strong { color: var(--rg-text); }
+
+    /* 数値欄が空で、文章の中でしかトルクを示せない項目がある（手順が主役の箇所・
+       別項目に値がある箇所）。そこだけ N·m の数値を浮き出させて、文に埋没させない。
+       大きい数値を別に出しているカードには付けない（二重に強調すると読みにくい）。 */
+    .tq-nm-inline {
+      font-size: 1.25rem; font-weight: 800; color: var(--rg-accent);
+      letter-spacing: -0.01em; white-space: nowrap;
+    }
 
     .tq-notes { margin: 8px 0 0; padding-left: 1.1em; font-size: 0.82rem; color: var(--rg-muted); line-height: 1.65; }
     .tq-notes li { margin-bottom: 3px; }
@@ -323,7 +348,7 @@
   <!-- ===== 車のえらび方（エンジンと車体を別々に選ぶ） ===== -->
   <div class="tq-fit-wrap">
     <!-- ログイン済みオーナーの登録車両にそろえる帯。未ログインなら出さない -->
-    <div class="tq-mycar" id="tqMyCar" style="display:none"></div>
+    <details class="tq-mycar" id="tqMyCar" style="display:none"></details>
     <div class="tq-fit-row">
       <label class="tq-fit">
         <span class="tq-fit-label">エンジン形式</span>
@@ -336,9 +361,7 @@
     </div>
     <p class="tq-fit-note">
       エンジンを載せ替えている車が多いので、<strong>エンジンと車体は別々に選びます</strong>。
-      500 R はもともと 126 のエンジン（126.A・594cc）を積んでいます。
-      分からなければ「すべて表示」のままで構いません。
-      選んだ内容はこの端末に記憶され、次に開いたときも同じ状態で表示されます。
+      分からなければ「すべて表示」のまま。選んだ内容はこの端末に記憶されます。
     </p>
   </div>
 
@@ -460,6 +483,138 @@
       .toLowerCase();
   }
 
+  // ============================================================
+  // 検索語のゆれを受ける
+  // ------------------------------------------------------------
+  // 実際に外した例＝「ホイールボルト」。項目名が「ホイール取付ボルト」なので、
+  // 間に「取付」が挟まって部分一致に引っかからなかった。人は正式名では打たない。
+  // 対策は2段構え。
+  //   1) 言い換え表（SYNONYMS）＝別の単語で呼ばれるものを結び付ける
+  //   2) それでも0件なら、文字が順番どおり現れるかだけを見る飛び石照合
+  //      （「ほいるぼると」が「ほいる取付ぼると」に含まれるとみなす）
+  // 飛び石照合は当てすぎるので、完全一致で見つからなかったときだけ使い、
+  // 「近い項目を出した」と画面に明示する。黙って別物を出さない。
+  // ============================================================
+  var SYNONYMS = [
+    // ねじの呼び方そのもの。ボルトかナットかは現物を見ないと分からないことが多い
+    ['ボルト', ['ナット', 'ねじ', 'スクリュー', 'ビス']],
+    ['ナット', ['ボルト', 'ねじ']],
+    ['ねじ', ['ボルト', 'ナット']],
+    ['ビス', ['ボルト', 'ねじ']],
+    // エンジン
+    ['ヘッドボルト', ['シリンダーヘッドナット']],
+    ['タペット', ['ロッカー', 'バルブクリアランス']],
+    ['タペットカバー', ['ロッカーカバー']],
+    ['ヘッドカバー', ['ロッカーカバー']],
+    ['プラグ', ['スパークプラグ', '点火プラグ']],
+    ['デスビ', ['ディストリビューター', '配電']],
+    ['デスビキャップ', ['ディストリビューター']],
+    ['オルタネーター', ['ダイナモ', '発電機', 'ジェネレーター']],
+    ['ジェネレーター', ['ダイナモ', '発電機']],
+    ['コンロッド', ['コネクティングロッド', 'ビッグエンド', '大端']],
+    ['メタル', ['ベアリング', '軸受']],
+    ['ベアリング', ['軸受', 'メタル']],
+    ['プーリー', ['クランクプーリー', 'ファンプーリー']],
+    ['オイルパン', ['クランクケース', 'オイルサンプ']],
+    ['ドレン', ['ドレイン', '排油']],
+    ['ドレイン', ['ドレン']],
+    ['エキマニ', ['エキゾーストマニホールド', '排気マニホールド']],
+    ['インマニ', ['インテークマニホールド', '吸気マニホールド']],
+    ['マフラー', ['エキゾースト', '排気']],
+    ['キャブ', ['キャブレター', '気化器']],
+    ['エアクリ', ['エアクリーナー', 'エアフィルター']],
+    ['フライホイル', ['フライホイール', 'はずみ車']],
+    ['クラッチカバー', ['クラッチ']],
+    // 駆動系
+    ['ミッション', ['トランスミッション', 'ギアボックス', '変速機']],
+    ['ギア', ['ギヤ', 'ギアボックス']],
+    ['ギヤ', ['ギア']],
+    ['デフ', ['ディファレンシャル', '最終減速', 'クラウンホイール']],
+    ['リングギア', ['クラウンホイール']],
+    ['ドラシャ', ['ドライブシャフト', 'ハーフシャフト']],
+    ['ペラシャ', ['プロペラシャフト']],
+    ['等速', ['ジョイント', 'ユニバーサルジョイント']],
+    // 足回り・操舵
+    ['ホイールボルト', ['ホイール取付ボルト', 'ホイールナット']],
+    ['ホイールナット', ['ホイール取付ボルト']],
+    ['タイヤ', ['ホイール']],
+    ['リム', ['ホイール']],
+    ['ハブナット', ['ハブ']],
+    ['ショック', ['ショックアブソーバー', 'ダンパー']],
+    ['ダンパー', ['ショックアブソーバー']],
+    ['スタビ', ['スタビライザー']],
+    ['ロアアーム', ['スイングアーム', 'アーム']],
+    ['ナックル', ['ステアリングナックル', 'キングピン']],
+    ['ハンドル', ['ステアリング', 'ステアリングホイール']],
+    ['ステアリングギアボックス', ['ステアリングボックス']],
+    ['ラック', ['ステアリングボックス']],
+    ['タイロッド', ['ステアリングロッド', 'リンク']],
+    ['ピットマン', ['ピットマンアーム', 'ドロップアーム']],
+    ['板バネ', ['リーフスプリング', 'リーフ']],
+    ['リーフ', ['板バネ', 'リーフスプリング']],
+    // ブレーキ
+    ['ブレーキホース', ['ブレーキパイプ', 'フレアナット']],
+    ['ブレーキパイプ', ['ブレーキホース', 'フレアナット']],
+    ['マスター', ['マスターシリンダー']],
+    ['ホイルシリンダー', ['ホイールシリンダー']],
+    ['キャリパー', ['ホイールシリンダー']],
+    ['ドラム', ['ブレーキドラム', 'バックプレート']],
+    ['サイドブレーキ', ['パーキングブレーキ', 'ハンドブレーキ']],
+    // ボディ・その他
+    // ⚠️「シートベルト → ベルト」のような“語を短くする”言い換えは入れない。
+    //   置き換え後の語（ベルト）がファンベルト等の別項目に当たってしまう。
+    ['シートレール', ['シート']],
+    ['ヒンジ', ['ドアヒンジ']],
+    ['エンジンマウント', ['マウント', 'パワーユニット']],
+    ['ミッションマウント', ['マウント']],
+    // 英語で打つ人向け（項目側の英語 alias は一部にしかない）
+    ['head', ['シリンダーヘッド']],
+    ['wheel', ['ホイール']],
+    ['brake', ['ブレーキ']],
+    ['plug', ['スパークプラグ']],
+    ['clutch', ['クラッチ']],
+    ['flywheel', ['フライホイール']],
+    ['oil', ['オイル']],
+    ['hub', ['ハブ']]
+  ];
+
+  // 入力語から「これでも探す」語の一覧を作る（元の語を必ず先頭に含む）
+  function expandQuery(q) {
+    var out = [q];
+    for (var i = 0; i < SYNONYMS.length; i++) {
+      var key = normalize(SYNONYMS[i][0]);
+      if (!key || q.indexOf(key) === -1) continue;
+      var alts = SYNONYMS[i][1];
+      for (var j = 0; j < alts.length; j++) {
+        // 打った語のうち該当部分だけを差し替える。
+        // 言い換え語そのものを足すと「ホイールボルト」が『ナット』を含む全項目に
+        // 当たってしまう（実測36件）。必ず前後の語を残したまま置き換えること。
+        var swapped = q.split(key).join(normalize(alts[j]));
+        if (out.indexOf(swapped) === -1) out.push(swapped);
+      }
+    }
+    return out;
+  }
+
+  // 飛び石照合：q の文字が text に順番どおり現れるか
+  function isSubsequence(q, text) {
+    var i = 0;
+    for (var j = 0; j < text.length && i < q.length; j++) {
+      if (text.charAt(j) === q.charAt(i)) i++;
+    }
+    return i === q.length;
+  }
+
+  // 項目1件ぶんの検索対象テキスト（名前＋別名）
+  function searchText(item) {
+    if (item.__stext === undefined) {
+      // 「|」で区切る。区切らないと名前の末尾と別名の先頭がつながって偽の一致を作る
+      item.__stext = [normalize(item.name)]
+        .concat((item.aliases || []).map(normalize)).join('|');
+    }
+    return item.__stext;
+  }
+
   function esc(s) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -502,6 +657,17 @@
         || !!i.procedure;
   }
 
+  // 文章の中の N·m の数値だけを大きく出す。
+  // 数値欄が空で文章でしかトルクを示せない項目のためのもの。kgf·m / lb·ft は括弧の中の
+  // 補足なので触らない（全部大きくすると結局どれを見ればいいか分からなくなる）。
+  // esc() 済みの文字列に対して当てること。
+  function emphasizeNm(escaped) {
+    return escaped.replace(
+      /(\d+(?:\.\d+)?(?:\s*[〜~]\s*\d+(?:\.\d+)?)?)(\s*N·m)/g,
+      '<span class="tq-nm-inline">$1$2</span>'
+    );
+  }
+
   // ---- カード1枚 ----
   function renderCard(item) {
     var cls = 'tq-card';
@@ -527,7 +693,7 @@
     if (hasProc) {
       html += '<div class="tq-procedure">'
             + '<span class="tq-procedure-label">締めっぱなしにしない箇所です</span>'
-            + esc(item.procedure) + '</div>';
+            + emphasizeNm(esc(item.procedure)) + '</div>';
     } else if (hasValue) {
       // 原典が lb·ft しか書いていない項目もある（純正独語版に対応する記述が無い箇所）。
       // 原典に無い値は換算で作らない方針なので、その場合は kgf·m を持たない。
@@ -560,7 +726,7 @@
             + '下の「ねじサイズから目安を調べる」をご確認ください。</p>';
       // 項目ごとの補足（別項目に値がある／後付け部品で原典に無くて当然、など）。
       if (item.no_spec_note) {
-        html += '<p class="tq-novalue">' + esc(item.no_spec_note) + '</p>';
+        html += '<p class="tq-novalue">' + emphasizeNm(esc(item.no_spec_note)) + '</p>';
       }
     } else {
       html += '<p class="tq-novalue"><strong>値は未登録です。</strong>'
@@ -568,9 +734,12 @@
     }
 
     if (item.notes && item.notes.length) {
+      // 大きい数値を別に出しているカードでは注記の N·m を強調しない。
+      // 二重に強調すると、どちらが規定値か分からなくなる。
       html += '<ul class="tq-notes">';
       for (var i = 0; i < item.notes.length; i++) {
-        html += '<li>' + esc(item.notes[i]) + '</li>';
+        var noteHtml = esc(item.notes[i]);
+        html += '<li>' + (hasValue ? noteHtml : emphasizeNm(noteHtml)) + '</li>';
       }
       html += '</ul>';
     }
@@ -643,19 +812,48 @@
 
   function renderList() {
     var q = normalize(currentQuery);
-    var list = DATA.items.filter(function (item) {
+    var base = DATA.items.filter(function (item) {
       if (currentArea !== 'all' && item.area !== currentArea) return false;
-      if (!fitsSelection(item)) return false;
-      if (!q) return true;
-      if (normalize(item.name).indexOf(q) !== -1) return true;
-      for (var i = 0; i < (item.aliases || []).length; i++) {
-        if (normalize(item.aliases[i]).indexOf(q) !== -1) return true;
-      }
-      return false;
+      return fitsSelection(item);
     });
 
-    // 値のあるものを先に、その中で重要保安を先に
+    var list, loose = false;
+    if (!q) {
+      list = base;
+    } else {
+      // 1段目＝打った語と言い換え語での部分一致
+      var terms = expandQuery(q);
+      list = base.filter(function (item) {
+        var t = searchText(item);
+        var nm = normalize(item.name);
+        item.__hit = 2;
+        for (var i = 0; i < terms.length; i++) {
+          if (!terms[i]) continue;
+          // 名前に当たったものを上に出す。別名や言い換え経由の一致は下。
+          // 正規化で長音を落としている都合上、「プーリー」→「ぷり」が
+          // 「スプリング」にも当たるといった取りこぼしようのない雑音が出るため。
+          if (nm.indexOf(terms[i]) !== -1) { item.__hit = 0; return true; }
+          if (t.indexOf(terms[i]) !== -1) item.__hit = 1;
+        }
+        return item.__hit === 1;
+      });
+      // 2段目＝それでも0件のときだけ飛び石照合。当てすぎるので画面でそう断る
+      if (!list.length) {
+        list = base.filter(function (item) {
+          item.__hit = 2;
+          return isSubsequence(q, searchText(item));
+        });
+        loose = list.length > 0;
+      }
+    }
+
+    // 検索中は「名前に当たったもの」を最優先。その次に値のあるもの、重要保安。
     list.sort(function (a, b) {
+      if (q) {
+        var ah = a.__hit === undefined ? 2 : a.__hit;
+        var bh = b.__hit === undefined ? 2 : b.__hit;
+        if (ah !== bh) return ah - bh;
+      }
       var av = itemHasValue(a) ? 0 : 1;
       var bv = itemHasValue(b) ? 0 : 1;
       if (av !== bv) return av - bv;
@@ -664,10 +862,15 @@
 
     var el = document.getElementById('tqList');
     if (!list.length) {
+      // 例に出す語は、実際にその語で当たるものだけにする（当たらない例を出すと不信になる）
       el.innerHTML = '<p class="tq-empty-msg">見つかりませんでした。<br>'
-        + '別の呼び方でも探せます（例:「デスビ」「ドラシャ」）。</p>';
+        + '別の呼び方でも探せます（例:「タペット」「ドラシャ」「腰上」）。</p>';
     } else {
-      el.innerHTML = list.map(renderCard).join('');
+      // 飛び石照合で拾ったときは、完全に一致したわけではないと先に断る
+      el.innerHTML = (loose
+        ? '<p class="tq-loose">「' + esc(currentQuery) + '」に一致する項目はありません。'
+          + '字の並びが近いものを出しています。</p>'
+        : '') + list.map(renderCard).join('');
     }
 
     var withValue = list.filter(itemHasValue).length;
@@ -702,11 +905,13 @@
 
   // ---- 部位タブ ----
   function renderTabs() {
-    var tabs = [{ id: 'all', label: 'すべて', icon: '' }].concat(DATA.areas);
+    var tabs = [{ id: 'all', label: 'すべて' }].concat(DATA.areas);
     var el = document.getElementById('tqTabs');
+    // 4列に収めるため、絵文字は付けず短い方の名前（short）を使う。
+    // 絵文字と長い名前を入れると1つが2行になり、押しにくくなる。
     el.innerHTML = tabs.map(function (a) {
       return '<button type="button" class="tq-tab' + (a.id === currentArea ? ' is-on' : '') + '" data-area="'
-        + esc(a.id) + '">' + esc((a.icon ? a.icon + ' ' : '') + a.label) + '</button>';
+        + esc(a.id) + '">' + esc(a.short || a.label) + '</button>';
     }).join('');
 
     el.querySelectorAll('.tq-tab').forEach(function (btn) {
@@ -940,6 +1145,18 @@
     return name + (car.engine_display ? '・' + car.engine_display : '');
   }
 
+  // 帯の1行目用。オーナーの登録どおりの長い表記ではなく、当ページの区分名で短く出す。
+  // 対応づかないエンジンは「車体のみ」＝実際にそう絞り込むので、そのまま書く。
+  function myCarShort(car) {
+    var name = car.model_display_a || (car.car_type === '126' ? 'FIAT 126' : 'FIAT 500');
+    var eid = engineIdFromCar(car);
+    var elabel = '車体のみ';
+    for (var i = 0; i < (DATA.engines || []).length; i++) {
+      if (DATA.engines[i].id === eid) { elabel = DATA.engines[i].label; break; }
+    }
+    return name + ' ／ ' + elabel;
+  }
+
   // 絞り込みを入れる／外す。外したあとも帯は残し、いつでも入れ直せるようにする。
   // byUser=true（ボタン・プルダウン操作）のときだけ、選んだ内容を端末に保存する。
   function applyMyCar(on, byUser) {
@@ -964,34 +1181,35 @@
     var car = myCars[myCarIndex];
     if (!car) { box.style.display = 'none'; return; }
 
-    var html = '';
+    var matched = myCarMatches();
+    // 1行目は「車名 ／ エンジン形式」だけ。作業中に読む文字数を最小にする。
+    var head = '🚗 ' + esc(myCarShort(car)) + (matched ? ' に合わせています' : ' に合わせる');
+
+    var body = '';
     if (myCars.length > 1) {
-      html += '<select id="tqMyCarPick" class="tq-mycar-pick">'
+      body += '<select id="tqMyCarPick" class="tq-mycar-pick">'
         + myCars.map(function (c, i) {
             return '<option value="' + i + '"' + (i === myCarIndex ? ' selected' : '') + '>'
               + esc(myCarLabel(c)) + '</option>';
           }).join('')
         + '</select>';
     }
-
-    if (myCarMatches()) {
-      html += '🚗 ご登録の<strong>「' + esc(myCarLabel(car)) + '」</strong>に合わせて絞り込んでいます。';
-      if (!engineIdFromCar(car)) {
-        // 未記入・「その他」「不明」のほか、当ページに区分の無い形式（126A5 など）もここに来る。
-        // どちらなのか読む人に分かるよう、登録されている値があればそのまま出す。
-        html += '<span class="tq-mycar-sub">'
-              + (car.engine_type_select
-                  ? 'ご登録のエンジン形式（' + esc(car.engine_type_select) + '）は当ページの区分に対応づけられなかったため、'
-                  : 'エンジン形式が未記入のため、')
-              + '車体だけ合わせています。'
-              + '積んでいるエンジンが分かる場合は、上の「エンジン形式」からお選びください。</span>';
-      }
-      html += '<br><button type="button" class="tq-mycar-btn" id="tqMyCarOff">すべて表示に戻す</button>';
-    } else {
-      html += '🚗 ご登録の<strong>「' + esc(myCarLabel(car)) + '」</strong>に合わせて絞り込めます。';
-      html += '<br><button type="button" class="tq-mycar-btn" id="tqMyCarOn">この車に合わせる</button>';
+    if (!engineIdFromCar(car)) {
+      // 未記入・「その他」「不明」のほか、当ページに区分の無い形式（126A5 など）もここに来る。
+      // どちらなのか読む人に分かるよう、登録されている値があればそのまま出す。
+      body += '<span class="tq-mycar-sub">'
+            + (car.engine_type_select
+                ? 'ご登録のエンジン形式（' + esc(car.engine_type_select) + '）は当ページの区分に対応づけられないため、'
+                : 'エンジン形式が未記入のため、')
+            + '車体だけ合わせます。積んでいるエンジンが分かる場合は、上の「エンジン形式」からお選びください。</span>';
     }
-    box.innerHTML = html;
+    body += matched
+      ? '<button type="button" class="tq-mycar-btn" id="tqMyCarOff">すべて表示に戻す</button>'
+      : '<button type="button" class="tq-mycar-btn" id="tqMyCarOn">この車に合わせる</button>';
+
+    var wasOpen = box.hasAttribute('open');
+    box.innerHTML = '<summary>' + head + '</summary><div class="tq-mycar-body">' + body + '</div>';
+    if (wasOpen) box.setAttribute('open', '');
     box.style.display = '';
 
     var pick = document.getElementById('tqMyCarPick');
@@ -1046,8 +1264,10 @@
     .then(function (json) {
       DATA = json;
 
+      // 作業中に見るページなので1行に収める。絞り込みの説明はプルダウンの下の注記に、
+      // 項目数はタブの下の件数表示にあるので、ここでは繰り返さない。
       document.getElementById('tqTarget').textContent =
-        '対象: ' + DATA.target + ' ／ 全 ' + DATA.items.length + ' 項目';
+        '対象: ' + String(DATA.target).replace(/[（(].*$/, '').trim();
 
       var srcLabels = DATA.sources.map(function (s) { return s.label; }).join('、');
       document.getElementById('tqDisclaimer').textContent =
