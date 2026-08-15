@@ -1,0 +1,767 @@
+{
+  "_readme": [
+    "English text overlay for torque-data.json. Loaded by en/torque.html on top of ../torque-data.json.",
+    "This file holds NO torque figures. Values, units, fits, sources and cross-checks all stay in torque-data.json,",
+    "so the English page can never drift away from the Japanese one on the numbers.",
+    "Merge rules (see applyI18n() in en/torque.html):",
+    "  items[<id>].name          -> replaces item.name",
+    "  items[<id>].aliases       -> PREPENDED to item.aliases (the Japanese aliases stay searchable)",
+    "  items[<id>].notes         -> replaces item.notes wholesale (same length as the Japanese array)",
+    "  items[<id>].procedure     -> replaces item.procedure ('\\n' is rendered as a line break)",
+    "  items[<id>].no_spec_note  -> replaces item.no_spec_note",
+    "  items[<id>].cross_notes   -> keyed by the index in item.cross",
+    "  items[<id>].seq_labels    -> replaces item.sequences[i].label by index",
+    "for_version must match torque-data.json's version. If it does not, the page still works but logs a warning:",
+    "the Japanese text shows through wherever this file has no entry, which is the safe failure mode.",
+    "An Italian page needs only a copy of this file with the strings translated - no second copy of the data."
+  ],
+  "lang": "en",
+  "for_version": "2026-08-14b",
+
+  "target": "FIAT 500 / FIAT 126 (filtered by engine family and base body)",
+
+  "sources": {
+    "wsm": { "label": "Workshop manual, Autobooks \"FIAT 500 1957-73\" (English)" },
+    "oem": { "label": "Fiat factory repair manual \"Neuer 500 und 500 D\" (German)" },
+    "a126": { "label": "Workshop manual, Autobook 853 \"FIAT 126 1972-1976\" (English)" },
+    "buch126": { "label": "Verlag Bucheli \"Fiat 126\" repair manual (German)" },
+    "haynes500": { "label": "Haynes \"FIAT 500 1957-73\" (Japanese edition, Vintage Publications)" },
+    "haynes126": { "label": "Haynes \"Fiat 126 Owners Workshop Manual\" (English)" }
+  },
+
+  "areas": {
+    "engine": { "label": "Engine", "short": "Engine" },
+    "fuel": { "label": "Fuel & ignition", "short": "Fuel" },
+    "driveline": { "label": "Transmission", "short": "Trans." },
+    "suspension": { "label": "Suspension & steering", "short": "Chassis" },
+    "brake": { "label": "Brakes", "short": "Brakes" },
+    "body": { "label": "Body & other", "short": "Body" }
+  },
+
+  "chassis": {
+    "500": { "label": "FIAT 500" },
+    "126": { "label": "FIAT 126" }
+  },
+
+  "engines": {
+    "e500": {
+      "label": "500-series engine",
+      "cc": "479-499 cc",
+      "note": "Figures come from the Fiat factory manual (German, 110 / 110D) and the Autobooks English workshop manual (1957-73). The Giardiniera's 120.000 is given the same figures because the engine table in the factory supplement has the same layout and the same part numbers as the 110D - only the tightening-sequence diagram differs."
+    },
+    "e126": {
+      "label": "126-series engine",
+      "cc": "594-652 cc",
+      "form_labels": "126A.000 / 126A5.000 / 126A1.000, 126A1.048",
+      "note": "Figures come from the 126 Autobook (594 cc, 126 A.000) and have been checked entry by entry against the Bucheli manual (652 cc, 126 A1). The 126 A5.000 fitted to the Nuova 500 R differs in camshaft, carburetter, output and dynamo, but no difference in tightening torque appears in the sources (Fiat \"500 VARIANTI\" 603.91.687)."
+    }
+  },
+
+  "generic": {
+    "grades": {
+      "4.8": "4.8 (soft, general-purpose bolt)",
+      "8.8": "8.8 (standard machine screw)",
+      "10.9": "10.9 (high tensile)"
+    },
+    "cautions": [
+      "When screwing into aluminium or cast iron, use less than these figures - otherwise the threads pull out",
+      "Oil or grease on the threads raises the clamping force by 20-30% at the same torque, which means overtightening",
+      "Fine threads (M12x1.25 and similar) take slightly more than coarse threads",
+      "On rusted or galled threads most of the torque is lost to friction and never becomes clamping force"
+    ]
+  },
+
+  "_refs_readme": "Where a source points to a page in the printed book, the Japanese data writes it as \"本 pNN\" (book, not PDF page) and \"本文\" (in the running text, not in a table). These are looked up by exact string and applied to item.source_id, cross[].ref and sequences[].ref. Anything not listed here (\"p22\", \"FIG 1:44\") is already language-neutral and passes through unchanged.",
+  "refs": {
+    "本 p28": "book p28",
+    "本 p71": "book p71",
+    "本 p74": "book p74",
+    "本 p101": "book p101",
+    "本 p114": "book p114",
+    "本 p91-92": "book p91-92",
+    "本 p112 一覧表": "book p112, torque table",
+    "本文": "main text",
+    "本文（フロントハブ）": "main text (front hub)",
+    "本文（ブレーキ）": "main text (brakes)",
+    "本文（リアハブ）": "main text (rear hub)",
+    "9-3（図 9:2）": "9-3 (FIG 9:2)",
+    "p128 ギアボックス／デフ一覧": "p128, gearbox / differential table",
+    "p22 エキゾーストマニホールド→シリンダーヘッド": "p22, exhaust manifold to cylinder head",
+    "p22 カムチェーンスプロケット": "p22, cam chain sprocket"
+  },
+
+  "items": {
+    "cylinder-head-nut": {
+      "name": "Cylinder head nuts",
+      "aliases": ["head", "head nut", "cylinder head", "top end"],
+      "notes": [
+        "Always work in the correct diagonal sequence",
+        "Tightening in two stages is recommended (first pass 25 N·m = 2.5 kgf·m / 18.1 lb·ft, then the final figure)",
+        "The sequence diagram differs by engine type: FIG 1:44 for the Nuova 500 N, FIG 1:46 for the 500 D / F / L and the Giardiniera (English WSM). The torque figure is the same for all of them."
+      ],
+      "seq_labels": [
+        "Nuova 500 N (engine 110.000)",
+        "Nuova 500 D / F / L / Giardiniera (engines 110D, 110F, 120)"
+      ]
+    },
+    "rocker-shaft-support": {
+      "name": "Rocker shaft support nuts",
+      "aliases": ["rocker", "rocker arm", "rocker shaft", "tappet", "valve clearance"],
+      "notes": ["Always reset the valve clearances after refitting"]
+    },
+    "main-bearing-carrier": {
+      "name": "Main bearing carrier bolts",
+      "aliases": ["main bearing", "bearing carrier", "crankcase", "bottom end"],
+      "notes": [
+        "The bolts holding the body that carries the crankshaft main bearing shells.",
+        "This line appears only in the tightening-torque table of the German factory manual; the English WSM has no matching entry. Figures that are not printed in a source are never created by conversion, so no lb·ft is given."
+      ]
+    },
+    "conrod-cap": {
+      "name": "Big-end (connecting rod) cap nuts",
+      "aliases": ["conrod", "connecting rod", "big end", "big-end", "rod bearing", "shell"],
+      "notes": ["Check the bearing clearance with Plastigauge (specified 0.011-0.061 mm)"]
+    },
+    "flywheel-bolt": {
+      "name": "Flywheel bolts",
+      "aliases": ["flywheel", "crankshaft flange"],
+      "notes": [
+        "Use a new lock plate and bend the tabs over after tightening",
+        "Check the alignment marks against the crankshaft before fitting"
+      ]
+    },
+    "centrifugal-filter-bolt": {
+      "name": "Centrifugal oil filter hollow bolt",
+      "aliases": ["centrifugal", "oil filter", "filter", "hollow bolt"],
+      "notes": [
+        "A very high torque. It cannot be reached without a locking tool",
+        "Check that the O-ring is correctly seated before tightening"
+      ]
+    },
+    "camshaft-sprocket": {
+      "name": "Camshaft gear bolt",
+      "aliases": ["cam gear", "camshaft", "timing gear", "cam", "gear"],
+      "notes": ["The same point on the 126 (594 / 652 cc) is 1.0 kgf·m = 10 N·m, which falls right between the two figures."],
+      "cross_notes": {
+        "1": "Only the German factory manual gives the higher 1.1 kgf·m = 11 N·m. The English WSM (6.5 lb·ft, about 8.8 N·m) and Haynes p22 (0.9 kgf·m = 8.8 N·m) agree with each other, so this page takes 0.9 kgf·m as the main figure."
+      }
+    },
+    "centrifugal-filter-cover": {
+      "name": "Centrifugal oil filter cover bolts",
+      "aliases": ["filter cover", "cover", "pulley", "small bolt"],
+      "notes": ["Not the same thing as the hollow bolt (15.0 kgf·m). Mixing the two up will wreck the part"]
+    },
+    "generator-pulley-nut": {
+      "name": "Dynamo pulley nut",
+      "aliases": ["pulley", "dynamo", "generator", "fan belt", "belt"],
+      "notes": [
+        "Belt tension is set by the number of split shims (remove shims to tighten the belt, add them to slacken it)",
+        "About 10 mm of deflection under a 10 kg push at mid-span is correct",
+        "The English WSM gives the pulley and the fan nut the same 14.5 lb·ft, but the German factory manual lists the fan side separately at 3.5 kgf·m = 34 N·m. See the separate entry for the fan nut."
+      ]
+    },
+    "generator-bearing-stop": {
+      "name": "Dynamo commutator-end bearing outer race retainer nut",
+      "aliases": ["dynamo", "generator", "bearing", "overhaul", "commutator"],
+      "notes": [
+        "A tiny torque, only touched when the dynamo is stripped. At around 1 N·m it is below the range of most torque wrenches.",
+        "Printed only in the English WSM. Figures not in a source are not created by conversion, so no kgf·m is given."
+      ]
+    },
+    "generator-fan-nut": {
+      "name": "Cooling fan to dynamo nut",
+      "aliases": ["fan", "cooling fan", "dynamo", "generator", "blower"],
+      "notes": ["The same point on the 126 (594 / 652 cc) is also 3.5 kgf·m = 34 N·m, agreeing with the German factory manual."],
+      "cross_notes": {
+        "1": "The English WSM covers the pulley and the fan in a single line at 14.5 lb·ft, about 20 N·m. The German factory manual lists the fan nut on its own at 3.5 kgf·m = 34 N·m, and both 126 manuals agree with the 3.5 kgf·m figure."
+      }
+    },
+    "spark-plug": {
+      "name": "Spark plugs",
+      "aliases": ["plug", "sparking plug", "NGK"],
+      "notes": [
+        "Anti-seize compound on the threads is recommended",
+        "Specified electrode gap 0.48-0.58 mm"
+      ]
+    },
+    "clutch-cover": {
+      "name": "Clutch cover (pressure plate) bolts",
+      "aliases": ["clutch", "cover", "pressure plate"],
+      "notes": [
+        "Tighten a little at a time in a diagonal sequence",
+        "Take care not to overtighten - the figure is lower than it looks",
+        "Use of the centring tool (A.62023) is recommended"
+      ]
+    },
+    "gearbox-primary-shaft": {
+      "name": "Gearbox primary shaft nut",
+      "aliases": ["primary shaft", "gearbox", "transmission", "shaft"],
+      "notes": []
+    },
+    "gearbox-layshaft": {
+      "name": "Gearbox layshaft nut",
+      "aliases": ["layshaft", "countershaft", "gearbox", "transmission"],
+      "notes": []
+    },
+    "gearbox-to-engine": {
+      "name": "Clutch housing to engine nuts",
+      "aliases": ["gearbox", "transmission", "clutch housing", "bellhousing"],
+      "notes": ["The factory manual reads \"Mutter zur Befestigung des Kupplungsgehäuses am Motor\" - the nuts holding the clutch housing to the engine, not to the body."]
+    },
+    "diff-bearing-cap": {
+      "name": "Differential bearing cap nuts",
+      "aliases": ["differential", "diff", "final drive", "crownwheel", "pinion"],
+      "notes": ["Specified crownwheel-to-pinion backlash 0.08-0.12 mm"]
+    },
+    "diff-rolling-torque": {
+      "name": "Differential bearing preload (rolling resistance)",
+      "aliases": ["differential", "diff", "preload", "rolling resistance", "bearing", "shim"],
+      "notes": ["Do not mistake this figure for a tightening torque."],
+      "procedure": "This is not a torque-wrench setting. Use the adjusters until the resistance felt when turning the differential is 1.37 ± 0.09 N·m (1.01 ± 0.07 lb·ft)."
+    },
+    "diff-bearing-housing": {
+      "name": "Differential bearing housing nuts",
+      "aliases": ["differential", "diff", "bearing housing", "final drive"],
+      "notes": []
+    },
+    "crown-wheel-bolt": {
+      "name": "Crownwheel (ring gear) bolts",
+      "aliases": ["crownwheel", "crown wheel", "ring gear", "differential", "final drive"],
+      "notes": ["Use a new lock plate and bend the tabs over after tightening."]
+    },
+    "driveshaft-flange": {
+      "name": "Driveshaft flange screws",
+      "aliases": ["driveshaft", "drive shaft", "halfshaft", "flange"],
+      "notes": []
+    },
+    "starter-motor": {
+      "name": "Starter motor mounting nuts",
+      "aliases": ["starter", "starter motor", "cranking"],
+      "notes": [
+        "It bolts to the clutch housing, so the figure still applies as a body-side value even if the engine has been changed.",
+        "Printed only in the English WSM; the German factory manual has no matching line. Figures not in a source are not created by conversion, so no kgf·m is given."
+      ]
+    },
+    "wheel-bolt": {
+      "name": "Road wheel bolts",
+      "aliases": ["wheel", "wheel bolt", "wheel nut", "tyre change", "rim"],
+      "notes": [
+        "Tighten in a diagonal sequence",
+        "Always re-check them after driving",
+        "Aftermarket wheels with a different seat shape may not clamp properly even at the specified figure"
+      ]
+    },
+    "rear-swingarm-pivot": {
+      "name": "Rear swinging arm pivot pin nut",
+      "aliases": ["swinging arm", "trailing arm", "pivot", "rear suspension"],
+      "notes": []
+    },
+    "rear-outer-support": {
+      "name": "Rear outer support fixing screws",
+      "aliases": ["outer support", "rear suspension", "toe-in", "support"],
+      "notes": ["Rear toe-in is set here (tolerance 0°10')"]
+    },
+    "rear-hub-bearing": {
+      "name": "Rear wheel bearing (wheel shaft nut)",
+      "aliases": ["rear hub", "hub", "bearing", "wheel shaft"],
+      "notes": ["Pack the bearing with Fiat MR grease"],
+      "procedure": "Not tightened to a fixed torque - set by rolling resistance. Tighten the nut progressively and stop as soon as the turning resistance reaches 0.5 N·m (0.05 kgf·m / 0.36 lb·ft). If the resistance is too high, fit a new elastic spacer."
+    },
+    "front-swingarm-hub-nut": {
+      "name": "Front swinging arm to hub assembly nut",
+      "aliases": ["front suspension", "swinging arm", "king pin", "knuckle"],
+      "notes": ["The upper limit comes from the factory manual, 59 N·m (6.0 kgf·m). The English WSM prints only the single figure 39.8 lb·ft (54 N·m), so the lb·ft column is left as the single figure in the source - no upper limit is invented by conversion."]
+    },
+    "leaf-spring-kingpin": {
+      "name": "Leaf spring to king pin housing",
+      "aliases": ["leaf spring", "leaf", "king pin", "transverse spring"],
+      "notes": []
+    },
+    "front-swingarm-pin-body": {
+      "name": "Front swinging arm pin to body",
+      "aliases": ["swinging arm pin", "front suspension", "body"],
+      "notes": []
+    },
+    "front-hub-nut": {
+      "name": "Front hub nut (bearing adjustment)",
+      "aliases": ["front hub", "hub", "hub nut", "bearing", "end float"],
+      "notes": [
+        "Aim for a final hub end float of 0.025-0.10 mm",
+        "Overtightening will burn the bearing out"
+      ],
+      "procedure": "Do not simply leave it tight - tighten, then back off. The method depends on the type of hub.\n[Split pin type] Tighten to 29 N·m (3.0 kgf·m / 21.7 lb·ft), then back off 60° (one flat of the hexagon).\n[Staked type] Tighten to 20 N·m (2.0 kgf·m / 14.5 lb·ft) to bed the bearing in, then slacken off. Re-tighten to 6.9 N·m (0.7 kgf·m / 5.1 lb·ft) and back off 30° from there."
+    },
+    "brake-backplate-front": {
+      "name": "Brake backplate to king pin housing (front)",
+      "aliases": ["backplate", "back plate", "brake", "king pin", "front brake"],
+      "notes": [
+        "Thread size M8x1.25.",
+        "The source is the German factory manual, which prints kgf·m only. The English WSM has no matching entry, so no lb·ft is shown."
+      ]
+    },
+    "brake-backplate-rear": {
+      "name": "Brake backplate to trailing arm (rear)",
+      "aliases": ["backplate", "back plate", "brake", "trailing arm", "rear brake"],
+      "notes": [
+        "Thread size M10x1.25. At the rear this also clamps the bearing flange.",
+        "The lb·ft figure is converted from kgf·m (no matching entry in the English WSM).",
+        "The source is the German factory manual, which prints kgf·m only. The English WSM has no matching entry, so no lb·ft is shown."
+      ]
+    },
+    "pitman-arm-nut": {
+      "name": "Pitman (drop) arm nut",
+      "aliases": ["pitman arm", "drop arm", "steering", "steering arm"],
+      "notes": [
+        "One of the highest torques on this page",
+        "The upper limit comes from the factory manual, 108 N·m (11.0 kgf·m). The English WSM prints only the single figure 72 lb·ft (98 N·m), so the lb·ft column is left as the single figure in the source."
+      ]
+    },
+    "steering-box-to-body": {
+      "name": "Steering box to body nuts",
+      "aliases": ["steering box", "steering", "steering gearbox"],
+      "notes": []
+    },
+    "tie-rod-ball-pin": {
+      "name": "Track rod end ball pin nut",
+      "aliases": ["track rod", "tie rod", "track rod end", "ball joint", "toe-in"],
+      "notes": ["Front toe-in is 0-2 mm (measured at the wheel rims)"]
+    },
+    "relay-lever-pivot": {
+      "name": "Relay lever pivot pin nut",
+      "aliases": ["relay lever", "idler arm", "steering", "pivot"],
+      "notes": ["The English WSM gives this point twice: 39-43 lb·ft (53-58 N·m) on p94 and 78-85 lb·ft (106-115 N·m) on p95. The p94 figure agrees with the factory manual's 5500-6000 mmkg = 5.5-6.0 kgf·m (54-59 N·m) and has been adopted."]
+    },
+    "relay-lever-support": {
+      "name": "Relay lever support to body",
+      "aliases": ["relay lever", "idler arm", "support", "steering"],
+      "notes": [
+        "The bolts holding the support to the body. The figure differs from the relay lever pin itself (a separate entry) - do not mix the two up.",
+        "Printed only in the English WSM; the table in the German factory manual (p179) has just five steering lines and no entry for this. Figures not in a source are not created by conversion, so no kgf·m is given."
+      ]
+    },
+    "steering-wheel-nut": {
+      "name": "Steering wheel nut",
+      "aliases": ["steering wheel", "steering", "wheel nut"],
+      "notes": ["If the steering wheel comes loose you lose all steering. Always re-tighten to the specified figure after removal."]
+    },
+    "oil-drain": {
+      "name": "Engine oil drain plug",
+      "aliases": ["drain", "drain plug", "sump plug", "oil change"],
+      "notes": [
+        "Renew the washer every time",
+        "The thread is in aluminium - never overtighten"
+      ]
+    },
+    "rocker-cover": {
+      "name": "Rocker cover (tappet cover)",
+      "aliases": ["rocker cover", "tappet cover", "valve cover", "cam cover"],
+      "notes": ["Overtightening crushes the gasket and makes the leak worse"]
+    },
+    "exhaust-manifold": {
+      "name": "Exhaust manifold / silencer",
+      "aliases": ["exhaust", "manifold", "silencer", "muffler", "header"],
+      "notes": [
+        "It works loose with heat - re-tighten after a short run",
+        "The figure is for the manifold to the cylinder head. The source prints kgf·m only (2.5 kgf·m = 24.5 N·m); figures not in a source are not created by conversion, so no lb·ft is shown.",
+        "Haynes is the only source with a figure for this point; the English WSM, the German factory manual and both 126 manuals have no matching line."
+      ]
+    },
+    "engine-mount": {
+      "name": "Engine mountings",
+      "aliases": ["mount", "mounting", "engine mount", "rubber mount"],
+      "notes": ["Do the final tightening with the weight of the car on the mountings, so no twist is left in the rubber"],
+      "no_spec_note": "There is no single figure for the mounting as a whole, but each fixing point has one. 500: see the separate entry \"Power unit lower mounting nuts (body side)\", 24.5-29.4 N·m (18.1-21.7 lb·ft). 126: the five \"Engine mounting: ...\" entries."
+    },
+    "powerplant-mount-lower": {
+      "name": "Power unit lower mounting nuts (body side)",
+      "aliases": ["mount", "mounting", "engine mount", "gearbox mount", "power unit"],
+      "notes": [
+        "The four lower fixings holding the gearbox and differential to the body. Fit the front support screws finger tight first and do the final tightening last.",
+        "Printed only in the English WSM. Figures not in a source are not created by conversion, so no kgf·m is given."
+      ]
+    },
+    "carburettor": {
+      "name": "Carburetter mounting nuts",
+      "aliases": ["carb", "carburetter", "carburetor", "weber", "solex", "dellorto"],
+      "notes": [
+        "Overtightening distorts the flange and lets it draw air",
+        "Work alternately from side to side, a little at a time"
+      ]
+    },
+    "intake-manifold": {
+      "name": "Inlet manifold",
+      "aliases": ["inlet manifold", "intake manifold", "manifold", "induction"],
+      "notes": ["A common source of air leaks"]
+    },
+    "brake-pipe": {
+      "name": "Brake pipe flare nuts",
+      "aliases": ["brake pipe", "brake line", "flare nut", "union", "bleeding"],
+      "notes": [
+        "Overtightening crushes the flare and makes the leak worse",
+        "Always press the pedal and check for leaks afterwards"
+      ],
+      "no_spec_note": "No figure in the sources. The English WSM describes how to disconnect the hose (book p101) but gives no torque for the flare nut."
+    },
+    "wheel-cylinder": {
+      "name": "Wheel cylinder mounting",
+      "aliases": ["wheel cylinder", "slave cylinder", "drum"],
+      "notes": ["Lining wear limit 1.5 mm; drums may be skimmed to standard +1.0 mm"],
+      "no_spec_note": "The 126 (652 cc, Bucheli) specifies 9.8 N·m (1.0 kgf·m), listed on this page as the separate entry \"Wheel cylinder mounting bolts\". Whether the 500 uses the same figure has not been confirmed."
+    },
+    "master-cylinder": {
+      "name": "Master cylinder mounting",
+      "aliases": ["master cylinder", "brake master", "brake"],
+      "notes": [],
+      "no_spec_note": "The 126 (652 cc, Bucheli) specifies 14.7 N·m (1.5 kgf·m), listed on this page as the separate entry \"Master cylinder to pedal bracket\". Whether the 500 uses the same figure has not been confirmed."
+    },
+    "seat-belt-anchor": {
+      "name": "Seat belt anchorages",
+      "aliases": ["seat belt", "seatbelt", "belt", "anchorage", "harness"],
+      "notes": ["If the body panel is too thin, add a spreader plate behind it"],
+      "no_spec_note": "Seat belts were not standard equipment at the time, so the manuals have no entry at all (the English WSM only mentions detaching the seat belt mountings from the floor, book p102). As a retrofit part, follow the figure supplied with the fitting kit."
+    },
+    "seat-rail": {
+      "name": "Seat rail fixings",
+      "aliases": ["seat", "seat rail", "runner", "bucket seat"],
+      "notes": []
+    },
+    "door-hinge": {
+      "name": "Door hinges",
+      "aliases": ["door", "hinge", "door fit"],
+      "notes": ["Set the door fit with the bolts finger tight, then tighten fully"]
+    },
+
+    "cylinder-head-nut-126": {
+      "name": "Cylinder head nuts",
+      "aliases": ["head", "head nut", "cylinder head", "top end"],
+      "notes": [
+        "The cap nuts take the same 39 N·m (4.0 kgf·m).",
+        "Tighten in the order shown in FIG 1:5. Tighten cold and re-check after the specified running-in period."
+      ],
+      "seq_labels": ["Nuova 500 R / Fiat 126 (engines 126A, 126A5, 126A1)"]
+    },
+    "main-bearing-support-126": {
+      "name": "Crankshaft main bearing support bolts",
+      "aliases": ["main bearing", "bearing support", "crankcase", "bottom end"],
+      "notes": []
+    },
+    "conrod-cap-126": {
+      "name": "Big-end (connecting rod) cap nuts",
+      "aliases": ["conrod", "connecting rod", "big end", "big-end", "rod bearing", "shell"],
+      "notes": []
+    },
+    "flywheel-bolt-126": {
+      "name": "Flywheel bolts",
+      "aliases": ["flywheel", "crankshaft"],
+      "notes": []
+    },
+    "camshaft-sprocket-126": {
+      "name": "Camshaft sprocket bolt",
+      "aliases": ["cam gear", "camshaft", "timing", "sprocket"],
+      "notes": ["A low figure - take care not to overtighten."]
+    },
+    "rocker-shaft-support-126": {
+      "name": "Rocker shaft support nuts",
+      "aliases": ["rocker", "rocker shaft", "tappet", "valve clearance"],
+      "notes": []
+    },
+    "engine-pulley-bolt-126": {
+      "name": "Engine pulley centre bolt (centrifugal oil filter)",
+      "aliases": ["pulley", "crank pulley", "centrifugal filter", "oil filter", "hollow bolt"],
+      "notes": ["A very high torque. Lock the flywheel to stop the crankshaft turning."]
+    },
+    "generator-fan-nut-126": {
+      "name": "Cooling fan to dynamo nut",
+      "aliases": ["fan", "cooling fan", "dynamo", "generator"],
+      "notes": []
+    },
+    "generator-pulley-nut-126": {
+      "name": "Dynamo pulley nut",
+      "aliases": ["pulley", "dynamo", "generator", "fan belt"],
+      "notes": []
+    },
+    "spark-plug-126": {
+      "name": "Spark plugs",
+      "aliases": ["plug", "sparking plug"],
+      "notes": [
+        "The manual states it as a maximum: do not exceed 29 N·m (3.0 kgf·m / 22 lb·ft).",
+        "Specified plugs: Marelli CW 8 NP / Champion L 81 Y."
+      ]
+    },
+    "mount-rubber-crossmember-126": {
+      "name": "Engine mounting: rubber mount to crossmember",
+      "aliases": ["engine mount", "mounting", "rubber mount", "crossmember"],
+      "notes": ["Printed only in the 652 cc manual. The 594 cc sources have no matching figure."]
+    },
+    "mount-crossmember-body-126": {
+      "name": "Engine mounting: crossmember to body",
+      "aliases": ["crossmember", "traverse", "engine mount", "member"],
+      "notes": ["Printed only in the 652 cc manual."]
+    },
+    "mount-rubber-gearbox-126": {
+      "name": "Engine mounting: rubber mount to gearbox casing",
+      "aliases": ["gearbox mount", "gearbox", "mounting"],
+      "notes": ["Printed only in the 652 cc manual."]
+    },
+    "mount-bracket-rear-crossmember-126": {
+      "name": "Engine mounting: bracket to rear crossmember",
+      "aliases": ["bracket", "rear crossmember", "engine mount"],
+      "notes": ["Printed only in the 652 cc manual."]
+    },
+    "mount-bracket-powerplant-126": {
+      "name": "Engine mounting: bracket to power unit",
+      "aliases": ["bracket", "engine mount", "power unit"],
+      "notes": ["Printed only in the 652 cc manual."]
+    },
+    "clutch-cable-bracket-126": {
+      "name": "Clutch cable outer abutment bracket",
+      "aliases": ["clutch cable", "clutch wire", "bracket"],
+      "notes": []
+    },
+    "clutch-release-fork-126": {
+      "name": "Clutch release fork fixing",
+      "aliases": ["release fork", "clutch fork", "release"],
+      "notes": ["Printed only in the 652 cc manual."]
+    },
+    "clutch-pedal-shaft-126": {
+      "name": "Clutch / brake pedal shaft nut",
+      "aliases": ["pedal", "pedal shaft", "clutch pedal", "brake pedal"],
+      "notes": ["Printed only in the 652 cc manual."]
+    },
+    "bellhousing-to-engine-126": {
+      "name": "Clutch housing to engine nuts",
+      "aliases": ["bellhousing", "clutch housing", "gearbox", "transmission"],
+      "notes": ["Bucheli gives this point twice, once as 25 N·m (2.5 kgf·m) and once as 25-34 N·m (2.5-3.5 kgf·m). The 25 N·m (2.5 kgf·m) figure, which agrees with the Autobook table, has been adopted."]
+    },
+    "gearbox-to-bellhousing-126": {
+      "name": "Gearbox casing to clutch housing nuts",
+      "aliases": ["gearbox", "transmission", "bellhousing", "casing"],
+      "notes": []
+    },
+    "gearbox-layshaft-126": {
+      "name": "Gearbox layshaft (countershaft) nut",
+      "aliases": ["layshaft", "countershaft", "gearbox", "transmission"],
+      "notes": [
+        "After reaching the specified torque, keep tightening until the split pin holes line up - never slacken back.",
+        "Always use a new split pin."
+      ]
+    },
+    "gearbox-mainshaft-126": {
+      "name": "Gearbox mainshaft nut",
+      "aliases": ["mainshaft", "main shaft", "gearbox", "transmission"],
+      "notes": [
+        "After reaching the specified torque, keep tightening until the split pin holes line up - never slacken back.",
+        "Always use a new split pin."
+      ]
+    },
+    "reverse-shaft-126": {
+      "name": "Reverse gear shaft bolt",
+      "aliases": ["reverse", "reverse gear", "gearbox"],
+      "notes": []
+    },
+    "gearlever-support-126": {
+      "name": "Gear lever support bolts",
+      "aliases": ["gear lever", "gearshift", "shift lever", "support"],
+      "notes": []
+    },
+    "gearlever-inner-cup-126": {
+      "name": "Gear lever inner cup nuts",
+      "aliases": ["gear lever", "gearshift", "cup"],
+      "notes": []
+    },
+    "crown-wheel-bolt-126": {
+      "name": "Crownwheel (ring gear) bolts",
+      "aliases": ["crownwheel", "crown wheel", "ring gear", "differential", "final drive"],
+      "notes": ["The 500 uses 31 N·m (3.2 kgf·m) - a different figure. Make sure you have the right base body selected."]
+    },
+    "diff-bearing-housing-126": {
+      "name": "Differential bearing housing nuts",
+      "aliases": ["differential", "diff", "bearing cap", "bearing housing", "final drive"],
+      "notes": ["The 500's differential bearing cap (37 N·m = 3.8 kgf·m) differs in both design and figure."]
+    },
+    "axle-sleeve-126": {
+      "name": "Driveshaft sleeve coupling bolts",
+      "aliases": ["driveshaft", "drive shaft", "sleeve", "joint", "halfshaft"],
+      "notes": []
+    },
+    "diff-rolling-torque-126": {
+      "name": "Differential bearing preload (rolling resistance)",
+      "aliases": ["differential", "diff", "preload", "rolling resistance", "bearing", "shim"],
+      "notes": ["Do not mistake this figure for a tightening torque."],
+      "procedure": "Not a torque-wrench setting - it is set with shims. Choose shims so that the differential on its own turns with 1.3-1.5 N·m (13-15 kgf·cm) of resistance, and 2.0-4.9 N·m (20-50 kgf·cm) with the crownwheel fitted."
+    },
+    "wheel-bolt-126": {
+      "name": "Road wheel bolts",
+      "aliases": ["wheel", "wheel bolt", "wheel nut", "tyre change", "rim"],
+      "notes": ["The same figure front and rear. Tighten diagonally, a little at a time, over several passes."],
+      "cross_notes": {
+        "0": "The 652 cc Bucheli gives 69 N·m (7.0 kgf·m), 40% higher than the 594 cc Autobook. Haynes 126 p89 gives 36 lb·ft / 50 N·m = 5.0 kgf·m, agreeing with the Autobook, as does the table on the FD Ricambi site (49 N·m = 5.0 kgf·m). This page takes 5.0 kgf·m as the main figure, but check the year of the car and the size of the wheel bolts before deciding."
+      }
+    },
+    "leaf-spring-kingpin-126": {
+      "name": "Leaf spring to king pin housing nut",
+      "aliases": ["leaf spring", "leaf", "king pin", "knuckle"],
+      "notes": []
+    },
+    "control-arm-shaft-126": {
+      "name": "Front control arm to shaft nut",
+      "aliases": ["control arm", "lower arm", "wishbone", "shaft"],
+      "notes": []
+    },
+    "front-rubber-buffer-126": {
+      "name": "Front rubber buffer (bump stop) nut",
+      "aliases": ["bump stop", "buffer", "rubber stop"],
+      "notes": []
+    },
+    "leaf-spring-insulator-126": {
+      "name": "Leaf spring rubber insulator nuts",
+      "aliases": ["leaf spring", "leaf", "insulator", "rubber mount"],
+      "notes": [],
+      "cross_notes": {
+        "0": "Only the 652 cc Bucheli gives the higher 49 N·m (5.0 kgf·m). The 594 cc Autobook (29 N·m = 3.0 kgf·m) and Haynes 126 p89 (22 lb·ft / 30 N·m = 3.0 kgf·m) agree with each other, so this page takes 3.0 kgf·m as the main figure."
+      }
+    },
+    "control-arm-shaft-body-126": {
+      "name": "Front control arm shaft to body nuts",
+      "aliases": ["control arm", "lower arm", "wishbone", "shaft", "body"],
+      "notes": [],
+      "cross_notes": {
+        "0": "Only the 652 cc Bucheli gives the higher 49 N·m (5.0 kgf·m). The 594 cc Autobook (29 N·m = 3.0 kgf·m) and Haynes 126 p89 (22 lb·ft / 30 N·m = 3.0 kgf·m) agree with each other, so this page takes 3.0 kgf·m as the main figure."
+      }
+    },
+    "control-arm-knuckle-126": {
+      "name": "Front control arm to king pin housing nut",
+      "aliases": ["control arm", "lower arm", "king pin", "knuckle", "ball joint"],
+      "notes": [],
+      "cross_notes": {
+        "0": "The 652 cc Bucheli gives 69 N·m (7.0 kgf·m) for a self-locking nut. A different type of nut may be involved, but the 594 cc Autobook (59 N·m = 6.0 kgf·m) and Haynes 126 p89 (44 lb·ft / 61 N·m = 6.0 kgf·m) agree with each other, so this page takes 6.0 kgf·m as the main figure."
+      }
+    },
+    "front-damper-126": {
+      "name": "Front damper (shock absorber) upper and lower nuts",
+      "aliases": ["damper", "shock absorber", "shock", "strut"],
+      "notes": []
+    },
+    "front-hub-nut-126": {
+      "name": "Front hub nut (bearing adjustment)",
+      "aliases": ["hub nut", "wheel bearing", "bearing adjustment", "play"],
+      "notes": [
+        "Do not just tighten to the number - you will destroy the bearing.",
+        "Bucheli also prints an equally low 4.9 N·m (0.5 kgf·m); both sources agree that this is a tighten-then-back-off procedure."
+      ],
+      "procedure": "Not left at the specified torque. Tighten to 6.9 N·m (0.7 kgf·m / 5 lb·ft) to bed the bearing in, then back off about 30° and fit the split pin."
+    },
+    "brake-backplate-front-126": {
+      "name": "Brake backplate to king pin housing (front)",
+      "aliases": ["backplate", "back plate", "brake", "drum", "knuckle"],
+      "notes": ["Bucheli lists this point twice - 29 N·m (3.0 kgf·m) in the suspension table and 20 N·m (2.0 kgf·m) in the brake table. The brake table figure of 20 N·m (2.0 kgf·m), which agrees with the Autobook, has been adopted."]
+    },
+    "rear-rubber-buffer-126": {
+      "name": "Rear rubber buffer (bump stop) nut",
+      "aliases": ["bump stop", "buffer", "rubber stop"],
+      "notes": []
+    },
+    "rear-arm-support-front-126": {
+      "name": "Rear trailing arm front support bolts",
+      "aliases": ["trailing arm", "swinging arm", "support", "rear suspension"],
+      "notes": []
+    },
+    "rear-arm-shaft-126": {
+      "name": "Rear trailing arm shaft nut",
+      "aliases": ["trailing arm", "swinging arm", "pivot", "rear suspension"],
+      "notes": []
+    },
+    "rear-damper-126": {
+      "name": "Rear damper (shock absorber) upper and lower nuts",
+      "aliases": ["damper", "shock absorber", "shock"],
+      "notes": []
+    },
+    "rear-brake-drum-bolt-126": {
+      "name": "Rear brake drum retaining bolts",
+      "aliases": ["brake drum", "drum", "rear brake"],
+      "notes": []
+    },
+    "brake-backplate-rear-126": {
+      "name": "Brake backplate to trailing arm (rear)",
+      "aliases": ["backplate", "back plate", "brake", "drum", "trailing arm"],
+      "notes": []
+    },
+    "rear-hub-bearing-126": {
+      "name": "Rear wheel bearing (hub nut)",
+      "aliases": ["hub nut", "rear hub", "wheel bearing", "bearing"],
+      "notes": [
+        "Re-using the spacer will not give the specified preload.",
+        "Printing a large figure here would invite accidents - follow the procedure instead."
+      ],
+      "procedure": "Controlled by rolling resistance, not by a fixed torque. Always fit a new spacer (collar) on assembly, use the specified grease (Fiat MR 3) and tighten until the specified rolling resistance is reached."
+    },
+    "steering-wheel-nut-126": {
+      "name": "Steering wheel nut",
+      "aliases": ["steering wheel", "steering", "wheel nut"],
+      "notes": ["Stake the nut after tightening to lock it."]
+    },
+    "steering-column-uj-126": {
+      "name": "Steering column universal joint nut",
+      "aliases": ["steering column", "column", "universal joint", "UJ"],
+      "notes": []
+    },
+    "steering-column-support-126": {
+      "name": "Steering column upper rear mounting nuts",
+      "aliases": ["steering column", "column", "column support"],
+      "notes": []
+    },
+    "steering-box-to-body-126": {
+      "name": "Steering gearbox mounting nuts",
+      "aliases": ["steering", "steering box", "steering gearbox"],
+      "notes": []
+    },
+    "pitman-arm-nut-126": {
+      "name": "Pitman (drop) arm nut",
+      "aliases": ["pitman arm", "drop arm", "steering"],
+      "notes": ["The 500 is also 98-108 N·m (10.0-11.0 kgf·m) - the same order of magnitude."],
+      "cross_notes": {
+        "0": "Bucheli writes \"Lenkhebelbefestigungsmutter 10\", which reads as 9.8 N·m (1.0 kgf·m), but the 594 cc Autobook gives 98 N·m (10 kgf·m / 72 lb·ft) and the 500 is 98-108 N·m (10-11 kgf·m). The Bucheli figure has been judged a misprint with the decimal point dropped - 9.8 N·m would be nowhere near tight enough. Haynes 126 p89 also gives \"Drop arm nut 72 lb·ft / 100 N·m\" = 10.0 kgf·m, confirming the misprint with a third source. The table on the FD Ricambi site reproduces Bucheli's \"10\" unchanged."
+      }
+    },
+    "idler-arm-support-126": {
+      "name": "Idler arm (relay lever) support nuts",
+      "aliases": ["idler arm", "relay lever", "steering"],
+      "notes": []
+    },
+    "idler-arm-nut-126": {
+      "name": "Idler arm (relay lever) pivot nut",
+      "aliases": ["idler arm", "relay lever", "pivot", "steering"],
+      "notes": []
+    },
+    "tie-rod-clamp-126": {
+      "name": "Track rod clamp (adjusting sleeve) nuts",
+      "aliases": ["track rod", "tie rod", "clamp", "toe-in", "alignment"],
+      "notes": ["Tighten after setting the toe."]
+    },
+    "ball-joint-stud-126": {
+      "name": "Track rod end ball joint nut",
+      "aliases": ["track rod end", "tie rod end", "ball joint", "ball pin"],
+      "notes": ["Fit a new split pin."]
+    },
+    "wheel-cylinder-126": {
+      "name": "Wheel cylinder mounting bolts",
+      "aliases": ["wheel cylinder", "slave cylinder", "brake"],
+      "notes": ["Printed only in the 652 cc manual. A low figure - take care not to overtighten."]
+    },
+    "brake-hose-union-126": {
+      "name": "Brake hose union (wheel cylinder end)",
+      "aliases": ["brake hose", "union", "flare nut", "brake line"],
+      "notes": ["Printed only in the 652 cc manual."]
+    },
+    "master-cylinder-126": {
+      "name": "Master cylinder to pedal bracket",
+      "aliases": ["master cylinder", "brake master", "pedal bracket"],
+      "notes": []
+    },
+    "handbrake-lever-126": {
+      "name": "Handbrake lever mounting",
+      "aliases": ["handbrake", "hand brake", "parking brake"],
+      "notes": ["Printed only in the 652 cc manual."]
+    }
+  }
+}
