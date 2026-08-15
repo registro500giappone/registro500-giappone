@@ -1,0 +1,767 @@
+{
+  "_readme": [
+    "Testi italiani sovrapposti a torque-data.json. Caricato da it/torque.html sopra ../torque-data.json.",
+    "Questo file non contiene alcun valore di coppia. Valori, unità, applicabilità, fonti e riscontri restano in torque-data.json,",
+    "così la pagina italiana non può mai divergere da quella giapponese sui numeri.",
+    "Regole di sovrapposizione (vedi applyI18n() in it/torque.html):",
+    "  items[<id>].name          -> sostituisce item.name",
+    "  items[<id>].aliases       -> ANTEPOSTI a item.aliases (gli alias giapponesi restano ricercabili)",
+    "  items[<id>].notes         -> sostituisce item.notes per intero (stessa lunghezza dell'array giapponese)",
+    "  items[<id>].procedure     -> sostituisce item.procedure ('\\n' diventa un'interruzione di riga)",
+    "  items[<id>].no_spec_note  -> sostituisce item.no_spec_note",
+    "  items[<id>].cross_notes   -> indicizzati per posizione in item.cross",
+    "  items[<id>].seq_labels    -> sostituisce item.sequences[i].label per posizione",
+    "for_version deve coincidere con la version di torque-data.json. Se non coincide la pagina funziona lo stesso ma logga un avviso:",
+    "dove questo file non ha una voce affiora il testo giapponese, che è il modo sicuro di fallire.",
+    "Terminologia verificata sui nomi dei ricambi in italiano dei negozi Passione 500 / EuroItalia500 / D'Angelo Motori",
+    "(coperchio punterie, piatto porta ganasce, cilindretto, spingidisco, testina sterzo, fuso a snodo, bronzina di banco, balestra)."
+  ],
+  "lang": "it",
+  "for_version": "2026-08-15a",
+
+  "target": "FIAT 500 / FIAT 126 (filtrati per famiglia di motore e scocca base)",
+
+  "sources": {
+    "wsm": { "label": "Manuale d'officina Autobooks \"FIAT 500 1957-73\" (in inglese)" },
+    "oem": { "label": "Manuale di riparazione Fiat \"Neuer 500 und 500 D\" (in tedesco)" },
+    "a126": { "label": "Manuale d'officina Autobook 853 \"FIAT 126 1972-1976\" (in inglese)" },
+    "buch126": { "label": "Manuale di riparazione Verlag Bucheli \"Fiat 126\" (in tedesco)" },
+    "haynes500": { "label": "Haynes \"FIAT 500 1957-73\" (edizione giapponese, Vintage Publications)" },
+    "haynes126": { "label": "Haynes \"Fiat 126 Owners Workshop Manual\" (in inglese)" }
+  },
+
+  "areas": {
+    "engine": { "label": "Motore", "short": "Motore" },
+    "fuel": { "label": "Alimentazione e accensione", "short": "Aliment." },
+    "driveline": { "label": "Trasmissione", "short": "Trasm." },
+    "suspension": { "label": "Sospensioni e sterzo", "short": "Telaio" },
+    "brake": { "label": "Freni", "short": "Freni" },
+    "body": { "label": "Carrozzeria e altro", "short": "Carrozz." }
+  },
+
+  "chassis": {
+    "500": { "label": "FIAT 500" },
+    "126": { "label": "FIAT 126" }
+  },
+
+  "engines": {
+    "e500": {
+      "label": "Motore serie 500",
+      "cc": "479-499 cc",
+      "note": "I valori vengono dal manuale di riparazione Fiat (in tedesco, 110 / 110D) e dal manuale d'officina Autobooks in inglese (1957-73). Al 120.000 della Giardiniera sono attribuiti gli stessi valori perché nel supplemento del manuale Fiat la tabella del motore ha la stessa impostazione e gli stessi codici ricambio del 110D: cambia soltanto lo schema dell'ordine di serraggio."
+    },
+    "e126": {
+      "label": "Motore serie 126",
+      "cc": "594-652 cc",
+      "form_labels": "126A.000 / 126A5.000 / 126A1.000, 126A1.048",
+      "note": "I valori vengono dall'Autobook della 126 (594 cc, 126 A.000) e sono stati riscontrati voce per voce sul manuale Bucheli (652 cc, 126 A1). Il 126 A5.000 montato sulla Nuova 500 R differisce per albero a camme, carburatore, potenza e dinamo, ma nelle fonti non compare alcuna differenza nelle coppie di serraggio (Fiat \"500 VARIANTI\" 603.91.687)."
+    }
+  },
+
+  "generic": {
+    "grades": {
+      "4.8": "4.8 (bullone comune, tenero)",
+      "8.8": "8.8 (vite meccanica standard)",
+      "10.9": "10.9 (alta resistenza)"
+    },
+    "cautions": [
+      "Avvitando in alluminio o in ghisa restare sotto questi valori, altrimenti il filetto si strappa",
+      "Olio o grasso sul filetto aumentano del 20-30% la forza di serraggio a parità di coppia, cioè equivalgono a stringere troppo",
+      "I filetti fini (M12x1.25 e simili) richiedono un valore leggermente superiore rispetto ai passi grossi",
+      "Su filetti arrugginiti o grippati gran parte della coppia si perde in attrito e non diventa mai forza di serraggio"
+    ]
+  },
+
+  "_refs_readme": "Dove una fonte rimanda a una pagina del libro stampato, i dati giapponesi scrivono \"本 pNN\" (pagina del libro, non del PDF) e \"本文\" (nel testo corrente, non in tabella). Vengono cercati per stringa esatta e applicati a item.source_id, cross[].ref e sequences[].ref. Tutto ciò che non è elencato qui (\"p22\", \"FIG 1:44\") è già neutro rispetto alla lingua e passa invariato.",
+  "refs": {
+    "本 p28": "libro pag. 28",
+    "本 p71": "libro pag. 71",
+    "本 p74": "libro pag. 74",
+    "本 p101": "libro pag. 101",
+    "本 p114": "libro pag. 114",
+    "本 p91-92": "libro pag. 91-92",
+    "本 p112 一覧表": "libro pag. 112, tabella delle coppie",
+    "本文": "nel testo",
+    "本文（フロントハブ）": "nel testo (mozzo anteriore)",
+    "本文（ブレーキ）": "nel testo (freni)",
+    "本文（リアハブ）": "nel testo (mozzo posteriore)",
+    "9-3（図 9:2）": "9-3 (FIG 9:2)",
+    "p128 ギアボックス／デフ一覧": "p128, tabella cambio / differenziale",
+    "p22 エキゾーストマニホールド→シリンダーヘッド": "p22, collettore di scarico sulla testa",
+    "p22 カムチェーンスプロケット": "p22, pignone della catena di distribuzione"
+  },
+
+  "items": {
+    "cylinder-head-nut": {
+      "name": "Dadi della testa cilindri",
+      "aliases": ["testa", "testata", "dado testa", "testa cilindri", "parte alta"],
+      "notes": [
+        "Procedere sempre nell'ordine incrociato corretto",
+        "Si consiglia il serraggio in due passate (prima passata 25 N·m = 2.5 kgf·m / 18.1 lb·ft, poi il valore finale)",
+        "Lo schema dell'ordine cambia con il tipo di motore: FIG 1:44 per la Nuova 500 N, FIG 1:46 per la 500 D / F / L e la Giardiniera (manuale d'officina inglese). Il valore di coppia è lo stesso per tutte."
+      ],
+      "seq_labels": [
+        "Nuova 500 N (motore 110.000)",
+        "Nuova 500 D / F / L / Giardiniera (motori 110D, 110F, 120)"
+      ]
+    },
+    "rocker-shaft-support": {
+      "name": "Dadi del supporto dell'albero dei bilancieri",
+      "aliases": ["bilanciere", "bilancieri", "albero bilancieri", "punteria", "gioco valvole"],
+      "notes": ["Dopo il rimontaggio registrare sempre di nuovo il gioco delle valvole"]
+    },
+    "main-bearing-carrier": {
+      "name": "Viti del supporto di banco",
+      "aliases": ["banco", "supporto di banco", "bronzina di banco", "basamento", "parte bassa"],
+      "notes": [
+        "Sono le viti che fissano il corpo che porta le bronzine di banco dell'albero motore.",
+        "Questa riga compare solo nella tabella delle coppie del manuale Fiat in tedesco; il manuale d'officina inglese non ha una voce corrispondente. I valori non stampati in una fonte non vengono mai creati per conversione, quindi non è indicato alcun lb·ft."
+      ]
+    },
+    "conrod-cap": {
+      "name": "Dadi del cappello di biella",
+      "aliases": ["biella", "cappello di biella", "testa di biella", "bronzina di biella"],
+      "notes": ["Controllare il gioco della bronzina con il Plastigage (prescritto 0.011-0.061 mm)"]
+    },
+    "flywheel-bolt": {
+      "name": "Viti del volano",
+      "aliases": ["volano", "flangia albero motore"],
+      "notes": [
+        "Usare una piastrina di sicurezza nuova e ripiegarne le linguette dopo il serraggio",
+        "Prima del montaggio verificare i riferimenti di fasatura sull'albero motore"
+      ]
+    },
+    "centrifugal-filter-bolt": {
+      "name": "Bullone cavo del filtro olio centrifugo",
+      "aliases": ["centrifugo", "filtro olio", "filtro", "bullone cavo"],
+      "notes": [
+        "Coppia molto elevata. Non si raggiunge senza un attrezzo di bloccaggio",
+        "Prima di stringere verificare che l'anello OR sia in sede"
+      ]
+    },
+    "camshaft-sprocket": {
+      "name": "Vite dell'ingranaggio dell'albero a camme",
+      "aliases": ["ingranaggio albero a camme", "albero a camme", "distribuzione", "camme", "ingranaggio"],
+      "notes": ["Lo stesso punto sulla 126 (594 / 652 cc) è 1.0 kgf·m = 10 N·m, cioè esattamente in mezzo ai due valori."],
+      "cross_notes": {
+        "1": "Solo il manuale Fiat in tedesco dà il valore più alto di 1.1 kgf·m = 11 N·m. Il manuale inglese (6.5 lb·ft, circa 8.8 N·m) e Haynes p22 (0.9 kgf·m = 8.8 N·m) concordano tra loro, quindi questa pagina adotta 0.9 kgf·m come valore principale."
+      }
+    },
+    "centrifugal-filter-cover": {
+      "name": "Viti del coperchio del filtro olio centrifugo",
+      "aliases": ["coperchio filtro", "coperchio", "puleggia", "viti piccole"],
+      "notes": ["Da non confondere con il bullone cavo (15.0 kgf·m). Scambiarli rovina il pezzo"]
+    },
+    "generator-pulley-nut": {
+      "name": "Dado della puleggia della dinamo",
+      "aliases": ["puleggia", "dinamo", "generatore", "cinghia", "cinghia dinamo"],
+      "notes": [
+        "La tensione della cinghia si regola con il numero di spessori divisi (togliendo spessori la cinghia si tende, aggiungendoli si allenta)",
+        "È corretta una freccia di circa 10 mm premendo con 10 kg a metà corsa",
+        "Il manuale inglese dà alla puleggia e al dado della ventola lo stesso valore di 14.5 lb·ft, mentre il manuale Fiat in tedesco elenca a parte il lato ventola con 3.5 kgf·m = 34 N·m. Vedere la voce separata del dado della ventola."
+      ]
+    },
+    "generator-bearing-stop": {
+      "name": "Dado di ritegno dell'anello esterno del cuscinetto lato collettore della dinamo",
+      "aliases": ["dinamo", "generatore", "cuscinetto", "revisione", "collettore"],
+      "notes": [
+        "Coppia minima, si tocca solo smontando la dinamo. Intorno a 1 N·m è sotto il campo di misura della maggior parte delle chiavi dinamometriche.",
+        "Stampato solo nel manuale d'officina inglese. I valori non presenti in una fonte non vengono creati per conversione, quindi non è indicato alcun kgf·m."
+      ]
+    },
+    "generator-fan-nut": {
+      "name": "Dado della ventola di raffreddamento sulla dinamo",
+      "aliases": ["ventola", "ventola di raffreddamento", "dinamo", "generatore"],
+      "notes": ["Lo stesso punto sulla 126 (594 / 652 cc) è anch'esso 3.5 kgf·m = 34 N·m, in accordo con il manuale Fiat in tedesco."],
+      "cross_notes": {
+        "1": "Il manuale inglese tratta puleggia e ventola in un'unica riga a 14.5 lb·ft, circa 20 N·m. Il manuale Fiat in tedesco elenca il dado della ventola da solo a 3.5 kgf·m = 34 N·m, e i due manuali della 126 concordano con il valore di 3.5 kgf·m."
+      }
+    },
+    "spark-plug": {
+      "name": "Candele",
+      "aliases": ["candela", "candele", "NGK"],
+      "notes": [
+        "Si consiglia della pasta antigrippante sul filetto",
+        "Distanza fra gli elettrodi prescritta 0.48-0.58 mm"
+      ]
+    },
+    "clutch-cover": {
+      "name": "Viti del coperchio frizione (spingidisco)",
+      "aliases": ["frizione", "coperchio frizione", "spingidisco"],
+      "notes": [
+        "Stringere poco per volta in sequenza incrociata",
+        "Attenzione a non stringere troppo: il valore è più basso di quanto sembri",
+        "Si consiglia l'uso dell'attrezzo di centraggio (A.62023)"
+      ]
+    },
+    "gearbox-primary-shaft": {
+      "name": "Dado dell'albero primario del cambio",
+      "aliases": ["albero primario", "cambio", "trasmissione", "albero"],
+      "notes": []
+    },
+    "gearbox-layshaft": {
+      "name": "Dado dell'albero secondario del cambio (layshaft)",
+      "aliases": ["albero secondario", "albero di rinvio", "cambio", "trasmissione"],
+      "notes": []
+    },
+    "gearbox-to-engine": {
+      "name": "Dadi della scatola frizione al motore",
+      "aliases": ["cambio", "trasmissione", "scatola frizione", "campana"],
+      "notes": ["Il manuale Fiat scrive \"Mutter zur Befestigung des Kupplungsgehäuses am Motor\", cioè i dadi che fissano la scatola frizione al motore, non alla scocca."]
+    },
+    "diff-bearing-cap": {
+      "name": "Dadi del cappello del cuscinetto del differenziale",
+      "aliases": ["differenziale", "coppia conica", "corona", "pignone"],
+      "notes": ["Gioco prescritto fra corona e pignone 0.08-0.12 mm"]
+    },
+    "diff-rolling-torque": {
+      "name": "Precarico dei cuscinetti del differenziale (resistenza al rotolamento)",
+      "aliases": ["differenziale", "precarico", "resistenza al rotolamento", "cuscinetto", "spessore"],
+      "notes": ["Non confondere questo valore con una coppia di serraggio."],
+      "procedure": "Non è un valore da chiave dinamometrica. Agire sui registri finché la resistenza che si sente facendo girare il differenziale è di 1.37 ± 0.09 N·m (1.01 ± 0.07 lb·ft)."
+    },
+    "diff-bearing-housing": {
+      "name": "Dadi del supporto del cuscinetto del differenziale",
+      "aliases": ["differenziale", "supporto cuscinetto", "coppia conica"],
+      "notes": []
+    },
+    "crown-wheel-bolt": {
+      "name": "Viti della corona dentata (coppia conica)",
+      "aliases": ["corona", "corona dentata", "coppia conica", "differenziale"],
+      "notes": ["Usare una piastrina di sicurezza nuova e ripiegarne le linguette dopo il serraggio."]
+    },
+    "driveshaft-flange": {
+      "name": "Viti della flangia del semiasse",
+      "aliases": ["semiasse", "albero di trasmissione", "flangia"],
+      "notes": []
+    },
+    "starter-motor": {
+      "name": "Dadi di fissaggio del motorino d'avviamento",
+      "aliases": ["motorino", "motorino d'avviamento", "avviamento"],
+      "notes": [
+        "È imbullonato alla scatola frizione, quindi il valore resta valido come dato lato scocca anche se il motore è stato sostituito.",
+        "Stampato solo nel manuale d'officina inglese; il manuale Fiat in tedesco non ha una riga corrispondente. I valori non presenti in una fonte non vengono creati per conversione, quindi non è indicato alcun kgf·m."
+      ]
+    },
+    "wheel-bolt": {
+      "name": "Bulloni di fissaggio delle ruote",
+      "aliases": ["ruota", "bullone ruota", "dado ruota", "cambio gomma", "cerchio"],
+      "notes": [
+        "Stringere in sequenza incrociata",
+        "Ricontrollarli sempre dopo aver percorso qualche chilometro",
+        "Cerchi non originali con appoggio di forma diversa possono non serrare correttamente nemmeno al valore prescritto"
+      ]
+    },
+    "rear-swingarm-pivot": {
+      "name": "Dado del perno del braccio oscillante posteriore",
+      "aliases": ["braccio oscillante", "braccio posteriore", "perno", "sospensione posteriore"],
+      "notes": []
+    },
+    "rear-outer-support": {
+      "name": "Viti di fissaggio del supporto esterno posteriore",
+      "aliases": ["supporto esterno", "sospensione posteriore", "convergenza", "supporto"],
+      "notes": ["Qui si registra la convergenza posteriore (tolleranza 0°10')"]
+    },
+    "rear-hub-bearing": {
+      "name": "Cuscinetto della ruota posteriore (dado dell'albero ruota)",
+      "aliases": ["mozzo posteriore", "mozzo", "cuscinetto", "albero ruota"],
+      "notes": ["Ingrassare il cuscinetto con grasso Fiat MR"],
+      "procedure": "Non si serra a una coppia fissa: si regola sulla resistenza al rotolamento. Stringere il dado progressivamente e fermarsi appena la resistenza alla rotazione raggiunge 0.5 N·m (0.05 kgf·m / 0.36 lb·ft). Se la resistenza è troppo alta, montare un distanziale elastico nuovo."
+    },
+    "front-swingarm-hub-nut": {
+      "name": "Dado del semibraccio anteriore al fuso a snodo",
+      "aliases": ["sospensione anteriore", "semibraccio", "fuso a snodo", "fusello"],
+      "notes": ["Il limite superiore viene dal manuale Fiat, 59 N·m (6.0 kgf·m). Il manuale inglese stampa solo il valore singolo di 39.8 lb·ft (54 N·m), quindi la colonna lb·ft resta al valore singolo della fonte: nessun limite superiore viene inventato per conversione."]
+    },
+    "leaf-spring-kingpin": {
+      "name": "Balestra al fuso a snodo",
+      "aliases": ["balestra", "molla a balestra", "fuso a snodo", "perno fuso"],
+      "notes": []
+    },
+    "front-swingarm-pin-body": {
+      "name": "Perno del semibraccio anteriore alla scocca",
+      "aliases": ["perno semibraccio", "sospensione anteriore", "scocca"],
+      "notes": []
+    },
+    "front-hub-nut": {
+      "name": "Dado del mozzo anteriore (registrazione dei cuscinetti)",
+      "aliases": ["mozzo anteriore", "mozzo", "dado mozzo", "cuscinetto", "gioco assiale"],
+      "notes": [
+        "Puntare a un gioco assiale finale del mozzo di 0.025-0.10 mm",
+        "Stringere troppo brucia il cuscinetto"
+      ],
+      "procedure": "Non va semplicemente lasciato stretto: si stringe e poi si allenta. Il metodo dipende dal tipo di mozzo.\n[Tipo con copiglia] Stringere a 29 N·m (3.0 kgf·m / 21.7 lb·ft), poi allentare di 60° (una faccia dell'esagono).\n[Tipo cianfrinato] Stringere a 20 N·m (2.0 kgf·m / 14.5 lb·ft) per assestare il cuscinetto, poi allentare. Riserrare a 6.9 N·m (0.7 kgf·m / 5.1 lb·ft) e da lì tornare indietro di 30°."
+    },
+    "brake-backplate-front": {
+      "name": "Piatto porta ganasce al fuso a snodo (anteriore)",
+      "aliases": ["piatto porta ganasce", "piatto ganasce", "freno", "fuso a snodo", "freno anteriore"],
+      "notes": [
+        "Filetto M8x1.25.",
+        "La fonte è il manuale Fiat in tedesco, che stampa solo i kgf·m. Il manuale inglese non ha una voce corrispondente, quindi non è indicato alcun lb·ft."
+      ]
+    },
+    "brake-backplate-rear": {
+      "name": "Piatto porta ganasce al braccio oscillante (posteriore)",
+      "aliases": ["piatto porta ganasce", "piatto ganasce", "freno", "braccio oscillante", "freno posteriore"],
+      "notes": [
+        "Filetto M10x1.25. Al posteriore blocca anche la flangia del cuscinetto.",
+        "La fonte è il manuale Fiat in tedesco, che stampa solo i kgf·m. Il manuale inglese non ha una voce corrispondente, quindi non è indicato alcun lb·ft."
+      ]
+    },
+    "pitman-arm-nut": {
+      "name": "Dado della leva di comando dello sterzo",
+      "aliases": ["leva di comando sterzo", "leva sterzo", "sterzo", "guida"],
+      "notes": [
+        "Una delle coppie più alte di questa pagina",
+        "Il limite superiore viene dal manuale Fiat, 108 N·m (11.0 kgf·m). Il manuale inglese stampa solo il valore singolo di 72 lb·ft (98 N·m), quindi la colonna lb·ft resta al valore singolo della fonte."
+      ]
+    },
+    "steering-box-to-body": {
+      "name": "Dadi della scatola guida alla scocca",
+      "aliases": ["scatola guida", "scatola sterzo", "sterzo"],
+      "notes": []
+    },
+    "tie-rod-ball-pin": {
+      "name": "Dado del perno sferico della testina dello sterzo",
+      "aliases": ["tirante", "testina sterzo", "testina", "snodo sferico", "convergenza"],
+      "notes": ["La convergenza anteriore è 0-2 mm (misurata sui cerchi)"]
+    },
+    "relay-lever-pivot": {
+      "name": "Dado del perno della leva di rinvio",
+      "aliases": ["leva di rinvio", "rinvio sterzo", "sterzo", "perno"],
+      "notes": ["Il manuale inglese riporta questo punto due volte: 39-43 lb·ft (53-58 N·m) a p94 e 78-85 lb·ft (106-115 N·m) a p95. Il valore di p94 concorda con i 5500-6000 mmkg = 5.5-6.0 kgf·m (54-59 N·m) del manuale Fiat ed è quello adottato."]
+    },
+    "relay-lever-support": {
+      "name": "Supporto della leva di rinvio alla scocca",
+      "aliases": ["leva di rinvio", "supporto", "sterzo"],
+      "notes": [
+        "Sono le viti che fissano il supporto alla scocca. Il valore è diverso da quello del perno della leva di rinvio (voce separata): da non confondere.",
+        "Stampato solo nel manuale d'officina inglese; la tabella del manuale Fiat in tedesco (p179) ha solo cinque righe sullo sterzo e non contiene questa voce. I valori non presenti in una fonte non vengono creati per conversione, quindi non è indicato alcun kgf·m."
+      ]
+    },
+    "steering-wheel-nut": {
+      "name": "Dado del volante",
+      "aliases": ["volante", "sterzo", "dado volante"],
+      "notes": ["Se il volante si allenta si perde completamente lo sterzo. Dopo ogni smontaggio riserrare sempre al valore prescritto."]
+    },
+    "oil-drain": {
+      "name": "Tappo di scarico dell'olio motore",
+      "aliases": ["scarico", "tappo di scarico", "tappo coppa", "cambio olio"],
+      "notes": [
+        "Sostituire la rondella ogni volta",
+        "Il filetto è nell'alluminio: non stringere mai troppo"
+      ]
+    },
+    "rocker-cover": {
+      "name": "Coperchio punterie",
+      "aliases": ["coperchio punterie", "coperchio valvole", "coperchio bilancieri"],
+      "notes": ["Stringere troppo schiaccia la guarnizione e peggiora la perdita"]
+    },
+    "exhaust-manifold": {
+      "name": "Collettore di scarico / marmitta",
+      "aliases": ["scarico", "collettore", "collettore di scarico", "marmitta", "silenziatore"],
+      "notes": [
+        "Con il calore si allenta: riserrare dopo un breve tragitto",
+        "Il valore riguarda il collettore sulla testa. La fonte stampa solo i kgf·m (2.5 kgf·m = 24.5 N·m); i valori non presenti in una fonte non vengono creati per conversione, quindi non è indicato alcun lb·ft.",
+        "Haynes è l'unica fonte con un valore per questo punto; il manuale inglese, il manuale Fiat in tedesco e i due manuali della 126 non hanno una riga corrispondente."
+      ]
+    },
+    "engine-mount": {
+      "name": "Supporti motore",
+      "aliases": ["supporto motore", "tampone", "silent block", "attacco motore"],
+      "notes": ["Eseguire il serraggio finale con il peso della vettura sui supporti, così la gomma non resta in torsione"],
+      "no_spec_note": "Non esiste un valore unico per il supporto nel suo insieme, ma ogni punto di fissaggio ne ha uno. 500: vedere la voce separata \"Dadi degli attacchi inferiori del gruppo motopropulsore (lato scocca)\", 24.5-29.4 N·m (18.1-21.7 lb·ft). 126: le cinque voci \"Supporto motore: ...\"."
+    },
+    "powerplant-mount-lower": {
+      "name": "Dadi degli attacchi inferiori del gruppo motopropulsore (lato scocca)",
+      "aliases": ["attacco", "supporto motore", "supporto cambio", "gruppo motopropulsore"],
+      "notes": [
+        "Sono i quattro fissaggi inferiori che tengono cambio e differenziale alla scocca. Avvitare prima a mano le viti del supporto anteriore ed eseguire il serraggio definitivo per ultimo.",
+        "Stampato solo nel manuale d'officina inglese. I valori non presenti in una fonte non vengono creati per conversione, quindi non è indicato alcun kgf·m."
+      ]
+    },
+    "carburettor": {
+      "name": "Dadi di fissaggio del carburatore",
+      "aliases": ["carburatore", "weber", "solex", "dellorto"],
+      "notes": [
+        "Stringere troppo deforma la flangia e la fa aspirare aria",
+        "Procedere alternando i lati, poco per volta"
+      ]
+    },
+    "intake-manifold": {
+      "name": "Collettore di aspirazione",
+      "aliases": ["collettore di aspirazione", "aspirazione", "collettore"],
+      "notes": ["Punto tipico di infiltrazioni d'aria"]
+    },
+    "brake-pipe": {
+      "name": "Raccordi dei tubi freno",
+      "aliases": ["tubo freno", "tubazione freno", "raccordo", "spurgo"],
+      "notes": [
+        "Stringere troppo schiaccia lo svasamento e peggiora la perdita",
+        "Al termine premere sempre il pedale e verificare che non ci siano perdite"
+      ],
+      "no_spec_note": "Nessun valore nelle fonti. Il manuale inglese descrive come staccare il tubo flessibile (libro pag. 101) ma non dà alcuna coppia per il raccordo."
+    },
+    "wheel-cylinder": {
+      "name": "Fissaggio del cilindretto del freno",
+      "aliases": ["cilindretto", "cilindretto freno", "tamburo"],
+      "notes": ["Limite di usura delle guarnizioni 1.5 mm; i tamburi si possono rettificare fino a +1.0 mm rispetto alla misura di serie"],
+      "no_spec_note": "La 126 (652 cc, Bucheli) prescrive 9.8 N·m (1.0 kgf·m), presente in questa pagina come voce separata \"Viti di fissaggio del cilindretto del freno\". Non è confermato che la 500 usi lo stesso valore."
+    },
+    "master-cylinder": {
+      "name": "Fissaggio della pompa freno",
+      "aliases": ["pompa freno", "pompa", "freno"],
+      "notes": [],
+      "no_spec_note": "La 126 (652 cc, Bucheli) prescrive 14.7 N·m (1.5 kgf·m), presente in questa pagina come voce separata \"Pompa freno al supporto dei pedali\". Non è confermato che la 500 usi lo stesso valore."
+    },
+    "seat-belt-anchor": {
+      "name": "Attacchi delle cinture di sicurezza",
+      "aliases": ["cintura", "cinture di sicurezza", "attacco", "ancoraggio"],
+      "notes": ["Se la lamiera è troppo sottile, aggiungere una piastra di rinforzo dietro"],
+      "no_spec_note": "All'epoca le cinture non erano di serie, quindi i manuali non hanno alcuna voce (il manuale inglese si limita a citare lo stacco degli attacchi delle cinture dal pianale, libro pag. 102). Trattandosi di un accessorio, attenersi al valore fornito con il kit di montaggio."
+    },
+    "seat-rail": {
+      "name": "Fissaggio delle guide dei sedili",
+      "aliases": ["sedile", "guide sedile", "guida", "sedile sportivo"],
+      "notes": []
+    },
+    "door-hinge": {
+      "name": "Cerniere delle porte",
+      "aliases": ["porta", "cerniera", "registrazione porta"],
+      "notes": ["Registrare l'accostamento della porta con le viti appena avvitate, poi serrare a fondo"]
+    },
+
+    "cylinder-head-nut-126": {
+      "name": "Dadi della testa cilindri",
+      "aliases": ["testa", "testata", "dado testa", "testa cilindri", "parte alta"],
+      "notes": [
+        "I dadi ciechi vanno anch'essi a 39 N·m (4.0 kgf·m).",
+        "Stringere nell'ordine indicato in FIG 1:5. Serrare a motore freddo e ricontrollare dopo il rodaggio prescritto."
+      ],
+      "seq_labels": ["Nuova 500 R / Fiat 126 (motori 126A, 126A5, 126A1)"]
+    },
+    "main-bearing-support-126": {
+      "name": "Viti dei supporti di banco dell'albero motore",
+      "aliases": ["banco", "supporto di banco", "bronzina di banco", "basamento"],
+      "notes": []
+    },
+    "conrod-cap-126": {
+      "name": "Dadi del cappello di biella",
+      "aliases": ["biella", "cappello di biella", "testa di biella", "bronzina di biella"],
+      "notes": []
+    },
+    "flywheel-bolt-126": {
+      "name": "Viti del volano",
+      "aliases": ["volano", "albero motore"],
+      "notes": []
+    },
+    "camshaft-sprocket-126": {
+      "name": "Vite del pignone dell'albero a camme",
+      "aliases": ["ingranaggio albero a camme", "albero a camme", "distribuzione", "pignone"],
+      "notes": ["Valore basso: attenzione a non stringere troppo."]
+    },
+    "rocker-shaft-support-126": {
+      "name": "Dadi del supporto dell'albero dei bilancieri",
+      "aliases": ["bilanciere", "albero bilancieri", "punteria", "gioco valvole"],
+      "notes": []
+    },
+    "engine-pulley-bolt-126": {
+      "name": "Bullone centrale della puleggia motore (filtro olio centrifugo)",
+      "aliases": ["puleggia", "puleggia motore", "filtro centrifugo", "filtro olio", "bullone cavo"],
+      "notes": ["Coppia molto elevata. Bloccare il volano per impedire all'albero motore di girare."]
+    },
+    "generator-fan-nut-126": {
+      "name": "Dado della ventola di raffreddamento sulla dinamo",
+      "aliases": ["ventola", "ventola di raffreddamento", "dinamo", "generatore"],
+      "notes": []
+    },
+    "generator-pulley-nut-126": {
+      "name": "Dado della puleggia della dinamo",
+      "aliases": ["puleggia", "dinamo", "generatore", "cinghia"],
+      "notes": []
+    },
+    "spark-plug-126": {
+      "name": "Candele",
+      "aliases": ["candela", "candele"],
+      "notes": [
+        "Il manuale lo indica come massimo: non superare 29 N·m (3.0 kgf·m / 22 lb·ft).",
+        "Candele prescritte: Marelli CW 8 NP / Champion L 81 Y."
+      ]
+    },
+    "mount-rubber-crossmember-126": {
+      "name": "Supporto motore: tampone in gomma alla traversa",
+      "aliases": ["supporto motore", "tampone", "traversa", "silent block"],
+      "notes": ["Stampato solo nel manuale del 652 cc. Le fonti del 594 cc non hanno un valore corrispondente."]
+    },
+    "mount-crossmember-body-126": {
+      "name": "Supporto motore: traversa alla scocca",
+      "aliases": ["traversa", "supporto motore", "scocca"],
+      "notes": ["Stampato solo nel manuale del 652 cc."]
+    },
+    "mount-rubber-gearbox-126": {
+      "name": "Supporto motore: tampone in gomma alla scatola del cambio",
+      "aliases": ["supporto cambio", "cambio", "tampone"],
+      "notes": ["Stampato solo nel manuale del 652 cc."]
+    },
+    "mount-bracket-rear-crossmember-126": {
+      "name": "Supporto motore: staffa alla traversa posteriore",
+      "aliases": ["staffa", "traversa posteriore", "supporto motore"],
+      "notes": ["Stampato solo nel manuale del 652 cc."]
+    },
+    "mount-bracket-powerplant-126": {
+      "name": "Supporto motore: staffa al gruppo motopropulsore",
+      "aliases": ["staffa", "supporto motore", "gruppo motopropulsore"],
+      "notes": ["Stampato solo nel manuale del 652 cc."]
+    },
+    "clutch-cable-bracket-126": {
+      "name": "Staffa di reazione della guaina del cavo frizione",
+      "aliases": ["cavo frizione", "guaina", "staffa"],
+      "notes": []
+    },
+    "clutch-release-fork-126": {
+      "name": "Fissaggio della forcella di disinnesto della frizione",
+      "aliases": ["forcella frizione", "disinnesto", "frizione"],
+      "notes": ["Stampato solo nel manuale del 652 cc."]
+    },
+    "clutch-pedal-shaft-126": {
+      "name": "Dado dell'albero dei pedali frizione / freno",
+      "aliases": ["pedale", "albero pedali", "pedale frizione", "pedale freno"],
+      "notes": ["Stampato solo nel manuale del 652 cc."]
+    },
+    "bellhousing-to-engine-126": {
+      "name": "Dadi della scatola frizione al motore",
+      "aliases": ["campana", "scatola frizione", "cambio", "trasmissione"],
+      "notes": ["Bucheli riporta questo punto due volte, una come 25 N·m (2.5 kgf·m) e una come 25-34 N·m (2.5-3.5 kgf·m). È stato adottato il valore di 25 N·m (2.5 kgf·m), che concorda con la tabella dell'Autobook."]
+    },
+    "gearbox-to-bellhousing-126": {
+      "name": "Dadi della scatola del cambio alla scatola frizione",
+      "aliases": ["cambio", "trasmissione", "campana", "scatola"],
+      "notes": []
+    },
+    "gearbox-layshaft-126": {
+      "name": "Dado dell'albero secondario del cambio (layshaft)",
+      "aliases": ["albero secondario", "albero di rinvio", "cambio", "trasmissione"],
+      "notes": [
+        "Raggiunta la coppia prescritta continuare a stringere finché i fori della copiglia si allineano: non tornare mai indietro.",
+        "Usare sempre una copiglia nuova."
+      ]
+    },
+    "gearbox-mainshaft-126": {
+      "name": "Dado dell'albero primario del cambio (mainshaft)",
+      "aliases": ["albero primario", "cambio", "trasmissione"],
+      "notes": [
+        "Raggiunta la coppia prescritta continuare a stringere finché i fori della copiglia si allineano: non tornare mai indietro.",
+        "Usare sempre una copiglia nuova."
+      ]
+    },
+    "reverse-shaft-126": {
+      "name": "Vite dell'alberino della retromarcia",
+      "aliases": ["retromarcia", "cambio"],
+      "notes": []
+    },
+    "gearlever-support-126": {
+      "name": "Viti del supporto della leva del cambio",
+      "aliases": ["leva del cambio", "cambio", "supporto"],
+      "notes": []
+    },
+    "gearlever-inner-cup-126": {
+      "name": "Dadi della coppa interna della leva del cambio",
+      "aliases": ["leva del cambio", "coppa", "cambio"],
+      "notes": []
+    },
+    "crown-wheel-bolt-126": {
+      "name": "Viti della corona dentata (coppia conica)",
+      "aliases": ["corona", "corona dentata", "coppia conica", "differenziale"],
+      "notes": ["La 500 usa 31 N·m (3.2 kgf·m), un valore diverso. Verificare di aver selezionato la scocca base corretta."]
+    },
+    "diff-bearing-housing-126": {
+      "name": "Dadi del supporto del cuscinetto del differenziale",
+      "aliases": ["differenziale", "cappello cuscinetto", "supporto cuscinetto", "coppia conica"],
+      "notes": ["Il cappello del cuscinetto del differenziale della 500 (37 N·m = 3.8 kgf·m) differisce sia per costruzione sia per valore."]
+    },
+    "axle-sleeve-126": {
+      "name": "Viti del manicotto di giunzione del semiasse",
+      "aliases": ["semiasse", "manicotto", "giunto", "albero di trasmissione"],
+      "notes": []
+    },
+    "diff-rolling-torque-126": {
+      "name": "Precarico dei cuscinetti del differenziale (resistenza al rotolamento)",
+      "aliases": ["differenziale", "precarico", "resistenza al rotolamento", "cuscinetto", "spessore"],
+      "notes": ["Non confondere questo valore con una coppia di serraggio."],
+      "procedure": "Non è un valore da chiave dinamometrica: si regola con gli spessori. Scegliere gli spessori in modo che il differenziale da solo giri con una resistenza di 1.3-1.5 N·m (13-15 kgf·cm), e di 2.0-4.9 N·m (20-50 kgf·cm) con la corona montata."
+    },
+    "wheel-bolt-126": {
+      "name": "Bulloni di fissaggio delle ruote",
+      "aliases": ["ruota", "bullone ruota", "dado ruota", "cambio gomma", "cerchio"],
+      "notes": ["Stesso valore davanti e dietro. Stringere in croce, poco per volta, in più passate."],
+      "cross_notes": {
+        "0": "Il Bucheli del 652 cc dà 69 N·m (7.0 kgf·m), il 40% in più dell'Autobook del 594 cc. Haynes 126 p89 dà 36 lb·ft / 50 N·m = 5.0 kgf·m, in accordo con l'Autobook, così come la tabella sul sito FD Ricambi (49 N·m = 5.0 kgf·m). Questa pagina adotta 5.0 kgf·m come valore principale, ma prima di decidere verificare l'anno della vettura e la misura dei bulloni ruota."
+      }
+    },
+    "leaf-spring-kingpin-126": {
+      "name": "Dado della balestra al fuso a snodo",
+      "aliases": ["balestra", "molla a balestra", "fuso a snodo", "fusello"],
+      "notes": []
+    },
+    "control-arm-shaft-126": {
+      "name": "Dado del braccio oscillante anteriore al perno",
+      "aliases": ["braccio oscillante", "braccio inferiore", "perno"],
+      "notes": []
+    },
+    "front-rubber-buffer-126": {
+      "name": "Dado del tampone in gomma anteriore (fine corsa)",
+      "aliases": ["tampone", "fine corsa", "tampone in gomma"],
+      "notes": []
+    },
+    "leaf-spring-insulator-126": {
+      "name": "Dadi dei tamponi in gomma della balestra",
+      "aliases": ["balestra", "tampone", "silent block"],
+      "notes": [],
+      "cross_notes": {
+        "0": "Solo il Bucheli del 652 cc dà il valore più alto di 49 N·m (5.0 kgf·m). L'Autobook del 594 cc (29 N·m = 3.0 kgf·m) e Haynes 126 p89 (22 lb·ft / 30 N·m = 3.0 kgf·m) concordano tra loro, quindi questa pagina adotta 3.0 kgf·m come valore principale."
+      }
+    },
+    "control-arm-shaft-body-126": {
+      "name": "Dadi del perno del braccio oscillante anteriore alla scocca",
+      "aliases": ["braccio oscillante", "braccio inferiore", "perno", "scocca"],
+      "notes": [],
+      "cross_notes": {
+        "0": "Solo il Bucheli del 652 cc dà il valore più alto di 49 N·m (5.0 kgf·m). L'Autobook del 594 cc (29 N·m = 3.0 kgf·m) e Haynes 126 p89 (22 lb·ft / 30 N·m = 3.0 kgf·m) concordano tra loro, quindi questa pagina adotta 3.0 kgf·m come valore principale."
+      }
+    },
+    "control-arm-knuckle-126": {
+      "name": "Dado del braccio oscillante anteriore al fuso a snodo",
+      "aliases": ["braccio oscillante", "braccio inferiore", "fuso a snodo", "snodo sferico"],
+      "notes": [],
+      "cross_notes": {
+        "0": "Il Bucheli del 652 cc dà 69 N·m (7.0 kgf·m) per un dado autobloccante. Potrebbe trattarsi di un dado di tipo diverso, ma l'Autobook del 594 cc (59 N·m = 6.0 kgf·m) e Haynes 126 p89 (44 lb·ft / 61 N·m = 6.0 kgf·m) concordano tra loro, quindi questa pagina adotta 6.0 kgf·m come valore principale."
+      }
+    },
+    "front-damper-126": {
+      "name": "Dadi superiore e inferiore dell'ammortizzatore anteriore",
+      "aliases": ["ammortizzatore", "ammortizzatore anteriore"],
+      "notes": []
+    },
+    "front-hub-nut-126": {
+      "name": "Dado del mozzo anteriore (registrazione dei cuscinetti)",
+      "aliases": ["dado mozzo", "cuscinetto ruota", "registrazione cuscinetto", "gioco"],
+      "notes": [
+        "Non fermarsi al valore: così si distrugge il cuscinetto.",
+        "Bucheli stampa un valore altrettanto basso di 4.9 N·m (0.5 kgf·m); entrambe le fonti concordano nel dire che si stringe e poi si torna indietro."
+      ],
+      "procedure": "Non si lascia alla coppia prescritta. Stringere a 6.9 N·m (0.7 kgf·m / 5 lb·ft) per assestare il cuscinetto, poi tornare indietro di circa 30° e montare la copiglia."
+    },
+    "brake-backplate-front-126": {
+      "name": "Piatto porta ganasce al fuso a snodo (anteriore)",
+      "aliases": ["piatto porta ganasce", "piatto ganasce", "freno", "tamburo", "fuso a snodo"],
+      "notes": ["Bucheli elenca questo punto due volte: 29 N·m (3.0 kgf·m) nella tabella delle sospensioni è 20 N·m (2.0 kgf·m) in quella dei freni. È stato adottato il valore della tabella dei freni, 20 N·m (2.0 kgf·m), che concorda con l'Autobook."]
+    },
+    "rear-rubber-buffer-126": {
+      "name": "Dado del tampone in gomma posteriore (fine corsa)",
+      "aliases": ["tampone", "fine corsa", "tampone in gomma"],
+      "notes": []
+    },
+    "rear-arm-support-front-126": {
+      "name": "Viti del supporto anteriore del braccio oscillante posteriore",
+      "aliases": ["braccio oscillante", "braccio posteriore", "supporto", "sospensione posteriore"],
+      "notes": []
+    },
+    "rear-arm-shaft-126": {
+      "name": "Dado del perno del braccio oscillante posteriore",
+      "aliases": ["braccio oscillante", "braccio posteriore", "perno", "sospensione posteriore"],
+      "notes": []
+    },
+    "rear-damper-126": {
+      "name": "Dadi superiore e inferiore dell'ammortizzatore posteriore",
+      "aliases": ["ammortizzatore", "ammortizzatore posteriore"],
+      "notes": []
+    },
+    "rear-brake-drum-bolt-126": {
+      "name": "Viti di ritegno del tamburo del freno posteriore",
+      "aliases": ["tamburo", "tamburo freno", "freno posteriore"],
+      "notes": []
+    },
+    "brake-backplate-rear-126": {
+      "name": "Piatto porta ganasce al braccio oscillante (posteriore)",
+      "aliases": ["piatto porta ganasce", "piatto ganasce", "freno", "tamburo", "braccio oscillante"],
+      "notes": []
+    },
+    "rear-hub-bearing-126": {
+      "name": "Cuscinetto della ruota posteriore (dado del mozzo)",
+      "aliases": ["dado mozzo", "mozzo posteriore", "cuscinetto ruota", "cuscinetto"],
+      "notes": [
+        "Riutilizzando il distanziale non si ottiene il precarico prescritto.",
+        "Stampare qui un valore elevato inviterebbe agli incidenti: seguire invece la procedura."
+      ],
+      "procedure": "Si controlla sulla resistenza al rotolamento, non con una coppia fissa. Al montaggio usare sempre un distanziale (collare) nuovo, il grasso prescritto (Fiat MR 3) e stringere fino a raggiungere la resistenza al rotolamento prescritta."
+    },
+    "steering-wheel-nut-126": {
+      "name": "Dado del volante",
+      "aliases": ["volante", "sterzo", "dado volante"],
+      "notes": ["Dopo il serraggio cianfrinare il dado per bloccarlo."]
+    },
+    "steering-column-uj-126": {
+      "name": "Dado del giunto cardanico del piantone dello sterzo",
+      "aliases": ["piantone", "giunto cardanico", "giunto", "sterzo"],
+      "notes": []
+    },
+    "steering-column-support-126": {
+      "name": "Dadi dell'attacco superiore posteriore del piantone",
+      "aliases": ["piantone", "supporto piantone", "sterzo"],
+      "notes": []
+    },
+    "steering-box-to-body-126": {
+      "name": "Dadi di fissaggio della scatola guida",
+      "aliases": ["sterzo", "scatola guida", "scatola sterzo"],
+      "notes": []
+    },
+    "pitman-arm-nut-126": {
+      "name": "Dado della leva di comando dello sterzo",
+      "aliases": ["leva di comando sterzo", "leva sterzo", "sterzo"],
+      "notes": ["Anche la 500 sta su 98-108 N·m (10.0-11.0 kgf·m), cioè lo stesso ordine di grandezza."],
+      "cross_notes": {
+        "0": "Bucheli scrive \"Lenkhebelbefestigungsmutter 10\", che si legge come 9.8 N·m (1.0 kgf·m), ma l'Autobook del 594 cc dà 98 N·m (10 kgf·m / 72 lb·ft) e la 500 sta su 98-108 N·m (10-11 kgf·m). Il valore di Bucheli è stato giudicato un refuso con la virgola caduta: 9.8 N·m non sarebbe minimamente sufficiente. Anche Haynes 126 p89 dà \"Drop arm nut 72 lb·ft / 100 N·m\" = 10.0 kgf·m, confermando il refuso con una terza fonte. La tabella sul sito FD Ricambi riproduce il \"10\" di Bucheli tale e quale."
+      }
+    },
+    "idler-arm-support-126": {
+      "name": "Dadi del supporto della leva di rinvio",
+      "aliases": ["leva di rinvio", "rinvio sterzo", "sterzo"],
+      "notes": []
+    },
+    "idler-arm-nut-126": {
+      "name": "Dado del perno della leva di rinvio",
+      "aliases": ["leva di rinvio", "rinvio sterzo", "perno", "sterzo"],
+      "notes": []
+    },
+    "tie-rod-clamp-126": {
+      "name": "Dadi dei morsetti del tirante (manicotto di registro)",
+      "aliases": ["tirante", "morsetto", "convergenza", "assetto"],
+      "notes": ["Stringere dopo aver registrato la convergenza."]
+    },
+    "ball-joint-stud-126": {
+      "name": "Dado dello snodo sferico della testina dello sterzo",
+      "aliases": ["testina sterzo", "testina", "snodo sferico", "perno sferico"],
+      "notes": ["Montare una copiglia nuova."]
+    },
+    "wheel-cylinder-126": {
+      "name": "Viti di fissaggio del cilindretto del freno",
+      "aliases": ["cilindretto", "cilindretto freno", "freno"],
+      "notes": ["Stampato solo nel manuale del 652 cc. Valore basso: attenzione a non stringere troppo."]
+    },
+    "brake-hose-union-126": {
+      "name": "Raccordo del tubo flessibile del freno (lato cilindretto)",
+      "aliases": ["tubo flessibile", "raccordo", "tubo freno"],
+      "notes": ["Stampato solo nel manuale del 652 cc."]
+    },
+    "master-cylinder-126": {
+      "name": "Pompa freno al supporto dei pedali",
+      "aliases": ["pompa freno", "pompa", "supporto pedali"],
+      "notes": []
+    },
+    "handbrake-lever-126": {
+      "name": "Fissaggio della leva del freno a mano",
+      "aliases": ["freno a mano", "freno di stazionamento", "leva freno a mano"],
+      "notes": ["Stampato solo nel manuale del 652 cc."]
+    }
+  }
+}
