@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="canonical" href="https://www.registro500.com/torque">
-  <!-- 公開導線を付けるまでは検索に出さない。正式公開時にこの行を外す。 -->
-  <meta name="robots" content="noindex">
 
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
@@ -17,7 +15,7 @@
   </script>
 
   <title>締め付けトルク早見帳 | Registro500 Giappone</title>
-  <meta name="description" content="クラシックFIAT 500の締め付けトルクを部位名から検索。N·m / kgf·m / lb·ft を同時表示。ねじサイズからの目安と単位換算も。">
+  <meta name="description" content="クラシックFIAT 500・126の締め付けトルクを部位名から検索。N·m / kgf·m / lb·ft を同時表示。ねじサイズからの目安と単位換算も。">
 
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
@@ -1133,6 +1131,12 @@
     if (saved) {
       currentEngine = saved.engine;
       currentChassis = saved.chassis;
+    } else {
+      // 保存が無いときだけ、入口（500サイト / 126サイト）から渡された車種をベース車体の初期値にする。
+      // 保存を上書きしないのは、本人が選んだ内容を URL で消さないため。
+      // エンジンは載せ替えがあるので URL からは決めない（車体だけ）。
+      var qType = chassisFromQuery();
+      if (qType) currentChassis = qType;
     }
 
     eng.value = currentEngine;
@@ -1183,6 +1187,13 @@
   // （自動で入った値を「本人の選択」として固定してしまわないため）。
   // ============================================================
   var FITS_KEY = 'torque.fits.v1';
+
+  // 入口から渡された車種（/torque?type=500 ・ /torque?type=126）。
+  // 500サイトと126サイトのメニューがそれぞれ自分の側を渡す。想定外の値は無視する。
+  function chassisFromQuery() {
+    var m = /[?&]type=(500|126)\b/.exec(location.search);
+    return m ? m[1] : null;
+  }
 
   function saveFits() {
     try {
