@@ -36,15 +36,15 @@
 (function(){
   var t = 'F';
   try {
-    var m = /[?&]type=([FLR])\b/i.exec(location.search);
+    var m = /[?&]type=([DFLR])\b/i.exec(location.search);
     if (m) { t = m[1].toUpperCase(); }
     else { var v = localStorage.getItem('wiring.type.v1');
-           if (v === 'F' || v === 'L' || v === 'R') t = v; }
+           if (v === 'D' || v === 'F' || v === 'L' || v === 'R') t = v; }
   } catch (e) { /* プライベートブラウズ等では F型のまま */ }
   var l = document.createElement('link');
   l.rel = 'preload'; l.as = 'image';
   l.setAttribute('fetchpriority', 'high');
-  l.href = '/wiring-img/' + ({ F:'w', L:'l', R:'r' }[t]) + '00.webp';
+  l.href = '/wiring-img/' + ({ D:'d', F:'w', L:'l', R:'r' }[t]) + '00.webp';
   document.head.appendChild(l);
 })();
 </script>
@@ -111,6 +111,9 @@
           cursor:pointer; white-space:nowrap; }
   .tbtn:hover { border-color:var(--accent); color:var(--accent); }
   .tbtn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  /* D型選択時だけ出す断り書き（表頭の一部＝スマホではリード文と同じくスクロールで隠れる） */
+  .dnote { display:none; flex:none; padding:6px 12px; font-size:11.5px; line-height:1.5;
+           color:var(--sub); background:var(--panel); border-bottom:1px solid var(--line); }
   .mbar { display:none; }
   @media (max-width:720px) {
     .tbar { padding:8px 10px; gap:8px; }
@@ -183,15 +186,19 @@
     <button class="navbtn" id="next" aria-label="次へ">›</button>
   </div>
 </header>
-<div class="lead" id="lead">FIAT 500の配線を<b>F型・L型・R型</b>の3つの実図で、<b>16の系統</b>に分けて見られます。系統を選ぶと、その回路だけが色付きで浮かび上がります（他はグレー）。<span class="sub">「全表示」を選ぶと全系統をまとめて表示します。<br><button type="button" id="ldiff-open" class="ldiff-btn">F型・L型・R型の違い ›</button><span class="lang"><a href="/en/wiring-preview" hreflang="en">English</a><i>·</i><a href="/it/wiring-preview" hreflang="it">Italiano</a></span></span></div>
+<div class="lead" id="lead">FIAT 500の配線を<b>D型・F型・L型・R型</b>の4つの型式で、<b>16の系統</b>に分けて見られます。系統を選ぶと、その回路だけが色付きで浮かび上がります（他はグレー）。<span class="sub">「全表示」を選ぶと全系統をまとめて表示します。<br><button type="button" id="ldiff-open" class="ldiff-btn">型式ごとの違い ›</button><span class="lang"><a href="/en/wiring-preview" hreflang="en">English</a><i>·</i><a href="/it/wiring-preview" hreflang="it">Italiano</a></span></span></div>
 <div class="tbar" id="tbar">
   <span class="tbar-label">型式</span>
   <div class="tbar-btns" role="group" aria-label="型式を選ぶ">
+    <button type="button" class="tbtn" data-t="D">D型</button>
     <button type="button" class="tbtn active" data-t="F">F型</button>
     <button type="button" class="tbtn" data-t="L">L型</button>
     <button type="button" class="tbtn" data-t="R">R型</button>
   </div>
 </div>
+<!-- D型選択時だけ出す断り書き。パネル照明SWの注記文面は 2026-08-17 に確定済み
+     （registro500-notes\wiring-work\df_diff.md）＝画像16枚には入れず、ここに出す。 -->
+<div class="dnote" id="dnote">D型版は、F型の図（作図：OTSUKA氏）を基に当会が作成した参考図です。D型純正配線図と突き合わせ、16系統すべてで結線・配線色が同一であることを確認しています。パネル照明スイッチ（凡例9）まわりの配線経路は本図の基図（F型）の描き方に従っています。D型純正図ではスイッチが電源側（キーONの電源→スイッチ→ランプ）に入りますが、点灯の仕組み・操作は同じです。</div>
 <div class="mbar" id="mbar">
   <button class="mbar-btn" id="mprev" aria-label="前へ">◀</button>
   <div class="mbar-center">
@@ -238,7 +245,7 @@
 <script>
   // 型式ごとの画像。3型式とも同じ16系統・同じ座標系（1684x2382）で、ファイル名の
   // 頭文字だけが違う。F型=w / L型=l / R型=r。
-  const TYPES = ["F", "L", "R"], PREFIX = { F:"w", L:"l", R:"r" }, TYPE_KEY = "wiring.type.v1";
+  const TYPES = ["D", "F", "L", "R"], PREFIX = { D:"d", F:"w", L:"l", R:"r" }, TYPE_KEY = "wiring.type.v1";
   const NPAGE = 16;
   function srcOf(t, i){ return "/wiring-img/" + PREFIX[t] + String(i).padStart(2,"0") + ".webp"; }
   const LAB = ["全表示", "アース／マイナス", "ヘッドライト", "ポジション／スモールランプ", "ウインカー", "ホーン", "ブレーキスイッチ", "オイルプレッシャースイッチ", "ルームランプ", "点火系", "イグニッション", "スターター／ダイナモ・発電系", "フューエルセンサー", "ワイパー", "ステアリングコラム", "メーターパネル"];
@@ -252,7 +259,7 @@
   // URL は人が意図して共有したときだけ付く（メニューから自動で付く導線は無い）ので
   // 保存値より優先する。ただし URL で来た型式は保存しない＝相手の設定を書き換えない。
   let typ = (function(){
-    const m = /[?&]type=([FLR])\b/i.exec(location.search);
+    const m = /[?&]type=([DFLR])\b/i.exec(location.search);
     if (m) return m[1].toUpperCase();
     try { const v = localStorage.getItem(TYPE_KEY); if (TYPES.indexOf(v) >= 0) return v; }
     catch(e){ /* プライベートブラウズ等で使えなくても機能は落とさない */ }
@@ -371,6 +378,7 @@
   function applyType(){
     tbtns.forEach(b=>b.classList.toggle('active', b.dataset.t===typ));
     brand.textContent='FIAT 500 '+typ+' 配線図';
+    document.getElementById('dnote').style.display = (typ==='D') ? 'block' : 'none';
   }
   function setType(t){
     if (TYPES.indexOf(t) < 0 || t === typ) return;
@@ -416,8 +424,8 @@
 </script>
 <div id="ldiff-overlay"><div id="ldiff-panel">
   <button id="ldiff-close" aria-label="閉じる">×</button>
-  <h2>F型・L型・R型の違い</h2>
-  <p>3つとも<span class="k">それぞれの実際の配線図</span>です。読み替えは要りません。上の「型式」で見たいものを選んでください。</p>
+  <h2>D型・F型・L型・R型の違い</h2>
+  <p>F型・L型・R型は<span class="k">それぞれの実際の配線図</span>、D型は<span class="k">F型の図を基に当会が作成した参考図</span>です。読み替えは要りません。上の「型式」で見たいものを選んでください。</p>
   <h3>共通スペック（D／F／L／R）</h3>
   <ul>
     <li>電圧：12V・マイナスアース</li>
@@ -426,6 +434,8 @@
     <li>スターター：0.5kW</li>
     <li>配線色：Azzuro=水／Giallo=黄／Grigio=灰／Nero=黒／Rosso=赤／Rosa=桃／Verde=緑／Viola=紫／Bianco=白／Marrone=茶</li>
   </ul>
+  <h3>F型とD型の違い</h3>
+  <p>D型純正の配線図と突き合わせた結果、<span class="k">16系統すべてで結線・配線色が同一</span>でした。そのためD型版はF型の図と同じ内容で、タイトルの型式表記だけが違います。唯一の表現差（パネル照明スイッチまわりの経路の描き方）は、D型選択時に画面上部の注記でお知らせしています。</p>
   <h3>F型とR型の違い</h3>
   <p>図として違うのは<span class="k">ワイパー・ウインカー・メーターパネルの3系統だけ</span>です。ほかの13系統は配線が1本も違いません。</p>
   <h3>F型とL型の違い</h3>
