@@ -156,19 +156,23 @@
   .ldiff-btn { display:inline-block; margin-top:0; margin-left:4px; vertical-align:baseline; border:1px solid var(--accent); background:transparent;
               color:var(--accent); font-size:12px; font-weight:700; padding:4px 11px; border-radius:14px; cursor:pointer; }
   .ldiff-btn:hover { background:var(--accent); color:#fff; }
-  #ldiff-overlay { position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.5); display:none; }
-  #ldiff-overlay.open { display:block; }
-  #ldiff-panel { position:absolute; top:0; right:0; bottom:0; width:min(560px,92vw); background:var(--panel);
+  #ldiff-overlay, #tinfo-overlay { position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.5); display:none; }
+  #ldiff-overlay.open, #tinfo-overlay.open { display:block; }
+  #ldiff-panel, #tinfo-panel { position:absolute; top:0; right:0; bottom:0; width:min(560px,92vw); background:var(--panel);
                  color:var(--ink); overflow-y:auto; -webkit-overflow-scrolling:touch;
                  box-shadow:-4px 0 24px rgba(0,0,0,.28); padding:16px 18px 44px; }
-  #ldiff-panel h2 { font-size:17px; margin:0 6px 4px 0; }
-  #ldiff-panel h3 { font-size:13.5px; color:var(--accent); margin:18px 0 6px; }
-  #ldiff-panel p, #ldiff-panel li { font-size:13px; line-height:1.65; }
-  #ldiff-panel ul { margin:6px 0; padding-left:1.2em; }
-  #ldiff-panel .k { color:var(--accent); font-weight:700; }
-  #ldiff-panel .note { color:var(--sub); font-size:12px; margin-top:16px; }
-  #ldiff-close { position:sticky; top:0; float:right; border:none; background:var(--bg); color:var(--ink);
+  #ldiff-panel h2, #tinfo-panel h2 { font-size:17px; margin:0 6px 4px 0; }
+  #ldiff-panel h3, #tinfo-panel h3 { font-size:13.5px; color:var(--accent); margin:18px 0 6px; }
+  #ldiff-panel p, #ldiff-panel li, #tinfo-panel p, #tinfo-panel li { font-size:13px; line-height:1.65; }
+  #ldiff-panel ul, #tinfo-panel ul { margin:6px 0; padding-left:1.2em; }
+  #ldiff-panel .k, #tinfo-panel .k { color:var(--accent); font-weight:700; }
+  #ldiff-panel .note, #tinfo-panel .note { color:var(--sub); font-size:12px; margin-top:16px; }
+  #ldiff-close, #tinfo-close { position:sticky; top:0; float:right; border:none; background:var(--bg); color:var(--ink);
                  width:34px; height:34px; border-radius:17px; font-size:18px; line-height:1; cursor:pointer; }
+  /* 端子番号の用語表（パネル内） */
+  #tinfo-panel dl { margin:6px 0 0; font-size:13px; line-height:1.6; }
+  #tinfo-panel dt { font-weight:700; color:var(--accent); margin-top:9px; }
+  #tinfo-panel dd { margin:1px 0 0 0; }
 </style>
 </head>
 <body>
@@ -210,6 +214,7 @@
 <!-- D型選択時だけ出す断り書き。パネル照明SWの注記文面は 2026-08-17 に確定済み
      （registro500-notes\wiring-work\df_diff.md）＝画像16枚には入れず、ここに出す。 -->
 <div class="dnote" id="dnote">D型版は、F型の図（作図：OTSUKA氏）を基に当会が作成した参考図です。D型純正配線図と突き合わせ、16系統すべてで結線・配線色が同一であることを確認しています。パネル照明スイッチ（凡例9）まわりの配線経路は本図の基図（F型）の描き方に従っています。D型純正図ではスイッチが電源側（キーONの電源→スイッチ→ランプ）に入りますが、点灯の仕組み・操作は同じです。</div>
+<div class="dnote" id="tnote">赤い丸が<b>端子</b>（配線をつなぐ場所）、白い札がその端子の呼び名です。FIAT純正取扱説明書の配線図から転記しています。<button type="button" id="tinfo-open" class="ldiff-btn">端子番号の読み方 ›</button></div>
 <div class="mbar" id="mbar">
   <button class="mbar-btn" id="mprev" aria-label="前へ">◀</button>
   <div class="mbar-center">
@@ -414,6 +419,35 @@
     termbtn.disabled=!avail;
     termbtn.classList.toggle('active', termOn&&avail);
     termbtn.setAttribute('aria-pressed', (termOn&&avail)?'true':'false');
+    document.getElementById('tnote').style.display=(termOn&&avail)?'block':'none';
+  }
+  // 札の自動配置：元の位置が他の札や端子と重なるときだけ、上下（それでも駄目なら左右反転）にずらす。
+  // 図が密なので固定のdx/dyだけでは「全表示」で必ず重なる＝表示のたびに配置し直す。
+  function layoutTerm(list){
+    function boxOf(p){
+      const w=p.t.length*15+24, cx=p.x+p.dx, cy=p.y+p.dy;
+      return [cx-w/2-6, cy-27, cx+w/2+6, cy+25];
+    }
+    function hit(a,b){ return !(a[2]<b[0]||b[2]<a[0]||a[3]<b[1]||b[3]<a[1]); }
+    const placed=[], out=[];
+    for(const p0 of list){
+      const dx0=(p0.dx===undefined)?50:p0.dx, dy0=(p0.dy===undefined)?-90:p0.dy;
+      const cands=[[dx0,dy0]];
+      for(let k=1;k<=7;k++) cands.push([dx0,dy0-46*k],[dx0,dy0+46*k]);
+      for(let k=0;k<=5;k++) cands.push([-dx0,dy0-46*k],[-dx0,dy0+46*k]);
+      let best=null;
+      for(const c of cands){
+        const p=Object.assign({}, p0, {dx:c[0], dy:c[1]}), r=boxOf(p);
+        let pen=0;
+        for(const q of placed) if(hit(r,q)) pen+=100;
+        for(const q of list) if(q.x>r[0]-15&&q.x<r[2]+15&&q.y>r[1]-15&&q.y<r[3]+15) pen+=25; // 端子の丸を隠さない
+        pen+=(Math.abs(c[0]-dx0)+Math.abs(c[1]-dy0))*0.03; // 元の位置からむやみに離さない
+        if(!best||pen<best.pen) best={pen:pen, p:p, r:r};
+        if(pen<1) break;
+      }
+      placed.push(best.r); out.push(best.p);
+    }
+    return out;
   }
   function termChip(p){
     const dx=(p.dx===undefined)?50:p.dx, dy=(p.dy===undefined)?-90:p.dy;
@@ -437,7 +471,7 @@
     } else {
       list=data[String(idx)]||[];
     }
-    let html=list.map(termChip).join('');
+    let html=layoutTerm(list).map(termChip).join('');
     if(list.length){
       html+='<text x="20" y="2372" font-family="sans-serif" font-size="20" fill="#667">端子番号はFIAT純正取扱説明書の配線図より（作業時は実車でご確認ください）</text>';
     }
@@ -503,6 +537,36 @@
   }
   window.addEventListener('load', preloadRest);
 </script>
+<div id="tinfo-overlay"><div id="tinfo-panel">
+  <button id="tinfo-close" aria-label="閉じる">×</button>
+  <h2>端子番号の読み方</h2>
+  <p>図の<span class="k">赤い丸が端子</span>＝部品に配線をつなぐ場所です。白い札はその端子の呼び名で、FIAT純正取扱説明書の配線図に書かれているものをそのまま転記しています。数字のものはDIN（ドイツ工業規格）の端子記号で、レギュレータなど部品側にも同じ番号が刻まれていることがあります。</p>
+  <h3>電源とアース</h3>
+  <dl>
+    <dt>30</dt><dd>バッテリーから常時来ている電源。キーを抜いても生きています（<b>30/2・30/3・30/4</b> は同じ常時電源から枝分かれしたもの）。</dd>
+    <dt>15/54</dt><dd>キーをONにしたときだけ電気が来る電源。</dd>
+    <dt>31</dt><dd>アース（ボディ＝マイナス側）。</dd>
+  </dl>
+  <h3>発電・始動まわり</h3>
+  <dl>
+    <dt>51</dt><dd>ダイナモの出力（＋側）。</dd>
+    <dt>67</dt><dd>レギュレータのフィールド（界磁）端子。</dd>
+    <dt>＋</dt><dd>その部品自身の＋端子（バッテリー・イグニッションコイル・スターター・ウインカーリレー）。</dd>
+  </dl>
+  <h3>灯火まわり</h3>
+  <dl>
+    <dt>56a</dt><dd>ハイビーム。</dd>
+    <dt>56b</dt><dd>ロービーム。</dd>
+    <dt>56/b1・56/b2</dt><dd>ロービームがヒューズで左右に分かれたもの（56/b1＝左、56/b2＝右）。</dd>
+    <dt>57</dt><dd>車幅灯（ポジション灯）系。メーターでは車幅灯の点灯を知らせる表示灯につながります。</dd>
+  </dl>
+  <h3>アルファベットの記号</h3>
+  <p>数字ではない札は、その部品の内部接点につけられた記号です。ワイパーモーターの <span class="k">C・F・INT</span>、ワイパースイッチの <span class="k">C・D・H・L</span>、ウインカーリレーの <span class="k">＋・P・L</span>、ウインカースイッチの <span class="k">2・L・5</span>、メーターの <span class="k">INTER</span>（キーONの電源）や <span class="k">0</span>（油圧警告灯＝olio）などです。</p>
+  <p><span class="k">同じ1本の線でも、つなぐ相手の部品では別の呼び名になります。</span>たとえばワイパーの水色の線は、モーター側では「F」、スイッチ側では「C」と呼ばれます。番号は線の名前ではなく、<b>部品側の端子の名前</b>だと思ってください。</p>
+  <h3>表示できる型式</h3>
+  <p>いまはF型とD型で表示できます（D型はF型と16系統すべて結線が同一のため、同じデータを使っています）。L型・R型は準備中です。</p>
+  <p class="note">ヒューズ箱の接点名だけは、F型の純正図が位置記号（1〜6・A〜F）のみのため、結線が同一と確認できているD型の純正図から転記しています。原典に番号が書かれていない端子（リアランプ・ホーン・ドアスイッチ・燃料センダーなど）には札を出していません。年式・仕向け地・改造によって細部は異なります。作業時は実車と付き合わせてご確認ください。</p>
+</div></div>
 <div id="ldiff-overlay"><div id="ldiff-panel">
   <button id="ldiff-close" aria-label="閉じる">×</button>
   <h2>D型・F型・L型・R型の違い</h2>
@@ -530,14 +594,18 @@
 </div></div>
 <script>
 (function(){
-  var ov=document.getElementById('ldiff-overlay');
-  var op=document.getElementById('ldiff-open');
-  var cl=document.getElementById('ldiff-close');
-  function setO(v){ ov.classList.toggle('open', v); }
-  op.addEventListener('click', function(){ setO(true); });
-  cl.addEventListener('click', function(){ setO(false); });
-  ov.addEventListener('click', function(e){ if(e.target===ov) setO(false); });
-  document.addEventListener('keydown', function(e){ if(e.key==='Escape') setO(false); });
+  function bind(ovId, openId, closeId){
+    var ov=document.getElementById(ovId);
+    var op=document.getElementById(openId);
+    var cl=document.getElementById(closeId);
+    function setO(v){ ov.classList.toggle('open', v); }
+    op.addEventListener('click', function(){ setO(true); });
+    cl.addEventListener('click', function(){ setO(false); });
+    ov.addEventListener('click', function(e){ if(e.target===ov) setO(false); });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') setO(false); });
+  }
+  bind('ldiff-overlay','ldiff-open','ldiff-close');
+  bind('tinfo-overlay','tinfo-open','tinfo-close');
 })();
 </script>
 </body>
