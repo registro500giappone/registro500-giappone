@@ -27,7 +27,26 @@
 <link rel="alternate" hreflang="it" href="https://www.registro500.com/it/wiring-preview">
 <link rel="alternate" hreflang="ja" href="https://www.registro500.com/wiring-preview">
 <link rel="alternate" hreflang="x-default" href="https://www.registro500.com/en/wiring-preview">
-<link rel="preload" as="image" href="/wiring-img/en/w00.webp" fetchpriority="high">
+<!-- 最初に出す1枚を先読みする。型式は下の本体スクリプトと同じ優先順位（?type= → 端末の
+     保存値 → F型）で決める。ここを w00.webp 固定にすると、L型・R型を選んでいる人に
+     F型の1枚（約110KB）を毎回よけいに取らせることになる。判定を変えるときは
+     本体側（TYPE_KEY を読んでいる箇所）と必ず揃えること。 -->
+<script>
+(function(){
+  var t = 'F';
+  try {
+    var m = /[?&]type=([FLR])\b/i.exec(location.search);
+    if (m) { t = m[1].toUpperCase(); }
+    else { var v = localStorage.getItem('wiring.type.v1');
+           if (v === 'F' || v === 'L' || v === 'R') t = v; }
+  } catch (e) { /* プライベートブラウズ等では F型のまま */ }
+  var l = document.createElement('link');
+  l.rel = 'preload'; l.as = 'image';
+  l.setAttribute('fetchpriority', 'high');
+  l.href = '/wiring-img/en/' + ({ F:'w', L:'l', R:'r' }[t]) + '00.webp';
+  document.head.appendChild(l);
+})();
+</script>
 <style>
   :root { --bg:#eceef1; --panel:#fff; --ink:#1c2230; --sub:#6b7280; --accent:#c0392b; --line:#e3e6ea; }
   @media (prefers-color-scheme: dark) {
@@ -80,8 +99,22 @@
   .lead .lang a { color:var(--accent); text-decoration:none; font-weight:600; }
   .lead .lang a:hover { text-decoration:underline; }
   .lead .lang i { font-style:normal; color:var(--sub); margin:0 5px; }
+  /* 型式（F／L／R）の切替バー。冒頭に置き、スクロールでは固定しない
+     （「見たい系統」バーだけを sticky に残したいため） */
+  .tbar { flex:none; display:flex; align-items:center; gap:10px; padding:7px 12px;
+          background:var(--panel); border-bottom:1px solid var(--line); }
+  .tbar-label { font-size:12px; font-weight:700; color:var(--sub); white-space:nowrap; }
+  .tbar-btns { display:flex; gap:6px; }
+  .tbtn { border:1px solid var(--line); background:var(--bg); color:var(--ink);
+          font-size:13px; font-weight:700; padding:6px 15px; border-radius:16px;
+          cursor:pointer; white-space:nowrap; }
+  .tbtn:hover { border-color:var(--accent); color:var(--accent); }
+  .tbtn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
   .mbar { display:none; }
   @media (max-width:720px) {
+    .tbar { padding:8px 10px; gap:8px; }
+    .tbar-btns { flex:1; }
+    .tbtn { flex:1; min-height:40px; padding:9px 0; font-size:14px; text-align:center; }
     nav { display:none; }
     #sel { display:block; }
     header .cur { display:none; }
@@ -126,7 +159,7 @@
 <body>
 <header>
   <a class="back" href="/en/" aria-label="Back to the English index"><span class="ico">←</span><span class="txt">Home</span></a>
-  <span class="brand">FIAT 500 F Wiring</span>
+  <span class="brand" id="brand">FIAT 500 F Wiring</span>
   <span class="cur" id="cur"></span>
   <div class="ctl">
     <button class="navbtn" id="prev" aria-label="Previous circuit">‹</button>
@@ -149,7 +182,15 @@
     <button class="navbtn" id="next" aria-label="Next circuit">›</button>
   </div>
 </header>
-<div class="lead" id="lead">The FIAT 500 F wiring, split into <b>16 circuits</b>. Pick one and only that circuit lights up (the rest go grey). <span class="sub"><b style="color:var(--ink)">The L is almost identical.</b> <button type="button" id="ldiff-open" class="ldiff-btn">Differences on the L ›</button><span class="lang"><a href="/wiring-preview" hreflang="ja">日本語</a><i>·</i><a href="/it/wiring-preview" hreflang="it">Italiano</a></span></span></div>
+<div class="lead" id="lead">The FIAT 500 wiring in <b>three real diagrams &mdash; F, L and R</b>, each split into <b>16 circuits</b>. Pick one and only that circuit lights up (the rest go grey). <span class="sub"><button type="button" id="ldiff-open" class="ldiff-btn">How the F, L and R differ ›</button><span class="lang"><a href="/wiring-preview" hreflang="ja">日本語</a><i>·</i><a href="/it/wiring-preview" hreflang="it">Italiano</a></span></span></div>
+<div class="tbar" id="tbar">
+  <span class="tbar-label">Model</span>
+  <div class="tbar-btns" role="group" aria-label="Choose the model">
+    <button type="button" class="tbtn active" data-t="F">F</button>
+    <button type="button" class="tbtn" data-t="L">L</button>
+    <button type="button" class="tbtn" data-t="R">R</button>
+  </div>
+</div>
 <div class="mbar" id="mbar">
   <button class="mbar-btn" id="mprev" aria-label="Previous circuit">◀</button>
   <div class="mbar-center">
@@ -194,14 +235,29 @@
 </div>
 <div class="hint" id="hint">Pinch to zoom / tap to zoom in and out / drag to pan while zoomed<span class="hint-desktop"> · scroll wheel to zoom · ← → to change circuit</span></div>
 <script>
-  // 図の中の系統名だけを英語に差し替えた別ファイル（元の日本語版は /wiring-img/ 直下）
-  const SRC = ["/wiring-img/en/w00.webp", "/wiring-img/en/w01.webp", "/wiring-img/en/w02.webp", "/wiring-img/en/w03.webp", "/wiring-img/en/w04.webp", "/wiring-img/en/w05.webp", "/wiring-img/en/w06.webp", "/wiring-img/en/w07.webp", "/wiring-img/en/w08.webp", "/wiring-img/en/w09.webp", "/wiring-img/en/w10.webp", "/wiring-img/en/w11.webp", "/wiring-img/en/w12.webp", "/wiring-img/en/w13.webp", "/wiring-img/en/w14.webp", "/wiring-img/en/w15.webp"];
+  // 図の中の系統名だけを英語に差し替えた別ファイル（元の日本語版は /wiring-img/ 直下）。
+  // 型式ごとに16枚あり、3型式とも同じ16系統・同じ座標系（1684x2382）でファイル名の
+  // 頭文字だけが違う。F型=w / L型=l / R型=r。
+  const TYPES = ["F", "L", "R"], PREFIX = { F:"w", L:"l", R:"r" }, TYPE_KEY = "wiring.type.v1";
+  const NPAGE = 16;
+  function srcOf(t, i){ return "/wiring-img/en/" + PREFIX[t] + String(i).padStart(2,"0") + ".webp"; }
   const LAB = ["All circuits", "Earth / Ground", "Headlights", "Position / Side lights", "Turn signals", "Horn", "Brake switch", "Oil pressure sensor", "Interior light", "Ignition circuit", "Ignition switch", "Starter / Dynamo (charging)", "Fuel sender", "Wiper", "Steering column switch", "Instrument panel"];
   const img=document.getElementById('img'), cur=document.getElementById('cur'),
         sel=document.getElementById('sel'), msg=document.getElementById('msg');
   const msel=document.getElementById('msel'), mprev=document.getElementById('mprev'), mnext=document.getElementById('mnext');
   const tabs=[...document.querySelectorAll('.tab')]; let idx=0;
   const main=document.getElementById('main');
+  const brand=document.getElementById('brand'), tbtns=[...document.querySelectorAll('.tbtn')];
+  // 初期の型式＝URLの ?type= → この端末に保存された型式 → F型。日本語版と同じキーを見るので
+  // 日本語版でL型を選んだ人は英語版でもL型で開く。URL で来た型式は保存しない＝共有リンクで
+  // 相手の設定を書き換えない。
+  let typ = (function(){
+    const m = /[?&]type=([FLR])\b/i.exec(location.search);
+    if (m) return m[1].toUpperCase();
+    try { const v = localStorage.getItem(TYPE_KEY); if (TYPES.indexOf(v) >= 0) return v; }
+    catch(e){ /* プライベートブラウズ等で使えなくても機能は落とさない */ }
+    return 'F';
+  })();
   const zstate={scale:1,tx:0,ty:0}; let base=null;
   const ZOOM_SCALE=2.6, TAP_SLOP=8, EDGE_MARGIN=60;
   function measureBase(){
@@ -302,13 +358,32 @@
   img.addEventListener('dragstart',e=>e.preventDefault());
   img.addEventListener('load', ()=>{ msg.style.display='none'; });
   img.addEventListener('error', ()=>{ msg.style.display='block'; msg.textContent='Could not load the image'; });
+  function loadImage(){
+    msg.style.display='block'; msg.textContent='Loading…';
+    img.src=srcOf(typ, idx);
+  }
   function show(i){
-    idx=(i+SRC.length)%SRC.length; msg.style.display='block'; msg.textContent='Loading…';
-    img.src=SRC[idx]; resetZoom();
+    idx=(i+NPAGE)%NPAGE; loadImage(); resetZoom();
     cur.textContent=LAB[idx]; sel.value=idx; msel.value=idx;
     tabs.forEach(t=>t.classList.toggle('active',+t.dataset.i===idx));
     document.getElementById('main').scrollTo(0,0);
   }
+  function applyType(){
+    tbtns.forEach(b=>b.classList.toggle('active', b.dataset.t===typ));
+    brand.textContent='FIAT 500 '+typ+' Wiring';
+  }
+  function setType(t){
+    if (TYPES.indexOf(t) < 0 || t === typ) return;
+    typ = t;
+    try { localStorage.setItem(TYPE_KEY, t); } catch(e){}
+    applyType();
+    // 3型式は同じ座標系・同じ縮尺なので、ズームと位置はそのまま残す。
+    // 同じ場所を拡大したまま型式を切り替えて見比べられる。
+    loadImage();
+    preloadRest();
+    if (window.gtag) gtag('event','wiring_type',{ wiring_type: t });
+  }
+  tbtns.forEach(b=>b.addEventListener('click',()=>setType(b.dataset.t)));
   tabs.forEach(t=>t.addEventListener('click',()=>show(+t.dataset.i)));
   sel.addEventListener('change',()=>show(+sel.value));
   document.getElementById('prev').addEventListener('click',()=>show(idx-1));
@@ -317,24 +392,32 @@
   mprev.addEventListener('click',()=>show(idx-1));
   mnext.addEventListener('click',()=>show(idx+1));
   document.addEventListener('keydown',e=>{ if(e.key==='ArrowRight')show(idx+1); if(e.key==='ArrowLeft')show(idx-1); });
-  show(0);
+  applyType(); show(0);
   // 残り15系統は初回表示を待たせないよう、読み込み後のアイドル時に1枚ずつそっと先読みする
   // （切替時の待ちを消す。画像は Service Worker の CacheFirst で2回目以降は再取得しない）
+  // ⚠️先読みするのは「今選んでいる型式の16枚」だけ。3型式48枚をまとめて先読みすると
+  //   転送量が単純に3倍になる。型式を切り替えたら前の先読みは打ち切って読み直す。
   const idle = window.requestIdleCallback || (fn => setTimeout(fn, 1200));
-  window.addEventListener('load', () => {
-    let n = 1;
+  let preToken = 0;
+  function preloadRest(){
+    const my = ++preToken, t = typ;
+    let n = 0;
     (function next(){
-      if (n >= SRC.length) return;
+      if (my !== preToken) return;      // 型式が変わった＝この先読みは用済み
+      if (n === idx) n++;               // 表示中の1枚は飛ばす
+      if (n >= NPAGE) return;
+      const k = n++;
       const pre = new Image();
-      pre.onload = pre.onerror = () => { n++; idle(next); };
-      pre.src = SRC[n];
+      pre.onload = pre.onerror = () => idle(next);
+      pre.src = srcOf(t, k);
     })();
-  });
+  }
+  window.addEventListener('load', preloadRest);
 </script>
 <div id="ldiff-overlay"><div id="ldiff-panel">
   <button id="ldiff-close" aria-label="Close">×</button>
-  <h2>The L (Lusso) compared with the F</h2>
-  <p>Electrically the F and the L are the same in essence. This diagram can be used as-is on an L.</p>
+  <h2>How the F, L and R differ</h2>
+  <p>All three are <span class="k">the actual diagram of that model</span>, so nothing has to be read across. Pick the one you want under &ldquo;Model&rdquo; above.</p>
   <h3>Common to D / F / L / R</h3>
   <ul>
     <li>System: 12V, negative earth</li>
@@ -343,14 +426,16 @@
     <li>Starter: 0.5kW</li>
     <li>Wire colours &mdash; marked on the loom in Italian: Azzurro=light blue / Giallo=yellow / Grigio=grey / Nero=black / Rosso=red / Rosa=pink / Verde=green / Viola=purple / Bianco=white / Marrone=brown</li>
   </ul>
-  <h3>What the L adds</h3>
+  <h3>F and R</h3>
+  <p>As drawings, only <span class="k">three circuits differ: wiper, turn signals and instrument panel</span>. In the other 13 circuits not a single wire is different.</p>
+  <h3>F and L</h3>
+  <p>The differences are <span class="k">almost entirely inside the cabin</span> (dashboard through to the instruments). <span class="k">The engine bay is identical to the F</span>: charging and ignition are the same drawing on every model.</p>
+  <p>What the L adds:</p>
   <ul>
     <li><span class="k">Fuel gauge</span> (sender in the tank + gauge in the instrument) &hellip; the F has no fuel gauge and runs on the reserve tap. This is where nearly all of the extra wiring is.</li>
     <li>Warning lights brought together in one instrument panel (Quadro di controllo): fuel reserve, charging, oil pressure, high beam, position lights and turn signals, plus panel illumination.<br>Note: the F has these warning lights too &mdash; the L simply groups them into a single panel.</li>
   </ul>
-  <h3>Reading this diagram on an L</h3>
-  <p>The difference amounts to <span class="k">a little more wiring around the fuel gauge</span>. In the circuit list, read &ldquo;Fuel sender&rdquo; and &ldquo;Instrument panel&rdquo; as having one more instrument than shown. Every other circuit is the same.</p>
-  <p class="note">Details vary with year, market and modifications. Always check against the actual car before working on it. Diagram drawn by OTSUKA (based on an F) / separation into circuit layers by Sushio.</p>
+  <p class="note">Details vary with year, market and modifications. Always check against the actual car before working on it. Diagrams drawn by OTSUKA / separation into circuit layers by Sushio.</p>
 </div></div>
 <script>
 (function(){
