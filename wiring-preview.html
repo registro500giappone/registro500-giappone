@@ -88,6 +88,17 @@
          box-shadow:0 1px 8px rgba(0,0,0,.12); cursor:zoom-in;
          touch-action:none; transform-origin:0 0; transition:transform .15s ease-out; }
   #msg { position:absolute; font-size:13px; color:var(--sub); }
+  /* 端子番号オーバーレイ：画像と同じ座標系(1684x2382)のSVGを #img に重ね、
+     同じ transform を適用してズーム・パンに追従させる（画像は一切触らない） */
+  #tlayer { position:absolute; transform-origin:0 0; pointer-events:none; display:none;
+            transition:transform .15s ease-out; z-index:2; }
+  #termbtn { position:absolute; top:10px; right:10px; z-index:3;
+             border:1px solid var(--line); background:var(--bg); color:var(--ink);
+             border-radius:20px; padding:6px 14px; font-size:12.5px; font-weight:700;
+             cursor:pointer; box-shadow:0 1px 6px rgba(0,0,0,.15); }
+  #termbtn:hover { border-color:var(--accent); color:var(--accent); }
+  #termbtn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  #termbtn:disabled { display:none; }
   .hint { position:fixed; bottom:10px; left:50%; transform:translateX(-50%);
           font-size:11px; color:#fff; background:rgba(0,0,0,.55); padding:4px 10px; border-radius:20px;
           pointer-events:none; opacity:.9; }
@@ -239,7 +250,7 @@
 <button class="tab" data-i="13">ワイパー</button>
 <button class="tab" data-i="14">ステアリングコラム</button>
 <button class="tab" data-i="15">メーターパネル</button></nav>
-  <main id="main"><div id="msg">読み込み中…</div><img id="img" alt=""></main>
+  <main id="main"><div id="msg">読み込み中…</div><img id="img" alt=""><svg id="tlayer" viewBox="0 0 1684 2382" aria-hidden="true"></svg><button type="button" id="termbtn" aria-pressed="false">端子番号</button></main>
 </div>
 <div class="hint" id="hint">2本指でズーム／タップで拡大・戻す／拡大中はドラッグで移動<span class="hint-desktop"> ・ホイールでズーム・← → で系統切替</span></div>
 <script>
@@ -275,6 +286,7 @@
   }
   function applyTransform(){
     img.style.transform=`translate(${zstate.tx}px,${zstate.ty}px) scale(${zstate.scale})`;
+    tlayer.style.transform=img.style.transform;
     img.style.cursor=zstate.scale>1.01?'move':'zoom-in';
   }
   function resetZoom(){ zstate.scale=1; zstate.tx=0; zstate.ty=0; applyTransform(); }
@@ -294,7 +306,7 @@
   img.addEventListener('pointerdown',e=>{
     try{ img.setPointerCapture(e.pointerId); }catch(_){}
     pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    img.style.transition='none';
+    img.style.transition='none'; tlayer.style.transition='none';
     if(pointers.size===2){            // 2本指→ピンチ開始
       measureBase();
       const p=[...pointers.values()];
@@ -328,14 +340,14 @@
     pointers.delete(e.pointerId);
     if(pinch){                        // ピンチ終了処理
       if(pointers.size>=2) return;
-      pinch=null; img.style.transition='';
+      pinch=null; img.style.transition=''; tlayer.style.transition='';
       if(pointers.size===1){ const q=[...pointers.values()][0];
         pStart={x:q.x,y:q.y,tx:zstate.tx,ty:zstate.ty}; moved=999; dragging=zstate.scale>1.01; return; }
       if(zstate.scale<=1.01) resetZoom();
       pStart=null; dragging=false; return;
     }
     if(!pStart) return;
-    img.style.transition='';
+    img.style.transition=''; tlayer.style.transition='';
     if(moved<TAP_SLOP){
       if(zstate.scale>1.01){ resetZoom(); }
       else{
@@ -363,7 +375,7 @@
     if(sN<=1.01){ resetZoom(); } else { clampPan(); applyTransform(); }
   },{passive:false});
   img.addEventListener('dragstart',e=>e.preventDefault());
-  img.addEventListener('load', ()=>{ msg.style.display='none'; });
+  img.addEventListener('load', ()=>{ msg.style.display='none'; syncTermBox(); });
   img.addEventListener('error', ()=>{ msg.style.display='block'; msg.textContent='画像を表示できませんでした'; });
   function loadImage(){
     msg.style.display='block'; msg.textContent='読み込み中…';
@@ -374,12 +386,81 @@
     cur.textContent=LAB[idx]; sel.value=idx; msel.value=idx;
     tabs.forEach(t=>t.classList.toggle('active',+t.dataset.i===idx));
     document.getElementById('main').scrollTo(0,0);
+    renderTerm();
   }
   function applyType(){
     tbtns.forEach(b=>b.classList.toggle('active', b.dataset.t===typ));
     brand.textContent='FIAT 500 '+typ+' 配線図';
     document.getElementById('dnote').style.display = (typ==='D') ? 'block' : 'none';
+    updateTermBtn(); renderTerm();
   }
+
+  // ---- 端子番号オーバーレイ ----
+  // 純正取説の配線図に載っている端子番号(DIN)を、同じ座標系のSVGで図に重ねる。
+  // データは wiring-terminals.json（座標=画像px・出典台帳は registro500-notes/wiring-work/terminals_ledger.md）。
+  // D型はF型と16系統すべて結線同一（確認済み）なのでF型のデータを共用する。
+  // L型・R型はデータ未整備＝ボタンごと出さない（誤った番号を見せない）。
+  const TERM_VERSION='1';
+  const tlayer=document.getElementById('tlayer'), termbtn=document.getElementById('termbtn');
+  const TERM_SRC={ F:'F', D:'F' };
+  let termOn=false, termData=null, termLoading=false;
+  function syncTermBox(){
+    tlayer.style.left=img.offsetLeft+'px'; tlayer.style.top=img.offsetTop+'px';
+    tlayer.style.width=img.clientWidth+'px'; tlayer.style.height=img.clientHeight+'px';
+    tlayer.style.transform=img.style.transform||'';
+  }
+  function updateTermBtn(){
+    const avail=!!TERM_SRC[typ];
+    termbtn.disabled=!avail;
+    termbtn.classList.toggle('active', termOn&&avail);
+    termbtn.setAttribute('aria-pressed', (termOn&&avail)?'true':'false');
+  }
+  function termChip(p){
+    const dx=(p.dx===undefined)?50:p.dx, dy=(p.dy===undefined)?-90:p.dy;
+    const cx=p.x+dx, cy=p.y+dy;
+    const w=p.t.length*15+24;
+    return '<line x1="'+p.x+'" y1="'+p.y+'" x2="'+cx+'" y2="'+(cy+18)+'" stroke="#111" stroke-width="2.5"/>'+
+           '<circle cx="'+p.x+'" cy="'+p.y+'" r="13" fill="none" stroke="#c81e1e" stroke-width="4"/>'+
+           '<rect x="'+(cx-w/2)+'" y="'+(cy-21)+'" width="'+w+'" height="40" rx="9" fill="#fff" stroke="#111" stroke-width="3"/>'+
+           '<text x="'+cx+'" y="'+(cy+9)+'" text-anchor="middle" font-family="Arial,sans-serif" font-size="26" font-weight="700" fill="#111">'+p.t+'</text>';
+  }
+  function renderTerm(){
+    const src=TERM_SRC[typ];
+    if(!termOn||!termData||!src||!termData[src]){ tlayer.style.display='none'; tlayer.innerHTML=''; return; }
+    const data=termData[src];
+    let list;
+    if(idx===0){ // 全表示＝全系統の和集合。同じ番号が近接して重複する場合（同じヒューズ端子など）は1つに間引く
+      list=[];
+      for(const k in data){ for(const p of data[k]){
+        if(!list.some(q=>q.t===p.t && Math.abs(q.x-p.x)<40 && Math.abs(q.y-p.y)<40)) list.push(p);
+      } }
+    } else {
+      list=data[String(idx)]||[];
+    }
+    let html=list.map(termChip).join('');
+    if(list.length){
+      html+='<text x="20" y="2372" font-family="sans-serif" font-size="20" fill="#667">端子番号はFIAT純正取扱説明書の配線図より（作業時は実車でご確認ください）</text>';
+    }
+    tlayer.innerHTML=html;
+    tlayer.style.display='block';
+    syncTermBox();
+  }
+  function toggleTerm(){
+    if(termOn){ termOn=false; updateTermBtn(); renderTerm(); return; }
+    termOn=true; updateTermBtn();
+    if(termData){ renderTerm(); return; }
+    if(termLoading) return;
+    termLoading=true;
+    fetch('/wiring-terminals.json?v='+TERM_VERSION)
+      .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
+      .then(d=>{ termData=d; termLoading=false; renderTerm();
+        if(window.gtag) gtag('event','wiring_terminals',{ wiring_type: typ }); })
+      .catch(()=>{ termLoading=false; termOn=false; updateTermBtn();
+        msg.style.display='block'; msg.textContent='端子番号データを読み込めませんでした';
+        setTimeout(()=>{ msg.style.display='none'; }, 2500); });
+  }
+  termbtn.addEventListener('click', toggleTerm);
+  window.addEventListener('resize', ()=>{ if(termOn) syncTermBox(); });
   function setType(t){
     if (TYPES.indexOf(t) < 0 || t === typ) return;
     typ = t;
