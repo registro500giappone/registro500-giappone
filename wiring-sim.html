@@ -25,46 +25,76 @@
   body{margin:0;background:var(--bg);color:var(--ink);
        font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
        line-height:1.7;-webkit-text-size-adjust:100%}
-  .wrap{max-width:1100px;margin:0 auto;padding:16px 14px 80px}
-  h1{font-size:1.15rem;margin:.2em 0 .1em}
-  .lead{color:var(--sub);font-size:.86rem;margin:0 0 14px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px}
-  .card h2{font-size:.95rem;margin:0 0 10px;color:var(--accent)}
-  .ctrls{display:flex;flex-wrap:wrap;gap:14px}
-  .ctrl{min-width:150px}
-  .ctrl .lab{font-size:.78rem;color:var(--sub);margin-bottom:4px}
-  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
-  .seg button{appearance:none;border:0;background:#fff;padding:7px 12px;font:inherit;font-size:.85rem;
+  .wrap{max-width:1100px;margin:0 auto;padding:12px 12px 70px}
+  h1{font-size:1.05rem;margin:.2em 0 .1em}
+  .lead{color:var(--sub);font-size:.8rem;margin:0 0 12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin:0 0 12px}
+  .card h2{font-size:.92rem;margin:0 0 9px;color:var(--accent)}
+
+  /* 図を見ながら操作できるように操作列は上に貼り付ける。
+     ⚠️iOSの固定要素は backdrop-filter を足さない（既知の不具合・MEMORY参照） */
+  .sticky{position:sticky;top:0;z-index:5;background:var(--bg);
+          padding-top:6px;margin:0 0 10px;border-bottom:1px solid var(--line)}
+  .sticky .card{margin-bottom:8px}
+
+  /* 試す場面。⚠️ここが縦に伸びると図が画面外に出て変化を追えない＝常に詰めておく */
+  .scenes{display:flex;flex-wrap:wrap;gap:6px}
+  .scene{appearance:none;border:1px solid var(--line);background:#fff;border-radius:8px;
+         padding:5px 10px;font:inherit;font-size:.79rem;cursor:pointer;color:var(--ink);white-space:nowrap}
+  .scene[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .hint{margin:7px 0 0;font-size:.8rem;color:var(--accent);font-weight:700}
+  .watch{margin:0 0 0;font-size:.83rem;background:#fff7e3;border:1px solid #e8d9a8;
+         border-radius:9px;padding:8px 11px;color:#5a4a1d}
+  .watch b{color:#3d3210}
+
+  /* 状態表示（いちばん分かりやすい信号なので操作のすぐ下に置く） */
+  .lamps{display:flex;flex-wrap:wrap;gap:8px;margin:9px 0 0}
+  .lamp{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;
+        padding:4px 12px 4px 8px;background:#fff;font-size:.82rem}
+  .bulb{width:12px;height:12px;border-radius:50%;background:#d9dce0;border:1px solid #b3b8bd;flex:none}
+  .lamp.on .bulb{background:#ffb300;border-color:#c98a00;box-shadow:0 0 9px 2px rgba(255,179,0,.75)}
+  .lamp.on{font-weight:700}
+  .changed{font-size:.78rem;color:var(--sub);margin:7px 0 0;min-height:1.2em}
+  .changed b{color:var(--ink)}
+
+  details.ctrlbox{margin:8px 0 0}
+  details.ctrlbox>summary{font-size:.8rem;color:var(--sub);cursor:pointer;list-style:revert}
+  .ctrls{display:flex;flex-wrap:wrap;gap:10px 14px;margin-top:8px}
+  .ctrl .lab{font-size:.74rem;color:var(--sub);margin-bottom:3px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+  .seg button{appearance:none;border:0;background:#fff;padding:5px 10px;font:inherit;font-size:.8rem;
               cursor:pointer;color:var(--ink);border-right:1px solid var(--line)}
   .seg button:last-child{border-right:0}
   .seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
   .fault .seg button[aria-pressed="true"]{background:var(--hot)}
-  .lamps{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
-  .lamp{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;
-        padding:5px 13px 5px 9px;background:#fff;font-size:.85rem}
-  .bulb{width:13px;height:13px;border-radius:50%;background:#d9dce0;border:1px solid #b3b8bd;flex:none}
-  .lamp.on .bulb{background:#ffb300;border-color:#c98a00;box-shadow:0 0 9px 2px rgba(255,179,0,.75)}
-  .lamp.on{font-weight:700}
-  .fig{position:relative;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-  .fig img{display:block;width:100%;height:auto}
+
+  /* 図＝残りの画面に収める。操作しても図が画面外に出ないのが狙い。
+     ⚠️図はSVGの中に取り込んである＝viewBox を動かすだけで図と端子が一緒に拡大する
+     （img と重ねる方式だと拡大のたびに両方の座標を合わせる必要があって必ずずれる） */
+  .fig{position:relative;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;
+       width:100%;aspect-ratio:4/3;max-height:56vh}
+  .fig.tall{aspect-ratio:1684/2382;max-height:none}
   .fig svg{position:absolute;left:0;top:0;width:100%;height:100%}
-  .legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin:10px 0 0;font-size:.8rem;color:var(--sub)}
-  .legend span{display:flex;align-items:center;gap:6px}
-  .dot{width:14px;height:14px;border-radius:50%;flex:none}
+  @keyframes flash{0%{opacity:.95;r:44px}70%{opacity:.15;r:20px}100%{opacity:0;r:16px}}
+  .fl{animation:flash 1.1s ease-out 2 both}
+
+  .figbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:9px 0 0;font-size:.76rem;color:var(--sub)}
+  .legend span{display:flex;align-items:center;gap:5px}
+  .dot{width:13px;height:13px;border-radius:50%;flex:none}
   .d-hot{background:var(--hot)} .d-gnd{background:var(--gnd)}
   .d-post{background:#fff8e1;border:3px solid var(--post)}
   .d-off{background:var(--off);width:9px;height:9px;margin:0 2px}
-  table{border-collapse:collapse;width:100%;font-size:.8rem}
+  table{border-collapse:collapse;width:100%;font-size:.78rem}
   th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;white-space:nowrap}
   th{color:var(--sub);font-weight:600}
   td.st{font-weight:700}
   .st-hot{color:var(--hot)} .st-gnd{color:var(--gnd)} .st-post{color:var(--post)} .st-off{color:#98a0a6}
   .nocoord td:first-child::after{content:" ◇";color:var(--sub)}
-  .note{font-size:.78rem;color:var(--sub);margin:8px 0 0}
-  .cols{display:grid;grid-template-columns:1fr;gap:14px}
-  @media(min-width:900px){ .cols{grid-template-columns:1.6fr 1fr;align-items:start} }
+  .note{font-size:.76rem;color:var(--sub);margin:8px 0 0}
   .ok{color:#1f7a3f;font-weight:700} .ng{color:var(--hot);font-weight:700}
   code{background:#efe9db;padding:1px 5px;border-radius:4px;font-size:.85em}
+  @media(min-width:900px){ .fig{max-height:70vh} }
 </style>
 </head>
 <body>
@@ -72,80 +102,134 @@
 
 <h1>配線シミュレーター L1（通電ハイライト）— 作業場</h1>
 <p class="lead">
-  段取り2＝到達性の計算だけで「いまどの端子が生きているか」を出す試作。系統11（スターター／ダイナモ・発電系）に
-  系統10からキー回りの2本を足した範囲。まだ<strong>線は光らず端子が光る</strong>（線の幾何データは段取り4）。
-  ⛔このページはどこからもリンクしていない作業場です。
+  系統11（スターター／ダイナモ・発電系）＋系統10からキー回りの2本。まだ線は光らず<strong>端子が光る</strong>（線の幾何は段取り4）。
+  ⛔どこからもリンクしていない作業場です。
 </p>
 
-<div class="card">
-  <h2>操作</h2>
-  <div class="ctrls" id="ctrls"></div>
-  <div class="lamps" id="lamps"></div>
-</div>
-
-<div class="cols">
-  <div>
-    <div class="card">
-      <h2>図（F型）</h2>
-      <div class="ctrl" style="margin-bottom:10px">
-        <div class="lab">背景の図</div>
-        <div class="seg" id="bgseg">
-          <button type="button" data-i="11" aria-pressed="true">系統11だけ</button>
-          <button type="button" data-i="0" aria-pressed="false">全表示</button>
-        </div>
-      </div>
-      <div class="fig">
-        <img id="img" src="/wiring-img/w11.webp" alt="FIAT 500F 配線図 系統11">
-        <svg id="ov" viewBox="0 0 1684 2382" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
-      </div>
-      <div class="legend">
-        <span><i class="dot d-hot"></i>B+ に通じている（電流を流せる）</span>
-        <span><i class="dot d-post"></i>負荷の先（電圧は来ているが電流は流れない）</span>
-        <span><i class="dot d-gnd"></i>アース側</span>
-        <span><i class="dot d-off"></i>無電</span>
-      </div>
-      <p class="note">
-        端子の位置は <code>wiring-terminals.json</code>（原典照合済）から解決しています。
-        図に座標を持たない端子（合成端子・アース側など）は右の表に ◇ 付きで出しています。
-      </p>
-    </div>
-  </div>
-
-  <div>
-    <div class="card">
-      <h2>端子の状態</h2>
-      <table id="tbl"><tbody></tbody></table>
-      <p class="note" id="cnt"></p>
-    </div>
+<!-- 操作は図のすぐ上に貼り付ける。ここが縦に伸びると図が押し出されて変化を追えなくなるので、
+     長い説明（見るところ）は図の下に置いている -->
+<div class="sticky">
+  <div class="card">
+    <div class="scenes" id="scenes"></div>
+    <div class="lamps" id="lamps"></div>
+    <p class="hint" id="hint"></p>
   </div>
 </div>
 
 <div class="card">
-  <h2>検算（原典から分かっている挙動と突き合わせる）</h2>
+  <div class="figbar">
+    <div class="seg" id="bgseg">
+      <button type="button" data-i="11" aria-pressed="true">系統11だけ</button>
+      <button type="button" data-i="0" aria-pressed="false">全表示</button>
+    </div>
+    <div class="seg" id="zoomseg">
+      <button type="button" data-z="near" aria-pressed="true">変わった所に寄る</button>
+      <button type="button" data-z="all" aria-pressed="false">図の全体</button>
+    </div>
+  </div>
+  <div class="fig" id="fig">
+    <svg id="ov" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1684 2382"
+         preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <image id="img" href="/wiring-img/w11.webp" xlink:href="/wiring-img/w11.webp"
+             x="0" y="0" width="1684" height="2382"></image>
+      <g id="marks"></g>
+    </svg>
+  </div>
+  <div class="legend">
+    <span><i class="dot d-hot"></i>B+ に通じている（電流を流せる）</span>
+    <span><i class="dot d-post"></i>負荷の先（電圧は来ているが電流は流れない）</span>
+    <span><i class="dot d-gnd"></i>アース側</span>
+    <span><i class="dot d-off"></i>無電</span>
+  </div>
+  <p class="changed" id="changed"></p>
+</div>
+
+<div class="card">
+  <h2>見るところ</h2>
+  <p class="watch" id="watch"></p>
+  <details class="ctrlbox">
+    <summary>自分で操作する（キー・エンジン・故障を個別に動かす）</summary>
+    <div class="ctrls" id="ctrls"></div>
+  </details>
+  <p class="note">変わった端子は図の上で光ります。図に座標を持たない端子（合成端子・アース側など）は下の表に ◇ 付きで出しています。</p>
+</div>
+
+<details class="card">
+  <summary style="font-size:.92rem;color:var(--accent);font-weight:700;cursor:pointer">端子の状態（全部）</summary>
+  <table id="tbl"><tbody></tbody></table>
+  <p class="note" id="cnt"></p>
+</details>
+
+<details class="card">
+  <summary style="font-size:.92rem;color:var(--accent);font-weight:700;cursor:pointer">検算（原典から分かっている挙動と突き合わせる）</summary>
   <table id="chk"><tbody></tbody></table>
   <p class="note">
     期待値は計算結果を写したものではなく、<strong>原典と実車から分かっている挙動</strong>を書いています。
     データを足したときにここが崩れたら、足したデータのほうが間違っているという意味です。
   </p>
-</div>
+</details>
 
-<script src="/wiring-sim.js?v=1"></script>
+<script src="/wiring-sim.js?v=2"></script>
 <script>
 (function(){
   'use strict';
   var NET_VERSION='2', TERM_VERSION='9', TYPE='F';
-  var net=null, terms=null, inputs={};
+  var net=null, terms=null, inputs={}, prev=null;
   var ctrlsEl=document.getElementById('ctrls'), lampsEl=document.getElementById('lamps'),
       ov=document.getElementById('ov'), tbody=document.querySelector('#tbl tbody'),
       cntEl=document.getElementById('cnt'), chkBody=document.querySelector('#chk tbody'),
-      img=document.getElementById('img');
+      img=document.getElementById('img'), scenesEl=document.getElementById('scenes'),
+      watchEl=document.getElementById('watch'), changedEl=document.getElementById('changed'),
+      hintEl=document.getElementById('hint'), fig=document.getElementById('fig'),
+      marksEl=document.getElementById('marks');
+
+  /* 試す場面。⚠️これは「見せ方」なのでページ側に置く（車の事実＝wiring-net.json の controls とは別物）。
+     set は controls の値。書いていない項目は既定に戻す＝場面を選べば必ず同じ状態から始まる。 */
+  var SCENES=[
+    { k:'key',   t:'キーON', h:'チャージ警告灯が点きます', f:['ign_sw.15/54','quadro.INTER','quadro.51'],
+      set:{ key:'ON' },
+      w:'<b>キーを回す。</b>チャージ警告灯が点きます。図では計器盤の <b>INTER</b> とイグニッションSWの <b>15/54</b> が赤（B+）に変わります。灯の反対側（51）は青のまま＝ダイナモの巻線を通ってアースに落ちているから点く、という意味です。' },
+    { k:'run',   t:'エンジン始動', h:'灯が消えます（51が青→赤）', f:['regulator.51','dynamo.51','quadro.51'],
+      set:{ key:'ON', engine:'RUN' },
+      w:'<b>エンジンをかける。</b>灯が消えます。ダイナモの <b>51</b>・計器盤の <b>51</b>・レギュレータの <b>51</b> が青（アース）から赤（B+）に変わります。両側とも赤＝電位差が無い＝灯は消える、が図の上で見えます。' },
+    { k:'start', t:'スタータ', h:'スターターが回ります', f:['battery.+','starter.+'],
+      set:{ starter:'START' },
+      w:'<b>スタータノブを引く。</b>キーはOFFのままです（500はキーで始動しません）。バッテリー＋からスタータSWを通って赤が伸びます。' },
+    { k:'f1',    t:'F1切れ', h:'切れても灯は点きます', f:['f1.30','ign_sw.30','quadro.INTER'],
+      set:{ key:'ON', f1:'BLOWN' },
+      w:'<b>F1ヒューズが切れたら。</b>それでもチャージ灯は点きます。イグニッションSWの30がヒューズの<b>手前</b>から分岐しているためで、原典どおりの挙動がデータだけで出ています（作り込んだ結果ではありません）。' },
+    { k:'reg',   t:'レギュレータ故障', h:'⚠️51の3点が橙＝ここを見てください', f:['regulator.51','dynamo.51','quadro.51'],
+      set:{ key:'ON', engine:'RUN', reg_fail:'FAIL' },
+      w:'⚠️<b>ここが今回いちばん見てほしい場面です。</b>エンジンは回っているのにレギュレータのカットアウトが閉じない故障。灯は点かないのに <b>51 の3点が橙</b>になります。橙＝テスターを当てれば電圧は出るが電流は流れない場所。球切れかレギュレータか迷う実際の場面で、この3点を赤（B+）と同じ色にすると人を誤らせます。<br>この4色目が要るかどうかが、いま決めたい設計判断です。' }
+  ];
+  var sceneKey=null, focusNodes=null;
 
   Promise.all([
     fetch('/wiring-net.json?v='+NET_VERSION).then(function(r){ return r.json(); }),
     fetch('/wiring-terminals.json?v='+TERM_VERSION).then(function(r){ return r.json(); })
-  ]).then(function(a){ net=a[0]; terms=a[1]; buildControls(); runChecks(); update(); })
+  ]).then(function(a){ net=a[0]; terms=a[1]; buildControls(); buildScenes(); runChecks(); update(true); })
     .catch(function(e){ document.querySelector('.wrap').insertAdjacentHTML('afterbegin',
       '<p class="ng">データを読み込めませんでした: '+e+'</p>'); });
+
+  function buildScenes(){
+    scenesEl.innerHTML='<button type="button" class="scene" data-k="" aria-pressed="true">はじめの状態</button>'+
+      SCENES.map(function(s){ return '<button type="button" class="scene" data-k="'+s.k+'" aria-pressed="false">'+s.t+'</button>'; }).join('');
+    hintEl.textContent='↑ボタンを押すと図が変わります';
+    watchEl.innerHTML='上のボタンで場面を選ぶと、図のどこを見ればいいかをここに出します。いまはキーもエンジンも切った状態＝常時電源（30系）だけが赤くなっています。';
+    scenesEl.addEventListener('click', function(e){
+      var b=e.target.closest('button'); if(!b) return;
+      sceneKey=b.getAttribute('data-k');
+      [].forEach.call(scenesEl.children,function(x){ x.setAttribute('aria-pressed', x===b?'true':'false'); });
+      var sc=null; SCENES.forEach(function(s){ if(s.k===sceneKey) sc=s; });
+      // 場面は既定から作り直す＝前の場面が残らない
+      (net.controls||[]).forEach(function(c){ inputs[c.id]=c.default; });
+      if(sc) for(var k in sc.set) inputs[k]=sc.set[k];
+      watchEl.innerHTML = sc ? sc.w : 'キーもエンジンも切った状態です。常時電源（30系）だけが赤くなります。';
+      hintEl.textContent = sc ? sc.h : 'キーもエンジンも切った状態';
+      focusNodes = sc ? sc.f : null;
+      syncControls(); update();
+    });
+  }
 
   function buildControls(){
     var html='';
@@ -160,43 +244,119 @@
     ctrlsEl.innerHTML=html;
     ctrlsEl.addEventListener('click', function(e){
       var b=e.target.closest('button'); if(!b) return;
-      var seg=b.parentNode, id=seg.getAttribute('data-c');
-      inputs[id]=b.getAttribute('data-v');
+      var seg=b.parentNode;
+      inputs[seg.getAttribute('data-c')]=b.getAttribute('data-v');
       [].forEach.call(seg.children, function(x){ x.setAttribute('aria-pressed', x===b?'true':'false'); });
+      // 手で動かしたら場面の選択は外す（表示と実際がずれないように）
+      sceneKey=null;
+      [].forEach.call(scenesEl.children,function(x){ x.setAttribute('aria-pressed','false'); });
+      watchEl.innerHTML='自分で操作しています。変わった端子は図の上で光ります。';
+      hintEl.textContent='自分で操作中';
+      focusNodes=null;
       update();
+    });
+  }
+
+  function syncControls(){
+    [].forEach.call(ctrlsEl.querySelectorAll('.seg'), function(seg){
+      var v=inputs[seg.getAttribute('data-c')];
+      [].forEach.call(seg.children,function(x){ x.setAttribute('aria-pressed', x.getAttribute('data-v')===v?'true':'false'); });
     });
   }
 
   document.getElementById('bgseg').addEventListener('click', function(e){
     var b=e.target.closest('button'); if(!b) return;
     [].forEach.call(this.children, function(x){ x.setAttribute('aria-pressed', x===b?'true':'false'); });
-    img.src='/wiring-img/w'+(b.getAttribute('data-i')==='0'?'00':'11')+'.webp';
+    var u='/wiring-img/w'+(b.getAttribute('data-i')==='0'?'00':'11')+'.webp';
+    img.setAttribute('href',u); img.setAttribute('xlink:href',u);
   });
+  var zoomNear=true;
+  document.getElementById('zoomseg').addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    [].forEach.call(this.children, function(x){ x.setAttribute('aria-pressed', x===b?'true':'false'); });
+    zoomNear=(b.getAttribute('data-z')==='near');
+    fig.classList.toggle('tall', !zoomNear);
+    setView(zoomNear?lastBox:null);
+  });
+
+  /* 表示範囲。⚠️375px の画面に図の全体を出すと端子番号が読めない＝
+     いま変わった端子のまわりに寄る。寄り先が無いときは全体に戻す。 */
+  var VB={x:0,y:0,w:1684,h:2382}, ASPECT=4/3, lastBox=null, tween=null;
+  function setView(box){
+    var t;
+    if(!box){ t={x:0,y:0,w:1684,h:2382}; }
+    else{
+      var pad=140, x0=box.x0-pad, y0=box.y0-pad, x1=box.x1+pad, y1=box.y1+pad;
+      var w=Math.max(x1-x0, 560), h=Math.max(y1-y0, 420);
+      if(w/h < ASPECT) w=h*ASPECT; else h=w/ASPECT;      // 枠の縦横比に合わせる
+      var cx=(box.x0+box.x1)/2, cy=(box.y0+box.y1)/2;
+      t={ x:Math.min(Math.max(cx-w/2, -60), 1744-w), y:Math.min(Math.max(cy-h/2, -60), 2442-h), w:w, h:h };
+    }
+    if(!zoomNear && box) return;
+    var from={x:VB.x,y:VB.y,w:VB.w,h:VB.h}, t0=null;
+    if(tween) cancelAnimationFrame(tween);
+    (function step(ts){                                   // 一瞬で飛ぶと今どこを見ているか分からなくなるので送る
+      if(t0===null) t0=ts;
+      var k=Math.min((ts-t0)/260,1), e=1-Math.pow(1-k,3);
+      VB={ x:from.x+(t.x-from.x)*e, y:from.y+(t.y-from.y)*e,
+           w:from.w+(t.w-from.w)*e, h:from.h+(t.h-from.h)*e };
+      ov.setAttribute('viewBox', VB.x.toFixed(1)+' '+VB.y.toFixed(1)+' '+VB.w.toFixed(1)+' '+VB.h.toFixed(1));
+      if(k<1) tween=requestAnimationFrame(step);
+    })(performance.now());
+  }
 
   /* wiring-terminals.json から、この型式で座標が解決できる端子を集める。
      同じ端子が複数の系統に載っている（f1.30 など）ので近接重複は間引く。 */
+  var _coords=null;
   function coordList(){
+    if(_coords) return _coords;
     var d=terms[TYPE]||{}, out=[];
     for(var k in d) d[k].forEach(function(p){
       if(!p.p) return;
       if(out.some(function(q){ return q.p===p.p && q.t===p.t && Math.abs(q.x-p.x)<40 && Math.abs(q.y-p.y)<40; })) return;
       out.push(p);
     });
-    return out;
+    _coords=out; return out;
   }
 
-  function update(){
+  function update(first){
     var r=WiringSim.solve(net,{inputs:inputs,type:TYPE});
-    drawOverlay(r); drawTable(r); drawLamps(r);
+    var chg={}, names=[];
+    if(!first && prev){
+      var label={}; net.parts.forEach(function(p){ label[p.id]=p.label; });
+      r.nodes.forEach(function(n){
+        if(prev[n]!==undefined && prev[n]!==r.node[n]){
+          chg[n]=1;
+          names.push(label[n.slice(0,n.indexOf('.'))]+' '+n.slice(n.indexOf('.')+1));
+        }
+      });
+    }
+    changedEl.innerHTML = names.length ? ('いま変わった端子：<b>'+names.join('、')+'</b>') :
+                          (first?'':'端子の状態は変わりませんでした');
+    drawOverlay(r, chg); drawTable(r); drawLamps(r);
+
+    // 寄る先＝場面が「見てほしい端子」を指定していればそこ。指定が無ければ変わった端子。
+    // ⚠️場面は既定から作り直すので「変わった端子」だと図全体に散ることがある＝それでは寄る意味が無い
+    var box=null, want=focusNodes;
+    coordList().forEach(function(p){
+      var n=p.p+'.'+p.t;
+      if(want ? want.indexOf(n)<0 : !chg[n]) return;
+      if(!box) box={x0:p.x,y0:p.y,x1:p.x,y1:p.y};
+      box.x0=Math.min(box.x0,p.x); box.y0=Math.min(box.y0,p.y);
+      box.x1=Math.max(box.x1,p.x); box.y1=Math.max(box.y1,p.y);
+    });
+    lastBox=box;
+    setView(box);
     cntEl.textContent='B+ '+r.count.hot+' ／ 負荷の先 '+r.count.post+' ／ アース '+r.count.gnd+
                       ' ／ 無電 '+r.count.off+(r.shorted?'　⚠ 短絡':'');
+    prev=r.node;
   }
 
   var FILL={hot:'#d32f2f',gnd:'#1565c0',post:'#fff8e1',off:'#b9bfc4'};
   var RING={hot:'#ffffff',gnd:'#ffffff',post:'#e08a00',off:'#9aa1a7'};
   var EDGE={hot:'#d32f2f',gnd:'#1565c0',post:'#e08a00',off:'#9aa1a7'};
 
-  function drawOverlay(r){
+  function drawOverlay(r, chg){
     var html='';
     coordList().forEach(function(p){
       var node=p.p+'.'+p.t, st=r.node[node];
@@ -206,11 +366,12 @@
       var rad=(st==='off')?9:14, sw=(st==='post')?6:4, dim=(st==='off');
       html+='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+cx+'" y2="'+(cy+18)+'" stroke="#111" stroke-width="2.5" opacity="'+(dim?0.35:0.9)+'"/>'+
             (st==='hot'?'<circle cx="'+p.x+'" cy="'+p.y+'" r="26" fill="#d32f2f" opacity="0.22"/>':'')+
+            (chg[node]?'<circle class="fl" cx="'+p.x+'" cy="'+p.y+'" r="20" fill="none" stroke="'+EDGE[st]+'" stroke-width="7"/>':'')+
             '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+rad+'" fill="'+FILL[st]+'" stroke="'+RING[st]+'" stroke-width="'+sw+'"/>'+
             '<rect x="'+(cx-w/2)+'" y="'+(cy-21)+'" width="'+w+'" height="40" rx="9" fill="#fff" stroke="'+EDGE[st]+'" stroke-width="3" opacity="'+(dim?0.6:1)+'"/>'+
             '<text x="'+cx+'" y="'+(cy+9)+'" text-anchor="middle" font-family="Arial,sans-serif" font-size="26" font-weight="700" fill="#111" opacity="'+(dim?0.55:1)+'">'+p.t+'</text>';
     });
-    ov.innerHTML=html;
+    marksEl.innerHTML=html;   // ⚠️ov 全体を書き換えると背景の <image> ごと消える
   }
 
   function drawTable(r){
