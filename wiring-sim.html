@@ -54,8 +54,11 @@
   .bulb{width:12px;height:12px;border-radius:50%;background:#d9dce0;border:1px solid #b3b8bd;flex:none}
   .lamp.on .bulb{background:#ffb300;border-color:#c98a00;box-shadow:0 0 9px 2px rgba(255,179,0,.75)}
   .lamp.on{font-weight:700}
-  .changed{font-size:.78rem;color:var(--sub);margin:7px 0 0;min-height:1.2em}
-  .changed b{color:var(--ink)}
+  .changed{font-size:.83rem;color:var(--sub);margin:7px 0 0;min-height:1.2em;
+           transition:background .15s,padding .15s}
+  .changed.hit{background:#fff3b0;border:1px solid #e0b800;border-radius:8px;
+               padding:5px 9px;color:#4a3c00;font-weight:700}
+  .changed b{color:inherit}
 
   details.ctrlbox{margin:8px 0 0}
   details.ctrlbox>summary{font-size:.8rem;color:var(--sub);cursor:pointer;list-style:revert}
@@ -75,8 +78,13 @@
        width:100%;aspect-ratio:4/3;max-height:56vh}
   .fig.tall{aspect-ratio:1684/2382;max-height:none}
   .fig svg{position:absolute;left:0;top:0;width:100%;height:100%}
-  @keyframes flash{0%{opacity:.95;r:44px}70%{opacity:.15;r:20px}100%{opacity:0;r:16px}}
-  .fl{animation:flash 1.1s ease-out 2 both}
+  /* ⚠️変化アテンションはユーザー指摘で強化：状態色と別の高コントラスト色・無限パルス・
+     マーカー自体もビートさせる（旧: 薄いリング1回強→2秒で消え「前後」が分からなかった） */
+  @keyframes flash{0%{opacity:1;r:16px;stroke-width:11}70%{opacity:.12;r:58px;stroke-width:2}100%{opacity:0;r:62px;stroke-width:2}}
+  .fl{fill:none;stroke:#ffea00;animation:flash 1.15s ease-out infinite;
+      filter:drop-shadow(0 0 6px #ffea00) drop-shadow(0 0 2px #b36b00)}
+  @keyframes beat{0%,100%{transform:scale(1)}50%{transform:scale(1.22)}}
+  .beacon{animation:beat .85s ease-in-out infinite}
 
   .figbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}
   .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:9px 0 0;font-size:.76rem;color:var(--sub)}
@@ -331,7 +339,8 @@
         }
       });
     }
-    changedEl.innerHTML = names.length ? ('いま変わった端子：<b>'+names.join('、')+'</b>') :
+    changedEl.classList.toggle('hit', names.length>0);
+    changedEl.innerHTML = names.length ? ('⚡ いま変わった端子：<b>'+names.join('、')+'</b>') :
                           (first?'':'端子の状態は変わりませんでした');
     drawOverlay(r, chg); drawTable(r); drawLamps(r);
 
@@ -364,12 +373,16 @@
       var dx=(p.dx===undefined)?50:p.dx, dy=(p.dy===undefined)?-90:p.dy;
       var cx=p.x+dx, cy=p.y+dy, w=p.t.length*15+26;
       var rad=(st==='off')?9:14, sw=(st==='post')?6:4, dim=(st==='off');
-      html+='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+cx+'" y2="'+(cy+18)+'" stroke="#111" stroke-width="2.5" opacity="'+(dim?0.35:0.9)+'"/>'+
+      var isChg=!!chg[node];
+      // ⚠️変化アテンションはユーザー指摘で強化済み：状態色に頼らず固定の黄で高コントラスト・
+      //   .fl は無限パルスで次の操作まで消えない・.beacon で端子ひと固まりを拍動させる
+      var body='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+cx+'" y2="'+(cy+18)+'" stroke="#111" stroke-width="2.5" opacity="'+(dim?0.35:0.9)+'"/>'+
             (st==='hot'?'<circle cx="'+p.x+'" cy="'+p.y+'" r="26" fill="#d32f2f" opacity="0.22"/>':'')+
-            (chg[node]?'<circle class="fl" cx="'+p.x+'" cy="'+p.y+'" r="20" fill="none" stroke="'+EDGE[st]+'" stroke-width="7"/>':'')+
+            (isChg?'<circle class="fl" cx="'+p.x+'" cy="'+p.y+'" r="20"/>':'')+
             '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+rad+'" fill="'+FILL[st]+'" stroke="'+RING[st]+'" stroke-width="'+sw+'"/>'+
-            '<rect x="'+(cx-w/2)+'" y="'+(cy-21)+'" width="'+w+'" height="40" rx="9" fill="#fff" stroke="'+EDGE[st]+'" stroke-width="3" opacity="'+(dim?0.6:1)+'"/>'+
+            '<rect x="'+(cx-w/2)+'" y="'+(cy-21)+'" width="'+w+'" height="40" rx="9" fill="#fff" stroke="'+(isChg?'#ffea00':EDGE[st])+'" stroke-width="'+(isChg?5:3)+'" opacity="'+(dim?0.6:1)+'"/>'+
             '<text x="'+cx+'" y="'+(cy+9)+'" text-anchor="middle" font-family="Arial,sans-serif" font-size="26" font-weight="700" fill="#111" opacity="'+(dim?0.55:1)+'">'+p.t+'</text>';
+      html += isChg ? ('<g class="beacon" style="transform-origin:'+p.x+'px '+p.y+'px">'+body+'</g>') : body;
     });
     marksEl.innerHTML=html;   // ⚠️ov 全体を書き換えると背景の <image> ごと消える
   }
