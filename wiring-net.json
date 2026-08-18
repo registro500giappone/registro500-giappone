@@ -1,0 +1,111 @@
+{
+  "_note": "配線シミュレーターのトポロジー（部品・配線・部品の内部挙動）。座標は持たない＝端子の図座標は wiring-terminals.json 側が唯一の正本（部品IDは同ファイルの p フィールドで解決する）。設計の正本は wiring-simulator/SCHEMA.md、確定事項と不変条件は wiring-simulator/HANDOFF.md。⛔原典＝正。ここに書いてよいのは原典（純正取説の配線図）から読めた結線と、出典を明示した簡易モデルだけ。推測で線を足さない。",
+  "_conventions": {
+    "node": "部品ID.端子名（例 regulator.51）。ノードは部品ではなく端子＝スイッチ内部を表現できる粒度にする（SCHEMA §A）",
+    "term_synthetic": "先頭が _ の端子名は原典に端子名が無い合成端子（例 starter_sw._in）。座標も持たない",
+    "v": "照合レベル。orig=原典照合済 / auto=機械抽出のまま / inf=推定。auto と inf は事実として見せない（SCHEMA §C-2）",
+    "types": "その部品・配線が存在する型式。D型はF型と共用（16系統の結線同一・df_diff.md）",
+    "sys": "配線図ビューアの系統番号（11=スタータ発電）。ファイルは系統ごとに増やしていく",
+    "src": "出典。NL-D=registro500-notes/wiring-work/d_netlist.md（D原典 p40 の目視転記）／LEDGER=同 terminals_ledger.md（F原典 Mod.500 p42 と照合済）／NL-F=同 f_netlist.md（F図の機械抽出）"
+  },
+  "NET_VERSION": "1",
+  "sys_done": [11],
+  "parts": [
+
+    { "id":"body", "label":"車体アース", "kind":"ground", "sys":11, "terms":["31"], "types":"FLRD",
+      "src":"原典は各部にアース記号。ボディを1ノードとして扱う（SCHEMA §C-4）" },
+
+    { "id":"battery", "label":"バッテリー", "kind":"battery", "sys":11, "terms":["+","-"], "types":"FLRD",
+      "model":{ "kind":"battery", "v":"orig", "pos":"+", "neg":"-" },
+      "src":"NL-D 部品6「−→アース ／+→太線→スターター手動SW部」／LEDGER 系統11 (1213,393) +（ROSSO・F図 batteria）" },
+
+    { "id":"starter_sw", "label":"スタータSW（引きノブ）", "kind":"switch", "sys":11, "terms":["_in","_out"], "types":"FLRD",
+      "model":{ "kind":"switch", "v":"orig", "default":"OFF",
+        "positions":{ "OFF":[], "START":[["_in","_out"]] },
+        "note":"手で引いている間だけ閉じるモーメンタリ。原典に端子名が無いため合成端子（LEDGER『転記しないもの』にスタータSWが挙がっている）" },
+      "src":"NL-D 部品31「+←バッテリー太線（手動SW経由）」" },
+
+    { "id":"starter", "label":"スターター", "kind":"motor", "sys":11, "terms":["+","-"], "types":"FLRD",
+      "model":{ "kind":"load", "v":"inf", "pair":["+","-"],
+        "note":"モーター巻線を + と本体アースの間の負荷として扱う簡易モデル。原典は記号のみで内部は描かれていない" },
+      "src":"NL-D 部品31「−（本体）→アース」／LEDGER 系統11 (952,1623) +（MARRONE太・F図 motore avviamento）" },
+
+    { "id":"regulator", "label":"レギュレータ", "kind":"regulator", "sys":11, "terms":["30","67","51","31"], "types":"FLRD",
+      "model":{ "kind":"regulator", "v":"inf", "default":"OFF",
+        "positions":{ "OFF":[], "CHARGE":[["30","51"]] },
+        "note":"カットアウトリレー（発電電圧がバッテリーを超えると 51↔30 を閉じる）だけの簡易モデル。界磁制御（67）はL1の到達性に影響しないためモデル化しない。原典の図は界磁抵抗の記号のみで内部接点は描かれていない（HANDOFF §5『レギュレータ・フラッシャーは簡易モデルで十分』）" },
+      "src":"NL-D 部品27「30←ROSSO太（→前方ヒューズ30）＋MARRONE太（→バッテリー+/スターターSW節点）／67←NERO■（→ダイナモ67）／51←MARRONE太■（→ダイナモ51）＋VERDE（→計器盤チャージ灯15）／31→アース」" },
+
+    { "id":"dynamo", "label":"ダイナモ", "kind":"dynamo", "sys":11, "terms":["51","67","-"], "types":"FLRD",
+      "model":{ "kind":"dynamo", "v":"inf", "default":"STOP",
+        "positions":{ "STOP":[["51","-"]], "RUN":[] },
+        "note":"停止中は電機子巻線で 51↔− が導通する＝チャージ灯が点く理由。回転中はレギュレータのカットアウトが閉じて 51 が B+ 側に上がり灯が消える。界磁巻線（67）の内部結線はL1に影響しないためモデル化しない",
+        "warn":"⛔ダイナモ下端子に 67 を置かない。原典の下端子は接地側で、67 は界磁巻線の途中に付く別ノード（LEDGER 系統1 の⛔注記）" },
+      "src":"NL-D 部品33「51←MARRONE太 ／67←NERO ／界磁抵抗描画 ／−→アース」／LEDGER 系統11 (700,1864) 51" },
+
+    { "id":"f1", "label":"ヒューズ F1（30・常時）", "kind":"fuse", "sys":11, "terms":["30","_out"], "types":"FLRD",
+      "model":{ "kind":"fuse", "v":"orig", "default":"OK",
+        "positions":{ "OK":[["30","_out"]], "BLOWN":[] },
+        "note":"F図では F1 は左が電源側（ROSSO×2＝レギュレータ30から・IGN SW 30へ）・右が負荷側（BIANCO→ホーン/ルームランプ）。⚠️電源側の左右はヒューズごとに違う（F3は右が電源側）。負荷側は原典に端子名が無いため合成端子" },
+      "src":"NL-F ヒューズ対応表 F1／NL-D 部品18「30←ROSSO×2 太（←レギュレータ30系）」／LEDGER 系統11 (452,433)・系統10 (452,459)" },
+
+    { "id":"ign_sw", "label":"イグニッションSW", "kind":"switch", "sys":10, "terms":["30","15/54","30/4"], "types":"FLRD",
+      "model":{ "kind":"switch", "v":"inf", "default":"OFF",
+        "positions":{ "OFF":[], "ON":[["30","15/54"]] },
+        "note":"30↔15/54 だけをモデル化。①500 F/L/R の始動は引きノブ式でキーにSTART位置が無い（原典の端子が 30・15/54・30/4×2 だけで 50 が無いことと整合）②30/4×2（NERO）は常時30系の分岐と推定だが内部接点が未照合のためモデルに入れていない（行き先は外部照明SW21と計器盤＝d_netlist 未決④の決着）。⚠️系統2（外部照明）を書くときに必ず決着させる" },
+      "src":"LEDGER 系統10 (1228,1320) 30←ROSSO・(1258,1316) 15/54←AZZURRO ／系統15 (1279,1327)(1297,1327) 30/4←NERO×2 ／NL-D 部品22" },
+
+    { "id":"quadro", "label":"計器盤", "kind":"cluster", "sys":11, "terms":["51","INTER","57","30"], "types":"FLRD",
+      "model":{ "kind":"lamps", "v":"inf",
+        "lamps":[
+          { "id":"warn_charge", "label":"チャージ警告灯(15)", "a":"51", "b":"INTER", "v":"inf",
+            "note":"⚠️51側はVERDEでレギュレータ51＝原典で確定。反対側（計器盤内の給電レール）が未確定＝INTER（AZZURRO・IGN SW 15/54 から）と 30（BIANCO）の2候補があり、計器盤の30 は色疑義で転記保留（LEDGER『転記しないもの』）。INTER を採ったのは、キーOFFでチャージ灯が点きっぱなしにならないため" }
+        ],
+        "note":"計器盤の内部結線は原典の図では読み切れていない。系統11に必要なチャージ灯だけを載せ、他の警告灯（燃料16・油圧17）と照明ランプ13は各系統を書くときに足す" },
+      "src":"NL-D 計器盤「51←VERDE（チャージ灯15・→レギュレータ51）／INTER←AZZURRO／57←GIALLO（表示灯14・アース付）／30←BIANCO」／LEDGER 系統11 (875,1238) 51・(816,1380) 57、系統10 (978,1329) INTER" }
+  ],
+  "wires": [
+
+    { "id":"w11-01", "a":"battery.+", "b":"starter_sw._in", "color":"ROSSO", "thick":true, "sys":11, "types":"FLRD", "v":"orig",
+      "src":"NL-D 部品6「+→太線→スターター手動SW部」／LEDGER 系統11 (1213,393) +（ROSSO）" },
+
+    { "id":"w11-02", "a":"starter_sw._out", "b":"starter.+", "color":"MARRONE", "thick":true, "sys":11, "types":"FLRD", "v":"orig",
+      "src":"NL-D 部品31「+←バッテリー太線（手動SW経由）」／LEDGER 系統11 (952,1623) +（MARRONE太）" },
+
+    { "id":"w11-03", "a":"starter_sw._in", "b":"regulator.30", "color":"MARRONE", "thick":true, "sys":11, "types":"FLRD", "v":"orig",
+      "src":"NL-D 部品6「同節点から MARRONE太→レギュレータ30」＋部品27「30←…MARRONE太（→バッテリー+/スターターSW節点）」" },
+
+    { "id":"w11-04", "a":"regulator.30", "b":"f1.30", "color":"ROSSO", "thick":true, "sys":11, "types":"FLRD", "v":"orig",
+      "src":"NL-D 部品27「30←ROSSO太（→前方ヒューズ30）」＋部品18「30←ROSSO×2 太」／NL-F ヒューズ対応表 F1「ROSSO（レギュレータ30から・左）」" },
+
+    { "id":"w11-05", "a":"regulator.51", "b":"dynamo.51", "color":"MARRONE", "thick":true, "sys":11, "types":"FLRD", "v":"orig",
+      "src":"NL-D 部品27「51←MARRONE太■（→ダイナモ51）」＋部品33「51←MARRONE太」" },
+
+    { "id":"w11-06", "a":"regulator.67", "b":"dynamo.67", "color":"NERO", "sys":11, "types":"FLRD", "v":"orig",
+      "note":"ダイナモ側の67は座標を持たない（原典の下端子に67を置かない＝LEDGER 系統1 の⛔注記）",
+      "src":"NL-D 部品27「67←NERO■（→ダイナモ67）」＋部品33「67←NERO」" },
+
+    { "id":"w11-07", "a":"regulator.51", "b":"quadro.51", "color":"VERDE", "sys":11, "types":"FLRD", "v":"orig",
+      "src":"NL-D 部品27「51←…＋VERDE（→計器盤チャージ灯15）」＋計器盤「51←VERDE」" },
+
+    { "id":"w11-08", "a":"regulator.31", "b":"body.31", "color":"NERO", "sys":11, "types":"FLRD", "v":"orig",
+      "src":"NL-D 部品27「31→アース」／LEDGER 系統1 (421,1743) 31（レギュレータのアース端子・隣にアース記号）" },
+
+    { "id":"w11-09", "a":"dynamo.-", "b":"body.31", "color":"NERO", "sys":11, "types":"FLRD", "v":"orig",
+      "src":"NL-D 部品33「−→アース」" },
+
+    { "id":"w11-10", "a":"battery.-", "b":"body.31", "color":"NERO", "thick":true, "sys":11, "types":"FLRD", "v":"orig",
+      "src":"NL-D 部品6「−→アース」" },
+
+    { "id":"w11-11", "a":"starter.-", "b":"body.31", "color":"NERO", "thick":true, "sys":11, "types":"FLRD", "v":"orig",
+      "src":"NL-D 部品31「−（本体）→アース」" },
+
+    { "id":"w10-01", "a":"f1.30", "b":"ign_sw.30", "color":"ROSSO", "sys":10, "types":"FLRD", "v":"orig",
+      "note":"F1の電源側から分岐＝イグニッションSWの30はヒューズを通っていない（系統11の幹に系統10がぶら下がる形）",
+      "src":"NL-F ヒューズ対応表 F1「ROSSO（→IGN SW 30・左）」／LEDGER 系統10 (452,459) 30・(1228,1320) 30←ROSSO" },
+
+    { "id":"w10-02", "a":"ign_sw.15/54", "b":"quadro.INTER", "color":"AZZURRO", "sys":10, "types":"FLRD", "v":"orig",
+      "note":"15/54 からはヒューズF2へも AZZURRO×2 が出ている（NL-D 部品18）。F2 以降は系統15を書くときに足す",
+      "src":"LEDGER 系統10 (1258,1316) 15/54←AZZURRO・(978,1329) INTER（AZZURRO着地）／NL-D 計器盤「INTER←AZZURRO」" }
+  ]
+}
