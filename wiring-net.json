@@ -8,8 +8,47 @@
     "sys": "配線図ビューアの系統番号（11=スタータ発電）。ファイルは系統ごとに増やしていく",
     "src": "出典。NL-D=registro500-notes/wiring-work/d_netlist.md（D原典 p40 の目視転記）／LEDGER=同 terminals_ledger.md（F原典 Mod.500 p42 と照合済）／NL-F=同 f_netlist.md（F図の機械抽出）"
   },
-  "NET_VERSION": "1",
+  "NET_VERSION": "2",
   "sys_done": [11],
+
+  "controls": [
+
+    { "id":"key", "label":"イグニッションキー", "role":"input", "default":"OFF",
+      "options":[
+        { "v":"OFF", "label":"OFF（抜いた状態）", "set":{ "ign_sw":"OFF" } },
+        { "v":"ON",  "label":"ON（通電）",        "set":{ "ign_sw":"ON"  } }
+      ],
+      "note":"500 F/L/R のキーには START 位置が無い（始動は引きノブ＝原典の端子に 50 が無いことと整合）。30/4×2 は内部接点が未照合のため動かしていない＝系統2を書くときに決着させる" },
+
+    { "id":"engine", "label":"エンジン", "role":"input", "default":"STOP",
+      "options":[
+        { "v":"STOP", "label":"停止", "set":{ "dynamo":"STOP", "regulator":"OFF"    } },
+        { "v":"RUN",  "label":"回転", "set":{ "dynamo":"RUN",  "regulator":"CHARGE" } }
+      ],
+      "note":"⚠️v:inf。実際のカットアウトリレーは発電電圧がバッテリー電圧を超えたら閉じる＝回転数に依存するが、L1（到達性のみ）では「回っていれば閉じる」と単純化する。アイドル以下で灯がうっすら点く現象は再現しない（L4をやらない方針の帰結）" },
+
+    { "id":"starter", "label":"スタータノブ", "role":"input", "default":"OFF",
+      "options":[
+        { "v":"OFF",   "label":"戻す", "set":{ "starter_sw":"OFF"   } },
+        { "v":"START", "label":"引く", "set":{ "starter_sw":"START" } }
+      ],
+      "note":"手で引いている間だけ閉じるモーメンタリ" },
+
+    { "id":"reg_fail", "label":"レギュレータのカットアウト", "role":"fault", "default":"OK",
+      "options":[
+        { "v":"OK",   "label":"正常",       "set":{} },
+        { "v":"FAIL", "label":"閉じない", "set":{ "regulator":"OFF" } }
+      ],
+      "note":"⚠️options の順番＝適用の順番。この項目は engine より後ろに置いてあるので、エンジン回転（regulator:CHARGE）を上書きできる。『正常』が空の set なのは、正常時にエンジン側の判断を打ち消さないため。この故障を入れると『テスターを当てれば電圧は出るのにチャージ灯が点かない』＝端子状態が hot と post に分かれる実例になる" },
+
+    { "id":"f1", "label":"ヒューズ F1", "role":"fault", "default":"OK",
+      "options":[
+        { "v":"OK",    "label":"正常",   "set":{ "f1":"OK"    } },
+        { "v":"BLOWN", "label":"切れた", "set":{ "f1":"BLOWN" } }
+      ],
+      "note":"L2（故障注入）の先取り。段取り1で「F1が切れてもチャージ灯は点く」を検算した材料をそのまま画面に出しているだけで、L2の設計そのものは未着手" }
+  ],
+
   "parts": [
 
     { "id":"body", "label":"車体アース", "kind":"ground", "sys":11, "terms":["31"], "types":"FLRD",

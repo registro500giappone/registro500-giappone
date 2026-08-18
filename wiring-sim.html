@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<!-- ⛔作業場ページ。導線は付けない（HANDOFF §6-3・CLAUDE.md 全体原則）。仕上がるまで検索にも出さない -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>配線シミュレーター L1（作業場）｜Registro500</title>
+
+<!-- Google tag (gtag.js) — 公開ページを増やしたらタグの有無を必ず確認する（過去に計測漏れ実績あり） -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH');
+</script>
+
+<style>
+  :root{
+    --bg:#f6f1e7; --card:#fffdf8; --ink:#23201a; --sub:#6b6357; --line:#ddd4c2; --accent:#1f4d3a;
+    --hot:#d32f2f; --post:#e08a00; --gnd:#1565c0; --off:#b9bfc4;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+       line-height:1.7;-webkit-text-size-adjust:100%}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px 14px 80px}
+  h1{font-size:1.15rem;margin:.2em 0 .1em}
+  .lead{color:var(--sub);font-size:.86rem;margin:0 0 14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px}
+  .card h2{font-size:.95rem;margin:0 0 10px;color:var(--accent)}
+  .ctrls{display:flex;flex-wrap:wrap;gap:14px}
+  .ctrl{min-width:150px}
+  .ctrl .lab{font-size:.78rem;color:var(--sub);margin-bottom:4px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
+  .seg button{appearance:none;border:0;background:#fff;padding:7px 12px;font:inherit;font-size:.85rem;
+              cursor:pointer;color:var(--ink);border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:0}
+  .seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+  .fault .seg button[aria-pressed="true"]{background:var(--hot)}
+  .lamps{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+  .lamp{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;
+        padding:5px 13px 5px 9px;background:#fff;font-size:.85rem}
+  .bulb{width:13px;height:13px;border-radius:50%;background:#d9dce0;border:1px solid #b3b8bd;flex:none}
+  .lamp.on .bulb{background:#ffb300;border-color:#c98a00;box-shadow:0 0 9px 2px rgba(255,179,0,.75)}
+  .lamp.on{font-weight:700}
+  .fig{position:relative;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .fig img{display:block;width:100%;height:auto}
+  .fig svg{position:absolute;left:0;top:0;width:100%;height:100%}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin:10px 0 0;font-size:.8rem;color:var(--sub)}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .dot{width:14px;height:14px;border-radius:50%;flex:none}
+  .d-hot{background:var(--hot)} .d-gnd{background:var(--gnd)}
+  .d-post{background:#fff8e1;border:3px solid var(--post)}
+  .d-off{background:var(--off);width:9px;height:9px;margin:0 2px}
+  table{border-collapse:collapse;width:100%;font-size:.8rem}
+  th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;white-space:nowrap}
+  th{color:var(--sub);font-weight:600}
+  td.st{font-weight:700}
+  .st-hot{color:var(--hot)} .st-gnd{color:var(--gnd)} .st-post{color:var(--post)} .st-off{color:#98a0a6}
+  .nocoord td:first-child::after{content:" ◇";color:var(--sub)}
+  .note{font-size:.78rem;color:var(--sub);margin:8px 0 0}
+  .cols{display:grid;grid-template-columns:1fr;gap:14px}
+  @media(min-width:900px){ .cols{grid-template-columns:1.6fr 1fr;align-items:start} }
+  .ok{color:#1f7a3f;font-weight:700} .ng{color:var(--hot);font-weight:700}
+  code{background:#efe9db;padding:1px 5px;border-radius:4px;font-size:.85em}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>配線シミュレーター L1（通電ハイライト）— 作業場</h1>
+<p class="lead">
+  段取り2＝到達性の計算だけで「いまどの端子が生きているか」を出す試作。系統11（スターター／ダイナモ・発電系）に
+  系統10からキー回りの2本を足した範囲。まだ<strong>線は光らず端子が光る</strong>（線の幾何データは段取り4）。
+  ⛔このページはどこからもリンクしていない作業場です。
+</p>
+
+<div class="card">
+  <h2>操作</h2>
+  <div class="ctrls" id="ctrls"></div>
+  <div class="lamps" id="lamps"></div>
+</div>
+
+<div class="cols">
+  <div>
+    <div class="card">
+      <h2>図（F型）</h2>
+      <div class="ctrl" style="margin-bottom:10px">
+        <div class="lab">背景の図</div>
+        <div class="seg" id="bgseg">
+          <button type="button" data-i="11" aria-pressed="true">系統11だけ</button>
+          <button type="button" data-i="0" aria-pressed="false">全表示</button>
+        </div>
+      </div>
+      <div class="fig">
+        <img id="img" src="/wiring-img/w11.webp" alt="FIAT 500F 配線図 系統11">
+        <svg id="ov" viewBox="0 0 1684 2382" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+      </div>
+      <div class="legend">
+        <span><i class="dot d-hot"></i>B+ に通じている（電流を流せる）</span>
+        <span><i class="dot d-post"></i>負荷の先（電圧は来ているが電流は流れない）</span>
+        <span><i class="dot d-gnd"></i>アース側</span>
+        <span><i class="dot d-off"></i>無電</span>
+      </div>
+      <p class="note">
+        端子の位置は <code>wiring-terminals.json</code>（原典照合済）から解決しています。
+        図に座標を持たない端子（合成端子・アース側など）は右の表に ◇ 付きで出しています。
+      </p>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>端子の状態</h2>
+      <table id="tbl"><tbody></tbody></table>
+      <p class="note" id="cnt"></p>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>検算（原典から分かっている挙動と突き合わせる）</h2>
+  <table id="chk"><tbody></tbody></table>
+  <p class="note">
+    期待値は計算結果を写したものではなく、<strong>原典と実車から分かっている挙動</strong>を書いています。
+    データを足したときにここが崩れたら、足したデータのほうが間違っているという意味です。
+  </p>
+</div>
+
+<script src="/wiring-sim.js?v=1"></script>
+<script>
+(function(){
+  'use strict';
+  var NET_VERSION='2', TERM_VERSION='9', TYPE='F';
+  var net=null, terms=null, inputs={};
+  var ctrlsEl=document.getElementById('ctrls'), lampsEl=document.getElementById('lamps'),
+      ov=document.getElementById('ov'), tbody=document.querySelector('#tbl tbody'),
+      cntEl=document.getElementById('cnt'), chkBody=document.querySelector('#chk tbody'),
+      img=document.getElementById('img');
+
+  Promise.all([
+    fetch('/wiring-net.json?v='+NET_VERSION).then(function(r){ return r.json(); }),
+    fetch('/wiring-terminals.json?v='+TERM_VERSION).then(function(r){ return r.json(); })
+  ]).then(function(a){ net=a[0]; terms=a[1]; buildControls(); runChecks(); update(); })
+    .catch(function(e){ document.querySelector('.wrap').insertAdjacentHTML('afterbegin',
+      '<p class="ng">データを読み込めませんでした: '+e+'</p>'); });
+
+  function buildControls(){
+    var html='';
+    (net.controls||[]).forEach(function(c){
+      inputs[c.id]=c.default;
+      html+='<div class="ctrl'+(c.role==='fault'?' fault':'')+'"><div class="lab">'+
+            (c.role==='fault'?'⚠ ':'')+c.label+'</div><div class="seg" data-c="'+c.id+'">'+
+            c.options.map(function(o){
+              return '<button type="button" data-v="'+o.v+'" aria-pressed="'+(o.v===c.default)+'">'+o.label+'</button>';
+            }).join('')+'</div></div>';
+    });
+    ctrlsEl.innerHTML=html;
+    ctrlsEl.addEventListener('click', function(e){
+      var b=e.target.closest('button'); if(!b) return;
+      var seg=b.parentNode, id=seg.getAttribute('data-c');
+      inputs[id]=b.getAttribute('data-v');
+      [].forEach.call(seg.children, function(x){ x.setAttribute('aria-pressed', x===b?'true':'false'); });
+      update();
+    });
+  }
+
+  document.getElementById('bgseg').addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    [].forEach.call(this.children, function(x){ x.setAttribute('aria-pressed', x===b?'true':'false'); });
+    img.src='/wiring-img/w'+(b.getAttribute('data-i')==='0'?'00':'11')+'.webp';
+  });
+
+  /* wiring-terminals.json から、この型式で座標が解決できる端子を集める。
+     同じ端子が複数の系統に載っている（f1.30 など）ので近接重複は間引く。 */
+  function coordList(){
+    var d=terms[TYPE]||{}, out=[];
+    for(var k in d) d[k].forEach(function(p){
+      if(!p.p) return;
+      if(out.some(function(q){ return q.p===p.p && q.t===p.t && Math.abs(q.x-p.x)<40 && Math.abs(q.y-p.y)<40; })) return;
+      out.push(p);
+    });
+    return out;
+  }
+
+  function update(){
+    var r=WiringSim.solve(net,{inputs:inputs,type:TYPE});
+    drawOverlay(r); drawTable(r); drawLamps(r);
+    cntEl.textContent='B+ '+r.count.hot+' ／ 負荷の先 '+r.count.post+' ／ アース '+r.count.gnd+
+                      ' ／ 無電 '+r.count.off+(r.shorted?'　⚠ 短絡':'');
+  }
+
+  var FILL={hot:'#d32f2f',gnd:'#1565c0',post:'#fff8e1',off:'#b9bfc4'};
+  var RING={hot:'#ffffff',gnd:'#ffffff',post:'#e08a00',off:'#9aa1a7'};
+  var EDGE={hot:'#d32f2f',gnd:'#1565c0',post:'#e08a00',off:'#9aa1a7'};
+
+  function drawOverlay(r){
+    var html='';
+    coordList().forEach(function(p){
+      var node=p.p+'.'+p.t, st=r.node[node];
+      if(!st) return; // netlist にまだ部品が無い端子は出さない
+      var dx=(p.dx===undefined)?50:p.dx, dy=(p.dy===undefined)?-90:p.dy;
+      var cx=p.x+dx, cy=p.y+dy, w=p.t.length*15+26;
+      var rad=(st==='off')?9:14, sw=(st==='post')?6:4, dim=(st==='off');
+      html+='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+cx+'" y2="'+(cy+18)+'" stroke="#111" stroke-width="2.5" opacity="'+(dim?0.35:0.9)+'"/>'+
+            (st==='hot'?'<circle cx="'+p.x+'" cy="'+p.y+'" r="26" fill="#d32f2f" opacity="0.22"/>':'')+
+            '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+rad+'" fill="'+FILL[st]+'" stroke="'+RING[st]+'" stroke-width="'+sw+'"/>'+
+            '<rect x="'+(cx-w/2)+'" y="'+(cy-21)+'" width="'+w+'" height="40" rx="9" fill="#fff" stroke="'+EDGE[st]+'" stroke-width="3" opacity="'+(dim?0.6:1)+'"/>'+
+            '<text x="'+cx+'" y="'+(cy+9)+'" text-anchor="middle" font-family="Arial,sans-serif" font-size="26" font-weight="700" fill="#111" opacity="'+(dim?0.55:1)+'">'+p.t+'</text>';
+    });
+    ov.innerHTML=html;
+  }
+
+  function drawTable(r){
+    var coords={}; coordList().forEach(function(p){ coords[p.p+'.'+p.t]=1; });
+    var label={}; net.parts.forEach(function(p){ label[p.id]=p.label; });
+    var LAB={hot:'B+',post:'負荷の先',gnd:'アース',off:'無電'}, ORD={hot:0,post:1,gnd:2,off:3};
+    var rows=r.nodes.slice().sort(function(a,b){ return (ORD[r.node[a]]-ORD[r.node[b]])||a.localeCompare(b); });
+    tbody.innerHTML='<tr><th>端子</th><th>部品</th><th>状態</th></tr>'+rows.map(function(n){
+      var st=r.node[n], i=n.indexOf('.');
+      return '<tr class="'+(coords[n]?'':'nocoord')+'"><td>'+n.slice(i+1)+'</td><td>'+(label[n.slice(0,i)]||'')+
+             '</td><td class="st st-'+st+'">'+LAB[st]+'</td></tr>';
+    }).join('');
+  }
+
+  function drawLamps(r){
+    lampsEl.innerHTML=r.loads.map(function(l){
+      return '<span class="lamp'+(l.on?' on':'')+'"><i class="bulb"></i>'+l.label+'：'+
+             (l.on?(l.part==='starter'?'回る':'点灯'):'—')+'</span>';
+    }).join('');
+  }
+
+  /* 原典と実車から分かっている挙動。⛔計算結果を写して作らない（回帰の見張りにならなくなる） */
+  var CASES=[
+    ['キーOFF・エンジン停止',   {key:'OFF',engine:'STOP',starter:'OFF'},            false,false],
+    ['キーON・エンジン停止',    {key:'ON', engine:'STOP',starter:'OFF'},            true, false],
+    ['キーON・エンジン回転',    {key:'ON', engine:'RUN', starter:'OFF'},            false,false],
+    ['キーOFF・スタータを引く', {key:'OFF',engine:'STOP',starter:'START'},          false,true ],
+    ['F1切れ・キーON',          {key:'ON', engine:'STOP',starter:'OFF',f1:'BLOWN'}, true, false]
+  ];
+  function runChecks(){
+    chkBody.innerHTML='<tr><th>状態</th><th>チャージ灯</th><th>スターター</th><th>B+</th><th>負荷の先</th><th></th></tr>'+
+      CASES.map(function(c){
+        var r=WiringSim.solve(net,{inputs:c[1],type:TYPE});
+        function on(id){ var f=false; r.loads.forEach(function(x){ if(x.id===id&&x.on) f=true; }); return f; }
+        var a=on('quadro.warn_charge'), b=on('starter'), ok=(a===c[2]&&b===c[3]);
+        return '<tr><td>'+c[0]+'</td><td>'+(a?'点':'消')+'</td><td>'+(b?'回る':'—')+'</td><td>'+
+               r.count.hot+'</td><td>'+r.count.post+'</td><td class="'+(ok?'ok':'ng')+'">'+(ok?'一致':'不一致')+'</td></tr>';
+      }).join('');
+  }
+})();
+</script>
+</div>
+</body>
+</html>
