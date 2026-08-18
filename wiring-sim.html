@@ -85,6 +85,12 @@
       filter:drop-shadow(0 0 6px #ffea00) drop-shadow(0 0 2px #b36b00)}
   @keyframes beat{0%,100%{transform:scale(1)}50%{transform:scale(1.22)}}
   .beacon{animation:beat .85s ease-in-out infinite}
+  /* ⚠️色（赤=B+）だけでは常時30系の既存の赤と区別が付かない、というユーザー指摘への対応。
+     色に頼らず「レイヤー」で分ける＝変化が起きた瞬間、変化していない端子と背景画像を丸ごと沈め、
+     変化した端子だけを素の明るさで浮かせる（スポットライト方式）。 */
+  #img{transition:opacity .3s ease}
+  .term{transition:opacity .3s ease}
+  .term.dim{opacity:.2}
 
   .figbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}
   .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:9px 0 0;font-size:.76rem;color:var(--sub)}
@@ -366,25 +372,29 @@
   var EDGE={hot:'#d32f2f',gnd:'#1565c0',post:'#e08a00',off:'#9aa1a7'};
 
   function drawOverlay(r, chg){
-    var html='';
+    var html='', hasChg=false;
+    for(var k in chg){ hasChg=true; break; }
     coordList().forEach(function(p){
       var node=p.p+'.'+p.t, st=r.node[node];
       if(!st) return; // netlist にまだ部品が無い端子は出さない
       var dx=(p.dx===undefined)?50:p.dx, dy=(p.dy===undefined)?-90:p.dy;
       var cx=p.x+dx, cy=p.y+dy, w=p.t.length*15+26;
-      var rad=(st==='off')?9:14, sw=(st==='post')?6:4, dim=(st==='off');
-      var isChg=!!chg[node];
-      // ⚠️変化アテンションはユーザー指摘で強化済み：状態色に頼らず固定の黄で高コントラスト・
-      //   .fl は無限パルスで次の操作まで消えない・.beacon で端子ひと固まりを拍動させる
-      var body='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+cx+'" y2="'+(cy+18)+'" stroke="#111" stroke-width="2.5" opacity="'+(dim?0.35:0.9)+'"/>'+
+      var rad=(st==='off')?9:14, sw=(st==='post')?6:4, lowsig=(st==='off');
+      var isChg=!!chg[node], faded=(hasChg && !isChg);
+      // ⚠️色（赤=B+）だけでは常時30系の既存の赤と区別が付かないというユーザー指摘への対応。
+      //   .fl（無限パルス）と .beacon（拍動）は残しつつ、変化が起きた瞬間はそれ以外の端子と
+      //   背景画像ごと dim で沈める＝色に頼らず「レイヤー」そのもので変化した端子だけを浮かせる
+      var body='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+cx+'" y2="'+(cy+18)+'" stroke="#111" stroke-width="2.5" opacity="'+(lowsig?0.35:0.9)+'"/>'+
             (st==='hot'?'<circle cx="'+p.x+'" cy="'+p.y+'" r="26" fill="#d32f2f" opacity="0.22"/>':'')+
             (isChg?'<circle class="fl" cx="'+p.x+'" cy="'+p.y+'" r="20"/>':'')+
             '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+rad+'" fill="'+FILL[st]+'" stroke="'+RING[st]+'" stroke-width="'+sw+'"/>'+
-            '<rect x="'+(cx-w/2)+'" y="'+(cy-21)+'" width="'+w+'" height="40" rx="9" fill="#fff" stroke="'+(isChg?'#ffea00':EDGE[st])+'" stroke-width="'+(isChg?5:3)+'" opacity="'+(dim?0.6:1)+'"/>'+
-            '<text x="'+cx+'" y="'+(cy+9)+'" text-anchor="middle" font-family="Arial,sans-serif" font-size="26" font-weight="700" fill="#111" opacity="'+(dim?0.55:1)+'">'+p.t+'</text>';
-      html += isChg ? ('<g class="beacon" style="transform-origin:'+p.x+'px '+p.y+'px">'+body+'</g>') : body;
+            '<rect x="'+(cx-w/2)+'" y="'+(cy-21)+'" width="'+w+'" height="40" rx="9" fill="#fff" stroke="'+(isChg?'#ffea00':EDGE[st])+'" stroke-width="'+(isChg?5:3)+'" opacity="'+(lowsig?0.6:1)+'"/>'+
+            '<text x="'+cx+'" y="'+(cy+9)+'" text-anchor="middle" font-family="Arial,sans-serif" font-size="26" font-weight="700" fill="#111" opacity="'+(lowsig?0.55:1)+'">'+p.t+'</text>';
+      var cls='term'+(isChg?' beacon':'')+(faded?' dim':'');
+      html += '<g class="'+cls+'"'+(isChg?' style="transform-origin:'+p.x+'px '+p.y+'px"':'')+'>'+body+'</g>';
     });
     marksEl.innerHTML=html;   // ⚠️ov 全体を書き換えると背景の <image> ごと消える
+    img.style.opacity = hasChg ? '0.3' : '1';
   }
 
   function drawTable(r){
