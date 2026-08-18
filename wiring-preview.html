@@ -99,6 +99,15 @@
   #termbtn:hover { border-color:var(--accent); color:var(--accent); }
   #termbtn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
   #termbtn:disabled { display:none; }
+  /* 図だけの全画面：PCは body が height:100vh・overflow:hidden の縦積みなので、
+     上に積んだ行（header+lead+tbar＝約182px）がそのまま図の縮小になる。
+     隠せばその分そのまま図が大きくなる（図は縦フィットで縮尺が決まるため）。 */
+  #fsbtn { position:absolute; top:10px; left:10px; z-index:3;
+           border:1px solid var(--line); background:var(--bg); color:var(--ink);
+           border-radius:20px; padding:6px 12px; font-size:12.5px; font-weight:700;
+           cursor:pointer; box-shadow:0 1px 6px rgba(0,0,0,.15); }
+  #fsbtn:hover { border-color:var(--accent); color:var(--accent); }
+  body.fs > header, body.fs > .lead, body.fs > .tbar { display:none; }
   .hint { position:fixed; bottom:10px; left:50%; transform:translateX(-50%);
           font-size:11px; color:#fff; background:rgba(0,0,0,.55); padding:4px 10px; border-radius:20px;
           pointer-events:none; opacity:.9; }
@@ -135,6 +144,8 @@
     header .cur { display:none; }
     header .brand { font-size:13px; }
     .ctl { display:none; }
+    /* スマホは body が overflow-y:auto ＝上の行はスクロールで逃がせるので全画面は不要 */
+    #fsbtn { display:none; }
     .lead { font-size:13px; padding:9px 12px; }
     .hint-desktop { display:none; }
     .hint-mobile { display:inline; }
@@ -258,7 +269,7 @@
 <button class="tab" data-i="13">ワイパー</button>
 <button class="tab" data-i="14">ステアリングコラム</button>
 <button class="tab" data-i="15">メーターパネル</button></nav>
-  <main id="main"><div id="msg">読み込み中…</div><img id="img" alt=""><svg id="tlayer" viewBox="0 0 1684 2382" aria-hidden="true"></svg><button type="button" id="termbtn" aria-pressed="false">端子番号</button></main>
+  <main id="main"><div id="msg">読み込み中…</div><img id="img" alt=""><svg id="tlayer" viewBox="0 0 1684 2382" aria-hidden="true"></svg><button type="button" id="termbtn" aria-pressed="false">端子番号</button><button type="button" id="fsbtn" aria-pressed="false" title="図だけを大きく表示（Escで戻る）">⛶ 図を大きく</button></main>
 </div>
 <div class="hint" id="hint">2本指でズーム／タップで拡大・戻す／拡大中はドラッグで移動<span class="hint-desktop"> ・ホイールでズーム・← → で系統切替</span></div>
 <script>
@@ -501,6 +512,17 @@
   }
   termbtn.addEventListener('click', toggleTerm);
   window.addEventListener('resize', ()=>{ if(termOn) syncTermBox(); });
+  // 図だけの全画面（PCのみ）。上の3行を隠すと、その高さがそのまま図の拡大になる。
+  // ⛔状態は保存しない（型式と同じ考え方＝再訪や共有リンクで意図しない画面にしない）
+  const fsbtn=document.getElementById('fsbtn');
+  function setFs(on){
+    document.body.classList.toggle('fs', on);
+    fsbtn.setAttribute('aria-pressed', on?'true':'false');
+    fsbtn.textContent = on ? '⛶ 元に戻す' : '⛶ 図を大きく';
+    if(termOn) syncTermBox();   // 画像の表示サイズが変わるので端子札を追従させる
+  }
+  fsbtn.addEventListener('click', ()=>setFs(!document.body.classList.contains('fs')));
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && document.body.classList.contains('fs')) setFs(false); });
   function setType(t){
     if (TYPES.indexOf(t) < 0 || t === typ) return;
     typ = t;
