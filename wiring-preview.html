@@ -441,7 +441,7 @@
   // D型はF型と16系統すべて結線同一（確認済み）なのでF型のデータを共用する。
   // L型は照合の済んだ端子だけを持つ（未確定の計器盤・外部照明SW・ヒューズ箱は出さない＝#lnote で断る）。
   // R型はデータ未整備＝ボタンごと出さない（誤った番号を見せない）。
-  const TERM_VERSION='3';
+  const TERM_VERSION='4';
   const tlayer=document.getElementById('tlayer'), termbtn=document.getElementById('termbtn');
   const TERM_SRC={ F:'F', D:'F', L:'L' };
   let termOn=false, termData=null, termLoading=false;
@@ -487,12 +487,16 @@
     }
     return out;
   }
-  function termChip(p){
+  function termChip(p,i,arr){
     const dx=(p.dx===undefined)?50:p.dx, dy=(p.dy===undefined)?-90:p.dy;
     const cx=p.x+dx, cy=p.y+dy;
     const w=p.t.length*15+24;
+    // 端子が密に並ぶ場所（コラムSW・ワイパーモーター等）は輪同士が団子になるので、隣が近いときだけ輪を小さくする
+    let nd=1e9;
+    if(arr) for(let k=0;k<arr.length;k++){ if(k===i) continue; const q=arr[k]; const d=Math.hypot(q.x-p.x,q.y-p.y); if(d<nd) nd=d; }
+    const r=(nd<24)?6:13;
     return '<line x1="'+p.x+'" y1="'+p.y+'" x2="'+cx+'" y2="'+(cy+18)+'" stroke="#111" stroke-width="2.5"/>'+
-           '<circle cx="'+p.x+'" cy="'+p.y+'" r="13" fill="none" stroke="#c81e1e" stroke-width="4"/>'+
+           '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+r+'" fill="none" stroke="#c81e1e" stroke-width="'+(r<10?3:4)+'"/>'+
            '<rect x="'+(cx-w/2)+'" y="'+(cy-21)+'" width="'+w+'" height="40" rx="9" fill="#fff" stroke="#111" stroke-width="3"/>'+
            '<text x="'+cx+'" y="'+(cy+9)+'" text-anchor="middle" font-family="Arial,sans-serif" font-size="26" font-weight="700" fill="#111">'+p.t+'</text>';
   }
