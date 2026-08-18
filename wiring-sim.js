@@ -157,6 +157,63 @@
                                    for (k in state) c[state[k]]++; return c; })() };
   }
 
+  /* 仕様パッチ（段取り3）。netlist に ops を当ててから solve に渡すだけ＝このファイルの
+     上のロジックは一切変えていない（SCHEMA §G「次の一手」の見込みどおり）。
+     op は6種（SCHEMA §D は5種を見積もっていたが、実装して控回路レバー〔engine 等〕が
+     入れ替わった部品を動かせない、という漏れが分かったので setControl を足した）:
+       removePart / addPart / removeWire / addWire / setModel / setControl
+     自由描画（座標や任意の結線をユーザーが描く）は無い＝どれも構造化されたデータ操作のみ。 */
+  function clone(x) { return JSON.parse(JSON.stringify(x)); }
+
+  function applyPatchOps(net, ops) {
+    var n = clone(net), i, op;
+    for (i = 0; i < (ops || []).length; i++) {
+      op = ops[i];
+      if (op.op === 'removePart') {
+        n.parts = n.parts.filter(function (p) { return p.id !== op.id; });
+      } else if (op.op === 'addPart') {
+        n.parts.push(op.part);
+      } else if (op.op === 'removeWire') {
+        var ids = [].concat(op.id);
+        n.wires = n.wires.filter(function (w) { return ids.indexOf(w.id) < 0; });
+      } else if (op.op === 'addWire') {
+        n.wires.push(op.wire);
+      } else if (op.op === 'setModel') {
+        n.parts.forEach(function (p) { if (p.id === op.id) p.model = op.model; });
+      } else if (op.op === 'setControl') {
+        (n.controls || []).forEach(function (c) {
+          if (c.id !== op.id) return;
+          c.options.forEach(function (o) {
+            var add = op.merge && op.merge[o.v];
+            if (!add) return;
+            o.set = o.set || {};
+            for (var k in add) o.set[k] = add[k];
+          });
+        });
+      }
+    }
+    return n;
+  }
+
+  /* 車の仕様（generator/ignition_type/fuel_pump …）に該当するパッチだけを順に当てる。
+     spec が持たない列・patch.when に無い列は無視＝申告した項目だけで判定する。 */
+  function matchesWhen(when, spec) {
+    if (!when) return true;
+    for (var k in when) if (!spec || spec[k] !== when[k]) return false;
+    return true;
+  }
+
+  function applyPatches(net, patches, spec, type) {
+    var n = net, i, p;
+    for (i = 0; i < (patches || []).length; i++) {
+      p = patches[i];
+      if (!inTypes(p, type) || !matchesWhen(p.when, spec)) continue;
+      n = applyPatchOps(n, p.ops);
+    }
+    return n;
+  }
+
   global.WiringSim = { solve: solve, positionsFrom: positionsFrom, defaultPositions: defaultPositions,
-                       partEdges: partEdges, nid: nid, STATES: ['hot', 'post', 'gnd', 'off'] };
+                       partEdges: partEdges, nid: nid, STATES: ['hot', 'post', 'gnd', 'off'],
+                       applyPatchOps: applyPatchOps, applyPatches: applyPatches, matchesWhen: matchesWhen };
 })(typeof window !== 'undefined' ? window : globalThis);

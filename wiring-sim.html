@@ -168,6 +168,20 @@
   <p class="note">変わった端子は図の上で光ります。図に座標を持たない端子（合成端子・アース側など）は下の表に ◇ 付きで出しています。</p>
 </div>
 
+<div class="card">
+  <h2>④ 仕様パッチを試す（段取り3・作業場限定）</h2>
+  <label style="display:flex;align-items:center;gap:8px;font-size:.86rem;cursor:pointer">
+    <input type="checkbox" id="patchToggle" style="width:17px;height:17px">
+    <span><b>オルタネーター換装</b>を適用する（<code>generator=オルタネーター</code> の車を想定）</span>
+  </label>
+  <p class="note" id="patchNote">
+    レギュレータ＋ダイナモを外し、社外オルタネーター1台（B+・D+・アース）に置き換えます。
+    チャージ灯はD+端子経由に付け替わりますが、点灯条件は原典のダイナモ+レギュレータ構成と同じになるはずです。
+    ⚠️このモデルはFIAT純正取説には無い改造の再構成（v:inf）＝出典は <code>wiring-patches.json</code> の <code>ledger</code>。
+    「レギュレータ故障」の場面はオルタネーター車には対応するモデルが無いため無効（レギュレータ自体が存在しない）。
+  </p>
+</div>
+
 <details class="card">
   <summary style="font-size:.92rem;color:var(--accent);font-weight:700;cursor:pointer">端子の状態（全部）</summary>
   <table id="tbl"><tbody></tbody></table>
@@ -183,19 +197,30 @@
   </p>
 </details>
 
+<details class="card">
+  <summary style="font-size:.92rem;color:var(--accent);font-weight:700;cursor:pointer">検算（gen-altパッチ適用時＝オルタネーター車でも同じ条件で点灯/消灯するか）</summary>
+  <table id="chkp"><tbody></tbody></table>
+  <p class="note">
+    期待値は原典（ダイナモ+レギュレータ構成）の検算と<strong>同じ表</strong>を使っています。
+    パッチが部品を置き換えても「キーONで点く」「エンジン回転で消える」等の<strong>外から見た挙動が変わらないこと</strong>を確認するためのものです。
+    ここが崩れたら、パッチのモデル（<code>wiring-patches.json</code>）のほうが間違っています。
+  </p>
+</details>
+
 <script src="/wiring-sim.js?v=2"></script>
 <script>
 (function(){
   'use strict';
-  var NET_VERSION='2', TERM_VERSION='9', TYPE='F';
-  var net=null, terms=null, inputs={}, prev=null;
+  var NET_VERSION='2', TERM_VERSION='9', PATCH_VERSION='1', TYPE='F';
+  var net=null, terms=null, patches=null, inputs={}, prev=null, curNet=null, patchOn=false;
   var ctrlsEl=document.getElementById('ctrls'), lampsEl=document.getElementById('lamps'),
       ov=document.getElementById('ov'), tbody=document.querySelector('#tbl tbody'),
       cntEl=document.getElementById('cnt'), chkBody=document.querySelector('#chk tbody'),
+      chkpBody=document.querySelector('#chkp tbody'),
       img=document.getElementById('img'), scenesEl=document.getElementById('scenes'),
       watchEl=document.getElementById('watch'), changedEl=document.getElementById('changed'),
       hintEl=document.getElementById('hint'), fig=document.getElementById('fig'),
-      marksEl=document.getElementById('marks');
+      marksEl=document.getElementById('marks'), patchToggle=document.getElementById('patchToggle');
 
   /* 試す場面。⚠️これは「見せ方」なのでページ側に置く（車の事実＝wiring-net.json の controls とは別物）。
      set は controls の値。書いていない項目は既定に戻す＝場面を選べば必ず同じ状態から始まる。 */
@@ -220,10 +245,21 @@
 
   Promise.all([
     fetch('/wiring-net.json?v='+NET_VERSION).then(function(r){ return r.json(); }),
-    fetch('/wiring-terminals.json?v='+TERM_VERSION).then(function(r){ return r.json(); })
-  ]).then(function(a){ net=a[0]; terms=a[1]; buildControls(); buildScenes(); runChecks(); update(true); })
+    fetch('/wiring-terminals.json?v='+TERM_VERSION).then(function(r){ return r.json(); }),
+    fetch('/wiring-patches.json?v='+PATCH_VERSION).then(function(r){ return r.json(); })
+  ]).then(function(a){ net=a[0]; terms=a[1]; patches=a[2]; buildControls(); buildScenes(); runChecks(); runChecksPatched(); update(true); })
     .catch(function(e){ document.querySelector('.wrap').insertAdjacentHTML('afterbegin',
       '<p class="ng">データを読み込めませんでした: '+e+'</p>'); });
+
+  /* 段取り3＝仕様パッチ。適用は「netlist に ops を当ててから solve する」だけ＝WiringSim.solve
+     自体は変えていない（wiring-simulator/SCHEMA.md §G 次の一手のとおり）。ここではオルタネーター
+     換装（generator=オルタネーター）1本だけをチェックボックスで試せるようにしている。 */
+  var GENALT_SPEC={ generator:'オルタネーター' };
+  function activeNet(){
+    if(!patchOn || !patches) return net;
+    return WiringSim.applyPatches(net, patches.patches, GENALT_SPEC, TYPE);
+  }
+  patchToggle.addEventListener('change', function(){ patchOn=patchToggle.checked; update(); });
 
   function buildScenes(){
     scenesEl.innerHTML='<button type="button" class="scene" data-k="" aria-pressed="true">はじめの状態</button>'+
@@ -334,10 +370,11 @@
   }
 
   function update(first){
-    var r=WiringSim.solve(net,{inputs:inputs,type:TYPE});
+    curNet=activeNet();
+    var r=WiringSim.solve(curNet,{inputs:inputs,type:TYPE});
     var chg={}, names=[];
     if(!first && prev){
-      var label={}; net.parts.forEach(function(p){ label[p.id]=p.label; });
+      var label={}; curNet.parts.forEach(function(p){ label[p.id]=p.label; });
       r.nodes.forEach(function(n){
         if(prev[n]!==undefined && prev[n]!==r.node[n]){
           chg[n]=1;
@@ -399,7 +436,7 @@
 
   function drawTable(r){
     var coords={}; coordList().forEach(function(p){ coords[p.p+'.'+p.t]=1; });
-    var label={}; net.parts.forEach(function(p){ label[p.id]=p.label; });
+    var label={}; curNet.parts.forEach(function(p){ label[p.id]=p.label; });
     var LAB={hot:'B+',post:'負荷の先',gnd:'アース',off:'無電'}, ORD={hot:0,post:1,gnd:2,off:3};
     var rows=r.nodes.slice().sort(function(a,b){ return (ORD[r.node[a]]-ORD[r.node[b]])||a.localeCompare(b); });
     tbody.innerHTML='<tr><th>端子</th><th>部品</th><th>状態</th></tr>'+rows.map(function(n){
@@ -428,6 +465,22 @@
     chkBody.innerHTML='<tr><th>状態</th><th>チャージ灯</th><th>スターター</th><th>B+</th><th>負荷の先</th><th></th></tr>'+
       CASES.map(function(c){
         var r=WiringSim.solve(net,{inputs:c[1],type:TYPE});
+        function on(id){ var f=false; r.loads.forEach(function(x){ if(x.id===id&&x.on) f=true; }); return f; }
+        var a=on('quadro.warn_charge'), b=on('starter'), ok=(a===c[2]&&b===c[3]);
+        return '<tr><td>'+c[0]+'</td><td>'+(a?'点':'消')+'</td><td>'+(b?'回る':'—')+'</td><td>'+
+               r.count.hot+'</td><td>'+r.count.post+'</td><td class="'+(ok?'ok':'ng')+'">'+(ok?'一致':'不一致')+'</td></tr>';
+      }).join('');
+  }
+
+  /* gen-altパッチを常に適用した netlist で同じ5ケースを回す＝画面のトグルとは独立に、
+     パッチを当てても「外から見た挙動（点灯/消灯・スターター）」が変わらないことを検算する。
+     期待値の列は CASES（原典の挙動）をそのまま使う＝二重管理しない。 */
+  function runChecksPatched(){
+    if(!patches){ chkpBody.innerHTML=''; return; }
+    var pnet=WiringSim.applyPatches(net, patches.patches, GENALT_SPEC, TYPE);
+    chkpBody.innerHTML='<tr><th>状態</th><th>チャージ灯</th><th>スターター</th><th>B+</th><th>負荷の先</th><th></th></tr>'+
+      CASES.map(function(c){
+        var r=WiringSim.solve(pnet,{inputs:c[1],type:TYPE});
         function on(id){ var f=false; r.loads.forEach(function(x){ if(x.id===id&&x.on) f=true; }); return f; }
         var a=on('quadro.warn_charge'), b=on('starter'), ok=(a===c[2]&&b===c[3]);
         return '<tr><td>'+c[0]+'</td><td>'+(a?'点':'消')+'</td><td>'+(b?'回る':'—')+'</td><td>'+
