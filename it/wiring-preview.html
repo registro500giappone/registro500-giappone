@@ -247,6 +247,7 @@
 <!-- L型で端子番号を出したときだけの断り書き。番号が無い箇所を「原典にも無い」と誤解させないため
      （原典 Fiat 500 L 取説 p59 にはあり、図との照合が未了なだけ）。台帳＝terminals_ledger_L.md -->
 <div class="dnote" id="lnote">Sulla L mostriamo <b>solo i morsetti la cui sigla abbiamo potuto verificare sul libretto di uso e manutenzione originale</b>. I componenti le cui sigle non sono proprio riportate nello schema originale &mdash; per esempio la scatola dei fusibili e l&rsquo;intermittenza &mdash; restano senza numero (non colmiamo le lacune per supposizione).</div>
+<div class="dnote" id="rnote">Sulla R mostriamo <b>solo i morsetti in comune con la F</b>. Il quadro di controllo resta senza numeri: sulla R c&rsquo;&egrave; l&rsquo;indicatore del livello carburante e i morsetti sono diversi, e non abbiamo potuto verificarli.</div>
 <div class="dnote" id="tnote">I cerchi rossi indicano i <b>morsetti</b> (i punti in cui si collega un cavo); le targhette bianche sono le loro sigle, trascritte dallo schema elettrico del libretto di uso e manutenzione FIAT. <button type="button" id="tinfo-open" class="ldiff-btn">Come leggere i morsetti ›</button></div></div>
 <div class="mbar" id="mbar">
   <button class="mbar-btn" id="mprev" aria-label="Circuito precedente">◀</button>
@@ -439,10 +440,10 @@
   // データは日本語版と共通の /wiring-terminals.json（札の中身は数字と記号だけ＝言語に依らない）。
   // D型はF型と16系統すべて結線同一（確認済み）なのでF型のデータを共用する。
   // L型は照合の済んだ端子だけを持つ（未確定のヒューズ箱・L型固有スイッチは出さない＝#lnote で断る）。
-  // R型はデータ未整備＝ボタンごと出さない（誤った番号を見せない）。
-  const TERM_VERSION='7';
+  // R型はF型と共通の端子だけを持つ（メーターはR型で構成が違うので出さない＝#rnote で断る）。
+  const TERM_VERSION='8';
   const tlayer=document.getElementById('tlayer'), termbtn=document.getElementById('termbtn');
-  const TERM_SRC={ F:'F', D:'F', L:'L' };
+  const TERM_SRC={ F:'F', D:'F', L:'L', R:'R' };
   let termOn=false, termData=null, termLoading=false;
   function syncTermBox(){
     tlayer.style.left=img.offsetLeft+'px'; tlayer.style.top=img.offsetTop+'px';
@@ -457,6 +458,7 @@
     document.getElementById('tnote').style.display=(termOn&&avail)?'block':'none';
     // L型の「準備中」は端子番号を出しているときだけ（番号を見ていない人には無関係な帯）
     document.getElementById('lnote').style.display=(termOn&&avail&&typ==='L')?'block':'none';
+    document.getElementById('rnote').style.display=(termOn&&avail&&typ==='R')?'block':'none';
   }
   // 札の自動配置：元の位置が他の札や端子と重なるときだけ、上下（それでも駄目なら左右反転）にずらす。
   // 図が密なので固定のdx/dyだけでは「全表示」で必ず重なる＝表示のたびに配置し直す。
@@ -617,7 +619,7 @@
   <p>Le targhette che non sono numeri sono le sigle dei contatti interni di quel componente: <span class="k">C, F, INT</span> sul motorino del tergicristallo, <span class="k">C, D, H, L</span> sull'interruttore del tergicristallo, <span class="k">+, P, L</span> sull'intermittenza, <span class="k">2, L, 5</span> sul devioluci degli indicatori di direzione, <span class="k">C, INT</span> sul commutatore luci esterne al piantone, <span class="k">L</span> sull'interruttore luce quadro e <span class="k">E, F</span> sull'interruttore luci esterne della 500 L, e <span class="k">INTER</span> (alimentazione sotto chiave) o <span class="k">0</span> (spia della pressione dell'olio) sul quadro.</p>
   <p><span class="k">Lo stesso cavo prende un nome diverso alle due estremità.</span> Il cavo azzurro del tergicristallo, per esempio, è &laquo;F&raquo; sul motorino e &laquo;C&raquo; sull'interruttore. La sigla non è il nome del cavo ma <b>il nome del morsetto sul componente</b>.</p>
   <h3>Modelli con i morsetti</h3>
-  <p>I morsetti sono disponibili per la F, la D e la L (la D usa gli stessi dati della F, perché tutti i 16 circuiti hanno collegamenti identici). <span class="k">Sulla L li mostriamo man mano che li verifichiamo</span>: la scatola dei fusibili e alcuni interruttori presenti solo sulla L sono ancora in corso di verifica. La R non è ancora pronta.</p>
+  <p>I morsetti sono disponibili per tutti e quattro i modelli &mdash; D, F, L e R (la D usa gli stessi dati della F, perché tutti i 16 circuiti hanno collegamenti identici). <span class="k">Sulla L mostriamo solo le sigle che abbiamo potuto verificare sul libretto originale</span>: i componenti le cui sigle non vi sono proprio riportate, come la scatola dei fusibili e l&rsquo;intermittenza, restano senza etichetta. <span class="k">Sulla R mostriamo solo i morsetti in comune con la F</span>: il quadro di controllo resta escluso, perché sulla R c&rsquo;è l&rsquo;indicatore del livello carburante e i morsetti sono diversi.</p>
   <p class="note">Solo per i contatti della scatola dei fusibili le sigle provengono dallo schema originale della D: lo schema originale della F (e della D) indica i fusibili unicamente con la posizione (1&ndash;6, A&ndash;F) e la D è verificata come identica nei collegamenti. Questo passaggio non vale per la L, la cui assegnazione dei fusibili è diversa da quella della F: per questo sulla scatola dei fusibili della L non compaiono targhette. I morsetti che nello schema originale non hanno sigla (fanali posteriori, clacson, interruttori delle porte, trasmettitore del carburante e altri) restano senza targhetta. I dettagli variano con l'anno, il mercato e le modifiche: prima di intervenire verifica sempre sull'auto reale.</p>
 </div></div>
 <div id="ldiff-overlay"><div id="ldiff-panel">
