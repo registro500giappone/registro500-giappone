@@ -246,7 +246,7 @@
 <div id="notes"><div class="dnote" id="dnote">The D version is a reference drawing produced by our club from the F diagram (drawn by OTSUKA). We compared it with the factory D wiring diagram and confirmed that all 16 circuits are identical in connections and in wire colours. The routing around the panel light switch (legend 9) follows the base drawing, the F: on the factory D diagram the switch sits on the supply side (ignition-on supply → switch → lamp), but the way it works and is operated is the same.</div>
 <!-- L型で端子番号を出したときだけの断り書き。番号が無い箇所を「原典にも無い」と誤解させないため
      （原典 Fiat 500 L 取説 p59 にはあり、図との照合が未了なだけ）。台帳＝terminals_ledger_L.md -->
-<div class="dnote" id="lnote">On the L, terminals are shown as they are verified. <b>The instrument panel, the exterior lighting switch and the fuse box are still being checked</b> (they are printed in the factory owner&rsquo;s handbook, but we have not finished matching them against the diagram, so they are not shown yet).</div>
+<div class="dnote" id="lnote">On the L, terminals are shown as they are verified. <b>The fuse box and a few switches fitted only to the L are still being checked</b> (they are printed in the factory owner&rsquo;s handbook, but we have not finished matching them against the diagram, so they are not shown yet).</div>
 <div class="dnote" id="tnote">The red circles are the <b>terminals</b> (where a wire is connected); the white tags are their designations, transcribed from the wiring diagram in the FIAT owner&rsquo;s handbook. <button type="button" id="tinfo-open" class="ldiff-btn">How to read the terminals ›</button></div></div>
 <div class="mbar" id="mbar">
   <button class="mbar-btn" id="mprev" aria-label="Previous circuit">◀</button>
@@ -438,9 +438,9 @@
   // 純正取説の配線図に載っている端子番号(DIN)を、同じ座標系のSVGで図に重ねる。
   // データは日本語版と共通の /wiring-terminals.json（札の中身は数字と記号だけ＝言語に依らない）。
   // D型はF型と16系統すべて結線同一（確認済み）なのでF型のデータを共用する。
-  // L型は照合の済んだ端子だけを持つ（未確定の計器盤・外部照明SW・ヒューズ箱は出さない＝#lnote で断る）。
+  // L型は照合の済んだ端子だけを持つ（未確定のヒューズ箱・L型固有スイッチは出さない＝#lnote で断る）。
   // R型はデータ未整備＝ボタンごと出さない（誤った番号を見せない）。
-  const TERM_VERSION='5';
+  const TERM_VERSION='6';
   const tlayer=document.getElementById('tlayer'), termbtn=document.getElementById('termbtn');
   const TERM_SRC={ F:'F', D:'F', L:'L' };
   let termOn=false, termData=null, termLoading=false;
@@ -608,6 +608,7 @@
   <h3>Lighting</h3>
   <dl>
     <dt>56a</dt><dd>Main beam.</dd>
+    <dt>56/a1, 56/a2</dt><dd>Main beam split left and right (56/a1 = left, 56/a2 = right).</dd>
     <dt>56b</dt><dd>Dipped beam.</dd>
     <dt>56/b1, 56/b2</dt><dd>Dipped beam split left and right at the fuses (56/b1 = left, 56/b2 = right).</dd>
     <dt>57</dt><dd>Position (side) light circuit. On the instrument it feeds the tell-tale for the position lights.</dd>
@@ -616,7 +617,7 @@
   <p>Tags that are not numbers are the markings given to the internal contacts of that component: <span class="k">C, F, INT</span> on the wiper motor, <span class="k">C, D, H, L</span> on the wiper switch, <span class="k">+, P, L</span> on the flasher unit, <span class="k">2, L, 5</span> on the turn signal switch, and <span class="k">INTER</span> (the ignition-on supply) or <span class="k">0</span> (oil pressure warning &mdash; <i>olio</i>) on the instrument.</p>
   <p><span class="k">One and the same wire is called something different at each end.</span> The light blue wire in the wiper circuit, for instance, is &ldquo;F&rdquo; at the motor and &ldquo;C&rdquo; at the switch. A designation is not the name of the wire but <b>the name of the terminal on the component</b>.</p>
   <h3>Which models show terminals</h3>
-  <p>Terminals are available for the F, the D and the L (the D uses the same data as the F, since all 16 circuits are wired identically). <span class="k">On the L they are shown as they are verified</span> &mdash; the instrument panel, the exterior lighting switch and the fuse box are still being checked. The R is not ready yet.</p>
+  <p>Terminals are available for the F, the D and the L (the D uses the same data as the F, since all 16 circuits are wired identically). <span class="k">On the L they are shown as they are verified</span> &mdash; the fuse box and a few switches fitted only to the L are still being checked. The R is not ready yet.</p>
   <p class="note">For the fuse box contacts only, the designations are taken from the factory D diagram: the factory F (and D) diagram marks the fuses by position (1&ndash;6, A&ndash;F) alone, and the D is confirmed to be wired identically. That transfer cannot be used on the L, whose fuse assignment differs from the F, so no tags are shown on the L fuse box. Terminals that carry no designation in the original diagram (rear lamps, horn, door switches, fuel sender and so on) are left untagged. Details vary with year, market and modifications &mdash; always check against the actual car before working on it.</p>
 </div></div>
 <div id="ldiff-overlay"><div id="ldiff-panel">
