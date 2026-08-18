@@ -241,9 +241,9 @@
     <button type="button" class="tbtn" data-t="R">R</button>
   </div>
 </div>
-<!-- D型選択時だけ出す断り書き。パネル照明SWの注記文面は 2026-08-17 に確定済み
-     （registro500-notes\wiring-work\df_diff.md）＝画像16枚には入れず、ここに出す。 -->
-<div id="notes"><div class="dnote" id="dnote">La versione D è un disegno di riferimento realizzato dal nostro club a partire dallo schema della F (disegnato da OTSUKA). Lo abbiamo confrontato con lo schema elettrico originale della D e abbiamo verificato che tutti i 16 circuiti sono identici per collegamenti e colori dei cavi. Il percorso attorno all'interruttore dell'illuminazione del quadro (legenda 9) segue il disegno di base, quello della F: nello schema originale della D l'interruttore si trova sul lato alimentazione (alimentazione sotto chiave → interruttore → lampada), ma il funzionamento e l'uso sono gli stessi.</div>
+<!-- D型選択時だけ出す断り書き。詳細は #ldiff-overlay の「F e D」節に集約し、
+     ここは1行＋ボタンのみ（2026-08-18・6行の帯が視認性を阻害するため短縮）。 -->
+<div id="notes"><div class="dnote" id="dnote">La versione D è un disegno di riferimento realizzato dal nostro club (collegamenti e colori identici alla F, tutti i 16 circuiti). <button type="button" id="dnote-open" class="ldiff-btn">Dettagli ›</button></div>
 <!-- L型で端子番号を出したときだけの断り書き。番号が無い箇所を「原典にも無い」と誤解させないため
      （原典 Fiat 500 L 取説 p59 にはあり、図との照合が未了なだけ）。台帳＝terminals_ledger_L.md -->
 <div class="dnote" id="lnote">Sulla L mostriamo <b>solo i morsetti la cui sigla abbiamo potuto verificare sul libretto di uso e manutenzione originale</b>. I componenti le cui sigle non sono proprio riportate nello schema originale &mdash; per esempio la scatola dei fusibili e l&rsquo;intermittenza &mdash; restano senza numero (non colmiamo le lacune per supposizione).</div>
@@ -635,7 +635,7 @@
     <li>Colori dei cavi &mdash; indicati sul cablaggio: Azzurro / Giallo / Grigio / Nero / Rosso / Rosa / Verde / Viola / Bianco / Marrone</li>
   </ul>
   <h3>F e D</h3>
-  <p>Dal confronto con lo schema elettrico originale della D risulta che <span class="k">tutti i 16 circuiti sono identici per collegamenti e colori dei cavi</span>. La versione D è quindi lo stesso disegno della F, con la sola lettera del modello cambiata nel titolo. L'unica differenza di disegno (il percorso attorno all'interruttore dell'illuminazione del quadro) è segnalata dalla nota in alto quando si seleziona la D.</p>
+  <p>Dal confronto con lo schema elettrico originale della D risulta che <span class="k">tutti i 16 circuiti sono identici per collegamenti e colori dei cavi</span>. La versione D è quindi lo stesso disegno della F, con la sola lettera del modello cambiata nel titolo. L'unica differenza riguarda il percorso attorno all'interruttore dell'illuminazione del quadro (legenda 9). Questo disegno segue il percorso della F, mentre nello schema originale della D l'interruttore si trova sul lato alimentazione (alimentazione sotto chiave → interruttore → lampada). In entrambi i casi il funzionamento e l'uso sono gli stessi.</p>
   <h3>F e R</h3>
   <p>Come disegno cambiano <span class="k">solo tre circuiti: tergicristallo, indicatori di direzione e quadro di controllo</span>. Negli altri 13 circuiti non cambia un solo cavo.</p>
   <h3>F e L</h3>
@@ -649,18 +649,20 @@
 </div></div>
 <script>
 (function(){
-  function bind(ovId, openId, closeId){
+  function bind(ovId, openIds, closeId){
     var ov=document.getElementById(ovId);
-    var op=document.getElementById(openId);
     var cl=document.getElementById(closeId);
     function setO(v){ ov.classList.toggle('open', v); }
-    op.addEventListener('click', function(){ setO(true); });
+    openIds.forEach(function(id){
+      var op=document.getElementById(id);
+      if(op) op.addEventListener('click', function(){ setO(true); });
+    });
     cl.addEventListener('click', function(){ setO(false); });
     ov.addEventListener('click', function(e){ if(e.target===ov) setO(false); });
     document.addEventListener('keydown', function(e){ if(e.key==='Escape') setO(false); });
   }
-  bind('ldiff-overlay','ldiff-open','ldiff-close');
-  bind('tinfo-overlay','tinfo-open','tinfo-close');
+  bind('ldiff-overlay',['ldiff-open','dnote-open'],'ldiff-close');
+  bind('tinfo-overlay',['tinfo-open'],'tinfo-close');
 })();
 </script>
 </body>
