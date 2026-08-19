@@ -81,8 +81,10 @@
   /* ⚠️変化アテンションはユーザー指摘で強化：状態色と別の高コントラスト色・無限パルス・
      マーカー自体もビートさせる（旧: 薄いリング1回強→2秒で消え「前後」が分からなかった） */
   @keyframes flash{0%{opacity:1;r:16px;stroke-width:11}70%{opacity:.12;r:58px;stroke-width:2}100%{opacity:0;r:62px;stroke-width:2}}
-  .fl{fill:none;stroke:#ffea00;animation:flash 1.15s ease-out infinite;
-      filter:drop-shadow(0 0 6px #ffea00) drop-shadow(0 0 2px #b36b00)}
+  /* ⚠️「いま変わった」の合図は紫に統一＝赤(B+)/橙(負荷の先)/青(アース)/灰(無電) のどれとも
+     被らない色をあえて選んでいる（この系統の原典配線色にVIOLAが無いことも確認済み） */
+  .fl{fill:none;stroke:#7c3aed;animation:flash 1.15s ease-out infinite;
+      filter:drop-shadow(0 0 6px #7c3aed) drop-shadow(0 0 2px #4c1d95)}
   @keyframes beat{0%,100%{transform:scale(1)}50%{transform:scale(1.22)}}
   .beacon{animation:beat .85s ease-in-out infinite}
   /* ⚠️色（赤=B+）だけでは常時30系の既存の赤と区別が付かない、というユーザー指摘への対応。
@@ -97,8 +99,9 @@
   .legend span{display:flex;align-items:center;gap:5px}
   .dot{width:13px;height:13px;border-radius:50%;flex:none}
   .d-hot{background:var(--hot)} .d-gnd{background:var(--gnd)}
-  .d-post{background:#fff8e1;border:3px solid var(--post)}
+  .d-post{background:#fff8e1;border:3px dashed var(--post)}
   .d-off{background:var(--off);width:9px;height:9px;margin:0 2px}
+  .d-chg{background:none;border:2px solid #7c3aed;box-shadow:0 0 4px #7c3aed}
   table{border-collapse:collapse;width:100%;font-size:.78rem}
   th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;white-space:nowrap}
   th{color:var(--sub);font-weight:600}
@@ -151,9 +154,10 @@
   </div>
   <div class="legend">
     <span><i class="dot d-hot"></i>B+ に通じている（電流を流せる）</span>
-    <span><i class="dot d-post"></i>負荷の先（電圧は来ているが電流は流れない）</span>
+    <span><i class="dot d-post"></i>負荷の先（電圧は来ているが電流は流れない・点線の輪）</span>
     <span><i class="dot d-gnd"></i>アース側</span>
     <span><i class="dot d-off"></i>無電</span>
+    <span><i class="dot d-chg"></i>いま変わった場所</span>
   </div>
   <p class="changed" id="changed"></p>
 </div>
@@ -411,22 +415,29 @@
   function drawOverlay(r, chg){
     var html='', hasChg=false;
     for(var k in chg){ hasChg=true; break; }
+    // ⚠️DIN番号だけだと「51」が3部品に同時に出て初見では誰の端子か分からない、という
+    //   実機検証での指摘への対応＝ラベルの1行目に部品名（短縮）を必ず添える
+    var pname={}; curNet.parts.forEach(function(pt){ pname[pt.id]=(pt.label||'').split('（')[0]; });
     coordList().forEach(function(p){
       var node=p.p+'.'+p.t, st=r.node[node];
       if(!st) return; // netlist にまだ部品が無い端子は出さない
       var dx=(p.dx===undefined)?50:p.dx, dy=(p.dy===undefined)?-90:p.dy;
-      var cx=p.x+dx, cy=p.y+dy, w=p.t.length*15+26;
+      var cx=p.x+dx, cy=p.y+dy, nm=pname[p.p]||'';
+      var w=Math.max(p.t.length*15, nm.length*18)+30;
       var rad=(st==='off')?9:14, sw=(st==='post')?6:4, lowsig=(st==='off');
       var isChg=!!chg[node], faded=(hasChg && !isChg);
+      // post（負荷の先）は色（橙）だけでなく輪を破線にして、赤/変化パルスと見分けやすくする
+      var dash=(st==='post')?' stroke-dasharray="6 4"':'';
       // ⚠️色（赤=B+）だけでは常時30系の既存の赤と区別が付かないというユーザー指摘への対応。
       //   .fl（無限パルス）と .beacon（拍動）は残しつつ、変化が起きた瞬間はそれ以外の端子と
       //   背景画像ごと dim で沈める＝色に頼らず「レイヤー」そのもので変化した端子だけを浮かせる
-      var body='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+cx+'" y2="'+(cy+18)+'" stroke="#111" stroke-width="2.5" opacity="'+(lowsig?0.35:0.9)+'"/>'+
+      var body='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+cx+'" y2="'+(cy+30)+'" stroke="#111" stroke-width="2.5" opacity="'+(lowsig?0.35:0.9)+'"/>'+
             (st==='hot'?'<circle cx="'+p.x+'" cy="'+p.y+'" r="26" fill="#d32f2f" opacity="0.22"/>':'')+
             (isChg?'<circle class="fl" cx="'+p.x+'" cy="'+p.y+'" r="20"/>':'')+
-            '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+rad+'" fill="'+FILL[st]+'" stroke="'+RING[st]+'" stroke-width="'+sw+'"/>'+
-            '<rect x="'+(cx-w/2)+'" y="'+(cy-21)+'" width="'+w+'" height="40" rx="9" fill="#fff" stroke="'+(isChg?'#ffea00':EDGE[st])+'" stroke-width="'+(isChg?5:3)+'" opacity="'+(lowsig?0.6:1)+'"/>'+
-            '<text x="'+cx+'" y="'+(cy+9)+'" text-anchor="middle" font-family="Arial,sans-serif" font-size="26" font-weight="700" fill="#111" opacity="'+(lowsig?0.55:1)+'">'+p.t+'</text>';
+            '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+rad+'" fill="'+FILL[st]+'" stroke="'+RING[st]+'" stroke-width="'+sw+'"'+dash+'/>'+
+            '<rect x="'+(cx-w/2)+'" y="'+(cy-33)+'" width="'+w+'" height="64" rx="10" fill="#fff" stroke="'+(isChg?'#7c3aed':EDGE[st])+'" stroke-width="'+(isChg?5:3)+'" opacity="'+(lowsig?0.6:1)+'"/>'+
+            '<text x="'+cx+'" y="'+(cy-11)+'" text-anchor="middle" font-family="inherit" font-size="19" font-weight="700" fill="#5a4a1d" opacity="'+(lowsig?0.55:1)+'">'+nm+'</text>'+
+            '<text x="'+cx+'" y="'+(cy+21)+'" text-anchor="middle" font-family="Arial,sans-serif" font-size="26" font-weight="700" fill="#111" opacity="'+(lowsig?0.55:1)+'">'+p.t+'</text>';
       var cls='term'+(isChg?' beacon':'')+(faded?' dim':'');
       html += '<g class="'+cls+'"'+(isChg?' style="transform-origin:'+p.x+'px '+p.y+'px"':'')+'>'+body+'</g>';
     });
