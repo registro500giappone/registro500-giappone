@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""手書き記入用の上面図（A4横・印刷用）を作る。
+"""手書き記入用の上面図・側面図（A4横・印刷用）を作る。
    ユーザーが部品の位置と配線の這わせ方をこの紙に書き込み、それを台帳に起こす。
 
    ⚠️位置を読み取れることがこの紙の目的なので、方眼と目盛りが主役。車体線は薄くする。
@@ -8,22 +8,33 @@
 """
 import re, io
 
-SRC = 'wiring-img/car-top-v9.svg'
 DST = '_top_print.html'
-X0, CY = 25.0, 683.15           # 前端の x、中心線の y（1 unit = 1mm）
+X0 = 25.0                       # 前端の x（どちらの面図でも共通）
+# view ごとの縦軸。top = 中心線からの左右（+が車の右）／side = 地面からの高さ
+VIEWS = {
+    'top':  {'src': 'wiring-img/car-top-v9.svg',
+             'base': 683.15, 'sign': -1, 'axis': '中心線からの左右(m)',
+             'foot': '<b>+が車の右＝紙の上</b>／−が車の左＝紙の下。ノーズは左。'},
+    'side': {'src': 'wiring-simulator/ref/svg/fiat500f_side.svg',
+             'base': 1332.0, 'sign': -1, 'axis': '地面からの高さ(m)',
+             'foot': '<b>車の左側面</b>を見た図。下の太線が地面（高さ0）。ノーズは左。'},
+}
+PATHS = {}
+for _k, _v in VIEWS.items():
+    PATHS[_k] = re.findall(r'<path class="(\w+)" d="([^"]+)"',
+                           io.open(_v['src'], encoding='utf-8').read())
 
-src = io.open(SRC, encoding='utf-8').read()
-PATHS = re.findall(r'<path class="(\w+)" d="([^"]+)"', src)
+VIEW = 'top'                    # sheet() が見る現在の面図
 
 
 def X(m):   return X0 + m * 1000
-def Y(lat): return CY - lat * 1000
+def Y(v):   return VIEWS[VIEW]['base'] + VIEWS[VIEW]['sign'] * v * 1000
 
 
 def car(op_detail=0.35):
     w = {'outline': 2.6, 'panel': 2.2, 'trim': 1.6, 'detail': 1.2}
     out = []
-    for k, d in PATHS:
+    for k, d in PATHS[VIEW]:
         out.append('<path d="%s" fill="none" stroke="#8a8a8a" stroke-width="%.1f" '
                    'stroke-linecap="round" stroke-linejoin="round" opacity="%.2f"/>'
                    % (d, w[k], op_detail if k == 'detail' else .8))
@@ -52,14 +63,18 @@ def grid(m0, m1, lat0, lat1, fs):
         g.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="%s" stroke-width="%.1f"/>'
                  % (X(m0), Y(lat), X(m1), Y(lat), '#a8a8a8' if major else '#d8d8d8', 3 if major else 1.6))
         if major:
-            lab = '0' if j == 0 else ('%+.1f' % lat)
+            lab = ('0' if j == 0 else ('%+.1f' % lat)) if VIEW == 'top' else ('%.1f' % lat)
             for xx, anc in ((X(m0) - fs * .4, 'end'), (X(m1) + fs * .4, 'start')):
                 g.append('<text x="%.1f" y="%.1f" font-size="%.0f" text-anchor="%s" fill="#777">%s</text>'
                          % (xx, Y(lat) + fs * .35, fs, anc, lab))
         j += 1
-    # 中心線。左右の符号を取り違えないよう車の右／左をここに書く
-    g.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#c88" stroke-width="4" '
-             'stroke-dasharray="26 18"/>' % (X(m0), CY, X(m1), CY))
+    # 上面図＝中心線（左右の符号の基準）／側面図＝地面（高さ0）
+    if VIEW == 'top':
+        g.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#c88" stroke-width="4" '
+                 'stroke-dasharray="26 18"/>' % (X(m0), Y(0), X(m1), Y(0)))
+    else:
+        g.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#a99" stroke-width="7"/>'
+                 % (X(m0), Y(0), X(m1), Y(0)))
     return ''.join(g)
 
 
@@ -84,9 +99,9 @@ def sheet(title, sub, m0, m1, lat0, lat1, mm_w, memo=''):
     body = grid(m0, m1, lat0, lat1, fs) + zones(m0, m1, lat0, lat1, fs) + car()
     return ('<section class="sheet"><h2>%s<span>%s</span></h2>'
             '<svg width="%dmm" viewBox="%.1f %.1f %.1f %.1f">%s</svg>'
-            '<p class="foot">方眼は0.1m。数字は前端からの距離(m)と中心線からの左右(m)。'
-            '<b>+が車の右＝紙の上</b>／−が車の左＝紙の下。ノーズは左。</p>%s</section>'
-            % (title, sub, mm_w, vb[0], vb[1], vb[2], vb[3], body, memo))
+            '<p class="foot">方眼は0.1m。数字は前端からの距離(m)と%s。%s</p>%s</section>'
+            % (title, sub, mm_w, vb[0], vb[1], vb[2], vb[3], body,
+               VIEWS[VIEW]['axis'], VIEWS[VIEW]['foot'], memo))
 
 
 def memo_table(cols, rows=7):
@@ -98,15 +113,22 @@ def memo_table(cols, rows=7):
 
 P = ['部品名', '前端から(m)', '中心から(m)（+が車の右）', '高さ・備考']
 W = ['配線（どこ→どこ）', '通る所（例: トンネル内・右サイド）', '備考']
+S = ['部品名', '前端から(m)', '地面から(m)', '備考']
 sheets = [
-    sheet('① 部品の位置', '記入用（全体）', -0.02, 3.00, -0.66, 0.66, 264, memo_table(P)),
-    sheet('② 配線の這わせ方', '記入用（全体）', -0.02, 3.00, -0.66, 0.66, 264, memo_table(W)),
-    sheet('③ 前まわり 0〜1.6m', '拡大・記入用', -0.02, 1.60, -0.66, 0.66, 264),
-    sheet('④ 後ろまわり 1.4〜3.0m', '拡大・記入用', 1.40, 3.00, -0.66, 0.66, 264),
+    sheet('① 部品の位置｜上から', '記入用（全体）', -0.02, 3.00, -0.66, 0.66, 264, memo_table(P)),
+    sheet('② 配線の這わせ方｜上から', '記入用（全体）', -0.02, 3.00, -0.66, 0.66, 264, memo_table(W)),
+    sheet('③ 前まわり 0〜1.6m｜上から', '拡大・記入用', -0.02, 1.60, -0.66, 0.66, 264),
+    sheet('④ 後ろまわり 1.4〜3.0m｜上から', '拡大・記入用', 1.40, 3.00, -0.66, 0.66, 264),
+]
+VIEW = 'side'
+sheets += [
+    sheet('⑤ 部品の高さ｜横から', '記入用（全体・車の左側面）', -0.02, 3.00, 0.0, 1.40, 264, memo_table(S)),
+    sheet('⑥ 配線の這わせ方｜横から', '記入用（全体・車の左側面）', -0.02, 3.00, 0.0, 1.40, 264, memo_table(W)),
+    sheet('⑦ 後ろまわり 1.4〜3.0m｜横から', '拡大・記入用', 1.40, 3.00, 0.0, 1.40, 264),
 ]
 
 html = ('<!doctype html><html lang="ja"><head><meta charset="utf-8">'
-        '<title>FIAT 500F 上面図 — 手書き記入用</title><style>'
+        '<title>FIAT 500F 上面図・側面図 — 手書き記入用</title><style>'
         '@page{size:A4 landscape;margin:8mm}'
         '*{box-sizing:border-box}'
         'body{margin:0;background:#e9e6df;font:13px/1.6 system-ui,sans-serif;color:#333}'
