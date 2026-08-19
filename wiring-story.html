@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<!-- ⛔作業場ページ。導線は付けない（HANDOFF §6-3・CLAUDE.md 全体原則）。仕上がるまで検索にも出さない -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>電気の通り道（作業場・第1層＋第2層の試作）｜Registro500</title>
+
+<!-- Google tag (gtag.js) — 公開ページを増やしたらタグの有無を必ず確認する（過去に計測漏れ実績あり） -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH');
+</script>
+
+<style>
+  :root{
+    --bg:#f6f1e7; --card:#fffdf8; --ink:#23201a; --sub:#6b6357; --line:#ddd4c2; --accent:#1f4d3a;
+    --live:#d32f2f;        /* 電気が流れている道 */
+    --dead:#c9c2b4;        /* 流れていない道 */
+    --spark:#ffd54a;       /* 流れる点 */
+    --lamp:#ff9e1b;        /* 警告灯の光 */
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+       line-height:1.75;-webkit-text-size-adjust:100%}
+  .wrap{max-width:760px;margin:0 auto;padding:14px 13px 80px}
+  h1{font-size:1.06rem;margin:.2em 0 .15em}
+  .lead{color:var(--sub);font-size:.8rem;margin:0 0 14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px 14px;margin:0 0 12px}
+
+  /* 操作は図の直上に固定。⚠️縦に伸ばさない（伸びると図が画面外へ出て変化を追えない・既知の失敗） */
+  .sticky{position:sticky;top:0;z-index:5;background:var(--bg);padding-top:6px;margin:0 0 10px;
+          border-bottom:1px solid var(--line)}
+  .sticky .card{margin-bottom:8px;padding:10px 12px}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .lab{font-size:.72rem;color:var(--sub);width:100%;margin:0 0 -2px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
+  .seg button{appearance:none;border:0;background:#fff;padding:7px 14px;font:inherit;font-size:.85rem;
+              cursor:pointer;color:var(--ink);border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:0}
+  .seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+  .seg button[disabled]{opacity:.4;cursor:not-allowed}
+
+  /* 舞台。第1層＝メーターだけを大きく／第2層＝引いて一周が見える。同じSVGのviewBoxを動かす
+     ＝実物から裏側への移行が断絶しない（別画像に切り替えると「別の絵」になってしまう） */
+  .stage{position:relative;background:#fffdf8;border:1px solid var(--line);border-radius:12px;
+         overflow:hidden;width:100%;aspect-ratio:64/70}
+  .stage svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+  .why{appearance:none;border:0;border-radius:999px;padding:11px 20px;font:inherit;font-size:.92rem;
+       font-weight:700;cursor:pointer;background:var(--accent);color:#fff;box-shadow:0 2px 7px rgba(31,77,58,.28)}
+  .whywrap{display:flex;justify-content:center;margin:11px 0 0}
+
+  .say{margin:12px 0 0;font-size:.93rem;background:#fff7e3;border:1px solid #e8d9a8;
+       border-radius:11px;padding:11px 13px;color:#4a3f22}
+  .say b{color:#2f2712}
+  .say .big{display:block;font-size:1.02rem;font-weight:700;color:#2f2712;margin:0 0 3px}
+  .note{font-size:.76rem;color:var(--sub);margin:9px 0 0}
+  .key{display:flex;gap:16px;align-items:center;font-size:.78rem;color:var(--sub);margin:10px 0 0;flex-wrap:wrap}
+  .key span{display:flex;align-items:center;gap:6px}
+  .key i{width:26px;height:5px;border-radius:3px;flex:none}
+  .key .i-live{background:var(--live)} .key .i-dead{background:var(--dead)}
+
+  /* 電線。⚠️電位の色分け（B+/アース…）はやめた＝素人に要るのは「流れているか」だけ。
+     色は2値（流れている赤／流れていない灰）＋流れる点、これ以上増やさない */
+  .wire{fill:none;stroke:var(--dead);stroke-width:7;stroke-linecap:round;stroke-linejoin:round}
+  .wire.live{stroke:var(--live)}
+  .partlab{font-size:20px;font-weight:700;fill:#3a342a}
+  .partsub{font-size:15px;fill:#7b7263}
+  .hid{display:none}
+  @keyframes glow{0%,100%{opacity:.85}50%{opacity:.35}}
+  .lampglow{animation:glow 1.5s ease-in-out infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>電気の通り道 — 作業場（第1層＋第2層の試作）</h1>
+<p class="lead">
+  実物（メーター）から入り、裏側の電気の流れまでを一続きで見せる試作。配線図は出しません。
+  正常に動いている様子だけを扱います（故障診断は別テーマ）。⛔どこからもリンクしていない作業場です。
+</p>
+
+<div class="sticky">
+  <div class="card">
+    <div class="row">
+      <span class="lab">運転席でやること</span>
+      <div class="seg" id="keyseg">
+        <button type="button" data-v="OFF" aria-pressed="true">キーを抜く</button>
+        <button type="button" data-v="ON" aria-pressed="false">キーを回す</button>
+      </div>
+      <div class="seg" id="engseg">
+        <button type="button" data-v="STOP" aria-pressed="true">エンジン停止</button>
+        <button type="button" data-v="RUN" aria-pressed="false">エンジン始動</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="stage">
+    <svg id="stage" viewBox="186 20 268 262" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+
+      <!-- ============ 電線（部品より先に描いて下に敷く）
+           ⚠️第1層では丸ごと隠す＝メーターだけを見せたいのに線の端が画面に覗くと気が散る ============ -->
+      <g id="wires" class="hid">
+        <path id="s1" class="wire" d="M80,444 L80,203"/>
+        <path id="s2" class="wire" d="M80,137 C128,88 182,116 235,120"/>
+        <path id="s3" class="wire" d="M395,152 C450,192 490,230 522,264"/>
+        <path id="s4" class="wire" d="M561,338 L561,436"/>
+        <path id="s5" class="wire" d="M538,504 C468,552 408,588 374,605"/>
+        <path id="s6" class="wire" d="M266,606 C222,578 176,520 150,472 C142,458 130,450 118,446"/>
+        <!-- 発電した電気がバッテリーへ戻る道＝エンジンが回っているときだけ現れる -->
+        <path id="s7" class="wire hid" d="M536,262 C610,100 450,22 320,22 C190,22 14,105 16,300 L16,428 C16,446 44,452 74,447"/>
+      </g>
+      <!-- 流れる点をここへ差し込む（線の上・部品の下） -->
+      <g id="sparks"></g>
+
+      <!-- ============ 部品（すべて「見れば分かる形」で描く。記号にしない） ============ -->
+
+      <!-- メーター（第1層の主役＝オーナーが毎日見ているもの） -->
+      <g id="meter">
+        <circle cx="320" cy="120" r="86" fill="#2a2620"/>
+        <circle cx="320" cy="120" r="78" fill="#f3ece0" stroke="#8d8574" stroke-width="2"/>
+        <g stroke="#6d6759" stroke-width="3" stroke-linecap="round">
+          <line x1="320" y1="52" x2="320" y2="62"/>
+          <line x1="266" y1="66" x2="272" y2="75"/>
+          <line x1="374" y1="66" x2="368" y2="75"/>
+          <line x1="252" y1="120" x2="262" y2="120"/>
+          <line x1="388" y1="120" x2="378" y2="120"/>
+        </g>
+        <g font-family="Arial,sans-serif" font-size="15" fill="#5f594c" text-anchor="middle">
+          <text x="268" y="88">40</text><text x="320" y="72">60</text><text x="372" y="88">80</text>
+        </g>
+        <line id="needle" x1="320" y1="120" x2="266" y2="146" stroke="#c1442e" stroke-width="4"
+              stroke-linecap="round" style="transition:transform .8s ease" transform-origin="320px 120px"/>
+        <circle cx="320" cy="120" r="8" fill="#2a2620"/>
+        <circle id="lampglow" class="hid lampglow" cx="320" cy="168" r="26" fill="#ff9e1b" opacity=".5"/>
+        <circle id="lamp" cx="320" cy="168" r="13" fill="#cfc8b8" stroke="#8d8574" stroke-width="2"/>
+        <!-- ラベルはメーター円（下端 y=206）より下に出す＝円と文字を重ねない -->
+        <text x="320" y="234" class="partlab" text-anchor="middle">メーター</text>
+        <text x="320" y="258" class="partsub" text-anchor="middle">丸の中の小さな灯＝充電警告灯</text>
+      </g>
+
+      <!-- キースイッチ -->
+      <g id="keysw">
+        <circle cx="80" cy="170" r="33" fill="#e8e2d5" stroke="#8d8574" stroke-width="3"/>
+        <circle cx="80" cy="170" r="24" fill="#cfc8b8"/>
+        <g id="keyrot" style="transition:transform .45s ease" transform-origin="80px 170px">
+          <rect x="75" y="140" width="10" height="34" rx="3" fill="#7a7365"/>
+          <rect x="68" y="128" width="24" height="16" rx="5" fill="#7a7365"/>
+        </g>
+        <text x="80" y="230" class="partlab" text-anchor="middle">キースイッチ</text>
+      </g>
+
+      <!-- バッテリー（＋端子を上に出して s1・s7 をそこへ差す） -->
+      <g id="battery">
+        <rect x="26" y="462" width="108" height="76" rx="8" fill="#e8e2d5" stroke="#8d8574" stroke-width="3"/>
+        <rect x="26" y="462" width="108" height="15" rx="6" fill="#d6cfc0"/>
+        <rect x="72" y="444" width="16" height="19" rx="3" fill="#b8442e"/>
+        <rect x="110" y="444" width="16" height="19" rx="3" fill="#5c5a56"/>
+        <text x="60" y="458" font-size="20" font-weight="700" fill="#b8442e" text-anchor="middle">+</text>
+        <text x="140" y="458" font-size="22" font-weight="700" fill="#5c5a56" text-anchor="middle">−</text>
+        <g stroke="#b3ab9a" stroke-width="2"><line x1="58" y1="492" x2="58" y2="530"/><line x1="102" y1="492" x2="102" y2="530"/></g>
+        <text x="80" y="568" class="partlab" text-anchor="middle">バッテリー</text>
+      </g>
+
+      <!-- レギュレータ -->
+      <g id="regulator">
+        <rect x="516" y="266" width="90" height="72" rx="7" fill="#e8e2d5" stroke="#8d8574" stroke-width="3"/>
+        <g stroke="#b3ab9a" stroke-width="3">
+          <line x1="530" y1="276" x2="592" y2="276"/><line x1="530" y1="287" x2="592" y2="287"/>
+        </g>
+        <g fill="#9a9285"><rect x="528" y="330" width="11" height="12" rx="2"/><rect x="556" y="330" width="11" height="12" rx="2"/>
+          <rect x="584" y="330" width="11" height="12" rx="2"/></g>
+        <text x="561" y="374" class="partlab" text-anchor="middle">レギュレータ</text>
+        <text x="561" y="396" class="partsub" text-anchor="middle">（電気の交通整理）</text>
+      </g>
+
+      <!-- ダイナモ -->
+      <g id="dynamo">
+        <rect x="496" y="436" width="112" height="70" rx="34" fill="#e8e2d5" stroke="#8d8574" stroke-width="3"/>
+        <g stroke="#b3ab9a" stroke-width="2.5">
+          <line x1="526" y1="446" x2="526" y2="496"/><line x1="546" y1="446" x2="546" y2="496"/>
+          <line x1="566" y1="446" x2="566" y2="496"/>
+        </g>
+        <circle id="pulley" cx="608" cy="471" r="20" fill="#cfc8b8" stroke="#8d8574" stroke-width="3"
+                transform-origin="608px 471px"/>
+        <circle cx="608" cy="471" r="6" fill="#8d8574"/>
+        <text x="552" y="542" class="partlab" text-anchor="middle">ダイナモ（発電機）</text>
+      </g>
+
+      <!-- 車体アース -->
+      <g id="ground">
+        <rect x="240" y="600" width="160" height="14" rx="7" fill="#cfc8b8" stroke="#8d8574" stroke-width="3"/>
+        <g stroke="#8d8574" stroke-width="4" stroke-linecap="round">
+          <line x1="288" y1="626" x2="352" y2="626"/>
+          <line x1="300" y1="640" x2="340" y2="640"/>
+          <line x1="312" y1="654" x2="328" y2="654"/>
+        </g>
+        <text x="320" y="686" class="partlab" text-anchor="middle">車体（アース）</text>
+      </g>
+
+    </svg>
+  </div>
+
+  <div class="whywrap">
+    <button type="button" class="why" id="whyBtn">なぜ点いたの？ 裏側を見る</button>
+  </div>
+
+  <p class="say" id="say"></p>
+
+  <div class="key hid" id="keyEl">
+    <span><i class="i-live"></i>電気が流れている道</span>
+    <span><i class="i-dead"></i>流れていない道</span>
+  </div>
+  <p class="note hid" id="simpleNote">
+    つながり方を見るための図です。部品の位置は実車と異なります（実車ではバッテリーは前のトランク、ダイナモは後ろのエンジンルームにあります）。
+    途中のつなぎ目（スタータスイッチやレギュレータの通過点）は省いています。
+    <b>この道にヒューズは入っていません</b>——だから充電警告灯はヒューズが切れても点きます。
+  </p>
+</div>
+
+<script src="/wiring-sim.js?v=2"></script>
+<script>
+(function(){
+  'use strict';
+  var NET_VERSION='2', TYPE='F';
+  var net=null, inputs={}, revealed=false;
+
+  var stage=document.getElementById('stage'), sparks=document.getElementById('sparks'),
+      lamp=document.getElementById('lamp'), lampglow=document.getElementById('lampglow'),
+      needle=document.getElementById('needle'), keyrot=document.getElementById('keyrot'),
+      pulley=document.getElementById('pulley'), s7=document.getElementById('s7'),
+      whyBtn=document.getElementById('whyBtn'), sayEl=document.getElementById('say'),
+      simpleNote=document.getElementById('simpleNote'), keyEl=document.getElementById('keyEl'),
+      wiresG=document.getElementById('wires');
+
+  /* 第1層＝メーターだけを大きく／第2層＝引いて一周が見える。
+     ⚠️別画像に差し替えず同じSVGのviewBoxを動かす＝「いま見ていたメーターが輪の一部だった」が伝わる */
+  var VIEW_METER=[186,20,268,262], VIEW_ALL=[0,0,640,700];
+  var VB=VIEW_METER.slice(), tween=null;
+  function setView(t){
+    var from=VB.slice(), t0=null;
+    if(tween) cancelAnimationFrame(tween);
+    (function step(ts){
+      if(t0===null) t0=ts;
+      var k=Math.min((ts-t0)/700,1), e=1-Math.pow(1-k,3), i;
+      for(i=0;i<4;i++) VB[i]=from[i]+(t[i]-from[i])*e;
+      stage.setAttribute('viewBox', VB.map(function(n){return n.toFixed(1);}).join(' '));
+      if(k<1) tween=requestAnimationFrame(step);
+    })(performance.now());
+  }
+
+  /* 電気の道のり。⚠️「状態」（全部が同時に光る）ではなく「順を追う旅」にするのがこの画面の要。
+     rev＝図に描いた向きと逆に流れる区間（帰り道）。 */
+  var ALL=['s1','s2','s3','s4','s5','s6','s7'];
+  // 灯が点いている一周：バッテリー＋ → キー → 警告灯 → ダイナモ → 車体 → バッテリー−
+  var PATH_LAMP=[{id:'s1'},{id:'s2'},{id:'s3'},{id:'s4'},{id:'s5'},{id:'s6'}];
+  // 充電の一周：ダイナモ → レギュレータ → バッテリー＋ …… バッテリー− → 車体 → ダイナモ
+  var PATH_CHARGE=[{id:'s4',rev:true},{id:'s7'},{id:'s6',rev:true},{id:'s5',rev:true}];
+  // キーを抜いているとき：キースイッチの手前で止まっている
+  var PATH_OFF=[{id:'s1'}];
+
+  function seg(id){ return document.getElementById(id); }
+
+  var timers=[];
+  function clearSeq(){
+    timers.forEach(clearTimeout); timers=[];
+    sparks.innerHTML='';
+    ALL.forEach(function(id){
+      var p=seg(id);
+      p.setAttribute('class','wire'+(id==='s7'?' hid':''));
+      p.style.strokeDasharray=''; p.style.strokeDashoffset=''; p.style.transition='';
+    });
+  }
+
+  /* 線を順に描き進める＝始まりと終わりのある「旅」に見せる。描き終わったら流れる点に引き継ぐ */
+  function runSeq(list){
+    var delay=0;
+    list.forEach(function(it){
+      var p=seg(it.id), len=p.getTotalLength();
+      var dur=Math.max(240, len*1.15);              // 長い線ほど時間をかける＝速度が一定に見える
+      timers.push(setTimeout(function(){
+        p.style.transition='none';
+        p.style.strokeDasharray=len+' '+len;
+        p.style.strokeDashoffset=(it.rev? -len : len);   // 逆向きは反対の端から描く
+        p.setAttribute('class','wire live');
+        p.getBoundingClientRect();                  // 反映させてから transition を効かせる
+        p.style.transition='stroke-dashoffset '+dur+'ms linear';
+        p.style.strokeDashoffset='0';
+      }, delay));
+      delay+=dur*0.72;                              // 少し重ねて繋がって見せる
+    });
+    timers.push(setTimeout(function(){ addSparks(list); }, delay+260));
+  }
+
+  /* 流れる点＝SMIL animateMotion（JSでフレームを回さない・向き＝実際の電流の向き） */
+  function addSparks(list){
+    var html='';
+    list.forEach(function(it,i){
+      var p=seg(it.id), len=p.getTotalLength(), dur=Math.max(.9, len/150);
+      for(var n=0;n<2;n++){
+        html+='<circle r="6.5" fill="#ffd54a" stroke="#a8760a" stroke-width="1.5">'+
+              '<animateMotion dur="'+dur.toFixed(2)+'s" repeatCount="indefinite" begin="'+
+              (i*0.18+n*dur/2).toFixed(2)+'s"'+
+              (it.rev?' keyPoints="1;0" keyTimes="0;1" calcMode="linear"':'')+'>'+
+              '<mpath href="#'+it.id+'"/></animateMotion></circle>';
+      }
+    });
+    sparks.innerHTML=html;
+  }
+
+  /* 画面の言葉。⚠️端子名・DIN番号は一切出さない（この層の読者は配線図を読まない） */
+  var SAY={
+    off:{ t:'キーを抜いた状態', b:'メーターの充電警告灯は消えています。',
+          w:'電気はバッテリーから出ていますが、<b>キースイッチで道が断たれている</b>ので、警告灯までは届きません。' },
+    on: { t:'キーを回しました', b:'充電警告灯が点きます。<b>これは故障ではありません</b>——「まだ発電していませんよ」という合図です。',
+          w:'電気がバッテリーを出て、キースイッチを通り、<b>警告灯を光らせて</b>、ダイナモの中を通って車体（アース）へ戻ります。<b>一周つながったから光ります。</b>' },
+    run:{ t:'エンジンがかかりました', b:'充電警告灯が消えます。<b>ダイナモが発電を始めた合図</b>です。',
+          w:'発電した電気が<b>バッテリーへ戻る道</b>ができました（上を回る道）。すると警告灯の<b>両側が同じ「＋」</b>になり、'+
+             '電気が流れなくなって消えます——<b>水位が同じだと水が流れないのと同じ</b>です。'+
+             '<br>灰色になった道は、つながってはいるが<b>電気が流れていない</b>道です。' }
+  };
+
+  fetch('/wiring-net.json?v='+NET_VERSION).then(function(r){ return r.json(); })
+    .then(function(j){ net=j; (net.controls||[]).forEach(function(c){ inputs[c.id]=c.default; }); update(); })
+    .catch(function(e){ sayEl.innerHTML='<b>データを読み込めませんでした：</b>'+e; });
+
+  document.getElementById('keyseg').addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    [].forEach.call(this.children,function(x){ x.setAttribute('aria-pressed', x===b?'true':'false'); });
+    inputs.key=b.getAttribute('data-v');
+    if(inputs.key==='OFF') setEngine('STOP');          // キーを抜いたらエンジンも止まる
+    update();
+  });
+  document.getElementById('engseg').addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b||b.disabled) return;
+    setEngine(b.getAttribute('data-v')); update();
+  });
+  function setEngine(v){
+    inputs.engine=v;
+    [].forEach.call(document.getElementById('engseg').children, function(x){
+      x.setAttribute('aria-pressed', x.getAttribute('data-v')===v?'true':'false');
+    });
+  }
+
+  whyBtn.addEventListener('click', function(){
+    revealed=!revealed;
+    whyBtn.textContent = revealed ? 'メーターに戻る' : 'なぜ点いたの？ 裏側を見る';
+    simpleNote.classList.toggle('hid', !revealed);
+    keyEl.classList.toggle('hid', !revealed);
+    wiresG.classList.toggle('hid', !revealed);
+    setView(revealed?VIEW_ALL:VIEW_METER);
+    update();
+  });
+
+  function update(){
+    if(!net) return;
+    /* 灯が点くかどうかは必ずソルバーに聞く＝画面の都合で書かない。
+       （パッチでオルタ車にしてもこの画面のロジックを変えずに正しくなるのはこのため） */
+    var r=WiringSim.solve(net,{inputs:inputs,type:TYPE});
+    var on=false; r.loads.forEach(function(l){ if(l.id==='quadro.warn_charge'&&l.on) on=true; });
+    var running=(inputs.engine==='RUN'), keyOn=(inputs.key==='ON');
+
+    // 実物の反応（オーナーが自分の車で見たことのあるものだけが動く）
+    lamp.setAttribute('fill', on?'#ff9e1b':'#cfc8b8');
+    lampglow.classList.toggle('hid', !on);
+    needle.style.transform = running?'rotate(38deg)':'rotate(0deg)';
+    keyrot.style.transform = keyOn?'rotate(72deg)':'rotate(0deg)';
+    pulley.style.animation = running?'spin 1s linear infinite':'';
+
+    // エンジンはキーONのときだけ回せる（実車と同じ・迷子にしない）
+    [].forEach.call(document.getElementById('engseg').children,function(x){ x.disabled=!keyOn; });
+
+    var k = running?'run':(keyOn?'on':'off'), s=SAY[k];
+    sayEl.innerHTML='<span class="big">'+s.t+'</span>'+s.b+(revealed?('<br><br>'+s.w):'');
+
+    // 裏側（第2層）
+    clearSeq();
+    s7.classList.toggle('hid', !running);
+    if(!revealed) return;
+    runSeq(running?PATH_CHARGE:(keyOn?PATH_LAMP:PATH_OFF));
+  }
+})();
+</script>
+</div>
+</body>
+</html>
