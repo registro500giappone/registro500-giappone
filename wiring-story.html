@@ -49,7 +49,8 @@
   /* 舞台。第1層＝メーターだけを大きく／第2層＝引いて一周が見える。同じSVGのviewBoxを動かす
      ＝実物から裏側への移行が断絶しない（別画像に切り替えると「別の絵」になってしまう） */
   .stage{position:relative;background:#fffdf8;border:1px solid var(--line);border-radius:12px;
-         overflow:hidden;width:100%;aspect-ratio:64/70}
+         overflow:hidden;width:100%;aspect-ratio:64/70;
+         transition:aspect-ratio .7s cubic-bezier(.2,.7,.3,1)}
   .stage svg{position:absolute;inset:0;width:100%;height:100%;display:block}
 
   .why{appearance:none;border:0;border-radius:999px;padding:11px 20px;font:inherit;font-size:.92rem;
@@ -65,11 +66,16 @@
   .key span{display:flex;align-items:center;gap:6px}
   .key i{width:26px;height:5px;border-radius:3px;flex:none}
   .key .i-live{background:var(--live)} .key .i-dead{background:var(--dead)}
+  .key .i-spark{width:11px;height:11px;border-radius:50%;background:var(--spark);border:1.5px solid #a8760a}
 
   /* 電線。⚠️電位の色分け（B+/アース…）はやめた＝素人に要るのは「流れているか」だけ。
      色は2値（流れている赤／流れていない灰）＋流れる点、これ以上増やさない */
   .wire{fill:none;stroke:var(--dead);stroke-width:7;stroke-linecap:round;stroke-linejoin:round}
   .wire.live{stroke:var(--live)}
+  /* セルの線だけ太い＝一瞬に大量の電気が流れることを線の太さで言う */
+  .wire.fat{stroke-width:13}
+  /* 交差でつながって見えないようにする下敷き（舞台の地色で隙間を作る） */
+  .wirebg{fill:none;stroke:#fffdf8;stroke-width:26;stroke-linecap:round}
   .partlab{font-size:20px;font-weight:700;fill:#3a342a}
   .partsub{font-size:15px;fill:#7b7263}
   .hid{display:none}
@@ -89,6 +95,13 @@
     --dialfont:system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif; --nw:600;
   }
   @keyframes spin{to{transform:rotate(360deg)}}
+  /* 引きノブのボタン。押している間だけセルが回る＝clickではなくpointerdown/upで受ける */
+  .knob{font:inherit;font-weight:700;padding:9px 16px;border-radius:10px;cursor:pointer;
+        border:2px solid #7a5a2a;background:#f6e7c8;color:#5a4318;touch-action:none;
+        display:flex;flex-direction:column;align-items:center;line-height:1.25}
+  .knob span{font-weight:400;font-size:.72em;opacity:.75}
+  .knob[aria-pressed="true"]{background:#7a5a2a;color:#fff;border-color:#5a4318}
+  .knob:disabled{opacity:.4;cursor:default}
 </style>
 </head>
 <body>
@@ -108,10 +121,9 @@
         <button type="button" data-v="OFF" aria-pressed="true">キーを抜く</button>
         <button type="button" data-v="ON" aria-pressed="false">キーを回す</button>
       </div>
-      <div class="seg" id="engseg">
-        <button type="button" data-v="STOP" aria-pressed="true">エンジン停止</button>
-        <button type="button" data-v="RUN" aria-pressed="false">エンジン始動</button>
-      </div>
+      <!-- ⚠️500はキーではセルが回らない＝キーを回してから引きノブを引く。
+           押している間だけセルが回り、離すとエンジンが掛かる（実車の手順そのまま） -->
+      <button type="button" class="knob" id="startBtn">ノブを引く<span>押している間</span></button>
     </div>
   </div>
 </div>
@@ -143,6 +155,15 @@
         <path id="s6" class="wire" d="M266,606 C222,578 176,520 150,472 C142,458 130,450 118,446"/>
         <!-- 発電した電気がバッテリーへ戻る道＝エンジンが回っているときだけ現れる -->
         <path id="s7" class="wire hid" d="M536,262 C610,100 450,22 320,22 C190,22 14,105 16,300 L16,428 C16,446 44,452 74,447"/>
+
+        <!-- ============ セルモーターの枝（バッテリー＋ → 引きノブ → スターター → 車体）
+             ⚠️ここだけ太い。一瞬に大量の電気が流れる＝実車でも一番太いケーブル。
+             ⚠️s8 は s6（アースからバッテリー−へ帰る線）と交差する。触れていないことを示すため
+                背景色の太い線を下に敷いて隙間を作る（またぎの表現）。順序を入れ替えないこと ============ -->
+        <path class="wirebg" d="M88,448 C130,458 168,504 186,556 C198,592 196,636 180,664 C172,678 156,688 142,690"/>
+        <path id="s8" class="wire fat" d="M88,448 C130,458 168,504 186,556 C198,592 196,636 180,664 C172,678 156,688 142,690"/>
+        <path id="s9" class="wire fat" d="M164,700 L262,700"/>
+        <path id="s10" class="wire fat" d="M356,674 C358,652 356,632 356,617"/>
       </g>
       <!-- 流れる点をここへ差し込む（線の上・部品の下） -->
       <g id="sparks"></g>
@@ -232,15 +253,40 @@
         <text x="552" y="542" class="partlab" text-anchor="middle">ダイナモ（発電機）</text>
       </g>
 
-      <!-- 車体アース -->
+      <!-- 車体アース。⚠️ラベルは帯の「上」に置く＝下はスターターとその線が通る -->
       <g id="ground">
         <rect x="240" y="600" width="160" height="14" rx="7" fill="#cfc8b8" stroke="#8d8574" stroke-width="3"/>
         <g stroke="#8d8574" stroke-width="4" stroke-linecap="round">
-          <line x1="288" y1="626" x2="352" y2="626"/>
-          <line x1="300" y1="640" x2="340" y2="640"/>
-          <line x1="312" y1="654" x2="328" y2="654"/>
+          <line x1="268" y1="628" x2="332" y2="628"/>
+          <line x1="280" y1="642" x2="320" y2="642"/>
+          <line x1="292" y1="656" x2="308" y2="656"/>
         </g>
-        <text x="320" y="686" class="partlab" text-anchor="middle">車体（アース）</text>
+        <text x="320" y="588" class="partlab" text-anchor="middle">車体（アース）</text>
+      </g>
+
+      <!-- 引きノブ（スタータSW）＝手で引いている間だけ閉じる。実車もキーではセルは回らない -->
+      <g id="startknob">
+        <rect x="120" y="694" width="46" height="13" rx="6" fill="#cfc8b8" stroke="#8d8574" stroke-width="2"/>
+        <g id="knobpull" style="transition:transform .18s ease" transform-origin="112px 700px">
+          <circle cx="112" cy="700" r="23" fill="#e8e2d5" stroke="#8d8574" stroke-width="3"/>
+          <circle cx="112" cy="700" r="13" fill="#cfc8b8"/>
+        </g>
+        <text x="112" y="758" class="partlab" text-anchor="middle">引きノブ</text>
+        <text x="112" y="780" class="partsub" text-anchor="middle">（セルのスイッチ）</text>
+      </g>
+
+      <!-- スターター（セルモーター） -->
+      <g id="starter">
+        <rect x="262" y="674" width="138" height="52" rx="26" fill="#e8e2d5" stroke="#8d8574" stroke-width="3"/>
+        <g stroke="#b3ab9a" stroke-width="2.5">
+          <line x1="292" y1="684" x2="292" y2="716"/><line x1="312" y1="684" x2="312" y2="716"/>
+          <line x1="332" y1="684" x2="332" y2="716"/>
+        </g>
+        <circle id="pinion" cx="412" cy="700" r="16" fill="#cfc8b8" stroke="#8d8574" stroke-width="3"
+                transform-origin="412px 700px"/>
+        <circle cx="412" cy="700" r="5" fill="#8d8574"/>
+        <text x="331" y="758" class="partlab" text-anchor="middle">スターター</text>
+        <text x="331" y="780" class="partsub" text-anchor="middle">（セルモーター）</text>
       </g>
 
     </svg>
@@ -253,12 +299,14 @@
   <p class="say" id="say"></p>
 
   <div class="key hid" id="keyEl">
-    <span><i class="i-live"></i>電気が流れている道</span>
-    <span><i class="i-dead"></i>流れていない道</span>
+    <span><i class="i-live"></i>電気が来ている道</span>
+    <span><i class="i-dead"></i>来ていない道</span>
+    <span><i class="i-spark"></i>いま流れている電気</span>
   </div>
   <p class="note hid" id="simpleNote">
     つながり方を見るための図です。部品の位置は実車と異なります（実車ではバッテリーは前のトランク、ダイナモは後ろのエンジンルームにあります）。
-    途中のつなぎ目（スタータスイッチやレギュレータの通過点）は省いています。
+    途中のつなぎ目（レギュレータやヒューズの通過点）は省いています。
+    エンジンが掛かる仕組みそのもの（点火系）はこの図にはまだ入っていません——ここで扱うのは「電気がどう流れるか」だけです。
     <b>この道にヒューズは入っていません</b>——だから充電警告灯はヒューズが切れても点きます。
   </p>
 </div>
@@ -268,19 +316,21 @@
 (function(){
   'use strict';
   var NET_VERSION='2', TYPE='F';
-  var net=null, inputs={}, revealed=false;
+  var net=null, inputs={}, revealed=false, cranking=false;
 
   var stage=document.getElementById('stage'), sparks=document.getElementById('sparks'),
       lamp=document.getElementById('lamp'), lampglow=document.getElementById('lampglow'),
       lamphi=document.getElementById('lamphi'), keyrot=document.getElementById('keyrot'),
       pulley=document.getElementById('pulley'), s7=document.getElementById('s7'),
+      pinion=document.getElementById('pinion'), knobpull=document.getElementById('knobpull'),
+      startBtn=document.getElementById('startBtn'),
       whyBtn=document.getElementById('whyBtn'), sayEl=document.getElementById('say'),
       simpleNote=document.getElementById('simpleNote'), keyEl=document.getElementById('keyEl'),
       wiresG=document.getElementById('wires');
 
   /* 第1層＝メーターだけを大きく／第2層＝引いて一周が見える。
      ⚠️別画像に差し替えず同じSVGのviewBoxを動かす＝「いま見ていたメーターが輪の一部だった」が伝わる */
-  var VIEW_METER=[186,20,268,262], VIEW_ALL=[0,0,640,700];
+  var VIEW_METER=[186,20,268,262], VIEW_ALL=[0,0,640,800];
   var VB=VIEW_METER.slice(), tween=null;
   function setView(t){
     var from=VB.slice(), t0=null;
@@ -296,13 +346,22 @@
 
   /* 電気の道のり。⚠️「状態」（全部が同時に光る）ではなく「順を追う旅」にするのがこの画面の要。
      rev＝図に描いた向きと逆に流れる区間（帰り道）。 */
-  var ALL=['s1','s2','s3','s4','s5','s6','s7'];
+  var ALL=['s1','s2','s3','s4','s5','s6','s7','s8','s9','s10'];
+  var FAT={s8:1,s9:1,s10:1};                      // セルの太いケーブル
   // 灯が点いている一周：バッテリー＋ → キー → 警告灯 → ダイナモ → 車体 → バッテリー−
-  var PATH_LAMP=[{id:'s1'},{id:'s2'},{id:'s3'},{id:'s4'},{id:'s5'},{id:'s6'}];
-  // 充電の一周：ダイナモ → レギュレータ → バッテリー＋ …… バッテリー− → 車体 → ダイナモ
-  var PATH_CHARGE=[{id:'s4',rev:true},{id:'s7'},{id:'s6',rev:true},{id:'s5',rev:true}];
-  // キーを抜いているとき：キースイッチの手前で止まっている
-  var PATH_OFF=[{id:'s1'}];
+  var PATH_LAMP=[{id:'s1'},{id:'s2'},{id:'s3'},{id:'s4'},{id:'s5'},{id:'s6'},{id:'s8',still:true}];
+  /* 充電の一周：ダイナモ → レギュレータ → バッテリー＋ …… バッテリー− → 車体 → ダイナモ。
+     ⚠️警告灯の枝（s1〜s3）は消えるが、電気が来ていないのではない＝両側が同じ＋になって流れないだけ。
+        だから灰色にせず赤のまま「点だけ止める」。ここがこの画面で一番伝えたい所 */
+  var PATH_CHARGE=[{id:'s4',rev:true},{id:'s7'},{id:'s6',rev:true},{id:'s5',rev:true},
+                   {id:'s1',still:true},{id:'s2',still:true},{id:'s3',still:true},{id:'s8',still:true}];
+  // キーを抜いているとき：キースイッチの手前で止まっている。
+  // セルの太い線もノブの手前まで来ている＝キーに関係なく常にバッテリーとつながっている
+  var PATH_OFF=[{id:'s1',still:true},{id:'s8',still:true}];
+  // セルが回っている間：太い一周（バッテリー＋ → ノブ → スターター → 車体 → バッテリー−）。
+  // 警告灯の一周も同時に生きている＝セルを回している間も灯は点いたまま
+  var PATH_CRANK=[{id:'s8'},{id:'s9'},{id:'s10'},{id:'s6'},
+                  {id:'s1'},{id:'s2'},{id:'s3'},{id:'s4'},{id:'s5'}];
 
   function seg(id){ return document.getElementById(id); }
 
@@ -312,7 +371,7 @@
     sparks.innerHTML='';
     ALL.forEach(function(id){
       var p=seg(id);
-      p.setAttribute('class','wire'+(id==='s7'?' hid':''));
+      p.setAttribute('class','wire'+(FAT[id]?' fat':'')+(id==='s7'?' hid':''));
       p.style.strokeDasharray=''; p.style.strokeDashoffset=''; p.style.transition='';
     });
   }
@@ -327,25 +386,28 @@
         p.style.transition='none';
         p.style.strokeDasharray=len+' '+len;
         p.style.strokeDashoffset=(it.rev? -len : len);   // 逆向きは反対の端から描く
-        p.setAttribute('class','wire live');
+        p.setAttribute('class','wire live'+(FAT[it.id]?' fat':''));
         p.getBoundingClientRect();                  // 反映させてから transition を効かせる
         p.style.transition='stroke-dashoffset '+dur+'ms linear';
         p.style.strokeDashoffset='0';
       }, delay));
       delay+=dur*0.72;                              // 少し重ねて繋がって見せる
     });
-    timers.push(setTimeout(function(){ addSparks(list); }, delay+260));
+    timers.push(setTimeout(function(){
+      addSparks(list.filter(function(it){ return !it.still; }));   // 流れていない道には点を出さない
+    }, delay+260));
   }
 
   /* 流れる点＝SMIL animateMotion（JSでフレームを回さない・向き＝実際の電流の向き） */
   function addSparks(list){
     var html='';
     list.forEach(function(it,i){
-      var p=seg(it.id), len=p.getTotalLength(), dur=Math.max(.9, len/150);
-      for(var n=0;n<2;n++){
-        html+='<circle r="6.5" fill="#ffd54a" stroke="#a8760a" stroke-width="1.5">'+
+      var p=seg(it.id), len=p.getTotalLength(), f=!!FAT[it.id],
+          dur=Math.max(f?.45:.9, len/(f?300:150)), cnt=f?3:2;
+      for(var n=0;n<cnt;n++){
+        html+='<circle r="'+(f?9.5:6.5)+'" fill="#ffd54a" stroke="#a8760a" stroke-width="1.5">'+
               '<animateMotion dur="'+dur.toFixed(2)+'s" repeatCount="indefinite" begin="'+
-              (i*0.18+n*dur/2).toFixed(2)+'s"'+
+              (i*0.18+n*dur/cnt).toFixed(2)+'s"'+
               (it.rev?' keyPoints="1;0" keyTimes="0;1" calcMode="linear"':'')+'>'+
               '<mpath href="#'+it.id+'"/></animateMotion></circle>';
       }
@@ -356,13 +418,19 @@
   /* 画面の言葉。⚠️端子名・DIN番号は一切出さない（この層の読者は配線図を読まない） */
   var SAY={
     off:{ t:'キーを抜いた状態', b:'メーターの充電警告灯は消えています。',
-          w:'電気はバッテリーから出ていますが、<b>キースイッチで道が断たれている</b>ので、警告灯までは届きません。' },
+          w:'電気はバッテリーから出ていますが、<b>キースイッチで道が断たれている</b>ので、警告灯までは届きません。'+
+             '<br>下の<b>太い線</b>は、キーに関係なく<b>いつもバッテリーとつながっています</b>（引きノブの手前まで）。' },
+    crank:{ t:'ノブを引いています（セルが回る）',
+          b:'エンジンが回されています。充電警告灯は<b>点いたまま</b>です——まだ発電していないからです。',
+          w:'セルモーターは<b>ヒューズもキースイッチも通りません</b>。バッテリーから<b>太い線で直接</b>つながっていて、'+
+             'ノブを引いている間だけその道が閉じます。<b>線が太いのは、一瞬に大量の電気が流れるから</b>です。' },
     on: { t:'キーを回しました', b:'充電警告灯が点きます。<b>これは故障ではありません</b>——「まだ発電していませんよ」という合図です。',
           w:'電気がバッテリーを出て、キースイッチを通り、<b>警告灯を光らせて</b>、ダイナモの中を通って車体（アース）へ戻ります。<b>一周つながったから光ります。</b>' },
     run:{ t:'エンジンがかかりました', b:'充電警告灯が消えます。<b>ダイナモが発電を始めた合図</b>です。',
           w:'発電した電気が<b>バッテリーへ戻る道</b>ができました（上を回る道）。すると警告灯の<b>両側が同じ「＋」</b>になり、'+
              '電気が流れなくなって消えます——<b>水位が同じだと水が流れないのと同じ</b>です。'+
-             '<br>灰色になった道は、つながってはいるが<b>電気が流れていない</b>道です。' }
+             '<br>警告灯までの道は<b>赤いまま＝電気は来ています</b>。でも<b>点が止まっています</b>——'+
+             'これが「来ているが流れていない」ということです。' }
   };
 
   fetch('/wiring-net.json?v='+NET_VERSION).then(function(r){ return r.json(); })
@@ -373,19 +441,33 @@
     var b=e.target.closest('button'); if(!b) return;
     [].forEach.call(this.children,function(x){ x.setAttribute('aria-pressed', x===b?'true':'false'); });
     inputs.key=b.getAttribute('data-v');
-    if(inputs.key==='OFF') setEngine('STOP');          // キーを抜いたらエンジンも止まる
+    if(inputs.key==='OFF'){ setEngine('STOP'); crankEnd(); }   // キーを抜いたらエンジンも止まる（実車と同じ）
     update();
   });
-  document.getElementById('engseg').addEventListener('click', function(e){
-    var b=e.target.closest('button'); if(!b||b.disabled) return;
-    setEngine(b.getAttribute('data-v')); update();
-  });
-  function setEngine(v){
-    inputs.engine=v;
-    [].forEach.call(document.getElementById('engseg').children, function(x){
-      x.setAttribute('aria-pressed', x.getAttribute('data-v')===v?'true':'false');
-    });
+  function setEngine(v){ inputs.engine=v; }
+
+  /* 引きノブ＝押している間だけ閉じるモーメンタリ。離した瞬間にエンジンが掛かる。
+     ⚠️click では「引いている間」が表現できないので pointerdown/up で受ける（キーボードは Space/Enter の押し下げ） */
+  function crankStart(e){
+    if(startBtn.disabled || cranking) return;
+    if(e && e.cancelable) e.preventDefault();
+    cranking=true; inputs.starter='START';
+    startBtn.setAttribute('aria-pressed','true');
+    update();
   }
+  function crankEnd(){
+    if(!cranking) return;
+    cranking=false; inputs.starter='OFF';
+    startBtn.setAttribute('aria-pressed','false');
+    if(inputs.key==='ON') setEngine('RUN');   // 離すとエンジンが掛かって回り続ける
+    update();
+  }
+  startBtn.addEventListener('pointerdown', crankStart);
+  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){
+    startBtn.addEventListener(ev, crankEnd);
+  });
+  startBtn.addEventListener('keydown', function(e){ if(e.key===' '||e.key==='Enter') crankStart(e); });
+  startBtn.addEventListener('keyup',   function(e){ if(e.key===' '||e.key==='Enter') crankEnd(); });
 
   whyBtn.addEventListener('click', function(){
     revealed=!revealed;
@@ -393,6 +475,7 @@
     simpleNote.classList.toggle('hid', !revealed);
     keyEl.classList.toggle('hid', !revealed);
     wiresG.classList.toggle('hid', !revealed);
+    stage.parentNode.style.aspectRatio = revealed?'64/80':'64/70';
     setView(revealed?VIEW_ALL:VIEW_METER);
     update();
   });
@@ -410,19 +493,22 @@
     [lamp,lamphi,lampglow,stage.querySelector(".lampring")].forEach(function(el){ el.classList.toggle('hid', !on); });
     /* ⚠️針は動かさない＝エンジンがかかっても車は止まっている。動かすと嘘になる */
     keyrot.style.transform = keyOn?'rotate(72deg)':'rotate(0deg)';
-    pulley.style.animation = running?'spin 1s linear infinite':'';
+    // セルで回されている間もクランクは回る＝ダイナモのプーリーも回る（ただしまだ発電しない）
+    pulley.style.animation = running?'spin 1s linear infinite':(cranking?'spin 2.4s linear infinite':'');
+    pinion.style.animation = cranking?'spin .35s linear infinite':'';
+    knobpull.style.transform = cranking?'translateX(-15px)':'translateX(0)';
 
-    // エンジンはキーONのときだけ回せる（実車と同じ・迷子にしない）
-    [].forEach.call(document.getElementById('engseg').children,function(x){ x.disabled=!keyOn; });
+    // セルはキーONで、かつエンジンが止まっているときだけ回せる（実車と同じ・迷子にしない）
+    startBtn.disabled = !keyOn || running;
 
-    var k = running?'run':(keyOn?'on':'off'), s=SAY[k];
+    var k = cranking?'crank':(running?'run':(keyOn?'on':'off')), s=SAY[k];
     sayEl.innerHTML='<span class="big">'+s.t+'</span>'+s.b+(revealed?('<br><br>'+s.w):'');
 
     // 裏側（第2層）
     clearSeq();
     s7.classList.toggle('hid', !running);
     if(!revealed) return;
-    runSeq(running?PATH_CHARGE:(keyOn?PATH_LAMP:PATH_OFF));
+    runSeq(cranking?PATH_CRANK:(running?PATH_CHARGE:(keyOn?PATH_LAMP:PATH_OFF)));
   }
 })();
 </script>
