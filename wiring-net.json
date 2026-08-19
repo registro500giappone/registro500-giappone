@@ -8,7 +8,7 @@
     "sys": "配線図ビューアの系統番号（11=スタータ発電・10=イグニッション・7=油圧SW）。ファイルは系統ごとに増やしていく",
     "src": "出典。NL-D=registro500-notes/wiring-work/d_netlist.md（D原典 p40 の目視転記）／LEDGER=同 terminals_ledger.md（F原典 Mod.500 p42 と照合済）／NL-F=同 f_netlist.md（F図の機械抽出）"
   },
-  "NET_VERSION": "3",
+  "NET_VERSION": "4",
   "sys_done": [11, 7],
 
   "controls": [
@@ -18,7 +18,7 @@
         { "v":"OFF", "label":"OFF（抜いた状態）", "set":{ "ign_sw":"OFF" } },
         { "v":"ON",  "label":"ON（通電）",        "set":{ "ign_sw":"ON"  } }
       ],
-      "note":"500 F/L/R のキーには START 位置が無い（始動は引きノブ＝原典の端子に 50 が無いことと整合）。30/4×2 は内部接点が未照合のため動かしていない＝系統2を書くときに決着させる" },
+      "note":"500 F/L/R のキーには START 位置が無い（始動は始動レバー＝原典の端子に 50 が無いことと整合）。30/4×2 は内部接点が未照合のため動かしていない＝系統2を書くときに決着させる" },
 
     { "id":"engine", "label":"エンジン", "role":"input", "default":"STOP",
       "options":[
@@ -27,7 +27,7 @@
       ],
       "note":"⚠️v:inf。油圧センダも同じレバーで動かす＝油圧はエンジンが回って初めて上がるため。セルで回している間（starter:START・engine:STOP）はまだ圧が上がらない＝油圧灯は点いたまま、で実車と合う。実際のカットアウトリレーは発電電圧がバッテリー電圧を超えたら閉じる＝回転数に依存するが、L1（到達性のみ）では「回っていれば閉じる」と単純化する。アイドル以下で灯がうっすら点く現象は再現しない（L4をやらない方針の帰結）" },
 
-    { "id":"starter", "label":"スタータノブ", "role":"input", "default":"OFF",
+    { "id":"starter", "label":"始動レバー", "role":"input", "default":"OFF",
       "options":[
         { "v":"OFF",   "label":"戻す", "set":{ "starter_sw":"OFF"   } },
         { "v":"START", "label":"引く", "set":{ "starter_sw":"START" } }
@@ -58,7 +58,7 @@
       "model":{ "kind":"battery", "v":"orig", "pos":"+", "neg":"-" },
       "src":"NL-D 部品6「−→アース ／+→太線→スターター手動SW部」／LEDGER 系統11 (1213,393) +（ROSSO・F図 batteria）" },
 
-    { "id":"starter_sw", "label":"スタータSW（引きノブ）", "kind":"switch", "sys":11, "terms":["_in","_out"], "types":"FLRD",
+    { "id":"starter_sw", "label":"始動SW（始動レバー）", "kind":"switch", "sys":11, "terms":["_in","_out"], "types":"FLRD",
       "model":{ "kind":"switch", "v":"orig", "default":"OFF",
         "positions":{ "OFF":[], "START":[["_in","_out"]] },
         "note":"手で引いている間だけ閉じるモーメンタリ。原典に端子名が無いため合成端子（LEDGER『転記しないもの』にスタータSWが挙がっている）" },
@@ -91,7 +91,7 @@
     { "id":"ign_sw", "label":"イグニッションSW", "kind":"switch", "sys":10, "terms":["30","15/54","30/4"], "types":"FLRD",
       "model":{ "kind":"switch", "v":"inf", "default":"OFF",
         "positions":{ "OFF":[], "ON":[["30","15/54"]] },
-        "note":"30↔15/54 だけをモデル化。①500 F/L/R の始動は引きノブ式でキーにSTART位置が無い（原典の端子が 30・15/54・30/4×2 だけで 50 が無いことと整合）②30/4×2（NERO）は常時30系の分岐と推定だが内部接点が未照合のためモデルに入れていない（行き先は外部照明SW21と計器盤＝d_netlist 未決④の決着）。⚠️系統2（外部照明）を書くときに必ず決着させる" },
+        "note":"30↔15/54 だけをモデル化。①500 F/L/R の始動は始動レバー式でキーにSTART位置が無い（原典の端子が 30・15/54・30/4×2 だけで 50 が無いことと整合）②30/4×2（NERO）は常時30系の分岐と推定だが内部接点が未照合のためモデルに入れていない（行き先は外部照明SW21と計器盤＝d_netlist 未決④の決着）。⚠️系統2（外部照明）を書くときに必ず決着させる" },
       "src":"LEDGER 系統10 (1228,1320) 30←ROSSO・(1258,1316) 15/54←AZZURRO ／系統15 (1279,1327)(1297,1327) 30/4←NERO×2 ／NL-D 部品22" },
 
     { "id":"quadro", "label":"計器盤", "kind":"cluster", "sys":11, "terms":["51","INTER","57","30","0"], "types":"FLRD",

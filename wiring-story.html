@@ -95,7 +95,7 @@
     --dialfont:system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif; --nw:600;
   }
   @keyframes spin{to{transform:rotate(360deg)}}
-  /* 引きノブのボタン。押している間だけセルが回る＝clickではなくpointerdown/upで受ける */
+  /* 始動レバーのボタン。押している間だけセルが回る＝clickではなくpointerdown/upで受ける */
   .knob{font:inherit;font-weight:700;padding:9px 16px;border-radius:10px;cursor:pointer;
         border:2px solid #7a5a2a;background:#f6e7c8;color:#5a4318;touch-action:none;
         display:flex;flex-direction:column;align-items:center;line-height:1.25}
@@ -121,9 +121,9 @@
         <button type="button" data-v="OFF" aria-pressed="true">キーを抜く</button>
         <button type="button" data-v="ON" aria-pressed="false">キーを回す</button>
       </div>
-      <!-- ⚠️500はキーではセルが回らない＝キーを回してから引きノブを引く。
+      <!-- ⚠️500はキーではセルが回らない＝キーを回してから始動レバーを引く。
            押している間だけセルが回り、離すとエンジンが掛かる（実車の手順そのまま） -->
-      <button type="button" class="knob" id="startBtn">ノブを引く<span>押している間</span></button>
+      <button type="button" class="knob" id="startBtn">レバーを引く<span>押している間</span></button>
     </div>
   </div>
 </div>
@@ -156,7 +156,7 @@
         <!-- 発電した電気がバッテリーへ戻る道＝エンジンが回っているときだけ現れる -->
         <path id="s7" class="wire hid" d="M536,262 C610,100 450,22 320,22 C190,22 14,105 16,300 L16,428 C16,446 44,452 74,447"/>
 
-        <!-- ============ セルモーターの枝（バッテリー＋ → 引きノブ → スターター → 車体）
+        <!-- ============ セルモーターの枝（バッテリー＋ → 始動レバー → スターター → 車体）
              ⚠️ここだけ太い。一瞬に大量の電気が流れる＝実車でも一番太いケーブル。
              ⚠️s8 は s6（アースからバッテリー−へ帰る線）と交差する。触れていないことを示すため
                 背景色の太い線を下に敷いて隙間を作る（またぎの表現）。順序を入れ替えないこと ============ -->
@@ -277,14 +277,14 @@
         <text x="320" y="588" class="partlab" text-anchor="middle">車体（アース）</text>
       </g>
 
-      <!-- 引きノブ（スタータSW）＝手で引いている間だけ閉じる。実車もキーではセルは回らない -->
+      <!-- 始動レバー（スタータSW）＝手で引いている間だけ閉じる。実車もキーではセルは回らない -->
       <g id="startknob">
         <rect x="120" y="694" width="46" height="13" rx="6" fill="#cfc8b8" stroke="#8d8574" stroke-width="2"/>
         <g id="knobpull" style="transition:transform .18s ease" transform-origin="112px 700px">
           <circle cx="112" cy="700" r="23" fill="#e8e2d5" stroke="#8d8574" stroke-width="3"/>
           <circle cx="112" cy="700" r="13" fill="#cfc8b8"/>
         </g>
-        <text x="112" y="758" class="partlab" text-anchor="middle">引きノブ</text>
+        <text x="112" y="758" class="partlab" text-anchor="middle">始動レバー</text>
         <text x="112" y="780" class="partsub" text-anchor="middle">（セルのスイッチ）</text>
       </g>
 
@@ -336,7 +336,7 @@
 <script>
 (function(){
   'use strict';
-  var NET_VERSION='3', TYPE='F';
+  var NET_VERSION='4', TYPE='F';
   var net=null, inputs={}, revealed=false, cranking=false;
 
   var stage=document.getElementById('stage'), sparks=document.getElementById('sparks'),
@@ -378,9 +378,9 @@
   var PATH_CHARGE=[{id:'s4',rev:true},{id:'s7'},{id:'s6',rev:true},{id:'s5',rev:true},
                    {id:'s1',still:true},{id:'s2',still:true},{id:'s3',still:true},{id:'s8',still:true}];
   // キーを抜いているとき：キースイッチの手前で止まっている。
-  // セルの太い線もノブの手前まで来ている＝キーに関係なく常にバッテリーとつながっている
+  // セルの太い線もレバーの手前まで来ている＝キーに関係なく常にバッテリーとつながっている
   var PATH_OFF=[{id:'s1',still:true},{id:'s8',still:true}];
-  // セルが回っている間：太い一周（バッテリー＋ → ノブ → スターター → 車体 → バッテリー−）。
+  // セルが回っている間：太い一周（バッテリー＋ → レバー → スターター → 車体 → バッテリー−）。
   // 警告灯の一周も同時に生きている＝セルを回している間も灯は点いたまま
   var PATH_CRANK=[{id:'s8'},{id:'s9'},{id:'s10'},{id:'s6'},
                   {id:'s1'},{id:'s2'},{id:'s3'},{id:'s4'},{id:'s5'},{id:'s11'},{id:'s12'}];
@@ -441,11 +441,11 @@
   var SAY={
     off:{ t:'キーを抜いた状態', b:'メーターの警告灯はどれも消えています。',
           w:'電気はバッテリーから出ていますが、<b>キースイッチで道が断たれている</b>ので、警告灯までは届きません。'+
-             '<br>下の<b>太い線</b>は、キーに関係なく<b>いつもバッテリーとつながっています</b>（引きノブの手前まで）。' },
-    crank:{ t:'ノブを引いています（セルが回る）',
+             '<br>下の<b>太い線</b>は、キーに関係なく<b>いつもバッテリーとつながっています</b>（始動レバーの手前まで）。' },
+    crank:{ t:'レバーを引いています（セルが回る）',
           b:'エンジンが回されています。<b>2つとも点いたまま</b>です——セルで回しているだけで、まだ発電も油圧も立ち上がっていません。',
           w:'セルモーターは<b>ヒューズもキースイッチも通りません</b>。バッテリーから<b>太い線で直接</b>つながっていて、'+
-             'ノブを引いている間だけその道が閉じます。<b>線が太いのは、一瞬に大量の電気が流れるから</b>です。' },
+             'レバーを引いている間だけその道が閉じます。<b>線が太いのは、一瞬に大量の電気が流れるから</b>です。' },
     on: { t:'キーを回しました', b:'<b>2つ点きます</b>。GENERAT.（発電）と OLIO（油圧）です。<b>どちらも故障ではありません</b>——「まだ発電していませんよ」「まだ油圧が上がっていませんよ」という合図です。',
           w:'電気がバッテリーを出て、キースイッチを通ると、そこから<b>2手に分かれます</b>。'+'一方は<b>GENERAT. を光らせて</b>ダイナモの中を通り、もう一方は<b>OLIO を光らせて</b>エンジンの油圧センダを通って、'+'どちらも車体（アース）へ戻ります。<b>一周つながったから光ります。</b>' },
     run:{ t:'エンジンがかかりました', b:'<b>2つとも消えます。</b>ダイナモが発電を始め、油圧が上がった合図です。',
@@ -468,7 +468,7 @@
   });
   function setEngine(v){ inputs.engine=v; }
 
-  /* 引きノブ＝押している間だけ閉じるモーメンタリ。離した瞬間にエンジンが掛かる。
+  /* 始動レバー＝押している間だけ閉じるモーメンタリ。離した瞬間にエンジンが掛かる。
      ⚠️click では「引いている間」が表現できないので pointerdown/up で受ける（キーボードは Space/Enter の押し下げ） */
   function crankStart(e){
     if(startBtn.disabled || cranking) return;
