@@ -5,11 +5,11 @@
     "term_synthetic": "先頭が _ の端子名は原典に端子名が無い合成端子（例 starter_sw._in）。座標も持たない",
     "v": "照合レベル。orig=原典照合済 / auto=機械抽出のまま / inf=推定。auto と inf は事実として見せない（SCHEMA §C-2）",
     "types": "その部品・配線が存在する型式。D型はF型と共用（16系統の結線同一・df_diff.md）",
-    "sys": "配線図ビューアの系統番号（11=スタータ発電）。ファイルは系統ごとに増やしていく",
+    "sys": "配線図ビューアの系統番号（11=スタータ発電・10=イグニッション・7=油圧SW）。ファイルは系統ごとに増やしていく",
     "src": "出典。NL-D=registro500-notes/wiring-work/d_netlist.md（D原典 p40 の目視転記）／LEDGER=同 terminals_ledger.md（F原典 Mod.500 p42 と照合済）／NL-F=同 f_netlist.md（F図の機械抽出）"
   },
-  "NET_VERSION": "2",
-  "sys_done": [11],
+  "NET_VERSION": "3",
+  "sys_done": [11, 7],
 
   "controls": [
 
@@ -22,10 +22,10 @@
 
     { "id":"engine", "label":"エンジン", "role":"input", "default":"STOP",
       "options":[
-        { "v":"STOP", "label":"停止", "set":{ "dynamo":"STOP", "regulator":"OFF"    } },
-        { "v":"RUN",  "label":"回転", "set":{ "dynamo":"RUN",  "regulator":"CHARGE" } }
+        { "v":"STOP", "label":"停止", "set":{ "dynamo":"STOP", "regulator":"OFF",    "oil_sender":"LOW" } },
+        { "v":"RUN",  "label":"回転", "set":{ "dynamo":"RUN",  "regulator":"CHARGE", "oil_sender":"OK"  } }
       ],
-      "note":"⚠️v:inf。実際のカットアウトリレーは発電電圧がバッテリー電圧を超えたら閉じる＝回転数に依存するが、L1（到達性のみ）では「回っていれば閉じる」と単純化する。アイドル以下で灯がうっすら点く現象は再現しない（L4をやらない方針の帰結）" },
+      "note":"⚠️v:inf。油圧センダも同じレバーで動かす＝油圧はエンジンが回って初めて上がるため。セルで回している間（starter:START・engine:STOP）はまだ圧が上がらない＝油圧灯は点いたまま、で実車と合う。実際のカットアウトリレーは発電電圧がバッテリー電圧を超えたら閉じる＝回転数に依存するが、L1（到達性のみ）では「回っていれば閉じる」と単純化する。アイドル以下で灯がうっすら点く現象は再現しない（L4をやらない方針の帰結）" },
 
     { "id":"starter", "label":"スタータノブ", "role":"input", "default":"OFF",
       "options":[
@@ -94,14 +94,22 @@
         "note":"30↔15/54 だけをモデル化。①500 F/L/R の始動は引きノブ式でキーにSTART位置が無い（原典の端子が 30・15/54・30/4×2 だけで 50 が無いことと整合）②30/4×2（NERO）は常時30系の分岐と推定だが内部接点が未照合のためモデルに入れていない（行き先は外部照明SW21と計器盤＝d_netlist 未決④の決着）。⚠️系統2（外部照明）を書くときに必ず決着させる" },
       "src":"LEDGER 系統10 (1228,1320) 30←ROSSO・(1258,1316) 15/54←AZZURRO ／系統15 (1279,1327)(1297,1327) 30/4←NERO×2 ／NL-D 部品22" },
 
-    { "id":"quadro", "label":"計器盤", "kind":"cluster", "sys":11, "terms":["51","INTER","57","30"], "types":"FLRD",
+    { "id":"quadro", "label":"計器盤", "kind":"cluster", "sys":11, "terms":["51","INTER","57","30","0"], "types":"FLRD",
       "model":{ "kind":"lamps", "v":"inf",
         "lamps":[
           { "id":"warn_charge", "label":"チャージ警告灯(15)", "a":"51", "b":"INTER", "v":"inf",
-            "note":"⚠️51側はVERDEでレギュレータ51＝原典で確定。反対側（計器盤内の給電レール）が未確定＝INTER（AZZURRO・IGN SW 15/54 から）と 30（BIANCO）の2候補があり、計器盤の30 は色疑義で転記保留（LEDGER『転記しないもの』）。INTER を採ったのは、キーOFFでチャージ灯が点きっぱなしにならないため" }
+            "note":"⚠️51側はVERDEでレギュレータ51＝原典で確定。反対側（計器盤内の給電レール）が未確定＝INTER（AZZURRO・IGN SW 15/54 から）と 30（BIANCO）の2候補があり、計器盤の30 は色疑義で転記保留（LEDGER『転記しないもの』）。INTER を採ったのは、キーOFFでチャージ灯が点きっぱなしにならないため" },
+          { "id":"warn_oil", "label":"油圧警告灯(17)", "a":"0", "b":"INTER", "v":"inf",
+            "note":"0側はGRIGIOで油圧センダ32＝原典で確定（LEDGER 系統7 (944,1248)「メーター縁の白丸端子（GRIGIO着地）」✔）。反対側はチャージ灯と同じ理由で INTER を採った＝計器盤内の給電レールは原典の図から読み切れていない。キーOFFで点きっぱなしにならないことが根拠" }
         ],
-        "note":"計器盤の内部結線は原典の図では読み切れていない。系統11に必要なチャージ灯だけを載せ、他の警告灯（燃料16・油圧17）と照明ランプ13は各系統を書くときに足す" },
-      "src":"NL-D 計器盤「51←VERDE（チャージ灯15・→レギュレータ51）／INTER←AZZURRO／57←GIALLO（表示灯14・アース付）／30←BIANCO」／LEDGER 系統11 (875,1238) 51・(816,1380) 57、系統10 (978,1329) INTER" }
+        "note":"計器盤の内部結線は原典の図では読み切れていない。系統11のチャージ灯と系統7の油圧灯を載せている。燃料灯16（→燃料センダ5・ROSSO）と照明ランプ13は各系統を書くときに足す。⚠️燃料灯はタンクのフロートが落とし先＝エンジンの回転とは無関係なので、始動の流れには出てこない" },
+      "src":"NL-D 計器盤「51←VERDE（チャージ灯15・→レギュレータ51）／INTER←AZZURRO／57←GIALLO（表示灯14・アース付）／30←BIANCO」／LEDGER 系統11 (875,1238) 51・(816,1380) 57、系統10 (978,1329) INTER" },
+
+    { "id":"oil_sender", "label":"油圧センダ", "kind":"switch", "sys":7, "terms":["_in","_gnd"], "types":"FLRD",
+      "model":{ "kind":"switch", "v":"inf", "default":"LOW",
+        "positions":{ "LOW":[["_in","_gnd"]], "OK":[] },
+        "note":"油圧が無い間は閉じていて、計器盤の油圧灯をアースに落とす＝キーONで点く。エンジンが回って圧が上がると開いて灯が消える。⚠️原典は記号だけで接点の向きを描かないため v:inf。ただし「圧ゼロで閉じる」は油圧警告灯が成立する唯一の向き" },
+      "src":"NL-D 部品32「GRIGIO（→計器盤 油圧灯17）＋アース」／NL-F §7 油圧SW「[GRIGIO] METER→OIL_SENSOR（D=GRIGIO 一致・完全同型）」。⚠️端子名は原典に無い（LEDGER『原典に端子番号が無い部品』に油圧センサーが挙がっている）ため合成端子" }
   ],
   "wires": [
 
@@ -145,6 +153,13 @@
 
     { "id":"w10-02", "a":"ign_sw.15/54", "b":"quadro.INTER", "color":"AZZURRO", "sys":10, "types":"FLRD", "v":"orig",
       "note":"15/54 からはヒューズF2へも AZZURRO×2 が出ている（NL-D 部品18）。F2 以降は系統15を書くときに足す",
-      "src":"LEDGER 系統10 (1258,1316) 15/54←AZZURRO・(978,1329) INTER（AZZURRO着地）／NL-D 計器盤「INTER←AZZURRO」" }
+      "src":"LEDGER 系統10 (1258,1316) 15/54←AZZURRO・(978,1329) INTER（AZZURRO着地）／NL-D 計器盤「INTER←AZZURRO」" },
+
+    { "id":"w07-01", "a":"quadro.0", "b":"oil_sender._in", "color":"GRIGIO", "sys":7, "types":"FLRD", "v":"orig",
+      "src":"NL-D 計器盤「0←GRIGIO（油圧灯17・→センダ32）」＋部品32「GRIGIO（→計器盤 油圧灯17）」／NL-F §7／LEDGER 系統7 (944,1248) 0（GRIGIO着地・✔）" },
+
+    { "id":"w07-02", "a":"oil_sender._gnd", "b":"body.31", "color":"NERO", "sys":7, "types":"FLRD", "v":"orig",
+      "note":"センダはエンジンにねじ込まれて車体に落ちる＝原典はアース記号だけで電線を描かない。ダイナモの「−→アース」と同じ扱い",
+      "src":"NL-D 部品32「＋アース」" }
   ]
 }
