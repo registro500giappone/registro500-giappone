@@ -86,21 +86,27 @@ for n, sl in enumerate(prs.slides, 1):
             stray.append(lab)
             continue
         m, v = to_car(cx, cy)
-        placed.append({'id': pid, 'label': lab, 'm': m, 'v': v})
+        rot = round(float(s.rotation or 0) % 360, 1)   # 向きを変えた部品（例: バッテリーの端子側）
+        placed.append({'id': pid, 'label': lab, 'm': m, 'v': v, 'rot': rot})
         rec = out['parts'].setdefault(pid, {'label': lab})
         rec['label'] = lab
         if view == 'top':
             rec['m'], rec['lat'] = round(m, 3), round(v, 3)
+            if rot:
+                rec['rot_top'] = rot
         else:
             # 前後は上面図を正とし、側面図の値は食い違い検出のために別名で残す
             rec['h'], rec['m_side'] = round(v, 3), round(m, 3)
+            if rot:
+                rec['rot_side'] = rot
 
     print('── %d枚目（%s）' % (n, '上から' if view == 'top' else '横から'))
     if placed:
         key = '中心から(m)' if view == 'top' else '地面から(m)'
-        print('   %-14s %10s %12s' % ('部品', '前端から(m)', key))
+        print('   %-14s %10s %12s %8s' % ('部品', '前端から(m)', key, '回転'))
         for p in sorted(placed, key=lambda p: p['m']):
-            print('   %-14s %10.3f %12.3f' % (p['label'], p['m'], p['v']))
+            print('   %-14s %10.3f %12.3f %8s'
+                  % (p['label'], p['m'], p['v'], ('%.0f°' % p['rot']) if p['rot'] else '-'))
     if stray:
         print('   未配置（図の外に残っている）: ' + ' / '.join(stray))
 
