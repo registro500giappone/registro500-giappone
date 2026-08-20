@@ -50,7 +50,7 @@
       if(x1===x2 && c.live){
         /* 点きているとき＝放電の向き（下へ）。充電中＝バッテリーへ戻る線だけ上へ */
         if(sc.lampOn) dots(x1, Math.min(y1,y2)+6, Math.max(y1,y2)-26, false);
-        else if(sc.charging && (id==='w11-01'||id==='w11-03'||id==='pga-01'))
+        else if(sc.charging && (id==='w11-01'||id==='w11-03'||id==='pga-01'||id==='w11-05'))
           dots(x1, Math.min(y1,y2)+26, Math.max(y1,y2)-6, true);
       }
     }
@@ -162,8 +162,10 @@
     s.push('<rect x="44" y="356" width="124" height="64" rx="8" fill="'+C.body+'" stroke="'+C.deep+'" stroke-width="2.5"/>');
     s.push('<text x="52" y="372" font-size="10.5" fill="'+C.in_+'">レギュレータ</text>');
     label(X-12,352,'51',C.deep,'end',12); label(172,380,'30',C.deep,null,12);
-    /* 51→ダイナモへの素通しの道（接点が開いていてもここは常につながっている） */
+    /* 51→ダイナモへの素通しの道（接点が開いていてもここは常につながっている）。
+       充電中はダイナモから上がってきた電気がここを通って接点→30へ抜ける＝流れを見せる */
     s.push('<path d="M'+X+',356 L'+X+',420" stroke="'+C.in_+'" stroke-width="3" opacity=".9"/>');
+    if(sc.charging) dots(X, 398, 416, true);
     /* 30への枝＝カットアウト接点。充電中だけ閉じる */
     var cut = pos.regulator==='CHARGE';
     s.push('<path d="M'+X+',388 L126,388" stroke="'+C.in_+'" stroke-width="3" opacity=".9"/>');
@@ -172,7 +174,7 @@
     s.push('<circle cx="146" cy="388" r="3.8" fill="'+C.in_+'"/>');
     if(cut) s.push('<path d="M126,388 L146,388" stroke="'+C.in_+'" stroke-width="3.5"/>');
     else    s.push('<path d="M146,388 L130,378" stroke="'+C.in_+'" stroke-width="3.5"/>');
-    s.push('<text x="136" y="404" font-size="10.5" fill="'+C.in_+'" text-anchor="middle">接点（カットアウト）'+(cut?'閉':'開')+'</text>');
+    s.push('<text x="132" y="404" font-size="10" fill="'+C.in_+'" text-anchor="middle">カットアウト '+(cut?'閉':'開')+'</text>');
     s.push('<text x="60" y="414" font-size="10" fill="'+C.in_+'" opacity=".85">51から下は素通し</text>');
     /* レギュレータのアース（w11-08）＝細い枝 */
     s.push('<path d="M62,420 L62,434" stroke="'+WC.NERO+'" stroke-width="3"/>');
