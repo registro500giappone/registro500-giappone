@@ -41,8 +41,11 @@ def freeform_points(sp):
     g = el.find('.//' + NS + 'custGeom')
     if g is None:
         return []
-    ext = el.find('.//' + NS + 'ext')
-    off = el.find('.//' + NS + 'off')
+    # ⚠️'.//a:ext' だけで探すと extLst の中の別物（uri付き）を拾う＝必ず xfrm 配下から取る
+    xf = el.find('.//' + NS + 'xfrm')
+    if xf is None:
+        return []
+    ext, off = xf.find(NS + 'ext'), xf.find(NS + 'off')
     if ext is None or off is None:
         return []
     cx, cy = float(ext.get('cx')), float(ext.get('cy'))
@@ -58,6 +61,56 @@ def freeform_points(sp):
                 y = oy + float(p.get('y')) / h * cy
                 pts.append((mm(x), mm(y)))
     return pts
+
+
+def connector_points(sp):
+    """コネクタ（直線・カギ線）の通り道をスライド上のmmで返す。
+       ⚠️フリーフォームだけ見ていると、直線コネクタで引かれた線を丸ごと取りこぼす。"""
+    el = sp._element
+    pg = el.find('.//' + NS + 'prstGeom')
+    if pg is None or pg.get('prst') not in (
+            'line', 'straightConnector1', 'bentConnector2', 'bentConnector3'):
+        return []
+    xf = el.find('.//' + NS + 'xfrm')
+    if xf is None:
+        return []
+    off, ext = xf.find(NS + 'off'), xf.find(NS + 'ext')
+    if off is None or ext is None:
+        return []
+    x0, y0 = float(off.get('x')), float(off.get('y'))
+    w, h = float(ext.get('cx')), float(ext.get('cy'))
+    fh, fv = xf.get('flipH') == '1', xf.get('flipV') == '1'      # 向きは flip で表される
+    ax0, ay0 = (x0 + w if fh else x0), (y0 + h if fv else y0)
+    ax1, ay1 = (x0 if fh else x0 + w), (y0 if fv else y0 + h)
+    if pg.get('prst') in ('line', 'straightConnector1'):
+        pts = [(ax0, ay0), (ax1, ay1)]
+    else:
+        adj, av = .5, pg.find(NS + 'avLst')
+        if av is not None:
+            g = av.find(NS + 'gd')
+            if g is not None and g.get('fmla'):
+                adj = float(g.get('fmla').split()[-1]) / 100000.0
+        mx = ax0 + (ax1 - ax0) * adj
+        pts = [(ax0, ay0), (mx, ay0), (mx, ay1), (ax1, ay1)]
+    return [(mm(x), mm(y)) for x, y in pts]
+
+
+def rdp(pts, eps):
+    """折れ点を間引く（Ramer-Douglas-Peucker）。フリーハンドは点が数百になるため。"""
+    if len(pts) < 3:
+        return pts
+    (x0, y0), (x1, y1) = pts[0], pts[-1]
+    dx, dy = x1 - x0, y1 - y0
+    n = (dx * dx + dy * dy) ** .5
+    best, bi = -1.0, 0
+    for i in range(1, len(pts) - 1):
+        x, y = pts[i]
+        d = (abs(dy * x - dx * y + x1 * y0 - y1 * x0) / n) if n else             (((x - x0) ** 2 + (y - y0) ** 2) ** .5)
+        if d > best:
+            best, bi = d, i
+    if best <= eps:
+        return [pts[0], pts[-1]]
+    return rdp(pts[:bi + 1], eps)[:-1] + rdp(pts[bi:], eps)
 
 
 def nearest(parts, m, v):
@@ -111,10 +164,10 @@ for n, sl in enumerate(prs.slides, 1):
         print('   未配置（図の外に残っている）: ' + ' / '.join(stray))
 
     for s in sl.shapes:
-        pts = freeform_points(s)
+        pts = freeform_points(s) or connector_points(s)
         if len(pts) < 2:
             continue
-        car = [to_car(x, y) for x, y in pts]
+        car = rdp([to_car(x, y) for x, y in pts], 0.02)   # 20mm＝「置き場所の目安」の粒度
         a, da = nearest(placed, *car[0])
         b, db = nearest(placed, *car[-1])
         w = {'view': view,
@@ -123,9 +176,9 @@ for n, sl in enumerate(prs.slides, 1):
              'to_gap_m': round(db, 3) if db is not None else None,
              'points': [[round(m, 3), round(v, 3)] for m, v in car]}
         out['wires'].append(w)
-        print('   配線: %s → %s（折れ点%d・端の離れ %.02f/%.02fm）'
+        print('   配線: %s → %s（元%d点→%d点・端の離れ %.02f/%.02fm）'
               % (a['label'] if a else '?', b['label'] if b else '?',
-                 len(car), da or 0, db or 0))
+                 len(pts), len(car), da or 0, db or 0))
 
 print()
 print(json.dumps(out, ensure_ascii=False, indent=1))

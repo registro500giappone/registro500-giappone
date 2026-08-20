@@ -34,9 +34,21 @@ OFF = {
 REVIEW_W = 430.0
 
 
+ROUTE = (196, 96, 60)       # 橙＝配線の通り道
+
+
 def mk(view, key, m0, m1, v0, v1, dst):
     def overlay(dr, X, Y, pw, fs, W, H):
         f = ImageFont.truetype(FONTP, fs(3.4))
+        # 先に通り道を敷く（部品の丸が上に来るように）
+        for r in LAY.get('routes', []):
+            pts = r.get(view)
+            if not pts:
+                continue
+            xy = [(X(m), Y(v)) for m, v in pts]
+            dr.line(xy, fill=ROUTE, width=pw(1.0), joint='curve')
+            for x, y in (xy[0], xy[-1]):
+                dr.ellipse([x - pw(.9), y - pw(.9), x + pw(.9), y + pw(.9)], fill=ROUTE)
         for pid, p in P.items():
             if key not in p:
                 continue
