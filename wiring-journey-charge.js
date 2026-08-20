@@ -44,6 +44,10 @@
       for(var y=y1;y<=y2;y+=22)
         s.push('<circle class="'+(up?'dot up':'dot')+'" cx="'+x+'" cy="'+y+'" r="4.6"/>');
     }
+    function dotsH(y,x1,x2,dir){             /* 横線に流れる黄点（dir='right'|'left'） */
+      for(var x=x1;x<=x2;x+=22)
+        s.push('<circle class="dot '+dir+'" cx="'+x+'" cy="'+y+'" r="4.6"/>');
+    }
     function seg(x1,y1,x2,y2,id,thick,fallback){
       var c=wcol(id,fallback);
       s.push('<path d="M'+x1+','+y1+' L'+x2+','+y2+'" stroke="'+c.col+'" stroke-width="'+(thick?6.5:5)+'" fill="none" stroke-linecap="round"/>');
@@ -90,6 +94,8 @@
     s.push('<path d="M'+X+',144 L'+RX+',144 L'+RX+',388 L'+(sc.alt?172:168)+',388" stroke="'+jcol+'" stroke-width="5.5" fill="none" stroke-linecap="round"/>');
     if(sc.charging){
       for(var cy0=180;cy0<376;cy0+=22) s.push('<circle class="dot up" cx="'+RX+'" cy="'+cy0+'" r="4.6"/>');
+      dotsH(388,176,208,'right');            /* 箱の30/B+ → 右の道の下の横 */
+      dotsH(144,134,224,'left');             /* 右の道の上の横 → J（バッテリーへ） */
       label(RX+8,264,'充電',WC.ROSSO);
     }
 
@@ -165,7 +171,6 @@
     /* 51→ダイナモへの素通しの道（接点が開いていてもここは常につながっている）。
        充電中はダイナモから上がってきた電気がここを通って接点→30へ抜ける＝流れを見せる */
     s.push('<path d="M'+X+',356 L'+X+',420" stroke="'+C.in_+'" stroke-width="3" opacity=".9"/>');
-    if(sc.charging) dots(X, 398, 416, true);
     /* 30への枝＝カットアウト接点。充電中だけ閉じる */
     var cut = pos.regulator==='CHARGE';
     s.push('<path d="M'+X+',388 L126,388" stroke="'+C.in_+'" stroke-width="3" opacity=".9"/>');
@@ -174,6 +179,8 @@
     s.push('<circle cx="146" cy="388" r="3.8" fill="'+C.in_+'"/>');
     if(cut) s.push('<path d="M126,388 L146,388" stroke="'+C.in_+'" stroke-width="3.5"/>');
     else    s.push('<path d="M146,388 L130,378" stroke="'+C.in_+'" stroke-width="3.5"/>');
+    /* 充電中＝ダイナモから上がってきた電気が閉じた接点をくぐって30へ抜ける横の流れ */
+    if(sc.charging && cut) dotsH(388,108,140,'right');
     s.push('<text x="132" y="404" font-size="10" fill="'+C.in_+'" text-anchor="middle">カットアウト '+(cut?'閉':'開')+'</text>');
     s.push('<text x="60" y="414" font-size="10" fill="'+C.in_+'" opacity=".85">51から下は素通し</text>');
     /* レギュレータのアース（w11-08）＝細い枝 */
@@ -201,7 +208,7 @@
     s.push('<circle cx="'+X+'" cy="510" r="3.4" fill="'+C.in_+'"/>');
     if(arm) s.push('<path d="M'+X+',492 L'+X+',510" stroke="'+C.in_+'" stroke-width="3.5"/>');
     else    s.push('<path d="M'+X+',492 L'+(X+11)+',503" stroke="'+C.in_+'" stroke-width="3.5"/>');
-    s.push('<text x="'+(X-10)+'" y="505" font-size="10.5" fill="'+C.in_+'" text-anchor="end">中のコイル</text>');
+    s.push('<text x="'+(X-8)+'" y="505" font-size="10.5" fill="'+C.in_+'" text-anchor="end">コイル</text>');
     s.push('<text x="110" y="524" font-size="10" fill="'+C.in_+'" text-anchor="middle">'+(arm?'いまは通じている':'回転中は通じない')+'</text>');
 
     /* ダイナモ−→車体（w11-09） */
