@@ -236,8 +236,20 @@
   function carMap(carSvgText, layout){
     var e=document.getElementById('carmap'); if(!e) return;
     var inner = carSvgText.replace(/^[\s\S]*?<svg[^>]*>/,'').replace(/<\/svg>\s*$/,'');
-    /* 車のCSSをこの図の中だけに閉じ込める（path{} が旅の絵に漏れると全部の線が乗っ取られる） */
-    inner = inner.replace(/(^|})\s*(path|\.[\w-]+)\s*\{/g, '$1 #carcrop $2{');
+    /* 車のCSSをこの図の中だけに閉じ込める。⚠️<style>は文書のどこにあっても全体に効く＝
+       全セレクタを漏れなく #carcrop 配下に書き換える（旧実装は先頭の path{ を取り逃し、
+       stroke:currentColor と vector-effect が旅の絵とC1メーターのパスを全部乗っ取っていた） */
+    inner = inner.replace(/<style([^>]*)>([\s\S]*?)<\/style>/g, function(_, attrs, css){
+      var scoped = css.replace(/(^|\})([^{}@]+)\{/g, function(_, brace, sel){
+        var s = sel.split(',').map(function(x){
+          x = x.trim();
+          if(!x) return x;
+          return x.indexOf('#carcrop')===0 ? x : '#carcrop '+x;
+        }).join(',');
+        return brace+' '+s+'{';
+      });
+      return '<style'+attrs+'>'+scoped+'</style>';
+    });
     function pt(id){ var p=layout.parts[id]; return {x:25+p.m*1000, y:683.15-p.lat*1000}; }
     var dy=pt('dynamo'), rg=pt('regulator');
     var genName = ALT ? 'オルタネーター' : 'ダイナモ';
