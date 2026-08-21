@@ -7,14 +7,18 @@
 旅ページ用の加工（絵の中身は一切変えない）:
   - 元の transform（wiring-story の舞台座標用）を外す＝gauge座標 0..200 のまま使う
   - 針を約40km/h の位置へ（症状＝「走っているのに点いている」を言うため）
-  - GENERAT. 警告灯（lampGen）を点灯状態にする（class="hid" を外す）
+  - その旅の主役の警告灯だけを点灯状態にする（class="hid" を外す）＝旅ごとに指定する
 """
 import io, re, sys, os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'wiring-story.html')
-TARGETS = [os.path.join(ROOT, 'wiring-journey-charge.html'),
-           os.path.join(ROOT, 'wiring-journey-charge-alt.html')]
+# (対象HTML, 点灯させる警告灯のグループid) — 旅ページが増えたらここに足す
+TARGETS = [(os.path.join(ROOT, 'wiring-journey-charge.html'),     'lampGen'),
+           (os.path.join(ROOT, 'wiring-journey-charge-alt.html'), 'lampGen'),
+           (os.path.join(ROOT, 'wiring-journey-oil.html'),        'lampOil')]
+# 文字盤のCSSは旅ページ共通なので1か所（共通CSS）だけに差し込む
+CSS_TARGET = os.path.join(ROOT, 'wiring-journey.css')
 
 src = io.open(SRC, encoding='utf-8').read()
 
@@ -30,23 +34,28 @@ assert 'transform="translate(234,34) scale(0.86)"' in c1
 c1 = c1.replace(' transform="translate(234,34) scale(0.86)"', '', 1)
 assert 'rotate(-115.06 100 100)' in c1, '針の初期transformが見つからない'
 c1 = c1.replace('rotate(-115.06 100 100)', 'rotate(-38 100 100)', 1)  # 約40km/h
-assert '<g id="lampGen" class="hid">' in c1
-c1 = c1.replace('<g id="lampGen" class="hid">', '<g id="lampGen">', 1)
 
-METER_BLOCK = '<!--C1_METER_BEGIN-->' + c1 + '<!--C1_METER_END-->'
 CSS_BLOCK = '/*C1_CSS_BEGIN*/' + css + '/*C1_CSS_END*/'
 
-for path in TARGETS:
+for path, lamp in TARGETS:
+    tag = '<g id="%s" class="hid">' % lamp
+    assert tag in c1, '警告灯 %s が移植元に見つからない' % lamp
+    lit = c1.replace(tag, '<g id="%s">' % lamp, 1)
+    METER_BLOCK = '<!--C1_METER_BEGIN-->' + lit + '<!--C1_METER_END-->'
     t = io.open(path, encoding='utf-8').read()
     if '<!--C1_METER_BEGIN-->' in t:
         t = re.sub(r'<!--C1_METER_BEGIN-->[\s\S]*?<!--C1_METER_END-->', lambda _: METER_BLOCK, t, count=1)
     else:
         assert '<!--C1_METER-->' in t, path + ' にプレースホルダが無い'
         t = t.replace('<!--C1_METER-->', METER_BLOCK, 1)
-    if '/*C1_CSS_BEGIN*/' in t:
-        t = re.sub(r'/\*C1_CSS_BEGIN\*/[\s\S]*?/\*C1_CSS_END\*/', lambda _: CSS_BLOCK, t, count=1)
-    else:
-        assert '/*C1_CSS*/' in t, path + ' にCSSプレースホルダが無い'
-        t = t.replace('/*C1_CSS*/', CSS_BLOCK, 1)
     io.open(path, 'w', encoding='utf-8', newline='\n').write(t)
-    print('spliced:', os.path.basename(path), len(c1), 'chars')
+    print('spliced:', os.path.basename(path), lamp, len(lit), 'chars')
+
+t = io.open(CSS_TARGET, encoding='utf-8').read()
+if '/*C1_CSS_BEGIN*/' in t:
+    t = re.sub(r'/\*C1_CSS_BEGIN\*/[\s\S]*?/\*C1_CSS_END\*/', lambda _: CSS_BLOCK, t, count=1)
+else:
+    assert '/*C1_CSS*/' in t, CSS_TARGET + ' にCSSプレースホルダが無い'
+    t = t.replace('/*C1_CSS*/', CSS_BLOCK, 1)
+io.open(CSS_TARGET, 'w', encoding='utf-8', newline='\n').write(t)
+print('spliced:', os.path.basename(CSS_TARGET), len(css), 'chars')
