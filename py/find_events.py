@@ -47,7 +47,7 @@ import unicodedata
 import urllib.error
 import urllib.request
 from datetime import date, datetime, timedelta, timezone
-from html import unescape
+from html import escape, unescape
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import requests
@@ -339,6 +339,38 @@ def is_sns_host(host):
 
 def is_sns_url(url):
     return is_sns_host(extract_host(url))
+
+
+# --- 投稿フォームの下書きリンク ---
+# 候補ごとに /event の投稿フォームを開き、機械が分かっている欄だけ埋めた状態に
+# するリンクを作る。DBには一切書かない＝載せる判断と保存は人間が行う（不変条件2）。
+# 受け側は event.html の stashDraftFromUrl() / applyDraftIfAny()。
+SITE_URL = "https://www.registro500.com"
+
+
+def draft_link(c):
+    """候補1件から、投稿フォームを開く下書きURLを作る。
+
+    埋めるのは4欄（イベント名・開催日・開催場所・ウェブサイトURL）だけ。
+    開催時間・費用・詳細は告知ページでの書かれ方がばらばらで、機械が読み違えた
+    まま欄に入ると気づかず保存されるため埋めない（構造化データで offers を
+    出さないのと同じ理由）。判定理由は機械の推測なので載せない。
+    """
+    loc = (c.get("location") or "").strip()
+    pref = (c.get("prefecture") or "").strip()
+    # 既存データに合わせて「都道府県＋改行＋会場」の形にする。
+    # 都道府県が場所の文字列に既に含まれていれば二重に書かない。
+    if pref and pref not in loc:
+        loc = f"{pref}\n{loc}" if loc else pref
+    params = {
+        "draft": "1",
+        "name": (c.get("event_name") or "").strip(),
+        "loc": loc,
+        "url": c.get("url") or "",
+    }
+    if "_date" in c:
+        params["date"] = c["_date"].isoformat()
+    return f"{SITE_URL}/event?" + urlencode(params)
 
 
 # --- 検索クエリの組み立て ---
@@ -665,6 +697,8 @@ def main():
     parser = argparse.ArgumentParser(description="日本国内の旧車イベントを週次で探索し、新規候補をメールする")
     parser.add_argument("--dry-run", action="store_true", help="メール送信・台帳記録をせず標準出力へ出す")
     parser.add_argument("--limit", type=int, default=None, help="使うクエリ数を絞る（疎通確認用）")
+    parser.add_argument("--html-out", default=None,
+                        help="--dry-run のとき、メールのHTML版をこのパスへ書き出す（見た目の確認用）")
     args = parser.parse_args()
 
     today = date.today()
@@ -857,6 +891,7 @@ def main():
     if doubtful:
         lines.append(f"　※うち{len(doubtful)}件はURLが告知ページか怪しく、末尾に分けています")
     lines.append("")
+    summary_lines = list(lines)  # 集計部分はHTML版でも同じものを使う
 
     def format_item(c, with_date):
         out = [f"・{c.get('event_name') or '（イベント名不明）'}"]
@@ -870,32 +905,86 @@ def main():
         reason = c.get("reason")
         if reason:
             out.append(f"  判定理由: {reason}")
+        out.append(f"  ▶ この内容でフォームを開く: {draft_link(c)}")
         return "\n".join(out)
 
+    def format_item_html(c, with_date):
+        out = ['<div style="margin:0 0 16px;padding:12px 14px;border:1px solid #dcd6c8;'
+               'border-radius:6px;">']
+        out.append('<div style="font-weight:bold;font-size:15px;margin-bottom:6px;">'
+                   + escape(c.get("event_name") or "（イベント名不明）") + "</div>")
+        if with_date:
+            out.append(f'<div>日付: {c["_date"].isoformat()}</div>')
+        out.append("<div>場所: " + escape(c.get("location") or "不明")
+                   + "（" + escape(c.get("prefecture") or "都道府県不明") + "）</div>")
+        out.append('<div>URL: <a href="' + escape(c["url"], quote=True) + '">'
+                   + escape(c["url"]) + "</a></div>")
+        out.append('<div style="color:#666;font-size:12px;">見つけた経路: '
+                   + escape(c["_found_via"]) + "</div>")
+        reason = c.get("reason")
+        if reason:
+            out.append('<div style="color:#666;font-size:12px;">判定理由: '
+                       + escape(reason) + "</div>")
+        out.append('<div style="margin-top:10px;"><a href="' + escape(draft_link(c), quote=True)
+                   + '" style="display:inline-block;padding:8px 14px;background:#2f5d50;'
+                   'color:#fff;text-decoration:none;border-radius:4px;font-size:14px;">'
+                   "▶ この内容でフォームを開く</a></div>")
+        out.append("</div>")
+        return "".join(out)
+
+    # 見出しごとに (題, 候補, 日付を出すか（Noneなら候補ごとに判定）, 注記) を並べ、
+    # プレーンテキストとHTMLの両方を同じ順序で組み立てる。
+    doubt_note = [
+        "　イベント自体は実在しても、リンク先が会場案内やトップページの",
+        "　ことがあります。載せる前に本当の告知ページを探してください。",
+    ]
+    sections = []
+    if ok_dated:
+        sections.append(("■ 開催日が分かっている候補", ok_dated, True, []))
+    if ok_unknown:
+        sections.append(("■ 日付未確定の候補（『今年も開催予定』等の告知）", ok_unknown, False, []))
+    if doubtful:
+        sections.append(("■ URL要確認の候補（ページにイベント名も開催日も見当たらなかった）",
+                         doubtful, None, doubt_note))
+
+    html_parts = []
     if total_kept == 0:
         lines.append("今回は新規候補はありませんでした。")
+        html_parts.append("<p>今回は新規候補はありませんでした。</p>")
     else:
-        if ok_dated:
-            lines.append("■ 開催日が分かっている候補")
-            for c in ok_dated:
+        for title, items, with_date, note in sections:
+            if lines and lines[-1] != "":
                 lines.append("")
-                lines.append(format_item(c, with_date=True))
-        if ok_unknown:
-            lines.append("")
-            lines.append("■ 日付未確定の候補（『今年も開催予定』等の告知）")
-            for c in ok_unknown:
+            lines.append(title)
+            lines.extend(note)
+            html_parts.append('<h3 style="font-size:15px;margin:22px 0 6px;">'
+                              + escape(title) + "</h3>")
+            for n in note:
+                html_parts.append('<p style="color:#666;font-size:12px;margin:0 0 10px;">'
+                                  + escape(n.strip()) + "</p>")
+            for c in items:
+                wd = ("_date" in c) if with_date is None else with_date
                 lines.append("")
-                lines.append(format_item(c, with_date=False))
-        if doubtful:
-            lines.append("")
-            lines.append("■ URL要確認の候補（ページにイベント名も開催日も見当たらなかった）")
-            lines.append("　イベント自体は実在しても、リンク先が会場案内やトップページの")
-            lines.append("　ことがあります。載せる前に本当の告知ページを探してください。")
-            for c in doubtful:
-                lines.append("")
-                lines.append(format_item(c, with_date="_date" in c))
+                lines.append(format_item(c, with_date=wd))
+                html_parts.append(format_item_html(c, with_date=wd))
 
     body_text = "\n".join(lines)
+
+    # HTML版。中身はプレーンテキストと同じで、候補ごとに下書きリンクを押せる形にする。
+    body_html = (
+        '<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\','
+        'sans-serif;font-size:14px;line-height:1.7;color:#333;max-width:640px;">'
+        + '<p style="margin:0 0 12px;padding:10px 12px;background:#f4f1e8;border-radius:6px;'
+          'font-size:13px;color:#555;">'
+          "「▶ この内容でフォームを開く」を押すと /event の投稿フォームが開き、"
+          "<b>イベント名・開催日・開催場所・URL</b> が入った状態になります。"
+          "開催時間・費用・詳細は告知ページを見て手で足してください。"
+          "<b>保存を押すまでサイトには載りません。</b></p>"
+        + '<div style="white-space:pre-wrap;color:#666;font-size:12px;margin:0 0 8px;">'
+        + escape("\n".join(summary_lines).rstrip()) + "</div>"
+        + "".join(html_parts)
+        + "</div>"
+    )
     subject = f"🔎 イベント候補 {total_kept}件（{today.month:02d}/{today.day:02d}週）"
 
     if args.dry_run:
@@ -904,6 +993,10 @@ def main():
         print("=" * 60)
         print(body_text)
         print("=" * 60)
+        if args.html_out:
+            with open(args.html_out, "w", encoding="utf-8") as f:
+                f.write(body_html)
+            print(f"[find_events] HTML版を書き出しました: {args.html_out}")
         print("[find_events] --dry-run のため送信・台帳記録はしていません。")
         return
 
@@ -912,6 +1005,7 @@ def main():
         "to": [{"email": TO_EMAIL}],
         "subject": subject,
         "textContent": body_text,
+        "htmlContent": body_html,
     }
     req = urllib.request.Request(
         "https://api.brevo.com/v3/smtp/email",
