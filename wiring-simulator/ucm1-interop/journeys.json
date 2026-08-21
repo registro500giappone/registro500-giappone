@@ -1,13 +1,14 @@
 {
   "schema": "registro500.journeys/1.0",
   "generated": "2026-08-21",
-  "generated_by": "手書き（自動生成ではない）。中身は wiring-net.json NET_VERSION 4 と各旅ページの実装から起こした",
-  "net_version": 4,
+  "generated_by": "手書き（自動生成ではない）。中身は wiring-net.json NET_VERSION 5 と各旅ページの実装から起こした",
+  "net_version": 5,
   "note_for_ucm1": [
     "この JSON は registro500 側が持つ『結線・到達性』の知識を UCM-1 から参照できる形にしたもの。",
     "正本は registro500 repo の wiring-net.json（結線）・wiring-layout.json（実配置）・wiring-sim.js（到達性ソルバー）。",
     "ここに測定値・判定しきい値・診断カードの文章は入れない（それは UCM-1 側の正本）。",
-    "v:inf / v:auto の項目は『原典で確定していない』という意味。UCM-1 の画面や文章で断定に使わないこと。"
+    "v:inf / v:auto の項目は『原典で確定していない』という意味。UCM-1 の画面や文章で断定に使わないこと。",
+    "【2026-08-21 追記】NET_VERSION 5 で系統9（点火・一次側）を追加した。⛔二次側（高圧）とコンデンサは持たない＝no_spark の limitations と wiring-net.json の _sys9_scope を必ず読むこと。"
   ],
   "id_policy": {
     "決定": "2026-08-21。旅ページのIDと UCM-1 の trigger_id は【対応付けるが同一視しない】。",
@@ -23,7 +24,10 @@
   },
   "solver": {
     "kind": "L1 到達性（物理計算なし・グラフ探索のみ）",
-    "edge_kinds": ["導体エッジ＝電線と閉じた接点（抵抗ゼロ扱い）", "負荷エッジ＝ランプ・モーター（ここで電位が落ちる）"],
+    "edge_kinds": [
+      "導体エッジ＝電線と閉じた接点（抵抗ゼロ扱い）",
+      "負荷エッジ＝ランプ・モーター（ここで電位が落ちる）"
+    ],
     "terminal_states": {
       "hot": "電源に導体だけでつながっている",
       "post": "点いていない負荷の先＝電圧は来ているが流れない",
@@ -35,27 +39,90 @@
   "journeys": [
     {
       "journey_id": "charge_lamp_on",
-      "ucm1_trigger_id": { "value": "charge_lamp_on", "card": "VOLT-04", "state": "仮命名・突合待ち",
-        "note": "⚠️v2.34 で VOLT-04 の意味論が『チャージランプ点灯』→『充電喪失』へ一般化された＝突合時に改名が検討される。改名されたらこの欄だけ直す（journey_id と URL は変えない）" },
+      "ucm1_trigger_id": {
+        "value": "charge_lamp_on",
+        "card": "VOLT-04",
+        "state": "仮命名・突合待ち",
+        "note": "⚠️v2.34 で VOLT-04 の意味論が『チャージランプ点灯』→『充電喪失』へ一般化された＝突合時に改名が検討される。改名されたらこの欄だけ直す（journey_id と URL は変えない）"
+      },
       "status": "本番に置いてあるが導線なし・noindex（作業場）",
       "url": "https://www.registro500.com/wiring-journey-charge.html",
       "url_variants": [
-        { "label": "ダイナモ（純正）", "url": "https://www.registro500.com/wiring-journey-charge.html" },
-        { "label": "オルタネーター換装車", "url": "https://www.registro500.com/wiring-journey-charge-alt.html", "patch": "gen-alt" }
+        {
+          "label": "ダイナモ（純正）",
+          "url": "https://www.registro500.com/wiring-journey-charge.html"
+        },
+        {
+          "label": "オルタネーター換装車",
+          "url": "https://www.registro500.com/wiring-journey-charge-alt.html",
+          "patch": "gen-alt"
+        }
       ],
       "title": "チャージランプが消えない",
       "symptom": "エンジンが回っているのに計器盤の GENERAT. が点いたまま",
-      "systems": [11, 10],
+      "systems": [
+        11,
+        10
+      ],
       "ucm1_card": "VOLT-04（同一題材。原因4つが旅の絵の容疑区間と1対1）",
       "chain": [
-        { "from": "battery.+", "wire": "w11-01", "color": "ROSSO", "to": "starter_sw._in", "v": "orig" },
-        { "from": "starter_sw._in", "wire": "w11-03", "color": "MARRONE", "to": "regulator.30", "v": "orig" },
-        { "from": "regulator.30", "wire": "w11-04", "color": "ROSSO", "to": "f1.30", "v": "orig" },
-        { "from": "f1.30", "wire": "w10-01", "color": "ROSSO", "to": "ign_sw.30", "v": "orig", "note": "キーSWの30はヒューズF1の電源側から分岐＝F1を通っていない" },
-        { "from": "ign_sw.15/54", "wire": "w10-02", "color": "AZZURRO", "to": "quadro.INTER", "v": "orig", "via": "キーON時のSW内部接点（v:inf）" },
-        { "from": "quadro.INTER", "load": "quadro.warn_charge", "to": "quadro.51", "v": "inf" },
-        { "from": "quadro.51", "wire": "w11-07", "color": "VERDE", "to": "regulator.51", "v": "orig" },
-        { "from": "regulator.51", "wire": "w11-05", "color": "MARRONE", "to": "dynamo.51", "v": "orig" }
+        {
+          "from": "battery.+",
+          "wire": "w11-01",
+          "color": "ROSSO",
+          "to": "starter_sw._in",
+          "v": "orig"
+        },
+        {
+          "from": "starter_sw._in",
+          "wire": "w11-03",
+          "color": "MARRONE",
+          "to": "regulator.30",
+          "v": "orig"
+        },
+        {
+          "from": "regulator.30",
+          "wire": "w11-04",
+          "color": "ROSSO",
+          "to": "f1.30",
+          "v": "orig"
+        },
+        {
+          "from": "f1.30",
+          "wire": "w10-01",
+          "color": "ROSSO",
+          "to": "ign_sw.30",
+          "v": "orig",
+          "note": "キーSWの30はヒューズF1の電源側から分岐＝F1を通っていない"
+        },
+        {
+          "from": "ign_sw.15/54",
+          "wire": "w10-02",
+          "color": "AZZURRO",
+          "to": "quadro.INTER",
+          "v": "orig",
+          "via": "キーON時のSW内部接点（v:inf）"
+        },
+        {
+          "from": "quadro.INTER",
+          "load": "quadro.warn_charge",
+          "to": "quadro.51",
+          "v": "inf"
+        },
+        {
+          "from": "quadro.51",
+          "wire": "w11-07",
+          "color": "VERDE",
+          "to": "regulator.51",
+          "v": "orig"
+        },
+        {
+          "from": "regulator.51",
+          "wire": "w11-05",
+          "color": "MARRONE",
+          "to": "dynamo.51",
+          "v": "orig"
+        }
       ],
       "lamp": {
         "load_id": "quadro.warn_charge",
@@ -64,40 +131,122 @@
         "caveat": "51側（VERDE→レギュレータ51）は原典で確定。反対側の給電レールは原典から読み切れておらず INTER を採用した（キーOFFで点きっぱなしにならないことが根拠）。"
       },
       "solved_states": [
-        { "inputs": { "key": "OFF", "engine": "STOP" }, "lamp_on": false },
-        { "inputs": { "key": "ON", "engine": "STOP" }, "lamp_on": true },
-        { "inputs": { "key": "ON", "engine": "RUN" }, "lamp_on": false },
-        { "inputs": { "key": "ON", "engine": "RUN", "override": "dynamo:STOP / regulator:OFF" }, "lamp_on": true, "means": "ベルト切れ相当" },
-        { "inputs": { "key": "ON", "engine": "STOP", "f1": "BLOWN" }, "lamp_on": true, "means": "F1が切れても灯は点く＝ヒューズ点検では直らない" }
+        {
+          "inputs": {
+            "key": "OFF",
+            "engine": "STOP"
+          },
+          "lamp_on": false
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "engine": "STOP"
+          },
+          "lamp_on": true
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "engine": "RUN"
+          },
+          "lamp_on": false
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "engine": "RUN",
+            "override": "dynamo:STOP / regulator:OFF"
+          },
+          "lamp_on": true,
+          "means": "ベルト切れ相当"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "engine": "STOP",
+            "f1": "BLOWN"
+          },
+          "lamp_on": true,
+          "means": "F1が切れても灯は点く＝ヒューズ点検では直らない"
+        }
       ],
       "causes_structure": [
-        { "id": "belt", "label": "ベルト（切れ・緩み）", "note": "500のベルトは冷却ファン駆動を兼ねる＝最優先で目視" },
-        { "id": "generator", "label": "発電機本体（ダイナモ／オルタ）" },
-        { "id": "regulator", "label": "レギュレータ" },
-        { "id": "wiring", "label": "配線・アース外れ" }
+        {
+          "id": "belt",
+          "label": "ベルト（切れ・緩み）",
+          "note": "500のベルトは冷却ファン駆動を兼ねる＝最優先で目視"
+        },
+        {
+          "id": "generator",
+          "label": "発電機本体（ダイナモ／オルタ）"
+        },
+        {
+          "id": "regulator",
+          "label": "レギュレータ"
+        },
+        {
+          "id": "wiring",
+          "label": "配線・アース外れ"
+        }
       ],
       "electrically_indistinguishable": [],
       "measurable_by_ucm1": [
-        { "point": "バッテリー端子電圧（回転中）", "meaning": "充電しているかどうか。しきい値は UCM-1 側の正本" }
+        {
+          "point": "バッテリー端子電圧（回転中）",
+          "meaning": "充電しているかどうか。しきい値は UCM-1 側の正本"
+        }
       ],
       "self_checks": 7
     },
     {
       "journey_id": "oil_lamp_on",
-      "ucm1_trigger_id": { "value": null, "card": null, "state": "対応なし（UCM-1 側にいま足すものは無い）",
-        "note": "OILPRESS-01「油圧の読み方」は guide カードでスキーマ上 trigger_id を持てない。油圧灯の diagnostic カードを作るには警告灯タップ・metric・test_mode が要る＝UCM のフェーズ前倒しになるので今はしない。⚠️UCM-1 側に油圧灯タップが載る時点で突合する" },
+      "ucm1_trigger_id": {
+        "value": null,
+        "card": null,
+        "state": "対応なし（UCM-1 側にいま足すものは無い）",
+        "note": "OILPRESS-01「油圧の読み方」は guide カードでスキーマ上 trigger_id を持てない。油圧灯の diagnostic カードを作るには警告灯タップ・metric・test_mode が要る＝UCM のフェーズ前倒しになるので今はしない。⚠️UCM-1 側に油圧灯タップが載る時点で突合する"
+      },
       "status": "本番に置いてあるが導線なし・noindex（作業場）",
       "url": "https://www.registro500.com/wiring-journey-oil.html",
       "title": "油圧警告灯が消えない",
       "symptom": "エンジンが回っているのに計器盤の OLIO が点いたまま",
-      "systems": [7, 10],
+      "systems": [
+        7,
+        10
+      ],
       "ucm1_card": "対応なし。OILPRESS-01「油圧の読み方」は guide カード（2026-08-21 に diagnostic_cards_v1.json を実読＝guide 4枚は例外なく trigger_id: None）",
       "chain": [
-        { "same_as": "charge_lamp_on の quadro.INTER まで（バッテリー→始動レバー節点→レギュレータ30→F1→キーSW→計器盤）" },
-        { "from": "quadro.INTER", "load": "quadro.warn_oil", "to": "quadro.0", "v": "inf" },
-        { "from": "quadro.0", "wire": "w07-01", "color": "GRIGIO", "to": "oil_sender._in", "v": "orig" },
-        { "from": "oil_sender._in", "contact": "圧ゼロ=閉／圧あり=開", "to": "oil_sender._gnd", "v": "inf" },
-        { "from": "oil_sender._gnd", "wire": "w07-02", "color": "NERO", "to": "body.31", "v": "orig", "note": "原典はアース記号だけで電線を描かない＝センダのねじ込み部がアースそのもの" }
+        {
+          "same_as": "charge_lamp_on の quadro.INTER まで（バッテリー→始動レバー節点→レギュレータ30→F1→キーSW→計器盤）"
+        },
+        {
+          "from": "quadro.INTER",
+          "load": "quadro.warn_oil",
+          "to": "quadro.0",
+          "v": "inf"
+        },
+        {
+          "from": "quadro.0",
+          "wire": "w07-01",
+          "color": "GRIGIO",
+          "to": "oil_sender._in",
+          "v": "orig"
+        },
+        {
+          "from": "oil_sender._in",
+          "contact": "圧ゼロ=閉／圧あり=開",
+          "to": "oil_sender._gnd",
+          "v": "inf"
+        },
+        {
+          "from": "oil_sender._gnd",
+          "wire": "w07-02",
+          "color": "NERO",
+          "to": "body.31",
+          "v": "orig",
+          "note": "原典はアース記号だけで電線を描かない＝センダのねじ込み部がアースそのもの"
+        }
       ],
       "lamp": {
         "load_id": "quadro.warn_oil",
@@ -108,25 +257,81 @@
       "sender": {
         "part_id": "oil_sender",
         "v": "inf",
-        "positions": { "LOW": "接点 閉（灯をアースに落とす）", "OK": "接点 開" },
+        "positions": {
+          "LOW": "接点 閉（灯をアースに落とす）",
+          "OK": "接点 開"
+        },
         "caveat": "原典は記号だけで接点の向きを描かない。ただし『圧ゼロで閉じる』は油圧警告灯が成立する唯一の向き。"
       },
       "solved_states": [
-        { "inputs": { "key": "OFF", "engine": "STOP" }, "lamp_on": false },
-        { "inputs": { "key": "ON", "engine": "STOP" }, "lamp_on": true, "means": "正常。止まっていれば圧ゼロ＝接点閉" },
-        { "inputs": { "key": "ON", "engine": "RUN" }, "lamp_on": false },
-        { "inputs": { "key": "ON", "engine": "RUN", "override": "oil_sender:LOW" }, "lamp_on": true, "means": "異常＝回転中なのに接点が閉じたまま" },
-        { "inputs": { "key": "ON", "engine": "STOP", "ops": "removeWire w07-01" }, "lamp_on": false, "means": "切り分け①＝GRIGIOを外すと消える＝計器盤より上流は無実" },
-        { "cross_lamp": "上の異常場面でも quadro.warn_charge は消えたまま", "lamp_on": false, "means": "2灯は独立＝両方点いていたら別々の原因を疑う" }
+        {
+          "inputs": {
+            "key": "OFF",
+            "engine": "STOP"
+          },
+          "lamp_on": false
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "engine": "STOP"
+          },
+          "lamp_on": true,
+          "means": "正常。止まっていれば圧ゼロ＝接点閉"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "engine": "RUN"
+          },
+          "lamp_on": false
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "engine": "RUN",
+            "override": "oil_sender:LOW"
+          },
+          "lamp_on": true,
+          "means": "異常＝回転中なのに接点が閉じたまま"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "engine": "STOP",
+            "ops": "removeWire w07-01"
+          },
+          "lamp_on": false,
+          "means": "切り分け①＝GRIGIOを外すと消える＝計器盤より上流は無実"
+        },
+        {
+          "cross_lamp": "上の異常場面でも quadro.warn_charge は消えたまま",
+          "lamp_on": false,
+          "means": "2灯は独立＝両方点いていたら別々の原因を疑う"
+        }
       ],
       "causes_structure": [
-        { "id": "oil_pressure_low", "label": "本当に油圧が低い", "severity": "即停止" },
-        { "id": "sender_stuck", "label": "センダの固着（閉のまま）" },
-        { "id": "grigio_short_to_ground", "label": "GRIGIO線が車体に触れている（地絡）" }
+        {
+          "id": "oil_pressure_low",
+          "label": "本当に油圧が低い",
+          "severity": "即停止"
+        },
+        {
+          "id": "sender_stuck",
+          "label": "センダの固着（閉のまま）"
+        },
+        {
+          "id": "grigio_short_to_ground",
+          "label": "GRIGIO線が車体に触れている（地絡）"
+        }
       ],
       "electrically_indistinguishable": [
         {
-          "members": ["oil_pressure_low", "sender_stuck", "grigio_short_to_ground"],
+          "members": [
+            "oil_pressure_low",
+            "sender_stuck",
+            "grigio_short_to_ground"
+          ],
           "reason": "どれも『quadro.0 がアースに落ちている』という同じ到達性になる。L1 到達性でも実車の電気測定でも区別できない。",
           "resolution": "油圧計での実測（機械の話）。旅ページも切り分け③でそこへ手放している。"
         }
@@ -147,21 +352,59 @@
     },
     {
       "journey_id": "starter_no_crank",
-      "ucm1_trigger_id": { "value": null, "card": "START-02", "state": "対応なし（UCM-1 側にいま足すものは無い）",
-        "note": "START-02「セルが回らない」は同題材だが guide カード＝スキーマ1.1でこの種のカードは trigger_id を持てない（2026-08-21 実読で確認済み・guide 4枚は例外なく None）。⚠️UCM-1 側に始動系の diagnostic が載る時点で突合する" },
+      "ucm1_trigger_id": {
+        "value": null,
+        "card": "START-02",
+        "state": "対応なし（UCM-1 側にいま足すものは無い）",
+        "note": "START-02「セルが回らない」は同題材だが guide カード＝スキーマ1.1でこの種のカードは trigger_id を持てない（2026-08-21 実読で確認済み・guide 4枚は例外なく None）。⚠️UCM-1 側に始動系の diagnostic が載る時点で突合する"
+      },
       "status": "本番に置いてあるが導線なし・noindex（作業場）",
       "url": "https://www.registro500.com/wiring-journey-starter.html",
       "title": "セルが回らない",
       "symptom": "キーを回して始動レバーを引いても、セルモーターが回らない",
-      "systems": [11, 10],
+      "systems": [
+        11,
+        10
+      ],
       "ucm1_card": "START-02「セルが回らない」（guide・trigger_id なし）。HANDOFF §3 の『START-02 は系統11に対応』の具体化",
       "note": "⚠️この旅だけ【主役が警告灯ではない】＝負荷は starter（モーター）。灯の道（第1号・第2号）とは節点で分かれ、以降ひとつも共有しない。",
       "chain": [
-        { "from": "battery.+", "wire": "w11-01", "color": "ROSSO", "to": "starter_sw._in", "v": "orig", "note": "太線。ここが灯の旅との分岐点＝starter_sw._in から w11-03 が発電系・ヒューズ・キーSW側へ分かれる" },
-        { "from": "starter_sw._in", "contact": "レバーを引いている間だけ閉（モーメンタリ）", "to": "starter_sw._out", "v": "orig" },
-        { "from": "starter_sw._out", "wire": "w11-02", "color": "MARRONE", "to": "starter.+", "v": "orig", "note": "太線" },
-        { "from": "starter.+", "load": "starter", "to": "starter.-", "v": "inf", "note": "モーター巻線を負荷エッジとして扱う簡易モデル（原典は記号のみ）" },
-        { "from": "starter.-", "wire": "w11-11", "color": "NERO", "to": "body.31", "v": "orig" }
+        {
+          "from": "battery.+",
+          "wire": "w11-01",
+          "color": "ROSSO",
+          "to": "starter_sw._in",
+          "v": "orig",
+          "note": "太線。ここが灯の旅との分岐点＝starter_sw._in から w11-03 が発電系・ヒューズ・キーSW側へ分かれる"
+        },
+        {
+          "from": "starter_sw._in",
+          "contact": "レバーを引いている間だけ閉（モーメンタリ）",
+          "to": "starter_sw._out",
+          "v": "orig"
+        },
+        {
+          "from": "starter_sw._out",
+          "wire": "w11-02",
+          "color": "MARRONE",
+          "to": "starter.+",
+          "v": "orig",
+          "note": "太線"
+        },
+        {
+          "from": "starter.+",
+          "load": "starter",
+          "to": "starter.-",
+          "v": "inf",
+          "note": "モーター巻線を負荷エッジとして扱う簡易モデル（原典は記号のみ）"
+        },
+        {
+          "from": "starter.-",
+          "wire": "w11-11",
+          "color": "NERO",
+          "to": "body.31",
+          "v": "orig"
+        }
       ],
       "lamp": null,
       "load": {
@@ -171,32 +414,122 @@
         "caveat": "端点（＋と本体アース）は原典で確定。内部はモーター巻線を1つの負荷として潰した簡易モデル。"
       },
       "solved_states": [
-        { "inputs": { "key": "OFF", "starter": "START" }, "load_on": true, "means": "500 F/L/R のキーには START 位置が無い＝キーを抜いたままでもレバーで回る" },
-        { "inputs": { "key": "ON", "starter": "OFF" }, "load_on": false },
-        { "inputs": { "key": "ON", "starter": "START" }, "load_on": true },
-        { "inputs": { "key": "ON", "starter": "START", "f1": "BLOWN" }, "load_on": true, "means": "セルの輪はヒューズを通らない" },
-        { "inputs": { "key": "ON", "starter": "START", "ops": "removeWire w11-11" }, "load_on": false, "cross_lamp": "チャージランプは点いたまま", "means": "灯は点くのにセルだけ回らない＝容疑者は節点より下" },
-        { "inputs": { "key": "ON", "starter": "START", "ops": "removeWire w11-01" }, "load_on": false, "cross_lamp": "チャージランプも消える", "means": "灯もセルも全部死ぬ＝容疑者は節点より上（バッテリー・＋端子）" },
-        { "inputs": { "alt": true, "key": "ON", "starter": "START" }, "load_on": true, "means": "オルタ換装は始動系に影響しない" }
+        {
+          "inputs": {
+            "key": "OFF",
+            "starter": "START"
+          },
+          "load_on": true,
+          "means": "500 F/L/R のキーには START 位置が無い＝キーを抜いたままでもレバーで回る"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "starter": "OFF"
+          },
+          "load_on": false
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "starter": "START"
+          },
+          "load_on": true
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "starter": "START",
+            "f1": "BLOWN"
+          },
+          "load_on": true,
+          "means": "セルの輪はヒューズを通らない"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "starter": "START",
+            "ops": "removeWire w11-11"
+          },
+          "load_on": false,
+          "cross_lamp": "チャージランプは点いたまま",
+          "means": "灯は点くのにセルだけ回らない＝容疑者は節点より下"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "starter": "START",
+            "ops": "removeWire w11-01"
+          },
+          "load_on": false,
+          "cross_lamp": "チャージランプも消える",
+          "means": "灯もセルも全部死ぬ＝容疑者は節点より上（バッテリー・＋端子）"
+        },
+        {
+          "inputs": {
+            "alt": true,
+            "key": "ON",
+            "starter": "START"
+          },
+          "load_on": true,
+          "means": "オルタ換装は始動系に影響しない"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "starter": "START",
+            "ops": "removeWire w11-10"
+          },
+          "load_on": false,
+          "cross_lamp": "チャージランプも消える",
+          "means": "バッテリーの −端子外れ＝戻り道が無い。【2026-08-21 案Aで正しく答えられるようになった場面】"
+        }
       ],
       "causes_structure": [
-        { "id": "battery_flat", "label": "バッテリー上がり・端子の緩み", "note": "灯も点かない側（節点より上）" },
-        { "id": "lever_contact", "label": "始動レバーの接点が閉じない", "note": "引いても無音が目印。リンケージの引き代を含む機械側" },
-        { "id": "heavy_wire", "label": "太線（ROSSO/MARRONE）とその端子の外れ・緩み" },
-        { "id": "starter_unit", "label": "スターター本体（ブラシ摩耗・内部断線）" },
-        { "id": "starter_ground", "label": "セルのアース線（NERO）の外れ・腐食", "note": "エンジンはゴムマウントで浮いているのでここが唯一の戻り道" },
-        { "id": "voltage_drop", "label": "接触抵抗による電圧降下（つながってはいるが電気が細い）", "note": "⚠️L1 では表せない＝下の limitations を参照。実車ではこれが最頻" }
+        {
+          "id": "battery_flat",
+          "label": "バッテリー上がり・端子の緩み",
+          "note": "灯も点かない側（節点より上）"
+        },
+        {
+          "id": "lever_contact",
+          "label": "始動レバーの接点が閉じない",
+          "note": "引いても無音が目印。リンケージの引き代を含む機械側"
+        },
+        {
+          "id": "heavy_wire",
+          "label": "太線（ROSSO/MARRONE）とその端子の外れ・緩み"
+        },
+        {
+          "id": "starter_unit",
+          "label": "スターター本体（ブラシ摩耗・内部断線）"
+        },
+        {
+          "id": "starter_ground",
+          "label": "セルのアース線（NERO）の外れ・腐食",
+          "note": "エンジンはゴムマウントで浮いているのでここが唯一の戻り道"
+        },
+        {
+          "id": "voltage_drop",
+          "label": "接触抵抗による電圧降下（つながってはいるが電気が細い）",
+          "note": "⚠️L1 では表せない＝下の limitations を参照。実車ではこれが最頻"
+        }
       ],
       "electrically_indistinguishable": [
         {
-          "members": ["lever_contact", "heavy_wire", "starter_unit", "starter_ground"],
+          "members": [
+            "lever_contact",
+            "heavy_wire",
+            "starter_unit",
+            "starter_ground"
+          ],
           "reason": "L1 到達性ではどれも『輪が切れている』という同じ答えになる。切れている場所は、線を外す・端子を当てるといった実車側の操作でしか割れない。",
           "resolution": "旅ページは①灯を見て上下を割る ②引いたときの音で機械側を割る ③締め直す ④実測へ、の順で手放している。"
         }
       ],
       "limitations": [
         "⚠️【この旅で顕在化】L1 は電気の『細さ』を持たない＝接触抵抗による電圧降下（実車で最頻の原因）は表せず、絵の上では『つながっている』と出る。UCM-1 が測って初めて割れる領域。",
-        "⚠️【この旅で顕在化】アースの基準を body（車体）に置いているため、バッテリーのマイナス端子が外れた状態を removeWire w11-10 で作っても solver は『回る』と答える。実車では最頻の原因のひとつなので、旅ページでは文章で補っている。【2026-08-21 調査】『第1・2号にも波及する』は実測で否定された＝波及はゼロで wiring-sim.js の3行（アースの基準を body からバッテリー − へ移す）で直せる。直すかがユーザー判断のため未着手。根拠＝wiring-simulator/check_ground_basis.js（全15電線 × 全型式 × 全コントロール組合せ 3,840件で差分が出るのは w11-10 の1本だけ）・詳細は HANDOFF §0 その4。"
+        "✅【2026-08-21 解消】アースの基準を body（車体）に置いていたため、バッテリーのマイナス端子が外れた状態（removeWire w11-10）でも solver が『回る』と誤答していた。案A＝『kind:\"ground\" の端子はバッテリーの − と導体だけで導通していればアース』へ改め、実車どおり全負荷が止まるようになった。影響は wiring-simulator/check_ground_basis.js で全数比較済（通常時256件で差分0・全15電線×全型式×全コントロール 3,840件で差分が出るのは w11-10 の1本だけ）。旅ページの検算にも2件昇格させた（self_checks 10→12）。"
       ],
       "measurable_by_ucm1": [
         {
@@ -214,7 +547,681 @@
         "ギアがニュートラルであること・サイドブレーキが効いていることを先に確かめる（500 はキーを抜いてもレバーで回る＝ギアが入っていれば車が動く）",
         "＋まわりを工具で触る作業をするなら、先にバッテリーのマイナス端子を外す（セルの電流は警告灯の何百倍＝短絡すると太線が赤熱する）"
       ],
-      "self_checks": 10
+      "self_checks": 12
+    },
+    {
+      "journey_id": "key_no_power",
+      "ucm1_trigger_id": {
+        "value": null,
+        "card": null,
+        "state": "対応なし（UCM-1 側に同題材のカードが無い）",
+        "note": "「キーを回しても計器盤が何も点かない」に当たる診断カードは 2026-08-21 時点で UCM-1 に無い。⚠️VOLT 系（電源電圧）の diagnostic が増えたときに突合する"
+      },
+      "status": "本番に置いてあるが導線なし・noindex（作業場）",
+      "url": "https://www.registro500.com/wiring-journey-key.html",
+      "title": "キーを回しても何も点かない",
+      "symptom": "キーをONにしても、計器盤の警告灯（GENERAT.・OLIO）が2つとも点かない",
+      "systems": [
+        11,
+        10,
+        7
+      ],
+      "ucm1_card": null,
+      "note": "⭐この旅は第3号（starter_no_crank）と【対】になっている。第3号は『灯は点くのにセルが回らない』＝容疑者は分岐点より下、この旅は『灯が2つとも点かない』＝容疑者は分岐点より上。同じ絵の同じ節点を、逆から見ている。",
+      "chain": [
+        {
+          "from": "battery.+",
+          "wire": "w11-01",
+          "color": "ROSSO",
+          "to": "starter_sw._in",
+          "v": "orig",
+          "note": "太線。ここが分岐点＝セルの旅（第3号）と分かれる"
+        },
+        {
+          "from": "starter_sw._in",
+          "wire": "w11-03",
+          "color": "MARRONE",
+          "to": "regulator.30",
+          "v": "orig",
+          "note": "太線。⚠️レギュレータの30は素通しの中継点＝この旅では発電の働きをしていない"
+        },
+        {
+          "from": "regulator.30",
+          "wire": "w11-04",
+          "color": "ROSSO",
+          "to": "f1.30",
+          "v": "orig",
+          "note": "ヒューズ箱の【電源側】バス。ヒューズそのものは通らない"
+        },
+        {
+          "from": "f1.30",
+          "wire": "w10-01",
+          "color": "ROSSO",
+          "to": "ign_sw.30",
+          "v": "orig"
+        },
+        {
+          "from": "ign_sw.30",
+          "contact": "キーONで 30↔15/54 が閉じる",
+          "to": "ign_sw.15/54",
+          "v": "orig"
+        },
+        {
+          "from": "ign_sw.15/54",
+          "wire": "w10-02",
+          "color": "AZZURRO",
+          "to": "quadro.INTER",
+          "v": "orig",
+          "note": "計器盤の4灯はすべてここで受ける＝【共通の入口】。落とし先だけが灯ごとに違う"
+        },
+        {
+          "from": "quadro.INTER",
+          "load": "quadro.warn_oil / quadro.warn_charge",
+          "to": "quadro.0 / quadro.51",
+          "v": "orig",
+          "note": "この先は油圧灯＝第2号、チャージ灯＝第1号へ分かれる"
+        }
+      ],
+      "lamp": {
+        "lamp_id": "quadro.warn_oil",
+        "label": "計器盤の警告灯（この旅では OLIO と GENERAT. の2つを同時に見る）",
+        "v": "orig",
+        "caveat": "⚠️『2つとも点かない』ことに意味がある＝1つだけなら共通部分は無実。旅ページの絞り込みはこの1点で成り立っている。"
+      },
+      "solved_states": [
+        {
+          "inputs": {
+            "key": "OFF"
+          },
+          "load_on": false,
+          "means": "正常。キーOFFで消えているのは故障ではない"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "engine": "STOP"
+          },
+          "load_on": true,
+          "means": "正常＝2つとも点く"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "engine": "RUN"
+          },
+          "load_on": false,
+          "means": "⚠️エンジンが掛かっていれば消えているのが正常＝『点かない』が症状とは限らない"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "f1": "BLOWN"
+          },
+          "load_on": true,
+          "means": "⭐ヒューズは通らない＝この症状でヒューズを疑わせないための検算"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "ops": "removeWire w11-03"
+          },
+          "load_on": false,
+          "cross_load": "セルは回る",
+          "means": "後ろへの太線が外れた＝灯は2つとも消えるがセルは回る。ここで上下が割れる"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "ops": "removeWire w10-01"
+          },
+          "load_on": false,
+          "means": "キーへの赤線が外れた＝旅ページの異常①"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "ops": "removeWire w10-02"
+          },
+          "load_on": false,
+          "means": "計器盤への水色線が外れた＝共通の入口が落ちる"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "ops": "removeWire w11-01"
+          },
+          "load_on": false,
+          "cross_load": "セルも回らない",
+          "means": "バッテリー＋の太線＝灯もセルも全部死ぬ（第3号の異常②と同じ場面）"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "ops": "removeWire w11-10"
+          },
+          "load_on": false,
+          "cross_load": "セルも回らない",
+          "means": "⭐バッテリー−の線＝帰り道が無い。【2026-08-21 案Aで正しく答えられるようになった場面】。詳しくは第5号（ground_return）へ渡す"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "ops": "removeWire w07-01"
+          },
+          "load_on": false,
+          "cross_load": "チャージランプは点いたまま",
+          "means": "⭐灰色線だけが外れた＝【片方だけ消える】。共通部分は無実と分かる"
+        },
+        {
+          "inputs": {
+            "alt": true,
+            "key": "ON",
+            "engine": "STOP"
+          },
+          "load_on": true,
+          "means": "オルタネーター換装車でも同じ"
+        }
+      ],
+      "causes_structure": [
+        {
+          "id": "battery_flat",
+          "label": "バッテリー上がり・端子の緩み",
+          "note": "セルも回らない側"
+        },
+        {
+          "id": "trunk_to_rear",
+          "label": "車の前（バッテリー）から後ろ（レギュレータ）へ行く太線とその端子",
+          "note": "灯だけ消えてセルは回る"
+        },
+        {
+          "id": "fusebox_bus",
+          "label": "ヒューズ箱の電源側バス・キーへの赤線（w10-01）の外れ"
+        },
+        {
+          "id": "ign_switch",
+          "label": "キースイッチの接点が閉じない（30↔15/54）",
+          "note": "鍵穴の摩耗・裏の端子の緩みを含む"
+        },
+        {
+          "id": "quadro_feed",
+          "label": "計器盤への水色線（w10-02）と INTER 端子の外れ",
+          "note": "灯だけが全部死ぬ最短の説明"
+        },
+        {
+          "id": "ground_return",
+          "label": "バッテリー −端子（w11-10）＝帰り道",
+          "note": "⭐第5号（ground_return）が主役として扱う。灯もセルも全部死ぬ"
+        }
+      ],
+      "electrically_indistinguishable": [
+        {
+          "members": [
+            "trunk_to_rear",
+            "fusebox_bus",
+            "ign_switch",
+            "quadro_feed"
+          ],
+          "reason": "L1 到達性ではどれも『輪が切れている』という同じ答えになる。どこで切れているかは、テスターを当てる位置を前へ前へ動かして初めて割れる。",
+          "resolution": "旅ページは①セルが回るかで上下を割る ②計器盤の INTER → キーの 15/54 → キーの 30 → ヒューズ箱の順に電源側へさかのぼる、という手順で手放している。"
+        }
+      ],
+      "limitations": [
+        "⚠️L1 は電気の『細さ』を持たない＝接触抵抗による電圧降下は表せない。『点かない』ではなく『暗い・弱い』ならこの絵では答えが出ない（UCM-1 の担当）。",
+        "⚠️球切れは電気的には『灯が働かない』と同じ形になる。ただし【2つとも同時に切れることは実際にはまずない】＝この旅が『2つとも点かない』を入口に取っているのはそのため。",
+        "⚠️この旅は計器盤の灯だけを見ている。キーONで動く他の系統（ワイパー・ウインカー・点火）が同時に死んでいるかどうかは、第6号（no_spark）と合わせて見る。"
+      ],
+      "measurable_by_ucm1": [
+        {
+          "point": "キーON時の計器盤 INTER 端子の電圧",
+          "meaning": "共通の入口まで電気が来ているか＝上下を割る一点",
+          "boundary": "registro500 側は『どの端子か』までを提供し、良否の値は持たない"
+        },
+        {
+          "point": "キーON時のバッテリー端子電圧と、ヒューズ箱電源側バスの電圧の差",
+          "meaning": "前から後ろへの太線区間で落ちている量＝端子の腐食・緩み",
+          "boundary": "⚠️L1 が答えられない『細さ』そのもの＝測定側の担当"
+        }
+      ],
+      "safety_order": [
+        "⚠️キーをONにしたまま放置しない（点火コイルに電気が流れ続けて発熱する＝第6号と共通の注意）",
+        "＋まわりを工具で触る作業をするなら、先にバッテリーのマイナス端子を外す"
+      ],
+      "self_checks": 22
+    },
+    {
+      "journey_id": "ground_return",
+      "ucm1_trigger_id": {
+        "value": null,
+        "card": null,
+        "state": "対応なし（UCM-1 側に同題材のカードが無い）",
+        "note": "アース不良を主題にした診断カードは 2026-08-21 時点で無い。⚠️電圧降下法の測定が UCM-1 に載る段で、この旅が測定点の定義を提供できる"
+      },
+      "status": "本番に置いてあるが導線なし・noindex（作業場）",
+      "url": "https://www.registro500.com/wiring-journey-ground.html",
+      "title": "あちこち同時に点かない（アース＝帰り道）",
+      "symptom": "灯もセルも、関係のないはずのものが同時に働かない",
+      "systems": [
+        11,
+        7
+      ],
+      "ucm1_card": null,
+      "note": "⭐この旅だけ【帰り道（マイナス側）だけを描く】＝＋の道は薄い破線1本に畳んである。車体（ボディ）を縦長の板として立て、それをこの旅の幹線にした。⚠️2026-08-21 の案A（アースの基準をバッテリー − へ移す）が入って初めて成立した旅。",
+      "chain": [
+        {
+          "from": "starter.-",
+          "wire": "w11-11",
+          "color": "NERO",
+          "to": "body.31",
+          "v": "orig",
+          "note": "太線。セルの電気の帰り道"
+        },
+        {
+          "from": "dynamo.-",
+          "wire": "w11-09",
+          "color": "NERO",
+          "to": "body.31",
+          "v": "orig",
+          "note": "チャージ灯の帰り道（停止中）"
+        },
+        {
+          "from": "regulator.31",
+          "wire": "w11-08",
+          "color": "NERO",
+          "to": "body.31",
+          "v": "orig",
+          "note": "⚠️この旅では電気が通らない＝L1 では外しても何も起きない（下の limitations 参照）"
+        },
+        {
+          "from": "oil_sender._gnd",
+          "wire": "w07-02",
+          "color": "NERO",
+          "to": "body.31",
+          "v": "orig",
+          "note": "油圧灯の帰り道"
+        },
+        {
+          "from": "body.31",
+          "wire": "w11-10",
+          "color": "NERO",
+          "to": "battery.-",
+          "v": "orig",
+          "note": "⭐【この1本が全部の帰り道の合流点】。ここが外れると車体そのものが浮く"
+        }
+      ],
+      "lamp": {
+        "lamp_id": "quadro.warn_oil",
+        "label": "計器盤の油圧警告灯（この旅では油圧灯・チャージ灯・セルの3つを同時に見る）",
+        "v": "orig",
+        "caveat": "⚠️主役は個々の灯ではなく【どれとどれが一緒に死ぬか】。1本外れれば1つだけ、−端子が外れれば全部。"
+      },
+      "solved_states": [
+        {
+          "inputs": {
+            "key": "ON",
+            "engine": "STOP"
+          },
+          "load_on": true,
+          "means": "正常＝油圧灯もチャージ灯も点く"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "ops": "removeWire w07-02"
+          },
+          "load_on": false,
+          "cross_load": "チャージランプは無実（点いたまま）",
+          "means": "油圧センダのアースだけが外れた＝1つだけ死ぬ"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "ops": "removeWire w11-09"
+          },
+          "load_on": true,
+          "cross_load": "チャージランプが消える",
+          "means": "ダイナモの−だけが外れた＝こちらも1つだけ死ぬ"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "starter": "START",
+            "ops": "removeWire w11-11"
+          },
+          "load_on": true,
+          "cross_load": "セルが回らない",
+          "means": "セルのアースだけが外れた＝第3号（starter_no_crank）の容疑者の1人"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "ops": "removeWire w11-08"
+          },
+          "load_on": true,
+          "means": "⚠️レギュレータのアースは L1 では何も起こさない（下の limitations 参照）"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "ops": "removeWire w11-10"
+          },
+          "load_on": false,
+          "cross_load": "チャージランプもセルも全部死ぬ",
+          "means": "⭐山場＝バッテリー −端子が外れた。しかも車体には12Vが回ってくる（post）＝テスターは振れるのに何も動かない"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "ops": "removeWire w11-08,w11-09,w11-10,w11-11,w07-02（アース線を5本とも）"
+          },
+          "load_on": false,
+          "means": "車体側の落とし先を全部外しても結果は同じ＝帰り道が無ければ何も働かない"
+        },
+        {
+          "inputs": {
+            "key": "OFF"
+          },
+          "load_on": false,
+          "means": "正常＝消えている"
+        },
+        {
+          "inputs": {
+            "alt": true,
+            "key": "ON",
+            "engine": "STOP"
+          },
+          "load_on": true,
+          "means": "オルタネーター換装車でも同じ"
+        }
+      ],
+      "causes_structure": [
+        {
+          "id": "battery_minus",
+          "label": "バッテリー −端子の外れ・緩み・腐食（w11-10）",
+          "note": "⭐全部が同時に死ぬ唯一の1本"
+        },
+        {
+          "id": "body_point",
+          "label": "車体側のアース点の錆・塗装の噛み込み",
+          "note": "⚠️L1 では『つながっている／いない』の2値でしか表せない＝錆による『細さ』は下の limitations"
+        },
+        {
+          "id": "starter_ground",
+          "label": "セルのアース線（w11-11）の外れ",
+          "note": "セルだけが死ぬ。エンジンはゴムマウントで浮いているのでここが唯一の戻り道"
+        },
+        {
+          "id": "dynamo_ground",
+          "label": "ダイナモの − の外れ（w11-09）",
+          "note": "チャージ灯だけが死ぬ"
+        },
+        {
+          "id": "sender_ground",
+          "label": "油圧センダのアースの外れ（w07-02）",
+          "note": "油圧灯だけが死ぬ"
+        }
+      ],
+      "electrically_indistinguishable": [
+        {
+          "members": [
+            "battery_minus",
+            "body_point"
+          ],
+          "reason": "−端子そのものが外れているのか、車体側のアース点が導通していないのかは、L1 ではどちらも『帰り道が無い』という同じ答えになる。",
+          "resolution": "旅ページは【症状 → 外れているアース】の対応表（何と何が一緒に死ぬか）で場所を絞り、最後は端子を締め直す・当たり面を磨く、という実車側の操作へ手放している。"
+        }
+      ],
+      "limitations": [
+        "⚠️L1 は電気の『細さ』を持たない＝アース不良の実車での典型は『完全に外れる』ではなく『錆びて細くなる』（＝暗い・弱い・セルが力なく回る）だが、この絵では答えが出ない。旅ページ本文の冒頭にその断りを置いてある。UCM-1 の担当。",
+        "⚠️レギュレータのアース（w11-08）は L1 では外しても何も起こらない＝レギュレータの内部モデルが『カットアウトの接点だけ』で、31端子を使う経路を持たないため（SCHEMA §G の内部モデル）。実車では界磁制御の基準なので影響が出る。この旅の絵では『この絵では電気が通らない』と正直に書いてある。",
+        "⚠️車体（body）は【点ではない】＝実車配置の地図に印を打っていない。図の全体が車体、という断りは本文が持つ。"
+      ],
+      "measurable_by_ucm1": [
+        {
+          "point": "バッテリー −端子と車体（アース点）の間の電圧差",
+          "meaning": "帰り道でどれだけ落ちているか＝アース不良の直接の指標",
+          "boundary": "⭐この旅が L1 で答えられない部分そのもの。registro500 側は測る2点の定義まで、良否の値は持たない"
+        },
+        {
+          "point": "セルを回している間の、エンジン本体と車体の間の電圧差",
+          "meaning": "大電流を流したときだけ現れるアース不良（普段は問題なく見える）",
+          "boundary": "電圧降下法。負荷を掛けた状態でしか出ない＝測定側でないと捕まえられない"
+        }
+      ],
+      "safety_order": [
+        "⚠️アースまわりを触るときは【先にバッテリーの −端子を外す】＝この旅の主役の線そのものなので、外した状態から作業が始まる",
+        "当たり面の錆を落としたら防錆（グリス等）をしてから締める＝磨いたままにすると同じ症状が戻る"
+      ],
+      "self_checks": 17
+    },
+    {
+      "journey_id": "no_spark",
+      "ucm1_trigger_id": {
+        "value": null,
+        "card": null,
+        "state": "対応なし（いま足すものは無い）",
+        "note": "⭐ただし将来の本命＝UCM-1 のドエル角カード4枚と直結する題材。⚠️ドエル角・点火時期は【角度と時間の話＝L1 では原理的に表せない】ので、この旅は一次側の『流れる／流れない』までしか言わない。UCM-1 側に点火系の diagnostic が載る時点で突合する"
+      },
+      "status": "本番に置いてあるが導線なし・noindex（作業場）",
+      "url": "https://www.registro500.com/wiring-journey-ignition.html",
+      "title": "セルは回るが始動しない（火花が飛ばない）",
+      "symptom": "セルは元気に回るのに、エンジンが掛からない。プラグに火花が来ていない",
+      "systems": [
+        9,
+        10,
+        11
+      ],
+      "ucm1_card": null,
+      "note": "⭐この旅は第3号（starter_no_crank）の続き＝『セルが回らない』を潰した先。⚠️持っているのは【一次側だけ】＝二次側（コイルB端子→HTコード→デスビ中心→プラグ）とコンデンサは netlist に入れていない。理由は下の limitations と wiring-net.json の _sys9_scope。",
+      "chain": [
+        {
+          "from": "ign_sw.15/54",
+          "wire": "w09-01",
+          "color": "AZZURRO",
+          "to": "coil.+",
+          "v": "orig",
+          "note": "⭐【コイルはヒューズ F2 を通らない】＝キースイッチ 15/54 の電源側から分かれる。根拠3つ＝d_netlist 部品22・部品28／terminals_ledger 系統9 (471,486)。f_netlist §9 は機械抽出で『F2→IGN_COIL+』と読めるが、電源側の左右はヒューズごとに違うので単独の根拠にしない"
+        },
+        {
+          "from": "coil.+",
+          "load": "coil",
+          "to": "coil.D",
+          "v": "orig",
+          "note": "一次巻線を1本の負荷エッジとして扱う。⚠️ここに電流が流れて磁気が溜まる＝火花はこれを【切った瞬間】に生まれる"
+        },
+        {
+          "from": "coil.D",
+          "wire": "w09-02",
+          "color": "NERO",
+          "to": "distributor._in",
+          "v": "orig"
+        },
+        {
+          "from": "distributor._in",
+          "contact": "ポイント＝カムの谷で閉じ（CLOSED）、山で開く（OPEN）",
+          "to": "distributor._gnd",
+          "v": "orig"
+        },
+        {
+          "from": "distributor._gnd",
+          "wire": "w09-03",
+          "color": "NERO",
+          "to": "body.31",
+          "v": "orig",
+          "note": "デスビ本体のブラケット接地。_gnd は原典に端子番号が無い合成端子"
+        }
+      ],
+      "lamp": null,
+      "load": {
+        "load_id": "coil",
+        "label": "イグニッションコイル（一次巻線）",
+        "v": "orig",
+        "caveat": "⚠️『働いている＝一次に電流が流れている』であって『火花が出ている』ではない。火花はポイントが【開いた瞬間】に生まれる＝L1 は瞬間を持たないので、この旅は『閉じたときに流れるか』までを答えている。"
+      },
+      "solved_states": [
+        {
+          "inputs": {
+            "key": "ON",
+            "points": "CLOSED"
+          },
+          "load_on": true,
+          "means": "正常＝一次に電流が流れて磁気が溜まっている"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "points": "OPEN"
+          },
+          "load_on": false,
+          "means": "正常＝カムの山で接点が開いた。⭐この【切れた瞬間】に高圧が生まれる（L1 は瞬間を持たないので絵と文章で言う）"
+        },
+        {
+          "inputs": {
+            "key": "OFF",
+            "points": "CLOSED"
+          },
+          "load_on": false,
+          "means": "キーOFFで点火は死ぬ＝これがエンジンの止め方そのもの"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "f1": "BLOWN"
+          },
+          "load_on": true,
+          "means": "⭐この旅の要＝ヒューズを見ても直らない（コイルは F2 を通らず、F1 とも無関係）"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "starter": "START"
+          },
+          "load_on": true,
+          "cross_load": "セルも回る",
+          "means": "この旅の前提＝セルを回している間も点火の電気は生きている（500は始動レバー式でキーに START 位置が無い）"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "ops": "removeWire w09-01"
+          },
+          "load_on": false,
+          "means": "コイルへの水色線が外れた＝コイル＋にテスターを当てれば0V"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "ops": "removeWire w09-02"
+          },
+          "load_on": false,
+          "means": "ポイントへの黒線が外れた"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "ops": "removeWire w09-03"
+          },
+          "load_on": false,
+          "cross_load": "油圧灯は無実（点いたまま）",
+          "means": "⭐いちばん紛らわしい形＝コイル＋には12Vが来ているのに流れない（アース側が切れている）"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "ops": "removeWire w10-01"
+          },
+          "load_on": false,
+          "cross_load": "チャージランプも一緒に消える",
+          "means": "キーの手前が切れた＝警告灯も点火も一緒に死ぬ。ここから第4号（key_no_power）へ渡す"
+        },
+        {
+          "inputs": {
+            "key": "ON",
+            "ops": "removeWire w11-10"
+          },
+          "load_on": false,
+          "means": "帰り道が切れた＝点火も死ぬ。ここから第5号（ground_return）へ渡す"
+        },
+        {
+          "inputs": {
+            "alt": true,
+            "key": "ON",
+            "points": "CLOSED"
+          },
+          "load_on": true,
+          "means": "オルタネーター換装は点火の一次側に影響しない"
+        }
+      ],
+      "causes_structure": [
+        {
+          "id": "coil_feed",
+          "label": "コイル＋への水色線（w09-01）とキースイッチ 15/54 の外れ",
+          "note": "コイル＋が0V＝いちばん見つけやすい"
+        },
+        {
+          "id": "coil_unit",
+          "label": "コイル本体（一次巻線の断線）"
+        },
+        {
+          "id": "points_dirty",
+          "label": "ポイントの接点が導通しない（焼け・カーボン・隙間の狂い）",
+          "note": "⚠️隙間が狂っているだけなら火花は出る＝始動不良の形が変わる（下の limitations）"
+        },
+        {
+          "id": "coil_to_dist",
+          "label": "コイルD→デスビへの黒線（w09-02）の外れ"
+        },
+        {
+          "id": "dist_ground",
+          "label": "デスビ本体のアース（w09-03）の外れ・ブラケットの錆",
+          "note": "⭐12Vは来ているのに流れない＝いちばん紛らわしい"
+        },
+        {
+          "id": "upstream",
+          "label": "キーより手前（赤線・ヒューズ箱・バッテリー・アース）",
+          "note": "警告灯も一緒に死ぬ＝第4号・第5号へ"
+        }
+      ],
+      "electrically_indistinguishable": [
+        {
+          "members": [
+            "coil_unit",
+            "points_dirty",
+            "coil_to_dist",
+            "dist_ground"
+          ],
+          "reason": "L1 到達性ではどれも『一次の輪が切れている』という同じ答えになる。",
+          "resolution": "旅ページは【コイル＋とコイルD（＝デスビ側）の2点測定】で切り分ける形にしている。＋が0V＝上流／＋が12VでDも12V＝下流（ポイントかアース）／どちらも正常なら二次側とプラグへ、と手放す。"
+        }
+      ],
+      "limitations": [
+        "⚠️【この旅の一番大事な断り】二次側（コイルB端子→HTコード→デスビ中心→プラグ×2）を電線として持たない。高圧は一次電流を切った瞬間の【誘導】で生まれる輪で、到達性では原理的に解けない。持たせると『つながっている＝火花が出る』と誤読され、診断の道具として人を誤らせる。絵では『この絵の外』の帯として描いてある。",
+        "⚠️コンデンサ（デスビ内）を持たない。L1 は導通／非導通しか表せないので、入れるとポイントを常時短絡してしまう（実車では交流的にしか効かない）。コンデンサ不良は『火花が弱い・ポイントがすぐ荒れる』という形で出るが、この絵では表せない。",
+        "⚠️点火時期・ドエル角・ポイントギャップを持たない＝角度と時間の話。『火花は出るが時期がずれている（掛からない・力が出ない）』はこの旅の外＝⭐UCM-1 の担当（ドエル角カード4枚）。",
+        "⚠️L1 は電気の『細さ』を持たない＝接触抵抗による電圧降下は表せない（全旅共通）。"
+      ],
+      "measurable_by_ucm1": [
+        {
+          "point": "キーON・ポイント閉のときのコイル＋端子とコイルD端子の電圧",
+          "meaning": "一次の輪のどちら側で切れているか＝この旅の切り分けそのもの",
+          "boundary": "registro500 側は測る2点の定義まで、良否の値は持たない"
+        },
+        {
+          "point": "ドエル角（ポイントが閉じている時間の割合）",
+          "meaning": "磁気を溜める時間が足りているか＝火花の強さに直結",
+          "boundary": "⭐L1 が原理的に答えられない領域。UCM-1 のドエル角カード4枚がここを担当する"
+        },
+        {
+          "point": "点火時期（進角）",
+          "meaning": "火花が飛ぶ瞬間とピストンの位置の関係",
+          "boundary": "⭐同上＝角度と時間。旅ページ側は測る対象の名前までしか持たない"
+        }
+      ],
+      "safety_order": [
+        "⚠️キーをONにしたまま放置しない＝ポイントが閉じた位置で止まっていると一次に電流が流れ続け、コイルが発熱する",
+        "⚠️火花の点検で高圧コードを素手で握らない（数万V）。プラグを外して車体に当てて見るときも、燃料の霧が出ている場所で行わない",
+        "点検が終わったらキーをOFFに戻す"
+      ],
+      "self_checks": 15
     }
   ]
 }

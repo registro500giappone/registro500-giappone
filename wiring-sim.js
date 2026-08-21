@@ -112,15 +112,22 @@
       }
     }
 
-    /* 電源とアースはデータから見つける（battery の pos / kind:"ground" の端子）。 */
-    var hotNode = null, gndNodes = [];
+    /* 電源とアースはデータから見つける（battery の pos/neg / kind:"ground" の端子）。 */
+    var hotNode = null, negNode = null, gndNodes = [];
     for (i = 0; i < parts.length; i++) {
       p = parts[i];
-      if (p.model && p.model.kind === 'battery') hotNode = nid(p.id, p.model.pos);
+      if (p.model && p.model.kind === 'battery') { hotNode = nid(p.id, p.model.pos); negNode = nid(p.id, p.model.neg); }
       if (p.kind === 'ground') for (j = 0; j < p.terms.length; j++) gndNodes.push(nid(p.id, p.terms[j]));
     }
     var hotC = hotNode ? comp[hotNode] : -1, gndC = {};
-    for (i = 0; i < gndNodes.length; i++) gndC[comp[gndNodes[i]]] = 1;
+    /* 【2026-08-21 案A】アースの基準はバッテリーの − 端子。kind:"ground" の端子（車体）は
+       「− と導体だけで導通していれば」アースとして数える。車体は電位の基準ではなく、
+       単に − へ戻るための太い導体だから＝バッテリーの −端子が外れれば車体は浮く。
+       ⚠️これを入れる前は body を無条件にアース源として扱っていて、−端子外れ
+       （removeWire w11-10）でも「セルが回る」と誤答した（第3号 limitations ②）。
+       影響は wiring-simulator/check_ground_basis.js で全数比較済＝差分は w11-10 の1本のみ。 */
+    var negC = negNode ? comp[negNode] : -2;
+    for (i = 0; i < gndNodes.length; i++) if (comp[gndNodes[i]] === negC) gndC[comp[gndNodes[i]]] = 1;
     var shorted = hotC in gndC; // バッテリー＋がアースと導体だけで繋がった＝短絡（L2で使う）
 
     var state = {};

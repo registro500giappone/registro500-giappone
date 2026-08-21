@@ -17,10 +17,15 @@ NEEDLE_0 = 'rotate(-115.06 100 100)'   # 移植元の初期位置＝0 km/h
 NEEDLE_40 = 'rotate(-38 100 100)'      # 約40km/h
 # (対象HTML, 点灯させる警告灯のグループidの一覧, 針の位置) — 旅ページが増えたらここに足す
 # ⚠️針は「その症状が起きている瞬間」に合わせる。セルの旅は止まっている車の話なので 0 km/h。
+# ⚠️灯の一覧が空＝2つとも消えたまま。第4号（キーで何も点かない）・第5号（アース）は
+#   「点かないこと」そのものが症状なので、これが正しい姿。
 TARGETS = [(os.path.join(ROOT, 'wiring-journey-charge.html'),     ['lampGen'],            NEEDLE_40),
            (os.path.join(ROOT, 'wiring-journey-charge-alt.html'), ['lampGen'],            NEEDLE_40),
            (os.path.join(ROOT, 'wiring-journey-oil.html'),        ['lampOil'],            NEEDLE_40),
-           (os.path.join(ROOT, 'wiring-journey-starter.html'),    ['lampGen', 'lampOil'], NEEDLE_0)]
+           (os.path.join(ROOT, 'wiring-journey-starter.html'),    ['lampGen', 'lampOil'], NEEDLE_0),
+           (os.path.join(ROOT, 'wiring-journey-key.html'),        [],                     NEEDLE_0),
+           (os.path.join(ROOT, 'wiring-journey-ground.html'),     [],                     NEEDLE_0),
+           (os.path.join(ROOT, 'wiring-journey-ignition.html'),   ['lampGen', 'lampOil'], NEEDLE_0)]
 # 文字盤のCSSは旅ページ共通なので1か所（共通CSS）だけに差し込む
 CSS_TARGET = os.path.join(ROOT, 'wiring-journey.css')
 
@@ -41,6 +46,8 @@ assert NEEDLE_0 in c1, '針の初期transformが見つからない'
 CSS_BLOCK = '/*C1_CSS_BEGIN*/' + css + '/*C1_CSS_END*/'
 
 for path, lamps, needle in TARGETS:
+    if not os.path.exists(path):          # まだ書いていない旅は黙って飛ばす（実装の順番に左右されない）
+        print('skip (未作成):', os.path.basename(path)); continue
     lit = c1.replace(NEEDLE_0, needle, 1)
     for lamp in lamps:
         tag = '<g id="%s" class="hid">' % lamp

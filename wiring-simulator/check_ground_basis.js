@@ -1,7 +1,12 @@
 /* L1 の「アース基準」案A の影響調査（読み取り専用・作業ツリーは変更しない）
  *
- * 現行 : kind:"ground" の端子を無条件にアースとみなす
- * 案A  : kind:"ground" の端子は「バッテリーの − 端子と導通していれば」アース
+ * 旧方式 : kind:"ground" の端子を無条件にアースとみなす
+ * 案A    : kind:"ground" の端子は「バッテリーの − 端子と導通していれば」アース
+ *
+ * ⚠️【2026-08-21 案Aを wiring-sim.js に採用したので向きを反転した】
+ *   採用前＝現行ファイルが旧方式・パッチで案Aを作って比較していた。
+ *   採用後＝現行ファイルが案A・パッチで【旧方式に戻したもの】を作って比較する。
+ *   出力の意味（差分は w11-10 の1本だけ）は前後で変わらない＝回帰確認としてそのまま再実行できる。
  *
  * 全型式 × 全 spec × 全コントロール組合せを総当たりし、状態・点灯・短絡を突き合わせる。
  */
@@ -12,19 +17,19 @@ const REPO = path.join(__dirname, '..'); // wiring-simulator/ の1つ上＝repo�
 
 const SRC = fs.readFileSync(path.join(REPO, 'wiring-sim.js'), 'utf8');
 
-/* --- 案A のパッチ（2箇所・最小差分） --- */
-const OLD_FIND = `      if (p.model && p.model.kind === 'battery') hotNode = nid(p.id, p.model.pos);`;
-const NEW_FIND = `      if (p.model && p.model.kind === 'battery') { hotNode = nid(p.id, p.model.pos); negNode = nid(p.id, p.model.neg); }`;
-const OLD_DECL = `    var hotNode = null, gndNodes = [];`;
-const NEW_DECL = `    var hotNode = null, negNode = null, gndNodes = [];`;
-const OLD_GND = `    for (i = 0; i < gndNodes.length; i++) gndC[comp[gndNodes[i]]] = 1;`;
-const NEW_GND = `    var negC = negNode ? comp[negNode] : -2;
+/* --- 現行（案A）から【旧方式】を作り直すパッチ（3箇所・最小差分） --- */
+const A_FIND = `      if (p.model && p.model.kind === 'battery') { hotNode = nid(p.id, p.model.pos); negNode = nid(p.id, p.model.neg); }`;
+const O_FIND = `      if (p.model && p.model.kind === 'battery') hotNode = nid(p.id, p.model.pos);`;
+const A_DECL = `    var hotNode = null, negNode = null, gndNodes = [];`;
+const O_DECL = `    var hotNode = null, gndNodes = [];`;
+const A_GND = `    var negC = negNode ? comp[negNode] : -2;
     for (i = 0; i < gndNodes.length; i++) if (comp[gndNodes[i]] === negC) gndC[comp[gndNodes[i]]] = 1;`;
+const O_GND = `    for (i = 0; i < gndNodes.length; i++) gndC[comp[gndNodes[i]]] = 1;`;
 
-for (const s of [OLD_FIND, OLD_DECL, OLD_GND]) {
-  if (SRC.indexOf(s) < 0) { console.error('パッチ位置が見つからない:', s.trim()); process.exit(1); }
+for (const s of [A_FIND, A_DECL, A_GND]) {
+  if (SRC.indexOf(s) < 0) { console.error('パッチ位置が見つからない（wiring-sim.js が案Aでない？）:', s.trim()); process.exit(1); }
 }
-const SRC_A = SRC.replace(OLD_FIND, NEW_FIND).replace(OLD_DECL, NEW_DECL).replace(OLD_GND, NEW_GND);
+const SRC_OLD = SRC.replace(A_FIND, O_FIND).replace(A_DECL, O_DECL).replace(A_GND, O_GND);
 
 function load(src) {
   const ctx = { window: undefined };
@@ -33,8 +38,8 @@ function load(src) {
   vm.runInContext(src, ctx);
   return ctx.WiringSim;
 }
-const CUR = load(SRC);
-const ALT = load(SRC_A);
+const CUR = load(SRC_OLD);   /* 旧方式（body を無条件にアース源とみなす） */
+const ALT = load(SRC);       /* 案A＝いま wiring-sim.js に入っている方 */
 
 const net = JSON.parse(fs.readFileSync(path.join(REPO, 'wiring-net.json'), 'utf8'));
 const patchFile = JSON.parse(fs.readFileSync(path.join(REPO, 'wiring-patches.json'), 'utf8'));
@@ -102,13 +107,13 @@ for (const type of ['F']) {
   const a = run(CUR, netP, type, inputs);
   const b = run(ALT, netP2, type, inputs);
   const on = r => r.loads.filter(l => l.on).map(l => l.id).join(', ') || '(なし)';
-  console.log('  現行: 働いている負荷 =', on(a));
-  console.log('  案A : 働いている負荷 =', on(b));
+  console.log('  旧方式: 働いている負荷 =', on(a));
+  console.log('  案A  : 働いている負荷 =', on(b));
   /* 灯火も見る：key ON のみ */
   const i2 = { key: 'ON', engine: 'STOP', starter: 'OFF', reg_fail: 'OK', f1: 'OK' };
   console.log('  --- key ON のみ ---');
-  console.log('  現行: 働いている負荷 =', on(run(CUR, netP, type, i2)));
-  console.log('  案A : 働いている負荷 =', on(run(ALT, netP2, type, i2)));
+  console.log('  旧方式: 働いている負荷 =', on(run(CUR, netP, type, i2)));
+  console.log('  案A  : 働いている負荷 =', on(run(ALT, netP2, type, i2)));
 }
 
 /* ---------- 3) 参考：全ケースのうち w11-10 を外すと結果が変わる件数 ---------- */
@@ -124,7 +129,7 @@ for (const type of TYPES) {
   }
 }
 console.log('\n=== 3) −端子外れを注入した状態での総当たり ===');
-console.log('  ケース数:', t2, '／ 現行と案Aで結果が違うケース:', d2);
+console.log('  ケース数:', t2, '／ 旧方式と案Aで結果が違うケース:', d2);
 
 /* ---------- 4) 全電線を1本ずつ外して総当たり＝差分が出るのは w11-10 だけか ---------- */
 console.log('\n=== 4) 電線を1本ずつ外した総当たり（旅ページの故障注入を含む）===');
