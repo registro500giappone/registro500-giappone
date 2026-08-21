@@ -1,0 +1,133 @@
+{
+  "schema": "registro500.journeys/1.0",
+  "generated": "2026-08-21",
+  "generated_by": "手書き（自動生成ではない）。中身は wiring-net.json NET_VERSION 4 と各旅ページの実装から起こした",
+  "net_version": 4,
+  "note_for_ucm1": [
+    "この JSON は registro500 側が持つ『結線・到達性』の知識を UCM-1 から参照できる形にしたもの。",
+    "正本は registro500 repo の wiring-net.json（結線）・wiring-layout.json（実配置）・wiring-sim.js（到達性ソルバー）。",
+    "ここに測定値・判定しきい値・診断カードの文章は入れない（それは UCM-1 側の正本）。",
+    "v:inf / v:auto の項目は『原典で確定していない』という意味。UCM-1 の画面や文章で断定に使わないこと。"
+  ],
+  "solver": {
+    "kind": "L1 到達性（物理計算なし・グラフ探索のみ）",
+    "edge_kinds": ["導体エッジ＝電線と閉じた接点（抵抗ゼロ扱い）", "負荷エッジ＝ランプ・モーター（ここで電位が落ちる）"],
+    "terminal_states": {
+      "hot": "電源に導体だけでつながっている",
+      "post": "点いていない負荷の先＝電圧は来ているが流れない",
+      "gnd": "アースに導体だけでつながっている",
+      "off": "どこにもつながっていない"
+    },
+    "caveat": "電流値・電圧値は出さない。『点く／点かない』と『どの端子がどの状態か』までが言える範囲。"
+  },
+  "journeys": [
+    {
+      "trigger_id": "charge_lamp_on",
+      "status": "本番に置いてあるが導線なし・noindex（作業場）",
+      "url": "https://www.registro500.com/wiring-journey-charge.html",
+      "url_variants": [
+        { "label": "ダイナモ（純正）", "url": "https://www.registro500.com/wiring-journey-charge.html" },
+        { "label": "オルタネーター換装車", "url": "https://www.registro500.com/wiring-journey-charge-alt.html", "patch": "gen-alt" }
+      ],
+      "title": "チャージランプが消えない",
+      "symptom": "エンジンが回っているのに計器盤の GENERAT. が点いたまま",
+      "systems": [11, 10],
+      "ucm1_card": "VOLT-04（同一題材。カード側に trigger_id: charge_lamp_on が入っている）",
+      "chain": [
+        { "from": "battery.+", "wire": "w11-01", "color": "ROSSO", "to": "starter_sw._in", "v": "orig" },
+        { "from": "starter_sw._in", "wire": "w11-03", "color": "MARRONE", "to": "regulator.30", "v": "orig" },
+        { "from": "regulator.30", "wire": "w11-04", "color": "ROSSO", "to": "f1.30", "v": "orig" },
+        { "from": "f1.30", "wire": "w10-01", "color": "ROSSO", "to": "ign_sw.30", "v": "orig", "note": "キーSWの30はヒューズF1の電源側から分岐＝F1を通っていない" },
+        { "from": "ign_sw.15/54", "wire": "w10-02", "color": "AZZURRO", "to": "quadro.INTER", "v": "orig", "via": "キーON時のSW内部接点（v:inf）" },
+        { "from": "quadro.INTER", "load": "quadro.warn_charge", "to": "quadro.51", "v": "inf" },
+        { "from": "quadro.51", "wire": "w11-07", "color": "VERDE", "to": "regulator.51", "v": "orig" },
+        { "from": "regulator.51", "wire": "w11-05", "color": "MARRONE", "to": "dynamo.51", "v": "orig" }
+      ],
+      "lamp": {
+        "load_id": "quadro.warn_charge",
+        "label": "チャージ警告灯(15)",
+        "v": "inf",
+        "caveat": "51側（VERDE→レギュレータ51）は原典で確定。反対側の給電レールは原典から読み切れておらず INTER を採用した（キーOFFで点きっぱなしにならないことが根拠）。"
+      },
+      "solved_states": [
+        { "inputs": { "key": "OFF", "engine": "STOP" }, "lamp_on": false },
+        { "inputs": { "key": "ON", "engine": "STOP" }, "lamp_on": true },
+        { "inputs": { "key": "ON", "engine": "RUN" }, "lamp_on": false },
+        { "inputs": { "key": "ON", "engine": "RUN", "override": "dynamo:STOP / regulator:OFF" }, "lamp_on": true, "means": "ベルト切れ相当" },
+        { "inputs": { "key": "ON", "engine": "STOP", "f1": "BLOWN" }, "lamp_on": true, "means": "F1が切れても灯は点く＝ヒューズ点検では直らない" }
+      ],
+      "causes_structure": [
+        { "id": "belt", "label": "ベルト（切れ・緩み）", "note": "500のベルトは冷却ファン駆動を兼ねる＝最優先で目視" },
+        { "id": "generator", "label": "発電機本体（ダイナモ／オルタ）" },
+        { "id": "regulator", "label": "レギュレータ" },
+        { "id": "wiring", "label": "配線・アース外れ" }
+      ],
+      "electrically_indistinguishable": [],
+      "measurable_by_ucm1": [
+        { "point": "バッテリー端子電圧（回転中）", "meaning": "充電しているかどうか。しきい値は UCM-1 側の正本" }
+      ],
+      "self_checks": 7
+    },
+    {
+      "trigger_id": "oil_lamp_on",
+      "status": "⚠️UCM-1 側に対応する trigger_id がまだ無い＝新規提案（本番に置いてあるが導線なし・noindex）",
+      "url": "https://www.registro500.com/wiring-journey-oil.html",
+      "title": "油圧警告灯が消えない",
+      "symptom": "エンジンが回っているのに計器盤の OLIO が点いたまま",
+      "systems": [7, 10],
+      "ucm1_card": "未対応。既存の OILPRESS-01「油圧の読み方」は trigger_id: None（2026-08-20 に diagnostic_cards_v1.json を実読して確認）",
+      "chain": [
+        { "same_as": "charge_lamp_on の quadro.INTER まで（バッテリー→始動レバー節点→レギュレータ30→F1→キーSW→計器盤）" },
+        { "from": "quadro.INTER", "load": "quadro.warn_oil", "to": "quadro.0", "v": "inf" },
+        { "from": "quadro.0", "wire": "w07-01", "color": "GRIGIO", "to": "oil_sender._in", "v": "orig" },
+        { "from": "oil_sender._in", "contact": "圧ゼロ=閉／圧あり=開", "to": "oil_sender._gnd", "v": "inf" },
+        { "from": "oil_sender._gnd", "wire": "w07-02", "color": "NERO", "to": "body.31", "v": "orig", "note": "原典はアース記号だけで電線を描かない＝センダのねじ込み部がアースそのもの" }
+      ],
+      "lamp": {
+        "load_id": "quadro.warn_oil",
+        "label": "油圧警告灯(17)",
+        "v": "inf",
+        "caveat": "0側（GRIGIO→センダ）は原典で確定。給電レール側はチャージ灯と同じ理由で INTER を採用。"
+      },
+      "sender": {
+        "part_id": "oil_sender",
+        "v": "inf",
+        "positions": { "LOW": "接点 閉（灯をアースに落とす）", "OK": "接点 開" },
+        "caveat": "原典は記号だけで接点の向きを描かない。ただし『圧ゼロで閉じる』は油圧警告灯が成立する唯一の向き。"
+      },
+      "solved_states": [
+        { "inputs": { "key": "OFF", "engine": "STOP" }, "lamp_on": false },
+        { "inputs": { "key": "ON", "engine": "STOP" }, "lamp_on": true, "means": "正常。止まっていれば圧ゼロ＝接点閉" },
+        { "inputs": { "key": "ON", "engine": "RUN" }, "lamp_on": false },
+        { "inputs": { "key": "ON", "engine": "RUN", "override": "oil_sender:LOW" }, "lamp_on": true, "means": "異常＝回転中なのに接点が閉じたまま" },
+        { "inputs": { "key": "ON", "engine": "STOP", "ops": "removeWire w07-01" }, "lamp_on": false, "means": "切り分け①＝GRIGIOを外すと消える＝計器盤より上流は無実" },
+        { "cross_lamp": "上の異常場面でも quadro.warn_charge は消えたまま", "lamp_on": false, "means": "2灯は独立＝両方点いていたら別々の原因を疑う" }
+      ],
+      "causes_structure": [
+        { "id": "oil_pressure_low", "label": "本当に油圧が低い", "severity": "即停止" },
+        { "id": "sender_stuck", "label": "センダの固着（閉のまま）" },
+        { "id": "grigio_short_to_ground", "label": "GRIGIO線が車体に触れている（地絡）" }
+      ],
+      "electrically_indistinguishable": [
+        {
+          "members": ["oil_pressure_low", "sender_stuck", "grigio_short_to_ground"],
+          "reason": "どれも『quadro.0 がアースに落ちている』という同じ到達性になる。L1 到達性でも実車の電気測定でも区別できない。",
+          "resolution": "油圧計での実測（機械の話）。旅ページも切り分け③でそこへ手放している。"
+        }
+      ],
+      "measurable_by_ucm1": [
+        {
+          "point": "GRIGIO 線（quadro.0 ＝ランプの下側）の対アース電圧・キーON",
+          "meaning": "接点が閉じているか開いているかは分かる（閉≒0V／開はランプ越しにほぼバッテリー電圧＝solver の post 状態）。⚠️分かるのはそこまでで、閉じている理由（実圧・固着・地絡）は区別できない。",
+          "boundary": "しきい値と判定文は UCM-1 側の正本"
+        }
+      ],
+      "safety_order": [
+        "まずエンジンを止める（油圧が本当に無ければ回すほど壊れる）",
+        "オイル量を見る",
+        "この灯は電気の不具合でも点くと伝える（＝油圧計の実測まで断定しない）"
+      ],
+      "self_checks": 9
+    }
+  ]
+}
