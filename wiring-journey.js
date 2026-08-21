@@ -152,15 +152,26 @@
     if (lit) {
       /* にじみ＝メーター側 #lampg と同じ配色。id はページ内の全場面で同一で構わない
          （どのSVGでも中身が同じため。⚠️中身を変えるときは id も変えること） */
-      s.push('<defs><radialGradient id="jlampg">'
-        + '<stop offset="0%" stop-color="#ff5a3c" stop-opacity=".85"/>'
-        + '<stop offset="42%" stop-color="#ff3a20" stop-opacity=".36"/>'
-        + '<stop offset="100%" stop-color="#ff3a20" stop-opacity="0"/></radialGradient></defs>');
-      s.push('<ellipse class="lampglow" cx="' + x + '" cy="' + cy + '" rx="76" ry="48" fill="url(#jlampg)"/>');
+      /* ⚠️にじみは2枚重ね（2026-08-21 その2）。1枚だと薄く広がるだけで、明るいPC画面では
+         点いているのが分からなかった＝外側の広いにじみ＋内側の濃い芯、で密度を上げる */
+      s.push('<defs>'
+        + '<radialGradient id="jlampg">'
+        + '<stop offset="0%" stop-color="#ff5a3c" stop-opacity=".95"/>'
+        + '<stop offset="42%" stop-color="#ff3a20" stop-opacity=".5"/>'
+        + '<stop offset="100%" stop-color="#ff3a20" stop-opacity="0"/></radialGradient>'
+        + '<linearGradient id="jlampf" x1="0" y1="0" x2="0" y2="1">'
+        + '<stop offset="0%" stop-color="#ff6a4a"/><stop offset="55%" stop-color="#ef4526"/>'
+        + '<stop offset="100%" stop-color="#c9301a"/></linearGradient></defs>');
+      s.push('<g class="lampglow">'
+        + '<ellipse cx="' + x + '" cy="' + cy + '" rx="78" ry="50" fill="url(#jlampg)" opacity=".45"/>'
+        + '<ellipse cx="' + x + '" cy="' + cy + '" rx="54" ry="30" fill="url(#jlampg)"/>'
+        /* レンズのすぐ外を回る細いコロナ＝広いにじみより「光っている」が伝わる */
+        + '<rect x="' + (x - 39) + '" y="' + (top - 5) + '" width="78" height="38" rx="9" fill="none" stroke="#ff5a3c" stroke-width="2.5" opacity=".55"/></g>');
     }
-    s.push('<rect x="' + (x - 36) + '" y="' + top + '" width="72" height="28" rx="5" fill="' + (lit ? '#e53c22' : '#eae4d5') + '" stroke="' + (lit ? '#8c2416' : '#c3bba6') + '" stroke-width="2"/>');
+    /* 点灯時のレンズは平らな赤ではなく縦のグラデーション＝自分で光っているように見える */
+    s.push('<rect x="' + (x - 36) + '" y="' + top + '" width="72" height="28" rx="5" fill="' + (lit ? 'url(#jlampf)' : '#eae4d5') + '" stroke="' + (lit ? '#ffb9a4' : '#c3bba6') + '" stroke-width="' + (lit ? 2.5 : 2) + '"/>');
     /* 点灯時だけ、レンズの上側に光の照り返しを1枚（＝ガラスが光って見える） */
-    if (lit) s.push('<rect x="' + (x - 32) + '" y="' + (top + 3) + '" width="64" height="9" rx="4" fill="#fff" opacity=".26"/>');
+    if (lit) s.push('<rect x="' + (x - 32) + '" y="' + (top + 3) + '" width="64" height="9" rx="4" fill="#fff" opacity=".3"/>');
     s.push('<text x="' + x + '" y="' + (top + 19) + '" font-size="11.5" font-weight="700" fill="' + (lit ? '#fffdf8' : '#a89f8b') + '" text-anchor="middle">' + text + '</text>');
     if (labels) {
       this.label(labelX, top + 10, labels[0], lit ? C.hi : C.sub, null, 12);
