@@ -144,6 +144,77 @@
         "この灯は電気の不具合でも点くと伝える（＝油圧計の実測まで断定しない）"
       ],
       "self_checks": 9
+    },
+    {
+      "journey_id": "starter_no_crank",
+      "ucm1_trigger_id": { "value": null, "card": "START-02", "state": "対応なし（UCM-1 側にいま足すものは無い）",
+        "note": "START-02「セルが回らない」は同題材だが guide カード＝スキーマ1.1でこの種のカードは trigger_id を持てない（2026-08-21 実読で確認済み・guide 4枚は例外なく None）。⚠️UCM-1 側に始動系の diagnostic が載る時点で突合する" },
+      "status": "本番に置いてあるが導線なし・noindex（作業場）",
+      "url": "https://www.registro500.com/wiring-journey-starter.html",
+      "title": "セルが回らない",
+      "symptom": "キーを回して始動レバーを引いても、セルモーターが回らない",
+      "systems": [11, 10],
+      "ucm1_card": "START-02「セルが回らない」（guide・trigger_id なし）。HANDOFF §3 の『START-02 は系統11に対応』の具体化",
+      "note": "⚠️この旅だけ【主役が警告灯ではない】＝負荷は starter（モーター）。灯の道（第1号・第2号）とは節点で分かれ、以降ひとつも共有しない。",
+      "chain": [
+        { "from": "battery.+", "wire": "w11-01", "color": "ROSSO", "to": "starter_sw._in", "v": "orig", "note": "太線。ここが灯の旅との分岐点＝starter_sw._in から w11-03 が発電系・ヒューズ・キーSW側へ分かれる" },
+        { "from": "starter_sw._in", "contact": "レバーを引いている間だけ閉（モーメンタリ）", "to": "starter_sw._out", "v": "orig" },
+        { "from": "starter_sw._out", "wire": "w11-02", "color": "MARRONE", "to": "starter.+", "v": "orig", "note": "太線" },
+        { "from": "starter.+", "load": "starter", "to": "starter.-", "v": "inf", "note": "モーター巻線を負荷エッジとして扱う簡易モデル（原典は記号のみ）" },
+        { "from": "starter.-", "wire": "w11-11", "color": "NERO", "to": "body.31", "v": "orig" }
+      ],
+      "lamp": null,
+      "load": {
+        "load_id": "starter",
+        "label": "スターター（セルモーター）",
+        "v": "inf",
+        "caveat": "端点（＋と本体アース）は原典で確定。内部はモーター巻線を1つの負荷として潰した簡易モデル。"
+      },
+      "solved_states": [
+        { "inputs": { "key": "OFF", "starter": "START" }, "load_on": true, "means": "500 F/L/R のキーには START 位置が無い＝キーを抜いたままでもレバーで回る" },
+        { "inputs": { "key": "ON", "starter": "OFF" }, "load_on": false },
+        { "inputs": { "key": "ON", "starter": "START" }, "load_on": true },
+        { "inputs": { "key": "ON", "starter": "START", "f1": "BLOWN" }, "load_on": true, "means": "セルの輪はヒューズを通らない" },
+        { "inputs": { "key": "ON", "starter": "START", "ops": "removeWire w11-11" }, "load_on": false, "cross_lamp": "チャージランプは点いたまま", "means": "灯は点くのにセルだけ回らない＝容疑者は節点より下" },
+        { "inputs": { "key": "ON", "starter": "START", "ops": "removeWire w11-01" }, "load_on": false, "cross_lamp": "チャージランプも消える", "means": "灯もセルも全部死ぬ＝容疑者は節点より上（バッテリー・＋端子）" },
+        { "inputs": { "alt": true, "key": "ON", "starter": "START" }, "load_on": true, "means": "オルタ換装は始動系に影響しない" }
+      ],
+      "causes_structure": [
+        { "id": "battery_flat", "label": "バッテリー上がり・端子の緩み", "note": "灯も点かない側（節点より上）" },
+        { "id": "lever_contact", "label": "始動レバーの接点が閉じない", "note": "引いても無音が目印。リンケージの引き代を含む機械側" },
+        { "id": "heavy_wire", "label": "太線（ROSSO/MARRONE）とその端子の外れ・緩み" },
+        { "id": "starter_unit", "label": "スターター本体（ブラシ摩耗・内部断線）" },
+        { "id": "starter_ground", "label": "セルのアース線（NERO）の外れ・腐食", "note": "エンジンはゴムマウントで浮いているのでここが唯一の戻り道" },
+        { "id": "voltage_drop", "label": "接触抵抗による電圧降下（つながってはいるが電気が細い）", "note": "⚠️L1 では表せない＝下の limitations を参照。実車ではこれが最頻" }
+      ],
+      "electrically_indistinguishable": [
+        {
+          "members": ["lever_contact", "heavy_wire", "starter_unit", "starter_ground"],
+          "reason": "L1 到達性ではどれも『輪が切れている』という同じ答えになる。切れている場所は、線を外す・端子を当てるといった実車側の操作でしか割れない。",
+          "resolution": "旅ページは①灯を見て上下を割る ②引いたときの音で機械側を割る ③締め直す ④実測へ、の順で手放している。"
+        }
+      ],
+      "limitations": [
+        "⚠️【この旅で顕在化】L1 は電気の『細さ』を持たない＝接触抵抗による電圧降下（実車で最頻の原因）は表せず、絵の上では『つながっている』と出る。UCM-1 が測って初めて割れる領域。",
+        "⚠️【この旅で顕在化】アースの基準を body（車体）に置いているため、バッテリーのマイナス端子が外れた状態を removeWire w11-10 で作っても solver は『回る』と答える。実車では最頻の原因のひとつなので、旅ページでは文章で補っている。netlist/エンジン側の直しは第1・2号にも波及するため未着手（要検討）。"
+      ],
+      "measurable_by_ucm1": [
+        {
+          "point": "レバーを引いている間のバッテリー端子電圧（クランキング電圧）",
+          "meaning": "バッテリーの体力と、輪全体の電圧降下の大きさ。しきい値と判定文は UCM-1 側の正本",
+          "boundary": "⚠️この旅で L1 が答えられない部分そのもの＝ここは測定側の担当"
+        },
+        {
+          "point": "太線の両端（バッテリー＋端子↔レバー↔セル＋端子）と、アース線の両端の電圧差",
+          "meaning": "どの区間で電圧が落ちているか＝接触抵抗の在り処",
+          "boundary": "電圧降下法。registro500 側は区間の定義（どの端子とどの端子か）までを提供し、良否の値は持たない"
+        }
+      ],
+      "safety_order": [
+        "ギアがニュートラルであること・サイドブレーキが効いていることを先に確かめる（500 はキーを抜いてもレバーで回る＝ギアが入っていれば車が動く）",
+        "＋まわりを工具で触る作業をするなら、先にバッテリーのマイナス端子を外す（セルの電流は警告灯の何百倍＝短絡すると太線が赤熱する）"
+      ],
+      "self_checks": 10
     }
   ]
 }

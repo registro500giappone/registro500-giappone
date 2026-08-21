@@ -204,18 +204,22 @@
       return '<style' + attrs + '>' + scoped + '</style>';
     });
   }
-  /* opts: {viewBox, marks:[{id,color,label,anchor}], legend} — 座標は wiring-layout.json の実測値
-     （1 SVG unit = 1mm・m=車の前後・lat=左右。オーナー実測＝こちらの推定値はゼロ） */
+  /* opts: {viewBox, marks:[{id,color,label,anchor}], legend, scale} — 座標は wiring-layout.json の実測値
+     （1 SVG unit = 1mm・m=車の前後・lat=左右。オーナー実測＝こちらの推定値はゼロ）
+     ⚠️scale は「viewBox をどれだけ引いたか」の補正（既定 1＝engine ルームに寄った第1・2号のまま）。
+       車の全長を1枚に収める旅（セルの旅＝前のバッテリーから後ろのセルまで）では viewBox が
+       4倍以上広くなり、印と文字が既定の大きさでは読めなくなる。 */
   function carMap(elId, carSvgText, layout, opts) {
     var e = document.getElementById(elId); if (!e) return;
     var inner = carSvgText.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
     inner = scopeCarStyles(inner);
     function pt(id) { var p = layout.parts[id]; return { x: 25 + p.m * 1000, y: 683.15 - p.lat * 1000 }; }
+    var z = opts.scale || 1;
     var html = '<g id="carcrop" style="color:#cbc4b3">' + inner + '</g>';
     (opts.marks || []).forEach(function (m) {
       var p = pt(m.id), start = (m.anchor === 'start');
-      html += '<circle cx="' + p.x + '" cy="' + p.y + '" r="16" fill="' + m.color + '"/>';
-      html += '<text x="' + (start ? p.x + 26 : p.x - 26) + '" y="' + (p.y + 8) + '" font-size="34" fill="' + m.color + '"' + (start ? '' : ' text-anchor="end"') + ' font-weight="700">' + m.label + '</text>';
+      html += '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + (16 * z) + '" fill="' + m.color + '"/>';
+      html += '<text x="' + (start ? p.x + 26 * z : p.x - 26 * z) + '" y="' + (p.y + 8 * z) + '" font-size="' + (34 * z) + '" fill="' + m.color + '"' + (start ? '' : ' text-anchor="end"') + ' font-weight="700">' + m.label + '</text>';
     });
     html += (opts.legend || '');
     e.setAttribute('viewBox', opts.viewBox);
@@ -224,12 +228,15 @@
 
   /* ================= 起動 ================= */
   /* cfg:
-       lampId   … この旅の主役の負荷ID（例 'quadro.warn_oil'）
+       lampId   … この旅の主役の負荷ID（例 'quadro.warn_oil'・'starter'）。
+                  ⚠️「灯」とは限らない＝ランプでもモーターでも、solve() が返す負荷ならよい
        alt      … 既定でパッチ（オルタ換装）を当てるか
        extra    … 場面に旅固有の判定を足す（例 charging）
        flow     … 黄点の流れの向きの上書き
        draw     … function(kit, mode) → 図の高さ。kit.s に SVG を積む
-       caps     … {STOP:…, RUN:…} トグルの説明文
+       caps     … {STOP:…, RUN:…} トグルの説明文（キーは HTML の data-v と揃える）
+       mainInputs … トグルの値 → solve に渡す inputs（既定＝{key:'ON', engine:v}）
+       mainInit … トグルの初期値（既定 'STOP'）
        checks   … 検算の配列 [{label, s:{alt,inputs,override}, expect}]
        scenes   … function(scenario) → [{id, sc, mode}]
        carmap   … function(layout, alt) → carMap の opts
@@ -245,10 +252,13 @@
       e.setAttribute('viewBox', d.vb); e.innerHTML = d.body;
     }
 
+    /* トグルが動かすもの＝旅ごとに違う。既定は「エンジン 停止↔回転」（第1・2号）。
+       セルの旅は動かすのが始動レバーなので cfg.mainInputs / cfg.mainInit で差し替える。 */
+    function mainInputs(v) { return cfg.mainInputs ? cfg.mainInputs(v) : { key: 'ON', engine: v }; }
     function setMain(v) {
       var btns = document.querySelectorAll('#tg button');
       for (var i = 0; i < btns.length; i++) btns[i].className = btns[i].getAttribute('data-v') === v ? 'on' : '';
-      put('j-main', scenario({ inputs: { key: 'ON', engine: v } }), {});
+      put('j-main', scenario({ inputs: mainInputs(v) }), {});
       var cap = document.getElementById('mainCap'); if (cap) cap.innerHTML = cfg.caps[v];
     }
 
@@ -280,7 +290,7 @@
       if (vers) vers.textContent =
         'wiring-net.json NET_VERSION ' + NET.NET_VERSION + ' / wiring-patches.json PATCH_VERSION ' + PATCHES.PATCH_VERSION;
 
-      setMain('STOP');
+      setMain(cfg.mainInit || 'STOP');
       var btns = document.querySelectorAll('#tg button');
       for (var i = 0; i < btns.length; i++) btns[i].addEventListener('click', function () { setMain(this.getAttribute('data-v')); });
 
