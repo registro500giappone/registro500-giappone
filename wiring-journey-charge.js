@@ -61,7 +61,7 @@
     label(X+12,276,'AZZURRO 水色',WC.AZZURRO);
 
     /* ===== チャージランプ＝メーターの小窓と同じ顔 ===== */
-    k.lampWindow(X, 288, 'GENERAT.', sc.lampOn, ['チャージランプ','点いている','消えている'], 144);
+    k.lampWindow(X, 288, 'GENERAT.', sc.lampOn, ['チャージランプ','点いている','消えている'], 156);
 
     /* ランプ→箱の51/D+（w11-07/pga-03 VERDE） */
     seg(X,316,X,356, sc.alt?'pga-03':'w11-07', false, WC.VERDE);

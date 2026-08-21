@@ -49,7 +49,7 @@
     label(X+12,282,'AZZURRO 水色',WC.AZZURRO);
 
     /* ===== 油圧警告灯＝メーターの小窓と同じ顔 ===== */
-    k.lampWindow(X, 288, 'OLIO', sc.lampOn, ['油圧警告灯','点いている','消えている'], 144);
+    k.lampWindow(X, 288, 'OLIO', sc.lampOn, ['油圧警告灯','点いている','消えている'], 156);
 
     /* ===== ランプ→油圧センダ（w07-01 GRIGIO）。ここが第1号と分かれる所 ===== */
     if(mode.detach){

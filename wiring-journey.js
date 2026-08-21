@@ -163,16 +163,20 @@
         + '<stop offset="0%" stop-color="#ff6a4a"/><stop offset="55%" stop-color="#ef4526"/>'
         + '<stop offset="100%" stop-color="#c9301a"/></linearGradient></defs>');
       s.push('<g class="lampglow">'
-        + '<ellipse cx="' + x + '" cy="' + cy + '" rx="78" ry="50" fill="url(#jlampg)" opacity=".45"/>'
-        + '<ellipse cx="' + x + '" cy="' + cy + '" rx="54" ry="30" fill="url(#jlampg)"/>'
-        /* レンズのすぐ外を回る細いコロナ＝広いにじみより「光っている」が伝わる */
-        + '<rect x="' + (x - 39) + '" y="' + (top - 5) + '" width="78" height="38" rx="9" fill="none" stroke="#ff5a3c" stroke-width="2.5" opacity=".55"/></g>');
+        + '<ellipse cx="' + x + '" cy="' + cy + '" rx="86" ry="56" fill="url(#jlampg)" opacity=".5"/>'
+        + '<ellipse cx="' + x + '" cy="' + cy + '" rx="58" ry="34" fill="url(#jlampg)"/>'
+        /* レンズのすぐ外を回る細いコロナ＝広いにじみより「光っている」が伝わる。
+           ⚠️右のラベル（labelX）に触れない幅に収めること */
+        + '<rect x="' + (x - 43) + '" y="' + (top - 6) + '" width="86" height="44" rx="10" fill="none" stroke="#ff5a3c" stroke-width="3" opacity=".7"/>'
+        + '<rect x="' + (x - 49) + '" y="' + (top - 12) + '" width="98" height="56" rx="14" fill="none" stroke="#ff5a3c" stroke-width="2" opacity=".28"/></g>');
     }
-    /* 点灯時のレンズは平らな赤ではなく縦のグラデーション＝自分で光っているように見える */
-    s.push('<rect x="' + (x - 36) + '" y="' + top + '" width="72" height="28" rx="5" fill="' + (lit ? 'url(#jlampf)' : '#eae4d5') + '" stroke="' + (lit ? '#ffb9a4' : '#c3bba6') + '" stroke-width="' + (lit ? 2.5 : 2) + '"/>');
+    /* 点灯時のレンズは平らな赤ではなく縦のグラデーション＝自分で光っているように見える。
+       小窓は点灯時だけ一回り大きい＝小さい画面でも「そこが光っている」が分かる（2026-08-21 その3） */
+    var hw = lit ? 40 : 36, hh = lit ? 32 : 28;
+    s.push('<rect x="' + (x - hw) + '" y="' + top + '" width="' + (hw * 2) + '" height="' + hh + '" rx="6" fill="' + (lit ? 'url(#jlampf)' : '#eae4d5') + '" stroke="' + (lit ? '#ffc7b4' : '#c3bba6') + '" stroke-width="' + (lit ? 3 : 2) + '"/>');
     /* 点灯時だけ、レンズの上側に光の照り返しを1枚（＝ガラスが光って見える） */
-    if (lit) s.push('<rect x="' + (x - 32) + '" y="' + (top + 3) + '" width="64" height="9" rx="4" fill="#fff" opacity=".3"/>');
-    s.push('<text x="' + x + '" y="' + (top + 19) + '" font-size="11.5" font-weight="700" fill="' + (lit ? '#fffdf8' : '#a89f8b') + '" text-anchor="middle">' + text + '</text>');
+    if (lit) s.push('<rect x="' + (x - 35) + '" y="' + (top + 3) + '" width="70" height="10" rx="4" fill="#fff" opacity=".32"/>');
+    s.push('<text x="' + x + '" y="' + (top + (lit ? 21 : 19)) + '" font-size="' + (lit ? 12.5 : 11.5) + '" font-weight="700" fill="' + (lit ? '#fffdf8' : '#a89f8b') + '" text-anchor="middle">' + text + '</text>');
     if (labels) {
       this.label(labelX, top + 10, labels[0], lit ? C.hi : C.sub, null, 12);
       /* 状態の語（点いている／消えている）は太字＝文字でも一目で分かるように */
