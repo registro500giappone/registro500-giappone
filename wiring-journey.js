@@ -11,6 +11,7 @@
  *
  *  ⚠️図の点灯・色・黄点はすべて wiring-sim.js（L1到達性）の solve() 結果＝絵に合わせて数字を作らない。
  *  ⚠️第1号（チャージランプ）はユーザー確定済み＝このファイルへの切り出しで見た目を1文字も変えないこと。
+ *    （例外＝2026-08-21 のユーザー指示による警告灯の光らせ方の変更。以後もここを変えるのは指示があったときだけ）
  */
 (function (global) {
   'use strict';
@@ -139,16 +140,33 @@
     this.label(x + 56, top + 34, on ? 'キーON' : 'キーOFF', on ? C.deep : C.sub, null, 12);
   };
   /* 警告灯＝メーターの小窓と同じ顔。top=小窓の上端・高さ28。labels を渡すと右に2行そえる */
+  /* 警告灯の小窓。【2026-08-21 FB】旅の絵の中で「点いているか消えているか」がぱっと見で
+     分からなかった＝ページ冒頭の実物メーターと同じ光り方に寄せた（赤い芯＋光のにじみ）。
+     ⛔隣に電球アイコンを足す案は採らない：症状の表示が2箇所に分かれて「どっちを見るのか」に
+       なる（第1号で電球のバツ印を廃止したのと同じ理由）。
+     ⛔点滅（ちかちか）させない：実車の警告灯は点滅しないので「断続的に点いたり消えたりする
+       不具合」に読める＝この症状（点きっぱなし）と食い違う。ゆっくりした明滅の .lampglow だけ
+       （prefers-reduced-motion では自動的に静止した赤になる）。 */
   Kit.prototype.lampWindow = function (x, top, text, lit, labels, labelX) {
-    var s = this.s;
+    var s = this.s, cy = top + 14;
     if (lit) {
-      s.push('<circle cx="' + x + '" cy="' + (top + 14) + '" r="36" fill="' + C.hi + '" opacity=".16"><animate attributeName="opacity" values=".16;.05;.16" dur="1.6s" repeatCount="indefinite"/></circle>');
+      /* にじみ＝メーター側 #lampg と同じ配色。id はページ内の全場面で同一で構わない
+         （どのSVGでも中身が同じため。⚠️中身を変えるときは id も変えること） */
+      s.push('<defs><radialGradient id="jlampg">'
+        + '<stop offset="0%" stop-color="#ff5a3c" stop-opacity=".85"/>'
+        + '<stop offset="42%" stop-color="#ff3a20" stop-opacity=".36"/>'
+        + '<stop offset="100%" stop-color="#ff3a20" stop-opacity="0"/></radialGradient></defs>');
+      s.push('<ellipse class="lampglow" cx="' + x + '" cy="' + cy + '" rx="76" ry="48" fill="url(#jlampg)"/>');
     }
-    s.push('<rect x="' + (x - 36) + '" y="' + top + '" width="72" height="28" rx="5" fill="' + (lit ? '#c0392b' : C.in_) + '" stroke="' + (lit ? '#7c2418' : '#b3ab98') + '" stroke-width="2"/>');
-    s.push('<text x="' + x + '" y="' + (top + 19) + '" font-size="11.5" font-weight="700" fill="' + (lit ? '#fffdf8' : C.sub) + '" text-anchor="middle">' + text + '</text>');
+    s.push('<rect x="' + (x - 36) + '" y="' + top + '" width="72" height="28" rx="5" fill="' + (lit ? '#e53c22' : '#eae4d5') + '" stroke="' + (lit ? '#8c2416' : '#c3bba6') + '" stroke-width="2"/>');
+    /* 点灯時だけ、レンズの上側に光の照り返しを1枚（＝ガラスが光って見える） */
+    if (lit) s.push('<rect x="' + (x - 32) + '" y="' + (top + 3) + '" width="64" height="9" rx="4" fill="#fff" opacity=".26"/>');
+    s.push('<text x="' + x + '" y="' + (top + 19) + '" font-size="11.5" font-weight="700" fill="' + (lit ? '#fffdf8' : '#a89f8b') + '" text-anchor="middle">' + text + '</text>');
     if (labels) {
       this.label(labelX, top + 10, labels[0], lit ? C.hi : C.sub, null, 12);
-      this.label(labelX, top + 26, lit ? labels[1] : labels[2], lit ? C.hi : C.ok, null, 12);
+      /* 状態の語（点いている／消えている）は太字＝文字でも一目で分かるように */
+      s.push('<text x="' + labelX + '" y="' + (top + 26) + '" font-size="12.5" font-weight="700" fill="'
+        + (lit ? C.hi : C.ok) + '">' + (lit ? labels[1] : labels[2]) + '</text>');
     }
   };
 
