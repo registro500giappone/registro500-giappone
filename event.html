@@ -503,6 +503,7 @@
   };
 
   window.addEventListener('DOMContentLoaded', () => {
+    stashDraftFromUrl();
     if (urlType === '126') {
       document.getElementById('evBackLink').href = '/126/';
       document.documentElement.style.setProperty('--accent', '#D4541A');
@@ -516,7 +517,9 @@
       const user = session?.user ?? null;
       currentUser = user;
       if(user) checkMyCar(user);
+      if(user) applyDraftIfAny();
     });
+    if (peekDraft()) setTimeout(noticeIfStillLoggedOut, 3000);
     document.getElementById('inputDate').addEventListener('change', function() {
       if(this.value) {
         const d = new Date(this.value);
@@ -837,6 +840,70 @@ window.openEdit = async (eventId) => {
 
   function resetForm() { document.getElementById('eventForm').reset(); document.getElementById('eventForm').EventID.value = ""; document.getElementById('weekdayLabelEnd').textContent = ''; }
   function closeModal() { document.getElementById('postModal').style.display = 'none'; }
+
+  // ── 週次探索メールからの下書き（?draft=1&…）─────────────────────────
+  // py/find_events.py が候補ごとに作るリンクから開いたときだけ、投稿フォームを
+  // 開いて機械が分かっている欄（名前・日付・場所・URL）を埋める。
+  // DBには一切書かない＝保存を押すのは人間（HANDOFF 不変条件2）。
+  // draft が付いていなければ一覧の挙動は今までと完全に同じ（不変条件7）。
+  const DRAFT_KEY = 'registro500_event_draft';
+  const DRAFT_TTL_MS = 60 * 60 * 1000;  // ログインを挟んで戻る猶予。過ぎたら捨てる
+  let draftApplied = false;
+
+  // 受け取った時点で退避する。未ログインだとフォームを開けないので、
+  // ログインして戻ってきたときに拾い直せるよう localStorage に置く。
+  function stashDraftFromUrl() {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get('draft') !== '1') return;
+    const d = { name: q.get('name') || '', date: q.get('date') || '',
+                loc: q.get('loc') || '', url: q.get('url') || '', at: Date.now() };
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch(e) {}
+    // 再読み込みで二重に開かないようクエリだけ消す（type= は残す）
+    ['draft','name','date','loc','url'].forEach(k => q.delete(k));
+    const rest = q.toString();
+    history.replaceState(null, '', window.location.pathname + (rest ? '?' + rest : ''));
+  }
+
+  function peekDraft() {
+    let raw = null;
+    try { raw = localStorage.getItem(DRAFT_KEY); } catch(e) { return null; }
+    if (!raw) return null;
+    let d = null;
+    try { d = JSON.parse(raw); } catch(e) {}
+    if (!d || !d.at || Date.now() - d.at > DRAFT_TTL_MS) { clearDraft(); return null; }
+    return d;
+  }
+
+  function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch(e) {} }
+
+  // 未ログインのまま猶予を過ぎたときだけ知らせる。セッション復元は非同期で、
+  // 直後に届くことがあるため即断しない（退避は残すのでログイン後に開き直せる）。
+  function noticeIfStillLoggedOut() {
+    if (draftApplied || currentUser || !peekDraft()) return;
+    draftApplied = true;
+    alert('探索メールの候補を受け取りました。\nログインしてから、もう一度メールのリンクを開いてください。');
+  }
+
+  async function applyDraftIfAny() {
+    if (draftApplied || !currentUser) return;
+    const d = peekDraft();
+    if (!d) return;
+    draftApplied = true;
+    clearDraft();
+    await prepareModal();
+    resetForm();
+    const form = document.getElementById('eventForm');
+    form.EventName.value = d.name;
+    if (d.date) {
+      form.inputDate.value = d.date;
+      form.inputDate.dispatchEvent(new Event('change'));
+    }
+    form.Location.value = d.loc;
+    form.URL.value = d.url;
+    // 機械が埋めた下書きだと分かる題にする（時間・費用・詳細は空のまま＝人が入れる）
+    document.getElementById('modalTitle').innerText = 'イベント投稿（探索メールの候補）';
+    document.getElementById('postModal').style.display = 'flex';
+  }
   document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && document.getElementById('postModal').style.display === 'flex') closeModal(); });
 
 window.showConfirm = () => {
