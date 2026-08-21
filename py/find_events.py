@@ -697,6 +697,8 @@ def main():
     parser = argparse.ArgumentParser(description="日本国内の旧車イベントを週次で探索し、新規候補をメールする")
     parser.add_argument("--dry-run", action="store_true", help="メール送信・台帳記録をせず標準出力へ出す")
     parser.add_argument("--limit", type=int, default=None, help="使うクエリ数を絞る（疎通確認用）")
+    parser.add_argument("--html-out", default=None,
+                        help="--dry-run のとき、メールのHTML版をこのパスへ書き出す（見た目の確認用）")
     args = parser.parse_args()
 
     today = date.today()
@@ -991,6 +993,10 @@ def main():
         print("=" * 60)
         print(body_text)
         print("=" * 60)
+        if args.html_out:
+            with open(args.html_out, "w", encoding="utf-8") as f:
+                f.write(body_html)
+            print(f"[find_events] HTML版を書き出しました: {args.html_out}")
         print("[find_events] --dry-run のため送信・台帳記録はしていません。")
         return
 
