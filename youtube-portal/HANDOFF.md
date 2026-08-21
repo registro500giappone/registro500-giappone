@@ -166,6 +166,7 @@ YouTube 動画を「整備箇所別・人気順・日本語」で見られるよ
 - スケジューラは既存構成（GitHub Actions cron / Windows Task Scheduler 等）を流用。
 - **【2026-07-01 決定】週次view更新は月次に集約（専用スクリプト不採用）**。月次 `youtube_fetch.py` が信頼chを playlistItems 全巡回で再upsert＝既存動画の `view_count` も最新化＋`view_history` 追記されるため、週次の独立実行を作らず頻度少なめ運用とする。
 - **【2026-07-01 追加】経路②「管理者が手動追加」＝自動更新とは別の入口**：`py/youtube_add.py <URL> [--by 名前]`＋workflow `youtube-add-video.yml`（URL入力→add→classify即実行）。source_tier=0（手動追加＝最上位・classifyの `source_tier<3` 削除ガードで自動削除されない）。記名は `--by` 指定時のみ `videos.recommended_by_name` に格納。オーナー要望は videos.html の mailto 導線（宛先=ADMIN_EMAIL）で受け、管理者が②で掲載＝投稿テーブル・承認UI・RLSは持たない軽量方式。
+- **【2026-08-21 記録】YouTube側で再生回数の数え方が変わる（2026-08-24〜）**：長尺・ライブも含む全フォーマットで「再生が開始された瞬間」からカウント（最低再生時間の要件が撤廃）。Data API の `viewCount` は**フィールド名も型も場所も不変＝コード修正は不要**。旧ロジックの数値は `engagedViews` として Analytics/Reporting API に残るが、**それはチャンネル所有者向け＝他人の動画を扱う当ポータルからは元から使えない**（調べ直さない）。影響は3点だけ：①`search.list(order=viewCount)` の並びが多少変わる（放置でよい）②`fetch_config.json` の `min_view_count: 500` が実質的に緩む＝**数字は動かさない**（元々低め設定＋ショートは `max_duration` 90秒以下で別途除外済み）③⚠️**`view_history` は 08-24 を境に数値の定義が変わり、遡って直らない段差になる**＝将来「再生数の伸び率」を出すときに **08-24 をまたぐ比較をしない**。なお 09-01 の月次実行後、974本中85本前後（35日以上更新されていない＝もう検索に出てこない動画）だけ旧ロジックの値が残り人気順が数%歪むが、**全件一括更新のワンショットは走らせない**（§167 の方針どおり。該当は人気順の下位に沈んだ古い動画で見え方が変わらないため＝ユーザー判断済み）。
 - **【2026-07-01 追加】手順カード生成（AI要約・方法A）＝夜間バッチ**：`py/youtube_steps.py`＋workflow `youtube-steps.yml`（毎日JST02:00・limit30）。is_howto動画のみ対象で `videos.steps_ja` を生成。初回292本はバックフィル後、以後は新規howto動画のみ＝数本/月と安価（Geminiのみ・YouTube APIユニット消費なし）。
 
 ---
