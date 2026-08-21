@@ -9,6 +9,18 @@
     "ここに測定値・判定しきい値・診断カードの文章は入れない（それは UCM-1 側の正本）。",
     "v:inf / v:auto の項目は『原典で確定していない』という意味。UCM-1 の画面や文章で断定に使わないこと。"
   ],
+  "id_policy": {
+    "決定": "2026-08-21。旅ページのIDと UCM-1 の trigger_id は【対応付けるが同一視しない】。",
+    "journey_id": "registro500 側のID＝【不変】。URL と対になっていて、一度決めたら変えない（event-slugs.json と同じ扱い＝変えるとリンクが切れる）。",
+    "ucm1_trigger_id": "UCM-1 側のID＝【暫定・変わりうる】。UCM-1 の trigger_id 13件は全て仮命名で、Phase 3 でアプリ側の判定ロジックの命名へ突合される（突合方向＝ucm1 JSON側をアプリ側に合わせる）。ここは対応表の1列にすぎない。",
+    "なぜ分けたか": [
+      "UCM-1 の VOLT-04 は v2.34 で意味論を『チャージランプ点灯』→『充電喪失』へ一般化済みで、突合時に charge_lamp_on からの改名が検討対象になっている＝相手側のIDは確実に動く。",
+      "guide カード（OILTEMP-01・OILPRESS-01・START-01・START-02）はスキーマ 1.1 の規則で trigger_id を持たない（card_type=diagnostic のとき必須・guide のとき省略）。したがって既存の油圧カードに trigger_id を後付けすることはできない。",
+      "油圧灯の diagnostic カードを新設するには警告灯タップ（VOLT-04 と同じ）と metric・test_mode が要る＝UCM のフェーズ前倒しになる。それは §3 でしないと決めている。"
+    ],
+    "改名が起きたときの手順": "ucm1 側で trigger_id が確定・改名されたら、この JSON の ucm1_trigger_id 欄だけを直す。⛔journey_id と URL は変えない。",
+    "ucm1 側へのお願い": "trigger_id 突合TODO（HANDOFF の13件のリスト）に『registro500 の旅ページがこのIDを参照している＝改名するときは連絡が要る』と1行だけ足しておいてほしい。いま足すカードは無い。"
+  },
   "solver": {
     "kind": "L1 到達性（物理計算なし・グラフ探索のみ）",
     "edge_kinds": ["導体エッジ＝電線と閉じた接点（抵抗ゼロ扱い）", "負荷エッジ＝ランプ・モーター（ここで電位が落ちる）"],
@@ -22,7 +34,9 @@
   },
   "journeys": [
     {
-      "trigger_id": "charge_lamp_on",
+      "journey_id": "charge_lamp_on",
+      "ucm1_trigger_id": { "value": "charge_lamp_on", "card": "VOLT-04", "state": "仮命名・突合待ち",
+        "note": "⚠️v2.34 で VOLT-04 の意味論が『チャージランプ点灯』→『充電喪失』へ一般化された＝突合時に改名が検討される。改名されたらこの欄だけ直す（journey_id と URL は変えない）" },
       "status": "本番に置いてあるが導線なし・noindex（作業場）",
       "url": "https://www.registro500.com/wiring-journey-charge.html",
       "url_variants": [
@@ -32,7 +46,7 @@
       "title": "チャージランプが消えない",
       "symptom": "エンジンが回っているのに計器盤の GENERAT. が点いたまま",
       "systems": [11, 10],
-      "ucm1_card": "VOLT-04（同一題材。カード側に trigger_id: charge_lamp_on が入っている）",
+      "ucm1_card": "VOLT-04（同一題材。原因4つが旅の絵の容疑区間と1対1）",
       "chain": [
         { "from": "battery.+", "wire": "w11-01", "color": "ROSSO", "to": "starter_sw._in", "v": "orig" },
         { "from": "starter_sw._in", "wire": "w11-03", "color": "MARRONE", "to": "regulator.30", "v": "orig" },
@@ -69,13 +83,15 @@
       "self_checks": 7
     },
     {
-      "trigger_id": "oil_lamp_on",
-      "status": "⚠️UCM-1 側に対応する trigger_id がまだ無い＝新規提案（本番に置いてあるが導線なし・noindex）",
+      "journey_id": "oil_lamp_on",
+      "ucm1_trigger_id": { "value": null, "card": null, "state": "対応なし（UCM-1 側にいま足すものは無い）",
+        "note": "OILPRESS-01「油圧の読み方」は guide カードでスキーマ上 trigger_id を持てない。油圧灯の diagnostic カードを作るには警告灯タップ・metric・test_mode が要る＝UCM のフェーズ前倒しになるので今はしない。⚠️UCM-1 側に油圧灯タップが載る時点で突合する" },
+      "status": "本番に置いてあるが導線なし・noindex（作業場）",
       "url": "https://www.registro500.com/wiring-journey-oil.html",
       "title": "油圧警告灯が消えない",
       "symptom": "エンジンが回っているのに計器盤の OLIO が点いたまま",
       "systems": [7, 10],
-      "ucm1_card": "未対応。既存の OILPRESS-01「油圧の読み方」は trigger_id: None（2026-08-20 に diagnostic_cards_v1.json を実読して確認）",
+      "ucm1_card": "対応なし。OILPRESS-01「油圧の読み方」は guide カード（2026-08-21 に diagnostic_cards_v1.json を実読＝guide 4枚は例外なく trigger_id: None）",
       "chain": [
         { "same_as": "charge_lamp_on の quadro.INTER まで（バッテリー→始動レバー節点→レギュレータ30→F1→キーSW→計器盤）" },
         { "from": "quadro.INTER", "load": "quadro.warn_oil", "to": "quadro.0", "v": "inf" },
