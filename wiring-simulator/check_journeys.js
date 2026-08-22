@@ -24,7 +24,9 @@ const PAGES = [
   { id: 'starter',    html: 'wiring-journey-starter.html',    js: 'wiring-journey-starter.js' },
   { id: 'key',        html: 'wiring-journey-key.html',        js: 'wiring-journey-key.js' },
   { id: 'ground',     html: 'wiring-journey-ground.html',     js: 'wiring-journey-ground.js' },
-  { id: 'ignition',   html: 'wiring-journey-ignition.html',   js: 'wiring-journey-ignition.js' }
+  { id: 'ignition',   html: 'wiring-journey-ignition.html',   js: 'wiring-journey-ignition.js' },
+  { id: 'horn',       html: 'wiring-journey-horn.html',       js: 'wiring-journey-horn.js' },
+  { id: 'room',       html: 'wiring-journey-room.html',       js: 'wiring-journey-room.js' }
 ];
 
 /* ---- ごく小さな DOM の代わり ---- */

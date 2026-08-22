@@ -17,7 +17,12 @@
   'use strict';
 
   /* 被覆色（原典の色名 → 画面の色）。案C＝線は被覆色・通電は黄点の動き・無電は薄く */
-  var WC = { ROSSO: '#c0392b', AZZURRO: '#4a9fd8', VERDE: '#2f7d4f', MARRONE: '#6f4a2a', NERO: '#33302b', GRIGIO: '#8d8574' };
+  /* ⚠️BIANCO（白）を足すときの落とし穴＝紙色の地に白い線を引くと消える。線そのものを
+       灰色にごまかすと「原典の白」ではなくなるので、白は白のまま引いて【縁取りで浮かせる】
+       （配線図ビューアのL型図で白線を「白塗り＋縁灰色」で描いたのと同じ作法）。縁取りは seg が自動で敷く。
+     ⚠️GIALLO E NERO（黄／黒）は原典の色名がそのまま color に入る＝キーにスペースを含む。 */
+  var WC = { ROSSO: '#c0392b', AZZURRO: '#4a9fd8', VERDE: '#2f7d4f', MARRONE: '#6f4a2a', NERO: '#33302b', GRIGIO: '#8d8574',
+             BIANCO: '#fbf7ee', GIALLO: '#dfae21', 'GIALLO E NERO': '#dfae21' };
   var C = { deep: '#2c3a31', body: '#3f5347', in_: '#e6e0d0', sub: '#8d8574', hi: '#b8442e', dim: '#ddd5c4', out: '#c9c2b1', ok: '#2f7d4f' };
 
   var NET = null, PATCHES = null;
@@ -60,8 +65,10 @@
     var r = this.r, w = null;
     for (var i = 0; i < r.wires.length; i++) if (r.wires[i].id === id) w = r.wires[i];
     var col = w && w.color ? WC[w.color] : (fallback || C.sub);
-    var st = r.wire[id];
-    return { col: (st === 'off' || st === undefined) ? C.dim : col, live: (st === 'hot' || st === 'gnd') };
+    var st = r.wire[id], dead = (st === 'off' || st === undefined);
+    /* raw＝状態を無視した被覆の色。白い線の縁取り（outline）が「薄くなった白」も
+       見分けられるように残す＝縁が消えると、白線だけ【線ごと無くなった】ように見える。 */
+    return { col: dead ? C.dim : col, live: (st === 'hot' || st === 'gnd'), raw: col, dead: dead };
   };
   Kit.prototype.dots = function (x, y1, y2, up) {          /* 縦線に流れる黄点（CSSで縦に動く） */
     for (var y = y1; y <= y2; y += 22)
@@ -77,8 +84,15 @@
     if (this.cfg.flow) { var d = this.cfg.flow(this.sc, id, x, y1, y2); if (d !== undefined) return d; }
     return this.sc.lampOn ? 'down' : null;
   };
+  /* 白い線は紙色の地に沈むので、下に一回り太い縁を敷いてから白を重ねる。
+     ⚠️無電で薄くなっている（C.dim）ときは縁を敷かない＝薄いことが見えなくなる。 */
+  Kit.prototype.outline = function (x1, y1, x2, y2, raw, w, dead) {
+    if (raw !== WC.BIANCO) return;
+    this.s.push('<path d="M' + x1 + ',' + y1 + ' L' + x2 + ',' + y2 + '" stroke="' + (dead ? '#cfc7b6' : '#a89f8b') + '" stroke-width="' + (w + 3) + '" fill="none" stroke-linecap="round"/>');
+  };
   Kit.prototype.seg = function (x1, y1, x2, y2, id, thick, fallback) {
     var c = this.wcol(id, fallback);
+    this.outline(x1, y1, x2, y2, c.raw, thick ? 6.5 : 5, c.dead);
     this.s.push('<path d="M' + x1 + ',' + y1 + ' L' + x2 + ',' + y2 + '" stroke="' + c.col + '" stroke-width="' + (thick ? 6.5 : 5) + '" fill="none" stroke-linecap="round"/>');
     if (x1 === x2 && c.live) {
       var dir = this.flow(id, x1, y1, y2);
@@ -138,6 +152,31 @@
     s.push('<text x="' + (x + 28) + '" y="' + (top + 28) + '" font-size="10.5" fill="' + C.in_ + '" text-anchor="middle">' + (on ? '接点 閉' : '接点 開') + '</text>');
     this.label(x + 56, top + 18, 'キースイッチ', C.deep, null, 12);
     this.label(x + 56, top + 34, on ? 'キーON' : 'キーOFF', on ? C.deep : C.sub, null, 12);
+  };
+  /* ヒューズを【縦に通す】絵（500のヒューズは筒型＝上下に金属キャップ）。
+     ⚠️第4号（キー）はヒューズを「幹線の横にぶら下がる枝」として描いた＝キーへの線がヒューズの
+       電源側から分かれるため。ヒューズの【先】の系統（ホーン・ルームランプ…）を旅するときは
+       本線がヒューズを通るので、この縦向きが要る。同じ部品が旅によって違う向きで出てくるので、
+       ページ本文で必ず「向きが違う」と断ること。
+     top＝箱の上端。上の端子 y=top・下の端子 y=top+62（＝この2点に線を継ぐ）。 */
+  Kit.prototype.fuseV = function (x, top, blown, name) {
+    var s = this.s, tubeTop = top + 11, tubeH = 40;
+    s.push('<path d="M' + x + ',' + top + ' L' + x + ',' + tubeTop + ' M' + x + ',' + (tubeTop + tubeH) + ' L' + x + ',' + (top + 62) + '" stroke="' + C.deep + '" stroke-width="3.5"/>');
+    s.push('<rect x="' + (x - 15) + '" y="' + tubeTop + '" width="30" height="' + tubeH + '" rx="4" fill="#efe9da" stroke="' + C.deep + '" stroke-width="2"/>');
+    s.push('<rect x="' + (x - 15) + '" y="' + tubeTop + '" width="30" height="7" rx="3" fill="#b9b1a0"/>');
+    s.push('<rect x="' + (x - 15) + '" y="' + (tubeTop + tubeH - 7) + '" width="30" height="7" rx="3" fill="#b9b1a0"/>');
+    if (blown) {
+      /* 切れたヒューズ＝エレメントが中央で分かれる。⛔×印は付けない（球切れの記号と紛れる） */
+      s.push('<path d="M' + x + ',' + (tubeTop + 7) + ' L' + x + ',' + (tubeTop + 15) + ' M' + x + ',' + (tubeTop + 25) + ' L' + x + ',' + (tubeTop + 33) + '" stroke="' + C.hi + '" stroke-width="2.5" stroke-linecap="round"/>');
+      s.push('<circle cx="' + x + '" cy="' + (tubeTop + 20) + '" r="6" fill="none" stroke="' + C.hi + '" stroke-width="2.5"/>');
+    } else {
+      s.push('<path d="M' + x + ',' + (tubeTop + 7) + ' L' + x + ',' + (tubeTop + 33) + '" stroke="' + C.sub + '" stroke-width="2.5"/>');
+    }
+    if (name) {
+      this.label(x + 24, top + 26, name, C.deep, null, 12);
+      s.push('<text x="' + (x + 24) + '" y="' + (top + 42) + '" font-size="11.5" font-weight="700" fill="'
+        + (blown ? C.hi : C.ok) + '">' + (blown ? '切れている' : '生きている') + '</text>');
+    }
   };
   /* 警告灯＝メーターの小窓と同じ顔。top=小窓の上端・高さ28。labels を渡すと右に2行そえる */
   /* 警告灯の小窓。【2026-08-21 FB】旅の絵の中で「点いているか消えているか」がぱっと見で
