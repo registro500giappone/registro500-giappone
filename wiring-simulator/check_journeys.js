@@ -26,7 +26,8 @@ const PAGES = [
   { id: 'ground',     html: 'wiring-journey-ground.html',     js: 'wiring-journey-ground.js' },
   { id: 'ignition',   html: 'wiring-journey-ignition.html',   js: 'wiring-journey-ignition.js' },
   { id: 'horn',       html: 'wiring-journey-horn.html',       js: 'wiring-journey-horn.js' },
-  { id: 'room',       html: 'wiring-journey-room.html',       js: 'wiring-journey-room.js' }
+  { id: 'room',       html: 'wiring-journey-room.html',       js: 'wiring-journey-room.js' },
+  { id: 'brake',      html: 'wiring-journey-brake.html',      js: 'wiring-journey-brake.js' }
 ];
 
 /* ---- ごく小さな DOM の代わり ---- */
