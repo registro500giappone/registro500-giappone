@@ -98,6 +98,20 @@
     .pc-items { display: flex; flex-wrap: wrap; gap: 6px; }
     .pc-item { font-size: 0.78rem; background: var(--bg); border-radius: 12px; padding: 4px 10px; line-height: 1.5; }
     .pc-item .x { color: #7a705f; margin-left: 4px; font-size: 0.72rem; }
+    /* 逆引き＝その製品を書いた車へ。押せることは下線の点線だけで示し、
+       ボタンらしい装飾は付けない（明細を読む欄の邪魔をしないため） */
+    .pc-item.is-link { font: inherit; font-size: 0.78rem; color: inherit; border: 0; cursor: pointer;
+      text-decoration: underline dotted #b9ae99; text-underline-offset: 3px; }
+    .pc-item.is-link[aria-expanded="true"] { background: var(--accent); color: #fff; text-decoration: none; }
+    .pc-item.is-link[aria-expanded="true"] .x { color: rgba(255,255,255,0.75); }
+    /* display を指定すると hidden 属性が効かなくなるので、閉じた状態を先に固定する */
+    .pc-owners[hidden] { display: none; }
+    .pc-owners { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+      margin: 8px 0 2px; padding: 8px 10px; border-radius: 8px; background: var(--bg); font-size: 0.78rem; }
+    .pco-head { color: #7a705f; font-size: 0.72rem; width: 100%; }
+    .pc-owners a { color: var(--accent); text-decoration: none; font-weight: bold; }
+    .pc-owners a:hover { text-decoration: underline; }
+    .pco-sub { display: block; color: #7a705f; font-weight: normal; font-size: 0.7rem; }
     /* 純正のまま・不明。数の少ない側に見えないよう、他と同じ大きさで最後に置く */
     .pc-stock { border-top: 1px dashed #ddd6c6; padding-top: 12px; margin-top: 14px; font-size: 0.78rem; color: #7a705f; line-height: 1.7; }
     .pc-stock b { color: inherit; }
@@ -125,6 +139,10 @@
       .pc-title { color: #ece6d9; }
       .products-lead, .pc-n, .pc-brand .n, .pc-item .x, .pc-stock { color: #a89e8c; }
       .pc-item { background: #403a30; color: #ece6d9; }
+      .pc-item.is-link { text-decoration-color: #6b6152; }
+      .pc-item.is-link[aria-expanded="true"] { color: #1a1714; }
+      .pc-owners { background: #403a30; }
+      .pco-head, .pco-sub { color: #a89e8c; }
       .pc-stock { border-top-color: #403a30; }
     }
   </style>
@@ -201,7 +219,7 @@
        上のタブとは別の性格のものとして下に並べる。 -->
   <section class="products" id="productsSection" style="display:none">
     <h2>🔧 みんなが使っている製品</h2>
-    <p class="products-lead">オーナーが車両登録の自由記入欄に書いたものを、書かれたままの言葉で並べています。表記のゆれは直していないので、同じ製品でも書き方が違えば別々に並びます（まったく同じ書き方のものだけ ×2 とまとめています）。多い少ないを競うものではありません。純正のままの車も、あえて純正を選んでいる車も、いま何が付いているか分からない車もあります。ここに出ているのは書いた人の分だけです。</p>
+    <p class="products-lead">オーナーが車両登録の自由記入欄に書いたものを、書かれたままの言葉で並べています。表記のゆれは直していないので、同じ製品でも書き方が違えば別々に並びます（まったく同じ書き方のものだけ ×2 とまとめています）。多い少ないを競うものではありません。純正のままの車も、あえて純正を選んでいる車も、いま何が付いているか分からない車もあります。ここに出ているのは書いた人の分だけです。<br><b>製品名をタップすると、それを書いている車が出ます。</b>同じ物を積んでいる人の車両ページから、使い心地を聞きにいけます。</p>
     <div class="product-cards" id="productCards"></div>
   </section>
 
@@ -316,7 +334,9 @@
           PlugName:plug_name,
           CoilName:coil_name,
           ElectricPumpName:electric_pump_name,
-          Battery:battery
+          Battery:battery,
+          DocumentID:document_id,
+          HandleName:handle_name
         `)
         .eq('car_type', currentCarType)
         .eq('is_sold', false);
@@ -433,6 +453,8 @@
       shown++;
 
       // グループ → 原文の重複をまとめたもの
+      // owners はその書き方をした車（＝逆引きの行き先）。台数を競わせる情報ではなく、
+      // 「同じ物を積んでいる人に聞きにいく」ための連絡先として持つ。
       const groups = new Map();
       written.forEach(c => {
         const raw = String(c[f.col]).trim();
@@ -440,10 +462,11 @@
         if (!groups.has(g)) groups.set(g, new Map());
         const items = groups.get(g);
         const k = productDedupKey(raw);
-        if (!items.has(k)) items.set(k, { count: 0, forms: new Map() });
+        if (!items.has(k)) items.set(k, { count: 0, forms: new Map(), owners: [] });
         const it = items.get(k);
         it.count++;
         it.forms.set(raw, (it.forms.get(raw) || 0) + 1);
+        if (c.DocumentID) it.owners.push({ doc: c.DocumentID, name: c.HandleName || '', year: c.Year || '', pref: c.Prefecture || '' });
       });
 
       const total = [...groups.values()].reduce((s, m) => s + [...m.values()].reduce((a, b) => a + b.count, 0), 0);
@@ -462,7 +485,7 @@
       html += `<div class="pc-head"><div class="pc-title">${esc(f.label)}`
             + `<span class="pc-n">${totalCars}台のうち${total}台が記入</span></div></div>`;
 
-      brands.forEach(g => {
+      brands.forEach((g, gi) => {
         html += '<div class="pc-group">';
         html += `<div class="pc-brand">${esc(g.name)}<span class="n">${g.n}台</span></div>`;
         html += '<div class="pc-items">';
@@ -470,15 +493,29 @@
         // （こちらで整えた形にはしない）。
         const details = [...g.items.values()].map(it => ({
           count: it.count,
+          owners: it.owners,
           form: [...it.forms.entries()].sort((a, b) => b[1] - a[1])[0][0]
         }));
         details.sort((a, b) => (f.byNumber ? productSortNum(a.form) - productSortNum(b.form) : 0)
                              || b.count - a.count);
-        details.forEach(d => {
-          html += `<span class="pc-item">${esc(d.form)}`
-                + (d.count > 1 ? `<span class="x">×${d.count}</span>` : '') + '</span>';
+        // 逆引きの受け皿は .pc-items の外（後ろ）に置く。中に入れると
+        // flex-wrap のチップの並びが崩れるため。
+        let ownersHtml = '';
+        details.forEach((d, di) => {
+          const uid = `${f.key}-${gi}-${di}`;
+          const body = esc(d.form) + (d.count > 1 ? `<span class="x">×${d.count}</span>` : '');
+          if (!d.owners.length) { html += `<span class="pc-item">${body}</span>`; return; }
+          html += `<button type="button" class="pc-item is-link" aria-expanded="false"`
+                + ` aria-controls="pco-${esc(uid)}" data-pco="${esc(uid)}">${body}</button>`;
+          ownersHtml += `<div class="pc-owners" id="pco-${esc(uid)}" hidden>`
+                      + `<span class="pco-head">この書き方をしている車</span>`
+                      + d.owners.map(o => `<a href="detail.html?doc=${encodeURIComponent(o.doc)}">`
+                          + esc(o.name || o.doc)
+                          + `<span class="pco-sub">${esc([o.year ? o.year + '年' : '', o.pref].filter(Boolean).join(' / '))}</span>`
+                          + '</a>').join('')
+                      + '</div>';
         });
-        html += '</div></div>';
+        html += '</div>' + ownersHtml + '</div>';
       });
 
       if (stock.length) {
@@ -492,6 +529,30 @@
     });
 
     section.style.display = shown ? '' : 'none';
+    bindProductReverse(host);
+  }
+
+  // 製品名 → その製品を書いた車への逆引き（開閉）。
+  // カードは車種の切り替えで作り直すので、リスナーは器の側に1つだけ付ける。
+  let productReverseBound = false;
+  function bindProductReverse(host) {
+    if (productReverseBound) return;
+    productReverseBound = true;
+    host.addEventListener('click', e => {
+      const btn = e.target.closest('.pc-item.is-link');
+      if (!btn) return;
+      const panel = document.getElementById('pco-' + btn.dataset.pco);
+      if (!panel) return;
+      const open = btn.getAttribute('aria-expanded') === 'true';
+      // 同じ欄の中で開きっぱなしが積み上がると読みにくいので、他は閉じる
+      const card = btn.closest('.product-card');
+      card.querySelectorAll('.pc-item.is-link[aria-expanded="true"]').forEach(b => {
+        b.setAttribute('aria-expanded', 'false');
+        const p = document.getElementById('pco-' + b.dataset.pco);
+        if (p) p.hidden = true;
+      });
+      if (!open) { btn.setAttribute('aria-expanded', 'true'); panel.hidden = false; }
+    });
   }
 
   // ---- サマリータイル ------------------------------------------------------

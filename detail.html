@@ -236,6 +236,21 @@
     .standing-key.mine { background: var(--rg-accent); }
     .standing-tag { font-size: 0.68rem; border: 1px solid var(--rg-accent-border); background: var(--rg-accent-soft); color: var(--rg-accent); border-radius: 10px; padding: 1px 7px; margin-left: 6px; white-space: nowrap; }
     .standing-note { font-size: 0.72rem; color: var(--rg-muted); margin: 16px 0 0; line-height: 1.6; }
+
+    /* まだ書かれていない欄（オーナー本人だけに出す）。
+       埋まっていないことを責める見せ方にしない＝残り件数や達成率は出さず、
+       「ほかの車ではこう書かれている」という手がかりだけを置く。 */
+    .blanks-lead { font-size: 0.82rem; color: var(--rg-muted); margin: 0 0 14px; line-height: 1.7; }
+    .blanks-row { padding: 10px 0; border-top: 1px dashed var(--rg-border); }
+    .blanks-row:first-of-type { border-top: 0; padding-top: 0; }
+    .blanks-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+    .blanks-label { font-size: 0.9rem; font-weight: bold; }
+    .blanks-n { font-size: 0.72rem; color: var(--rg-muted); white-space: nowrap; }
+    .blanks-ex { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+    .blanks-ex span { font-size: 0.76rem; background: var(--rg-surface-sub); border-radius: 12px; padding: 3px 9px; color: var(--rg-muted); }
+    .blanks-cta { display: inline-block; margin-top: 14px; text-decoration: none; padding: 0.6rem 1.25rem;
+      background: var(--rg-accent); color: #fff; border-radius: 6px; font-size: 0.9rem; font-weight: 600; }
+    .blanks-note { font-size: 0.72rem; color: var(--rg-muted); margin: 12px 0 0; line-height: 1.6; }
   </style>
 </head>
 <body>
@@ -310,6 +325,14 @@
             <div id="standingRows"></div>
             <p class="standing-legend"><span class="standing-key mine"></span>この車<span class="standing-key" style="margin-left:8px;"></span>ほかの選択肢</p>
             <p class="standing-note">数が多いほど良い、という意味ではありません。自由記入のため答えが揃わない項目（オイルの銘柄など）はここに出していません。</p>
+          </section>
+          <!-- 空欄の記入うながし。オーナー本人にしか出ない（他人の車では意味がない） -->
+          <section class="rg-card" id="blanksSection" style="display:none;">
+            <h2 class="rg-section-title">まだ書かれていない欄</h2>
+            <p class="blanks-lead" id="blanksLead"></p>
+            <div id="blanksRows"></div>
+            <a id="blanksCta" class="blanks-cta" href="#">この車の情報を書き足す →</a>
+            <p class="blanks-note">この欄は、統計ページの「みんなが使っている製品」に、書かれたままの言葉で並びます。「純正のまま」「不明」と書いている人もいます。分からない欄は空のままで構いません。</p>
           </section>
           <section class="rg-card" id="highlightsSection" style="display:none;"><h2 class="rg-section-title" id="highlightsTitle" data-field="highlights">こだわり</h2><p id="val_Highlights" style="white-space:pre-wrap;"></p></section>
           <section class="rg-card" id="acquisitionSection" style="display:none;">
@@ -591,6 +614,98 @@
       document.getElementById('standingSection').style.display = 'block';
     }
 
+    // ─── まだ書かれていない欄（オーナー本人のみ） ───
+    // 自由記入の製品名は記入率が低い（コイル18%・ポンプ15%）。空欄を責める見せ方は
+    // せず、「ほかの車ではこう書かれている」という手がかりだけを置いて編集へ渡す。
+    // 母集団は本人のときだけ取りに行く（他人が見ているときに通信を増やさない）。
+    const BLANK_FIELDS = [
+      { label: '🌀 キャブレター',   col: 'carburetor_name' },
+      { label: '⚡ スパークプラグ', col: 'plug_name' },
+      { label: '🔌 点火コイル',     col: 'coil_name' },
+      { label: '⛽ 電磁ポンプ',     col: 'electric_pump_name' },
+      { label: '🏁 タイヤ銘柄',     col: 'tire_brand_name' },
+      { label: '🛢️ エンジンオイル', col: 'engine_oil' },
+      { label: '🔋 バッテリー',     col: 'battery' }
+    ];
+    let blanksStarted = false;
+
+    function scheduleBlanks(car) {
+      if (blanksStarted) return;        // ログイン状態の変化で何度も呼ばれる
+      const blanks = BLANK_FIELDS.filter(f => !String(car[f.col] || '').trim());
+      if (!blanks.length) return;       // 全部書いてある人には何も出さない
+      blanksStarted = true;
+      const run = () => fetchBlanks(car, blanks);
+      if ('requestIdleCallback' in window) requestIdleCallback(run, { timeout: 3000 });
+      else setTimeout(run, 1500);
+    }
+
+    async function fetchBlanks(car, blanks) {
+      const cacheKey = 'rg_blanks_pop_' + car.car_type;
+      try {
+        const hit = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+        if (hit && Date.now() - hit.t < 30 * 60 * 1000 && Array.isArray(hit.d) && hit.d.length) {
+          renderBlanks(car, blanks, hit.d);
+          return;
+        }
+      } catch (e) { /* キャッシュが壊れていても取り直せばよい */ }
+
+      try {
+        const { data, error } = await supabaseClient
+          .from('cars')
+          .select(BLANK_FIELDS.map(f => f.col).join(', '))
+          .eq('car_type', car.car_type)
+          .eq('is_sold', false);
+        if (error || !data || data.length === 0) return;
+        try { sessionStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), d: data })); } catch (e) { /* 容量超過は無視 */ }
+        renderBlanks(car, blanks, data);
+      } catch (e) {
+        // 補助情報なので、出せなくてもページ本体には影響させない
+        console.error(e);
+      }
+    }
+
+    function renderBlanks(car, blanks, population) {
+      const rows = [];
+      blanks.forEach(f => {
+        const written = population.map(o => String(o[f.col] || '').trim()).filter(Boolean);
+        // 例が数台しか無い欄は、見せても書き方の手がかりにならない
+        if (written.length < 5) return;
+        // 同じ書き方をまとめて多い順に3つ。名寄せはしない（統計ページと同じ考え方で、
+        // 書き方の違いはこちらで消さない）。
+        const forms = new Map();
+        written.forEach(w => {
+          const k = productDedupKey(w);
+          if (!forms.has(k)) forms.set(k, new Map());
+          const m = forms.get(k);
+          m.set(w, (m.get(w) || 0) + 1);
+        });
+        // 「純正のまま」「不明」も立派な回答だが、ここは書き方の手がかりを見せる欄なので
+        // 例からは外す（そう書いてよいことは下の注記で伝える）。
+        const ex = [...forms.values()]
+          .map(m => {
+            const e = [...m.entries()].sort((a, b) => b[1] - a[1]);
+            return { form: e[0][0], n: e.reduce((s, x) => s + x[1], 0) };
+          })
+          .filter(x => !getStockOrUnknown(x.form))
+          .sort((a, b) => b.n - a.n)
+          .slice(0, 3);
+        if (!ex.length) return;
+        rows.push(
+          `<div class="blanks-row">
+             <div class="blanks-head"><span class="blanks-label">${esc(f.label)}</span><span class="blanks-n">${population.length}台のうち${written.length}台が記入</span></div>
+             <div class="blanks-ex">${ex.map(x => `<span>${esc(x.form)}</span>`).join('')}</div>
+           </div>`);
+      });
+      if (rows.length === 0) return;
+      const carLabel = car.car_type === '126' ? 'FIAT 126' : 'FIAT 500';
+      document.getElementById('blanksLead').textContent =
+        `この車でまだ空いている欄です。ほかの${carLabel}のオーナーが同じ欄にどう書いているかを、例として3つずつ並べました。`;
+      document.getElementById('blanksRows').innerHTML = rows.join('');
+      document.getElementById('blanksCta').href =
+        `/edit?doc=${encodeURIComponent(car.document_id)}&type=${encodeURIComponent(car.car_type || '500')}`;
+      document.getElementById('blanksSection').style.display = 'block';
+    }
+
     // ─── 車載手帳（公開分の埋め込み） ───
     // 並びは equipment-edit.html / equipment.html の CATEGORIES と揃えること。
     // 配列に無いカテゴリの項目は末尾（洗車・その他）に落ちるため、DB側のカテゴリ分割
@@ -796,6 +911,7 @@
         document.getElementById('carListLink').href = `/edit?type=${carType}`;
         const addBtn = document.getElementById('addEpisodeBtn');
         if (addBtn) { addBtn.style.display = 'block'; addBtn.onclick = () => location.href = `/episode-edit?car=${currentCar.document_id}`; }
+        scheduleBlanks(currentCar);
       } else {
         if(currentCar.accept_inquiry !== false && !currentCar.is_sold) document.getElementById('contactArea').style.display = 'block';
       }
