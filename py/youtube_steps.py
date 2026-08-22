@@ -251,10 +251,46 @@ def main():
             return
 
         if not steps_ja["steps"]:
-            print("   [SKIP] 映像から要約を起こせず（中身なし＝steps空）。DBは更新しない（次回再挑戦）。")
-            skipped += 1
-            time.sleep(SLEEP_BETWEEN)
-            continue
+            # 【2026-08-22】空stepsの詰まり対策。旧実装はDBを更新せず「次回再挑戦」にしていたため、
+            # 対象の並び順が固定である以上、同じ動画を毎晩呼び直して同じ結果を得る無限ループになっていた
+            # （実測: 30本中27〜29本がこれ・1本あたり映像込み17万トークン）。原因は is_howto の誤分類で、
+            # 手順動画でないものに PROMPT_HOWTO を使うと Gemini が正しく「手順なし」と答えるため。
+            # → 要点まとめで1回だけ聞き直し（大半はこれで救済される）、それでも空なら諦め印を残して外す。
+            rescued = None
+            if kind == "howto":
+                print("   [空] 手順が起こせず。要点まとめで聞き直す…", flush=True)
+                alt = call_gemini_video(yt, PROMPT_POINTS)
+                if alt == "QUOTA":
+                    print("   [QUOTA] Geminiの日次上限に到達。今日はここまで。未処理は次回（or 夜間cron）で継続。", flush=True)
+                    print(f"\n[STOP-QUOTA] 生成 {done}件 / skip {skipped}件 / 失敗 {failed}件（未処理は残す）", flush=True)
+                    return
+                if alt not in (None, "RATE"):
+                    cand = normalize(alt)
+                    if cand and cand["steps"]:
+                        rescued = cand
+
+            if rescued:
+                kind = "points"
+                steps_ja = rescued
+                steps_ja["kind"] = kind
+                steps_ja["v"] = STEPS_VERSION
+                print("   [FALLBACK] 要点まとめで救済。", flush=True)
+            else:
+                # 諦め印。空のまま v を付けて保存すると `steps_ja IS NULL` の対象から外れ、毎晩の再試行が止まる。
+                # 表示側(video.html)は steps.length で判定するので、空でも見た目は従来通り description_ja へフォールバックする。
+                # プロンプト/モデルを直したときは STEPS_VERSION を上げれば --regenerate で再挑戦される。
+                steps_ja["kind"] = kind
+                steps_ja["v"] = STEPS_VERSION
+                steps_ja["empty"] = True
+                try:
+                    supabase.table("videos").update({"steps_ja": steps_ja}).eq("id", r["id"]).execute()
+                    print("   [GIVEUP] 要点でも起こせず。空印を記録して対象から外す（毎晩の再試行を止める）。", flush=True)
+                except Exception as e:
+                    print(f"   [書込エラー] {yt}: {e}", flush=True)
+                    failed += 1
+                skipped += 1
+                time.sleep(SLEEP_BETWEEN)
+                continue
 
         try:
             supabase.table("videos").update({"steps_ja": steps_ja}).eq("id", r["id"]).execute()
@@ -267,6 +303,14 @@ def main():
         time.sleep(SLEEP_BETWEEN)
 
     print(f"\n[DONE] 生成 {done}件 / skip {skipped}件 / 失敗 {failed}件")
+
+    # 【2026-08-22】静かな失敗の見張り。旧実装は全件スキップでも exit 0 で終わるため、
+    # 3週間ほぼ空回りしていたのに Actions は success のままだった（パーツクローラーで塞いだのと同型の穴）。
+    # 対象があったのに1本も生成できていない＝プロンプト/モデル/APIキーの異常を疑う状態なので、
+    # ジョブを失敗させて気づけるようにする。QUOTA/ABORT の正常な打ち切りは上で return/break 済み。
+    if not args.dry_run and len(rows) >= 5 and done == 0:
+        print("[ALERT] 対象があったのに生成0件。プロンプト/モデル/APIキーの異常を疑うこと。", flush=True)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
