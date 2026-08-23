@@ -47,8 +47,9 @@
     s.push('<path d="M' + (RX - 9) + ',131 L' + (RX + 9) + ',126 M' + (RX - 9) + ',138 L' + (RX + 9) + ',133" stroke="' + C.sub + '" stroke-width="2.5" stroke-linecap="round"/>');
     if (sc.warnOn) k.dotsH(104, X + 10, RX - 14, 'right');
     k.lampWindow(RX, 152, 'GENERAT.', sc.warnOn, null, 0);
-    s.push('<text x="296" y="200" font-size="10.5" fill="' + C.sub + '" text-anchor="end">計器盤の警告灯へ</text>');
-    s.push('<text x="296" y="213" font-size="10.5" fill="' + C.sub + '" text-anchor="end">（第1号・第2号の旅）</text>');
+    /* ⚠️灯の窓（y=152）の光は下へ50px近く伸びる＝ここに薄い字を置くと光に埋もれて読めない（実測）。
+       2行あった注記は1行に減らし、光の外まで下げた（「第1号・第2号の旅」は下の fork リンクと重複） */
+    s.push('<text x="296" y="212" font-size="10.5" fill="' + C.sub + '" text-anchor="end">計器盤の警告灯へ</text>');
 
     /* ===== 始動レバー＝引いている間だけ閉じるスイッチ ===== */
     var pull = pos.starter_sw === 'START';
@@ -64,17 +65,17 @@
     /* ノブの絵（引くと手前＝左へ出る）。⚠️位置は controls の starter_sw から＝勝手な演出ではない */
     s.push('<circle cx="' + (pull ? 44 : 56) + '" cy="172" r="7.5" fill="' + C.in_ + '"/>');
     s.push('<path d="M' + (pull ? 51 : 63) + ',172 L78,172" stroke="' + C.in_ + '" stroke-width="3" stroke-linecap="round"/>');
-    s.push('<text x="100" y="193" font-size="10" fill="' + C.in_ + '" text-anchor="middle">' + (pull ? '引いている' : '手を離している') + '</text>');
+    s.push('<text x="100" y="193" font-size="10" fill="' + C.in_ + '" text-anchor="middle">' + (pull ? '引いている' : '引く前') + '</text>');
 
     /* ===== レバー→セル（w11-02 MARRONE太） ===== */
     seg(X, 198, X, 240, 'w11-02', true);
     label(X + 12, 222, 'MARRONE 茶', WC.MARRONE);
 
-    /* ===== スターター（セルモーター）＝この旅の主役の負荷 ===== */
+    /* ===== セルモーター＝この旅の主役の負荷。⚠️呼び名は「セルモーター」で統一（旧「スターター」表記は
+       本文と食い違うので廃止。本文では略して「セル」と書く） ===== */
     var run = sc.lampOn;                        /* lampId:'starter' ＝ 回っているか */
     s.push('<rect x="34" y="240" width="132" height="92" rx="30" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
-    s.push('<text x="100" y="262" font-size="12" fill="#fffdf8" text-anchor="middle">スターター</text>');
-    s.push('<text x="100" y="277" font-size="10.5" fill="' + C.in_ + '" text-anchor="middle">（セルモーター）</text>');
+    s.push('<text x="100" y="268" font-size="12" fill="#fffdf8" text-anchor="middle">セルモーター</text>');
     /* 中の巻線＝ここで電圧が落ちる（負荷エッジ）。導線ではないことをコイルの形で言う */
     s.push('<path d="M' + X + ',288 q-9,4 0,8 q9,4 0,8 q-9,4 0,8" fill="none" stroke="' + C.in_ + '" stroke-width="3" stroke-linecap="round"/>');
     s.push('<text x="' + (X - 14) + '" y="304" font-size="10.5" fill="' + C.in_ + '" text-anchor="end">巻線</text>');
@@ -121,8 +122,8 @@
      ⚠️キャプションは「いまこの絵で起きていること」だけを言う。しくみ（なぜキーでは回らないか等）
        は下の3段の箇条書きが持つ＝両方に書くと重複する（2026-08-21 の型） */
   var CAPS = {
-    OFF: '<b>手を離している＝回らない。</b>レバーの接点が開いていて、輪が切れています。灯（右上）は点いたまま——<b>灯とセルは別の道</b>だからです。',
-    START: '<b>引いている間だけ回る。</b>接点が閉じて輪がつながり、黄色い点がバッテリー→レバー→セル→車体アースと一周しています。ピニオンも噛みました。'
+    OFF: '<b>引く前＝回らない。</b>レバーの接点が開いていて、輪が切れています。警告灯（右上）は点いたまま——<b>警告灯とセルは別の道</b>だからです。',
+    START: '<b>引いている間だけ回る。</b>接点が閉じて輪がつながり、黄色い点がバッテリー→レバー→セル→車体アースと一周しています。歯車（ピニオン）も噛みました。'
   };
 
   /* ---- 検算（期待値は原典と実車の挙動から先に書いた・計算結果を写していない） ---- */
@@ -183,7 +184,7 @@
         scale: 4,
         marks: [{ id: 'battery', color: '#b8442e', label: 'バッテリー', anchor: 'start' },
                 { id: 'starter_sw', color: '#2c3a31', label: '始動レバー' },
-                { id: 'starter', color: '#b8442e', label: 'スターター' }],
+                { id: 'starter', color: '#b8442e', label: 'セルモーター' }],
         legend: '<text x="40" y="1430" font-size="96" fill="#a49b87">←車の前方（トランク）</text>' +
                 '<text x="2980" y="1430" font-size="96" fill="#a49b87" text-anchor="end">車の後ろ（エンジン）→</text>' +
                 '<text x="1510" y="-40" font-size="96" fill="#a49b87" text-anchor="middle">車を上から（上が車の右側）</text>'
