@@ -138,7 +138,10 @@
     s.push('<text x="' + x + '" y="56" font-size="12" fill="#fffdf8" text-anchor="middle">バッテリー</text>');
   };
   /* キースイッチ（箱の中の接点が、キーを回すと橋を架ける）。top=箱の上端・高さ48 */
-  Kit.prototype.keySwitch = function (x, top, on) {
+  /* labelX＝部品名を書き出す x（省略時は従来どおり x+56）。
+     ⚠️容疑の囲いがある絵では、部品名が破線に貫かれることがある＝そのページだけ外へ逃がすために足した
+        （2026-08-23・第4号。既定値は変えていないので他の旅の絵は1文字も変わらない＝回帰で実測済み） */
+  Kit.prototype.keySwitch = function (x, top, on, labelX) {
     var s = this.s;
     s.push('<rect x="' + (x - 50) + '" y="' + top + '" width="100" height="48" rx="8" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
     /* 鍵の絵（左側・ONで回る） */
@@ -150,8 +153,9 @@
     if (on) s.push('<path d="M' + x + ',' + (top + 10) + ' L' + x + ',' + (top + 38) + '" stroke="' + C.in_ + '" stroke-width="3.5"/>');
     else s.push('<path d="M' + x + ',' + (top + 10) + ' L' + (x + 13) + ',' + (top + 32) + '" stroke="' + C.in_ + '" stroke-width="3.5"/>');
     s.push('<text x="' + (x + 28) + '" y="' + (top + 28) + '" font-size="10.5" fill="' + C.in_ + '" text-anchor="middle">' + (on ? '接点 閉' : '接点 開') + '</text>');
-    this.label(x + 56, top + 18, 'キースイッチ', C.deep, null, 12);
-    this.label(x + 56, top + 34, on ? 'キーON' : 'キーOFF', on ? C.deep : C.sub, null, 12);
+    var lx = (labelX == null) ? x + 56 : labelX;
+    this.label(lx, top + 18, 'キースイッチ', C.deep, null, 12);
+    this.label(lx, top + 34, on ? 'キーON' : 'キーOFF', on ? C.deep : C.sub, null, 12);
   };
   /* ヒューズを【縦に通す】絵（500のヒューズは筒型＝上下に金属キャップ）。
      ⚠️第4号（キー）はヒューズを「幹線の横にぶら下がる枝」として描いた＝キーへの線がヒューズの
