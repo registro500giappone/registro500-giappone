@@ -21,23 +21,55 @@
     var sc = k.sc, pos = k.pos, s = k.s;
     function seg(a, b, c, d, e, f, g) { k.seg(a, b, c, d, e, f, g); }
     function label(x, y, t, col, anchor, size) { k.label(x, y, t, col, anchor, size); }
+    /* 赤地に白抜きの札＝この絵でいちばん見てほしい所に1枚だけ置く。
+       ⚠️札は1つの絵に1枚まで。2枚置くと、どちらを見ればいいのか分からなくなる。 */
+    function chip(x, y, t, anchor) {
+      var w = t.length * 12 + 14, h = 22;
+      var bx = (anchor === 'end') ? x - w : x;
+      s.push('<rect x="' + bx + '" y="' + (y - h / 2) + '" width="' + w + '" height="' + h + '" rx="5" fill="' + C.hi + '"/>');
+      s.push('<text x="' + (bx + 7) + '" y="' + (y + 4.5) + '" font-size="12" font-weight="700" fill="#fffdf8">' + t + '</text>');
+    }
     /* 線が1本外れている場面の描き方（第3号と同じ作法）。
-       ⚠️これは接点の位置ではなく「線が無い」状態＝netlist から外して解いている。 */
-    function cutSeg(y1, y2, id, thick) {
-      var mid = (y1 + y2) / 2, col = k.wcol(id, C.dim).col;
-      s.push('<path d="M' + X + ',' + y1 + ' L' + X + ',' + (mid - 8) + '" stroke="' + col + '" stroke-width="' + (thick ? 6.5 : 5) + '" stroke-linecap="round"/>');
-      s.push('<path d="M' + X + ',' + (mid + 8) + ' L' + X + ',' + y2 + '" stroke="' + col + '" stroke-width="' + (thick ? 6.5 : 5) + '" stroke-linecap="round"/>');
-      s.push('<circle cx="' + X + '" cy="' + mid + '" r="6" fill="none" stroke="' + C.hi + '" stroke-width="3"/>');
-      label(X + 14, mid + 4, 'ここが外れている', C.hi, null, 12);
+       ⚠️これは接点の位置ではなく「線が無い」状態＝netlist から外して解いている。
+       ⚠️【2026-08-24 やり直し】「外れている所が、目で追わないと見つけられない」（ユーザー）＝
+         この絵でいちばん強い赤にした。すき間を広げ・×を打ち・札を添え、さらに図幅いっぱいの
+         境界線で【ここから下は電気が来ていない】ことを一目で言う。
+       cx＝切る線の x（落とし先の細い線でも使えるように引数にした）。 */
+    function cutAt(cx, y1, y2, id, thick, opt) {
+      opt = opt || {};
+      var mid = (y1 + y2) / 2, col = k.wcol(id, C.dim).col, g = 13, w = thick ? 6.5 : 5;
+      s.push('<path d="M' + cx + ',' + y1 + ' L' + cx + ',' + (mid - g) + '" stroke="' + col + '" stroke-width="' + w + '" stroke-linecap="round"/>');
+      s.push('<path d="M' + cx + ',' + (mid + g) + ' L' + cx + ',' + y2 + '" stroke="' + col + '" stroke-width="' + w + '" stroke-linecap="round"/>');
+      if (opt.line) {                            /* ここから下が全部死ぬ、という境界 */
+        s.push('<path d="M4,' + mid + ' L296,' + mid + '" stroke="' + C.hi + '" stroke-width="1.4" stroke-dasharray="4 6" opacity="0.4"/>');
+      }
+      s.push('<circle cx="' + cx + '" cy="' + mid + '" r="19" fill="' + C.hi + '" opacity="0.13"/>');
+      s.push('<circle cx="' + cx + '" cy="' + mid + '" r="11" fill="none" stroke="' + C.hi + '" stroke-width="3"/>');
+      s.push('<path d="M' + (cx - 5.5) + ',' + (mid - 5.5) + ' L' + (cx + 5.5) + ',' + (mid + 5.5)
+        + ' M' + (cx + 5.5) + ',' + (mid - 5.5) + ' L' + (cx - 5.5) + ',' + (mid + 5.5)
+        + '" stroke="' + C.hi + '" stroke-width="3" stroke-linecap="round"/>');
+      /* ⚠️札は図の【左の余白】に置く＝切断点の右（x=196〜）はヒューズ箱と枝ラベルで埋まっていて、
+         そこへ出すと囲いの破線をまたぐか図の右端を越える（第4号で前に直したのと同じ型の事故）。
+         境界線の左端に札が乗る形になり、「外れている→この線から下が死ぬ」が一続きに読める。 */
+      if (opt.chip !== false) chip(6, mid, opt.chip || '外れている');
     }
 
     /* ===== バッテリー ===== */
     k.battery(X);
 
-    /* ===== ＋の太線 → 始動レバーの節点。ここで第3号の旅（セル）と分かれる ===== */
+    /* ===== ＋の太線 → 始動レバーの節点。ここで第3号の旅（セル）と分かれる =====
+       ⚠️端子バッジは【原典に番号がある端子】にだけ付ける。この線が出るのはバッテリーの
+         ＋端子なので、ここも同じ形で名乗らせる（2026-08-24・端子の扱いを揃えた）。
+       ⚠️バッジは線の【右】＝左に出すと、容疑の囲いのラベル（y=90・x=10〜101）と縦に触れる（実測）。
+         右へ出した分、色ラベルは 88→94 へ下げてバッジの下に逃がしてある。 */
     seg(X, 62, X, 106, 'w11-01', true);
-    label(X + 12, 88, 'ROSSO 赤', WC.ROSSO);
+    k.term(X, 74, '+', 'r');
+    label(X + 12, 94, 'ROSSO 赤', WC.ROSSO);
     k.node(X, 106);
+    /* ⚠️ここは端子ではない＝原典に番号が無い。バッジを付けると実車に無い端子を探させる */
+    /* ⚠️y=110/122＝囲いのラベル（y=90）とレギュレータの箱（y=130〜）の隙間。実測で詰めた */
+    label(X - 14, 110, '分かれ道', C.sub, 'end', 9.5);
+    label(X - 14, 122, '（端子ではない）', C.sub, 'end', 9.5);
     /* ⚠️この枝ラベルは容疑の囲い（x=4..192）の【外】に置く＝中に入ると「セルも容疑者」に読める。
        囲いを右へ広げた分、開始 x も 184→198 へ逃がした（2026-08-23 実測）。 */
     k.dashOut(X, 106, 194);
@@ -47,7 +79,7 @@
     /* ===== 節点 → レギュレータの端子30（車の後ろ）=====
        ⚠️ここが 500 の意外なところ＝キーに来る電気は、いったん車の【後ろ】まで行って
          前へ戻ってくる。原典の 30 系はレギュレータの端子で1つに集まっている。 */
-    if (mode.cut === 'w11-03') cutSeg(106, 152, 'w11-03', true);
+    if (mode.cut === 'w11-03') cutAt(X, 106, 152, 'w11-03', true, { line: true });
     /* ⚠️色ラベルは容疑の囲い（右端192）の内側に収める＝破線に文字を貫かれる。
        MARRONE と AZZURRO は既定サイズだと右端が 190/199 まで伸びたので 10.5/10 に落とした（実測）。 */
     else { seg(X, 106, X, 152, 'w11-03', true); label(X + 12, 134, 'MARRONE 茶', WC.MARRONE, null, 10.5); }
@@ -58,10 +90,12 @@
     s.push('<text x="42" y="149" font-size="11.5" fill="#fffdf8" text-anchor="middle">レギュレータ</text>');
     s.push('<text x="42" y="164" font-size="10" fill="' + C.in_ + '" text-anchor="middle">（車の後ろ）</text>');
     s.push('<path d="M80,152 L' + X + ',152" stroke="' + C.deep + '" stroke-width="3.5"/>');
-    label(97, 146, '30', C.deep, 'end', 11);
+    /* ⚠️入る線（茶）と出る線（赤）は【同じ 30 端子】に着いている＝原典どおり。
+       バッジを1つだけ置いて、そこへ上下から線が刺さっている絵にする（2つ置くと別端子に見える）。 */
+    k.term(X, 152, '30', 'r');
 
     /* ===== レギュレータ30 → ヒューズ箱の【電源側】（車の前へ戻る） ===== */
-    if (mode.cut === 'w11-04') cutSeg(152, 208, 'w11-04', true);
+    if (mode.cut === 'w11-04') cutAt(X, 152, 208, 'w11-04', true, { line: true });
     else { seg(X, 152, X, 208, 'w11-04', true); label(X + 12, 184, 'ROSSO 赤', WC.ROSSO); }
     k.node(X, 208);
     /* ヒューズ F1＝幹線にぶら下がる枝。⚠️キースイッチへの赤線は【ヒューズの電源側】から出る
@@ -80,18 +114,26 @@
        （左揃えだと図の右端300を越える。size 9.5 で左端196＝囲いの外・実測 2026-08-23） */
     label(296, 250, 'ホーン・ルームランプへ', C.sub, 'end', 9.5);
     label(296, 263, '（この旅は通らない）', C.sub, 'end', 9.5);
-    label(X + 12, 202, '30', C.deep, null, 11);
+    /* ⚠️ヒューズ箱の【電源側】も 30。同じ番号が何か所にも出るのは「常時電気が来ている線」の
+       印だから＝本文でその意味を説明している（原典の端子番号の決まり） */
+    k.term(X, 208, '30', 'l');
 
     /* ===== ヒューズ箱の電源側 → キースイッチ 30 ===== */
-    if (mode.cut === 'w10-01') cutSeg(208, 262, 'w10-01');
+    if (mode.cut === 'w10-01') cutAt(X, 208, 262, 'w10-01', false, { line: true });
     else { seg(X, 208, X, 262, 'w10-01'); label(X + 12, 240, 'ROSSO 赤', WC.ROSSO); }
 
-    /* ===== キースイッチ（30 ↔ 15/54） ===== */
-    /* ⚠️部品名は x=198 から＝容疑の囲い（右端192）の外。既定の x+56=156 だと破線が文字を貫く（実測） */
-    k.keySwitch(X, 262, pos.ign_sw === 'ON', 198);
+    /* ===== キースイッチ（30 ↔ 15/54）＝この旅の主役 =====
+       ⚠️部品名は x=198 から＝容疑の囲い（右端192）の外。既定の x+56=156 だと破線が文字を貫く（実測）
+       ⚠️2つの端子は【絞り込みの表でテスターを当てる場所】そのもの＝濃いバッジで名乗らせる。
+         図に無い端子を本文が「当てろ」と指していたのが、やり直し前のいちばんの穴だった。 */
+    k.keySwitch(X, 262, pos.ign_sw === 'ON', 198, { hero: true });
+    /* ⚠️バッジは箱の【外】＝y=250/322。hero のハロー（y=255〜317）に掛けると箱に食い込んで見える。
+       箱の中へ入れる案は鍵の絵（cx=72・r=12）と衝突するので採らない（どちらも実測で確認） */
+    k.term(X, 250, '30', 'l', true);
+    k.term(X, 322, '15/54', 'l', true);
 
     /* ===== キー → 計器盤の INTER ===== */
-    if (mode.cut === 'w10-02') cutSeg(310, 372, 'w10-02');
+    if (mode.cut === 'w10-02') cutAt(X, 310, 372, 'w10-02', false, { line: true });
     else { seg(X, 310, X, 372, 'w10-02'); label(X + 12, 344, 'AZZURRO 水色', WC.AZZURRO, null, 10); }
 
     /* ===== 計器盤の中＝1本の給電レール（INTER）が2つの灯を養っている =====
@@ -101,10 +143,12 @@
     /* ⚠️見出しは短く＝x=100 の内部線を横切らない長さに収める（12文字だと線に串刺しになった） */
     s.push('<text x="20" y="388" font-size="10.5" fill="' + C.in_ + '">計器盤の中</text>');
     k.node(X, 372);
+    /* ⚠️箱の【中】に置く＝箱の上（y=364）だと容疑の囲いの下辺（y=366）を跨ぐ */
+    k.term(X, 384, 'INTER', 'r');
     s.push('<path d="M' + X + ',372 L' + X + ',400 M' + LG + ',400 L' + LO + ',400" stroke="' + C.in_ + '" stroke-width="3.5" fill="none" stroke-linecap="round"/>');
     s.push('<path d="M' + LG + ',400 L' + LG + ',418 M' + LO + ',400 L' + LO + ',418" stroke="' + C.in_ + '" stroke-width="3.5" stroke-linecap="round"/>');
     s.push('<circle cx="' + LG + '" cy="400" r="4" fill="' + C.in_ + '"/><circle cx="' + LO + '" cy="400" r="4" fill="' + C.in_ + '"/>');
-    label(192, 394, 'INTER＝給電レール', C.in_, null, 10);
+    label(192, 394, '給電レール', C.in_, null, 10);
 
     k.lampWindow(LG, 418, 'GENERAT.', sc.chargeOn, null, 0);
     k.lampWindow(LO, 418, 'OLIO', sc.oilOn, null, 0);
@@ -120,13 +164,18 @@
     /* 灯から下＝落とし先。ここから先はそれぞれ別の旅なので、色だけ見せて手放す。
        ⚠️端子名（51・0）は箱の中なので明るい色で書く＝濃い地に濃い字にしない */
     s.push('<path d="M' + LG + ',452 L' + LG + ',512 M' + LO + ',452 L' + LO + ',512" stroke="' + C.in_ + '" stroke-width="2.5" stroke-dasharray="3 4"/>');
-    label(LG - 8, 476, '51', C.in_, 'end', 10.5);
-    label(LO - 8, 476, '0', C.in_, 'end', 10.5);
+    k.term(LG, 476, '51', 'l');
+    k.term(LO, 476, '0', 'l');
     k.node(LG, 512); k.node(LO, 512);
     seg(LG, 512, LG, 546, 'w11-07');
-    seg(LO, 512, LO, 546, 'w07-01');
+    /* ⚠️落とし先の線が外れる場面（片方だけ消える）も【切れているように描く】。
+       線が薄くなるだけでは「外れている」と読めない＝やり直し前はここが無言だった。
+       札は図幅に収まらないので出さない（×印だけ・言葉は本文の cap が持つ）。 */
+    if (mode.cutLow === 'w07-01') cutAt(LO, 512, 546, 'w07-01', false, { chip: false });
+    else seg(LO, 512, LO, 546, 'w07-01');
     label(LG + 10, 532, 'VERDE 緑', WC.VERDE, null, 11);
-    label(LO + 10, 532, 'GRIGIO 灰', WC.GRIGIO, null, 11);
+    /* ⚠️切れている印（ハロー r=19）と重なるので、その場面だけ右へ逃がす（実測 2026-08-24） */
+    label(LO + (mode.cutLow ? 26 : 10), 532, 'GRIGIO 灰', WC.GRIGIO, null, 11);
     s.push('<path d="M' + LG + ',546 L' + LG + ',564 M' + LO + ',546 L' + LO + ',564" stroke="' + C.out + '" stroke-width="3" stroke-dasharray="5 5"/>');
     label(6, 582, '緑→レギュレータ51（第1号）／灰→油圧センダ（第2号）', C.sub, null, 10.5);
 
@@ -136,14 +185,32 @@
          「（セルが回るなら）」まで入れると右へ伸びて ROSSO のラベルと重なる（実測）。
          条件のほうは本文（cap）が「①でセルが回った場合」と言う。 */
     if (mode.suspect) {
-      k.suspect(4, 96, 188, 270, 92, '容疑者はこの中');
+      /* ⚠️quiet＝囲いを一段引く。同じ絵にある「切れている場所」の赤と争わせない（2026-08-24） */
+      k.suspect(4, 96, 188, 270, 90, '容疑者はこの中', true);
       label(6, 600, '⚠️計器盤の中（給電レールと電球）が最後の容疑者', C.sub, null, 10.5);
       return 614;
     }
     if (mode.minus) {
-      label(6, 600, '⚠️12Vは来ている。それでも警告灯は点かない。', C.hi, null, 10.5);
-      label(6, 616, 'バッテリーの − 端子が外れ、帰り道が無い（→第5号）。', C.hi, null, 10.5);
+      /* ⚠️この場面だけ、外れている所が【線の上に無い】＝どの線も生きて見えるので、印が無いと
+         「どこも壊れていない絵」に読めてしまう（やり直し前がこれ）。バッテリーの − 端子そのものに
+         印を打つ。帰り道は原典の図でも車体を通る＝線として描けないので、札で言葉にする。 */
+      /* ⚠️ハローだけ r=15（他の切断点は19）＝端子が図の上端 y=0 の近くにあり、19だと上が切れる */
+      var mx = X + 27.5, my = 15;
+      s.push('<circle cx="' + mx + '" cy="' + my + '" r="15" fill="' + C.hi + '" opacity="0.13"/>');
+      s.push('<circle cx="' + mx + '" cy="' + my + '" r="11" fill="none" stroke="' + C.hi + '" stroke-width="3"/>');
+      s.push('<path d="M' + (mx - 5.5) + ',' + (my - 5.5) + ' L' + (mx + 5.5) + ',' + (my + 5.5)
+        + ' M' + (mx + 5.5) + ',' + (my - 5.5) + ' L' + (mx - 5.5) + ',' + (my + 5.5)
+        + '" stroke="' + C.hi + '" stroke-width="3" stroke-linecap="round"/>');
+      chip(168, my, '帰り道が外れている');   /* ⚠️150 だと − の文字（x=148〜162）に乗る（実測） */
+      /* ⚠️「12Vは来ている」は言葉より当てて見せる＝テスターを給電レールに当てた絵にする */
+      k.probe(X, 372, '12V', -36, -20);
+      label(6, 600, '⚠️どの線にも色が付いたまま＝12Vはここまで来ている。', C.hi, null, 10.5);
+      label(6, 616, 'それでも点かない。帰り道（バッテリーの −）が無い（→第5号）。', C.hi, null, 10.5);
       return 628;
+    }
+    if (mode.cutLow) {
+      label(6, 600, '⭕キーから上は生きている＝2つに共通する部分は無実。', C.deep, null, 10.5);
+      return 614;
     }
     return 596;
   }
@@ -219,8 +286,9 @@
         /* 異常②＝帰り道（アース）が切れた。⚠️絵じゅうに色は付いたままで、灯だけが消える＝
            「12Vは来ているのに動かない」の見本。案Aを入れて初めて正しく描けるようになった場面。 */
         { id: 'j-minus', sc: scenario({ inputs: ON, ops: cut('w11-10') }), mode: { minus: true } },
-        /* 片方だけ消える＝共通部分は無実。この1枚が絞り込みの根拠 */
-        { id: 'j-one', sc: scenario({ inputs: ON, ops: cut('w07-01') }), mode: {} },
+        /* 片方だけ消える＝共通部分は無実。この1枚が絞り込みの根拠
+           ⚠️mode.cutLow＝外した線を【切れている絵】で見せる（やり直し前は薄くなるだけだった） */
+        { id: 'j-one', sc: scenario({ inputs: ON, ops: cut('w07-01') }), mode: { cutLow: 'w07-01' } },
         { id: 'j-fixed', sc: scenario({ inputs: ON }), mode: {} }
       ];
     },
@@ -237,7 +305,8 @@
                 { id: 'regulator', color: '#b8442e', label: 'レギュレータ' }],
         legend: '<text x="40" y="1430" font-size="96" fill="#a49b87">←車の前方（トランク）</text>' +
                 '<text x="2980" y="1430" font-size="96" fill="#a49b87" text-anchor="end">車の後ろ（エンジン）→</text>' +
-                '<text x="1510" y="-40" font-size="96" fill="#a49b87" text-anchor="middle">車を上から（上が車の右側）</text>'
+                /* ⚠️y=-40 だと文字の上が viewBox の上端（-140）を 3.7px はみ出す（実測） */
+                '<text x="1510" y="-32" font-size="96" fill="#a49b87" text-anchor="middle">車を上から（上が車の右側）</text>'
       };
     }
   });

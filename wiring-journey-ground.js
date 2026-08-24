@@ -24,17 +24,19 @@
 
   /* 車体にぶら下がる4本のアース線。ここに並ぶ順＝絵の上から下の順。
      ⚠️「何の帰り道か」は原典の結線から導いたもので、絵の都合で書いていない：
-        ダイナモの − がチャージ灯の帰り道になるのは、停止中のダイナモ内部で 51↔− が
-        つながっているから（wiring-net.json の dynamo モデル・第1号の主題そのもの）。 */
+        ダイナモの − がチャージランプの帰り道になるのは、停止中のダイナモ内部で 51↔− が
+        つながっているから（wiring-net.json の dynamo モデル・第1号の主題そのもの）。
+     ⚠️状態語（st）に部品名を繰り返さない＝2行目（of）がすぐ上で名乗っている。繰り返すと
+        「チャージランプ 点いている」で箱（幅142）からはみ出す＝実測で確認して主語を落とした。 */
   var ROWS = [
-    { y: 116, wire: 'w11-11', thick: true, name: 'スターター（本体）', of: 'セルの電気の帰り道',
-      st: function (sc, pos) { return pos.starter_sw === 'START' ? [sc.cellOn ? 'セルは回っている' : 'セルが回らない', sc.cellOn] : ['いまは使っていない', null]; } },
-    { y: 184, wire: 'w11-09', thick: false, name: 'ダイナモ（−）', of: 'チャージ灯の帰り道',
-      st: function (sc) { return [sc.chargeOn ? 'チャージ灯 点いている' : 'チャージ灯 消えている', sc.chargeOn]; } },
+    { y: 116, wire: 'w11-11', thick: true, name: 'セルモーター（本体）', of: 'セルの電気の帰り道',
+      st: function (sc, pos) { return pos.starter_sw === 'START' ? [sc.cellOn ? '回っている' : '回らない', sc.cellOn] : ['いまは使っていない', null]; } },
+    { y: 184, wire: 'w11-09', thick: false, name: 'ダイナモ（−）', of: 'チャージランプの帰り道',
+      st: function (sc) { return [sc.chargeOn ? '点いている' : '消えている', sc.chargeOn]; } },
     { y: 252, wire: 'w11-08', thick: false, name: 'レギュレータ（31）', of: 'この絵では電気が通らない',
       st: function () { return ['（下の注を参照）', null]; } },
-    { y: 320, wire: 'w07-02', thick: false, name: '油圧センダ', of: '油圧灯の帰り道',
-      st: function (sc) { return [sc.oilOn ? '油圧灯 点いている' : '油圧灯 消えている', sc.oilOn]; } }
+    { y: 320, wire: 'w07-02', thick: false, name: '油圧センダ', of: '油圧警告灯の帰り道',
+      st: function (sc) { return [sc.oilOn ? '点いている' : '消えている', sc.oilOn]; } }
   ];
   /* その線に「いま電気が流れているか」＝黄点を出すかどうか。線に色が付いている（アースまで
      つながっている）ことと、電気が流れていることは別物＝ここを混ぜない。 */
@@ -85,7 +87,7 @@
     }
 
     /* ===== 車体（ボディ）＝4本の帰り道が合流する1枚の板 =====
-       ⚠️色は body.31 の端子状態そのもの。gnd＝アースにつながっている／post＝灯を通って
+       ⚠️色は body.31 の端子状態そのもの。gnd＝アースにつながっている／post＝警告灯を通って
          12Vが回ってきているだけで帰り道が無い（テスターには出るのに何も動かない）。 */
     var bst = k.r.node['body.31'];
     var bfill = bst === 'gnd' ? METAL : (bst === 'post' ? '#e6cfc6' : '#e8e2d3');
@@ -125,10 +127,10 @@
     k.label(6, 424, '出口は上の「バッテリー −」ただ1本しかない。', C.deep, null, 11);
 
     if (mode.minus) {
-      /* 板は post＝灯を通って12Vが回ってきている。テスターには出るのに何も動かない */
+      /* 板は post＝警告灯を通って12Vが回ってきている。テスターには出るのに何も動かない */
       k.probe(BDX, 200, '12V', -34, -18);
-      k.label(6, 446, '⚠️車体にテスターを当てると12Vが出る（灯を通って回ってきている）。', C.hi, null, 10.5);
-      k.label(6, 462, 'それでも灯は点かず、セルも回らない＝帰り道が無いから。', C.hi, null, 10.5);
+      k.label(6, 446, '⚠️車体にテスターを当てると12Vが出る（警告灯を通って回ってくる）。', C.hi, null, 10.5);
+      k.label(6, 462, 'それでも警告灯は点かず、セルも回らない＝帰り道が無いから。', C.hi, null, 10.5);
       return 476;
     }
     if (mode.cut) {
@@ -155,25 +157,25 @@
   var PULL = { key: 'ON', engine: 'STOP', starter: 'START' };
   function cut(id) { return [{ op: 'removeWire', id: id }]; }
   var CHECKS = [
-    { label: 'キーON・停止中（正常）＝油圧灯', s: { inputs: ON }, expect: true, words: LW },
+    { label: 'キーON・停止中（正常）＝油圧警告灯', s: { inputs: ON }, expect: true, words: LW },
     { label: '↑同じ場面のチャージランプ', s: { inputs: ON }, expect: true, read: chg, words: LW },
     { label: 'レバーを引く（正常）＝セル', s: { inputs: PULL }, expect: true, read: cel, words: CW },
     /* 1本外れると1つだけ死ぬ＝この旅の絞り込みの根拠 */
-    { label: '油圧センダのアース（w07-02）が外れた＝油圧灯', s: { inputs: ON, ops: cut('w07-02') }, expect: false, words: LW },
+    { label: '油圧センダのアース（w07-02）が外れた＝油圧警告灯', s: { inputs: ON, ops: cut('w07-02') }, expect: false, words: LW },
     { label: '↑同じ場面のチャージランプ（無実）', s: { inputs: ON, ops: cut('w07-02') }, expect: true, read: chg, words: LW },
     { label: 'ダイナモの−（w11-09）が外れた＝チャージランプ', s: { inputs: ON, ops: cut('w11-09') }, expect: false, read: chg, words: LW },
-    { label: '↑同じ場面の油圧灯（無実）', s: { inputs: ON, ops: cut('w11-09') }, expect: true, words: LW },
+    { label: '↑同じ場面の油圧警告灯（無実）', s: { inputs: ON, ops: cut('w11-09') }, expect: true, words: LW },
     { label: 'セルのアース（w11-11）が外れた＝セル', s: { inputs: PULL, ops: cut('w11-11') }, expect: false, read: cel, words: CW },
-    { label: '↑同じ場面の油圧灯（無実）', s: { inputs: PULL, ops: cut('w11-11') }, expect: true, words: LW },
+    { label: '↑同じ場面の油圧警告灯（無実）', s: { inputs: PULL, ops: cut('w11-11') }, expect: true, words: LW },
     /* レギュレータのアースはL1では何も起こさない＝下の「この絵が持っていないもの」の裏づけ */
-    { label: 'レギュレータのアース（w11-08）が外れた＝油圧灯', s: { inputs: ON, ops: cut('w11-08') }, expect: true, words: LW },
+    { label: 'レギュレータのアース（w11-08）が外れた＝油圧警告灯', s: { inputs: ON, ops: cut('w11-08') }, expect: true, words: LW },
     { label: '↑同じ場面のチャージランプ', s: { inputs: ON, ops: cut('w11-08') }, expect: true, read: chg, words: LW },
     /* 山場＝−端子が外れると全部死ぬ。案Aを入れて初めて正しく答えられるようになった場面 */
-    { label: 'バッテリー−（w11-10）が外れた＝油圧灯', s: { inputs: ON, ops: cut('w11-10') }, expect: false, words: LW },
+    { label: 'バッテリー−（w11-10）が外れた＝油圧警告灯', s: { inputs: ON, ops: cut('w11-10') }, expect: false, words: LW },
     { label: '↑同じ場面のチャージランプ', s: { inputs: ON, ops: cut('w11-10') }, expect: false, read: chg, words: LW },
     { label: '↑同じ場面のセル（レバーを引く）', s: { inputs: PULL, ops: cut('w11-10') }, expect: false, read: cel, words: CW },
     /* 車体側の落とし先が全部外れても、−が生きていれば…という誤解を潰す */
-    { label: 'アース線を5本とも外した＝油圧灯', s: { inputs: ON, ops: [{ op: 'removeWire', id: ['w11-08', 'w11-09', 'w11-10', 'w11-11', 'w07-02'] }] }, expect: false, words: LW },
+    { label: 'アース線を5本とも外した＝油圧警告灯', s: { inputs: ON, ops: [{ op: 'removeWire', id: ['w11-08', 'w11-09', 'w11-10', 'w11-11', 'w07-02'] }] }, expect: false, words: LW },
     { label: 'キーOFF（正常＝消えている）', s: { inputs: { key: 'OFF', engine: 'STOP' } }, expect: false, words: LW },
     { label: 'オルタネーター換装車・キーON停止中', s: { alt: true, inputs: ON }, expect: true, words: LW }
   ];
@@ -213,7 +215,7 @@
         scale: 4,
         marks: [{ id: 'battery', color: '#b8442e', label: 'バッテリー', anchor: 'start' },
                 { id: 'oil_sender', color: '#2c3a31', label: '油圧センダ' },
-                { id: 'starter', color: '#2c3a31', label: 'セル' },
+                { id: 'starter', color: '#2c3a31', label: 'セルモーター' },
                 { id: 'regulator', color: '#2c3a31', label: 'レギュレータ' }],
         legend: '<text x="40" y="1430" font-size="96" fill="#a49b87">←車の前方（トランク）</text>' +
                 '<text x="2980" y="1430" font-size="96" fill="#a49b87" text-anchor="end">車の後ろ（エンジン）→</text>' +

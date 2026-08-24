@@ -113,15 +113,33 @@
     this.s.push('<text x="' + (x + dx) + '" y="' + (y + dy) + '" font-size="12" fill="#fffdf8" text-anchor="middle">' + t + '</text>');
   };
   /* 容疑区間の囲み（旅ごとに範囲が違うので座標は呼ぶ側が渡す） */
-  Kit.prototype.suspect = function (x, y, w, h, textY, t) {
-    this.s.push('<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="12" fill="none" stroke="' + C.hi + '" stroke-width="2.5" stroke-dasharray="7 6"/>');
-    this.s.push('<text x="' + (x + 6) + '" y="' + textY + '" font-size="13" fill="' + C.hi + '" font-weight="700">' + (t || '容疑者はこの中だけ') + '</text>');
+  /* quiet＝囲いを一段引く（2026-08-24・第4号）。同じ絵に「切れている場所」が描いてあるとき、
+     囲いと切断が同じ強さの赤で争って、どこを見ればいいのか分からなくなる＝赤の序列を作る。
+     ⚠️既定は false＝他の旅の囲いは1px も変わらない。 */
+  Kit.prototype.suspect = function (x, y, w, h, textY, t, quiet) {
+    this.s.push('<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="12" fill="none" stroke="' + C.hi + '" stroke-width="' + (quiet ? 2 : 2.5) + '" stroke-dasharray="7 6"' + (quiet ? ' opacity="0.45"' : '') + '/>');
+    this.s.push('<text x="' + (x + 6) + '" y="' + textY + '" font-size="13" fill="' + C.hi + '" font-weight="700"' + (quiet ? ' opacity="0.7"' : '') + '>' + (t || '容疑者はこの中だけ') + '</text>');
   };
   Kit.prototype.dashOut = function (x1, y, x2) {              /* この旅は通らない枝＝薄い破線 */
     this.s.push('<path d="M' + x1 + ',' + y + ' L' + x2 + ',' + y + '" stroke="' + C.out + '" stroke-width="3" stroke-dasharray="5 5"/>');
   };
   Kit.prototype.node = function (x, y) {
     this.s.push('<circle cx="' + x + '" cy="' + y + '" r="4.5" fill="' + C.deep + '"/>');
+  };
+  /* 端子バッジ＝原典に番号のある端子を、線が着く場所に【同じ形で】出す（2026-08-24・第4号）。
+     ⚠️これは「どこにテスターを当てるか」を図と本文で1対1に対応させるための道具。
+       原典に番号がある端子にだけ使う。ただの分岐点は端子ではないので k.node のまま
+       （番号を持たないものにバッジを付けると、実車に無い端子を探させることになる）。
+     ⚠️1つの図の中で、付ける所と付けない所を混ぜない＝混ぜると「番号が無い＝端子ではない」
+       と読めなくなる（第4号のやり直しの原因がこれ）。
+     side: 'l'＝線の左／'r'＝右。hero＝この旅で実際に測る端子（濃く反転）。 */
+  Kit.prototype.term = function (x, y, t, side, hero) {
+    var w = t.length * (hero ? 6.6 : 6.0) + 11, h = hero ? 17 : 15, gap = 9;
+    var bx = (side === 'l') ? (x - gap - w) : (x + gap), by = y - h / 2;
+    this.s.push('<path d="M' + (side === 'l' ? bx + w : x) + ',' + y + ' L' + (side === 'l' ? x : bx) + ',' + y + '" stroke="' + C.sub + '" stroke-width="1.2"/>');
+    this.s.push('<rect x="' + bx + '" y="' + by + '" width="' + w + '" height="' + h + '" rx="' + (h / 2) + '" fill="' + (hero ? C.deep : '#fbf7ee') + '" stroke="' + (hero ? C.deep : C.sub) + '" stroke-width="1.2"/>');
+    this.s.push('<text x="' + (bx + w / 2) + '" y="' + (y + (hero ? 4 : 3.6)) + '" font-size="' + (hero ? 10.5 : 9.5) + '" font-weight="700" fill="' + (hero ? '#fffdf8' : C.deep) + '" text-anchor="middle">' + t + '</text>');
+    return bx;                                   /* 左端＝隣に文字を置くときの手がかり */
   };
 
   /* ---- どの旅にも出てくる部品 ---- */
@@ -141,9 +159,13 @@
   /* labelX＝部品名を書き出す x（省略時は従来どおり x+56）。
      ⚠️容疑の囲いがある絵では、部品名が破線に貫かれることがある＝そのページだけ外へ逃がすために足した
         （2026-08-23・第4号。既定値は変えていないので他の旅の絵は1文字も変わらない＝回帰で実測済み） */
-  Kit.prototype.keySwitch = function (x, top, on, labelX) {
-    var s = this.s;
-    s.push('<rect x="' + (x - 50) + '" y="' + top + '" width="100" height="48" rx="8" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
+  /* opts.hero＝その旅の主役の部品として浮き上がらせる（2026-08-24・第4号）。
+     ⚠️既定は false＝主役でない旅（第3号・第6号…）の絵は1px も変わらない。
+     ⚠️浮かせるのに赤は使わない＝赤は「切れている場所」ただ1つに取ってある。 */
+  Kit.prototype.keySwitch = function (x, top, on, labelX, opts) {
+    var s = this.s, hero = !!(opts && opts.hero);
+    if (hero) s.push('<rect x="' + (x - 57) + '" y="' + (top - 7) + '" width="114" height="62" rx="14" fill="none" stroke="' + C.deep + '" stroke-width="8" opacity="0.15"/>');
+    s.push('<rect x="' + (x - 50) + '" y="' + top + '" width="100" height="48" rx="8" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="' + (hero ? 3.5 : 2.5) + '"/>');
     /* 鍵の絵（左側・ONで回る） */
     s.push('<circle cx="' + (x - 28) + '" cy="' + (top + 24) + '" r="12" fill="' + C.in_ + '"/>');
     s.push('<rect x="' + (x - 30) + '" y="' + (top + 10) + '" width="4" height="14" rx="1.5" fill="' + C.deep + '" transform="rotate(' + (on ? 42 : 0) + ' ' + (x - 28) + ' ' + (top + 24) + ')"/>');
