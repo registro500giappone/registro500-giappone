@@ -26,15 +26,38 @@
     var sc = k.sc, pos = k.pos, s = k.s;
     var blown = pos.f1 === 'BLOWN', pressed = pos.horn_sw === 'PRESSED';
 
-    function cutV(y1, y2, id, thick) {
-      var mid = (y1 + y2) / 2, col = k.wcol(id, C.dim).col, w = thick ? 6.5 : 5;
-      s.push('<path d="M' + X + ',' + y1 + ' L' + X + ',' + (mid - 8) + ' M' + X + ',' + (mid + 8) + ' L' + X + ',' + y2 + '" stroke="' + col + '" stroke-width="' + w + '" stroke-linecap="round"/>');
-      s.push('<circle cx="' + X + '" cy="' + mid + '" r="6" fill="none" stroke="' + C.hi + '" stroke-width="3"/>');
-      k.label(X + 14, mid + 4, 'ここが外れている', C.hi, null, 12);
+    /* 赤地に白抜きの札＝この絵でいちばん見てほしい所に1枚だけ置く（第4・6号と同じ道具）。
+       ⚠️札は1つの絵に1枚まで。2枚置くと、どちらを見ればいいのか分からなくなる。 */
+    function chip(x, y, t) {
+      var w = t.length * 12 + 14, h = 22;
+      s.push('<rect x="' + x + '" y="' + (y - h / 2) + '" width="' + w + '" height="' + h + '" rx="5" fill="' + C.hi + '"/>');
+      s.push('<text x="' + (x + 7) + '" y="' + (y + 4.5) + '" font-size="12" font-weight="700" fill="#fffdf8">' + t + '</text>');
+    }
+    /* 【赤の序列】切断は すき間13・×・ハロー・図幅いっぱいの境界破線・赤札1枚（2026-08-24・第4号）。
+       ⚠️赤はこの「切れている場所」ただ1つに取っておく。
+       ⚠️切断を描く区間は 56px 以上空ける＝ハロー（r=19）が隣の記号と食い合う（第6号の実測）。 */
+    function cutV(y1, y2, id, thick, opt) {
+      opt = opt || {};
+      var mid = opt.mid || (y1 + y2) / 2, col = k.wcol(id, C.dim).col, g = 13, w = thick ? 6.5 : 5;
+      s.push('<path d="M' + X + ',' + y1 + ' L' + X + ',' + (mid - g) + '" stroke="' + col + '" stroke-width="' + w + '" stroke-linecap="round"/>');
+      s.push('<path d="M' + X + ',' + (mid + g) + ' L' + X + ',' + y2 + '" stroke="' + col + '" stroke-width="' + w + '" stroke-linecap="round"/>');
+      s.push('<path d="M4,' + mid + ' L296,' + mid + '" stroke="' + C.hi + '" stroke-width="1.4" stroke-dasharray="4 6" opacity="0.4"/>');
+      s.push('<circle cx="' + X + '" cy="' + mid + '" r="19" fill="' + C.hi + '" opacity="0.13"/>');
+      s.push('<circle cx="' + X + '" cy="' + mid + '" r="11" fill="none" stroke="' + C.hi + '" stroke-width="3"/>');
+      s.push('<path d="M' + (X - 5.5) + ',' + (mid - 5.5) + ' L' + (X + 5.5) + ',' + (mid + 5.5)
+        + ' M' + (X + 5.5) + ',' + (mid - 5.5) + ' L' + (X - 5.5) + ',' + (mid + 5.5)
+        + '" stroke="' + C.hi + '" stroke-width="3" stroke-linecap="round"/>');
+      chip(150, mid, '外れている');
     }
 
     /* ===== バッテリー〜ヒューズ箱の電源側までは第1〜4号でたどった道 ===== */
     k.battery(X);
+    /* ⭐端子バッジ＝原典に番号のある端子にだけ付ける（2026-08-24・第4号の作法／第6号で全号展開）。
+       この絵で付けるのは + / 30（レギュレータ）/ 30（ヒューズ箱の電源側）/ ホーンの + ・− の5か所。
+       ⚠️F1の負荷側とホーンボタンの接点には付けない＝原典に名前が無いから（絵の中で言い切ってある）。
+       ⚠️ホーンの +・− は原典の配線図に番号としては出てこないが、実車の端子には刻印があり、
+         本文がそこへテスターを当てろと言っている＝図と本文を1対1にするために出す（第6号と同じ扱い）。 */
+    k.term(X, 74, '+', 'l');
     k.seg(X, 62, X, 106, 'w11-01', true);
     k.label(X + 12, 88, 'ROSSO 赤・太', WC.ROSSO, null, 11);
     k.node(X, 106);
@@ -49,7 +72,7 @@
     s.push('<text x="42" y="149" font-size="11.5" fill="#fffdf8" text-anchor="middle">レギュレータ</text>');
     s.push('<text x="42" y="164" font-size="10" fill="' + C.in_ + '" text-anchor="middle">（車の後ろ）</text>');
     s.push('<path d="M80,152 L' + X + ',152" stroke="' + C.deep + '" stroke-width="3.5"/>');
-    k.label(97, 146, '30', C.deep, 'end', 11);
+    k.term(X, 152, '30', 'r');
 
     k.seg(X, 152, X, FZ, 'w11-04', true);
     k.label(X + 12, 184, 'ROSSO 赤・太', WC.ROSSO, null, 11);
@@ -61,8 +84,13 @@
     k.dashOut(X, FZ, 146);
     k.label(150, FZ - 6, 'キースイッチへ', C.sub, null, 10);
     k.label(150, FZ + 7, '（第1・4・6号）', C.sub, null, 10);
-    k.label(X - 12, FZ - 8, '30', C.deep, 'end', 11);
+    k.term(X, FZ - 10, '30', 'l');
     k.fuseV(X, FZ, blown, 'ヒューズ F1');
+    /* ⛔ヒューズが切れている場面に赤札は出さない（実測して取り下げた）＝k.fuseV が
+         エレメントの分断・赤い丸・「切れている」の状態語まで既に描いていて、札を足すと
+         同じことを2回言うことになる（画面で見て初めて分かった）。
+       💡【線の上に切断が無い場面こそ印が要る】（第4号）が効くのは、**どの線も生きて見える**
+         場面＝ここは部品そのものが切れた姿で描かれているので、その条件に当たらない。 */
     /* ⭐F1の負荷側＝原典に端子名が無い（SCHEMA §G 持ち越し3）。絵の中で正直に書く */
     k.label(X - 12, FZ + 70, '（名前なし）', C.sub, 'end', 9.5);
 
@@ -79,8 +107,9 @@
     s.push('<path d="M' + X + ',' + (HB.y + 24) + ' q16,7 0,14 q16,7 0,14 q16,7 0,14" fill="none" stroke="' + C.in_ + '" stroke-width="3.5"/>');
     s.push('<path d="M' + X + ',' + (HB.y + 66) + ' L' + X + ',' + (HB.y + 82) + '" stroke="' + C.in_ + '" stroke-width="3"/>');
     if (sc.lampOn) k.dots(X, HB.y + 8, HB.y + 74, false);
-    k.label(66, HB.y + 22, '＋', C.in_, 'end', 12);
-    k.label(66, HB.y + 80, '−', C.in_, 'end', 12);
+    /* ⚠️＋と−は本文の絞り込みで【実際にテスターを当てる】2つ＝hero（濃く反転）で出す。 */
+    k.term(X, HB.y - 12, '+', 'l', true);
+    k.term(X, HB.y + HB.h + 10, '−', 'l', true);
     /* 振動板＝箱の右側。鳴っているときだけ音の弧を出す（⛔点滅させない）。
        ⚠️状態の語（鳴っている／鳴らない）は箱の【外・右】に置く＝キースイッチと同じ作法。
          箱の中に入れると音の弧に串刺しにされる（実測して直した）。 */
@@ -113,14 +142,14 @@
     s.push('<text x="100" y="' + (BB.y + 50) + '" font-size="11" font-weight="700" fill="' + (pressed ? '#7fd6a0' : C.in_) + '">' + (pressed ? '押している' : '離している') + '</text>');
 
     /* ===== ボタン → 車体アース ===== */
-    if (mode.cut === 'w05-03') cutV(BB.y + BB.h, 578, 'w05-03');
-    else { k.seg(X, BB.y + BB.h, X, 578, 'w05-03'); k.label(X + 14, 566, 'NERO 黒', WC.NERO, null, 11); }
-    k.ground(X, 578, '車体アース');
-    k.label(6, 608, '⬆ 車体からバッテリーの − へ帰って、輪が閉じる（第5号）。', C.sub, null, 10.5);
+    if (mode.cut === 'w05-03') cutV(BB.y + BB.h, 634, 'w05-03');
+    else { k.seg(X, BB.y + BB.h, X, 634, 'w05-03'); k.label(X + 14, 600, 'NERO 黒', WC.NERO, null, 11); }
+    k.ground(X, 634, '車体アース');
+    k.label(6, 664, '⬆ 車体からバッテリーの − へ帰って、輪が閉じる（第5号）。', C.sub, null, 10.5);
 
-    if (mode.cut) { k.label(6, 630, '⚠️ここが切れている間、ボタンを押しても輪は閉じない。', C.hi, null, 10.5); return 642; }
-    if (blown) { k.label(6, 630, '⚠️ヒューズが切れている＝ホーンとルームランプだけが道を失う。', C.hi, null, 10.5); return 642; }
-    return 622;
+    if (mode.cut) { k.label(6, 686, '⚠️ここが切れている間、ボタンを押しても輪は閉じない。', C.hi, null, 10.5); return 698; }
+    if (blown) { k.label(6, 686, '⚠️ヒューズが切れている＝ホーンとルームランプだけが道を失う。', C.hi, null, 10.5); return 698; }
+    return 678;
   }
 
   /* ---- トグル（ボタン 離す ↔ 押す）＝キーは OFF のまま動かさない ----

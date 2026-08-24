@@ -42,7 +42,10 @@
       const p = out[a], q = out[b];
       const ox = Math.min(p.x2, q.x2) - Math.max(p.x1, q.x1);
       const oy = Math.min(p.y2, q.y2) - Math.max(p.y1, q.y1);
-      if (ox > 0.5 && oy > 0.5) issues.push('重なり: "' + p.t + '" × "' + q.t + '" (' + ox.toFixed(1) + '×' + oy.toFixed(1) + ')');
+      /* ⚠️閾値は 2.0px＝2行組のラベル（13px 間隔）はディセンダ領域が 1〜1.5px 触れるのが正常で、
+         0.5px で切ると正常な組が全部出てきて本物が埋もれる（第7号で実測して決めた）。
+         実害のあった重なりは 14.2×4.6（第6号）＝この閾値でも十分に出る。 */
+      if (ox > 2.0 && oy > 2.0) issues.push('重なり: "' + p.t + '" × "' + q.t + '" (' + ox.toFixed(1) + '×' + oy.toFixed(1) + ')');
     }
     if (issues.length) report.push('■ ' + id + '\n  ' + issues.join('\n  '));
   });
