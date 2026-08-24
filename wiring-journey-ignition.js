@@ -1,8 +1,8 @@
-/* 旅ページ第6号「セルは回るが、かからない（火花が飛ばない）」の絵。journey_id: no_spark（URLと対＝変えない）
+/* ストーリー第6号「セルは回るが、かからない（火花が飛ばない）」の絵。journey_id: no_spark（URLと対＝変えない）
    共通の土台（場面の作り方・描画プリミティブ・共通部品・実車図・検算・起動）は /wiring-journey.js。
    ⚠️図の点灯・色・黄点はすべて wiring-sim.js（L1到達性）の solve() 結果＝絵に合わせて数字を作らない。
 
-   この旅だけの特徴＝【絵に「外」がある】。
+   このストーリーだけの特徴＝【絵に「外」がある】。
      点火は2つの輪でできている：バッテリーで回る一次の輪と、その電流が切れた瞬間に
      誘導で生まれる二次（高圧）の輪。L1（到達性）が解けるのは【一次だけ】。
      だから高圧側は計算せず、右の囲みに「この絵の外」として置く。
@@ -10,7 +10,7 @@
      （JOURNEY-INDEX §4／wiring-net.json の _sys9_scope）。
    ⛔点火時期・ドエル角は「道は正常なまま値だけが動く」領域＝UCM-1 の担当。本文で境界を書く。
 
-   ⚠️系統9 を新設した旅＝NET_VERSION 4→5（部品 coil・distributor、電線 w09-01/02/03）。 */
+   ⚠️系統9 を新設したストーリー＝NET_VERSION 4→5（部品 coil・distributor、電線 w09-01/02/03）。 */
 (function () {
   'use strict';
   var WC = Journey.WC, C = Journey.C;
@@ -44,7 +44,7 @@
 
     /* ===== キースイッチ（30 ↔ 15/54） ===== */
     k.keySwitch(X, 118, on);
-    /* この旅が通らない枝＝計器盤の警告灯とヒューズF2。⚠️コイルはF2を通らない。
+    /* このストーリーが通らない枝＝計器盤の警告灯とヒューズF2。⚠️コイルはF2を通らない。
        ⚠️分岐は y=180（キースイッチのラベル y=152 から十分離す）。166 に置いたら文字が重なった。 */
     k.node(X, 180);
     k.dashOut(X, 180, 150);
@@ -124,7 +124,7 @@
     return 618;
   }
 
-  /* ---- トグル（ポイント 閉 ↔ 開）＝この旅で人が動かせる唯一のもの ----
+  /* ---- トグル（ポイント 閉 ↔ 開）＝このストーリーで人が動かせる唯一のもの ----
      ⚠️「開いているときに電流が止まっているのが正常」＝ここが第1〜5号と逆で、いちばん誤解される所。 */
   var CAPS = {
     CLOSED: '<b>ポイントが閉じている＝一次に電流が流れています。</b>コイルは電気を消費しているのではなく、<b>磁気を溜めて</b>います。黄色い点が動いているのはそのためです。この状態で止めたままキーONで放置すると、コイルが熱を持ちます。',
@@ -144,11 +144,11 @@
     { label: 'キーON・ポイント閉（正常）＝一次', s: { inputs: ON }, expect: true, words: PW },
     { label: 'キーON・ポイント開（正常）＝一次', s: { inputs: OPEN }, expect: false, words: PW },
     { label: 'キーOFF・ポイント閉＝一次', s: { inputs: { key: 'OFF', engine: 'STOP' } }, expect: false, words: PW },
-    /* ⭐この旅の要＝ヒューズを見ても直らない（コイルはF2を通らず、F1とも無関係） */
+    /* ⭐このストーリーの要＝ヒューズを見ても直らない（コイルはF2を通らず、F1とも無関係） */
     { label: 'ヒューズF1が切れている・キーON＝一次', s: { inputs: { key: 'ON', engine: 'STOP', f1: 'BLOWN' } }, expect: true, words: PW },
-    /* この旅の前提＝セルは回る。回しながらでも点火の電気は生きている（500は始動レバー式） */
+    /* このストーリーの前提＝セルは回る。回しながらでも点火の電気は生きている（500は始動レバー式） */
     { label: 'レバーを引いてセルを回している間＝一次', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' } }, expect: true, words: PW },
-    { label: '↑同じ場面のセル（この旅の前提）', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' } }, expect: true, read: cel, words: CW },
+    { label: '↑同じ場面のセル（このストーリーの前提）', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' } }, expect: true, read: cel, words: CW },
     /* 一次の輪を1本ずつ切る＝3か所とも「流れない」になる */
     { label: 'コイルへの水色線（w09-01）が外れた＝一次', s: { inputs: ON, ops: cut('w09-01') }, expect: false, words: PW },
     { label: '↑同じ場面のチャージランプ（無実）', s: { inputs: ON, ops: cut('w09-01') }, expect: true, read: chg, words: LW },

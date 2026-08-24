@@ -1,13 +1,13 @@
-/*! wiring-journey.js — 旅ページ共通ランタイム（1症状=1ページ=1URLの「旅の絵」）
+/*! wiring-journey.js — ストーリーページ共通ランタイム（1症状=1ページ=1URLの「ストーリーの絵」）
  *
- *  設計の正本: wiring-simulator/HANDOFF.md §0（旅の絵方式）／ SCHEMA.md
+ *  設計の正本: wiring-simulator/HANDOFF.md §0（ストーリーの絵方式）／ SCHEMA.md
  *
- *  ここに置くのは「どの旅でも同じもの」だけ:
+ *  ここに置くのは「どのストーリーでも同じもの」だけ:
  *    - 場面の作り方（controls → positions → 故障の直接上書き → solve）
  *    - 描画プリミティブ（線・黄点・ラベル・アース・テスターのプローブ）
- *    - どの旅にも出てくる部品の絵（バッテリー・キースイッチ・警告灯の小窓）
+ *    - どのストーリーにも出てくる部品の絵（バッテリー・キースイッチ・警告灯の小窓）
  *    - 実車上面図の切り出し・検算表・トグル・起動
- *  旅ごとに違うのは「絵の中身（部品の並び）・文言・検算・実車で指す部品」の4つだけ。
+ *  ストーリーごとに違うのは「絵の中身（部品の並び）・文言・検算・実車で指す部品」の4つだけ。
  *
  *  ⚠️図の点灯・色・黄点はすべて wiring-sim.js（L1到達性）の solve() 結果＝絵に合わせて数字を作らない。
  *  ⚠️第1号（チャージランプ）はユーザー確定済み＝このファイルへの切り出しで見た目を1文字も変えないこと。
@@ -30,7 +30,7 @@
   /* ================= 場面 ================= */
   /* controls を通して部品位置を決め、必要なら故障を直接上書きして solve する。
      「controls に無い状態」（ベルト切れ相当・センダ固着など）は override で作る＝
-     netlist を故障のために膨らませない。どの旅も同じ作法。 */
+     netlist を故障のために膨らませない。どのストーリーも同じ作法。 */
   function makeScenario(cfg) {
     return function (o) {
       o = o || {};
@@ -79,7 +79,7 @@
       this.s.push('<circle class="dot ' + dir + '" cx="' + x + '" cy="' + y + '" r="4.6"/>');
   };
   /* 流れの向きの規則。既定＝灯が点いていれば下向き（放電の向き）。
-     旅ごとに別の流れ（充電の戻りなど）があれば cfg.flow で上書きする。 */
+     ストーリーごとに別の流れ（充電の戻りなど）があれば cfg.flow で上書きする。 */
   Kit.prototype.flow = function (id, x, y1, y2) {
     if (this.cfg.flow) { var d = this.cfg.flow(this.sc, id, x, y1, y2); if (d !== undefined) return d; }
     return this.sc.lampOn ? 'down' : null;
@@ -112,15 +112,15 @@
     this.s.push('<circle cx="' + (x + dx) + '" cy="' + (y + dy - 4) + '" r="11" fill="' + C.hi + '"/>');
     this.s.push('<text x="' + (x + dx) + '" y="' + (y + dy) + '" font-size="12" fill="#fffdf8" text-anchor="middle">' + t + '</text>');
   };
-  /* 容疑区間の囲み（旅ごとに範囲が違うので座標は呼ぶ側が渡す） */
+  /* 容疑区間の囲み（ストーリーごとに範囲が違うので座標は呼ぶ側が渡す） */
   /* quiet＝囲いを一段引く（2026-08-24・第4号）。同じ絵に「切れている場所」が描いてあるとき、
      囲いと切断が同じ強さの赤で争って、どこを見ればいいのか分からなくなる＝赤の序列を作る。
-     ⚠️既定は false＝他の旅の囲いは1px も変わらない。 */
+     ⚠️既定は false＝他のストーリーの囲いは1px も変わらない。 */
   Kit.prototype.suspect = function (x, y, w, h, textY, t, quiet) {
     this.s.push('<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="12" fill="none" stroke="' + C.hi + '" stroke-width="' + (quiet ? 2 : 2.5) + '" stroke-dasharray="7 6"' + (quiet ? ' opacity="0.45"' : '') + '/>');
     this.s.push('<text x="' + (x + 6) + '" y="' + textY + '" font-size="13" fill="' + C.hi + '" font-weight="700"' + (quiet ? ' opacity="0.7"' : '') + '>' + (t || '容疑者はこの中だけ') + '</text>');
   };
-  Kit.prototype.dashOut = function (x1, y, x2) {              /* この旅は通らない枝＝薄い破線 */
+  Kit.prototype.dashOut = function (x1, y, x2) {              /* このストーリーは通らない枝＝薄い破線 */
     this.s.push('<path d="M' + x1 + ',' + y + ' L' + x2 + ',' + y + '" stroke="' + C.out + '" stroke-width="3" stroke-dasharray="5 5"/>');
   };
   Kit.prototype.node = function (x, y) {
@@ -132,7 +132,7 @@
        （番号を持たないものにバッジを付けると、実車に無い端子を探させることになる）。
      ⚠️1つの図の中で、付ける所と付けない所を混ぜない＝混ぜると「番号が無い＝端子ではない」
        と読めなくなる（第4号のやり直しの原因がこれ）。
-     side: 'l'＝線の左／'r'＝右。hero＝この旅で実際に測る端子（濃く反転）。 */
+     side: 'l'＝線の左／'r'＝右。hero＝このストーリーで実際に測る端子（濃く反転）。 */
   Kit.prototype.term = function (x, y, t, side, hero) {
     var w = t.length * (hero ? 6.6 : 6.0) + 11, h = hero ? 17 : 15, gap = 9;
     var bx = (side === 'l') ? (x - gap - w) : (x + gap), by = y - h / 2;
@@ -142,7 +142,7 @@
     return bx;                                   /* 左端＝隣に文字を置くときの手がかり */
   };
 
-  /* ---- どの旅にも出てくる部品 ---- */
+  /* ---- どのストーリーにも出てくる部品 ---- */
   /* バッテリー（端子とセルキャップのある形）。上端 y=18・下端 y=62 */
   Kit.prototype.battery = function (x) {
     var s = this.s;
@@ -158,9 +158,9 @@
   /* キースイッチ（箱の中の接点が、キーを回すと橋を架ける）。top=箱の上端・高さ48 */
   /* labelX＝部品名を書き出す x（省略時は従来どおり x+56）。
      ⚠️容疑の囲いがある絵では、部品名が破線に貫かれることがある＝そのページだけ外へ逃がすために足した
-        （2026-08-23・第4号。既定値は変えていないので他の旅の絵は1文字も変わらない＝回帰で実測済み） */
-  /* opts.hero＝その旅の主役の部品として浮き上がらせる（2026-08-24・第4号）。
-     ⚠️既定は false＝主役でない旅（第3号・第6号…）の絵は1px も変わらない。
+        （2026-08-23・第4号。既定値は変えていないので他のストーリーの絵は1文字も変わらない＝回帰で実測済み） */
+  /* opts.hero＝そのストーリーの主役の部品として浮き上がらせる（2026-08-24・第4号）。
+     ⚠️既定は false＝主役でないストーリー（第3号・第6号…）の絵は1px も変わらない。
      ⚠️浮かせるのに赤は使わない＝赤は「切れている場所」ただ1つに取ってある。 */
   Kit.prototype.keySwitch = function (x, top, on, labelX, opts) {
     var s = this.s, hero = !!(opts && opts.hero);
@@ -181,8 +181,8 @@
   };
   /* ヒューズを【縦に通す】絵（500のヒューズは筒型＝上下に金属キャップ）。
      ⚠️第4号（キー）はヒューズを「幹線の横にぶら下がる枝」として描いた＝キーへの線がヒューズの
-       電源側から分かれるため。ヒューズの【先】の系統（ホーン・ルームランプ…）を旅するときは
-       本線がヒューズを通るので、この縦向きが要る。同じ部品が旅によって違う向きで出てくるので、
+       電源側から分かれるため。ヒューズの【先】の系統（ホーン・ルームランプ…）をストーリーするときは
+       本線がヒューズを通るので、この縦向きが要る。同じ部品がストーリーによって違う向きで出てくるので、
        ページ本文で必ず「向きが違う」と断ること。
      top＝箱の上端。上の端子 y=top・下の端子 y=top+62（＝この2点に線を継ぐ）。 */
   Kit.prototype.fuseV = function (x, top, blown, name) {
@@ -205,7 +205,7 @@
     }
   };
   /* 警告灯＝メーターの小窓と同じ顔。top=小窓の上端・高さ28。labels を渡すと右に2行そえる */
-  /* 警告灯の小窓。【2026-08-21 FB】旅の絵の中で「点いているか消えているか」がぱっと見で
+  /* 警告灯の小窓。【2026-08-21 FB】ストーリーの絵の中で「点いているか消えているか」がぱっと見で
      分からなかった＝ページ冒頭の実物メーターと同じ光り方に寄せた（赤い芯＋光のにじみ）。
      ⛔隣に電球アイコンを足す案は採らない：症状の表示が2箇所に分かれて「どっちを見るのか」に
        なる（第1号で電球のバツ印を廃止したのと同じ理由）。
@@ -254,7 +254,7 @@
 
   /* ================= 実車上面図 ================= */
   /* ⚠️車SVGの <style> は文書のどこに置いても全体に効き、CSSはインライン属性に勝つ。
-     全セレクタを漏れなく #carcrop 配下に書き換えてから挿入する（過去に旅の絵とC1メーターの
+     全セレクタを漏れなく #carcrop 配下に書き換えてから挿入する（過去にストーリーの絵とC1メーターの
      パスを stroke:currentColor が全部乗っ取った実績あり）。 */
   function scopeCarStyles(inner) {
     return inner.replace(/<style([^>]*)>([\s\S]*?)<\/style>/g, function (_, attrs, css) {
@@ -272,7 +272,7 @@
   /* opts: {viewBox, marks:[{id,color,label,anchor}], legend, scale} — 座標は wiring-layout.json の実測値
      （1 SVG unit = 1mm・m=車の前後・lat=左右。オーナー実測＝こちらの推定値はゼロ）
      ⚠️scale は「viewBox をどれだけ引いたか」の補正（既定 1＝engine ルームに寄った第1・2号のまま）。
-       車の全長を1枚に収める旅（セルの旅＝前のバッテリーから後ろのセルまで）では viewBox が
+       車の全長を1枚に収めるストーリー（セルのストーリー＝前のバッテリーから後ろのセルまで）では viewBox が
        4倍以上広くなり、印と文字が既定の大きさでは読めなくなる。 */
   function carMap(elId, carSvgText, layout, opts) {
     var e = document.getElementById(elId); if (!e) return;
@@ -293,10 +293,10 @@
 
   /* ================= 起動 ================= */
   /* cfg:
-       lampId   … この旅の主役の負荷ID（例 'quadro.warn_oil'・'starter'）。
+       lampId   … このストーリーの主役の負荷ID（例 'quadro.warn_oil'・'starter'）。
                   ⚠️「灯」とは限らない＝ランプでもモーターでも、solve() が返す負荷ならよい
        alt      … 既定でパッチ（オルタ換装）を当てるか
-       extra    … 場面に旅固有の判定を足す（例 charging）
+       extra    … 場面にストーリー固有の判定を足す（例 charging）
        flow     … 黄点の流れの向きの上書き
        draw     … function(kit, mode) → 図の高さ。kit.s に SVG を積む
        caps     … {STOP:…, RUN:…} トグルの説明文（キーは HTML の data-v と揃える）
@@ -317,8 +317,8 @@
       e.setAttribute('viewBox', d.vb); e.innerHTML = d.body;
     }
 
-    /* トグルが動かすもの＝旅ごとに違う。既定は「エンジン 停止↔回転」（第1・2号）。
-       セルの旅は動かすのが始動レバーなので cfg.mainInputs / cfg.mainInit で差し替える。 */
+    /* トグルが動かすもの＝ストーリーごとに違う。既定は「エンジン 停止↔回転」（第1・2号）。
+       セルのストーリーは動かすのが始動レバーなので cfg.mainInputs / cfg.mainInit で差し替える。 */
     function mainInputs(v) { return cfg.mainInputs ? cfg.mainInputs(v) : { key: 'ON', engine: v }; }
     function setMain(v) {
       var btns = document.querySelectorAll('#tg button');

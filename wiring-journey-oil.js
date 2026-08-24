@@ -1,4 +1,4 @@
-/* 旅ページ第2号「油圧警告灯が消えない」の絵。journey_id: oil_lamp_on（URLと対＝変えない）
+/* ストーリー第2号「油圧警告灯が消えない」の絵。journey_id: oil_lamp_on（URLと対＝変えない）
    共通の土台（場面の作り方・描画プリミティブ・共通部品・実車図・検算・起動）は /wiring-journey.js。
    ⚠️図の点灯・色・黄点はすべて wiring-sim.js（L1到達性）の solve() 結果＝絵に合わせて数字を作らない。
 
@@ -24,7 +24,7 @@
     label(X+12,88,'ROSSO 赤・太',WC.ROSSO);
     k.node(X,100);
     k.dashOut(X,100,X+78);
-    label(X+12,116,'始動レバー・セルへ（この旅の外）',C.sub,null,11);
+    label(X+12,116,'始動レバー・セルへ（このストーリーの外）',C.sub,null,11);
 
     seg(X,100,X,144,'w11-03',true);
     label(X+12,134,'MARRONE 茶・太',WC.MARRONE);
@@ -32,13 +32,13 @@
     k.dashOut(X,144,X+78);
     label(X+12,160,'発電系（ダイナモ・レギュレータ）へ',C.sub,null,11);
 
-    /* J→キースイッチ（w10-01 ROSSO）。途中に F1 の枝＝この旅も通らない */
+    /* J→キースイッチ（w10-01 ROSSO）。途中に F1 の枝＝このストーリーも通らない */
     seg(X,144,X,196,'w10-01');
     label(X+12,190,'ROSSO 赤',WC.ROSSO);
     k.dashOut(X,176,X-56);
     s.push('<rect x="'+(X-76)+'" y="168" width="18" height="16" rx="3" fill="none" stroke="'+C.out+'" stroke-width="2.5"/>');
     label(6,162,'ヒューズF1・ホーンへ',C.sub,null,11);
-    label(2,196,'（この旅は通らない）',C.sub,null,11);
+    label(2,196,'（このストーリーは通らない）',C.sub,null,11);
 
     k.keySwitch(X, 196, pos.ign_sw==='ON');
 

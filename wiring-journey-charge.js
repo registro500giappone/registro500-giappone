@@ -1,4 +1,4 @@
-/* 旅ページ第1号「チャージランプが消えない」の絵。ID: charge_lamp_on
+/* ストーリー第1号「チャージランプが消えない」の絵。ID: charge_lamp_on
    ダイナモ版 wiring-journey-charge.html と オルタ版 wiring-journey-charge-alt.html の2ページで共有する。
    オルタ版は読み込み前に window.JOURNEY_ALT = true を立てる。
    共通の土台（場面の作り方・描画プリミティブ・共通部品・実車図・検算・起動）は /wiring-journey.js。
@@ -11,7 +11,7 @@
 
   var X=100, RX=235;                         /* 主列と、充電が戻る右の道 */
 
-  /* ---- 旅の絵（縦の滝）。線1本ごとに netlist の wire id を対応させ、状態で塗る ---- */
+  /* ---- ストーリーの絵（縦の滝）。線1本ごとに netlist の wire id を対応させ、状態で塗る ---- */
   function draw(k, mode){
     var sc=k.sc, r=k.r, pos=k.pos, s=k.s;
     function seg(a,b,c,d,e,f,g){ k.seg(a,b,c,d,e,f,g); }
@@ -27,7 +27,7 @@
     label(X+12,88,'ROSSO 赤・太',WC.ROSSO);
     k.node(X,100);
     k.dashOut(X,100,X+78);
-    label(X+12,116,'始動レバー・セルへ（この旅の外）',C.sub,null,11);
+    label(X+12,116,'始動レバー・セルへ（このストーリーの外）',C.sub,null,11);
     if(sc.alt){ seg(X,100,X,144,'pga-01',true,C.body); label(X+12,134,'太い線（施工次第）',C.sub,null,12); }
     else      { seg(X,100,X,144,'w11-03',true);        label(X+12,134,'MARRONE 茶・太',WC.MARRONE); }
 
@@ -45,13 +45,13 @@
       label(RX+8,264,'充電',WC.ROSSO);
     }
 
-    /* J→キースイッチ（w10-01 ROSSO）。途中に F1 の枝＝この旅は通らない */
+    /* J→キースイッチ（w10-01 ROSSO）。途中に F1 の枝＝このストーリーは通らない */
     seg(X,144,X,196, 'w10-01');
     label(X+12,190,'ROSSO 赤',WC.ROSSO);
     k.dashOut(X,168,X-56);
     s.push('<rect x="'+(X-76)+'" y="160" width="18" height="16" rx="3" fill="none" stroke="'+C.out+'" stroke-width="2.5"/>');
     label(6,152,'ヒューズF1・ホーンへ',C.sub,null,11);
-    label(2,190,'（この旅は通らない）',C.sub,null,11);
+    label(2,190,'（このストーリーは通らない）',C.sub,null,11);
 
     /* ===== キースイッチ＝箱の中の接点が、キーを回すと橋を架ける ===== */
     k.keySwitch(X, 196, pos.ign_sw==='ON');
