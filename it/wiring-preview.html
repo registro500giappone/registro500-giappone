@@ -108,7 +108,7 @@
   #fsbtn:hover { border-color:var(--accent); color:var(--accent); }
   body.fs > header, body.fs > .lead, body.fs > .tbar { display:none; }
   /* 注記帯（#tnote/#lnote/#dnote）は全画面では図の上に重ねる。縦の場所を取らせない＝図をさらに約49px大きく
-     できるが、⛔文面自体は隠さない（#lnote は「番号が無い＝原典にも無い」という誤解を防ぐための断り）。
+     できるが、⛔文面自体は隠さない（#lnote は「番号が無いのは手を抜いたから」という誤解を防ぐ断り＝実態は原典の側に端子名が無い）。
      通常時は display:contents ＝ラッパーが無いのと同じ挙動なので、既存レイアウトは1pxも変わらない。 */
   #notes { display:contents; }
   /* 図は縦フィットなので、横長の画面では main の中に左右の余白ができる（1440x900 で片側約300px）。
@@ -245,7 +245,8 @@
      ここは1行＋ボタンのみ（2026-08-18・6行の帯が視認性を阻害するため短縮）。 -->
 <div id="notes"><div class="dnote" id="dnote">La versione D è un disegno di riferimento realizzato da questo sito. <button type="button" id="dnote-open" class="ldiff-btn">Dettagli ›</button></div>
 <!-- L型で端子番号を出したときだけの断り書き。番号が無い箇所を「原典にも無い」と誤解させないため
-     （原典 Fiat 500 L 取説 p59 にはあり、図との照合が未了なだけ）。台帳＝terminals_ledger_L.md -->
+     ⚠️実態＝突き合わせは終わっていて【原典の側に端子名の記載が無い】（ヒューズ箱・フラッシャー等）。
+     ⛔ここを「照合が未了」と書き戻さない（2026-08-25 ユーザー確認済み）。台帳＝terminals_ledger_L.md -->
 <div class="dnote" id="lnote">Sulla L mostriamo <b>solo i morsetti la cui sigla abbiamo potuto verificare sul libretto di uso e manutenzione originale</b>. I componenti le cui sigle non sono proprio riportate nello schema originale &mdash; per esempio la scatola dei fusibili e l&rsquo;intermittenza &mdash; restano senza numero (non colmiamo le lacune per supposizione).</div>
 <div class="dnote" id="rnote">Sulla R mostriamo <b>solo i morsetti in comune con la F</b>. Il quadro di controllo resta senza numeri: sulla R c&rsquo;&egrave; l&rsquo;indicatore del livello carburante e i morsetti sono diversi, e non abbiamo potuto verificarli.</div>
 <div class="dnote" id="tnote">I cerchi rossi indicano i <b>morsetti</b> (i punti in cui si collega un cavo); le targhette bianche sono le loro sigle, trascritte dallo schema elettrico del libretto di uso e manutenzione FIAT. <button type="button" id="tinfo-open" class="ldiff-btn">Come leggere i morsetti ›</button></div></div>
@@ -439,7 +440,7 @@
   // 純正取説の配線図に載っている端子番号(DIN)を、同じ座標系のSVGで図に重ねる。
   // データは日本語版と共通の /wiring-terminals.json（札の中身は数字と記号だけ＝言語に依らない）。
   // D型はF型と16系統すべて結線同一（確認済み）なのでF型のデータを共用する。
-  // L型は照合の済んだ端子だけを持つ（未確定のヒューズ箱・L型固有スイッチは出さない＝#lnote で断る）。
+  // L型は原典で端子名を確認できた端子だけを持つ（原典に記載の無いヒューズ箱・L型固有スイッチは出さない＝#lnote で断る）。
   // R型はF型と共通の端子だけを持つ（メーターはR型で構成が違うので出さない＝#rnote で断る）。
   const TERM_VERSION='9';
   const tlayer=document.getElementById('tlayer'), termbtn=document.getElementById('termbtn');
