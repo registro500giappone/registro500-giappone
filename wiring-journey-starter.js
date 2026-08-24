@@ -192,7 +192,7 @@
                 { id: 'starter', color: '#b8442e', label: 'セルモーター' }],
         legend: '<text x="40" y="1430" font-size="96" fill="#a49b87">←車の前方（トランク）</text>' +
                 '<text x="2980" y="1430" font-size="96" fill="#a49b87" text-anchor="end">車の後ろ（エンジン）→</text>' +
-                '<text x="1510" y="-40" font-size="96" fill="#a49b87" text-anchor="middle">車を上から（上が車の右側）</text>'
+                '<text x="1510" y="-32" font-size="96" fill="#a49b87" text-anchor="middle">車を上から（上が車の右側）</text>'
       };
     }
   });
