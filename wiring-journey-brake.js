@@ -33,32 +33,62 @@
 
     /* 断線の印。⚠️絵の下半分（灯のまわり）は文字の置き場が無い＝○印だけを打ち、
          「どこが外れているか」は絵の下の注記行が言う。
-       ⚠️実測で分かったこと：左灯のアースに『ここが外れている』を end で添えると
+       ⚠️実測で分かったこと：左のランプのアースに『ここが外れている』を end で添えると
          図の左端からはみ出し、右へ回すと灯の状態語（点いている／点かない）と重なる。
          第7・8号と同じ病気（箱の近くには文字の逃げ場が無い）。 */
-    function cutV(x, y1, y2, id, lab) {
+    /* 赤地に白抜きの札（第4号の道具）。⚠️1つの絵に1枚まで。 */
+    function chip(x, y, t) {
+      var w = t.length * 12 + 14, h = 22;
+      s.push('<rect x="' + x + '" y="' + (y - h / 2) + '" width="' + w + '" height="' + h + '" rx="5" fill="' + C.hi + '"/>');
+      s.push('<text x="' + (x + 7) + '" y="' + (y + 4.5) + '" font-size="12" font-weight="700" fill="#fffdf8">' + t + '</text>');
+    }
+    /* ⭐×印だけを打つ小道具＝すき間を広げ、赤い×を重ねる。
+       ⚠️【2026-08-24】この号では【赤の序列を部分適用】した。ハロー（r=19）と図幅いっぱいの
+         境界破線と札は、絵の下半分（ランプのまわり）には入らない：
+           ・左のアースを切る場面では、ハローが【点いている／点かない】の状態語に重なる（実測）
+           ・渡り（横線）に境界破線を引くと「ここから下が死ぬ」という意味が嘘になる
+             （渡りが切れても左のランプは点いたまま＝この号のいちばんの手がかりが消える）
+         ⭐だから下半分は【すき間13＋×】まで。言葉は本文の cap と図の下の注記が持つ。
+         💡第4号でも図幅に収まらない切断では札を出さずに×だけにした＝同じ判断の型。 */
+    function xmark(cx, cy) {
+      s.push('<circle cx="' + cx + '" cy="' + cy + '" r="11" fill="#fbf7ee" stroke="' + C.hi + '" stroke-width="3"/>');
+      s.push('<path d="M' + (cx - 5.5) + ',' + (cy - 5.5) + ' L' + (cx + 5.5) + ',' + (cy + 5.5)
+        + ' M' + (cx + 5.5) + ',' + (cy - 5.5) + ' L' + (cx - 5.5) + ',' + (cy + 5.5)
+        + '" stroke="' + C.hi + '" stroke-width="3" stroke-linecap="round"/>');
+    }
+    /* full=true でハロー・境界破線・札まで出す（絵の上半分だけ＝下半分は入らない）。 */
+    function cutV(x, y1, y2, id, full) {
       var mid = (y1 + y2) / 2, col = k.wcol(id, C.dim).col;
-      s.push('<path d="M' + x + ',' + y1 + ' L' + x + ',' + (mid - 8) + ' M' + x + ',' + (mid + 8) + ' L' + x + ',' + y2 + '" stroke="' + col + '" stroke-width="5" stroke-linecap="round"/>');
-      s.push('<circle cx="' + x + '" cy="' + mid + '" r="6" fill="none" stroke="' + C.hi + '" stroke-width="3"/>');
-      if (lab !== false) k.label(x - 14, mid + 4, 'ここが外れている', C.hi, 'end', 12);
+      s.push('<path d="M' + x + ',' + y1 + ' L' + x + ',' + (mid - 13) + '" stroke="' + col + '" stroke-width="5" stroke-linecap="round"/>');
+      s.push('<path d="M' + x + ',' + (mid + 13) + ' L' + x + ',' + y2 + '" stroke="' + col + '" stroke-width="5" stroke-linecap="round"/>');
+      if (full) {
+        s.push('<path d="M4,' + mid + ' L296,' + mid + '" stroke="' + C.hi + '" stroke-width="1.4" stroke-dasharray="4 6" opacity="0.4"/>');
+        s.push('<circle cx="' + x + '" cy="' + mid + '" r="19" fill="' + C.hi + '" opacity="0.13"/>');
+      }
+      xmark(x, mid);
+      if (full) chip(150, mid, '外れている');
     }
     /* 横線（左灯→右灯の渡り）の断線。○印だけ＝この高さには「ROSSO 赤」と
        「車体の底を横断」のラベルが既にいる。 */
     function cutH(y, x1, x2, id) {
       var mid = (x1 + x2) / 2, col = k.wcol(id, C.dim).col;
-      s.push('<path d="M' + x1 + ',' + y + ' L' + (mid - 8) + ',' + y + ' M' + (mid + 8) + ',' + y + ' L' + x2 + ',' + y + '" stroke="' + col + '" stroke-width="5" stroke-linecap="round"/>');
-      s.push('<circle cx="' + mid + '" cy="' + y + '" r="6" fill="none" stroke="' + C.hi + '" stroke-width="3"/>');
+      s.push('<path d="M' + x1 + ',' + y + ' L' + (mid - 13) + ',' + y + '" stroke="' + col + '" stroke-width="5" stroke-linecap="round"/>');
+      s.push('<path d="M' + (mid + 13) + ',' + y + ' L' + x2 + ',' + y + '" stroke="' + col + '" stroke-width="5" stroke-linecap="round"/>');
+      xmark(mid, y);
     }
     /* 後コンビランプのストップ球。点灯時は赤いにじみを敷く（⛔点滅させない）。
        ⚠️にじみの半径は箱をわずかに超える程度まで＝大きくすると右の状態語を飲む（第8号の実測）。 */
-    function stopLamp(cx, name, lit) {
+    function stopLamp(cx, name, lit, cut) {
       if (lit) {
         s.push('<g class="lampglow"><ellipse cx="' + cx + '" cy="' + (LT + LH / 2) + '" rx="46" ry="40" fill="url(#jbrakeg)"/></g>');
       }
       s.push('<rect x="' + (cx - 28) + '" y="' + LT + '" width="56" height="' + LH + '" rx="10" fill="' + (lit ? '#e8412a' : '#6e4a44') + '" stroke="' + (lit ? '#ffc7b4' : '#8d8574') + '" stroke-width="' + (lit ? 3 : 2) + '"/>');
       if (lit) s.push('<rect x="' + (cx - 21) + '" y="' + (LT + 5) + '" width="42" height="9" rx="4" fill="#fff" opacity=".3"/>');
       s.push('<text x="' + cx + '" y="' + (LT + 33) + '" font-size="13" font-weight="700" fill="' + (lit ? '#fffdf8' : '#cdc7b8') + '" text-anchor="middle">' + name + '</text>');
-      s.push('<text x="' + (cx + 14) + '" y="' + (LT + 72) + '" font-size="11.5" font-weight="700" fill="' + (lit ? '#2f7d4f' : C.hi) + '">' + (lit ? '点いている' : '点かない') + '</text>');
+      /* ⚠️そのランプのアースを切る場面だけ、状態語を右へ逃がす＝×印（r=11）に触れるため。
+         💡第4号 key.js の `label(LO + (mode.cutLow ? 26 : 10), ...)` と同じ型＝
+           【印を大きくしたら、隣の文字は場面ごとに逃がす】。固定値で寄せると平時に空きすぎる。 */
+      s.push('<text x="' + (cx + (cut ? 22 : 14)) + '" y="' + (LT + 72) + '" font-size="11.5" font-weight="700" fill="' + (lit ? '#2f7d4f' : C.hi) + '">' + (lit ? '点いている' : '点かない') + '</text>');
     }
 
     if (onL || onR) {
@@ -70,6 +100,14 @@
 
     /* ===== バッテリー〜キースイッチ＝第4号（キー）と同じ道 ===== */
     k.battery(X);
+    /* ⭐端子バッジ＝原典に番号のある端子にだけ付ける（第4号の作法／第6〜8号で全号展開）。
+       この絵で付けるのは + / 30（レギュレータ）/ 30・15/54（キースイッチ）の4か所。
+       ⛔ストップランプの口金には付けない＝実車の口金に「＋」と刻まれた端子は無く、
+         付けると【実車に無い端子を探させる】ことになる（ルールの原文どおり）。
+         ⭐本文も「左のランプの ＋ から分かれる」→「左のランプのソケットのところで分かれる」に直した
+           ＝【ソケットは実車で指せるが、＋は指せない】。
+       ⛔ストップスイッチの2本にも付けない＝原典に端子名が無い。 */
+    k.term(X, 74, '+', 'l');
     k.seg(X, 62, X, 100, 'w11-01', true);
     k.label(X + 12, 84, 'ROSSO 赤・太', WC.ROSSO, null, 11);
     k.node(X, 100);
@@ -84,6 +122,7 @@
     s.push('<text x="42" y="137" font-size="11.5" fill="#fffdf8" text-anchor="middle">レギュレータ</text>');
     s.push('<text x="42" y="152" font-size="10" fill="' + C.in_ + '" text-anchor="middle">（車の後ろ）</text>');
     s.push('<path d="M80,140 L' + X + ',140" stroke="' + C.deep + '" stroke-width="3.5"/>');
+    k.term(X, 140, '30', 'r');
 
     k.seg(X, 140, X, 186, 'w11-04', true);
     k.label(X + 12, 172, 'ROSSO 赤・太', WC.ROSSO, null, 11);
@@ -95,9 +134,9 @@
 
     k.seg(X, 186, X, KT, 'w10-01', true);
     k.label(X + 12, 218, 'ROSSO 赤・太', WC.ROSSO, null, 11);
-    k.label(X - 12, KT - 6, '30', C.deep, 'end', 11);
+    k.term(X, KT - 12, '30', 'l');
     k.keySwitch(X, KT, keyOn);
-    k.label(X - 12, KT + 60, '15/54', C.deep, 'end', 11);
+    k.term(X, KT + 60, '15/54', 'l');
 
     /* ===== キーの先＝15/54 の節点。⭐ここで3方向に分かれるのがこのストーリーの要 ===== */
     k.seg(X, KT + 48, X, FZ, 'w06-01');
@@ -112,7 +151,7 @@
     s.push('<text x="' + (X + 24) + '" y="' + (FZ + 58) + '" font-size="10" fill="' + C.sub + '">キーONのときだけ生きる</text>');
 
     /* ===== F2の負荷側 → ストップスイッチ ===== */
-    if (mode.cut === 'w06-02') cutV(X, FZ + 62, SB.y, 'w06-02');
+    if (mode.cut === 'w06-02') cutV(X, FZ + 62, SB.y, 'w06-02', true);
     else { k.seg(X, FZ + 62, X, SB.y, 'w06-02'); k.label(X + 12, 424, 'GIALLO E NERO 黄／黒', WC['GIALLO E NERO'], null, 11); }
 
     /* ===== ストップスイッチ（ブレーキ配管の油圧で閉じる） ===== */
@@ -134,7 +173,7 @@
     if (mode.stuck) k.label(198, SB.y + 66, '⚠️固着', C.hi, null, 11.5);
 
     /* ===== ROSSO＝車の左マージンを降りて、左のストップランプへ ===== */
-    if (mode.cut === 'w06-03') cutV(X, SB.y + SB.h, CR, 'w06-03');
+    if (mode.cut === 'w06-03') cutV(X, SB.y + SB.h, CR, 'w06-03', true);
     else { k.seg(X, SB.y + SB.h, X, CR, 'w06-03'); k.label(X + 12, 534, 'ROSSO 赤', WC.ROSSO, null, 11); }
     k.node(X, CR);
 
@@ -152,27 +191,27 @@
     s.push('<path d="M' + RX + ',' + CR + ' L' + RX + ',' + LT + '" stroke="' + c4.col + '" stroke-width="5" stroke-linecap="round"/>');
     s.push('<path d="M' + X + ',' + CR + ' L' + X + ',' + LT + '" stroke="' + k.wcol('w06-03', C.dim).col + '" stroke-width="5" stroke-linecap="round"/>');
 
-    stopLamp(X, '左', onL);
-    stopLamp(RX, '右', onR);
+    stopLamp(X, '左', onL, mode.cut === 'w06-05');
+    stopLamp(RX, '右', onR, mode.cut === 'w06-06');
 
     /* ===== 帰り道＝それぞれのアース ===== */
-    if (mode.cut === 'w06-05') cutV(X, LT + LH, GY, 'w06-05', false);
+    if (mode.cut === 'w06-05') cutV(X, LT + LH, GY, 'w06-05');
     else { k.seg(X, LT + LH, X, GY, 'w06-05'); k.label(X - 12, 652, 'NERO 黒', WC.NERO, 'end', 10.5); }
     k.ground(X, GY, '');
-    if (mode.cut === 'w06-06') cutV(RX, LT + LH, GY, 'w06-06', false);
+    if (mode.cut === 'w06-06') cutV(RX, LT + LH, GY, 'w06-06');
     else k.seg(RX, LT + LH, RX, GY, 'w06-06');
     k.ground(RX, GY, '');
 
     /* ⚠️注記は必ず2行に割る＝図の幅は 300 しかなく、font 10.5 の日本語は【1行22文字】で
          右端に届く。第8号までは1行で足りていたが、このストーリーは言うことが多い（実測ではみ出した）。 */
-    k.label(6, 698, '⬆ 後ろの2つのストップランプ。原典の配線は左の灯まで', C.sub, null, 10.5);
+    k.label(6, 698, '⬆ 後ろの2つのストップランプ。原典の配線は左のランプまで', C.sub, null, 10.5);
     k.label(6, 712, '　 1本で下り、そこから右へ渡る。', C.sub, null, 10.5);
     function warn(a, b) {
       k.label(6, 732, a, C.hi, null, 10.5);
       if (b) k.label(6, 746, b, C.hi, null, 10.5);
       return b ? 758 : 744;
     }
-    if (mode.cut) return warn('⚠️○印の1本だけが外れている。どの灯が消えたかで、', '　 切れた場所が言い当てられる。');
+    if (mode.cut) return warn('⚠️×印の1本だけが外れている。どのランプが消えたかで、', '　 切れた場所が言い当てられる。');
     if (blown) return warn('⚠️F2 が切れると、ブレーキを踏んでも接点の', '　 先に電気が来ない。');
     if (!keyOn) return warn('⚠️キーがOFF＝ヒューズ F2 から先はすべて死んで', '　 いる。これが 500 の正常な姿。');
     if (mode.stuck) return warn('⚠️ペダルを離しても接点が戻らない＝点きっぱなし。');
@@ -199,7 +238,7 @@
     { label: 'キーON・ブレーキを離している', s: { inputs: { key: 'ON', brake: 'UP' } }, expect: false, words: LW },
     { label: 'キーON・ブレーキを踏む（左）', s: { inputs: ON }, expect: true, words: LW },
     { label: '↑同じ場面の右のランプ', s: { inputs: ON }, expect: true, read: right, words: LW },
-    /* ⭐500の正常な姿＝キーOFFではブレーキ灯も点かない（F2 がキーの先にいるため） */
+    /* ⭐500の正常な姿＝キーOFFではブレーキランプも点かない（F2 がキーの先にいるため） */
     { label: 'キーOFF・ブレーキを踏む', s: { inputs: { brake: 'PRESSED' } }, expect: false, words: LW },
     { label: '↑同じ場面でホーンを押す（常時電源は生きている）', s: { inputs: { brake: 'PRESSED', horn_btn: 'PRESSED' } }, expect: true, read: horn, words: HW },
     /* ⭐F2 が切れた＝このストーリーで初めて「ヒューズが本当の犯人」になる本線 */
@@ -211,8 +250,8 @@
     /* ⭐渡りの線が切れた＝左は点いて右だけ消える。この2行が「絞り込み」の表そのもの */
     { label: '渡りの赤線（w06-04）が外れた・踏む（左）', s: { inputs: ON, ops: cut('w06-04') }, expect: true, words: LW },
     { label: '↑同じ場面の右のランプ', s: { inputs: ON, ops: cut('w06-04') }, expect: false, read: right, words: LW },
-    /* 片側のアースが落ちた＝その灯だけが消える */
-    { label: '左灯のアース（w06-05）が外れた・踏む（左）', s: { inputs: ON, ops: cut('w06-05') }, expect: false, words: LW },
+    /* 片側のアースが落ちた＝そのランプだけが消える */
+    { label: '左のランプのアース（w06-05）が外れた・踏む（左）', s: { inputs: ON, ops: cut('w06-05') }, expect: false, words: LW },
     { label: '↑同じ場面の右のランプ', s: { inputs: ON, ops: cut('w06-05') }, expect: true, read: right, words: LW },
     /* 渡りの手前が切れた＝左右とも消える */
     { label: 'スイッチから下る赤線（w06-03）が外れた・踏む（左）', s: { inputs: ON, ops: cut('w06-03') }, expect: false, words: LW },
@@ -233,9 +272,9 @@
     alt: false,
     mainInit: 'PRESSED',
     mainInputs: function (v) { return { key: 'ON', brake: v }; },
-    /* 右の灯は主役ではないが絵に出る＝場面ごとに拾っておく */
+    /* 右のランプは主役ではないが絵に出る＝場面ごとに拾っておく */
     extra: function (sc) { sc.rOn = get(sc, 'stop_r'); },
-    /* 黄点の向き。⚠️左右のアースは【その灯が点いているときだけ】流れる＝
+    /* 黄点の向き。⚠️左右のアースは【そのランプが点いているときだけ】流れる＝
          アースにつながってさえいれば線は live になるので、ここで区間ごとに分ける。 */
     flow: function (sc, id) {
       if (id === 'w06-05') return sc.lampOn ? 'down' : null;
@@ -249,7 +288,7 @@
       return [
         /* ★①キーOFF＝踏んでも点かない。これは故障ではない（最初に潰す迷い道） */
         { id: 'j-keyoff', sc: scenario({ inputs: { brake: 'PRESSED' } }), mode: {} },
-        /* ★②ヒューズ F2 が切れた＝ブレーキ灯もウインカーもワイパーも死ぬ */
+        /* ★②ヒューズ F2 が切れた＝ブレーキランプもウインカーもワイパーも死ぬ */
         { id: 'j-blown', sc: scenario({ inputs: { key: 'ON', brake: 'PRESSED', f2: 'BLOWN' } }), mode: {} },
         /* ★③渡りが外れた＝左は点くのに右だけ消える（このストーリーの山場） */
         { id: 'j-cross', sc: scenario({ inputs: { key: 'ON', brake: 'PRESSED' }, ops: [{ op: 'removeWire', id: 'w06-04' }] }), mode: { cut: 'w06-04' } },
@@ -273,7 +312,7 @@
                 { id: 'ign_sw', color: '#2c3a31', label: 'キースイッチ' }],
         legend: '<text x="40" y="1430" font-size="96" fill="#a49b87">←車の前方（トランク）</text>' +
                 '<text x="2980" y="1430" font-size="96" fill="#a49b87" text-anchor="end">車の後ろ（エンジン）→</text>' +
-                '<text x="1510" y="-40" font-size="96" fill="#a49b87" text-anchor="middle">車を上から（上が車の右側）</text>'
+                '<text x="1510" y="-32" font-size="96" fill="#a49b87" text-anchor="middle">車を上から（上が車の右側）</text>'
       };
     }
   });
