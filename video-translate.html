@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-27SHHC4JYH');</script>
+
+  <title>外国語の動画を自分で正確に日本語化する｜FIAT 500/126 動画ガイド | Registro500</title>
+  <meta name="description" content="イタリア語・英語のFIAT 500/126整備動画を、自分の環境で・無料で・正確に日本語化するための道案内。要約ではなく正確な翻訳を得る方法を、無料と有料に分けてまとめました。">
+  <!-- ⚠️ 作業場運用（導線なし・検索避け）。公開が確定するまで noindex を外さないこと。 -->
+  <meta name="robots" content="noindex, nofollow">
+
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    :root{
+      --bg:#f5f0e6; --card:#fffefb; --sunk:#f2ece0; --ink:#2e2a24; --muted:#7a705f; --line:#d6c9b0;
+      --accent:#4D6B3C; --accent-soft:#eef3ea; --radius:12px;
+      --note:#eef2ff; --note-line:#dbe0ff; --note-ink:#3730a3;
+      --bad:#a33a2a; --bad-bg:#fbf0ed; --good:#3a6b4c; --good-bg:#eef4ef;
+      --mono:ui-monospace,SFMono-Regular,Consolas,Menlo,monospace;
+    }
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg:#1a1714; --card:#2b2721; --sunk:#211f1b; --ink:#ece6d9; --muted:#a89e8c; --line:#403a30;
+        --accent-soft:#24352a;
+        --note:#24352a; --note-line:#3a4d3f; --note-ink:#9fc7ab;
+        --bad:#e08a75; --bad-bg:#2b1d19; --good:#8cc4a1; --good-bg:#1a241d;
+      }
+    }
+    *{box-sizing:border-box;}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif;line-height:1.75;}
+    a{color:inherit;}
+
+    .vp-nav{position:sticky;top:0;z-index:50;background:#1A1A18;display:flex;align-items:center;justify-content:space-between;padding:12px 18px;}
+    .vp-nav a{color:rgba(255,255,255,.8);text-decoration:none;font-size:.82rem;letter-spacing:.06em;}
+    .vp-nav a:hover{color:#fff;}
+    .vp-nav .brand{letter-spacing:.25em;text-transform:uppercase;font-size:.72rem;color:rgba(255,255,255,.6);}
+
+    .wrap{max-width:760px;margin:0 auto;padding:20px 16px 90px;}
+
+    h1{font-size:clamp(1.3rem,4.4vw,1.75rem);margin:16px 0 6px;line-height:1.4;text-wrap:balance;}
+    .lead{color:var(--muted);font-size:.92rem;margin:0 0 22px;}
+
+    h2{font-size:clamp(1.05rem,3.2vw,1.22rem);margin:38px 0 12px;padding-bottom:7px;border-bottom:2px solid var(--line);}
+    h3{font-size:1rem;margin:22px 0 6px;}
+    p{margin:0 0 14px;font-size:.94rem;}
+
+    .disclaimer{background:var(--sunk);border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px;margin:0 0 22px;font-size:.88rem;color:var(--muted);}
+    .disclaimer strong{color:var(--ink);}
+
+    .tldr{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:var(--radius);padding:14px 18px;margin:0 0 26px;}
+    .tldr h2{margin:0 0 8px;font-size:.9rem;border:none;padding:0;letter-spacing:.06em;color:var(--muted);}
+    .tldr ol{margin:0;padding-left:1.3em;}
+    .tldr li{font-size:.92rem;margin-bottom:7px;}
+    .tldr li:last-child{margin-bottom:0;}
+
+    .step-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin:14px 0 20px;}
+    .step-card .tag{display:inline-block;font-size:.72rem;letter-spacing:.06em;padding:3px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent);border:1px solid var(--line);margin-bottom:10px;}
+    @media (prefers-color-scheme: dark){ .step-card .tag{color:var(--note-ink);} }
+    .step-card .tag.free{background:var(--good-bg);color:var(--good);}
+    .step-card .tag.paid{background:var(--bad-bg);color:var(--bad);}
+    .step-card h3{margin-top:0;}
+    ol.steps{margin:10px 0 12px;padding-left:1.35em;}
+    ol.steps li{margin-bottom:8px;font-size:.93rem;}
+    ul.plain{margin:8px 0 12px;padding-left:1.25em;}
+    ul.plain li{margin-bottom:6px;font-size:.93rem;}
+    .sub{font-size:.86rem;color:var(--muted);}
+
+    .prompt-box{background:var(--sunk);border:1px solid var(--line);border-radius:9px;padding:12px 15px;margin:10px 0;font-size:.88rem;font-family:var(--mono);line-height:1.6;color:var(--ink);}
+
+    /* ビフォーアフター */
+    .ba{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0 18px;background:var(--card);}
+    .ba .r{display:grid;grid-template-columns:82px 1fr;border-bottom:1px solid var(--line);}
+    .ba .r:last-child{border-bottom:none;}
+    .ba .k{padding:9px 11px;font-size:.72rem;letter-spacing:.04em;color:var(--muted);background:var(--sunk);display:flex;align-items:flex-start;}
+    .ba .v{padding:9px 12px;font-size:.88rem;}
+    .ba .v.it{font-family:var(--mono);font-size:.8rem;color:var(--muted);}
+    .ba .v.bad{color:var(--bad);background:var(--bad-bg);}
+    .ba .v.good{color:var(--good);background:var(--good-bg);}
+    @media (max-width:520px){
+      .ba .r{grid-template-columns:1fr;}
+      .ba .k{padding:7px 12px 2px;background:transparent;}
+    }
+
+    /* 早見表 */
+    .scroll{overflow-x:auto;margin:12px 0 8px;}
+    table{width:100%;border-collapse:collapse;font-size:.85rem;}
+    th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+    th{font-size:.74rem;letter-spacing:.04em;color:var(--muted);font-weight:600;white-space:nowrap;}
+    .yes{color:var(--good);font-weight:600;}
+    .no{color:var(--bad);font-weight:600;}
+
+    .note{background:var(--note);border:1px solid var(--note-line);border-radius:10px;padding:13px 17px;margin:18px 0;font-size:.87rem;}
+    .note .nt{color:var(--note-ink);font-weight:600;display:block;margin-bottom:5px;}
+    .caution{background:var(--card);border:1px solid var(--line);border-left:4px solid #b0603a;border-radius:var(--radius);padding:14px 18px;margin:26px 0 0;font-size:.87rem;color:var(--muted);}
+
+    code{font-family:var(--mono);font-size:.86em;background:var(--sunk);padding:1px 5px;border-radius:4px;}
+
+    .backlink{margin-top:38px;text-align:center;}
+    .backlink a{display:inline-block;padding:11px 22px;border:1px solid var(--line);border-radius:999px;background:var(--card);text-decoration:none;font-size:.9rem;}
+    .backlink a:hover{border-color:var(--accent);background:var(--accent-soft);}
+    a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  </style>
+  <!-- 左下「一つ前に戻る」（ホーム画面起動時のみ）／右下「先頭へ」の浮かぶボタン -->
+  <script src="fab-nav.js" defer></script>
+</head>
+<body>
+  <nav class="vp-nav">
+    <a href="/videos">← 動画ガイドに戻る</a>
+    <a class="brand" href="/">Registro500</a>
+  </nav>
+
+  <div class="wrap">
+    <h1>🌍 外国語の動画を、自分で正確に日本語化する</h1>
+    <p class="lead">FIAT 500・126 の整備動画は、そのほとんどがイタリア語か英語です。YouTube の自動翻訳も年々よくなっていますが、旧車整備の専門用語ではまだ崩れが残ります。そこで、<strong>あなた自身の手で、無料で、要約ではない正確な日本語</strong>を得るための道案内をまとめました。</p>
+
+    <div class="disclaimer">
+      このページは翻訳機能ではありません。当サイトが動画を翻訳してお渡しするわけではなく、<strong>あなたが自分の環境で使える無料の道具を紹介する道案内</strong>です。どの手段を使うか、YouTube と組み合わせて視聴するかは、あなたご自身の判断になります。当サイトはそのお手伝いに徹します。
+    </div>
+
+    <div class="tldr">
+      <h2>先に結論</h2>
+      <ol>
+        <li><strong>英語の動画</strong>なら、YouTube にすでに<strong>日本語の吹き替え音声</strong>が付いていることがあります（手間ゼロ・無料）</li>
+        <li><strong>正確な日本語の字幕がほしい</strong>なら、動画の字幕を取り出して<strong>無料のAI（Gemini・ChatGPTなど）に貼る</strong>のが確実です。専門用語まで正しく訳せます</li>
+        <li>これらは<strong>すべてあなたの手元で完結する私的な利用</strong>です。特別な契約もお金も要りません</li>
+      </ol>
+    </div>
+
+    <h2>YouTube の自動翻訳は、いまどこでつまずくのか</h2>
+    <p>YouTube の日本語自動翻訳は、字幕を時間で区切った<strong>断片を1つずつ機械的に訳す</strong>仕組みのため、整備の専門用語で崩れやすいのが現状です（2026年8月にイタリア語動画で実測）。</p>
+    <div class="ba">
+      <div class="r"><div class="k">原文</div><div class="v it">Procediamo con la pulizia delle sedi.</div></div>
+      <div class="r"><div class="k">YouTube</div><div class="v bad">オフィス清掃に取り掛かります</div></div>
+      <div class="r"><div class="k">正しくは</div><div class="v good">（バルブ）シート／溝(sedi)の清掃に進みます</div></div>
+    </div>
+    <div class="ba">
+      <div class="r"><div class="k">原文</div><div class="v it">…rimuoviamo le incrostazioni sul cielo.</div></div>
+      <div class="r"><div class="k">YouTube</div><div class="v bad">空模様に矛盾が見られる</div></div>
+      <div class="r"><div class="k">正しくは</div><div class="v good">ピストン頂面(cielo)に固着した堆積物を取り除きます</div></div>
+    </div>
+    <p>これでは手順書になりません。以下の方法なら、この崩れを解消できます。</p>
+
+    <h2>方法A｜英語の動画は「日本語の音声」で聞く</h2>
+    <div class="step-card">
+      <span class="tag free">無料・手間ゼロ</span>
+      <p style="margin-top:2px;">YouTube には <strong>AIによる吹き替え音声</strong>の機能があり、英語の動画には日本語の音声トラックが用意されていることがあります。字幕を読むのではなく、<strong>日本語で「聞く」</strong>ことができます。</p>
+      <h3>切り替え方</h3>
+      <ol class="steps">
+        <li>動画を再生し、<strong>映像部分を1回タップ</strong>して操作ボタンを出します</li>
+        <li>右上の<strong>⚙️（設定）→「音声トラック」→「日本語」</strong>を選びます（「字幕」ではなく「音声トラック」です。iPhone・パソコンで確認済み）</li>
+      </ol>
+      <p class="sub">※ アプリ全体の設定画面ではなく、<strong>再生中のプレーヤーの中</strong>にあります。また「音声トラック」の項目は<strong>日本語音声が用意されている動画にしか表示されません</strong>。いま付いているのは主に<strong>英語が原語の動画</strong>で、イタリア語の FIAT 専門動画にはまだ少なく、その場合は下の方法Bへ。</p>
+    </div>
+
+    <h2>方法B｜正確な字幕がほしい ── 無料AIに貼る<span style="font-size:.7em;color:var(--accent);">（本命）</span></h2>
+    <p>いちばん確実で、費用がかからず、<strong>イタリア語でも英語でも同じ品質</strong>になる方法です。動画の字幕テキストを取り出して、無料のAIに文脈ごと訳してもらいます。</p>
+    <div class="step-card">
+      <span class="tag free">完全無料</span>
+      <h3>手順</h3>
+      <ol class="steps">
+        <li>パソコンで動画を開き、概要欄の<strong>「…もっと見る」→「文字起こしを表示」</strong>を押します。字幕のテキストが時刻つきで一覧表示されます</li>
+        <li>そのテキストを<strong>選択してコピー</strong>します</li>
+        <li>無料のAI（<a href="https://gemini.google.com/" target="_blank" rel="noopener noreferrer">Gemini</a>・<a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">ChatGPT</a>・<a href="https://claude.ai/" target="_blank" rel="noopener noreferrer">Claude</a> など、いずれも無料で使えます）に貼り付け、次のように頼みます</li>
+      </ol>
+      <div class="prompt-box">クラシックFIAT 500の整備動画の字幕です。時刻表示は無視し、専門用語は原語（伊/英）を括弧で併記して、文脈を踏まえた自然な日本語に訳してください。</div>
+      <div class="note">
+        <span class="nt">なぜこれで正確になるのか</span>
+        AIは<strong>字幕全体を文脈として読んでから</strong>訳すので、断片ごとに崩れる YouTube 自動翻訳と違い、「シート」が「オフィス」に化けることがありません。旧車整備の専門用語も文脈から正しく判断します。原語を併記させれば、訳が不安なときも <em>cielo</em>（頂面）や <em>sedi</em>（溝）と自分で確かめられます。
+      </div>
+    </div>
+
+    <h2>方法C｜毎回コピペが面倒なら ── 拡張＋自分の無料AIキー</h2>
+    <div class="step-card">
+      <span class="tag free">無料・上級者向け</span>
+      <p style="margin-top:2px;">動画をよく見るなら、ブラウザの<strong>翻訳拡張機能</strong>に<strong>自分の無料AIキー</strong>を設定しておくと、再生するだけで原文と日本語が二段で出ます。方法Bの品質を、毎回コピペせずに得られます。</p>
+      <ol class="steps">
+        <li><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a> で <strong>Gemini の APIキー</strong>を無料で取得します</li>
+        <li><a href="https://immersivetranslate.com/" target="_blank" rel="noopener noreferrer">Immersive Translate</a> などの拡張を入れ、翻訳サービスに<strong>そのGeminiキーを設定</strong>します（<a href="https://immersivetranslate.com/docs/services/gemini/" target="_blank" rel="noopener noreferrer">公式の設定手順</a>）</li>
+        <li>YouTube で動画を開くと、AI品質の二段字幕が自動で出ます</li>
+      </ol>
+      <p class="sub">※ 無料枠には1分あたりの回数制限がありますが、動画を見る分には十分です。設定画面や無料枠の条件は変わることがあるので、各公式ページで確かめてください。当サイトはこれらのサービスと何の関係もありません。</p>
+    </div>
+
+    <h2>方法D｜字幕が無い動画・手間を最小にしたい ── 有料の道具</h2>
+    <p>方法B・Cは<strong>動画に字幕がある</strong>ことが前提です（「文字起こしを表示」が出ない動画には字幕がありません）。字幕が無い動画を訳すには、<strong>音声そのものをAIが聞き取って字幕を作り直す</strong>必要があり、これは今のところ<strong>有料の機能</strong>になります（2026年8月時点）。</p>
+    <div class="step-card">
+      <span class="tag paid">有料</span>
+      <h3>選択肢は2系統</h3>
+      <ul class="plain">
+        <li><strong>音声から字幕を作り直す</strong> ── <a href="https://www.trancy.org/" target="_blank" rel="noopener noreferrer">Trancy</a> の「AI字幕」など。音声認識(Whisper)で字幕そのものを生成するため、<strong>字幕が無い動画にも効く</strong>唯一の道。拡張を入れて有料プランを契約し、動画で「AI字幕」を有効にすると数分の処理後に二段字幕が出ます</li>
+        <li><strong>設定の手間を金で買う</strong> ── <a href="https://immersivetranslate.com/" target="_blank" rel="noopener noreferrer">Immersive Translate</a> などの有料プラン。DeepL や AI エンジンが<strong>APIキー設定なしで</strong>使え、方法Cと同等の品質が契約するだけで手に入ります（対象は字幕あり動画）</li>
+      </ul>
+      <p class="sub">※ 料金とプラン内容は変わるため、各公式ページでお確かめください（この記述は2026年8月時点）。<strong>まず無料の方法A・Bを試して、足りないと感じてからで十分です。</strong>当サイトはこれらのサービスと何の関係もありません。</p>
+    </div>
+
+    <h2>無料と有料の早見表（2026年8月時点）</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>方法</th><th>費用</th><th>品質</th><th>対象</th><th>手間</th></tr></thead>
+        <tbody>
+          <tr><td>A. YouTube 日本語音声</td><td class="yes">無料</td><td>○ 自然</td><td>英語動画が中心</td><td>なし</td></tr>
+          <tr><td>B. 字幕を無料AIに貼る</td><td class="yes">無料</td><td>◎ 正確</td><td>字幕あり動画</td><td>コピペ</td></tr>
+          <tr><td>C. 拡張＋無料AIキー</td><td class="yes">無料</td><td>◎ 正確</td><td>字幕あり動画</td><td>初回設定</td></tr>
+          <tr><td>（参考）YouTube 自動翻訳字幕</td><td class="yes">無料</td><td>△ 用語が崩れやすい</td><td>字幕あり動画</td><td>なし</td></tr>
+          <tr><td>D. 拡張のPro / Trancy AI字幕</td><td class="no">有料</td><td>◎ 正確</td><td>字幕なし動画も可</td><td>少ない</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="caution">
+      いずれも<strong>あなた自身が視聴するための私的な利用</strong>の範囲でお使いください。翻訳した結果を公開・再配布することは想定していません。また、機械翻訳・AI翻訳はどれだけ正確でも<strong>参考の域を出ません</strong>。締め付けトルクや配線の色などの数値・固有名詞は、必ず元の動画の映像と整備書で確認してください。
+    </div>
+
+    <p class="sub" style="margin-top:16px;text-align:center;">このページの内容は <strong>2026年8月</strong> に実測・確認したものです。翻訳の世界は動きが速いため、各サービスの最新の仕様は公式ページでお確かめください。</p>
+
+    <div class="backlink">
+      <a href="/videos">🎬 動画ガイドへ戻る</a>
+    </div>
+  </div>
+</body>
+</html>
