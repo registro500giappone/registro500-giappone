@@ -20,40 +20,70 @@
        ②高圧の囲みは【右横ではなく一番下の帯】。右に置くとキースイッチや電線のラベルと
          横で押し合って、どちらも読めなくなった。下に敷けば横幅を全部使える。 */
   var X = 76;                                  /* 一次の輪の縦軸 */
-  var CB = { x: 16, y: 222, w: 174, h: 90 };   /* コイルの箱 */
-  var DB = { x: 16, y: 362, w: 174, h: 68 };   /* デスビ（ポイント）の箱 */
-  var HT = { x: 6, y: 500, w: 288, h: 104 };   /* 高圧側＝この絵の外（一番下の帯） */
+  /* ⚠️2026-08-24：端子バッジ（k.term）と切断の札（chip）を入れるため、箱を下へずらして
+       縦の余白を広げた。数値はブラウザの getBBox 実測で「文字も札もバッジも重ならない」
+       ことを確かめた結果＝目分量で動かさないこと（動かしたら必ず衝突検査を回す）。 */
+  var CB = { x: 16, y: 252, w: 174, h: 90 };   /* コイルの箱 */
+  var DB = { x: 16, y: 396, w: 174, h: 68 };   /* デスビ（ポイント）の箱 */
+  var HT = { x: 6, y: 560, w: 288, h: 104 };   /* 高圧側＝この絵の外（一番下の帯） */
 
   function draw(k, mode) {
     var sc = k.sc, pos = k.pos, s = k.s;
     var on = pos.ign_sw === 'ON', closed = pos.distributor === 'CLOSED';
 
-    function cutV(y1, y2, id, thick) {
-      var mid = (y1 + y2) / 2, col = k.wcol(id, C.dim).col, w = thick ? 6.5 : 5;
-      s.push('<path d="M' + X + ',' + y1 + ' L' + X + ',' + (mid - 8) + ' M' + X + ',' + (mid + 8) + ' L' + X + ',' + y2 + '" stroke="' + col + '" stroke-width="' + w + '" stroke-linecap="round"/>');
-      s.push('<circle cx="' + X + '" cy="' + mid + '" r="6" fill="none" stroke="' + C.hi + '" stroke-width="3"/>');
-      k.label(X + 14, mid + 4, 'ここが外れている', C.hi, null, 12);
+    /* 赤地に白抜きの札＝この絵でいちばん見てほしい所に1枚だけ置く（第4号と同じ道具）。
+       ⚠️札は1つの絵に1枚まで。2枚置くと、どちらを見ればいいのか分からなくなる。 */
+    function chip(x, y, t) {
+      var w = t.length * 12 + 14, h = 22;
+      s.push('<rect x="' + x + '" y="' + (y - h / 2) + '" width="' + w + '" height="' + h + '" rx="5" fill="' + C.hi + '"/>');
+      s.push('<text x="' + (x + 7) + '" y="' + (y + 4.5) + '" font-size="12" font-weight="700" fill="#fffdf8">' + t + '</text>');
+    }
+    /* 線が1本外れている場面の描き方＝【赤の序列】（2026-08-24・第4号で決まった作法をこの号にも当てた）。
+       すき間を広げ・×を打ち・ハローを敷き・図幅いっぱいの破線で「ここから下が死ぬ」境界を引き、
+       赤地に白抜きの札を1枚だけ添える。⚠️赤はこの「切れている場所」ただ1つに取っておく。
+       ⚠️opt.mid＝すき間の中心を区間の真ん中から動かす（端子バッジと近づきすぎるのを避ける）。
+       ⚠️札は図の【右の余白】に出す＝左は端子バッジの列（x=26〜67）で埋まっている。 */
+    function cutV(y1, y2, id, thick, opt) {
+      opt = opt || {};
+      var mid = opt.mid || (y1 + y2) / 2, col = k.wcol(id, C.dim).col, g = 13, w = thick ? 6.5 : 5;
+      s.push('<path d="M' + X + ',' + y1 + ' L' + X + ',' + (mid - g) + '" stroke="' + col + '" stroke-width="' + w + '" stroke-linecap="round"/>');
+      s.push('<path d="M' + X + ',' + (mid + g) + ' L' + X + ',' + y2 + '" stroke="' + col + '" stroke-width="' + w + '" stroke-linecap="round"/>');
+      s.push('<path d="M4,' + mid + ' L296,' + mid + '" stroke="' + C.hi + '" stroke-width="1.4" stroke-dasharray="4 6" opacity="0.4"/>');
+      s.push('<circle cx="' + X + '" cy="' + mid + '" r="19" fill="' + C.hi + '" opacity="0.13"/>');
+      s.push('<circle cx="' + X + '" cy="' + mid + '" r="11" fill="none" stroke="' + C.hi + '" stroke-width="3"/>');
+      s.push('<path d="M' + (X - 5.5) + ',' + (mid - 5.5) + ' L' + (X + 5.5) + ',' + (mid + 5.5)
+        + ' M' + (X + 5.5) + ',' + (mid - 5.5) + ' L' + (X - 5.5) + ',' + (mid + 5.5)
+        + '" stroke="' + C.hi + '" stroke-width="3" stroke-linecap="round"/>');
+      chip(150, mid, '外れている');
     }
 
     /* ===== バッテリー〜キーまでは第1〜4号でたどった道＝畳む ===== */
     k.battery(X);
+    /* ⭐端子バッジ＝原典に番号（記号）のある端子にだけ付ける（2026-08-24・第4号の作法）。
+       この絵で付けるのは + / 30 / 15/54 / コイルの + ・D ・B の6か所。
+       ⚠️デスビの接点とアースには付けない＝原典に番号が無いから（付けると実車に無い端子を探させる）。
+       ⚠️コイルの D・B は原典の配線図では割付を断定できない（端子台帳の⛔）が、実車のコイルには
+         刻印があり、本文がそこへテスターを当てろと言っている＝図と本文を1対1にするために出す。 */
+    k.term(X, 74, '+', 'l');
     s.push('<path d="M' + X + ',62 L' + X + ',118" stroke="' + (on ? WC.ROSSO : C.dim) + '" stroke-width="5" stroke-dasharray="9 6" stroke-linecap="round"/>');
     k.label(X + 14, 84, '第1〜4号でたどった道', C.sub, null, 10);
     k.label(X + 14, 97, '（レギュレータ30→ヒューズ箱の', C.sub, null, 10);
     k.label(X + 14, 110, '　電源側→キーの30）', C.sub, null, 10);
 
     /* ===== キースイッチ（30 ↔ 15/54） ===== */
+    k.term(X, 106, '30', 'l');                 /* キーの入口＝常時プラス */
     k.keySwitch(X, 118, on);
+    k.term(X, 178, '15/54', 'l');              /* キーONで出ていく側。ここから2本が別々の行き先へ */
     /* このストーリーが通らない枝＝計器盤の警告灯とヒューズF2。⚠️コイルはF2を通らない。
        ⚠️分岐は y=180（キースイッチのラベル y=152 から十分離す）。166 に置いたら文字が重なった。 */
-    k.node(X, 180);
-    k.dashOut(X, 180, 150);
-    k.label(152, 174, '計器盤の警告灯・', C.sub, null, 10);
-    k.label(152, 187, 'ヒューズF2へ', C.sub, null, 10);
+    k.node(X, 178);
+    k.dashOut(X, 178, 150);
+    k.label(152, 172, '計器盤の警告灯・', C.sub, null, 10);
+    k.label(152, 185, 'ヒューズF2へ', C.sub, null, 10);
 
     /* ===== 15/54 → コイルの＋ ===== */
-    if (mode.cut === 'w09-01') cutV(166, CB.y, 'w09-01');
-    else { k.seg(X, 166, X, CB.y, 'w09-01'); k.label(X + 14, 212, 'AZZURRO 水色', WC.AZZURRO, null, 11); }
+    if (mode.cut === 'w09-01') cutV(178, CB.y, 'w09-01', false, { mid: 215 });
+    else { k.seg(X, 178, X, CB.y, 'w09-01'); k.label(X + 14, 212, 'AZZURRO 水色', WC.AZZURRO, null, 11); }
 
     /* ===== コイル（一次巻線＝この絵で計算している負荷） =====
        3列に分ける：左＝端子名／中央 x=76＝巻線／右＝文字 */
@@ -65,19 +95,21 @@
     s.push('<path d="M' + X + ',' + (CB.y + 22) + ' q18,8 0,16 q18,8 0,16 q18,8 0,16" fill="none" stroke="' + C.in_ + '" stroke-width="3.5"/>');
     s.push('<path d="M' + X + ',' + (CB.y + 70) + ' L' + X + ',' + (CB.y + 88) + '" stroke="' + C.in_ + '" stroke-width="3"/>');
     if (sc.coilOn) k.dots(X, CB.y + 8, CB.y + 80, false);
-    k.label(66, CB.y + 20, '＋', C.in_, 'end', 12);
-    k.label(66, CB.y + 86, 'D', C.in_, 'end', 12);
+    /* ⚠️＋とDは本文の絞り込みで【実際にテスターを当てる】2つ＝hero（濃く反転）で出す。
+       ⚠️バッジは箱の外（上端-12／下端+12）＝箱の縁や巻線に重ねない。 */
+    k.term(X, CB.y - 12, '+', 'l', true);
+    k.term(X, CB.y + CB.h + 10, 'D', 'l', true);
     k.label(100, CB.y + 52, sc.coilOn ? '電流が流れて' : 'いま電流は', sc.coilOn ? '#7fd6a0' : C.in_, null, 10);
     k.label(100, CB.y + 66, sc.coilOn ? '磁気を溜めている' : '流れていない', sc.coilOn ? '#7fd6a0' : C.in_, null, 10);
     /* B端子＝二次（高圧）の出口。ここから先は計算しない＝下の帯へ送る */
     s.push('<path d="M' + (X + 18) + ',' + (CB.y + 32) + ' L' + (CB.x + CB.w) + ',' + (CB.y + 32) + '" stroke="' + C.in_ + '" stroke-width="2.5"/>');
-    k.label(164, CB.y + 28, 'B', C.in_, null, 11);
+    k.term(CB.x + CB.w, CB.y + 32, 'B', 'l');
     s.push('<path d="M' + (CB.x + CB.w) + ',' + (CB.y + 32) + ' L214,' + (CB.y + 32) + '" stroke="' + C.out + '" stroke-width="3" stroke-dasharray="5 5"/>');
     k.label(218, CB.y + 36, '→ 高圧へ', C.sub, null, 10);
 
     /* ===== コイルD → ポイント ===== */
-    if (mode.cut === 'w09-02') cutV(CB.y + CB.h, DB.y, 'w09-02');
-    else { k.seg(X, CB.y + CB.h, X, DB.y, 'w09-02'); k.label(X + 14, 342, 'NERO 黒', WC.NERO, null, 11); }
+    if (mode.cut === 'w09-02') cutV(CB.y + CB.h, DB.y, 'w09-02', false, { mid: 376 });
+    else { k.seg(X, CB.y + CB.h, X, DB.y, 'w09-02'); k.label(X + 14, 372, 'NERO 黒', WC.NERO, null, 11); }
 
     /* ===== ディストリビュータ（点火ポイント） ===== */
     s.push('<rect x="' + DB.x + '" y="' + DB.y + '" width="' + DB.w + '" height="' + DB.h + '" rx="8" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
@@ -91,10 +123,11 @@
     s.push('<text x="100" y="' + (DB.y + 54) + '" font-size="11" font-weight="700" fill="' + (closed ? '#7fd6a0' : C.in_) + '">' + (closed ? '閉じている' : '開いている') + '</text>');
 
     /* ===== ポイント → 車体アース ===== */
-    if (mode.cut === 'w09-03') cutV(DB.y + DB.h, 462, 'w09-03');
-    else { k.seg(X, DB.y + DB.h, X, 462, 'w09-03'); k.label(X + 14, 450, 'NERO 黒', WC.NERO, null, 11); }
-    k.ground(X, 462, '車体アース');
-    k.label(6, 492, '⬆ 車体からバッテリーの − へ帰って、輪が閉じる（第5号）。', C.sub, null, 10.5);
+    /* ⚠️アースまでの区間は【56px 以上】空ける＝×のハロー（r=19）とアース記号が食い合う（実測で発見）。 */
+    if (mode.cut === 'w09-03') cutV(DB.y + DB.h, 524, 'w09-03');
+    else { k.seg(X, DB.y + DB.h, X, 524, 'w09-03'); k.label(X + 14, 496, 'NERO 黒', WC.NERO, null, 11); }
+    k.ground(X, 524, '車体アース');
+    k.label(6, 550, '⬆ 車体からバッテリーの − へ帰って、輪が閉じる（第5号）。', C.sub, null, 10.5);
 
     /* ===== 高圧側＝この絵の外（一番下に敷く帯） ===== */
     s.push('<rect x="' + HT.x + '" y="' + HT.y + '" width="' + HT.w + '" height="' + HT.h + '" rx="10" fill="#f3efe4" stroke="' + C.out + '" stroke-width="2.5" stroke-dasharray="7 6"/>');
@@ -118,10 +151,10 @@
     }
 
     if (mode.cut) {
-      k.label(6, 624, '⚠️一次の輪が切れている＝ポイントを開いても、二次に高圧は出ない。', C.hi, null, 10.5);
-      return 638;
+      k.label(6, 684, '⚠️一次の輪が切れている＝ポイントを開いても、二次に高圧は出ない。', C.hi, null, 10.5);
+      return 698;
     }
-    return 618;
+    return 678;
   }
 
   /* ---- トグル（ポイント 閉 ↔ 開）＝このストーリーで人が動かせる唯一のもの ----
@@ -154,7 +187,7 @@
     { label: '↑同じ場面のチャージランプ（無実）', s: { inputs: ON, ops: cut('w09-01') }, expect: true, read: chg, words: LW },
     { label: 'ポイントへの黒線（w09-02）が外れた＝一次', s: { inputs: ON, ops: cut('w09-02') }, expect: false, words: PW },
     { label: 'ポイントのアース（w09-03）が外れた＝一次', s: { inputs: ON, ops: cut('w09-03') }, expect: false, words: PW },
-    { label: '↑同じ場面の油圧灯（無実）', s: { inputs: ON, ops: cut('w09-03') }, expect: true, read: oil, words: LW },
+    { label: '↑同じ場面の油圧警告灯（無実）', s: { inputs: ON, ops: cut('w09-03') }, expect: true, read: oil, words: LW },
     /* キーの手前が切れると、警告灯も点火も一緒に死ぬ＝第4号へ渡す場面 */
     { label: 'キーへの赤線（w10-01）が外れた＝一次', s: { inputs: ON, ops: cut('w10-01') }, expect: false, words: PW },
     { label: '↑同じ場面のチャージランプ（一緒に消える）', s: { inputs: ON, ops: cut('w10-01') }, expect: false, read: chg, words: LW },
@@ -200,11 +233,11 @@
         scale: 4,
         marks: [{ id: 'battery', color: '#8d8574', label: 'バッテリー', anchor: 'start' },
                 { id: 'ign_sw', color: '#b8442e', label: 'キー', anchor: 'start' },
-                { id: 'starter', color: '#8d8574', label: 'セル' },
+                { id: 'starter', color: '#8d8574', label: 'セルモーター' },
                 { id: 'dynamo', color: '#8d8574', label: 'ダイナモ' }],
         legend: '<text x="40" y="1430" font-size="96" fill="#a49b87">←車の前方（トランク）</text>' +
                 '<text x="2980" y="1430" font-size="96" fill="#a49b87" text-anchor="end">車の後ろ（エンジン）→</text>' +
-                '<text x="1510" y="-40" font-size="96" fill="#a49b87" text-anchor="middle">車を上から（上が車の右側）</text>'
+                '<text x="1510" y="-32" font-size="96" fill="#a49b87" text-anchor="middle">車を上から（上が車の右側）</text>'
       };
     }
   });
