@@ -98,7 +98,8 @@
   ol.toc li{background:var(--sheet);border:1px solid var(--sheet-edge);
             border-left:5px solid var(--accent);padding:12px 14px 11px;margin-bottom:7px;
             box-shadow:1px 1px 0 rgba(90,78,55,.13)}
-  ol.toc li.soon{background:#f0ebdd;border-left-color:#b9ab8c}
+  ol.toc li.soon{background:#f0ebdd;border-left-color:#b9ab8c;box-shadow:none}
+  li.next .lead{color:#8d8271}
   li.side{margin-left:22px;border-left-width:5px;border-left-color:#8fa3ad}
   .notes,.find{background:var(--sheet);border:1px solid var(--sheet-edge);padding:14px 15px}
   .notes{margin-top:16px}
@@ -144,7 +145,8 @@
   }
   function jp(d) { var q = d.split('-'); return (q[1] | 0) + '/' + (q[2] | 0); }
 
-  var today = todayJST();
+  /* ⏳確認用＝?d=2026-10-05 のように渡すと、その日の画面を再現できる。⛔本決まりになったら消す */
+  var today = (location.search.match(/[?&]d=(\d{4}-\d{2}-\d{2})/) || [])[1] || todayJST();
 
   fetch('/journey-schedule.json?v=3').then(function (r) { return r.json(); }).then(function (s) {
 
@@ -162,21 +164,36 @@
       });
     });
 
-    var html = '';
+    var html = '', nextOne = null;
     rows.forEach(function (it) {
       var open = today >= it.public;          /* 一般公開ずみ */
       var early = !open && today >= it.early; /* 登録オーナーだけ先に読める */
+
+      /* ⛔②案＝まだ読めない号は目次に出さない。出すのは【次の1本】だけ（2026-08-25 ユーザー指示）
+         ⚠️「次の1本」＝これから公開される号のうち public がいちばん早いもの。同日なら先に並ぶ方を採る */
+      if (!open && !early) {
+        if (!nextOne || it.public < nextOne.public) nextOne = it;
+        return;
+      }
+
       var no = it.side ? ('第' + it.of + '号 別冊') : ('第' + it.n + '号');
-      var when = open ? '<span class="when">公開中</span>' :
-        early ? '<span class="when early">登録オーナー先行</span>' :
-                '<span class="when">' + jp(it.public) + ' 公開</span>';
-      var t = (open || early)
-        ? '<a class="ttl" href="/wiring-journey-' + it.slug + '.html">' + it.title + '</a>'
-        : '<span class="ttl">' + it.title + '</span>';
-      html += '<li class="' + ((open || early) ? '' : 'soon') + (it.side ? ' side' : '') + '">' +
-              '<div><div class="row">' + t + when + '</div>' +
+      var when = open ? '<span class="when">公開中</span>'
+                      : '<span class="when early">登録オーナー先行</span>';
+      html += '<li class="' + (it.side ? 'side' : '') + '">' +
+              '<div><div class="row">' +
+              '<a class="ttl" href="/wiring-journey-' + it.slug + '.html">' + it.title + '</a>' +
+              when + '</div>' +
               '<p class="lead"><span class="no">' + no + '</span>' + it.lead + '</p></div></li>';
     });
+
+    /* 次の1本＝タイトルと日付だけ。⛔リード文もその先の号も見せない */
+    if (nextOne) {
+      html += '<li class="soon next"><div><div class="row">' +
+              '<span class="ttl">' + nextOne.title + '</span>' +
+              '<span class="when">' + jp(nextOne.public) + ' 公開</span>' +
+              '</div><p class="lead">次回。この先は毎週金曜に1本ずつ増えます。</p></div></li>';
+    }
+
     document.getElementById('list').innerHTML = html;
 
     /* ===== 症状から探す＝後段に小さく。
@@ -189,15 +206,17 @@
     ];
     var by = {};
     s.issues.forEach(function (it) { by[it.slug] = it; });
-    var f = '<b>症状から探す</b>';
+    var f = '', lines = '';
     GROUPS.forEach(function (g) {
-      f += g[0] + ' → ' + g[1].map(function (sl) {
-        var it = by[sl];
-        return (today >= it.early)   /* 先行中なら索引にも出す（読めるのは登録オーナーだけ） */
-          ? '<a href="/wiring-journey-' + it.slug + '.html">' + it.short + '</a>'
-          : '<i>' + it.short + '</i>';
+      /* ⛔②案＝読める号だけ載せる。1本も読めない群はその行ごと出さない */
+      var live = g[1].filter(function (sl) { return today >= by[sl].early; });
+      if (!live.length) return;
+      lines += g[0] + ' → ' + live.map(function (sl) {
+        return '<a href="/wiring-journey-' + by[sl].slug + '.html">' + by[sl].short + '</a>';
       }).join('・') + '<br>';
     });
+    if (lines) f = '<b>症状から探す</b>' + lines;
+
     document.getElementById('find').innerHTML = f;
 
   }).catch(function () {
