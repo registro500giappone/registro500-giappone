@@ -1,0 +1,44 @@
+name: 電装トラブルの旅手帳 週刊公開（毎日06:10 JST/手動）
+
+# 連載は毎週金曜に1回ずつ出す（journey-schedule.json が正本）。
+# ⚠️金曜だけ流さない理由＝その週のジョブが落ちると1回分が出ないまま次の金曜まで気づけない。
+#   毎日流して冪等にしてあるので、落ちた翌日に自然と復旧する。差分が無い日は何もしない。
+# 06:10 JST に置く理由＝朝ダイジェストの配信（06:20）より前に公開状態を確定させるため。
+on:
+  schedule:
+    - cron: '10 21 * * *'   # UTC 21:10 ＝ JST 翌06:10
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write   # noindex の解除と sitemap をコミットするため
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 公開状態を journey-schedule.json に合わせる
+        run: python wiring-simulator/publish_journey.py
+
+      - name: 差分があればコミット
+        # ⛔ git add -A は使わない（関係ないファイルを巻き込まないため・ファイル名を明示する）
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add wiring-journey.html wiring-journey-*.html robots.txt
+          if [ -f sitemap-journey.xml ]; then git add sitemap-journey.xml; fi
+          if git diff --cached --quiet; then
+            echo "公開状態の変更なし — スキップ"
+          else
+            git commit -m "chore(wiring-journey): 週刊連載の公開状態を更新 [skip ci]"
+            git push
+          fi
