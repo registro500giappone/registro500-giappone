@@ -2,19 +2,20 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<!-- ⚠️作業場ページ＝導線なし・noindex。「電装トラブルの旅」の目次（＝連載の扉）。
+<!-- ⚠️作業場ページ＝導線なし・noindex。「電装トラブルの旅手帳」の目次（＝連載の扉）。
      ⚠️公開予定は /journey-schedule.json が正本＝この HTML に日付を直書きしない。
      ⚠️各号の状態（一般公開／登録オーナー先行／公開前）は、その JSON と JST の今日を突き合わせて出し分ける。
      ⛔⛔ index.html のメニューなど、どこからもリンクを張らない（ユーザーの明示指示があるまで・CLAUDE.md 冒頭の規則）。
-     ⛔ 描き終えていない題材は載せない＝作れる保証のないものを予告して出せないと信用を失う。
-     ⚠️⚠️見た目は【各号ページのトーンにあえて揃えていない】＝新しい企画の扉なので新鮮さを優先する
-        （2026-08-25 ユーザー指示「企画名ドーン／概要／以下タイトルと予定／注釈は後段に小さく」）。
+     ⛔ 描き終えていない題材は載せない／⛔全何号になるかは未定なので総数を言わない（2026-08-25 ユーザー指示）。
+     ⚠️⚠️見た目は【各号ページのトーンにあえて揃えていない】＝新しい企画の扉なので新鮮さを優先する。
         そのため共通CSS（/wiring-journey.css）は読み込まず、このページだけで完結させている。
         ⛔各号の絵の体裁をここへ持ち込まない・ここの体裁を各号へ持ち出さない。
+     ⏳⏳【配色は確認中】＝A/B/C の3案を切り替えられるようにしてある（画面上部の小さな切替・?p=b でも可）。
+        ⛔決まったら【切替UIとB/Cの定義ごと削除して1案に固定する】＝確認用の仕掛けを本番に残さない。
      設計の正本＝wiring-simulator/HANDOFF.md §0 その27 ／ 題材の管理表＝wiring-simulator/JOURNEY-INDEX.md -->
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>電装トラブルの旅（目次・作業場）｜Registro500</title>
+<title>電装トラブルの旅手帳（目次・作業場）｜Registro500</title>
 
 <!-- Google tag (gtag.js) — 公開ページを増やしたらタグの有無を必ず確認する（過去に計測漏れ実績あり） -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
@@ -26,72 +27,99 @@
 </script>
 
 <style>
+  /* ===== A案「通電」＝炭色の扉に、旅の絵の黄色い点（通電の色）をアクセントに ===== */
   :root{
-    --bg:#faf7f0; --ink:#2b2721; --deep:#22302a; --sub:#8d8574;
-    --line:#ddd5c4; --hi:#b8442e; --cream:#f4ecdc;
+    --paper:#f7f4ec; --ink:#26231e; --sub:#8a8274; --line:#e0d9ca;
+    --dark:#24262a; --on-dark:#f2efe6; --on-dark-sub:#a9a89f;
+    --accent:#edb230; --accent-ink:#3a2f10; --accent-line:#6a6459;
   }
+  /* ===== B案「紙」＝濃色のベタをやめて、生成りの紙に藍の文字。明るい方向 ===== */
+  body[data-p="b"]{
+    --paper:#fbf8f1; --ink:#1f2933; --sub:#7d8794; --line:#dfe3e6;
+    --dark:#eee9dd; --on-dark:#1f2933; --on-dark-sub:#6b7480;
+    --accent:#c2452f; --accent-ink:#fff; --accent-line:#cdd2d6;
+  }
+  /* ===== C案「藍」＝濃紺の扉にオレンジ ===== */
+  body[data-p="c"]{
+    --paper:#f6f5f2; --ink:#20242b; --sub:#828a94; --line:#dcdfe3;
+    --dark:#1b2f47; --on-dark:#eef2f6; --on-dark-sub:#9fb0c1;
+    --accent:#e2653a; --accent-ink:#fff; --accent-line:#3d5a78;
+  }
+
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);
+  body{margin:0;background:var(--paper);color:var(--ink);
        font:15px/1.85 system-ui,-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif}
   a{color:inherit}
 
-  /* ===== 扉＝企画名を大きく。全幅の帯にするため .col の外に置く ===== */
-  .hero{background:var(--deep);color:var(--cream);padding:34px 20px 30px}
+  /* 配色くらべ＝確認用。⛔決まったら消す */
+  .palbar{background:#111;color:#ddd;font-size:11px;letter-spacing:.08em;padding:6px 12px;text-align:center}
+  .palbar a{display:inline-block;padding:2px 10px;margin-left:5px;border:1px solid #555;
+            border-radius:999px;text-decoration:none;color:#ddd}
+  .palbar a.on{background:#ddd;color:#111;border-color:#ddd;font-weight:700}
+
+  /* ===== 扉 ===== */
+  .hero{background:var(--dark);color:var(--on-dark);padding:14px 20px 30px}
   .hero-in{max-width:520px;margin-inline:auto}
-  .kicker{margin:0;font-size:11.5px;letter-spacing:.28em;color:#b9c4b6}
-  .hero h1{margin:6px 0 0;font-weight:800;letter-spacing:.02em;line-height:1.12;
-           font-size:clamp(34px,10.5vw,52px)}
-  .rule{width:44px;height:3px;background:var(--hi);margin:16px 0 14px}
-  .lede{margin:0;font-size:14.5px;line-height:1.95;color:#e7dfcd}
-  .lede b{color:#fff;font-weight:700}
+  .back{display:inline-flex;align-items:center;gap:7px;text-decoration:none;
+        color:var(--on-dark-sub);font-size:12.5px;letter-spacing:.06em;padding:6px 0 18px}
+  .back:hover{color:var(--on-dark)}
+  .kicker{margin:0;font-size:11.5px;letter-spacing:.28em;color:var(--on-dark-sub)}
+  .hero h1{margin:6px 0 0;font-weight:800;letter-spacing:.02em;line-height:1.14;
+           font-size:clamp(31px,9.4vw,48px)}
+  .rule{width:44px;height:3px;background:var(--accent);margin:15px 0 14px}
+  .lede{margin:0;font-size:14.5px;line-height:1.95;color:var(--on-dark)}
+  .lede b{font-weight:700}
   .badge-row{margin:18px 0 0;display:flex;flex-wrap:wrap;gap:8px}
-  .pill{font-size:11.5px;letter-spacing:.06em;border:1px solid #5c6b60;border-radius:999px;
-        padding:3px 11px;color:#cfd8cb}
-  .pill.on{background:var(--hi);border-color:var(--hi);color:#fff;font-weight:700}
+  .pill{font-size:11.5px;letter-spacing:.06em;border:1px solid var(--accent-line);
+        border-radius:999px;padding:3px 11px;color:var(--on-dark-sub)}
+  .pill.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
 
   .col{max-width:520px;margin-inline:auto;padding:0 20px 60px}
 
-  /* ===== 目次＝カードをやめて罫線で組む（雑誌の目次の作法） ===== */
-  h2.sec{font-size:12px;letter-spacing:.22em;color:var(--hi);font-weight:800;
-         margin:30px 0 0;padding-bottom:8px;border-bottom:2px solid var(--deep)}
+  /* ===== 目次＝1行1本。号数は先出しせずリード文の頭に小さく置く ===== */
+  h2.sec{font-size:12px;letter-spacing:.22em;color:var(--sub);font-weight:800;
+         margin:28px 0 0;padding-bottom:8px;border-bottom:2px solid var(--ink)}
   ol.toc{list-style:none;margin:0;padding:0}
-  ol.toc li{border-bottom:1px solid var(--line);padding:15px 0 14px}
-  .row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-  .num{font-size:23px;font-weight:800;letter-spacing:.02em;color:var(--hi);line-height:1}
-  .num small{font-size:11px;font-weight:700;letter-spacing:.1em;margin-left:5px;color:var(--sub)}
-  .when{font-size:12px;color:var(--sub);white-space:nowrap;letter-spacing:.04em}
-  .when.early{color:#fff;background:var(--hi);border-radius:999px;padding:2px 10px;font-weight:700}
-  .ttl{display:block;font-size:18.5px;font-weight:700;line-height:1.45;
-       margin:7px 0 4px;color:var(--deep);text-decoration:none}
+  ol.toc li{border-bottom:1px solid var(--line);padding:13px 0 12px}
+  .row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+  .ttl{font-size:18px;font-weight:700;line-height:1.4;color:var(--ink);text-decoration:none}
   a.ttl:hover{text-decoration:underline}
-  .lead{margin:0;font-size:13.5px;line-height:1.75;color:#5f584d}
-  li.soon .num,li.soon .ttl{color:#a49b8b}
-  li.soon .lead{color:#9a917f}
-  li.side{padding-left:20px;border-left:3px solid var(--line);margin-left:2px}
-  li.side .num{font-size:15px}
-  li.side .ttl{font-size:16px}
+  .when{font-size:11.5px;color:var(--sub);white-space:nowrap;letter-spacing:.04em}
+  .when.early{color:var(--accent-ink);background:var(--accent);border-radius:999px;
+              padding:2px 9px;font-weight:700}
+  .lead{margin:3px 0 0;font-size:13px;line-height:1.7;color:var(--sub)}
+  .no{font-weight:800;color:var(--ink);margin-right:7px;letter-spacing:.04em}
+  li.soon .ttl{color:#a8a094}
+  li.soon .no{color:#a8a094}
+  li.side{padding-left:16px;border-left:3px solid var(--line);margin-left:2px}
+  li.side .ttl{font-size:15.5px}
 
   /* ===== 後段＝索引と注釈。小さく畳む ===== */
-  .find{margin:26px 0 0;font-size:13px;line-height:2.05;color:#5f584d}
-  .find b{display:block;font-size:11.5px;letter-spacing:.2em;color:var(--hi);
-          font-weight:800;margin-bottom:3px}
-  .find a{color:var(--deep);font-weight:700;text-decoration:none;border-bottom:1px solid var(--line)}
-  .find i{color:#a49b8b;font-style:normal}
-  .notes{margin:26px 0 0;padding-top:16px;border-top:1px solid var(--line);
+  .find{margin:24px 0 0;font-size:12.5px;line-height:2.05;color:var(--sub)}
+  .find b{display:block;font-size:11px;letter-spacing:.2em;color:var(--sub);
+          font-weight:800;margin-bottom:2px}
+  .find a{color:var(--ink);font-weight:700;text-decoration:none;border-bottom:1px solid var(--line)}
+  .find i{color:#a8a094;font-style:normal}
+  .notes{margin:24px 0 0;padding-top:15px;border-top:1px solid var(--line);
          font-size:12px;line-height:1.85;color:var(--sub)}
   .notes p{margin:0 0 9px}
   .notes b{color:var(--ink)}
-  .notes .warn b{color:var(--hi)}
 </style>
 </head>
 <body>
 
+<!-- ⏳確認用の配色くらべ。⛔決まったらこの帯ごと消す -->
+<div class="palbar" id="palbar">配色くらべ
+  <a href="?p=a" data-p="a">A 通電</a><a href="?p=b" data-p="b">B 紙</a><a href="?p=c" data-p="c">C 藍</a>
+</div>
+
 <div class="hero">
   <div class="hero-in">
+    <a class="back" href="/"><span>←</span><span>ガレージに戻る</span></a>
     <p class="kicker">REGISTRO 500 ／ 連載</p>
-    <h1>電装トラブルの旅</h1>
+    <h1>電装トラブルの旅手帳</h1>
     <div class="rule"></div>
-    <p class="lede">エンジンがかからない。灯りが点かない。ホーンが鳴らない。——空冷 FIAT 500 で実際に起きる電気の症状を、<b>1号に1つずつ、絵にしてたどります</b>。配線図は読めなくて構いません。電気がどこを通って、どこで止まっているのかを、目で追える形にしました。</p>
+    <p class="lede">配線図を広げても、どこから追えばいいのか分からない。——自分がそうでした。だから症状を1つ選んで、電気がどこを通って、どこで止まっているのかを1枚の絵に描き起こしています。<b>調べながら描いたものを、そのまま置いておく場所です。</b>同じところで手が止まっている人の役に立てば、と思っています。</p>
     <div class="badge-row" id="pills"></div>
   </div>
 </div>
@@ -104,8 +132,8 @@
   <div class="find" id="find"></div>
 
   <div class="notes">
-    <p class="warn"><b>⚠️描いてあるのは工場出荷時の配線です。</b>500 は最も新しい車でも50年以上を経ていて、その間に配線へ手が入っていることは珍しくありません。ヒューズの増設、リレーの追加、電装品の後付け、修理のときの引き直し——どれも実際によくあることです。<b>図と実車が違っていたとき、正しいのは目の前の配線のほうです。</b></p>
-    <p>この連載は <b>FIAT 500（D・F・L・R型）</b> の話です。配線は500の原典（純正取扱説明書の配線図）から起こしています。</p>
+    <p><b>⚠️描いてあるのは工場出荷時の配線です。</b>500 は最も新しい車でも50年以上を経ていて、その間に配線へ手が入っていることは珍しくありません。ヒューズの増設、リレーの追加、電装品の後付け、修理のときの引き直し——どれも実際によくあることです。<b>図と実車が違っていたら、正しいのは目の前の配線のほうです。</b></p>
+    <p>この手帳は <b>FIAT 500（D・F・L・R型）</b> の話です。配線は500の原典（純正取扱説明書の配線図）から起こしています。</p>
     <p>絵の中の点灯や電気の流れは<b>すべて計算結果</b>で、絵に合わせて数字を作っていません。各号の末尾に、その検算の一覧を載せてあります。</p>
   </div>
 
@@ -113,26 +141,28 @@
 
 <script>
 (function () {
+  /* ⏳配色くらべ＝確認用。?p=b / ?p=c で切り替える。⛔決まったらこのブロックごと消す */
+  var p = (location.search.match(/[?&]p=([abc])/) || [])[1] || 'a';
+  if (p !== 'a') document.body.setAttribute('data-p', p);
+  var cur = document.querySelector('.palbar a[data-p="' + p + '"]');
+  if (cur) cur.className = 'on';
+
   /* JST の「今日」を出す＝読者の端末のタイムゾーンで公開日がずれないように（2026-08-25） */
   function todayJST() {
     var n = new Date();
     var j = new Date(n.getTime() + n.getTimezoneOffset() * 60000 + 9 * 3600000);
     return j.getFullYear() + '-' + String(j.getMonth() + 1).padStart(2, '0') + '-' + String(j.getDate()).padStart(2, '0');
   }
-  function jp(d) { var p = d.split('-'); return (p[1] | 0) + '/' + (p[2] | 0); }
-  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function jp(d) { var q = d.split('-'); return (q[1] | 0) + '/' + (q[2] | 0); }
 
   var today = todayJST();
 
-  fetch('/journey-schedule.json?v=2').then(function (r) { return r.json(); }).then(function (s) {
+  fetch('/journey-schedule.json?v=3').then(function (r) { return r.json(); }).then(function (s) {
 
-    /* 扉の下の小さな札＝連載の条件を3つだけ */
-    var done = s.issues.every(function (it) { return today >= it.public; });
-    document.getElementById('pills').innerHTML = done
-      ? '<span class="pill on">全' + s.issues.length + '号 公開済み</span><span class="pill">症状から引けます</span>'
-      : '<span class="pill on">' + s.cadence + ' 更新</span>' +
-        '<span class="pill">登録オーナーは1週間早く</span>' +
-        '<span class="pill">全' + s.issues.length + '号</span>';
+    /* 扉の下の小さな札。⛔総数は言わない＝全何号になるかは未定（2026-08-25 ユーザー指示） */
+    document.getElementById('pills').innerHTML =
+      '<span class="pill on">' + s.cadence + ' 更新</span>' +
+      '<span class="pill">登録オーナーは1週間早く読めます</span>';
 
     /* ===== 目次 ===== */
     var rows = [];
@@ -148,9 +178,7 @@
     rows.forEach(function (it) {
       var open = today >= it.public;          /* 一般公開ずみ */
       var early = !open && today >= it.early; /* 登録オーナーだけ先に読める */
-      var num = it.side
-        ? '<span class="num">' + pad(it.of) + '<small>別冊</small></span>'
-        : '<span class="num">' + pad(it.n) + '</span>';
+      var no = it.side ? ('第' + it.of + '号 別冊') : ('第' + it.n + '号');
       var when = open ? '<span class="when">公開中</span>' :
         early ? '<span class="when early">登録オーナー先行</span>' :
                 '<span class="when">' + jp(it.public) + ' 公開</span>';
@@ -158,8 +186,8 @@
         ? '<a class="ttl" href="/wiring-journey-' + it.slug + '.html">' + it.title + '</a>'
         : '<span class="ttl">' + it.title + '</span>';
       html += '<li class="' + ((open || early) ? '' : 'soon') + (it.side ? ' side' : '') + '">' +
-              '<div class="row">' + num + when + '</div>' + t +
-              '<p class="lead">' + it.lead + '</p></li>';
+              '<div class="row">' + t + when + '</div>' +
+              '<p class="lead"><span class="no">' + no + '</span>' + it.lead + '</p></li>';
     });
     document.getElementById('list').innerHTML = html;
 
