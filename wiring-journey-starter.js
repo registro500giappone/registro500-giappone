@@ -5,13 +5,13 @@
    第1号（チャージランプ）・第2号（油圧警告灯）との関係:
      前2つは「計器盤の警告灯」が主役で、どちらも キースイッチ→計器盤 の道を通っていた。
      このストーリーは【主役が警告灯ではない】＝負荷はスターター（モーター）。バッテリーの＋端子から
-     始動レバーの節点を経て、太い線1本でセルへ落ちる短い輪で、灯の道とはまったく別物。
-     節点から右へ分かれるのが前2つのストーリー＝この絵では「灯へ行く枝」として同じ画面に出す。
-     灯が点いているのにセルが回らない／灯も点かない、の2枚が絞り込みそのものになる。 */
+     始動レバーの節点を経て、太い線1本でセルへ落ちる短い輪で、警告灯の道とはまったく別物。
+     節点から右へ分かれるのが前2つのストーリー＝この絵では「警告灯へ行く枝」として同じ画面に出す。
+     警告灯が点いているのにセルが回らない／警告灯も点かない、の2枚が絞り込みそのものになる。 */
 (function () {
   'use strict';
   var WC = Journey.WC, C = Journey.C;
-  var X = 100, RX = 232;                       /* 主列（セルへ落ちる太い輪）と、右の枝＝灯の道 */
+  var X = 100, RX = 232;                       /* 主列（セルへ落ちる太い輪）と、右の枝＝警告灯の道 */
 
   /* ---- ストーリーの絵（縦の滝）。線1本ごとに netlist の wire id を対応させ、状態で塗る ---- */
   function draw(k, mode) {
@@ -39,15 +39,15 @@
     k.node(X, 104);
 
     /* 右の枝＝第1号・第2号のストーリー（レギュレータ30→F1→キースイッチ→計器盤）。
-       途中は省略するが、灯が点いているかどうかは solve() の答えをそのまま出す＝
-       「灯は点いているのにセルは回らない」が同じ1枚で言える。 */
+       途中は省略するが、警告灯が点いているかどうかは solve() の答えをそのまま出す＝
+       「警告灯は点いているのにセルは回らない」が同じ1枚で言える。 */
     var br = k.wcol('w11-03', WC.MARRONE);
     s.push('<path d="M' + X + ',104 L' + RX + ',104 L' + RX + ',152" stroke="' + br.col + '" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>');
     /* 省略の印＝二重線。ここは1本の電線ではなく「4つの部品を通る道」なので線として描かない */
     s.push('<path d="M' + (RX - 9) + ',131 L' + (RX + 9) + ',126 M' + (RX - 9) + ',138 L' + (RX + 9) + ',133" stroke="' + C.sub + '" stroke-width="2.5" stroke-linecap="round"/>');
     if (sc.warnOn) k.dotsH(104, X + 10, RX - 14, 'right');
     k.lampWindow(RX, 152, 'GENERAT.', sc.warnOn, null, 0);
-    /* ⚠️灯の窓（y=152）の光は下へ50px近く伸びる＝ここに薄い字を置くと光に埋もれて読めない（実測）。
+    /* ⚠️警告灯の窓（y=152）の光は下へ50px近く伸びる＝ここに薄い字を置くと光に埋もれて読めない（実測）。
        2行あった注記は1行に減らし、光の外まで下げた（「第1号・第2号のストーリー」は下の fork リンクと重複） */
     s.push('<text x="296" y="212" font-size="10.5" fill="' + C.sub + '" text-anchor="end">計器盤の警告灯へ</text>');
 
@@ -98,7 +98,7 @@
     s.push('<text x="222" y="284" font-size="10" fill="' + C.sub + '">フライホイール</text>');
     s.push('<text x="222" y="297" font-size="10" fill="' + (pull ? C.deep : C.sub) + '">' + (pull ? '噛んでいる' : '離れている') + '</text>');
 
-    /* ===== セル→車体（w11-11 NERO）。この線が細っても灯には出ない＝セルにだけ出る ===== */
+    /* ===== セル→車体（w11-11 NERO）。この線が細っても警告灯には出ない＝セルにだけ出る ===== */
     if (mode.cut === 'w11-11') {
       var c2 = k.wcol('w11-11', WC.NERO);
       s.push('<path d="M' + X + ',332 L' + X + ',346" stroke="' + c2.col + '" stroke-width="5" fill="none" stroke-linecap="round"/>');
@@ -112,7 +112,7 @@
     label(X + 12, 376, '車体アース', C.deep, null, 11.5);
     label(6, 404, 'バッテリーの − も、同じ車体に落ちています', C.sub, null, 11);
 
-    /* ⚠️容疑の囲いは灯の小窓（x=183 から光る）に絶対にかけない＝灯は「無実の証人」で、
+    /* ⚠️容疑の囲いは警告灯の小窓（x=183 から光る）に絶対にかけない＝警告灯は「無実の証人」で、
        囲いの中に入れると意味が反転する。右端は 178 まで。 */
     if (mode.suspect) {
       k.suspect(20, 116, 158, 274, 428, '容疑者はこの中だけ');
@@ -160,19 +160,19 @@
     alt: false,
     mainInit: 'OFF',
     mainInputs: function (v) { return { key: 'ON', engine: 'STOP', starter: v }; },
-    /* 右の枝の灯（＝第1号・第2号のストーリーの主役）を、このストーリーでも読めるようにする */
+    /* 右の枝の警告灯（＝第1号・第2号のストーリーの主役）を、このストーリーでも読めるようにする */
     extra: function (sc) { sc.warnOn = warnLamp(sc); },
-    /* セルが回っているとき＝放電の向き（下へ）。灯の枝は横なので draw 側で描いている */
+    /* セルが回っているとき＝放電の向き（下へ）。警告灯の枝は横なので draw 側で描いている */
     flow: function (sc) { return sc.lampOn ? 'down' : null; },
     draw: draw,
     caps: CAPS,
     checks: CHECKS,
     scenes: function (scenario) {
       return [
-        /* 異常①＝引いても回らない・灯は点いたまま。上半分は無実＝容疑者はレバーから下だけ。
+        /* 異常①＝引いても回らない・警告灯は点いたまま。上半分は無実＝容疑者はレバーから下だけ。
            絵はその一例（セルのアース線が外れた場合）。 */
         { id: 'j-fault', sc: scenario({ inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-11' }] }), mode: { suspect: true, cut: 'w11-11' } },
-        /* 異常②＝引いても回らない・灯も点かない。＋の太線から先が全部死んでいる。 */
+        /* 異常②＝引いても回らない・警告灯も点かない。＋の太線から先が全部死んでいる。 */
         { id: 'j-dead', sc: scenario({ inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-01' }] }), mode: { cut: 'w11-01' } },
         { id: 'j-fixed', sc: scenario({ inputs: { key: 'ON', engine: 'STOP', starter: 'START' } }), mode: {} }
       ];

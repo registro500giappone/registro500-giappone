@@ -3,11 +3,11 @@
    ⚠️図の点灯・色・黄点はすべて wiring-sim.js（L1到達性）の solve() 結果＝絵に合わせて数字を作らない。
 
    第3号（セルが回らない）との関係＝このストーリーは【第3号の対】:
-     第3号 … 灯は点くのにセルが回らない → 容疑者は始動レバーの節点より【下】
-     第4号 … 灯が点かない              → 容疑者は節点より【上】か、節点から計器盤までの1本道
+     第3号 … 警告灯は点くのにセルが回らない → 容疑者は始動レバーの節点より【下】
+     第4号 … 警告灯が点かない              → 容疑者は節点より【上】か、節点から計器盤までの1本道
      どちらの絵にも「始動レバーの節点」が出てくる。そこが電気の分かれ道だから。
 
-   このストーリーだけの特徴＝【主役が1つの灯ではなく「2つの灯が揃って消えていること」】。
+   このストーリーだけの特徴＝【主役が1つの警告灯ではなく「2つの警告灯が揃って消えていること」】。
      原典では計器盤の警告灯はどれも AZZURRO 1本（INTER）で受けている＝落とし先だけが違う。
      だから「2つとも消える」なら犯人は共通部分にしかいない。これがこのページの絞り込みそのもの。
    ⚠️データ追加ゼロ＝既存の系統11・10・7だけで全場面が解けている（NET_VERSION は据え置き）。 */
@@ -15,7 +15,7 @@
   'use strict';
   var WC = Journey.WC, C = Journey.C;
   var X = 100;                       /* 幹線（バッテリー→計器盤）の縦軸 */
-  var LG = 56, LO = 184;             /* 計器盤の中の2灯（GENERAT. と OLIO）の中心 */
+  var LG = 56, LO = 184;             /* 計器盤の中の2つの警告灯（GENERAT. と OLIO）の中心 */
 
   function draw(k, mode) {
     var sc = k.sc, pos = k.pos, s = k.s;
@@ -99,7 +99,7 @@
     else { seg(X, 152, X, 208, 'w11-04', true); label(X + 12, 184, 'ROSSO 赤', WC.ROSSO); }
     k.node(X, 208);
     /* ヒューズ F1＝幹線にぶら下がる枝。⚠️キースイッチへの赤線は【ヒューズの電源側】から出る
-       ＝F1が切れても灯は点く（第1号で先回りして潰したのと同じ迷い道）。 */
+       ＝F1が切れても警告灯は点く（第1号で先回りして潰したのと同じ迷い道）。 */
     s.push('<path d="M' + X + ',208 L196,208" stroke="' + C.deep + '" stroke-width="3.5"/>');
     s.push('<rect x="196" y="188" width="94" height="40" rx="8" fill="none" stroke="' + C.out + '" stroke-width="2.5"/>');
     s.push('<text x="243" y="204" font-size="11" fill="' + C.sub + '" text-anchor="middle">ヒューズ F1</text>');
@@ -136,7 +136,7 @@
     if (mode.cut === 'w10-02') cutAt(X, 310, 372, 'w10-02', false, { line: true });
     else { seg(X, 310, X, 372, 'w10-02'); label(X + 12, 344, 'AZZURRO 水色', WC.AZZURRO, null, 10); }
 
-    /* ===== 計器盤の中＝1本の給電レール（INTER）が2つの灯を養っている =====
+    /* ===== 計器盤の中＝1本の給電レール（INTER）が2つの警告灯を養っている =====
        ⚠️計器盤の内部結線は原典の図から読み切れていない（v:inf）。だから細い内部線として
          描き、電線の被覆色は付けない＝「原典に書いてあること」と見分けが付くようにする。 */
     s.push('<rect x="12" y="372" width="276" height="140" rx="10" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
@@ -153,7 +153,7 @@
     k.lampWindow(LG, 418, 'GENERAT.', sc.chargeOn, null, 0);
     k.lampWindow(LO, 418, 'OLIO', sc.oilOn, null, 0);
 
-    /* 2つまとめて言う＝このストーリーの主役は「1つの灯」ではなく「2つが揃っているか」。
+    /* 2つまとめて言う＝このストーリーの主役は「1つの警告灯」ではなく「2つが揃っているか」。
        ⚠️点灯時のにじみは中心 y=432・ry=56＝下端 488 まで広がる。状態語はその外（y=496）に置く
          （488 より上に置くと赤い光に埋もれて読めなくなった。実測で確認済み）。 */
     var both = sc.chargeOn && sc.oilOn, none = !sc.chargeOn && !sc.oilOn;
@@ -161,7 +161,7 @@
     var wcol = (pos.ign_sw !== 'ON') ? C.in_ : (both ? '#7fd6a0' : '#ff8a70');
     s.push('<text x="120" y="497" font-size="12" font-weight="700" fill="' + wcol + '" text-anchor="middle">' + word + '</text>');
 
-    /* 灯から下＝落とし先。ここから先はそれぞれ別のストーリーなので、色だけ見せて手放す。
+    /* 警告灯から下＝落とし先。ここから先はそれぞれ別のストーリーなので、色だけ見せて手放す。
        ⚠️端子名（51・0）は箱の中なので明るい色で書く＝濃い地に濃い字にしない */
     s.push('<path d="M' + LG + ',452 L' + LG + ',512 M' + LO + ',452 L' + LO + ',512" stroke="' + C.in_ + '" stroke-width="2.5" stroke-dasharray="3 4"/>');
     k.term(LG, 476, '51', 'l');
@@ -248,7 +248,7 @@
     { label: '↑同じ場面のチャージランプ', s: { inputs: ON, ops: cut('w10-01') }, expect: false, read: chg, words: LW },
     { label: '計器盤への水色線（w10-02）が外れた・キーON', s: { inputs: ON, ops: cut('w10-02') }, expect: false, words: LW },
     { label: '↑同じ場面のチャージランプ', s: { inputs: ON, ops: cut('w10-02') }, expect: false, read: chg, words: LW },
-    /* ＋側が外れた＝灯もセルも死ぬ（第3号の異常②と同じ場面） */
+    /* ＋側が外れた＝警告灯もセルも死ぬ（第3号の異常②と同じ場面） */
     { label: 'バッテリー＋の太線（w11-01）が外れた・キーON', s: { inputs: ON, ops: cut('w11-01') }, expect: false, words: LW },
     { label: '↑同じ場面のセル（レバーを引く）', s: { inputs: PULL, ops: cut('w11-01') }, expect: false, read: cel, words: CW },
     /* −側が外れた＝帰り道が無い。⚠️2026-08-21 の案A（アースの基準をバッテリー − へ）で
@@ -268,9 +268,9 @@
     alt: false,
     mainInit: 'OFF',
     mainInputs: function (v) { return { key: v, engine: 'STOP' }; },
-    /* このストーリーは2つの灯を同時に読む＝どちらも場面に持たせる */
+    /* このストーリーは2つの警告灯を同時に読む＝どちらも場面に持たせる */
     extra: function (sc) { sc.chargeOn = chg(sc); sc.oilOn = get(sc, 'quadro.warn_oil'); },
-    /* 幹線は「どちらかの灯が点いていれば」電気が流れている。落とし先の2本は各自の灯で決まる */
+    /* 幹線は「どちらかの警告灯が点いていれば」電気が流れている。落とし先の2本は各自の警告灯で決まる */
     flow: function (sc, id) {
       if (id === 'w11-07') return sc.chargeOn ? 'down' : null;
       if (id === 'w07-01') return sc.oilOn ? 'down' : null;
@@ -283,7 +283,7 @@
       return [
         /* 異常①＝行きの道が1本切れた。絵はキーへの赤線が外れた例。2つとも消え、セルは回る */
         { id: 'j-fault', sc: scenario({ inputs: ON, ops: cut('w10-01') }), mode: { suspect: true, cut: 'w10-01' } },
-        /* 異常②＝帰り道（アース）が切れた。⚠️絵じゅうに色は付いたままで、灯だけが消える＝
+        /* 異常②＝帰り道（アース）が切れた。⚠️絵じゅうに色は付いたままで、警告灯だけが消える＝
            「12Vは来ているのに動かない」の見本。案Aを入れて初めて正しく描けるようになった場面。 */
         { id: 'j-minus', sc: scenario({ inputs: ON, ops: cut('w11-10') }), mode: { minus: true } },
         /* 片方だけ消える＝共通部分は無実。この1枚が絞り込みの根拠
