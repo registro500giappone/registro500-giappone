@@ -10,8 +10,8 @@
      ⚠️⚠️見た目は【各号ページのトーンにあえて揃えていない】＝新しい企画の扉なので新鮮さを優先する。
         そのため共通CSS（/wiring-journey.css）は読み込まず、このページだけで完結させている。
         ⛔各号の絵の体裁をここへ持ち込まない・ここの体裁を各号へ持ち出さない。
-     ⏳⏳【配色は確認中】＝A/B/C の3案を切り替えられるようにしてある（画面上部の小さな切替・?p=b でも可）。
-        ⛔決まったら【切替UIとB/Cの定義ごと削除して1案に固定する】＝確認用の仕掛けを本番に残さない。
+     ⏳⏳【配色は確認中】＝D/E/F の3案を切り替えられるようにしてある（画面上部の小さな切替・?p=e でも可）。
+        ⛔決まったら【切替UIと残り2案の定義ごと削除して1案に固定する】＝確認用の仕掛けを本番に残さない。
      設計の正本＝wiring-simulator/HANDOFF.md §0 その27 ／ 題材の管理表＝wiring-simulator/JOURNEY-INDEX.md -->
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -27,23 +27,26 @@
 </script>
 
 <style>
-  /* ===== A案「通電」＝炭色の扉に、旅の絵の黄色い点（通電の色）をアクセントに ===== */
+  /* ===== D案「白と黒」＝色をほとんど使わない。文字組みだけで見せる（既定） ===== */
   :root{
-    --paper:#f7f4ec; --ink:#26231e; --sub:#8a8274; --line:#e0d9ca;
-    --dark:#24262a; --on-dark:#f2efe6; --on-dark-sub:#a9a89f;
-    --accent:#edb230; --accent-ink:#3a2f10; --accent-line:#6a6459;
+    --paper:#fffefb; --ink:#141414; --sub:#7b7770; --line:#e2ded6;
+    --dark:#fffefb; --on-dark:#141414; --on-dark-sub:#7b7770;
+    --accent:#141414; --accent-ink:#fff; --accent-line:#141414; --hero-edge:2px solid #141414;
+    --hero-accent:#141414; --hero-accent-ink:#fff;
   }
-  /* ===== B案「紙」＝濃色のベタをやめて、生成りの紙に藍の文字。明るい方向 ===== */
-  body[data-p="b"]{
-    --paper:#fbf8f1; --ink:#1f2933; --sub:#7d8794; --line:#dfe3e6;
-    --dark:#eee9dd; --on-dark:#1f2933; --on-dark-sub:#6b7480;
-    --accent:#c2452f; --accent-ink:#fff; --accent-line:#cdd2d6;
+  /* ===== E案「白と赤」＝イタリアの整備書。白地に朱赤の罫と見出しだけ ===== */
+  body[data-p="e"]{
+    --paper:#fffdf9; --ink:#1c1a17; --sub:#857f75; --line:#e6e0d6;
+    --dark:#fffdf9; --on-dark:#1c1a17; --on-dark-sub:#9b9488;
+    --accent:#c8352a; --accent-ink:#fff; --accent-line:#c8352a; --hero-edge:2px solid #c8352a;
+    --hero-accent:#c8352a; --hero-accent-ink:#fff;
   }
-  /* ===== C案「藍」＝濃紺の扉にオレンジ ===== */
-  body[data-p="c"]{
-    --paper:#f6f5f2; --ink:#20242b; --sub:#828a94; --line:#dcdfe3;
-    --dark:#1b2f47; --on-dark:#eef2f6; --on-dark-sub:#9fb0c1;
-    --accent:#e2653a; --accent-ink:#fff; --accent-line:#3d5a78;
+  /* ===== F案「黒い扉」＝扉だけ黒で白抜き。本文は白地でコントラストを最大に ===== */
+  body[data-p="f"]{
+    --paper:#fffefb; --ink:#141414; --sub:#7b7770; --line:#e2ded6;
+    --dark:#111111; --on-dark:#ffffff; --on-dark-sub:#9a978f;
+    --accent:#111111; --accent-ink:#fff; --accent-line:#4a4a4a; --hero-edge:none;
+    --hero-accent:#ffffff; --hero-accent-ink:#111111;
   }
 
   *{box-sizing:border-box}
@@ -58,7 +61,7 @@
   .palbar a.on{background:#ddd;color:#111;border-color:#ddd;font-weight:700}
 
   /* ===== 扉 ===== */
-  .hero{background:var(--dark);color:var(--on-dark);padding:14px 20px 30px}
+  .hero{background:var(--dark);color:var(--on-dark);padding:14px 20px 30px;border-bottom:var(--hero-edge)}
   .hero-in{max-width:520px;margin-inline:auto}
   .back{display:inline-flex;align-items:center;gap:7px;text-decoration:none;
         color:var(--on-dark-sub);font-size:12.5px;letter-spacing:.06em;padding:6px 0 18px}
@@ -66,19 +69,19 @@
   .kicker{margin:0;font-size:11.5px;letter-spacing:.28em;color:var(--on-dark-sub)}
   .hero h1{margin:6px 0 0;font-weight:800;letter-spacing:.02em;line-height:1.14;
            font-size:clamp(31px,9.4vw,48px)}
-  .rule{width:44px;height:3px;background:var(--accent);margin:15px 0 14px}
+  .rule{width:52px;height:4px;background:var(--hero-accent);margin:16px 0 15px}
   .lede{margin:0;font-size:14.5px;line-height:1.95;color:var(--on-dark)}
   .lede b{font-weight:700}
   .badge-row{margin:18px 0 0;display:flex;flex-wrap:wrap;gap:8px}
   .pill{font-size:11.5px;letter-spacing:.06em;border:1px solid var(--accent-line);
         border-radius:999px;padding:3px 11px;color:var(--on-dark-sub)}
-  .pill.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+  .pill.on{background:var(--hero-accent);border-color:var(--hero-accent);color:var(--hero-accent-ink);font-weight:700}
 
   .col{max-width:520px;margin-inline:auto;padding:0 20px 60px}
 
   /* ===== 目次＝1行1本。号数は先出しせずリード文の頭に小さく置く ===== */
   h2.sec{font-size:12px;letter-spacing:.22em;color:var(--sub);font-weight:800;
-         margin:28px 0 0;padding-bottom:8px;border-bottom:2px solid var(--ink)}
+         margin:28px 0 0;padding-bottom:8px;border-bottom:2px solid var(--accent);color:var(--accent)}
   ol.toc{list-style:none;margin:0;padding:0}
   ol.toc li{border-bottom:1px solid var(--line);padding:13px 0 12px}
   .row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
@@ -110,7 +113,7 @@
 
 <!-- ⏳確認用の配色くらべ。⛔決まったらこの帯ごと消す -->
 <div class="palbar" id="palbar">配色くらべ
-  <a href="?p=a" data-p="a">A 通電</a><a href="?p=b" data-p="b">B 紙</a><a href="?p=c" data-p="c">C 藍</a>
+  <a href="?p=d" data-p="d">D 白と黒</a><a href="?p=e" data-p="e">E 白と赤</a><a href="?p=f" data-p="f">F 黒い扉</a>
 </div>
 
 <div class="hero">
@@ -119,7 +122,7 @@
     <p class="kicker">REGISTRO 500 ／ 連載</p>
     <h1>電装トラブルの旅手帳</h1>
     <div class="rule"></div>
-    <p class="lede">配線図を広げても、どこから追えばいいのか分からない。——自分がそうでした。だから症状を1つ選んで、電気がどこを通って、どこで止まっているのかを1枚の絵に描き起こしています。<b>調べながら描いたものを、そのまま置いておく場所です。</b>同じところで手が止まっている人の役に立てば、と思っています。</p>
+    <p class="lede">配線図を広げても、どこから追えばいいのか分からない。——自分がそうでした。だから症状を1つ選んで、電気がどこを通って、どこで止まっているのかを1枚の絵に描き起こしています。<b>いわば自分のための備忘録です。</b>同じところで手が止まっている人にも役に立てば、と思って置いています。</p>
     <div class="badge-row" id="pills"></div>
   </div>
 </div>
@@ -141,9 +144,9 @@
 
 <script>
 (function () {
-  /* ⏳配色くらべ＝確認用。?p=b / ?p=c で切り替える。⛔決まったらこのブロックごと消す */
-  var p = (location.search.match(/[?&]p=([abc])/) || [])[1] || 'a';
-  if (p !== 'a') document.body.setAttribute('data-p', p);
+  /* ⏳配色くらべ＝確認用。?p=e / ?p=f で切り替える。⛔決まったらこのブロックごと消す */
+  var p = (location.search.match(/[?&]p=([def])/) || [])[1] || 'd';
+  if (p !== 'd') document.body.setAttribute('data-p', p);
   var cur = document.querySelector('.palbar a[data-p="' + p + '"]');
   if (cur) cur.className = 'on';
 
