@@ -10,7 +10,7 @@
      ⚠️⚠️見た目は【各号ページのトーンにあえて揃えていない】＝新しい企画の扉なので新鮮さを優先する。
         そのため共通CSS（/wiring-journey.css）は読み込まず、このページだけで完結させている。
         ⛔各号の絵の体裁をここへ持ち込まない・ここの体裁を各号へ持ち出さない。
-     ⏳⏳【配色は確認中】＝D/E/F の3案を切り替えられるようにしてある（画面上部の小さな切替・?p=e でも可）。
+     ⏳⏳【配色は確認中】＝G/H/I の3案を切り替えられるようにしてある（画面上部の小さな切替・?p=e でも可）。
         ⛔決まったら【切替UIと残り2案の定義ごと削除して1案に固定する】＝確認用の仕掛けを本番に残さない。
      設計の正本＝wiring-simulator/HANDOFF.md §0 その27 ／ 題材の管理表＝wiring-simulator/JOURNEY-INDEX.md -->
 <meta name="robots" content="noindex, nofollow">
@@ -27,27 +27,74 @@
 </script>
 
 <style>
-  /* ===== D案「白と黒」＝色をほとんど使わない。文字組みだけで見せる（既定） ===== */
+  /* ===============================================================
+     ⏳確認用の3案。⛔決まったら選ばれた1案だけ残して他は消す。
+     色の振り直しではなく【デザインの発想】を3通りに振ってある（2026-08-25）
+     G＝青焼き／H＝インデックス手帳／I＝線画が主役
+     =============================================================== */
+
+  /* ---- G案「青焼き」＝ページ全体が図面。方眼の上に載っている ---- */
   :root{
-    --paper:#fffefb; --ink:#141414; --sub:#7b7770; --line:#e2ded6;
-    --dark:#fffefb; --on-dark:#141414; --on-dark-sub:#7b7770;
-    --accent:#141414; --accent-ink:#fff; --accent-line:#141414; --hero-edge:2px solid #141414;
-    --hero-accent:#141414; --hero-accent-ink:#fff;
+    --paper:#0d2337; --ink:#e6f0f7; --sub:#8fb0c6; --line:rgba(140,190,225,.22);
+    --dark:transparent; --on-dark:#e6f0f7; --on-dark-sub:#8fb0c6;
+    --accent:#63c8f2; --accent-ink:#06192a; --accent-line:rgba(140,190,225,.45);
+    --hero-edge:1px solid rgba(140,190,225,.28);
+    --hero-accent:#63c8f2; --hero-accent-ink:#06192a;
   }
-  /* ===== E案「白と赤」＝イタリアの整備書。白地に朱赤の罫と見出しだけ ===== */
-  body[data-p="e"]{
-    --paper:#fffdf9; --ink:#1c1a17; --sub:#857f75; --line:#e6e0d6;
-    --dark:#fffdf9; --on-dark:#1c1a17; --on-dark-sub:#9b9488;
-    --accent:#c8352a; --accent-ink:#fff; --accent-line:#c8352a; --hero-edge:2px solid #c8352a;
-    --hero-accent:#c8352a; --hero-accent-ink:#fff;
+  body{
+    background-image:
+      linear-gradient(rgba(150,200,235,.075) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(150,200,235,.075) 1px, transparent 1px),
+      linear-gradient(rgba(150,200,235,.16) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(150,200,235,.16) 1px, transparent 1px);
+    background-size:22px 22px, 22px 22px, 110px 110px, 110px 110px;
   }
-  /* ===== F案「黒い扉」＝扉だけ黒で白抜き。本文は白地でコントラストを最大に ===== */
-  body[data-p="f"]{
-    --paper:#fffefb; --ink:#141414; --sub:#7b7770; --line:#e2ded6;
-    --dark:#111111; --on-dark:#ffffff; --on-dark-sub:#9a978f;
-    --accent:#111111; --accent-ink:#fff; --accent-line:#4a4a4a; --hero-edge:none;
-    --hero-accent:#ffffff; --hero-accent-ink:#111111;
+  .hero h1{font-weight:700;letter-spacing:.04em}
+  .rule{height:1px;width:100%;background:var(--accent-line);opacity:.8}
+  .rule::after{content:'';display:block;width:52px;height:3px;background:var(--accent);margin-top:-1px}
+  h2.sec{border-bottom-width:1px}
+  li.soon .ttl,li.soon .no,.find i{color:#5f819a}
+
+  /* ---- H案「インデックス手帳」＝クラフト紙の表紙＋白い中紙。各号にタブが立つ ---- */
+  body[data-p="h"]{
+    --paper:#e3dac4; --ink:#2a2620; --sub:#7d7362; --line:#cfc4a9;
+    --dark:#e3dac4; --on-dark:#2a2620; --on-dark-sub:#7d7362;
+    --accent:#2f4a5c; --accent-ink:#fbf8f0; --accent-line:#b9ab8c;
+    --hero-edge:2px dashed #c0b295;
+    --hero-accent:#2f4a5c; --hero-accent-ink:#fbf8f0;
+    background-image:none;
   }
+  body[data-p="h"] .col{padding-top:10px}
+  body[data-p="h"] h2.sec{background:var(--accent);color:var(--accent-ink);border:0;
+    display:inline-block;padding:5px 14px 4px;letter-spacing:.24em;margin-bottom:12px}
+  body[data-p="h"] ol.toc li{background:#fbf8f0;border:1px solid #d8cdb2;border-left:5px solid var(--accent);
+    border-bottom:1px solid #d8cdb2;padding:12px 14px 11px;margin-bottom:7px;
+    box-shadow:1px 1px 0 rgba(90,78,55,.13)}
+  body[data-p="h"] ol.toc li.soon{background:#f0ebdd;border-left-color:#b9ab8c}
+  body[data-p="h"] li.side{margin-left:22px;border-left-width:5px;border-left-color:#8fa3ad}
+  body[data-p="h"] .notes,body[data-p="h"] .find{background:#fbf8f0;border:1px solid #d8cdb2;padding:14px 15px}
+  body[data-p="h"] .notes{margin-top:16px}
+
+  /* ---- I案「線画が主役」＝色はほぼ捨て、各号を1つの記号で見分ける ---- */
+  body[data-p="i"]{
+    --paper:#ffffff; --ink:#16181c; --sub:#767b83; --line:#e7e9ec;
+    --dark:#ffffff; --on-dark:#16181c; --on-dark-sub:#767b83;
+    --accent:#16181c; --accent-ink:#fff; --accent-line:#c9cdd3;
+    --hero-edge:1px solid #e7e9ec;
+    --hero-accent:#16181c; --hero-accent-ink:#fff;
+    background-image:none;
+  }
+  body[data-p="i"] .hero h1{letter-spacing:-.01em;font-weight:800}
+  body[data-p="i"] .rule{width:100%;height:1px;background:var(--line)}
+  body[data-p="i"] ol.toc li{display:flex;gap:14px;align-items:flex-start;padding:16px 0 15px}
+  body[data-p="i"] .ic{display:block;flex:0 0 34px;color:#3a4048;margin-top:2px}
+  body[data-p="i"] li.soon .ic{color:#c3c8ce}
+  body[data-p="i"] .bd{flex:1 1 auto;min-width:0}
+  body[data-p="i"] li.side{padding-left:34px;border-left:0;margin-left:14px}
+  body[data-p="i"] h2.sec{border-bottom-color:var(--line);color:var(--sub)}
+
+  .ic{display:none}
+  .ic svg{display:block;width:34px;height:34px}
 
   *{box-sizing:border-box}
   body{margin:0;background:var(--paper);color:var(--ink);
@@ -113,7 +160,7 @@
 
 <!-- ⏳確認用の配色くらべ。⛔決まったらこの帯ごと消す -->
 <div class="palbar" id="palbar">配色くらべ
-  <a href="?p=d" data-p="d">D 白と黒</a><a href="?p=e" data-p="e">E 白と赤</a><a href="?p=f" data-p="f">F 黒い扉</a>
+  <a href="?p=g" data-p="g">G 青焼き</a><a href="?p=h" data-p="h">H 手帳</a><a href="?p=i" data-p="i">I 線画</a>
 </div>
 
 <div class="hero">
@@ -122,7 +169,7 @@
     <p class="kicker">REGISTRO 500 ／ 連載</p>
     <h1>電装トラブルの旅手帳</h1>
     <div class="rule"></div>
-    <p class="lede">配線図を広げても、どこから追えばいいのか分からない。——自分がそうでした。だから症状を1つ選んで、電気がどこを通って、どこで止まっているのかを1枚の絵に描き起こしています。<b>いわば自分のための備忘録です。</b>同じところで手が止まっている人にも役に立てば、と思って置いています。</p>
+    <p class="lede">配線図を広げても、どこから追えばいいのか分からない。——自分がそうでした。だから症状を1つ選んで、電気がどこを通って、どこで止まっているのかを、<b>ケース毎に分類して1枚の絵に描き起こしました。</b>同じところで手が止まっている人にも役に立てば、と思って置いています。</p>
     <div class="badge-row" id="pills"></div>
   </div>
 </div>
@@ -144,11 +191,31 @@
 
 <script>
 (function () {
-  /* ⏳配色くらべ＝確認用。?p=e / ?p=f で切り替える。⛔決まったらこのブロックごと消す */
-  var p = (location.search.match(/[?&]p=([def])/) || [])[1] || 'd';
-  if (p !== 'd') document.body.setAttribute('data-p', p);
+  /* ⏳配色くらべ＝確認用。?p=h / ?p=i で切り替える。⛔決まったらこのブロックごと消す */
+  var p = (location.search.match(/[?&]p=([ghi])/) || [])[1] || 'g';
+  if (p !== 'g') document.body.setAttribute('data-p', p);
   var cur = document.querySelector('.palbar a[data-p="' + p + '"]');
   if (cur) cur.className = 'on';
+
+
+  /* I案の記号＝各号を1つの線画で見分ける。⚠️装飾であって回路図ではない（原典の記号ではない） */
+  var IC = {
+    charge:      '<path d="M7 12h20v13H7z"/><path d="M12 9v3M22 9v3"/><path d="M12 18h4M20 18h4M22 16v4"/>',
+    'charge-alt':'<circle cx="17" cy="17" r="9"/><path d="M17 8v3M17 23v3M8 17h3M23 17h3"/><path d="M14 20l6-6"/>',
+    oil:         '<path d="M17 7c5 6 7 9 7 12a7 7 0 0 1-14 0c0-3 2-6 7-12z"/><path d="M14 19a3 3 0 0 0 3 3"/>',
+    starter:     '<circle cx="17" cy="17" r="6"/><path d="M17 5v4M17 25v4M5 17h4M25 17h4M9 9l3 3M22 22l3 3M25 9l-3 3M12 22l-3 3"/>',
+    key:         '<circle cx="12" cy="17" r="5"/><path d="M17 17h11M25 17v4M21 17v3"/>',
+    ground:      '<path d="M17 6v11"/><path d="M9 18h16M12 22h10M15 26h4"/>',
+    ignition:    '<path d="M18 5l-7 13h6l-2 11 8-14h-6z"/>',
+    horn:        '<path d="M6 14v6h5l9 6V8l-9 6z"/><path d="M24 12a8 8 0 0 1 0 10"/>',
+    room:        '<path d="M17 6a7 7 0 0 0-4 12.7V22h8v-3.3A7 7 0 0 0 17 6z"/><path d="M14 25h6M15 28h4"/>',
+    brake:       '<circle cx="17" cy="18" r="7"/><path d="M17 6v3M27 8l-2 2M7 8l2 2M29 18h-3M5 18h3"/>'
+  };
+  function icon(slug) {
+    var d = IC[slug]; if (!d) return '';
+    return '<span class="ic"><svg viewBox="0 0 34 34" fill="none" stroke="currentColor" ' +
+           'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg></span>';
+  }
 
   /* JST の「今日」を出す＝読者の端末のタイムゾーンで公開日がずれないように（2026-08-25） */
   function todayJST() {
@@ -189,8 +256,9 @@
         ? '<a class="ttl" href="/wiring-journey-' + it.slug + '.html">' + it.title + '</a>'
         : '<span class="ttl">' + it.title + '</span>';
       html += '<li class="' + ((open || early) ? '' : 'soon') + (it.side ? ' side' : '') + '">' +
-              '<div class="row">' + t + when + '</div>' +
-              '<p class="lead"><span class="no">' + no + '</span>' + it.lead + '</p></li>';
+              icon(it.slug) +
+              '<div class="bd"><div class="row">' + t + when + '</div>' +
+              '<p class="lead"><span class="no">' + no + '</span>' + it.lead + '</p></div></li>';
     });
     document.getElementById('list').innerHTML = html;
 
