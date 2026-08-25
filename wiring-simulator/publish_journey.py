@@ -162,13 +162,18 @@ def apply_index(first_public, today, dry, changed):
     """目次ページ＝最初の回が一般公開される日に、検索へ載せる。"""
     src = read(INDEX_HTML)
     open_now = bool(first_public) and today >= first_public
-    has = re.search(r'^[ \t]*<meta name="robots"[^>]*>[ \t]*\n', src, flags=re.M)
+    has = re.search(r'^[ \t]*<meta name="robots"[^>]*>[ \t]*\n', src, flags=re.M | re.I)
     if open_now and has:
         out = src[:has.start()] + src[has.end():]
     elif not open_now and not has:
-        # 何かの拍子に消えていたら戻す（連載開始前に検索へ出さない）
-        out = src.replace('<meta charset="utf-8">',
-                          '<meta charset="utf-8">\n<meta name="robots" content="noindex, nofollow">', 1)
+        # 何かの拍子に消えていたら戻す（連載開始前に検索へ出さない）。
+        # ⚠️ここに落ちる代表例＝`--date` で先の日付を試したあと今日に戻したとき。
+        #   ⛔戻せないまま黙って終わらない＝作業場の目次が検索に出たままになる。止めて気づかせる。
+        #   （旧版は '<meta charset="utf-8">' の小文字決め打ちで、実ファイルの UTF-8 と合わず空振りしていた）
+        m = re.search(r'^[ \t]*<meta charset=[^>]*>[ \t]*\n', src, flags=re.M | re.I)
+        if not m:
+            raise SystemExit('wiring-journey.html に <meta charset> が無く noindex を戻せません')
+        out = src[:m.end()] + '<meta name="robots" content="noindex, nofollow">\n' + src[m.end():]
     else:
         return False
     return write(INDEX_HTML, out, dry, changed)
