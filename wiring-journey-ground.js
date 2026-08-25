@@ -144,7 +144,7 @@
      ⚠️どちらも「正常な操作」。このストーリーは故障を場面（下の絵）で見せるので、トグルは
        「帰り道を使う電気が入れ替わる」ことだけを見せる。 */
   var CAPS = {
-    KEY: '<b>キーON＝2つの警告灯が点いている。</b>その電気は、ダイナモの − と油圧センダの2か所から車体に落ち、車体を伝ってバッテリーの − へ帰っています。黄色い点が上向きなのは「帰っている」からです。',
+    KEY: '<b>キーON＝2つの警告灯が点いている。</b>その電気は、ダイナモのマイナス端子と油圧センダの2か所から車体に落ち、車体を伝ってバッテリーのマイナス端子へ帰っています。黄色い点が上向きなのは「帰っている」からです。',
     CRANK: '<b>レバーを引く＝セルが回る。</b>セルの帰り道（一番上の太い線）にも黄色い点が流れ出しました。行きの道は部品ごとにばらばらでも、<b>帰り道は全部この1枚の板に集まります</b>。'
   };
 
@@ -163,7 +163,7 @@
     /* 1本外れると1つだけ死ぬ＝このストーリーの絞り込みの根拠 */
     { label: '油圧センダのアース（w07-02）が外れた＝油圧警告灯', s: { inputs: ON, ops: cut('w07-02') }, expect: false, words: LW },
     { label: '↑同じ場面のチャージランプ（無実）', s: { inputs: ON, ops: cut('w07-02') }, expect: true, read: chg, words: LW },
-    { label: 'ダイナモの−（w11-09）が外れた＝チャージランプ', s: { inputs: ON, ops: cut('w11-09') }, expect: false, read: chg, words: LW },
+    { label: 'ダイナモのマイナス端子（w11-09）が外れた＝チャージランプ', s: { inputs: ON, ops: cut('w11-09') }, expect: false, read: chg, words: LW },
     { label: '↑同じ場面の油圧警告灯（無実）', s: { inputs: ON, ops: cut('w11-09') }, expect: true, words: LW },
     { label: 'セルのアース（w11-11）が外れた＝セル', s: { inputs: PULL, ops: cut('w11-11') }, expect: false, read: cel, words: CW },
     { label: '↑同じ場面の油圧警告灯（無実）', s: { inputs: PULL, ops: cut('w11-11') }, expect: true, words: LW },
@@ -171,7 +171,7 @@
     { label: 'レギュレータのアース（w11-08）が外れた＝油圧警告灯', s: { inputs: ON, ops: cut('w11-08') }, expect: true, words: LW },
     { label: '↑同じ場面のチャージランプ', s: { inputs: ON, ops: cut('w11-08') }, expect: true, read: chg, words: LW },
     /* 山場＝−端子が外れると全部死ぬ。案Aを入れて初めて正しく答えられるようになった場面 */
-    { label: 'バッテリー−（w11-10）が外れた＝油圧警告灯', s: { inputs: ON, ops: cut('w11-10') }, expect: false, words: LW },
+    { label: 'バッテリーのマイナス端子（w11-10）が外れた＝油圧警告灯', s: { inputs: ON, ops: cut('w11-10') }, expect: false, words: LW },
     { label: '↑同じ場面のチャージランプ', s: { inputs: ON, ops: cut('w11-10') }, expect: false, read: chg, words: LW },
     { label: '↑同じ場面のセル（レバーを引く）', s: { inputs: PULL, ops: cut('w11-10') }, expect: false, read: cel, words: CW },
     /* 車体側の落とし先が全部外れても、−が生きていれば…という誤解を潰す */

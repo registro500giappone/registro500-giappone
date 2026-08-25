@@ -249,11 +249,11 @@
     { label: '計器盤への水色線（w10-02）が外れた・キーON', s: { inputs: ON, ops: cut('w10-02') }, expect: false, words: LW },
     { label: '↑同じ場面のチャージランプ', s: { inputs: ON, ops: cut('w10-02') }, expect: false, read: chg, words: LW },
     /* ＋側が外れた＝警告灯もセルも死ぬ（第3号の異常②と同じ場面） */
-    { label: 'バッテリー＋の太線（w11-01）が外れた・キーON', s: { inputs: ON, ops: cut('w11-01') }, expect: false, words: LW },
+    { label: 'バッテリーのプラス側の太線（w11-01）が外れた・キーON', s: { inputs: ON, ops: cut('w11-01') }, expect: false, words: LW },
     { label: '↑同じ場面のセル（レバーを引く）', s: { inputs: PULL, ops: cut('w11-01') }, expect: false, read: cel, words: CW },
     /* −側が外れた＝帰り道が無い。⚠️2026-08-21 の案A（アースの基準をバッテリー − へ）で
        初めて正しく答えられるようになった場面。この2件は以前は「点く・回る」と誤答していた。 */
-    { label: 'バッテリー−の線（w11-10）が外れた・キーON', s: { inputs: ON, ops: cut('w11-10') }, expect: false, words: LW },
+    { label: 'バッテリーのマイナス側の線（w11-10）が外れた・キーON', s: { inputs: ON, ops: cut('w11-10') }, expect: false, words: LW },
     { label: '↑同じ場面のチャージランプ', s: { inputs: ON, ops: cut('w11-10') }, expect: false, read: chg, words: LW },
     { label: '↑同じ場面のセル（レバーを引く）', s: { inputs: PULL, ops: cut('w11-10') }, expect: false, read: cel, words: CW },
     /* 片方だけ消えるなら共通部分は無実＝このストーリーの絞り込みの裏づけ */

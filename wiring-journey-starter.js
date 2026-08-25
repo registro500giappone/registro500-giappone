@@ -144,12 +144,12 @@
     { label: 'セルのアース線（黒）が外れた・レバーを引く', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-11' }] }, expect: false, words: CELLW },
     { label: '↑同じ場面のチャージランプ', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-11' }] }, expect: true, read: warnLamp, words: LAMPW },
     { label: 'レバー→セルの太線（茶）が外れた・レバーを引く', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-02' }] }, expect: false, words: CELLW },
-    { label: 'バッテリー＋の太線（赤）が外れた・レバーを引く', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-01' }] }, expect: false, words: CELLW },
+    { label: 'バッテリーのプラス側の太線（赤）が外れた・レバーを引く', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-01' }] }, expect: false, words: CELLW },
     { label: '↑同じ場面のチャージランプ', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-01' }] }, expect: false, read: warnLamp, words: LAMPW },
     /* 【2026-08-21 追加】バッテリーの −端子外れ。案A（アースの基準をバッテリー − へ移す）を
        入れるまで、この2件は「回る・点く」と誤答していた＝限界②として文章で断っていたもの。
        いまは実車どおり「戻り道が無い＝全部死ぬ」と答えるので、検算に昇格させた。 */
-    { label: 'バッテリーの−端子（アース線）が外れた・レバーを引く', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-10' }] }, expect: false, words: CELLW },
+    { label: 'バッテリーのマイナス端子（アース線）が外れた・レバーを引く', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-10' }] }, expect: false, words: CELLW },
     { label: '↑同じ場面のチャージランプ', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-10' }] }, expect: false, read: warnLamp, words: LAMPW },
     { label: 'オルタネーター換装車・レバーを引く', s: { alt: true, inputs: { key: 'ON', engine: 'STOP', starter: 'START' } }, expect: true, words: CELLW }
   ];

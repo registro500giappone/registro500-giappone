@@ -100,8 +100,15 @@
       else if (dir === 'up') this.dots(x1, Math.min(y1, y2) + 26, Math.max(y1, y2) - 6, true);
     }
   };
+  /* 絵の中の極性記号（＋・−）は細くて沈むので、太字にして拾いやすくする。
+     ⚠️本文（HTML）側では「プラス端子／マイナス端子」と日本語で書く決まり（2026-08-25 ユーザー確定）。
+        絵の中だけは幅が無いので記号のまま残し、代わりにここで太くしている。
+        サイズは変えない＝変えると隣のラベルと重なるため（重なりは getBBox で数値判定する作法） */
+  function pole(t) {
+    return String(t).replace(/[−＋]/g, '<tspan font-weight="700">$&</tspan>');
+  }
   Kit.prototype.label = function (x, y, t, col, anchor, size) {
-    this.s.push('<text x="' + x + '" y="' + y + '" font-size="' + (size || 13) + '" fill="' + (col || C.sub) + '"' + (anchor ? ' text-anchor="' + anchor + '"' : '') + '>' + t + '</text>');
+    this.s.push('<text x="' + x + '" y="' + y + '" font-size="' + (size || 13) + '" fill="' + (col || C.sub) + '"' + (anchor ? ' text-anchor="' + anchor + '"' : '') + '>' + pole(t) + '</text>');
   };
   Kit.prototype.ground = function (x, y, name) {
     this.s.push('<path d="M' + (x - 16) + ',' + y + ' L' + (x + 16) + ',' + y + ' M' + (x - 10) + ',' + (y + 7) + ' L' + (x + 10) + ',' + (y + 7) + ' M' + (x - 4) + ',' + (y + 14) + ' L' + (x + 4) + ',' + (y + 14) + '" stroke="' + C.deep + '" stroke-width="3.5" fill="none" stroke-linecap="round"/>');
@@ -150,8 +157,8 @@
     s.push('<rect x="' + (x - 45) + '" y="18" width="90" height="10" rx="5" fill="' + C.deep + '"/>');
     s.push('<rect x="' + (x - 34) + '" y="8" width="13" height="14" rx="2.5" fill="' + C.hi + '"/>');       /* ＋端子 */
     s.push('<rect x="' + (x + 21) + '" y="8" width="13" height="14" rx="2.5" fill="#5c5a56"/>');            /* −端子 */
-    s.push('<text x="' + (x - 46) + '" y="16" font-size="13" font-weight="700" fill="' + C.hi + '" text-anchor="end">+</text>');
-    s.push('<text x="' + (x + 48) + '" y="16" font-size="14" font-weight="700" fill="#5c5a56">−</text>');
+    s.push('<text x="' + (x - 46) + '" y="17" font-size="16" font-weight="700" fill="' + C.hi + '" text-anchor="end">+</text>');
+    s.push('<text x="' + (x + 48) + '" y="17" font-size="18" font-weight="700" fill="' + C.deep + '">−</text>');
     s.push('<g fill="' + C.in_ + '" opacity=".85"><circle cx="' + (x - 20) + '" cy="40" r="4"/><circle cx="' + x + '" cy="40" r="4"/><circle cx="' + (x + 20) + '" cy="40" r="4"/></g>');
     s.push('<text x="' + x + '" y="56" font-size="12" fill="#fffdf8" text-anchor="middle">バッテリー</text>');
   };

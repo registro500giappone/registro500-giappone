@@ -262,7 +262,7 @@
     /* もう一方の症状＝点きっぱなし */
     { label: 'スイッチが固着・ブレーキを離している', s: { inputs: { key: 'ON', brake: 'UP' }, override: { brake_sw: 'PRESSED' } }, expect: true, words: LW },
     { label: '↑同じ固着のままキーを抜く（消える）', s: { inputs: { brake: 'UP' }, override: { brake_sw: 'PRESSED' } }, expect: false, words: LW },
-    { label: 'バッテリー −（w11-10）が外れた・踏む', s: { inputs: ON, ops: cut('w11-10') }, expect: false, words: LW },
+    { label: 'バッテリーのマイナス端子（w11-10）が外れた・踏む', s: { inputs: ON, ops: cut('w11-10') }, expect: false, words: LW },
     { label: 'オルタネーター換装車・踏む', s: { alt: true, inputs: ON }, expect: true, words: LW }
   ];
 

@@ -192,7 +192,7 @@
     { label: 'キーへの赤線（w10-01）が外れた＝一次', s: { inputs: ON, ops: cut('w10-01') }, expect: false, words: PW },
     { label: '↑同じ場面のチャージランプ（一緒に消える）', s: { inputs: ON, ops: cut('w10-01') }, expect: false, read: chg, words: LW },
     /* アースの帰り道が切れると点火も死ぬ＝第5号へ渡す場面 */
-    { label: 'バッテリー−（w11-10）が外れた＝一次', s: { inputs: ON, ops: cut('w11-10') }, expect: false, words: PW },
+    { label: 'バッテリーのマイナス端子（w11-10）が外れた＝一次', s: { inputs: ON, ops: cut('w11-10') }, expect: false, words: PW },
     { label: 'オルタネーター換装車・キーON・ポイント閉', s: { alt: true, inputs: ON }, expect: true, words: PW }
   ];
 
