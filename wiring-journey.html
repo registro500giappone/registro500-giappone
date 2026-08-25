@@ -99,7 +99,6 @@
             border-left:5px solid var(--accent);padding:12px 14px 11px;margin-bottom:7px;
             box-shadow:1px 1px 0 rgba(90,78,55,.13)}
   ol.toc li.soon{background:#f0ebdd;border-left-color:#b9ab8c;box-shadow:none}
-  li.next .lead{color:#8d8271}
   li.side{margin-left:22px;border-left-width:5px;border-left-color:#8fa3ad}
   .notes,.find{background:var(--sheet);border:1px solid var(--sheet-edge);padding:14px 15px}
   .notes{margin-top:16px}
@@ -143,7 +142,6 @@
     var j = new Date(n.getTime() + n.getTimezoneOffset() * 60000 + 9 * 3600000);
     return j.getFullYear() + '-' + String(j.getMonth() + 1).padStart(2, '0') + '-' + String(j.getDate()).padStart(2, '0');
   }
-  function jp(d) { var q = d.split('-'); return (q[1] | 0) + '/' + (q[2] | 0); }
 
   /* ⏳確認用＝?d=2026-10-05 のように渡すと、その日の画面を再現できる。⛔本決まりになったら消す */
   var today = (location.search.match(/[?&]d=(\d{4}-\d{2}-\d{2})/) || [])[1] || todayJST();
@@ -164,17 +162,14 @@
       });
     });
 
-    var html = '', nextOne = null;
+    var html = '';
     rows.forEach(function (it) {
       var open = today >= it.public;          /* 一般公開ずみ */
       var early = !open && today >= it.early; /* 登録オーナーだけ先に読める */
 
-      /* ⛔②案＝まだ読めない号は目次に出さない。出すのは【次の1本】だけ（2026-08-25 ユーザー指示）
-         ⚠️「次の1本」＝これから公開される号のうち public がいちばん早いもの。同日なら先に並ぶ方を採る */
-      if (!open && !early) {
-        if (!nextOne || it.public < nextOne.public) nextOne = it;
-        return;
-      }
+      /* ⛔まだ読めない号は目次に出さない＝予告もしない（2026-08-25 ユーザー確定）
+         理由＝次回だけ出すと、先行公開日と一般公開日の段差が「1週飛び」に見えた */
+      if (!open && !early) return;
 
       var no = it.side ? ('第' + it.of + '号 別冊') : ('第' + it.n + '号');
       var when = open ? '<span class="when">公開中</span>'
@@ -185,14 +180,6 @@
               when + '</div>' +
               '<p class="lead"><span class="no">' + no + '</span>' + it.lead + '</p></div></li>';
     });
-
-    /* 次の1本＝タイトルと日付だけ。⛔リード文もその先の号も見せない */
-    if (nextOne) {
-      html += '<li class="soon next"><div><div class="row">' +
-              '<span class="ttl">' + nextOne.title + '</span>' +
-              '<span class="when">' + jp(nextOne.public) + ' 公開</span>' +
-              '</div><p class="lead">次回。この先は毎週金曜に1本ずつ増えます。</p></div></li>';
-    }
 
     document.getElementById('list').innerHTML = html;
 
