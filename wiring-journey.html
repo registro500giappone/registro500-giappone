@@ -2,11 +2,15 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<!-- ⚠️作業場ページ＝導線なし・noindex。「電装トラブルの旅」の目次（＝連載の表紙）。
+<!-- ⚠️作業場ページ＝導線なし・noindex。「電装トラブルの旅」の目次（＝連載の扉）。
      ⚠️公開予定は /journey-schedule.json が正本＝この HTML に日付を直書きしない。
      ⚠️各号の状態（一般公開／登録オーナー先行／公開前）は、その JSON と JST の今日を突き合わせて出し分ける。
      ⛔⛔ index.html のメニューなど、どこからもリンクを張らない（ユーザーの明示指示があるまで・CLAUDE.md 冒頭の規則）。
      ⛔ 描き終えていない題材は載せない＝作れる保証のないものを予告して出せないと信用を失う。
+     ⚠️⚠️見た目は【各号ページのトーンにあえて揃えていない】＝新しい企画の扉なので新鮮さを優先する
+        （2026-08-25 ユーザー指示「企画名ドーン／概要／以下タイトルと予定／注釈は後段に小さく」）。
+        そのため共通CSS（/wiring-journey.css）は読み込まず、このページだけで完結させている。
+        ⛔各号の絵の体裁をここへ持ち込まない・ここの体裁を各号へ持ち出さない。
      設計の正本＝wiring-simulator/HANDOFF.md §0 その27 ／ 題材の管理表＝wiring-simulator/JOURNEY-INDEX.md -->
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -21,62 +25,89 @@
   gtag('config', 'G-27SHHC4JYH');
 </script>
 
-<!-- 外観は各号のページと共通 -->
-<link rel="stylesheet" href="/wiring-journey.css">
 <style>
-  /* この目次ページだけの体裁。⚠️共通CSS（wiring-journey.css）は触らない＝各号の絵に影響が出るため */
-  header .eyebrow{margin-top:0}
-  .find{background:#eef2ec;border:1px solid #c6d2c3;border-radius:10px;
-        padding:11px 13px;margin:16px 0 0;font-size:13.5px;line-height:1.9}
-  .find b{color:var(--deep);display:block;font-size:12px;letter-spacing:.1em;margin-bottom:4px}
-  .find a{color:var(--deep);font-weight:700;text-decoration:none;border-bottom:1px solid #c6d2c3}
-  .find i{color:var(--sub);font-style:normal;opacity:.75}
-  .issues{list-style:none;padding:0;margin:18px 0 0}
-  .issues li{background:var(--card);border:1px solid var(--line);border-radius:12px;
-             padding:12px 14px;margin-bottom:10px}
-  .issues li.soon{background:transparent;border-style:dashed;color:var(--sub)}
-  .issues li.side{margin-left:18px;border-left:4px solid var(--line)}
-  .no{font-size:11.5px;letter-spacing:.12em;color:var(--hi);font-weight:700}
-  .issues li.soon .no{color:var(--sub)}
-  .ttl{display:block;font-size:16px;font-weight:700;color:var(--deep);
-       line-height:1.45;margin:3px 0 5px;text-decoration:none}
+  :root{
+    --bg:#faf7f0; --ink:#2b2721; --deep:#22302a; --sub:#8d8574;
+    --line:#ddd5c4; --hi:#b8442e; --cream:#f4ecdc;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.85 system-ui,-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif}
+  a{color:inherit}
+
+  /* ===== 扉＝企画名を大きく。全幅の帯にするため .col の外に置く ===== */
+  .hero{background:var(--deep);color:var(--cream);padding:34px 20px 30px}
+  .hero-in{max-width:520px;margin-inline:auto}
+  .kicker{margin:0;font-size:11.5px;letter-spacing:.28em;color:#b9c4b6}
+  .hero h1{margin:6px 0 0;font-weight:800;letter-spacing:.02em;line-height:1.12;
+           font-size:clamp(34px,10.5vw,52px)}
+  .rule{width:44px;height:3px;background:var(--hi);margin:16px 0 14px}
+  .lede{margin:0;font-size:14.5px;line-height:1.95;color:#e7dfcd}
+  .lede b{color:#fff;font-weight:700}
+  .badge-row{margin:18px 0 0;display:flex;flex-wrap:wrap;gap:8px}
+  .pill{font-size:11.5px;letter-spacing:.06em;border:1px solid #5c6b60;border-radius:999px;
+        padding:3px 11px;color:#cfd8cb}
+  .pill.on{background:var(--hi);border-color:var(--hi);color:#fff;font-weight:700}
+
+  .col{max-width:520px;margin-inline:auto;padding:0 20px 60px}
+
+  /* ===== 目次＝カードをやめて罫線で組む（雑誌の目次の作法） ===== */
+  h2.sec{font-size:12px;letter-spacing:.22em;color:var(--hi);font-weight:800;
+         margin:30px 0 0;padding-bottom:8px;border-bottom:2px solid var(--deep)}
+  ol.toc{list-style:none;margin:0;padding:0}
+  ol.toc li{border-bottom:1px solid var(--line);padding:15px 0 14px}
+  .row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .num{font-size:23px;font-weight:800;letter-spacing:.02em;color:var(--hi);line-height:1}
+  .num small{font-size:11px;font-weight:700;letter-spacing:.1em;margin-left:5px;color:var(--sub)}
+  .when{font-size:12px;color:var(--sub);white-space:nowrap;letter-spacing:.04em}
+  .when.early{color:#fff;background:var(--hi);border-radius:999px;padding:2px 10px;font-weight:700}
+  .ttl{display:block;font-size:18.5px;font-weight:700;line-height:1.45;
+       margin:7px 0 4px;color:var(--deep);text-decoration:none}
   a.ttl:hover{text-decoration:underline}
-  .issues p{margin:0;font-size:13.5px;line-height:1.7}
-  .tag{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;
-       padding:1px 9px;margin-left:6px;vertical-align:2px}
-  .tag.early{background:#fbeeea;color:var(--hi);border:1px solid #e4b7a9}
-  .tag.when{background:#eef2ec;color:var(--sub);border:1px solid #c6d2c3}
-  .foot{margin-top:26px;padding-top:14px;border-top:1px solid var(--line)}
+  .lead{margin:0;font-size:13.5px;line-height:1.75;color:#5f584d}
+  li.soon .num,li.soon .ttl{color:#a49b8b}
+  li.soon .lead{color:#9a917f}
+  li.side{padding-left:20px;border-left:3px solid var(--line);margin-left:2px}
+  li.side .num{font-size:15px}
+  li.side .ttl{font-size:16px}
+
+  /* ===== 後段＝索引と注釈。小さく畳む ===== */
+  .find{margin:26px 0 0;font-size:13px;line-height:2.05;color:#5f584d}
+  .find b{display:block;font-size:11.5px;letter-spacing:.2em;color:var(--hi);
+          font-weight:800;margin-bottom:3px}
+  .find a{color:var(--deep);font-weight:700;text-decoration:none;border-bottom:1px solid var(--line)}
+  .find i{color:#a49b8b;font-style:normal}
+  .notes{margin:26px 0 0;padding-top:16px;border-top:1px solid var(--line);
+         font-size:12px;line-height:1.85;color:var(--sub)}
+  .notes p{margin:0 0 9px}
+  .notes b{color:var(--ink)}
+  .notes .warn b{color:var(--hi)}
 </style>
 </head>
 <body>
-<div class="sitebar"><b>Registro 500</b>｜空冷FIAT500 症状から引ける電気の絵本（試作）</div>
+
+<div class="hero">
+  <div class="hero-in">
+    <p class="kicker">REGISTRO 500 ／ 連載</p>
+    <h1>電装トラブルの旅</h1>
+    <div class="rule"></div>
+    <p class="lede">エンジンがかからない。灯りが点かない。ホーンが鳴らない。——空冷 FIAT 500 で実際に起きる電気の症状を、<b>1号に1つずつ、絵にしてたどります</b>。配線図は読めなくて構いません。電気がどこを通って、どこで止まっているのかを、目で追える形にしました。</p>
+    <div class="badge-row" id="pills"></div>
+  </div>
+</div>
+
 <div class="col">
 
-<header>
-  <p class="eyebrow">連載</p>
-  <h1 class="brk"><span>電装トラブルの旅</span></h1>
-  <p>エンジンがかからない。灯りが点かない。ホーンが鳴らない。——空冷 FIAT 500 で実際に起きる電気の症状を、<b>1つずつ絵にしてたどります</b>。</p>
-</header>
+  <h2 class="sec">目次</h2>
+  <ol class="toc" id="list"></ol>
 
-<p class="scope">この連載は <b>FIAT 500（D・F・L・R型）</b> の話です。配線は500の原典（純正取扱説明書の配線図）から起こしています。</p>
+  <div class="find" id="find"></div>
 
-<!-- ユーザー提案の注意書き（2026-08-25）＝表紙ができたのでここに置いた。⚠️安全に関わるので目立つ位置から動かさない -->
-<div class="safety">
-  <b>描いてあるのは工場出荷時の配線です。</b>
-  500 は最も新しい車でも50年以上を経ていて、その間に配線へ手が入っていることは珍しくありません。ヒューズの増設、リレーの追加、電装品の後付け、修理のときの引き直し——どれも実際によくあることです。
-  <b>図と実車が違っていたとき、正しいのは目の前の配線のほうです。</b>この絵は「もともとどう作られていたか」を知るためのものだと思って使ってください。
-</div>
-
-<!-- ⚠️索引の中身も JS で組む＝まだ公開していない号にリンクを張らないため（連載中は読めない号がある） -->
-<div class="find" id="find"><b>症状から探す</b></div>
-
-<ol class="issues" id="list"></ol>
-
-<div class="foot">
-  <p class="note" id="serial"></p>
-  <p class="note">この絵はすべて原典の配線図から起こしていて、点灯や電気の流れは計算結果です（絵に合わせて数字を作っていません）。各ページの末尾に、その検算の一覧を載せてあります。</p>
-</div>
+  <div class="notes">
+    <p class="warn"><b>⚠️描いてあるのは工場出荷時の配線です。</b>500 は最も新しい車でも50年以上を経ていて、その間に配線へ手が入っていることは珍しくありません。ヒューズの増設、リレーの追加、電装品の後付け、修理のときの引き直し——どれも実際によくあることです。<b>図と実車が違っていたとき、正しいのは目の前の配線のほうです。</b></p>
+    <p>この連載は <b>FIAT 500（D・F・L・R型）</b> の話です。配線は500の原典（純正取扱説明書の配線図）から起こしています。</p>
+    <p>絵の中の点灯や電気の流れは<b>すべて計算結果</b>で、絵に合わせて数字を作っていません。各号の末尾に、その検算の一覧を載せてあります。</p>
+  </div>
 
 </div>
 
@@ -88,17 +119,26 @@
     var j = new Date(n.getTime() + n.getTimezoneOffset() * 60000 + 9 * 3600000);
     return j.getFullYear() + '-' + String(j.getMonth() + 1).padStart(2, '0') + '-' + String(j.getDate()).padStart(2, '0');
   }
-  function jp(d) { var p = d.split('-'); return (p[1] | 0) + '月' + (p[2] | 0) + '日'; }
+  function jp(d) { var p = d.split('-'); return (p[1] | 0) + '/' + (p[2] | 0); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
 
   var today = todayJST();
-  var list = document.getElementById('list');
-  var serial = document.getElementById('serial');
 
-  fetch('/journey-schedule.json?v=1').then(function (r) { return r.json(); }).then(function (s) {
+  fetch('/journey-schedule.json?v=2').then(function (r) { return r.json(); }).then(function (s) {
+
+    /* 扉の下の小さな札＝連載の条件を3つだけ */
+    var done = s.issues.every(function (it) { return today >= it.public; });
+    document.getElementById('pills').innerHTML = done
+      ? '<span class="pill on">全' + s.issues.length + '号 公開済み</span><span class="pill">症状から引けます</span>'
+      : '<span class="pill on">' + s.cadence + ' 更新</span>' +
+        '<span class="pill">登録オーナーは1週間早く</span>' +
+        '<span class="pill">全' + s.issues.length + '号</span>';
+
+    /* ===== 目次 ===== */
     var rows = [];
     s.issues.forEach(function (it) {
       rows.push(it);
-      /* 別冊はその号のすぐ下にぶら下げる＝第1号の派生であることが並びで分かる */
+      /* 別冊はその号のすぐ下にぶら下げる＝派生であることが並びで分かる */
       (s.extras || []).filter(function (e) { return e.of === it.n; }).forEach(function (e) {
         e.side = true; rows.push(e);
       });
@@ -108,21 +148,23 @@
     rows.forEach(function (it) {
       var open = today >= it.public;          /* 一般公開ずみ */
       var early = !open && today >= it.early; /* 登録オーナーだけ先に読める */
-      var no = it.side ? '第' + it.of + '号 別冊' : '第' + it.n + '号';
-      var tag = open ? '' :
-        early ? '<span class="tag early">登録オーナー先行</span>' :
-                '<span class="tag when">' + jp(it.public) + ' 公開</span>';
-      var cls = (open || early) ? (it.side ? 'side' : '') : ('soon' + (it.side ? ' side' : ''));
+      var num = it.side
+        ? '<span class="num">' + pad(it.of) + '<small>別冊</small></span>'
+        : '<span class="num">' + pad(it.n) + '</span>';
+      var when = open ? '<span class="when">公開中</span>' :
+        early ? '<span class="when early">登録オーナー先行</span>' :
+                '<span class="when">' + jp(it.public) + ' 公開</span>';
       var t = (open || early)
         ? '<a class="ttl" href="/wiring-journey-' + it.slug + '.html">' + it.title + '</a>'
         : '<span class="ttl">' + it.title + '</span>';
-      html += '<li class="' + cls + '"><span class="no">' + no + '</span>' + tag + t +
-              '<p>' + it.lead + '</p></li>';
+      html += '<li class="' + ((open || early) ? '' : 'soon') + (it.side ? ' side' : '') + '">' +
+              '<div class="row">' + num + when + '</div>' + t +
+              '<p class="lead">' + it.lead + '</p></li>';
     });
-    list.innerHTML = html;
+    document.getElementById('list').innerHTML = html;
 
-    /* 症状から探す＝症状のまとまりで引くための索引。
-       ⚠️まだ公開していない号はリンクにしない（読めないページへ送らない）＝連載が終われば全部リンクになる */
+    /* ===== 症状から探す＝後段に小さく。
+       ⚠️まだ公開していない号はリンクにしない（読めないページへ送らない）＝連載が終われば全部リンクになる ===== */
     var GROUPS = [
       ['警告灯が消えない', ['charge', 'oil']],
       ['エンジンがかからない', ['starter', 'ignition']],
@@ -135,21 +177,16 @@
     GROUPS.forEach(function (g) {
       f += g[0] + ' → ' + g[1].map(function (sl) {
         var it = by[sl];
-        var readable = today >= it.early;   /* 先行中なら索引にも出す（読めるのは登録オーナーだけ） */
-        return readable
+        return (today >= it.early)   /* 先行中なら索引にも出す（読めるのは登録オーナーだけ） */
           ? '<a href="/wiring-journey-' + it.slug + '.html">' + it.short + '</a>'
           : '<i>' + it.short + '</i>';
       }).join('・') + '<br>';
     });
     document.getElementById('find').innerHTML = f;
 
-    /* 全号が一般公開に達したら連載は終わり＝常設の目次に切り替える（⛔だらだら続けない・ユーザー確定） */
-    var done = s.issues.every(function (it) { return today >= it.public; });
-    serial.innerHTML = done
-      ? '全' + s.issues.length + '号 公開済みです。上から順に読むと、電気が「行って帰る」道の全体が分かるように並べてあります。'
-      : s.cadence + 'に1号ずつ公開しています。<b>登録オーナーは1週間早く読めます</b>（新しい号が出たら朝のお知らせメールでお伝えします）。';
   }).catch(function () {
-    list.innerHTML = '<li class="soon"><p>目次を読み込めませんでした。時間をおいて開き直してください。</p></li>';
+    document.getElementById('list').innerHTML =
+      '<li class="soon"><p class="lead">目次を読み込めませんでした。時間をおいて開き直してください。</p></li>';
   });
 })();
 </script>
