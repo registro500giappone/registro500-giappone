@@ -31,7 +31,12 @@ import io
 import json
 import os
 import re
+import sys
 from datetime import datetime, timedelta, timezone
+
+# Windows のコンソールは既定が cp932＝日本語も⚠️も出せずに落ちる。出力側を UTF-8 に寄せる。
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCHEDULE = os.path.join(ROOT, 'journey-schedule.json')
@@ -44,6 +49,9 @@ GATE_JS = 'wiring-journey-gate.js'
 BEGIN = '<!-- JOURNEY-STATE:BEGIN ⛔ここから END までは publish_journey.py が書き換える＝手で編集しない -->'
 END = '<!-- JOURNEY-STATE:END -->'
 SITEMAP_LINE = 'Sitemap: %s/sitemap-journey.xml' % BASE
+# OG画像は回ごと＝og/journey-<slug>.png（作るのは build_og_cards.py）。
+# ⚠️無ければ og:image を出さない（在りもしない画像を指すと、SNSのカードが壊れて配られる）。
+OG_FMT = 'og/journey-%s.png'
 
 
 def today_jst():
@@ -91,13 +99,44 @@ def state_of(item, today):
     return 'pre'
 
 
-def block(item, state, gv):
-    """記事HTMLの head に入れる管理ブロック。門番（gate.js）はこの値だけを見る。"""
+def esc(t):
+    return (t.replace('&', '&amp;').replace('"', '&quot;')
+             .replace('<', '&lt;').replace('>', '&gt;'))
+
+
+def page_title(src):
+    """HTML に書いてある <title> をそのまま使う＝題名の正本は記事側に置く。"""
+    m = re.search(r'<title>(.*?)</title>', src, flags=re.S)
+    return m.group(1).strip() if m else ''
+
+
+def block(item, state, gv, title):
+    """記事HTMLの head に入れる管理ブロック。門番（gate.js）はこの値だけを見る。
+
+    ⚠️description・canonical・OGP もここが持つ＝日付と同じで正本は journey-schedule.json。
+      HTML 側に散らすと、回が増えるたびに書き漏らす。
+    """
     data = {'slug': item['slug'], 'n': item['n'], 'state': state, 'pub': item['public']}
+    url = '%s/wiring-journey-%s' % (BASE, item['slug'])
+    # og:title は <title> からサイト名を落としたもの（SNS のカードで二重に出さない）
+    ogt = title.split('｜')[0].strip()
+    og = OG_FMT % item['slug']
+    has_og = os.path.exists(os.path.join(ROOT, og))
     lines = [BEGIN]
     if state != 'open':
         # 先行中・公開前は検索に載せない。公開日にこの行が消える＝それが「公開」。
         lines.append('<meta name="robots" content="noindex, nofollow">')
+    lines.append('<meta name="description" content="%s">' % esc(item['desc']))
+    lines.append('<link rel="canonical" href="%s">' % url)
+    lines.append('<meta property="og:type" content="article">')
+    lines.append('<meta property="og:title" content="%s">' % esc(ogt))
+    lines.append('<meta property="og:description" content="%s">' % esc(item['desc']))
+    lines.append('<meta property="og:url" content="%s">' % url)
+    if has_og:
+        lines.append('<meta property="og:image" content="%s/%s">' % (BASE, og))
+    lines.append('<meta property="og:site_name" content="Registro500 Giappone">')
+    lines.append('<meta name="twitter:card" content="%s">'
+                 % ('summary_large_image' if has_og else 'summary'))
     lines.append('<script>window.JOURNEY=%s;</script>'
                  % json.dumps(data, ensure_ascii=False, sort_keys=True))
     lines.append('<script src="/%s?v=%s"></script>' % (GATE_JS, gv))
@@ -107,7 +146,7 @@ def block(item, state, gv):
 
 def apply_article(path, item, state, gv, dry, changed):
     src = read(path)
-    new = block(item, state, gv)
+    new = block(item, state, gv, page_title(src))
     if BEGIN in src:
         out = re.sub(re.escape(BEGIN) + r'.*?' + re.escape(END), lambda m: new, src, flags=re.S)
     else:
@@ -203,6 +242,9 @@ def main():
     print('基準日 %s（JST）' % today)
     for slug, st in rows:
         print('  %-12s %s' % (slug, {'pre': 'まだ', 'early': '登録オーナー先行', 'open': '公開中'}[st]))
+    missing = [sl for sl, _ in rows if not os.path.exists(os.path.join(ROOT, OG_FMT % sl))]
+    if missing:
+        print('⚠️ OG画像が無い回: %s → build_og_cards.py で作ってください' % ' '.join(missing))
     if changed:
         print('変更したファイル: %s' % ' '.join(sorted(set(changed))))
     else:
