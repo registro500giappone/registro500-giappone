@@ -51,8 +51,8 @@
      ⚠️電気の向きは連載の作法どおり【＋から出てアースへ帰る】（第5回と同じ）。
        ユーザーの言う「マイナスの電気が来る」は電子の向きの話だが、そちらに合わせると
        他の回と逆向きになるので採らない。 */
-  var PY = 204, GY = 224;        /* ポイントの接点／車体アース（どちらもコイルの箱の外） */
-  var HEADTOP = 254;             /* シリンダーヘッドの絵の始まり（高圧の道の行き先を決めるので定数にする） */
+  var PY = 220, GY = 242;        /* ポイントの接点／車体アース（どちらもコイルの箱の外） */
+  var HEADTOP = 272;             /* シリンダーヘッドの絵の始まり（高圧の道の行き先を決めるので定数にする） */
 
   function cyc(c) { return ' class="ig-cycle ' + c + '"'; }
 
@@ -63,7 +63,8 @@
     /* ---- 見出し＝物語の3つの段。重ねて置いて CSS で入れ替える ---- */
     s.push('<text x="6" y="15" font-size="12" fill="' + C.deep + '"' + cyc('ig-s1') + '>① 電気が流れて、コイルに磁気が溜まる</text>');
     s.push('<text x="6" y="15" font-size="12" font-weight="700" fill="' + C.hi + '" opacity="0"' + cyc('ig-s2') + '>② ポイントが開いて、電流が切れた</text>');
-    s.push('<text x="6" y="15" font-size="12" font-weight="700" fill="#c2701a" opacity="0"' + cyc('ig-s3') + '>③ 二次に高圧＝プラグまで届いて火花</text>');
+    s.push('<text x="6" y="15" font-size="12" font-weight="700" fill="#c2701a" opacity="0"' + cyc('ig-s3a') + '>③ 高圧がプラグ ① へ届いて火花</text>');
+    s.push('<text x="6" y="15" font-size="12" font-weight="700" fill="#c2701a" opacity="0"' + cyc('ig-s3b') + '>③ 次はプラグ ② へ＝交互に配られる</text>');
 
     s.push('<rect x="' + SB.x + '" y="' + SB.y + '" width="' + SB.w + '" height="' + SB.h + '" rx="8" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
     s.push('<text x="' + (SB.x + 10) + '" y="' + (SB.y + 17) + '" font-size="11" fill="#fffdf8">点火コイルの中</text>');
@@ -86,9 +87,6 @@
     var coil1 = 'L' + P1 + ',' + (y1 + 6) + ' q20,10 0,20 q20,10 0,20 q20,10 0,20 q20,10 0,20 L' + P1 + ',' + y2;
     s.push('<path d="M14,' + y1 + ' L' + P1 + ',' + y1 + ' ' + coil1 + ' L30,' + y2 + ' L30,' + (SB.y + SB.h) + '" fill="none" stroke="' + C.in_ + '" stroke-width="4"/>');
     k.label(18, y1 + 26, 'キーから', '#cfc7b4', null, 9.5);
-    /* 流れる点＝丸い破線を動かす（0〜40% だけ流れて、切れた瞬間に消える） */
-    s.push('<path' + cyc('ig-prim') + ' d="M16,' + y1 + ' L' + P1 + ',' + y1 + ' ' + coil1 + ' L30,' + y2 + ' L30,' + PY + ' L46,' + PY
-      + '" fill="none" stroke="#dfae21" stroke-width="6.5" stroke-linecap="round" stroke-dasharray="0.1 18"/>');
 
     /* 二次巻線＝細い線・巻数がずっと多い（7巻き）。高圧が出ている間だけ色が変わる（CSS） */
     s.push('<path' + cyc('ig-sec') + ' d="M' + P2 + ',' + y1 + ' q13,7 0,14 q13,7 0,14 q13,7 0,14 q13,7 0,14 q13,7 0,14 q13,7 0,14 q13,7 0,14" fill="none" stroke="' + C.in_ + '" stroke-width="2.2"/>');
@@ -109,9 +107,9 @@
     };
     var roadLen = function (x) { return (HVX - 236) + (HVY - y1) + (HVX - x) + 10; };
     s.push('<path d="' + road(98) + ' ' + road(202) + '" stroke="#b9b2a2" stroke-width="1.6" fill="none"/>');
-    [98, 202].forEach(function (x) {
-      var L = roadLen(x);
-      s.push('<path' + cyc('ig-run') + ' d="' + road(x) + '" style="--L:' + L + '" stroke="#e07a1f" stroke-width="3" fill="none"'
+    [[98, 'ig-runA'], [202, 'ig-runB']].forEach(function (q) {
+      var x = q[0], L = roadLen(x);
+      s.push('<path' + cyc(q[1]) + ' d="' + road(x) + '" style="--L:' + L + '" stroke="#e07a1f" stroke-width="3" fill="none"'
         + ' stroke-linecap="round" stroke-dasharray="' + L + '" stroke-dashoffset="' + L + '" opacity="0"/>');
     });
     k.term(236, y1, 'B', 'r');
@@ -119,16 +117,36 @@
     k.label(CORE, SB.y + SB.h - 12, '鉄芯', '#cfc7b4', 'middle', 9.5);
     k.label(P2, SB.y + SB.h - 12, '二次', '#cfc7b4', 'middle', 9.5);
 
-    /* ---- ポイント＝一次の輪を切る所。⚠️コイルの箱の【外】に描く（デスビの中の部品だから） ---- */
-    s.push('<path d="M30,' + (SB.y + SB.h) + ' L30,' + PY + ' L44,' + PY + ' M70,' + PY + ' L70,' + GY
+    /* ---- ポイント＝一次の輪を切る所。⚠️コイルの箱の【外】に描く（デスビの中の部品だから）。
+       ⭐2026-08-26 ユーザー要望「ポイントをもっと目立たせたい・切れる動作も」で作り直した所：
+         ①接点まわりを一回り大きく描いた（腕を長く・接点の玉を r3.4→5）
+         ②開いたときの跳ね上がりを 13px→20px にして、離れたことが遠目にも分かるようにした
+           （⚠️そのぶん PY を 204→218 まで下げてある＝上げると開いた腕の玉がコイルの箱に食い込む）
+         ③開いている間だけ【橙のリング・大きめの⚡・「ここで切れる」の文字】の3点セットを出す
+         ④開いた【瞬間】に橙の波紋を1回はじけさせる（ig-snap）＝「パチンと切れた」を目に留める
+       ⚠️⛔ここで赤は使わない。赤は連載を通して【故障で切れている場所】に取ってある色で、
+         ポイントが開くのは正常な動作だから。橙＝高圧まわりの色で統一する。 */
+    s.push('<path d="M30,' + (SB.y + SB.h) + ' L30,' + PY + ' L48,' + PY + ' M92,' + PY + ' L92,' + GY
       + '" fill="none" stroke="' + C.deep + '" stroke-width="3"/>');
-    s.push('<circle cx="44" cy="' + PY + '" r="3.4" fill="' + C.deep + '"/>');
-    s.push('<path' + cyc('ig-ptC') + ' d="M47,' + PY + ' L70,' + PY + '" stroke="' + C.deep + '" stroke-width="3.5" stroke-linecap="round"/>');
-    s.push('<path' + cyc('ig-ptO') + ' d="M50,' + (PY - 13) + ' L70,' + PY + '" stroke="' + C.deep + '" stroke-width="3.5" stroke-linecap="round" opacity="0"/>');
-    s.push('<path' + cyc('ig-ptO') + ' d="M46,' + (PY - 6) + ' l6,-8 -3,8 6,-9" stroke="#e07a1f" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0"/>');
-    k.ground(70, GY, null);
-    k.label(88, PY + 4, '点火ポイント', C.deep, null, 10.5);
-    k.label(94, GY + 6, '車体アース', C.deep, null, 10.5);
+    s.push('<circle' + cyc('ig-snap') + ' cx="48" cy="' + PY + '" r="12" fill="none" stroke="#e07a1f" stroke-width="2.5" opacity="0"/>');
+    s.push('<circle' + cyc('ig-ptO') + ' cx="48" cy="' + PY + '" r="11" fill="none" stroke="#e07a1f" stroke-width="2" opacity="0"/>');
+    s.push('<circle cx="48" cy="' + PY + '" r="6" fill="' + C.deep + '"/>');
+    s.push('<path' + cyc('ig-ptC') + ' d="M60,' + PY + ' L92,' + PY + '" stroke="' + C.deep + '" stroke-width="4" stroke-linecap="round"/>');
+    s.push('<circle' + cyc('ig-ptC') + ' cx="60" cy="' + PY + '" r="6" fill="' + C.deep + '"/>');
+    s.push('<path' + cyc('ig-ptO') + ' d="M66,' + (PY - 22) + ' L92,' + PY + '" stroke="' + C.deep + '" stroke-width="4" stroke-linecap="round" opacity="0"/>');
+    s.push('<circle' + cyc('ig-ptO') + ' cx="66" cy="' + (PY - 22) + '" r="6" fill="' + C.deep + '" opacity="0"/>');
+    s.push('<path' + cyc('ig-ptO') + ' d="M48,' + (PY - 9) + ' l9,-13 -5,13 10,-14" stroke="#e07a1f" stroke-width="3.6" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0"/>');
+    k.ground(92, GY, null);
+    k.label(110, PY + 5, '点火ポイント', C.deep, null, 10.5);
+    s.push('<text x="184" y="' + (PY + 5) + '" font-size="10.5" font-weight="700" fill="#c2701a" opacity="0"'
+      + cyc('ig-ptO') + '>⚡ ここで切れる</text>');
+    k.label(116, GY + 6, '車体アース', C.deep, null, 10.5);
+    /* 流れる点＝丸い破線を動かす（サイクルの前半だけ流れて、ポイントが開いた瞬間に消える）。
+       ⚠️⛔【ポイントより後に描く】＝先に描くとポイントの線（太さ3・濃色）に上書きされて、
+         箱の外を流れる点が1つも見えなくなる（2026-08-26 に実機で確認した）。 */
+    s.push('<path' + cyc('ig-prim') + ' d="M16,' + y1 + ' L' + P1 + ',' + y1 + ' ' + coil1 + ' L30,' + y2 + ' L30,' + PY + ' L48,' + PY
+      + '" fill="none" stroke="#dfae21" stroke-width="6.5" stroke-linecap="round" stroke-dasharray="0.1 18"/>');
+
 
     /* ===== 高圧の行き先＝シリンダーヘッドの断面 ===== */
     return head(k, HEADTOP);
@@ -137,8 +155,9 @@
      ⚠️模式図。500 は【空冷の直列2気筒】＝ヘッドは1つ、プラグは2本。冷却フィンを描くのは
        「空冷のヘッド」だと一目で分かるようにするため。
      ⛔ヘッド・燃焼室の寸法は原典に無い＝形を写した図ではないと分かる粗さにとどめる。
-     ⚠️実際はデスビのローターが①と②へ【交互に】配る＝同じ瞬間に2本とも飛ぶわけではない
-       （絵は両方描き、本文で断っている。⛔本文の但し書きを消さないこと）。
+     ⭐デスビのローターが①と②へ【交互に】配る＝2本が同時に飛ぶことはない。だから絵も
+       【前半サイクルで①・後半サイクルで②】と代わりばんこに光らせている（2026-08-26 ユーザー
+       指摘「同時点火？」で直した）。⛔同時に光らせる作りへ戻さない・本文の説明も消さないこと。
      ⭐高圧の道は【B端子から伸びていく】＝二次の稲妻が出てから火花までを線の流れで繋ぐ。
        そのために道を2本の連続パスに分け、実長を `--L` で渡して dashoffset を動かす。
        ⛔サブパスを混ぜた1本にしない（dash が各サブパスで独立して伸びてしまう）。 ---- */
@@ -190,7 +209,7 @@
       k.label(cx + 18, top + 38, q[1], C.deep, null, 11);
       /* 火花＝白い芯＋橙の外炎＋放射の閃光。⚠️高圧の道が届いてから光る（同時ではない） */
       var gx = cx + 1, gy = ROOF + 15;
-      s.push('<g' + cyc('ig-spark') + ' opacity="0">'
+      s.push('<g' + cyc(cx === A ? 'ig-sparkA' : 'ig-sparkB') + ' opacity="0">'
         + '<circle cx="' + gx + '" cy="' + gy + '" r="16" fill="#ffe6a0" opacity=".17"/>'
         + '<circle cx="' + gx + '" cy="' + gy + '" r="9" fill="#ffd274" opacity=".38"/>'
         + '<path d="M' + (gx - 17) + ',' + (gy - 12) + ' L' + (gx - 7) + ',' + (gy - 5)
