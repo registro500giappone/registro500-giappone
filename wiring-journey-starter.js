@@ -188,7 +188,7 @@
         marks: [{ id: 'battery', color: '#b8442e', label: 'バッテリー', anchor: 'start' },
                 /* ⚠️この●は wiring-layout.json の実測値＝【運転席のスターターレバー】の位置。
                    電気の接点はセルモーター側なので、ラベルでレバーだと明示する（値は変えない） */
-                { id: 'starter_sw', color: '#2c3a31', label: 'スターターレバー' },
+                { id: 'starter_sw', color: '#2c3a31', label: 'スターターレバー', anchor: 'below' },
                 { id: 'starter', color: '#b8442e', label: 'セルモーター' }],
         legend: '<text x="40" y="1430" font-size="96" fill="#a49b87">←車の前方（トランク）</text>' +
                 '<text x="2980" y="1430" font-size="96" fill="#a49b87" text-anchor="end">車の後ろ（エンジン）→</text>' +

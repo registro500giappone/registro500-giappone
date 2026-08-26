@@ -289,9 +289,15 @@
     var z = opts.scale || 1;
     var html = '<g id="carcrop" style="color:#cbc4b3">' + inner + '</g>';
     (opts.marks || []).forEach(function (m) {
-      var p = pt(m.id), start = (m.anchor === 'start');
+      var p = pt(m.id), start = (m.anchor === 'start'), below = (m.anchor === 'below');
       html += '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + (16 * z) + '" fill="' + m.color + '"/>';
-      html += '<text x="' + (start ? p.x + 26 * z : p.x - 26 * z) + '" y="' + (p.y + 8 * z) + '" font-size="' + (34 * z) + '" fill="' + m.color + '"' + (start ? '' : ' text-anchor="end"') + ' font-weight="700">' + m.label + '</text>';
+      /* anchor:'below' ＝ ラベルを点の【真下】に置く。⚠️印は実測値で動かせないので、
+         印と隣の部品名がぶつかるときは、名前の方を下の段へ降ろして横並びを解く
+         （第3回＝スターターレバーの印が「セルモーター」の文字に接していた）。 */
+      var tx = below ? p.x : (start ? p.x + 26 * z : p.x - 26 * z);
+      var ty = below ? p.y + 68 * z : p.y + 8 * z;
+      var ta = below ? ' text-anchor="middle"' : (start ? '' : ' text-anchor="end"');
+      html += '<text x="' + tx + '" y="' + ty + '" font-size="' + (34 * z) + '" fill="' + m.color + '"' + ta + ' font-weight="700">' + m.label + '</text>';
     });
     html += (opts.legend || '');
     e.setAttribute('viewBox', opts.viewBox);
