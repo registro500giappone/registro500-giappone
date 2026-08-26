@@ -100,6 +100,21 @@ td.ng{color:var(--hi);font-weight:700}
   @keyframes flowright{to{transform:translateX(22px)}}
   @keyframes flowleft{to{transform:translateX(-22px)}}
   @keyframes spin{to{transform:rotate(360deg)}}
+  /* ⭐第6回の従図＝点火の動きそのものを見せる（2026-08-26 ユーザー要望）。
+     ⚠️ここは【繰り返し起きる現象】を見せる絵なので繰り返してよい＝本文にも
+       「毎秒何十回もつながっては切れる」と書いてある。⛔ただし速い点滅にはしない
+       ＝1.6秒でゆっくり回し、順番（磁気が崩れる→二次に高圧→プラグが光る）が読める速さにする。
+     ⚠️警告灯の点滅を禁じている理由（断続する不具合に読める）とは別物＝あちらは「状態」、
+       こちらは「動作」。混ぜないこと。 */
+  .mag-hold{animation:maghold 2.4s ease-in-out infinite}
+  .mag-collapse{animation:magcollapse 1.6s ease-out infinite}
+  .mag-hold,.mag-collapse{transform-box:fill-box;transform-origin:center}
+  .hv-flash{animation:hvflash 1.6s linear infinite}
+  .spark-flash{animation:sparkflash 1.6s linear infinite}
+  @keyframes maghold{0%,100%{transform:scale(.93);opacity:.5}50%{transform:scale(1);opacity:.9}}
+  @keyframes magcollapse{0%{transform:scale(1);opacity:.9}44%,100%{transform:scale(1.5);opacity:0}}
+  @keyframes hvflash{0%,36%{opacity:0}46%,60%{opacity:1}74%,100%{opacity:0}}
+  @keyframes sparkflash{0%,50%{opacity:0}58%,72%{opacity:1}86%,100%{opacity:0}}
 }
 /* C1文字盤（UCM-1メーターアプリから移植）用 */
 .hid{display:none}

@@ -62,8 +62,11 @@
        ⚠️rx は 40 まで＝これ以上広げると左右の巻線に触る（P1=104 / P2=196）。 */
     if (sc.primaryOk) {
       var mc = closed ? '#7fd6a0' : '#e8a33d', md = closed ? '' : ' stroke-dasharray="5 5"';
-      s.push('<ellipse cx="' + CORE + '" cy="' + ((y1 + y2) / 2) + '" rx="26" ry="44" fill="none" stroke="' + mc + '" stroke-width="2" opacity=".85"' + md + '/>');
-      s.push('<ellipse cx="' + CORE + '" cy="' + ((y1 + y2) / 2) + '" rx="40" ry="54" fill="none" stroke="' + mc + '" stroke-width="2" opacity=".5"' + md + '/>');
+      /* ⭐動き＝閉はゆっくり膨らむ（溜まっていく）、開は外へ弾けて消える（崩れる）。
+         ⚠️2枚の輪に同じクラスを付ける＝ばらばらに動くと「崩れる」に見えない。 */
+      var ma = ' class="' + (closed ? 'mag-hold' : 'mag-collapse') + '"';
+      s.push('<ellipse cx="' + CORE + '" cy="' + ((y1 + y2) / 2) + '" rx="26" ry="44" fill="none" stroke="' + mc + '" stroke-width="2" opacity=".85"' + md + ma + '/>');
+      s.push('<ellipse cx="' + CORE + '" cy="' + ((y1 + y2) / 2) + '" rx="40" ry="54" fill="none" stroke="' + mc + '" stroke-width="2" opacity=".5"' + md + ma + '/>');
     }
 
     /* 一次巻線＝太い線・巻数は少ない（4巻き）。⚠️被覆色を付けない＝電線ではない */
@@ -76,7 +79,7 @@
     var c2 = fire ? '#e8a33d' : C.in_;
     s.push('<path d="M' + P2 + ',' + y1 + ' q13,7 0,14 q13,7 0,14 q13,7 0,14 q13,7 0,14 q13,7 0,14 q13,7 0,14 q13,7 0,14" fill="none" stroke="' + c2 + '" stroke-width="2.2"/>');
     s.push('<path d="M' + P2 + ',' + (y1 + 98) + ' L' + P2 + ',' + y2 + '" stroke="' + c2 + '" stroke-width="2.2"/>');
-    if (fire) s.push('<path d="M' + (P2 + 20) + ',' + (y1 + 30) + ' l9,-14 -4,13 9,-15" stroke="#e07a1f" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>');
+    if (fire) s.push('<path class="hv-flash" d="M' + (P2 + 20) + ',' + (y1 + 30) + ' l9,-14 -4,13 9,-15" stroke="#e07a1f" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>');
 
     /* 端子＝実車のコイルに刻印がある3つだけ（主図と同じ名前で呼ぶ） */
     s.push('<path d="M60,' + y1 + ' L' + P1 + ',' + y1 + ' M60,' + y2 + ' L' + P1 + ',' + y2 + '" stroke="' + C.in_ + '" stroke-width="2.5"/>');
@@ -90,8 +93,8 @@
 
     /* ===== 高圧の行き先＝主図から移してきた帯の中身 ===== */
     k.label(6, SB.y + SB.h + 22, 'B端子 → デスビの中心 → ローター → プラグ①②', C.deep, null, 10.5);
-    plug(k, 44, SB.y + SB.h + 34, fire, '①');
-    plug(k, 92, SB.y + SB.h + 34, fire, '②');
+    plug(k, 44, SB.y + SB.h + 34, fire, '①', 'spark-flash');
+    plug(k, 92, SB.y + SB.h + 34, fire, '②', 'spark-flash');
     var w = sc.primaryOk ? (closed ? '接点が開けば火花が出る' : '火花が出る') : '火花は出ない';
     s.push('<text x="140" y="' + (SB.y + SB.h + 60) + '" font-size="11.5" font-weight="700" fill="'
       + (sc.primaryOk ? '#2f7d4f' : C.hi) + '">' + w + '</text>');
@@ -99,15 +102,15 @@
     return SB.y + SB.h + 108;
   }
   /* ---- プラグ（火花の有無で描き分ける）。主図から従図へ移した（2026-08-26） ---- */
-  function plug(k, px, py, spark, n) {
+  function plug(k, px, py, spark, n, cls) {
     var s = k.s;
     s.push('<rect x="' + (px - 8) + '" y="' + py + '" width="16" height="22" rx="3" fill="#ddd5c4" stroke="' + C.deep + '" stroke-width="1.8"/>');
     s.push('<text x="' + px + '" y="' + (py + 15) + '" font-size="9" fill="' + C.deep + '" text-anchor="middle">' + n + '</text>');
     s.push('<path d="M' + px + ',' + (py + 22) + ' L' + px + ',' + (py + 31) + ' M' + (px + 9) + ',' + (py + 22) + ' L' + (px + 9) + ',' + (py + 31) + ' L' + (px + 2) + ',' + (py + 31) + '" stroke="' + C.deep + '" stroke-width="1.8" fill="none"/>');
     /* 火花＝小さすぎると見えないので、うっすらした光の玉を1枚敷いてから稲妻を描く。
        ⛔点滅させない（警告灯と同じ理由＝断続する不具合に読める） */
-    if (spark) s.push('<circle cx="' + (px + 4) + '" cy="' + (py + 26) + '" r="7" fill="#e8a33d" opacity=".28"/>'
-      + '<path d="M' + (px + 1) + ',' + (py + 30) + ' l4,-5 -2,5 4,-6" stroke="#e07a1f" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>');
+    if (spark) s.push('<g' + (cls ? ' class="' + cls + '"' : '') + '><circle cx="' + (px + 4) + '" cy="' + (py + 26) + '" r="7" fill="#e8a33d" opacity=".28"/>'
+      + '<path d="M' + (px + 1) + ',' + (py + 30) + ' l4,-5 -2,5 4,-6" stroke="#e07a1f" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>');
   }
 
   function draw(k, mode) {
