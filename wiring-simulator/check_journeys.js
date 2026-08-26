@@ -37,7 +37,9 @@ function makeEl(id) {
     setAttribute: function (k, v) { this._attrs[k] = v; },
     getAttribute: function (k) { return this._attrs[k]; },
     appendChild: function (c) { this.children.push(c); },
-    addEventListener: function (t, f) { this._on = f; }
+    addEventListener: function (t, f) { this._on = f; },
+    /* 段ずれ補正（setMain の anchor）がここを叩く＝無いとクリック処理が途中で落ちる */
+    getBoundingClientRect: function () { return { top: 0, left: 0, width: 0, height: 0 }; }
   };
 }
 
@@ -53,7 +55,7 @@ function runPage(page) {
   const doc = {
     getElementById: function (id) { return (els[id] = els[id] || makeEl(id)); },
     querySelectorAll: function (sel) {
-      if (sel === '#tg button') {
+      if (sel === '.toggle button' || sel === '#tg button') {
         els._btns = els._btns || toggles.map(function (v) { const b = makeEl('btn:' + v); b._attrs['data-v'] = v; return b; });
         return els._btns;
       }
@@ -61,7 +63,7 @@ function runPage(page) {
     },
     createElement: function () { return makeEl('tr'); }
   };
-  const ctx = { document: doc, console: console };
+  const ctx = { document: doc, console: console, scrollBy: function () {} };
   ctx.globalThis = ctx;
   ctx.window = ctx;
   /* HTML 側がスクリプト読み込み前に立てるフラグを再現する（オルタ版の JOURNEY_ALT など）。

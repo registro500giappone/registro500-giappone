@@ -28,7 +28,6 @@
        触れる。228 まで詰めて circle×text 検査で実際に gap=0 が出た＝目分量で動かさないこと。 */
   var CB = { x: 16, y: 248, w: 174, h: 90 };   /* コイルの箱 */
   var DB = { x: 16, y: 384, w: 174, h: 68 };   /* デスビ（ポイント）の箱 */
-  var HT = { x: 6, y: 560, w: 288, h: 104 };   /* 高圧側＝この絵の外（一番下の帯） */
 
   /* ===== 従図＝「火花ができるまで」（主図のトグルに連動して描き替わる・2026-08-26） =====
      ⭐主図の一番下に敷いていた高圧の帯をここへ移し、コイルの中で何が起きているかまで解説する。
@@ -91,26 +90,92 @@
     k.label(CORE, SB.y + SB.h - 12, '鉄芯', '#cfc7b4', 'middle', 9.5);
     k.label(P2, SB.y + SB.h - 12, '二次', '#cfc7b4', 'middle', 9.5);
 
-    /* ===== 高圧の行き先＝主図から移してきた帯の中身 ===== */
-    k.label(6, SB.y + SB.h + 22, 'B端子 → デスビの中心 → ローター → プラグ①②', C.deep, null, 10.5);
-    plug(k, 44, SB.y + SB.h + 34, fire, '①', 'spark-flash');
-    plug(k, 92, SB.y + SB.h + 34, fire, '②', 'spark-flash');
-    var w = sc.primaryOk ? (closed ? '接点が開けば火花が出る' : '火花が出る') : '火花は出ない';
-    s.push('<text x="140" y="' + (SB.y + SB.h + 60) + '" font-size="11.5" font-weight="700" fill="'
-      + (sc.primaryOk ? '#2f7d4f' : C.hi) + '">' + w + '</text>');
-    k.label(6, SB.y + SB.h + 96, '一次の輪が切れていれば、ここに火花は出ない。', C.sub, null, 10);
-    return SB.y + SB.h + 108;
+    /* ===== 高圧の行き先＝シリンダーヘッドの断面 ===== */
+    return head(k, SB.y + SB.h + 16, fire, sc.primaryOk, closed);
   }
-  /* ---- プラグ（火花の有無で描き分ける）。主図から従図へ移した（2026-08-26） ---- */
-  function plug(k, px, py, spark, n, cls) {
-    var s = k.s;
-    s.push('<rect x="' + (px - 8) + '" y="' + py + '" width="16" height="22" rx="3" fill="#ddd5c4" stroke="' + C.deep + '" stroke-width="1.8"/>');
-    s.push('<text x="' + px + '" y="' + (py + 15) + '" font-size="9" fill="' + C.deep + '" text-anchor="middle">' + n + '</text>');
-    s.push('<path d="M' + px + ',' + (py + 22) + ' L' + px + ',' + (py + 31) + ' M' + (px + 9) + ',' + (py + 22) + ' L' + (px + 9) + ',' + (py + 31) + ' L' + (px + 2) + ',' + (py + 31) + '" stroke="' + C.deep + '" stroke-width="1.8" fill="none"/>');
-    /* 火花＝小さすぎると見えないので、うっすらした光の玉を1枚敷いてから稲妻を描く。
-       ⛔点滅させない（警告灯と同じ理由＝断続する不具合に読める） */
-    if (spark) s.push('<g' + (cls ? ' class="' + cls + '"' : '') + '><circle cx="' + (px + 4) + '" cy="' + (py + 26) + '" r="7" fill="#e8a33d" opacity=".28"/>'
-      + '<path d="M' + (px + 1) + ',' + (py + 30) + ' l4,-5 -2,5 4,-6" stroke="#e07a1f" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>');
+  /* ---- シリンダーヘッドの断面＝高圧がどこへ届き、どこで火花になるか（2026-08-26 ユーザー要望）
+     ⚠️模式図。500 は【空冷の直列2気筒】＝ヘッドは1つ、プラグは2本。冷却フィンを描くのは
+       「空冷のヘッド」だと一目で分かるようにするため。
+     ⛔ヘッド・燃焼室の寸法は原典に無い＝形を写した図ではないと分かる粗さにとどめる。
+     ⚠️実際はデスビのローターが①と②へ【交互に】配る＝同じ瞬間に2本とも飛ぶわけではない
+       （絵は両方描き、本文で断っている。⛔本文の但し書きを消さないこと）。
+     ⚠️火花・コイル二次の稲妻（hv-flash）・ここへ来る高圧の道は【同じ位相】で光らせる。 ---- */
+  function head(k, top, fire, primaryOk, closed) {
+    var s = k.s, A = 98, B = 202, HY = top + 50, HB = top + 100, ROOF = HB - 26;
+    var busd = 'M20,' + (top + 10) + ' L' + B + ',' + (top + 10)
+      + ' M' + A + ',' + (top + 10) + ' L' + A + ',' + (top + 14)
+      + ' M' + B + ',' + (top + 10) + ' L' + B + ',' + (top + 14);
+
+    k.label(6, top, 'B端子 → デスビの中心 → ローター → プラグへ', C.deep, null, 10.5);
+    s.push('<path d="' + busd + '" stroke="#b9b2a2" stroke-width="1.6" fill="none"/>');
+    if (fire) s.push('<path class="hv-flash" d="' + busd + '" stroke="#e07a1f" stroke-width="2.8" fill="none" stroke-linecap="round"/>');
+
+    /* シリンダーの中＝暗く塗る。⚠️ここを明るいままにすると火花が背景に埋もれて「派手さ」が出ない
+       （2026-08-26 に実際にそうなった）。ヘッドより先に描いて、ヘッドで上を隠す。 */
+    [A, B].forEach(function (cx) {
+      s.push('<path d="M' + (cx - 38) + ',' + (top + 140) + ' L' + (cx - 38) + ',' + HB
+        + ' A38,26 0 0,1 ' + (cx + 38) + ',' + HB + ' L' + (cx + 38) + ',' + (top + 140)
+        + ' Z" fill="#2b2822"/>');
+    });
+
+    /* ヘッドの塊。下辺に燃焼室のくぼみを2つ（sweep=1 で上へ凹ませる＝0 だと下へ膨らむ） */
+    s.push('<path d="M22,' + HB + ' L' + (A - 38) + ',' + HB
+      + ' A38,26 0 0,1 ' + (A + 38) + ',' + HB
+      + ' L' + (B - 38) + ',' + HB
+      + ' A38,26 0 0,1 ' + (B + 38) + ',' + HB
+      + ' L278,' + HB + ' L278,' + HY + ' L22,' + HY + ' Z" fill="#6f6757" stroke="#4a443a" stroke-width="1.6"/>');
+    /* 冷却フィン（プラグの六角部にかかる所は空ける） */
+    for (var fx = 30; fx <= 270; fx += 11)
+      if ((fx < 82 || fx > 114) && (fx < 186 || fx > 218))
+        s.push('<path d="M' + fx + ',' + (HY - 9) + ' L' + fx + ',' + HY + '" stroke="#6f6757" stroke-width="4" stroke-linecap="round"/>');
+    k.label(28, top + 80, 'ヘッド', '#d8d2c4', null, 9.5);
+
+    /* シリンダーとピストン＝火花が飛ぶ場所を示すための添え物 */
+    [A, B].forEach(function (cx) {
+      s.push('<path d="M' + (cx - 38) + ',' + HB + ' L' + (cx - 38) + ',' + (top + 140)
+        + ' M' + (cx + 38) + ',' + HB + ' L' + (cx + 38) + ',' + (top + 140)
+        + '" stroke="#8a8272" stroke-width="1.6" fill="none"/>');
+      s.push('<rect x="' + (cx - 36) + '" y="' + (top + 122) + '" width="72" height="12" rx="2" fill="#575046" stroke="#9a927f" stroke-width="1.2"/>');
+    });
+    k.label(6, top + 132, 'ピストン', C.sub, null, 9.5);
+
+    /* プラグ2本 */
+    [[A, '①'], [B, '②']].forEach(function (q) {
+      var cx = q[0];
+      s.push('<rect x="' + (cx - 5) + '" y="' + (top + 14) + '" width="10" height="8" rx="2" fill="#b9b2a2" stroke="#4a443a" stroke-width="1"/>');
+      s.push('<path d="M' + (cx - 8) + ',' + (top + 22) + ' L' + (cx + 8) + ',' + (top + 22)
+        + ' L' + (cx + 11) + ',' + (top + 44) + ' L' + (cx - 11) + ',' + (top + 44)
+        + ' Z" fill="#efece3" stroke="#c2bba9" stroke-width="1.2"/>');
+      s.push('<rect x="' + (cx - 13) + '" y="' + (top + 44) + '" width="26" height="10" fill="#a49b87" stroke="#4a443a" stroke-width="1"/>');
+      s.push('<rect x="' + (cx - 9) + '" y="' + (top + 54) + '" width="18" height="' + (ROOF - (top + 54)) + '" fill="#a49b87" stroke="#4a443a" stroke-width="1"/>');
+      s.push('<path d="M' + cx + ',' + ROOF + ' L' + cx + ',' + (ROOF + 12) + '" stroke="#ddd5c4" stroke-width="2.4" stroke-linecap="round"/>');
+      s.push('<path d="M' + (cx + 7) + ',' + ROOF + ' L' + (cx + 7) + ',' + (ROOF + 18) + ' L' + (cx + 1) + ',' + (ROOF + 18)
+        + '" stroke="#ddd5c4" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>');
+      k.label(cx + 18, top + 38, q[1], C.deep, null, 11);
+      /* 火花＝白い芯＋橙の外炎＋放射の閃光。⛔単独で点滅させない（位相は hv-flash と同じ） */
+      if (fire) {
+        var gx = cx + 1, gy = ROOF + 15;
+        s.push('<g class="spark-flash">'
+          + '<circle cx="' + gx + '" cy="' + gy + '" r="16" fill="#ffe6a0" opacity=".17"/>'
+          + '<circle cx="' + gx + '" cy="' + gy + '" r="9" fill="#ffd274" opacity=".38"/>'
+          + '<path d="M' + (gx - 17) + ',' + (gy - 12) + ' L' + (gx - 7) + ',' + (gy - 5)
+          + ' M' + (gx + 17) + ',' + (gy - 12) + ' L' + (gx + 7) + ',' + (gy - 5)
+          + ' M' + (gx - 19) + ',' + gy + ' L' + (gx - 9) + ',' + gy
+          + ' M' + (gx + 19) + ',' + gy + ' L' + (gx + 9) + ',' + gy
+          + ' M' + (gx - 15) + ',' + (gy + 11) + ' L' + (gx - 6) + ',' + (gy + 5)
+          + ' M' + (gx + 15) + ',' + (gy + 11) + ' L' + (gx + 6) + ',' + (gy + 5)
+          + '" stroke="#ffd97a" stroke-width="2" opacity="1" stroke-linecap="round"/>'
+          + '<path d="M' + gx + ',' + (gy - 8) + ' l6,6 -8,2 7,7" stroke="#ff9d14" stroke-width="5.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+          + '<path d="M' + gx + ',' + (gy - 8) + ' l6,6 -8,2 7,7" stroke="#ffffff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+          + '</g>');
+      }
+    });
+
+    var w = primaryOk ? (closed ? '接点が開けば、ここで火花が飛ぶ' : '燃焼室の中で火花が飛ぶ') : '火花は飛ばない';
+    s.push('<text x="150" y="' + (top + 156) + '" font-size="11.5" font-weight="700" text-anchor="middle" fill="'
+      + (primaryOk ? '#2f7d4f' : C.hi) + '">' + w + '</text>');
+    k.label(6, top + 174, '一次の輪が切れていれば、ここに火花は出ない。', C.sub, null, 10);
+    return top + 186;
   }
 
   function draw(k, mode) {

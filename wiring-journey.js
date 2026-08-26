@@ -336,7 +336,11 @@
     /* トグルが動かすもの＝ストーリーごとに違う。既定は「エンジン 停止↔回転」（第1・2回）。
        セルのストーリーは動かすのがスターターレバーなので cfg.mainInputs / cfg.mainInit で差し替える。 */
     function mainInputs(v) { return cfg.mainInputs ? cfg.mainInputs(v) : { key: 'ON', engine: v }; }
-    function setMain(v) {
+    /* ⚠️押したボタンが画面上の同じ位置に留まるように補正する。
+       第6回は従図の上にもトグルがあり、押すと【上の mainCap の文章量が変わって】
+       いま見ている絵が上下に飛ぶ＝実機で「開閉で段ずれする」と報告された。 */
+    function setMain(v, anchor) {
+      var y0 = anchor ? anchor.getBoundingClientRect().top : null;
       var btns = document.querySelectorAll('.toggle button');
       for (var i = 0; i < btns.length; i++) btns[i].className = btns[i].getAttribute('data-v') === v ? 'on' : '';
       put('j-main', scenario({ inputs: mainInputs(v) }), {});
@@ -345,6 +349,7 @@
          この設定を持たない回では何も起きない。 */
       (cfg.linked || []).forEach(function (l) { put(l.id, scenario({ inputs: mainInputs(v) }), l.mode); });
       var cap = document.getElementById('mainCap'); if (cap) cap.innerHTML = cfg.caps[v];
+      if (y0 !== null) { var y1 = anchor.getBoundingClientRect().top; if (Math.abs(y1 - y0) > 0.5) window.scrollBy(0, y1 - y0); }
     }
 
     /* 検算＝期待値は原典・実車から先に書いたもので、計算結果を写していない。
@@ -377,7 +382,7 @@
 
       setMain(cfg.mainInit || 'STOP');
       var btns = document.querySelectorAll('.toggle button');
-      for (var i = 0; i < btns.length; i++) btns[i].addEventListener('click', function () { setMain(this.getAttribute('data-v')); });
+      for (var i = 0; i < btns.length; i++) btns[i].addEventListener('click', function () { setMain(this.getAttribute('data-v'), this); });
 
       (cfg.scenes ? cfg.scenes(scenario) : []).forEach(function (s) { put(s.id, s.sc, s.mode); });
       runChecks();
