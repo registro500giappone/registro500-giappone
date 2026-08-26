@@ -39,59 +39,99 @@
   var SB = { x: 14, y: 26, w: 272, h: 162 };   /* コイルの断面の箱 */
   var CORE = 150, P1 = 104, P2 = 196;          /* 鉄芯／一次巻線／二次巻線の中心 x */
 
-  function drawSpark(k) {
-    var sc = k.sc, s = k.s, closed = k.pos.distributor === 'CLOSED';
-    var flowing = sc.primaryOk && closed;      /* 一次に電流が流れている＝磁気を溜めている最中 */
-    var fire = sc.primaryOk && !closed;        /* 開いた＝磁気が崩れて二次に高圧が出る */
+  /* ⚠️2026-08-26 ユーザー確定＝従図は【ボタンと無関係に、1周6秒の通しアニメを回し続ける】。
+       描く物語は「電気が来る → 一次に磁気が溜まる → ポイントが開いて電流が切れる →
+       二次に高圧が生まれる → 高圧が線を伝ってプラグまで届く → 火花が飛ぶ」。
+     ⛔だから状態で描き分けない（closed / fire の分岐を捨てた）。動きは全部 CSS の6秒周期に載る。
+     ⚠️初期値（＝アニメが効かない `prefers-reduced-motion: reduce` の読者）は
+       「① 電気が流れて磁気が溜まっている」の静止画になるよう opacity 属性を置いてある。
+       ⛔この属性を消すと、動きを止めている読者に見出しが3枚重なって出る。
+     ⚠️見出し3枚と右上のラベル2枚は【同じ場所に重ねて置く】＝getBBox の衝突検査に必ず出る。
+       意図した重なりなので、検査結果を見るときはこの5枚を除いて数えること。
+     ⚠️電気の向きは連載の作法どおり【＋から出てアースへ帰る】（第5回と同じ）。
+       ユーザーの言う「マイナスの電気が来る」は電子の向きの話だが、そちらに合わせると
+       他の回と逆向きになるので採らない。 */
+  var PY = 204, GY = 224;        /* ポイントの接点／車体アース（どちらもコイルの箱の外） */
+  var HEADTOP = 254;             /* シリンダーヘッドの絵の始まり（高圧の道の行き先を決めるので定数にする） */
 
-    k.label(6, 15, closed ? '① 閉じている間＝コイルは磁気を溜めている'
-                          : '② 開いた瞬間＝磁気が崩れて、二次に高圧が出る',
-      closed ? C.deep : C.hi, null, 12);
+  function cyc(c) { return ' class="ig-cycle ' + c + '"'; }
+
+  function drawSpark(k) {
+    var s = k.s;
+    var y1 = SB.y + 32, y2 = SB.y + 132;       /* 巻線の上下 */
+
+    /* ---- 見出し＝物語の3つの段。重ねて置いて CSS で入れ替える ---- */
+    s.push('<text x="6" y="15" font-size="12" fill="' + C.deep + '"' + cyc('ig-s1') + '>① 電気が流れて、コイルに磁気が溜まる</text>');
+    s.push('<text x="6" y="15" font-size="12" font-weight="700" fill="' + C.hi + '" opacity="0"' + cyc('ig-s2') + '>② ポイントが開いて、電流が切れた</text>');
+    s.push('<text x="6" y="15" font-size="12" font-weight="700" fill="#c2701a" opacity="0"' + cyc('ig-s3') + '>③ 二次に高圧＝プラグまで届いて火花</text>');
 
     s.push('<rect x="' + SB.x + '" y="' + SB.y + '" width="' + SB.w + '" height="' + SB.h + '" rx="8" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
     s.push('<text x="' + (SB.x + 10) + '" y="' + (SB.y + 17) + '" font-size="11" fill="#fffdf8">点火コイルの中</text>');
-    if (sc.primaryOk) s.push('<text x="' + (SB.x + SB.w - 10) + '" y="' + (SB.y + 17) + '" font-size="11" font-weight="700" text-anchor="end" fill="'
-      + (closed ? '#7fd6a0' : '#e8a33d') + '">' + (closed ? '磁気が溜まる' : '磁気が崩れる') + '</text>');
+    var rx = SB.x + SB.w - 10, ry = SB.y + 17;
+    s.push('<text x="' + rx + '" y="' + ry + '" font-size="11" font-weight="700" text-anchor="end" fill="#7fd6a0"' + cyc('ig-s1') + '>磁気が溜まる</text>');
+    s.push('<text x="' + rx + '" y="' + ry + '" font-size="11" font-weight="700" text-anchor="end" fill="#e8a33d" opacity="0"' + cyc('ig-m2') + '>磁気が崩れる</text>');
 
-    var y1 = SB.y + 32, y2 = SB.y + 132;       /* 巻線の上下 */
     /* 鉄芯＝2つの巻線が同じ芯を共有していることが、この絵のいちばん大事な一点 */
     s.push('<rect x="' + (CORE - 5) + '" y="' + (y1 - 4) + '" width="10" height="' + (y2 - y1 + 8) + '" rx="2" fill="#9a927f"/>');
 
-    /* 磁気＝鉄芯を取り巻く輪。閉じている間は実線（溜まっている）、開いた瞬間は破線（崩れる）。
-       ⚠️rx は 40 まで＝これ以上広げると左右の巻線に触る（P1=104 / P2=196）。 */
-    if (sc.primaryOk) {
-      var mc = closed ? '#7fd6a0' : '#e8a33d', md = closed ? '' : ' stroke-dasharray="5 5"';
-      /* ⭐動き＝閉はゆっくり膨らむ（溜まっていく）、開は外へ弾けて消える（崩れる）。
-         ⚠️2枚の輪に同じクラスを付ける＝ばらばらに動くと「崩れる」に見えない。 */
-      var ma = ' class="' + (closed ? 'mag-hold' : 'mag-collapse') + '"';
-      s.push('<ellipse cx="' + CORE + '" cy="' + ((y1 + y2) / 2) + '" rx="26" ry="44" fill="none" stroke="' + mc + '" stroke-width="2" opacity=".85"' + md + ma + '/>');
-      s.push('<ellipse cx="' + CORE + '" cy="' + ((y1 + y2) / 2) + '" rx="40" ry="54" fill="none" stroke="' + mc + '" stroke-width="2" opacity=".5"' + md + ma + '/>');
-    }
+    /* 磁気＝鉄芯を取り巻く輪。育つ→満ちる→崩れる を1本の keyframes で回す。
+       ⚠️rx は 40 まで＝これ以上広げると左右の巻線に触る（P1=104 / P2=196）。
+       ⚠️2枚の輪に同じクラスを付ける＝ばらばらに動くと「崩れる」に見えない。 */
+    [[26, 44, .85], [40, 54, .5]].forEach(function (q) {
+      s.push('<ellipse cx="' + CORE + '" cy="' + ((y1 + y2) / 2) + '" rx="' + q[0] + '" ry="' + q[1]
+        + '" fill="none" stroke="#7fd6a0" stroke-width="2" opacity="' + q[2] + '"' + cyc('ig-mag') + '/>');
+    });
 
     /* 一次巻線＝太い線・巻数は少ない（4巻き）。⚠️被覆色を付けない＝電線ではない */
-    s.push('<path d="M' + P1 + ',' + y1 + ' L' + P1 + ',' + (y1 + 6) + '" stroke="' + C.in_ + '" stroke-width="4"/>');
-    s.push('<path d="M' + P1 + ',' + (y1 + 6) + ' q20,10 0,20 q20,10 0,20 q20,10 0,20 q20,10 0,20" fill="none" stroke="' + C.in_ + '" stroke-width="4"/>');
-    s.push('<path d="M' + P1 + ',' + (y1 + 86) + ' L' + P1 + ',' + y2 + '" stroke="' + C.in_ + '" stroke-width="4"/>');
-    if (flowing) k.dots(P1, y1 + 8, y2 - 6, false);
+    var coil1 = 'L' + P1 + ',' + (y1 + 6) + ' q20,10 0,20 q20,10 0,20 q20,10 0,20 q20,10 0,20 L' + P1 + ',' + y2;
+    s.push('<path d="M14,' + y1 + ' L' + P1 + ',' + y1 + ' ' + coil1 + ' L30,' + y2 + ' L30,' + (SB.y + SB.h) + '" fill="none" stroke="' + C.in_ + '" stroke-width="4"/>');
+    k.label(18, y1 + 26, 'キーから', '#cfc7b4', null, 9.5);
+    /* 流れる点＝丸い破線を動かす（0〜40% だけ流れて、切れた瞬間に消える） */
+    s.push('<path' + cyc('ig-prim') + ' d="M16,' + y1 + ' L' + P1 + ',' + y1 + ' ' + coil1 + ' L30,' + y2 + ' L30,' + PY + ' L46,' + PY
+      + '" fill="none" stroke="#dfae21" stroke-width="6.5" stroke-linecap="round" stroke-dasharray="0.1 18"/>');
 
-    /* 二次巻線＝細い線・巻数がずっと多い（7巻き）。開いた瞬間だけ高圧の色になる */
-    var c2 = fire ? '#e8a33d' : C.in_;
-    s.push('<path d="M' + P2 + ',' + y1 + ' q13,7 0,14 q13,7 0,14 q13,7 0,14 q13,7 0,14 q13,7 0,14 q13,7 0,14 q13,7 0,14" fill="none" stroke="' + c2 + '" stroke-width="2.2"/>');
-    s.push('<path d="M' + P2 + ',' + (y1 + 98) + ' L' + P2 + ',' + y2 + '" stroke="' + c2 + '" stroke-width="2.2"/>');
-    if (fire) s.push('<path class="hv-flash" d="M' + (P2 + 20) + ',' + (y1 + 30) + ' l9,-14 -4,13 9,-15" stroke="#e07a1f" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>');
+    /* 二次巻線＝細い線・巻数がずっと多い（7巻き）。高圧が出ている間だけ色が変わる（CSS） */
+    s.push('<path' + cyc('ig-sec') + ' d="M' + P2 + ',' + y1 + ' q13,7 0,14 q13,7 0,14 q13,7 0,14 q13,7 0,14 q13,7 0,14 q13,7 0,14 q13,7 0,14" fill="none" stroke="' + C.in_ + '" stroke-width="2.2"/>');
+    s.push('<path' + cyc('ig-sec') + ' d="M' + P2 + ',' + (y1 + 98) + ' L' + P2 + ',' + y2 + '" stroke="' + C.in_ + '" stroke-width="2.2"/>');
+    s.push('<path' + cyc('ig-bolt') + ' d="M' + (P2 + 20) + ',' + (y1 + 30) + ' l9,-14 -4,13 9,-15" stroke="#e07a1f" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0"/>');
 
     /* 端子＝実車のコイルに刻印がある3つだけ（主図と同じ名前で呼ぶ） */
-    s.push('<path d="M60,' + y1 + ' L' + P1 + ',' + y1 + ' M60,' + y2 + ' L' + P1 + ',' + y2 + '" stroke="' + C.in_ + '" stroke-width="2.5"/>');
     k.term(60, y1, '+', 'l');
     k.term(60, y2, 'D', 'l');
-    s.push('<path d="M' + P2 + ',' + y1 + ' L236,' + y1 + '" stroke="' + c2 + '" stroke-width="2.5"/>');
+    s.push('<path' + cyc('ig-sec') + ' d="M' + P2 + ',' + y1 + ' L236,' + y1 + '" stroke="' + C.in_ + '" stroke-width="2.5"/>');
+    /* ---- 高圧の道＝B端子から【コイルの外へ出て】右端を降り、プラグ①②へ配られる。
+       ⭐ここを1本の線で繋いだのが要点（2026-08-26 ユーザー確定）＝「二次に高圧が生まれた」と
+         「プラグが光った」の間を、線が伸びていく動きで結ぶ。⛔2つを同時に光らせない。
+       ⚠️道は【B端子が起点】＝dashoffset を実長ぶん振るので、途中で形を変えたら長さも直すこと。 */
+    var HVX = 292, HVY = HEADTOP + 4;
+    var road = function (x) {
+      return 'M236,' + y1 + ' L' + HVX + ',' + y1 + ' L' + HVX + ',' + HVY + ' L' + x + ',' + HVY + ' L' + x + ',' + (HEADTOP + 14);
+    };
+    var roadLen = function (x) { return (HVX - 236) + (HVY - y1) + (HVX - x) + 10; };
+    s.push('<path d="' + road(98) + ' ' + road(202) + '" stroke="#b9b2a2" stroke-width="1.6" fill="none"/>');
+    [98, 202].forEach(function (x) {
+      var L = roadLen(x);
+      s.push('<path' + cyc('ig-run') + ' d="' + road(x) + '" style="--L:' + L + '" stroke="#e07a1f" stroke-width="3" fill="none"'
+        + ' stroke-linecap="round" stroke-dasharray="' + L + '" stroke-dashoffset="' + L + '" opacity="0"/>');
+    });
     k.term(236, y1, 'B', 'r');
     k.label(P1, SB.y + SB.h - 12, '一次', '#cfc7b4', 'middle', 9.5);
     k.label(CORE, SB.y + SB.h - 12, '鉄芯', '#cfc7b4', 'middle', 9.5);
     k.label(P2, SB.y + SB.h - 12, '二次', '#cfc7b4', 'middle', 9.5);
 
+    /* ---- ポイント＝一次の輪を切る所。⚠️コイルの箱の【外】に描く（デスビの中の部品だから） ---- */
+    s.push('<path d="M30,' + (SB.y + SB.h) + ' L30,' + PY + ' L44,' + PY + ' M70,' + PY + ' L70,' + GY
+      + '" fill="none" stroke="' + C.deep + '" stroke-width="3"/>');
+    s.push('<circle cx="44" cy="' + PY + '" r="3.4" fill="' + C.deep + '"/>');
+    s.push('<path' + cyc('ig-ptC') + ' d="M47,' + PY + ' L70,' + PY + '" stroke="' + C.deep + '" stroke-width="3.5" stroke-linecap="round"/>');
+    s.push('<path' + cyc('ig-ptO') + ' d="M50,' + (PY - 13) + ' L70,' + PY + '" stroke="' + C.deep + '" stroke-width="3.5" stroke-linecap="round" opacity="0"/>');
+    s.push('<path' + cyc('ig-ptO') + ' d="M46,' + (PY - 6) + ' l6,-8 -3,8 6,-9" stroke="#e07a1f" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0"/>');
+    k.ground(70, GY, null);
+    k.label(88, PY + 4, '点火ポイント', C.deep, null, 10.5);
+    k.label(94, GY + 6, '車体アース', C.deep, null, 10.5);
+
     /* ===== 高圧の行き先＝シリンダーヘッドの断面 ===== */
-    return head(k, SB.y + SB.h + 16, fire, sc.primaryOk, closed);
+    return head(k, HEADTOP);
   }
   /* ---- シリンダーヘッドの断面＝高圧がどこへ届き、どこで火花になるか（2026-08-26 ユーザー要望）
      ⚠️模式図。500 は【空冷の直列2気筒】＝ヘッドは1つ、プラグは2本。冷却フィンを描くのは
@@ -99,16 +139,12 @@
      ⛔ヘッド・燃焼室の寸法は原典に無い＝形を写した図ではないと分かる粗さにとどめる。
      ⚠️実際はデスビのローターが①と②へ【交互に】配る＝同じ瞬間に2本とも飛ぶわけではない
        （絵は両方描き、本文で断っている。⛔本文の但し書きを消さないこと）。
-     ⚠️火花・コイル二次の稲妻（hv-flash）・ここへ来る高圧の道は【同じ位相】で光らせる。 ---- */
-  function head(k, top, fire, primaryOk, closed) {
+     ⭐高圧の道は【B端子から伸びていく】＝二次の稲妻が出てから火花までを線の流れで繋ぐ。
+       そのために道を2本の連続パスに分け、実長を `--L` で渡して dashoffset を動かす。
+       ⛔サブパスを混ぜた1本にしない（dash が各サブパスで独立して伸びてしまう）。 ---- */
+  function head(k, top) {
     var s = k.s, A = 98, B = 202, HY = top + 50, HB = top + 100, ROOF = HB - 26;
-    var busd = 'M20,' + (top + 10) + ' L' + B + ',' + (top + 10)
-      + ' M' + A + ',' + (top + 10) + ' L' + A + ',' + (top + 14)
-      + ' M' + B + ',' + (top + 10) + ' L' + B + ',' + (top + 14);
-
-    k.label(6, top, 'B端子 → デスビの中心 → ローター → プラグへ', C.deep, null, 10.5);
-    s.push('<path d="' + busd + '" stroke="#b9b2a2" stroke-width="1.6" fill="none"/>');
-    if (fire) s.push('<path class="hv-flash" d="' + busd + '" stroke="#e07a1f" stroke-width="2.8" fill="none" stroke-linecap="round"/>');
+    k.label(6, top - 4, 'デスビの中心 → ローター → プラグへ', C.deep, null, 10.5);
 
     /* シリンダーの中＝暗く塗る。⚠️ここを明るいままにすると火花が背景に埋もれて「派手さ」が出ない
        （2026-08-26 に実際にそうなった）。ヘッドより先に描いて、ヘッドで上を隠す。 */
@@ -134,7 +170,7 @@
     [A, B].forEach(function (cx) {
       s.push('<path d="M' + (cx - 38) + ',' + HB + ' L' + (cx - 38) + ',' + (top + 140)
         + ' M' + (cx + 38) + ',' + HB + ' L' + (cx + 38) + ',' + (top + 140)
-        + '" stroke="#8a8272" stroke-width="1.6" fill="none"/>');
+        + '" stroke="#4a443a" stroke-width="1.6" fill="none"/>');
       s.push('<rect x="' + (cx - 36) + '" y="' + (top + 122) + '" width="72" height="12" rx="2" fill="#575046" stroke="#9a927f" stroke-width="1.2"/>');
     });
     k.label(6, top + 132, 'ピストン', C.sub, null, 9.5);
@@ -152,30 +188,26 @@
       s.push('<path d="M' + (cx + 7) + ',' + ROOF + ' L' + (cx + 7) + ',' + (ROOF + 18) + ' L' + (cx + 1) + ',' + (ROOF + 18)
         + '" stroke="#ddd5c4" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>');
       k.label(cx + 18, top + 38, q[1], C.deep, null, 11);
-      /* 火花＝白い芯＋橙の外炎＋放射の閃光。⛔単独で点滅させない（位相は hv-flash と同じ） */
-      if (fire) {
-        var gx = cx + 1, gy = ROOF + 15;
-        s.push('<g class="spark-flash">'
-          + '<circle cx="' + gx + '" cy="' + gy + '" r="16" fill="#ffe6a0" opacity=".17"/>'
-          + '<circle cx="' + gx + '" cy="' + gy + '" r="9" fill="#ffd274" opacity=".38"/>'
-          + '<path d="M' + (gx - 17) + ',' + (gy - 12) + ' L' + (gx - 7) + ',' + (gy - 5)
-          + ' M' + (gx + 17) + ',' + (gy - 12) + ' L' + (gx + 7) + ',' + (gy - 5)
-          + ' M' + (gx - 19) + ',' + gy + ' L' + (gx - 9) + ',' + gy
-          + ' M' + (gx + 19) + ',' + gy + ' L' + (gx + 9) + ',' + gy
-          + ' M' + (gx - 15) + ',' + (gy + 11) + ' L' + (gx - 6) + ',' + (gy + 5)
-          + ' M' + (gx + 15) + ',' + (gy + 11) + ' L' + (gx + 6) + ',' + (gy + 5)
-          + '" stroke="#ffd97a" stroke-width="2" opacity="1" stroke-linecap="round"/>'
-          + '<path d="M' + gx + ',' + (gy - 8) + ' l6,6 -8,2 7,7" stroke="#ff9d14" stroke-width="5.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
-          + '<path d="M' + gx + ',' + (gy - 8) + ' l6,6 -8,2 7,7" stroke="#ffffff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
-          + '</g>');
-      }
+      /* 火花＝白い芯＋橙の外炎＋放射の閃光。⚠️高圧の道が届いてから光る（同時ではない） */
+      var gx = cx + 1, gy = ROOF + 15;
+      s.push('<g' + cyc('ig-spark') + ' opacity="0">'
+        + '<circle cx="' + gx + '" cy="' + gy + '" r="16" fill="#ffe6a0" opacity=".17"/>'
+        + '<circle cx="' + gx + '" cy="' + gy + '" r="9" fill="#ffd274" opacity=".38"/>'
+        + '<path d="M' + (gx - 17) + ',' + (gy - 12) + ' L' + (gx - 7) + ',' + (gy - 5)
+        + ' M' + (gx + 17) + ',' + (gy - 12) + ' L' + (gx + 7) + ',' + (gy - 5)
+        + ' M' + (gx - 19) + ',' + gy + ' L' + (gx - 9) + ',' + gy
+        + ' M' + (gx + 19) + ',' + gy + ' L' + (gx + 9) + ',' + gy
+        + ' M' + (gx - 15) + ',' + (gy + 11) + ' L' + (gx - 6) + ',' + (gy + 5)
+        + ' M' + (gx + 15) + ',' + (gy + 11) + ' L' + (gx + 6) + ',' + (gy + 5)
+        + '" stroke="#ffd97a" stroke-width="2" opacity="1" stroke-linecap="round"/>'
+        + '<path d="M' + gx + ',' + (gy - 8) + ' l6,6 -8,2 7,7" stroke="#ff9d14" stroke-width="5.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+        + '<path d="M' + gx + ',' + (gy - 8) + ' l6,6 -8,2 7,7" stroke="#ffffff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+        + '</g>');
     });
 
-    var w = primaryOk ? (closed ? '接点が開けば、ここで火花が飛ぶ' : '燃焼室の中で火花が飛ぶ') : '火花は飛ばない';
-    s.push('<text x="150" y="' + (top + 156) + '" font-size="11.5" font-weight="700" text-anchor="middle" fill="'
-      + (primaryOk ? '#2f7d4f' : C.hi) + '">' + w + '</text>');
-    k.label(6, top + 174, '一次の輪が切れていれば、ここに火花は出ない。', C.sub, null, 10);
-    return top + 186;
+    s.push('<text x="150" y="' + (top + 156) + '" font-size="11.5" font-weight="700" text-anchor="middle" fill="#2f7d4f">⚡ 電極のすき間で火花が飛ぶ</text>');
+    k.label(6, top + 178, '一次の輪が切れていれば、ここに火花は出ない。', C.sub, null, 10);
+    return top + 190;
   }
 
   function draw(k, mode) {
@@ -335,9 +367,6 @@
     alt: false,
     mainInit: 'CLOSED',
     mainInputs: function (v) { return { key: 'ON', engine: 'STOP', points: v }; },
-    /* ⭐主図のトグル（ポイント 閉↔開）に連動して描き替わる従図。
-       ⚠️scenes（静止した場面）と違い、こちらは押すたびに描き直される。 */
-    linked: [{ id: 'j-spark', mode: { spark: true } }],
     /* primaryOk＝「一次の輪が最後までつながっているか」。いま流れているか（coilOn）とは別物で、
        ポイントが開いている正常な瞬間も true になる。⚠️これは solve() の端子状態から導いたもので、
        絵の都合で作った旗ではない：ポイントの手前が hot か post（＝＋側から見えている）で、
@@ -356,7 +385,10 @@
         { id: 'j-nopower', sc: scenario({ inputs: ON, ops: cut('w09-01') }), mode: { cut: 'w09-01' } },
         /* ★②12Vは来ているのに流れない＝アース側が切れている。いちばん紛らわしい形 */
         { id: 'j-noearth', sc: scenario({ inputs: ON, ops: cut('w09-03') }), mode: { cut: 'w09-03' } },
-        { id: 'j-fixed', sc: scenario({ inputs: OPEN }), mode: {} }
+        { id: 'j-fixed', sc: scenario({ inputs: OPEN }), mode: {} },
+        /* ⭐従図＝火花ができるまで。⚠️トグルには連動しない（1周6秒の通しアニメを回し続ける・
+           2026-08-26 ユーザー確定）＝だから scenes に置く。sc は使わないが器として渡す。 */
+        { id: 'j-spark', sc: scenario({ inputs: OPEN }), mode: { spark: true } }
       ];
     },
     /* 点火の部品はエンジンルームに固まっている＝バッテリーとキーだけが車の前。

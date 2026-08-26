@@ -100,24 +100,59 @@ td.ng{color:var(--hi);font-weight:700}
   @keyframes flowright{to{transform:translateX(22px)}}
   @keyframes flowleft{to{transform:translateX(-22px)}}
   @keyframes spin{to{transform:rotate(360deg)}}
-  /* ⭐第6回の従図＝点火の動きそのものを見せる（2026-08-26 ユーザー要望）。
-     ⚠️ここは【繰り返し起きる現象】を見せる絵なので繰り返してよい＝本文にも
-       「毎秒何十回もつながっては切れる」と書いてある。⛔ただし速い点滅にはしない
-       ＝1.6秒でゆっくり回し、順番（磁気が崩れる→二次に高圧→プラグが光る）が読める速さにする。
-     ⚠️警告灯の点滅を禁じている理由（断続する不具合に読める）とは別物＝あちらは「状態」、
-       こちらは「動作」。混ぜないこと。 */
-  .mag-hold{animation:maghold 2.4s ease-in-out infinite}
-  .mag-collapse{animation:magcollapse 1.6s ease-out infinite}
-  .mag-hold,.mag-collapse{transform-box:fill-box;transform-origin:center}
-  .hv-flash{animation:hvflash 1.6s linear infinite}
-  .spark-flash{animation:sparkflash 1.6s linear infinite}
-  @keyframes maghold{0%,100%{transform:scale(.93);opacity:.5}50%{transform:scale(1);opacity:.9}}
-  @keyframes magcollapse{0%{transform:scale(1);opacity:.9}44%,100%{transform:scale(1.5);opacity:0}}
-  /* ⚠️2026-08-26：二次の高圧とプラグの火花は【同じ位相】にする（ユーザー確定）。
-       高圧が出た瞬間に火花が飛ぶ＝時間差を付けると「別の出来事」に見える。
-       ⛔片方だけ数字を触らないこと（2つは常に同じ値）。 */
-  @keyframes hvflash{0%,34%{opacity:0}44%,64%{opacity:1}78%,100%{opacity:0}}
-  @keyframes sparkflash{0%,34%{opacity:0}44%,64%{opacity:1}78%,100%{opacity:0}}
+  /* ⭐第6回の従図＝点火のしくみを【1周6秒の通しアニメ】で見せる（2026-08-26 ユーザー確定）。
+     物語＝「電気が来る → 一次に磁気が溜まる → ポイントが開いて電流が切れる →
+             二次に高圧が生まれる → 高圧が線を伝ってプラグまで届く → 火花が飛ぶ」。
+     ⚠️⚠️すべて同じ 6s 周期・linear で回す＝【%がそのまま物語の順番】になる。
+       ⛔どれか1つだけ duration や timing を変えないこと（順番が崩れて意味が壊れる）。
+     ⚠️高圧の発生と火花は【わざと同時にしていない】＝間を `ig-run`（線が伸びる）で繋いだので、
+       「出た → 伝わった → 飛んだ」が読める。⛔同時に戻さない（2026-08-26 ユーザー確定）。
+     ⚠️ここは【繰り返し起きる現象】なので繰り返してよい＝本文にも「毎秒何十回も」と書いてある。
+       ⛔ただし速い点滅にはしない。警告灯の点滅を禁じている理由（断続する不具合に読める）とは
+       別物＝あちらは「状態」、こちらは「動作」。混ぜないこと。
+     ⚠️アニメが効かない読者（prefers-reduced-motion: reduce）には「①溜まっている」静止画が
+       残るよう、SVG 側に opacity 属性を置いてある＝⛔属性を消さないこと。 */
+  .ig-cycle{animation-duration:6s;animation-iteration-count:infinite;animation-timing-function:linear}
+  .ig-mag{transform-box:fill-box;transform-origin:center}
+  .ig-s1{animation-name:igs1}
+  .ig-s2{animation-name:igs2}
+  .ig-s3{animation-name:igs3}
+  .ig-m2{animation-name:igm2}
+  .ig-prim{animation-name:igprim}
+  .ig-mag{animation-name:igmag}
+  .ig-ptC{animation-name:igptc}
+  .ig-ptO{animation-name:igpto}
+  .ig-sec{animation-name:igsec}
+  .ig-bolt{animation-name:igbolt}
+  .ig-run{animation-name:igrun}
+  .ig-spark{animation-name:igspark}
+  /* 見出し3枚（同じ場所に重ねてある）と右上のラベル2枚 */
+  @keyframes igs1{0%,38%{opacity:1}40%,92%{opacity:0}96%,100%{opacity:1}}
+  @keyframes igs2{0%,38%{opacity:0}40%,52%{opacity:1}54%,100%{opacity:0}}
+  @keyframes igs3{0%,52%{opacity:0}54%,92%{opacity:1}96%,100%{opacity:0}}
+  @keyframes igm2{0%,38%{opacity:0}40%,92%{opacity:1}96%,100%{opacity:0}}
+  /* 一次に流れる点＝キーから来て、ポイントで切れるまで */
+  @keyframes igprim{0%{opacity:1;stroke-dashoffset:0}40%{opacity:1;stroke-dashoffset:-324}
+                    42%,100%{opacity:0;stroke-dashoffset:-324}}
+  /* 磁気の輪＝育つ→満ちる→崩れて消える（色も緑→橙へ） */
+  @keyframes igmag{0%{transform:scale(.5);opacity:0;stroke:#7fd6a0}
+                   22%{transform:scale(1);opacity:.85;stroke:#7fd6a0}
+                   40%{transform:scale(1);opacity:.9;stroke:#7fd6a0}
+                   41%{stroke:#e8a33d}
+                   46%{transform:scale(1.28);opacity:.32;stroke:#e8a33d}
+                   52%,100%{transform:scale(1.6);opacity:0;stroke:#e8a33d}}
+  /* ポイントの接点＝閉じている腕と開いている腕を差し替える（回転させない＝端末差が出ないため） */
+  @keyframes igptc{0%,40%{opacity:1}42%,92%{opacity:0}96%,100%{opacity:1}}
+  @keyframes igpto{0%,40%{opacity:0}42%,92%{opacity:1}96%,100%{opacity:0}}
+  /* 二次巻線＝高圧が出ている間だけ色が変わる */
+  @keyframes igsec{0%,46%{stroke:#e6e0d0}50%,80%{stroke:#e8a33d}86%,100%{stroke:#e6e0d0}}
+  @keyframes igbolt{0%,46%{opacity:0}50%,74%{opacity:1}80%,100%{opacity:0}}
+  /* 高圧がプラグまで【伸びていく】＝--L は SVG 側で渡す道の実長 */
+  @keyframes igrun{0%,52%{opacity:0;stroke-dashoffset:var(--L)}
+                   54%{opacity:1;stroke-dashoffset:var(--L)}
+                   68%,84%{opacity:1;stroke-dashoffset:0}
+                   88%,100%{opacity:0;stroke-dashoffset:0}}
+  @keyframes igspark{0%,66%{opacity:0}70%,84%{opacity:1}88%,100%{opacity:0}}
 }
 /* C1文字盤（UCM-1メーターアプリから移植）用 */
 .hid{display:none}
