@@ -1,4 +1,4 @@
-/* ストーリー第1号「チャージランプが消えない」の絵。ID: charge_lamp_on
+/* ストーリー第1回「チャージランプが消えない」の絵。ID: charge_lamp_on
    ダイナモ版 wiring-journey-charge.html と オルタ版 wiring-journey-charge-alt.html の2ページで共有する。
    オルタ版は読み込み前に window.JOURNEY_ALT = true を立てる。
    共通の土台（場面の作り方・描画プリミティブ・共通部品・実車図・検算・起動）は /wiring-journey.js。
@@ -22,7 +22,7 @@
     /* ===== バッテリー（端子とセルキャップのある形） ===== */
     k.battery(X);
 
-    /* B+の幹。w11-01(ROSSO太)→始動レバー節点→w11-03/pga-01→J（レギュ30 or オルタB+） */
+    /* B+の幹。w11-01(ROSSO太)→スターターレバー節点→w11-03/pga-01→J（レギュ30 or オルタB+） */
     seg(X,62,X,100, 'w11-01', true);
     label(X+12,88,'ROSSO 赤・太',WC.ROSSO);
     k.node(X,100);

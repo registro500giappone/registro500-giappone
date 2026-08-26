@@ -331,7 +331,7 @@
     }
 
     /* トグルが動かすもの＝ストーリーごとに違う。既定は「エンジン 停止↔回転」（第1・2回）。
-       セルのストーリーは動かすのが始動レバーなので cfg.mainInputs / cfg.mainInit で差し替える。 */
+       セルのストーリーは動かすのがスターターレバーなので cfg.mainInputs / cfg.mainInit で差し替える。 */
     function mainInputs(v) { return cfg.mainInputs ? cfg.mainInputs(v) : { key: 'ON', engine: v }; }
     function setMain(v) {
       var btns = document.querySelectorAll('#tg button');
