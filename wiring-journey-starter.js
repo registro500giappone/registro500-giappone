@@ -55,17 +55,17 @@
     var pull = pos.starter_sw === 'START';
     s.push('<rect x="30" y="112" width="140" height="86" rx="10" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
     /* ⚠️【2026-08-23 ユーザー確認】電気の接点は運転席ではなく【セルモーターの上】に付いている。
-       箱の絵（左のノブ→ケーブル→右の接点）は元から正しいが、副題が「運転席の引きノブ」だけ
+       箱の絵（左のレバー→ケーブル→右の接点）は元から正しいが、副題が「運転席の引きノブ」だけ（当時の呼び名）
        だったため箱ごと運転席の物に読め、「接点の荒れ」を足もとで探させる絵になっていた。 */
-    s.push('<text x="100" y="130" font-size="12" fill="#fffdf8" text-anchor="middle">始動レバー</text>');
-    s.push('<text x="100" y="145" font-size="9.5" fill="' + C.in_ + '" text-anchor="middle">ノブ＝運転席／接点＝セルの上</text>');
+    s.push('<text x="100" y="130" font-size="12" fill="#fffdf8" text-anchor="middle">スターターレバー</text>');
+    s.push('<text x="100" y="145" font-size="9.5" fill="' + C.in_ + '" text-anchor="middle">レバー＝運転席／接点＝セルの上</text>');
     /* 接点：手で引いている間だけ閉じるモーメンタリ */
     s.push('<circle cx="' + X + '" cy="162" r="3.8" fill="' + C.in_ + '"/>');
     s.push('<circle cx="' + X + '" cy="182" r="3.8" fill="' + C.in_ + '"/>');
     if (pull) s.push('<path d="M' + X + ',162 L' + X + ',182" stroke="' + C.in_ + '" stroke-width="3.5"/>');
     else s.push('<path d="M' + X + ',162 L' + (X + 12) + ',174" stroke="' + C.in_ + '" stroke-width="3.5"/>');
     s.push('<text x="146" y="178" font-size="10" fill="' + C.in_ + '" text-anchor="middle">接点 ' + (pull ? '閉' : '開') + '</text>');
-    /* ノブの絵（引くと手前＝左へ出る）。⚠️位置は controls の starter_sw から＝勝手な演出ではない */
+    /* レバーの絵（引くと手前＝左へ出る）。⚠️位置は controls の starter_sw から＝勝手な演出ではない */
     s.push('<circle cx="' + (pull ? 44 : 56) + '" cy="172" r="7.5" fill="' + C.in_ + '"/>');
     s.push('<path d="M' + (pull ? 51 : 63) + ',172 L78,172" stroke="' + C.in_ + '" stroke-width="3" stroke-linecap="round"/>');
     s.push('<text x="100" y="193" font-size="10" fill="' + C.in_ + '" text-anchor="middle">' + (pull ? '引いている' : '引く前') + '</text>');
@@ -186,9 +186,9 @@
         viewBox: '0 -140 3020 1640',
         scale: 4,
         marks: [{ id: 'battery', color: '#b8442e', label: 'バッテリー', anchor: 'start' },
-                /* ⚠️この●は wiring-layout.json の実測値＝【運転席の引きノブ】の位置。
-                   電気の接点はセルモーター側なので、ラベルでノブだと明示する（値は変えない） */
-                { id: 'starter_sw', color: '#2c3a31', label: '引きノブ' },
+                /* ⚠️この●は wiring-layout.json の実測値＝【運転席のスターターレバー】の位置。
+                   電気の接点はセルモーター側なので、ラベルでレバーだと明示する（値は変えない） */
+                { id: 'starter_sw', color: '#2c3a31', label: 'スターターレバー' },
                 { id: 'starter', color: '#b8442e', label: 'セルモーター' }],
         legend: '<text x="40" y="1430" font-size="96" fill="#a49b87">←車の前方（トランク）</text>' +
                 '<text x="2980" y="1430" font-size="96" fill="#a49b87" text-anchor="end">車の後ろ（エンジン）→</text>' +
