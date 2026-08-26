@@ -331,11 +331,13 @@
       e.setAttribute('viewBox', d.vb); e.innerHTML = d.body;
     }
 
+    /* ⚠️トグルは1ページに複数置ける（第6回は主図の上と従図の上の2組）＝だから id ではなく
+       .toggle を拾う。押された方だけでなく【全部の組】の on を付け替えること。 */
     /* トグルが動かすもの＝ストーリーごとに違う。既定は「エンジン 停止↔回転」（第1・2回）。
        セルのストーリーは動かすのがスターターレバーなので cfg.mainInputs / cfg.mainInit で差し替える。 */
     function mainInputs(v) { return cfg.mainInputs ? cfg.mainInputs(v) : { key: 'ON', engine: v }; }
     function setMain(v) {
-      var btns = document.querySelectorAll('#tg button');
+      var btns = document.querySelectorAll('.toggle button');
       for (var i = 0; i < btns.length; i++) btns[i].className = btns[i].getAttribute('data-v') === v ? 'on' : '';
       put('j-main', scenario({ inputs: mainInputs(v) }), {});
       /* トグルに連動して描き直す従図（第6回の「火花ができるまで」）。
@@ -374,7 +376,7 @@
         'wiring-net.json NET_VERSION ' + NET.NET_VERSION + ' / wiring-patches.json PATCH_VERSION ' + PATCHES.PATCH_VERSION;
 
       setMain(cfg.mainInit || 'STOP');
-      var btns = document.querySelectorAll('#tg button');
+      var btns = document.querySelectorAll('.toggle button');
       for (var i = 0; i < btns.length; i++) btns[i].addEventListener('click', function () { setMain(this.getAttribute('data-v')); });
 
       (cfg.scenes ? cfg.scenes(scenario) : []).forEach(function (s) { put(s.id, s.sc, s.mode); });
