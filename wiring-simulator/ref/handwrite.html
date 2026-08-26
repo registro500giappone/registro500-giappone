@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>実車位置の記入（FIAT 500F）</title>
+<!--
+  部品が実車のどこに付いているかを、図の上をクリックして指定するための記入用ページ。
+  ⚠️PowerPoint 版（ref/make_top_pptx.py → 記入 → ref/read_pptx.py）と【同じ座標系】を使う。
+    出力の形も read_pptx.py の JSON と同じ（parts の中に m / lat / h / m_side）。
+    ＝どちらで記入しても同じ台帳（wiring-layout.json）に起こせる。
+  ⭐パワポが手元に無いときのため（2026-08-26 ユーザー「今、ローカルにパワポがない」）。
+  ⚠️file:// で直接開いて動く作りにしてある（fetch を使わない＝既存部品の値はページ内に直書き）。
+    そのため wiring-layout.json を更新したら、下の REF もコピーし直すこと（参考表示なので実害は薄い）。
+  ⚠️座標の定義（calibration.json より）:
+      上から: x = 25 + m*1000 ,  y = 683.15 - lat*1000   （viewBox 0 0 3020 1366.3・画像の上＝車の右）
+      横から: x = 25 + m*1000 ,  y = 1332   - h*1000     （viewBox 0 0 3020 1357  ・車の左側面／ノーズ左）
+    m=車の前端から後方へ / lat=中心線から左右（+が車の右）/ h=地面から上へ。単位はメートル。
+-->
+<style>
+  :root{ --bg:#fbf7ee; --ink:#2c3a31; --sub:#8d8574; --line:#d8d2c4; --accent:#2f5d50; --hot:#b8442e; }
+  *{box-sizing:border-box}
+  body{margin:0;padding:16px;background:var(--bg);color:var(--ink);
+       font-family:"Hiragino Sans","Yu Gothic",Meiryo,system-ui,sans-serif;line-height:1.7}
+  .wrap{max-width:1000px;margin:0 auto}
+  h1{font-size:19px;margin:0 0 6px}
+  h2{font-size:15px;margin:22px 0 6px;padding-left:8px;border-left:4px solid var(--accent)}
+  p{margin:.4em 0}
+  .sub{color:var(--sub);font-size:13px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+  .chip{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;
+        font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink)}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+  .chip .ok{color:#2f7d4f;font-weight:700}
+  .chip.on .ok{color:#9de8bd}
+  /* ⚠️拡大すると図は縦にも伸びる＝囲いに高さの上限を置いて、中で縦横にスクロールさせる。
+     これが無いと 3× で画面から溢れて、どこを見ているのか分からなくなる（実機で確認）。 */
+  .stage{position:relative;border:1px solid var(--line);border-radius:8px;background:#fff;
+         overflow:auto;margin:6px 0;max-height:72vh}
+  .inner{position:relative;width:100%}
+  .zoom{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--sub);margin-top:8px}
+  .zoom button{padding:3px 10px;font-size:12px}
+  .zoom button.on{background:var(--accent);color:#fff}
+  .inner img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none}
+  .inner svg{position:absolute;inset:0;width:100%;height:100%;cursor:crosshair}
+  .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0}
+  button{font-family:inherit;font-size:13px;padding:6px 14px;border-radius:6px;
+         border:1.5px solid var(--accent);background:#fff;color:var(--accent);cursor:pointer}
+  button.solid{background:var(--accent);color:#fff}
+  textarea{width:100%;height:230px;font-family:ui-monospace,Consolas,monospace;font-size:12px;
+           border:1px solid var(--line);border-radius:6px;padding:10px;background:#fff;color:var(--ink)}
+  input[type=text]{font-family:inherit;font-size:13px;padding:5px 8px;border:1px solid var(--line);
+                   border-radius:6px;background:#fff;color:var(--ink);flex:1;min-width:220px}
+  .note{background:#f4efe2;border-left:4px solid var(--line);padding:8px 12px;border-radius:0 6px 6px 0;
+        font-size:13px;margin:10px 0}
+  label{font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>実車位置の記入（FIAT 500F）</h1>
+<p class="sub">部品を選んで、図の上をクリックしてください。もう一度クリックすると置き直せます。
+入力はこのブラウザに自動保存されます（閉じても消えません）。</p>
+
+<div class="note">
+  <b>①上から</b>で〈前後・左右〉が、<b>②横から</b>で〈高さ〉が決まります。両方に置いてください。<br>
+  <b>灰色の点</b>は記入済みの部品（バッテリー・ダイナモなど）です。<b>位置の手がかりに使ってください</b>——
+  クリックしても動きません。
+</div>
+
+<div class="chips" id="chips"></div>
+<div class="bar">
+  <input type="text" id="memo" placeholder="選んだ部品のメモ（任意。例: 端子は車の右向き）">
+  <button id="clr">この部品を消す</button>
+</div>
+
+<h2>① 上から見た位置（前後・左右）</h2>
+<p class="sub">ノーズが左。<b>画像の上が車の右側</b>です。前トランク 0〜1.02m ／ 室内 1.02〜2.05m ／ エンジンルーム 2.05〜2.97m。</p>
+<div class="zoom" data-view="top">拡大
+  <button class="on" data-z="1">1×</button><button data-z="2">2×</button><button data-z="3">3×</button>
+  <button data-go="engine">エンジンルームへ</button></div>
+<div class="stage"><div class="inner" id="wrapTop">
+  <img src="svg/fiat500f_top.svg" alt="上から見た図">
+  <svg id="ovTop" viewBox="0 0 3020 1366.3" preserveAspectRatio="none"></svg>
+</div></div>
+
+<h2>② 横から見た高さ</h2>
+<p class="sub">車の左側面。ノーズが左・エンジンが右。地面が下端です。</p>
+<div class="zoom" data-view="side">拡大
+  <button class="on" data-z="1">1×</button><button data-z="2">2×</button><button data-z="3">3×</button>
+  <button data-go="engine">エンジンルームへ</button></div>
+<div class="stage"><div class="inner" id="wrapSide">
+  <img src="svg/fiat500f_side.svg" alt="横から見た図">
+  <svg id="ovSide" viewBox="0 0 3020 1357" preserveAspectRatio="none"></svg>
+</div></div>
+
+<h2>③ 書き出し</h2>
+<div class="bar">
+  <button class="solid" id="copy">コピー</button>
+  <button id="dl">ファイルに保存</button>
+  <button id="reset">ぜんぶ消してやり直す</button>
+  <span class="sub" id="stat"></span>
+</div>
+<textarea id="out" readonly></textarea>
+<p class="sub">この内容をそのまま返してください（<code>wiring-layout.json</code> に起こします）。
+形は PowerPoint 版の読み取り（<code>read_pptx.py</code>）と同じです。</p>
+
+</div>
+<script>
+/* ===== 座標の定義（calibration.json と同じ。⛔勝手に変えない） ===== */
+var VIEW = {
+  top:  { vbw:3020, vbh:1366.3, toCar:function(x,y){ return { m:(x-25)/1000, v:(683.15-y)/1000 }; },
+                                toPx: function(m,v){ return { x:25+m*1000, y:683.15-v*1000 }; } },
+  side: { vbw:3020, vbh:1357,   toCar:function(x,y){ return { m:(x-25)/1000, v:(1332-y)/1000 }; },
+                                toPx: function(m,v){ return { x:25+m*1000, y:1332-v*1000 }; } }
+};
+
+/* ===== 置いてもらう部品＝第6〜9回で要るもの（id は wiring-net.json の parts と同じ） ===== */
+var PARTS = [
+  ['coil','点火コイル'], ['distributor','デスビ'],
+  ['horn','ホーン'], ['horn_sw','ホーンボタン'],
+  ['room_lamp','ルームランプ'], ['room_sw','室内灯スイッチ'], ['door_sw','ドア柱スイッチ'],
+  ['brake_sw','ストップスイッチ'], ['stop_l','後コンビランプ（左）'], ['stop_r','後コンビランプ（右）'],
+  ['free1','（自由記入1）'], ['free2','（自由記入2）']
+];
+
+/* ===== 既に記入済みの部品＝位置の手がかりに薄く出すだけ（wiring-layout.json LAYOUT_VERSION 3 の写し） ===== */
+var REF = [
+  ['バッテリー',0.228,0.212,0.605], ['ヒューズ箱',0.632,-0.478,0.687],
+  ['メーター',0.902,-0.206,0.805], ['キースイッチ',0.902,-0.003,0.818],
+  ['始動レバー',1.500,-0.003,0.307], ['スターター',2.390,0.003,0.481],
+  ['レギュレータ',2.620,-0.371,0.645], ['油圧センダ',2.756,0.243,0.546],
+  ['ダイナモ',2.781,-0.227,0.454], ['車体アース',2.901,-0.068,0.401]
+];
+
+var ZOOM = { top:1, side:1 };   /* 拡大率＝エンジンルームは部品が密集するので要る */
+var KEY = 'r500-handwrite-v1';
+/* ⚠️file:// で開いたときは保存が使えない環境もある＝失敗しても記入は続けられるようにする */
+function load() { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return {}; } }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
+var data = load();
+var cur = PARTS[0][0];
+var $ = function (id) { return document.getElementById(id); };
+
+function label(id) { var p = PARTS.find(function (q) { return q[0] === id; }); return (data[id] && data[id].label) || (p ? p[1] : id); }
+
+function drawRef(ov, view) {
+  var z = ZOOM[view];
+  REF.forEach(function (r) {
+    var p = VIEW[view].toPx(r[1], view === 'top' ? r[2] : r[3]);
+    add(ov, 'circle', { cx:p.x, cy:p.y, r:13/z, fill:'#b9b2a2' });
+    /* ⚠️図の右端に近い札は左へ出す＝そのままだと画像の外へはみ出して読めない */
+    var end = p.x > 2400;
+    add(ov, 'text', { x:p.x + (end ? -20/z : 20/z), y:p.y + 6/z, 'font-size':30/z,
+                      'text-anchor': end ? 'end' : 'start', fill:'#8d8574' }, r[0]);
+  });
+}
+function add(ov, tag, at, txt) {
+  var e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (var k in at) e.setAttribute(k, at[k]);
+  if (txt != null) e.textContent = txt;
+  ov.appendChild(e);
+  return e;
+}
+
+function draw() {
+  ['top','side'].forEach(function (view) {
+    var ov = $(view === 'top' ? 'ovTop' : 'ovSide');
+    ov.innerHTML = '';
+    drawRef(ov, view);
+    PARTS.forEach(function (q) {
+      var d = data[q[0]]; if (!d) return;
+      var has = view === 'top' ? (d.m != null && d.lat != null) : (d.h != null);
+      if (!has) return;
+      var p = VIEW[view].toPx(view === 'top' ? d.m : d.m_side, view === 'top' ? d.lat : d.h);
+      var on = q[0] === cur, z = ZOOM[view], end = p.x > 2400;
+      add(ov, 'circle', { cx:p.x, cy:p.y, r:(on?20:15)/z, fill:on?'#b8442e':'#2f5d50',
+                          stroke:'#fff', 'stroke-width':4/z });
+      add(ov, 'text', { x:p.x + (end ? -26/z : 26/z), y:p.y + 10/z, 'font-size':34/z, 'font-weight':700,
+                        'text-anchor': end ? 'end' : 'start',
+                        fill:on?'#b8442e':'#2c3a31' }, label(q[0]));
+    });
+  });
+  chips();
+  out();
+  save();
+}
+
+function chips() {
+  var box = $('chips'); box.innerHTML = '';
+  PARTS.forEach(function (q) {
+    var d = data[q[0]] || {};
+    var done = (d.m != null ? '上' : '') + (d.h != null ? '横' : '');
+    var b = document.createElement('button');
+    b.className = 'chip' + (q[0] === cur ? ' on' : '');
+    b.innerHTML = label(q[0]) + (done ? ' <span class="ok">' + done + '✓</span>' : '');
+    b.onclick = function () { cur = q[0]; $('memo').value = (data[cur] && data[cur].note) || ''; draw(); };
+    box.appendChild(b);
+  });
+}
+
+function out() {
+  var o = { parts:{} }, n = 0;
+  PARTS.forEach(function (q) {
+    var d = data[q[0]]; if (!d) return;
+    var r = { label: label(q[0]) };
+    if (d.m != null) { r.m = +d.m.toFixed(3); r.lat = +d.lat.toFixed(3); }
+    if (d.h != null) { r.h = +d.h.toFixed(3); r.m_side = +d.m_side.toFixed(3); }
+    if (d.note) r.note = d.note;
+    if (r.m != null || r.h != null) { o.parts[q[0]] = r; n++; }
+  });
+  $('out').value = JSON.stringify(o, null, 1);
+  var rest = PARTS.filter(function (q) { var d = data[q[0]] || {}; return d.m == null || d.h == null; })
+                  .filter(function (q) { return q[0].indexOf('free') !== 0; }).length;
+  $('stat').textContent = n + ' 個ぶん記入ずみ' + (rest ? '／あと ' + rest + ' 個（両方に置くと完了）' : '／完了');
+}
+
+function click(view, ev) {
+  var box = ev.currentTarget.getBoundingClientRect();
+  var V = VIEW[view];
+  var x = (ev.clientX - box.left) / box.width * V.vbw;
+  var y = (ev.clientY - box.top) / box.height * V.vbh;
+  var c = V.toCar(x, y);
+  var d = data[cur] || (data[cur] = { label: label(cur) });
+  if (view === 'top') { d.m = c.m; d.lat = c.v; } else { d.m_side = c.m; d.h = c.v; }
+  draw();
+}
+$('ovTop').addEventListener('click', function (e) { click('top', e); });
+$('ovSide').addEventListener('click', function (e) { click('side', e); });
+
+$('memo').addEventListener('input', function () {
+  var d = data[cur] || (data[cur] = { label: label(cur) });
+  var v = this.value.trim();
+  /* 自由記入の枠は、メモに「名前:」と書けばその名前で出せる */
+  if (cur.indexOf('free') === 0 && v.indexOf(':') > 0) { d.label = v.split(':')[0].trim(); d.note = v.split(':').slice(1).join(':').trim(); }
+  else d.note = v;
+  draw();
+});
+$('clr').onclick = function () { delete data[cur]; $('memo').value = ''; draw(); };
+$('reset').onclick = function () { if (confirm('記入した位置をぜんぶ消します。よろしいですか？')) { data = {}; $('memo').value = ''; draw(); } };
+$('copy').onclick = function () { $('out').select(); document.execCommand('copy');
+  this.textContent = 'コピーしました'; var b = this; setTimeout(function () { b.textContent = 'コピー'; }, 1500); };
+$('dl').onclick = function () {
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([$('out').value], { type:'application/json' }));
+  a.download = 'layout-input.json'; a.click();
+};
+
+/* ===== 拡大＝図そのものを広げて、囲いの中で横スクロールさせる。
+   ⭐クリックの換算は毎回 getBoundingClientRect から取っているので、拡大しても座標はずれない。 ===== */
+[].forEach.call(document.querySelectorAll('.zoom'), function (bar) {
+  var view = bar.dataset.view;
+  var inner = document.getElementById(view === 'top' ? 'wrapTop' : 'wrapSide');
+  [].forEach.call(bar.querySelectorAll('button'), function (b) {
+    b.onclick = function () {
+      if (b.dataset.go) {   /* エンジンルーム＝前端から 2.05m 以降。その辺りが真ん中に来るまで送る */
+        var st = inner.parentNode;
+        st.scrollLeft = (2.5 / 3.02) * inner.offsetWidth - st.clientWidth / 2;
+        /* 縦＝上から図は車の中心線、横から図はエンジンの高さ（地上0.5m）あたりを真ん中に */
+        st.scrollTop = (view === 'top' ? 0.50 : 0.61) * inner.offsetHeight - st.clientHeight / 2;
+        return;
+      }
+      ZOOM[view] = +b.dataset.z;
+      inner.style.width = (ZOOM[view] * 100) + '%';
+      [].forEach.call(bar.querySelectorAll('button[data-z]'), function (o) { o.classList.toggle('on', o === b); });
+      draw();
+    };
+  });
+});
+
+$('memo').value = (data[cur] && data[cur].note) || '';
+draw();
+</script>
+</body>
+</html>
