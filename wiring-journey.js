@@ -317,6 +317,7 @@
        mainInit … トグルの初期値（既定 'STOP'）
        checks   … 検算の配列 [{label, s:{alt,inputs,override}, expect}]
        scenes   … function(scenario) → [{id, sc, mode}]
+       linked   … [{id, mode}] トグルに連動して描き直す従図（scenes は初回だけ）
        carmap   … function(layout, alt) → carMap の opts
        lampName … 検算表の見出しに使う灯の呼び名（HTML側と揃える必要はない） */
   function boot(cfg) {
@@ -337,6 +338,10 @@
       var btns = document.querySelectorAll('#tg button');
       for (var i = 0; i < btns.length; i++) btns[i].className = btns[i].getAttribute('data-v') === v ? 'on' : '';
       put('j-main', scenario({ inputs: mainInputs(v) }), {});
+      /* トグルに連動して描き直す従図（第6回の「火花ができるまで」）。
+         ⚠️scenes（初回に1度だけ描く静止した場面）とは別物＝押すたびに描き替わる。
+         この設定を持たない回では何も起きない。 */
+      (cfg.linked || []).forEach(function (l) { put(l.id, scenario({ inputs: mainInputs(v) }), l.mode); });
       var cap = document.getElementById('mainCap'); if (cap) cap.innerHTML = cfg.caps[v];
     }
 
