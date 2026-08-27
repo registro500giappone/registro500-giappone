@@ -62,7 +62,7 @@
     k.label(X + 12, 88, 'ROSSO 赤・太', WC.ROSSO, null, 11);
     k.node(X, 106);
     k.dashOut(X, 106, 190);
-    k.label(184, 98, '始動レバー・セルへ', C.sub, null, 10.5);
+    k.label(184, 98, 'スターターレバー・セルへ', C.sub, null, 10.5);
     k.label(184, 111, '（第3回）', C.sub, null, 10.5);
 
     k.seg(X, 106, X, 152, 'w11-03', true);
@@ -213,9 +213,11 @@
       return {
         viewBox: '0 -140 2000 1640',
         scale: 3,
-        marks: [{ id: 'battery', color: '#8d8574', label: 'バッテリー', anchor: 'start' },
+        marks: [{ id: 'horn', color: '#2c3a31', label: 'ホーン', anchor: 'start' },
+                { id: 'battery', color: '#8d8574', label: 'バッテリー', anchor: 'start' },
                 { id: 'f1', color: '#b8442e', label: 'ヒューズ箱', anchor: 'start' },
-                { id: 'ign_sw', color: '#8d8574', label: 'キー（コラム）', anchor: 'start' }],
+                { id: 'ign_sw', color: '#8d8574', label: 'キー（コラム）', anchor: 'start' },
+                { id: 'horn_sw', color: '#2c3a31', label: 'ホーンボタン', anchor: 'start' }],
         legend: '<text x="40" y="1430" font-size="80" fill="#a49b87">←車の前方（トランク）</text>' +
                 '<text x="1960" y="1430" font-size="80" fill="#a49b87" text-anchor="end">車の後ろ（エンジン）→</text>' +
                 '<text x="1000" y="-40" font-size="80" fill="#a49b87" text-anchor="middle">車を上から（上が車の右側）</text>'
