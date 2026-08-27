@@ -1977,3 +1977,148 @@ im.crop((470,410,700,720)).resize((1380,1860), Image.LANCZOS).save("p42_fusebox.
 ```
 
 ⏳**その67⑧の残宿題は (c)§G持ち越し1・(d)R型のINST SW・(e)当会F図で `56b` が光らない問題 の3つになった。**
+
+---
+
+### その70 ⚠️⚠️**開発メモのHTMLコメントが本番で読めていた＝11ファイルすべてから撤去**（2026-08-28・連載開始直前）
+
+**① 何が起きていたか**
+
+記事10枚＋目次の**先頭に置いた開発メモのHTMLコメントが、本番の View Source でそのまま読めていた**（実測：`curl -sL https://www.registro500.com/wiring-journey-charge | grep "作業場ページ"` でヒット）。
+
+⚠️**2026-08-25 の `<footer>` 開発メモ事故（その全文は §0 該当箇所）と同種の再発**。あのときの教訓「**HTMLコメントも View Source で読める**」がそのまま当てはまる箇所が、コメント側に残っていた。
+
+露出していたもの＝**「作業場ページ＝導線なし・noindex」の文言／`journey_id`（内部ID）／`wiring-simulator/HANDOFF.md §3` などの内部パスと節番号／`NET_VERSION` の遷移／`wiring-net.json` の内部キー `_sys9_scope`／`JOURNEY-INDEX §4`**。⚠️極めつけは **「⛔相手先の固有名はこのファイルに書かない」という注意書き自体が公開されていた**こと（外部プロジェクトの存在を示唆する）。
+
+**② 対応＝全文をここへ退避してから、11ファイルすべてのコメントを削除**
+
+⛔**`<!-- JOURNEY-STATE:BEGIN … -->` マーカーは触っていない**＝`publish_journey.py` 49行が**完全一致文字列で検索・置換**しているため、文言を変えると公開制御が壊れる。⚠️**マーカーの文言にも `publish_journey.py` の名が入っている**が、変えるならスクリプト側と同時にやる必要がある＝**連載開始直前にやる作業ではないと判断して見送った**（⏳残課題）。
+
+**③ ⛔生きたルール＝HTMLコメントに開発メモを書かない**
+
+置き場所はこの HANDOFF。**公開ファイルに書いてよいのは、読者に見せてよい文だけ**（HTMLコメント・`<footer>`・JSコメントすべて）。⚠️**「作業場だから何を書いてもいい」は誤り**＝作業場ページでも本文もソースも全部読まれる。
+
+**④ 退避した全文（削除前のコメント）**
+
+#### `wiring-journey-brake.html`
+
+```html
+<!-- ⚠️作業場ページ＝導線なし・noindex。ストーリー第7回（ブレーキランプが点かない／点きっぱなし）。journey_id: brake_no_light
+     ⚠️journey_id は URL と対＝一度決めたら変えない。外部プロジェクトのIDとの対応は
+       wiring-simulator/HANDOFF.md §3 を見る（⛔相手先の固有名はこのファイルに書かない）。
+     ⚠️このストーリーで系統6（ブレーキSW）を新設した＝NET_VERSION 7→8
+       （部品 f2・brake_sw・stop_l・stop_r／電線 w06-01〜w06-06）。
+     ⭐このストーリーの骨は3つ＝①キーONのときだけ生きるヒューズ F2 が初めて本線に立つ
+       ②ランプが2つあって左から右へ渡る（どちらが消えるかで容疑者が割れる）
+       ③症状が2つある（点かない／点きっぱなし）。
+     ⚠️ストップスイッチはブレーキ配管に付く【油圧】スイッチ＝安全注記を絶対に落とさない。
+     共通の土台＝/wiring-journey.js（描画）・/wiring-journey.css（外観）／このストーリーの絵＝/wiring-journey-brake.js -->
+```
+
+#### `wiring-journey-charge-alt.html`
+
+```html
+<!-- ⚠️作業場ページ＝導線なし・noindex。ストーリー第1回のオルタネーター換装車版。ID: charge_lamp_on（本体は wiring-journey-charge.html・共通描画は /wiring-journey-charge.js） -->
+```
+
+#### `wiring-journey-charge.html`
+
+```html
+<!-- ⚠️作業場ページ＝導線なし・noindex。ストーリー第1回（チャージランプ）。ID: charge_lamp_on（wiring-simulator/HANDOFF.md §3）
+     オルタネーター換装車版は wiring-journey-charge-alt.html（相互リンクあり・共通描画は /wiring-journey-charge.js） -->
+```
+
+#### `wiring-journey-ground.html`
+
+```html
+<!-- ⚠️作業場ページ＝導線なし・noindex。ストーリー第5回（あちこち同時に点かない・アース）。journey_id: ground_return
+     ⚠️journey_id は URL と対＝一度決めたら変えない。外部プロジェクトのIDとの対応は
+       wiring-simulator/HANDOFF.md §3 を見る（⛔相手先の固有名はこのファイルに書かない）。
+     ⚠️このストーリーは【データ追加ゼロ】＝既存のアース線5本だけで全場面が解けている。
+     ⚠️このストーリーは 2026-08-21 の「案A」（アースの基準を車体からバッテリー − へ移す）が入って初めて成立する。
+     共通の土台＝/wiring-journey.js（描画）・/wiring-journey.css（外観）／このストーリーの絵＝/wiring-journey-ground.js -->
+```
+
+#### `wiring-journey-horn.html`
+
+```html
+<!-- ⚠️作業場ページ＝導線なし・noindex。ストーリー第7回（ホーンが鳴らない）。journey_id: horn_silent
+     ⚠️journey_id は URL と対＝一度決めたら変えない。外部プロジェクトのIDとの対応は
+       wiring-simulator/HANDOFF.md §3 を見る（⛔相手先の固有名はこのファイルに書かない）。
+     ⚠️このストーリーで系統5（ホーン）を新設した＝NET_VERSION 5→6（部品 horn・horn_sw／電線 w05-01/02/03）。
+     ⭐このストーリーは【ヒューズが本当に犯人になる初めての系統】＝第1・4・6回の「ヒューズは無実」と逆。
+       F1 の負荷側に着く2つ（ホーン・ルームランプ）だけが道を失う。
+     ⛔ホーン本体の不良（通電しても鳴らない・かすれる・音量調整）は値の話＝L1では表せない。footer で断る。
+     共通の土台＝/wiring-journey.js（描画）・/wiring-journey.css（外観）／このストーリーの絵＝/wiring-journey-horn.js -->
+```
+
+#### `wiring-journey-ignition.html`
+
+```html
+<!-- ⚠️作業場ページ＝導線なし・noindex。ストーリー第6回（セルは回るがかからない・火花が飛ばない）。journey_id: no_spark
+     ⚠️journey_id は URL と対＝一度決めたら変えない。外部プロジェクトのIDとの対応は
+       wiring-simulator/HANDOFF.md §3 を見る（⛔相手先の固有名はこのファイルに書かない）。
+     ⚠️このストーリーで系統9（点火系）を新設した＝NET_VERSION 4→5（部品 coil・distributor／電線 w09-01/02/03）。
+     ⛔高圧側（コイル二次〜プラグ）は netlist に持たない＝L1では表せない（wiring-net.json の _sys9_scope）。
+     ⛔点火時期・ドエル角はこのページの担当外（JOURNEY-INDEX §4）。ここで「進角が」と書き始めない。
+     共通の土台＝/wiring-journey.js（描画）・/wiring-journey.css（外観）／このストーリーの絵＝/wiring-journey-ignition.js -->
+```
+
+#### `wiring-journey-key.html`
+
+```html
+<!-- ⚠️作業場ページ＝導線なし・noindex。ストーリー第4回（キーを回しても何も点かない）。journey_id: key_no_power
+     ⚠️journey_id は URL と対＝一度決めたら変えない。外部プロジェクトのIDとの対応は
+       wiring-simulator/HANDOFF.md §3 を見る（⛔相手先の固有名はこのファイルに書かない）。
+     ⚠️このストーリーは【データ追加ゼロ】＝既存の系統11・10・7だけで全場面が解けている。
+     共通の土台＝/wiring-journey.js（描画）・/wiring-journey.css（外観）／このストーリーの絵＝/wiring-journey-key.js -->
+```
+
+#### `wiring-journey-oil.html`
+
+```html
+<!-- ⚠️作業場ページ＝導線なし・noindex。ストーリー第2回（油圧警告灯）。journey_id: oil_lamp_on
+     ⚠️journey_id は URL と対＝一度決めたら変えない。外部プロジェクトのIDとの対応は
+       wiring-simulator/HANDOFF.md §3 を見る（⛔相手先の固有名はこのファイルに書かない）。
+     共通の土台＝/wiring-journey.js（描画）・/wiring-journey.css（外観）／このストーリーの絵＝/wiring-journey-oil.js -->
+```
+
+#### `wiring-journey-room.html`
+
+```html
+<!-- ⚠️作業場ページ＝導線なし・noindex。ストーリー第8回（ルームランプが点かない）。journey_id: room_lamp_dark
+     ⚠️journey_id は URL と対＝一度決めたら変えない。外部プロジェクトのIDとの対応は
+       wiring-simulator/HANDOFF.md §3 を見る（⛔相手先の固有名はこのファイルに書かない）。
+     ⚠️このストーリーで系統8（ルームランプ）を新設した＝NET_VERSION 6→7
+       （部品 room_lamp・room_sw・door_sw／電線 w08-01〜w08-05）。
+     ⭐このストーリーの骨＝【帰り道が2本ある】。片方だけ切れると「ドアでは点かないがスイッチでは点く」
+       （またはその逆）になり、部品を外さずに故障箇所が割れる。
+     ⚠️ドアを【開ける】と柱のスイッチは【閉じる】＝人の感覚と逆。ここを取り違えると全部ひっくり返る。
+     共通の土台＝/wiring-journey.js（描画）・/wiring-journey.css（外観）／このストーリーの絵＝/wiring-journey-room.js -->
+```
+
+#### `wiring-journey-starter.html`
+
+```html
+<!-- ⚠️作業場ページ＝導線なし・noindex。ストーリー第3回（セルが回らない）。journey_id: starter_no_crank
+     ⚠️journey_id は URL と対＝一度決めたら変えない。外部プロジェクトのIDとの対応は
+       wiring-simulator/HANDOFF.md §3 を見る（⛔相手先の固有名はこのファイルに書かない）。
+     ⚠️このストーリーは【主役が警告灯ではない】＝負荷はスターター（モーター）。型が灯に特化していないかの検証も兼ねる。
+     共通の土台＝/wiring-journey.js（描画）・/wiring-journey.css（外観）／このストーリーの絵＝/wiring-journey-starter.js -->
+```
+
+#### `wiring-journey.html`
+
+```html
+<!-- ⚠️作業場ページ＝導線なし・noindex。「電装トラブルの旅手帳」の目次（＝連載の扉）。
+     ⚠️公開予定は /journey-schedule.json が正本＝この HTML に日付を直書きしない。
+     ⚠️各回の状態（一般公開／登録オーナー先行／公開前）は、その JSON と JST の今日を突き合わせて出し分ける。
+     ⛔⛔ index.html のメニューなど、どこからもリンクを張らない（ユーザーの明示指示があるまで・CLAUDE.md 冒頭の規則）。
+     ⛔ 描き終えていない題材は載せない／⛔全何回になるかは未定なので総数を言わない（2026-08-25 ユーザー指示）。
+     ⚠️⚠️見た目は【各回ページのトーンにあえて揃えていない】＝新しい企画の扉なので新鮮さを優先する。
+        そのため共通CSS（/wiring-journey.css）は読み込まず、このページだけで完結させている。
+        ⛔各回の絵の体裁をここへ持ち込まない・ここの体裁を各回へ持ち出さない。
+     ⏳⏳【配色は確認中】＝G/H/I の3案を切り替えられるようにしてある（画面上部の小さな切替・?p=e でも可）。
+        ⛔決まったら【切替UIと残り2案の定義ごと削除して1案に固定する】＝確認用の仕掛けを本番に残さない。
+     設計の正本＝wiring-simulator/HANDOFF.md §0 その27 ／ 題材の管理表＝wiring-simulator/JOURNEY-INDEX.md -->
+```
