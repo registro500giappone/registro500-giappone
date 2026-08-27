@@ -172,7 +172,7 @@
   /* ⏳確認用＝?d=2026-10-05 のように渡すと、その日の画面を再現できる。⛔本決まりになったら消す */
   var today = (location.search.match(/[?&]d=(\d{4}-\d{2}-\d{2})/) || [])[1] || todayJST();
 
-  fetch('/journey-schedule.json?v=4').then(function (r) { return r.json(); }).then(function (s) {
+  fetch('/journey-schedule.json?v=5').then(function (r) { return r.json(); }).then(function (s) {
 
     /* 並び＝別冊はその回のすぐ下にぶら下げる＝派生であることが並びで分かる */
     var rows = [];
@@ -237,7 +237,9 @@
       var lines = '';
       GROUPS.forEach(function (g) {
         /* ⛔読める回だけ載せる。1本も読めない群はその行ごと出さない */
-        var live = g[1].filter(function (sl) { return canRead(by[sl], owner); });
+        /* ⚠️by[sl] の有無を先に見る＝journey-schedule.json の pending へ退避した回（置き先未定）は
+           issues に居ないので by[sl] が無い。チェックを外すと canRead(undefined) で目次ごと落ちる。 */
+        var live = g[1].filter(function (sl) { return by[sl] && canRead(by[sl], owner); });
         if (!live.length) return;
         lines += g[0] + ' → ' + live.map(function (sl) {
           return '<a href="/wiring-journey-' + by[sl].slug + '.html">' + by[sl].short + '</a>';
