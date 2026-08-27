@@ -42,6 +42,9 @@ jobs:
           if git diff --cached --quiet; then
             echo "公開状態の変更なし — スキップ"
           else
-            git commit -m "chore(wiring-journey): 週刊連載の公開状態を更新 [skip ci]"
+            # ⚠️⛔[skip ci] にしない＝Cloudflare Pages も同じ文言を見てビルドをスキップするため、
+            #   公開状態を書き換えても本番に出ない（2026-08-28 の連載開始日に実際に踏んだ）。
+            #   [skip actions] は GitHub Actions だけがスキップし、Pages はデプロイする。
+            git commit -m "chore(wiring-journey): 週刊連載の公開状態を更新 [skip actions]"
             git push
           fi

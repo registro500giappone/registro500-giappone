@@ -2122,3 +2122,51 @@ im.crop((470,410,700,720)).resize((1380,1860), Image.LANCZOS).save("p42_fusebox.
         ⛔決まったら【切替UIと残り2案の定義ごと削除して1案に固定する】＝確認用の仕掛けを本番に残さない。
      設計の正本＝wiring-simulator/HANDOFF.md §0 その27 ／ 題材の管理表＝wiring-simulator/JOURNEY-INDEX.md -->
 ```
+
+---
+
+### その71 ⚠️⚠️**連載開始日に踏んだ事故＝`[skip ci]` で Cloudflare Pages がデプロイをスキップし、記事が本番に出なかった**（2026-08-28）
+
+**① 何が起きたか**
+
+連載開始日（2026-08-28）の未明、`journey-publish.yml` を手動実行して `charge 公開中` まで進み、Actions は success・リモートにも push された。**ところが本番はいつまでも旧版のまま**だった（`sitemap-journey.xml` が404・`noindex` が残ったまま）。
+
+⭐**ユーザーがサイトのお知らせから第1回を開いたところ「まだ公開してない」の画面が出た**＝実害が出た。
+
+**② 原因＝publish のコミットメッセージに `[skip ci]` が入っていた**
+
+```
+chore(wiring-journey): 週刊連載の公開状態を更新 [skip ci]
+```
+
+⚠️⚠️**Cloudflare Pages は GitHub Actions と同じ「ビルドをスキップする文言」を見ている。** `[skip ci]` を含むコミットでは**Pages 側もデプロイしない**。⇒ **publish ワークフローが単独で動いた週は、公開状態を書き換えても本番に反映されない。**
+
+⭐**これまで気づかなかった理由**＝いつも publish の前後に人間（＝こちらの作業）のコミットが push されていて、それに相乗りしてデプロイされていた。**連載が始まって「publish しか動かない週」が現実になる直前に露見した**（次に単独で動くのは 2026-09-04 の第2回 `oil` 一般公開だった）。
+
+**③ 対処＝`[skip actions]` に変えた**
+
+GitHub Actions がスキップする文言は `[skip ci]` `[ci skip]` `[no ci]` `[skip actions]` `[actions skip]`。Cloudflare Pages が見るのは `[skip ci]` 系と `[cf-pages skip]` 系で、**`[skip actions]` は含まれない**。⇒ **Actions だけスキップし、Pages はデプロイする**。ワークフローにも理由をコメントで残した。
+
+⛔**生きたルール＝本番へ出したいコミットに `[skip ci]` を書かない。** Actions のループを避けたいだけなら **`[skip actions]`** を使う。
+
+**④ 💡教訓＝「Actions が success」は「本番に出た」ではない**
+
+⚠️**success を見て終わりにしない。** 公開系のワークフローは**必ず本番の実物で確かめる**：
+
+```bash
+curl -sL -o /dev/null -w "%{http_code}\n" https://www.registro500.com/sitemap-journey.xml   # 200 か
+curl -sL https://www.registro500.com/wiring-journey-charge | grep -icE '<meta[^>]*robots'    # 0 なら公開
+curl -sL https://www.registro500.com/wiring-journey-charge | sed -n '/JOURNEY-STATE:BEGIN/,/END/p' | grep state
+```
+
+（既存の教訓「Actions が success でも生成件数を見ないと空回りに気づけない」＝YouTube ポータル側で得たものと**同じ形**。⭐**success は「走った」以上の意味を持たない。**）
+
+**⑤ この夜の最終状態（実測）**
+
+- `sitemap-journey.xml` → **HTTP 200**（収録は目次・`charge`・`charge-alt` の3URLのみ＝公開済みだけ）
+- `wiring-journey-charge` の `window.JOURNEY` → **`"state": "open"`**
+- 記事・目次とも `robots` メタ **0件**（noindex が外れた）
+- 開発メモの残存 **0件**（その70の撤去が反映）
+- トップメニューの「🧭 電装トラブル旅ガイド」→ **本番に出た**（`6e9575e` を push 済み）
+
+⚠️**第2回 `oil` は「登録オーナー先行」なので sitemap には載らないが、ログイン済みオーナーには読める**＝ユーザーが3本（`charge`・`charge-alt`・`oil`）読めたのは設計どおり。
