@@ -51,13 +51,24 @@ def scene_svg(slug, zoom=True):
         raise SystemExit('%s のアイキャッチ（.scene の svg）が見つかりません' % slug)
     svg = m.group(1)
     # 版下では枠に合わせる＝width/height 属性を外して CSS 側に任せる
-    svg = re.sub(r'\s(width|height)="[^"]*"', '', svg, count=2)
+    # ⚠️⚠️【2026-08-28 修正】以前は count=2 で先頭から2つ消していた＝<svg> 側に width しか
+    #   無い絵では、2つめが【最初の <rect> の width】に当たって図形がまるごと消えていた
+    #   （第8回のタイヤが片方だけ消えて発覚）。開くタグの中だけを対象にする。
+    head = re.match(r'<svg[^>]*>', svg).group(0)
+    svg = re.sub(r'\s(width|height)="[^"]*"', '', head) + svg[len(head):]
     if not zoom:
         return svg
     return svg.replace('viewBox="%s"' % METER_VIEWBOX, 'viewBox="%s"' % METER_ZOOM, 1)
 
 
+ONLY = None      # --only を付けたときだけ入る＝1回ぶんの版下を作るための上書き
+
+
 def items():
+    # ⚠️まだ journey-schedule.json に載っていない回（＝実体はできたが公開日が未定）の
+    #   カードだけを作るための道。台帳を触らずに1枚だけ焼ける。
+    if ONLY:
+        return [ONLY]
     sch = json.loads(read(SCHEDULE))
     out = []
     for it in sch['issues']:
@@ -152,7 +163,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--html', action='store_true', help='版下HTMLを作る')
     ap.add_argument('--split', metavar='PNG', help='撮った画像を10枚に切り分ける')
+    ap.add_argument('--only', metavar='SLUG', help='この1回ぶんだけ作る（台帳に未掲載の回）')
+    ap.add_argument('--n', type=int, help='--only のときの回数')
+    ap.add_argument('--title', help='--only のときの題名')
     a = ap.parse_args()
+    if a.only:
+        if not (a.n and a.title):
+            ap.error('--only には --n と --title も要ります')
+        global ONLY
+        ONLY = {'slug': a.only, 'n': a.n, 'title': a.title, 'side': False}
     if a.html:
         build_html()
     elif a.split:

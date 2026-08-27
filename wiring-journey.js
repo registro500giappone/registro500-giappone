@@ -21,8 +21,13 @@
        灰色にごまかすと「原典の白」ではなくなるので、白は白のまま引いて【縁取りで浮かせる】
        （配線図ビューアのL型図で白線を「白塗り＋縁灰色」で描いたのと同じ作法）。縁取りは seg が自動で敷く。
      ⚠️GIALLO E NERO（黄／黒）は原典の色名がそのまま color に入る＝キーにスペースを含む。 */
+  /* ⚠️二色線は【主色1色で描く】（原典の色名はそのまま color に入れる）＝'GIALLO E NERO' を
+       GIALLO と同じ色にしてあるのがその先例。線の中に破線を描き分けると、この縮尺では
+       ただ汚れて見えるため。⛔だから本文では必ず正しい色名（「灰／赤」等）で呼ぶこと。 */
   var WC = { ROSSO: '#c0392b', AZZURRO: '#4a9fd8', VERDE: '#2f7d4f', MARRONE: '#6f4a2a', NERO: '#33302b', GRIGIO: '#8d8574',
-             BIANCO: '#fbf7ee', GIALLO: '#dfae21', 'GIALLO E NERO': '#dfae21' };
+             BIANCO: '#fbf7ee', GIALLO: '#dfae21', 'GIALLO E NERO': '#dfae21',
+             /* 2026-08-28・系統2（ヘッドライト）で追加。既存キーは1つも変えていない */
+             'GRIGIO-ROSSO': '#8d8574', 'GRIGIO E NERO': '#8d8574', 'VERDE E NERO': '#2f7d4f', ROSA: '#cf7f9b' };
   var C = { deep: '#2c3a31', body: '#3f5347', in_: '#e6e0d0', sub: '#8d8574', hi: '#b8442e', dim: '#ddd5c4', out: '#c9c2b1', ok: '#2f7d4f' };
 
   var NET = null, PATCHES = null;
