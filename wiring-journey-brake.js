@@ -309,7 +309,9 @@
         scale: 4,
         marks: [{ id: 'battery', color: '#8d8574', label: 'バッテリー', anchor: 'start' },
                 { id: 'f1', color: '#b8442e', label: 'ヒューズ箱', anchor: 'start' },
-                { id: 'ign_sw', color: '#2c3a31', label: 'キースイッチ' }],
+                { id: 'ign_sw', color: '#2c3a31', label: 'キースイッチ' },
+                { id: 'stop_r', color: '#2c3a31', label: '後コンビランプ（右）' },
+                { id: 'stop_l', color: '#2c3a31', label: '後コンビランプ（左）' }],
         legend: '<text x="40" y="1430" font-size="96" fill="#a49b87">←車の前方（トランク）</text>' +
                 '<text x="2980" y="1430" font-size="96" fill="#a49b87" text-anchor="end">車の後ろ（エンジン）→</text>' +
                 '<text x="1510" y="-32" font-size="96" fill="#a49b87" text-anchor="middle">車を上から（上が車の右側）</text>'
