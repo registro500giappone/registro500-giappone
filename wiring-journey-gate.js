@@ -77,13 +77,21 @@
       return c.auth.getSession().then(function (r) {
         var session = r && r.data ? r.data.session : null;
         if (!session) return { signedIn: false, owner: false };
-        return c.from('cars').select('document_id')
-          .eq('owner_user_id', session.user.id).limit(1)
-          .then(function (q) {
-            /* ⚠️問い合わせが失敗したときはログイン済みとして通す＝フェイルオープン。
-               1週間後には誰でも読める記事なので、「読めるはずの人が読めない」ほうが害が大きい。 */
-            if (q.error) return { signedIn: true, owner: true, degraded: true };
-            return { signedIn: true, owner: !!(q.data && q.data.length) };
+        /* ⭐ログイン中のメールアドレスで cars を紐づけてから資格を見る（index.html 等と同型）。
+           ⚠️これを呼ばないと、門番のモーダルからその場でログインした人は
+           owner_user_id が埋まらず、「案内どおりログインしたのに読めない」状態になる（2026-08-27 修正）。
+           紐づけ済みの人は 0 行更新で戻るだけ。失敗しても照会には進む。 */
+        return Promise.resolve(c.rpc('link_owner_car'))
+          .catch(function () { return null; })
+          .then(function () {
+            return c.from('cars').select('document_id')
+              .eq('owner_user_id', session.user.id).limit(1)
+              .then(function (q) {
+                /* ⚠️問い合わせが失敗したときはログイン済みとして通す＝フェイルオープン。
+                   1週間後には誰でも読める記事なので、「読めるはずの人が読めない」ほうが害が大きい。 */
+                if (q.error) return { signedIn: true, owner: true, degraded: true };
+                return { signedIn: true, owner: !!(q.data && q.data.length) };
+              });
           });
       });
     }).catch(function () {
@@ -219,7 +227,10 @@
     if (watching) return;
     watching = true;
     supa().then(function (c) {
-      c.auth.onAuthStateChange(function () { qualify().then(onChange); });
+      /* ⚠️onAuthStateChange のコールバック内で supabase を直接呼ぶと認証ロックで
+         デッドロックする（index.html に同じ旨の注釈あり）。setTimeout で外へ逃がす。
+         qualify() が rpc を呼ぶようになったため、この回避が必要になった。 */
+      c.auth.onAuthStateChange(function () { setTimeout(function () { qualify().then(onChange); }, 0); });
     }).catch(function () { /* 判定不能のときは張らない */ });
   }
 
