@@ -45,6 +45,15 @@ h1.brk>span,h2.brk>span{display:inline-block}
 .scope{border:1px solid var(--line);border-left:4px solid var(--sub);border-radius:8px;
        padding:8px 12px;margin:14px 0 0;font-size:12.5px;color:var(--sub);line-height:1.65}
 .scope b{color:var(--deep)}
+/* ⭐トグルを「その図を見ている間だけ」画面の上端に張り付ける（2026-08-28 ユーザー指摘）。
+   狙い＝ボタンを押した瞬間に【何が変わったか】が同じ画面に入っていること。
+   💡絵の全体が1画面に収まっている必要はない＝【変化する場所とボタンが同時に見えれば解決する】。
+   ⚠️必ず .stick で【トグル＋その図＋その説明文】だけを包むこと。包まないと sticky の親が
+     記事全体になり、本文を読んでいる間ずっとボタンが上端に居座る。 */
+.stick{position:relative}
+.stick .toggle{position:sticky;top:0;z-index:5;background:var(--bg);
+               padding:8px 0 6px;margin:0 0 8px;
+               box-shadow:0 8px 10px -8px rgba(58,53,44,.28)}
 .scene{background:var(--card);border:1px solid var(--line);border-radius:12px;
        padding:10px;display:flex;justify-content:center}
 .scene svg{display:block;max-width:100%;height:auto}
