@@ -47,8 +47,9 @@
   function draw(k, mode) {
     var sc = k.sc, pos = k.pos, s = k.s;
     var keyOn = pos.ign_sw === 'ON';
-    var lightPos = pos.light_sw;                       /* OFF / POS / HEAD */
+    var lightPos = pos.light_sw;                       /* OFF / ON＝⭐入／切の2位置（取説 500L p9-5）*/
     var high = pos.commut === 'HIGH';
+    var beamPos = pos.commut;                          /* POS(I 車幅灯) / LOW(II) / HIGH(III)＝⭐3段はこちら */
     var on = sc.on;                                    /* 全負荷の点灯（cfg.extra で入れている） */
     var m = mode || {};
 
@@ -137,10 +138,12 @@
       var bx = XC - 80, bw = 160;
       s.push('<rect x="' + bx + '" y="' + SW + '" width="' + bw + '" height="' + SH + '" rx="10" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
       s.push('<text x="' + XC + '" y="' + (SW + 19) + '" font-size="12" fill="#fffdf8" text-anchor="middle">外部照明スイッチ</text>');
-      s.push('<text x="' + XC + '" y="' + (SW + 33) + '" font-size="10.5" fill="' + C.in_ + '" text-anchor="middle">ダッシュの元栓（部品24）</text>');
-      var STEP = [['OFF', '消灯'], ['POS', '車幅灯'], ['HEAD', '前照灯']];
-      for (var i = 0; i < 3; i++) {
-        var sx = bx + 27 + i * 53, cur = (lightPos === STEP[i][0]);
+      s.push('<text x="' + XC + '" y="' + (SW + 33) + '" font-size="10.5" fill="' + C.in_ + '" text-anchor="middle">ダッシュの元栓・入／切（部品24）</text>');
+      /* ⭐入／切の2位置（2026-08-28 訂正）。⛔3段のボタンに戻さない＝段があるのはコラムレバーの方
+         （取説 500L p9-5「con interruttore inserito si accendono le luci di posizione…」）。 */
+      var STEP = [['OFF', '切'], ['ON', '入']];
+      for (var i = 0; i < 2; i++) {
+        var sx = bx + 45 + i * 70, cur = (lightPos === STEP[i][0]);
         s.push('<rect x="' + (sx - 24) + '" y="' + (SW + 42) + '" width="48" height="24" rx="5" fill="' + (cur ? C.in_ : 'none') + '" stroke="' + C.in_ + '" stroke-width="1.6"/>');
         s.push('<text x="' + sx + '" y="' + (SW + 58) + '" font-size="11" font-weight="' + (cur ? '700' : '400') + '" fill="' + (cur ? C.deep : C.in_) + '" text-anchor="middle">' + STEP[i][1] + '</text>');
       }
@@ -151,10 +154,10 @@
     path('M' + (XC - 62) + ',' + (SW + SH) + ' L' + (XC - 62) + ',' + (SW + SH + 18) + ' L' + (XC - 106) + ',' + (SW + SH + 18), vc.col);
     s.push('<rect x="' + (XC - 126) + '" y="' + (SW + SH + 8) + '" width="20" height="20" rx="3" fill="none" stroke="' + (vc.dead ? C.dim : C.deep) + '" stroke-width="2.5"/>');
     label(4, SW + SH + 46, 'VERDE 緑 → ヒューズ F5・F6', vc.dead ? C.dim : WC.VERDE, null, 11);
-    label(4, SW + SH + 60, '→ 車幅灯・ナンバー灯へ', C.sub, null, 11);
-    label(4, SW + SH + 74, '（別のストーリー）', C.sub, null, 11);
+    label(4, SW + SH + 60, '→ 車幅灯・ナンバー灯', C.sub, null, 11);
+    label(4, SW + SH + 74, '（入れれば点く）', C.sub, null, 11);
 
-    /* ⭐元栓 → コラムレバー（BIANCO）。前照灯の段でだけ生きる */
+    /* ⭐元栓 → コラムレバー（BIANCO）。⭐元栓が【入】なら常に生きている＝ここから先の行き先を選ぶのはレバー */
     if (m.cutC) cutV(XC, SW + SH, CM, 'w02-06');
     else seg(XC, SW + SH, XC, CM, 'w02-06');
     label(XC + 12, SW + SH + 30, 'BIANCO 白', C.deep, null, 12);
@@ -164,16 +167,21 @@
       var bx = XC - 86, bw = 172;
       s.push('<rect x="' + bx + '" y="' + CM + '" width="' + bw + '" height="' + CH + '" rx="10" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
       s.push('<text x="' + XC + '" y="' + (CM + 19) + '" font-size="12" fill="#fffdf8" text-anchor="middle">コラムレバー</text>');
-      s.push('<text x="' + XC + '" y="' + (CM + 33) + '" font-size="10.5" fill="' + C.in_ + '" text-anchor="middle">行き先を選ぶ（部品14）</text>');
-      /* 可動接触子＝C から、ハイ側（左）かロー側（右）かへ倒れる。⚠️内部の接点は原典に読めないので
-         「どちらへ倒れているか」だけを描く＝形は推定であることを本文と footer で断る。 */
+      s.push('<text x="' + XC + '" y="' + (CM + 33) + '" font-size="10.5" fill="' + C.in_ + '" text-anchor="middle">3段で行き先を選ぶ（部品14）</text>');
+      /* ⭐可動接触子＝C から、ハイ側（左）／ロー側（右）／どちらでもない中立（＝I の位置）の3つ。
+         ⚠️⚠️2026-08-28 訂正＝【3段あるのはこのレバー】（取説 500D p12-12「I: 車幅灯とナンバー灯／
+         II: ＋ロービーム／III: ＋ハイビーム」）。以前は元栓の側を3段に描いていたが逆だった。
+         ⚠️内部の接点は原典に読めないので「どちらへ倒れているか」だけを描く＝形は推定であることを
+         本文と footer で断る。⛔中央（I）に接点の丸を打たない＝そこに端子は無い。 */
       var py = CM + 44, ty = CM + 70;
+      var tipX = (beamPos === 'HIGH') ? P_HI : (beamPos === 'LOW') ? P_LO : XC;
       s.push('<circle cx="' + XC + '" cy="' + py + '" r="4.2" fill="' + C.in_ + '"/>');
       s.push('<circle cx="' + P_HI + '" cy="' + ty + '" r="4.2" fill="' + C.in_ + '"/>');
       s.push('<circle cx="' + P_LO + '" cy="' + ty + '" r="4.2" fill="' + C.in_ + '"/>');
-      path('M' + XC + ',' + py + ' L' + (high ? P_HI : P_LO) + ',' + ty, C.in_, 3.5);
-      s.push('<text x="' + P_HI + '" y="' + (ty + 15) + '" font-size="10.5" font-weight="' + (high ? '700' : '400') + '" fill="' + C.in_ + '" text-anchor="middle">ハイ</text>');
-      s.push('<text x="' + P_LO + '" y="' + (ty + 15) + '" font-size="10.5" font-weight="' + (high ? '400' : '700') + '" fill="' + C.in_ + '" text-anchor="middle">ロー</text>');
+      path('M' + XC + ',' + py + ' L' + tipX + ',' + ty, C.in_, 3.5);
+      s.push('<text x="' + P_HI + '" y="' + (ty + 15) + '" font-size="10.5" font-weight="' + (beamPos === 'HIGH' ? '700' : '400') + '" fill="' + C.in_ + '" text-anchor="middle">ハイ</text>');
+      s.push('<text x="' + XC + '" y="' + (ty + 15) + '" font-size="10.5" font-weight="' + (beamPos === 'POS' ? '700' : '400') + '" fill="' + C.in_ + '" text-anchor="middle">車幅灯</text>');
+      s.push('<text x="' + P_LO + '" y="' + (ty + 15) + '" font-size="10.5" font-weight="' + (beamPos === 'LOW' ? '700' : '400') + '" fill="' + C.in_ + '" text-anchor="middle">ロー</text>');
     })();
     k.term(XC, CM - 2, 'C', 'l');
 
@@ -297,17 +305,18 @@
 
   /* ---- 検算（期待値は原典と実車の挙動から先に書いた・計算結果を写していない） ---- */
   function rd(id) { return function (sc) { return !!sc.on[id]; }; }
-  var HEAD_LOW = { lights: 'HEAD', beam: 'LOW' }, HEAD_HIGH = { lights: 'HEAD', beam: 'HIGH' };
+  var HEAD_LOW = { lights: 'ON', beam: 'LOW' }, HEAD_HIGH = { lights: 'ON', beam: 'HIGH' };
   var CHECKS = [
-    { label: '元栓が消灯（キーはON）',                     s: { inputs: { lights: 'OFF', key: 'ON' } },  expect: false },
-    { label: '元栓が車幅灯＝ヘッドライトはまだ点かない',   s: { inputs: { lights: 'POS' } },             expect: false },
+    { label: '元栓が切（キーはON）',                       s: { inputs: { lights: 'OFF', key: 'ON' } },  expect: false },
+    { label: '⭐元栓が切ならレバーを III に倒しても点かない', s: { inputs: { lights: 'OFF', beam: 'HIGH' } }, expect: false, read: rd('head_l.hi') },
+    { label: 'レバーが I（車幅灯）＝ヘッドライトはまだ点かない', s: { inputs: { lights: 'ON', beam: 'POS' } }, expect: false },
     { label: '⭐元栓が前照灯・ロー【キーはOFFのまま】',    s: { inputs: HEAD_LOW },                      expect: true },
-    { label: '同じ場面でキーをONにしても変わらない',        s: { inputs: { lights: 'HEAD', beam: 'LOW', key: 'ON' } }, expect: true },
-    { label: 'ロー・F4（左）が切れた／左を見る',           s: { inputs: { lights: 'HEAD', beam: 'LOW', f4: 'BLOWN' } }, expect: false },
-    { label: '同じ場面で右を見る（右は点いている）',        s: { inputs: { lights: 'HEAD', beam: 'LOW', f4: 'BLOWN' } }, expect: true,  read: rd('head_r.lo') },
-    { label: 'ロー・F3（右）が切れた／右を見る',           s: { inputs: { lights: 'HEAD', beam: 'LOW', f3: 'BLOWN' } }, expect: false, read: rd('head_r.lo') },
-    { label: '⭐ハイのとき F4 が切れていても左は点く',      s: { inputs: { lights: 'HEAD', beam: 'HIGH', f4: 'BLOWN' } }, expect: true,  read: rd('head_l.hi') },
-    { label: '⭐ハイのとき F3 が切れていても右は点く',      s: { inputs: { lights: 'HEAD', beam: 'HIGH', f3: 'BLOWN' } }, expect: true,  read: rd('head_r.hi') },
+    { label: '同じ場面でキーをONにしても変わらない',        s: { inputs: { lights: 'ON', beam: 'LOW', key: 'ON' } }, expect: true },
+    { label: 'ロー・F4（左）が切れた／左を見る',           s: { inputs: { lights: 'ON', beam: 'LOW', f4: 'BLOWN' } }, expect: false },
+    { label: '同じ場面で右を見る（右は点いている）',        s: { inputs: { lights: 'ON', beam: 'LOW', f4: 'BLOWN' } }, expect: true,  read: rd('head_r.lo') },
+    { label: 'ロー・F3（右）が切れた／右を見る',           s: { inputs: { lights: 'ON', beam: 'LOW', f3: 'BLOWN' } }, expect: false, read: rd('head_r.lo') },
+    { label: '⭐ハイのとき F4 が切れていても左は点く',      s: { inputs: { lights: 'ON', beam: 'HIGH', f4: 'BLOWN' } }, expect: true,  read: rd('head_l.hi') },
+    { label: '⭐ハイのとき F3 が切れていても右は点く',      s: { inputs: { lights: 'ON', beam: 'HIGH', f3: 'BLOWN' } }, expect: true,  read: rd('head_r.hi') },
     { label: 'ハイのとき表示灯が点く',                     s: { inputs: HEAD_HIGH },                     expect: true,  read: rd('hi_ind') },
     { label: 'ローのとき表示灯は消えている',                s: { inputs: HEAD_LOW },                      expect: false, read: rd('hi_ind') },
     { label: '左のアースが落ちた・ロー（左が消える）',      s: { inputs: HEAD_LOW, ops: [{ op: 'removeWire', id: 'w02-14' }] }, expect: false },
@@ -320,7 +329,7 @@
     { label: '同じ断線でハイも消える',                     s: { inputs: HEAD_HIGH, ops: [{ op: 'removeWire', id: 'w02-06' }] }, expect: false, read: rd('head_l.hi') },
     { label: 'ロー本線（56b）が切れた＝ローだけ左右とも消える', s: { inputs: HEAD_LOW, ops: [{ op: 'removeWire', id: 'w02-07' }] }, expect: false },
     { label: '同じ断線でハイに切り替えると点く',            s: { inputs: HEAD_HIGH, ops: [{ op: 'removeWire', id: 'w02-07' }] }, expect: true,  read: rd('head_l.hi') },
-    { label: '⭐30/4 の線が切れた＝キーをONにしても点かない', s: { inputs: { lights: 'HEAD', beam: 'LOW', key: 'ON' }, ops: [{ op: 'removeWire', id: 'w02-01' }] }, expect: false }
+    { label: '⭐30/4 の線が切れた＝キーをONにしても点かない', s: { inputs: { lights: 'ON', beam: 'LOW', key: 'ON' }, ops: [{ op: 'removeWire', id: 'w02-01' }] }, expect: false }
   ];
 
   Journey.boot({
@@ -332,7 +341,7 @@
     mainInit: 'LOW',
     /* ⚠️このストーリーのトグルが動かすのは【コラムレバー】＝キーでもエンジンでもない。
        キーは既定の OFF のまま＝「キーは関係ない」がトグルを触っても崩れないようにする。 */
-    mainInputs: function (v) { return { lights: 'HEAD', beam: v }; },
+    mainInputs: function (v) { return { lights: 'ON', beam: v }; },
     /* 全負荷の点灯を絵から読めるようにする（ロー・ハイ・表示灯の5つを同時に見るため） */
     extra: function (sc) {
       sc.on = {};
@@ -342,12 +351,12 @@
     flow: function (sc) { return (sc.on['head_l.lo'] || sc.on['head_l.hi'] || sc.on['head_r.lo'] || sc.on['head_r.hi']) ? 'down' : null; },
     scenes: function (scenario) {
       return [
-        { id: 'j-f4',    sc: scenario({ inputs: { lights: 'HEAD', beam: 'LOW', f4: 'BLOWN' } }), mode: {} },
-        { id: 'j-f4hi',  sc: scenario({ inputs: { lights: 'HEAD', beam: 'HIGH', f4: 'BLOWN' } }), mode: {} },
+        { id: 'j-f4',    sc: scenario({ inputs: { lights: 'ON', beam: 'LOW', f4: 'BLOWN' } }), mode: {} },
+        { id: 'j-f4hi',  sc: scenario({ inputs: { lights: 'ON', beam: 'HIGH', f4: 'BLOWN' } }), mode: {} },
         { id: 'j-gndl',  sc: scenario({ inputs: HEAD_HIGH, ops: [{ op: 'removeWire', id: 'w02-14' }] }), mode: { cutGndL: true } },
         { id: 'j-hicut', sc: scenario({ inputs: HEAD_HIGH, ops: [{ op: 'removeWire', id: 'w02-11' }] }), mode: { cutHiL: true } },
         { id: 'j-cutc',  sc: scenario({ inputs: HEAD_LOW, ops: [{ op: 'removeWire', id: 'w02-06' }] }), mode: { cutC: true } },
-        { id: 'j-pos',   sc: scenario({ inputs: { lights: 'POS' } }), mode: {} },
+        { id: 'j-pos',   sc: scenario({ inputs: { lights: 'ON', beam: 'POS' } }), mode: {} },
         { id: 'j-fixed', sc: scenario({ inputs: HEAD_LOW }), mode: {} }
       ];
     }

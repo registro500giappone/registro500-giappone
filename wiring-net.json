@@ -8,7 +8,7 @@
     "sys": "配線図ビューアの系統番号（11=スタータ発電・10=イグニッション・9=点火系・7=油圧SW・5=ホーン・8=ルームランプ・6=ブレーキSW）。ファイルは系統ごとに増やしていく",
     "src": "出典。NL-D=registro500-notes/wiring-work/d_netlist.md（D原典 p40 の目視転記）／LEDGER=同 terminals_ledger.md（F原典 Mod.500 p42 と照合済）／NL-F=同 f_netlist.md（F図の機械抽出）"
   },
-  "NET_VERSION": "9",
+  "NET_VERSION": "10",
   "sys_done": [11, 10, 7, 9, 5, 8, 6, 2],
   "_sys9_scope": "系統9（点火系）は【一次側だけ】を持つ。二次側（コイルB端子→HT→ディストリビュータ中心→ローター→プラグ×2）は電線として持たない＝L1（到達性）は電池から出た輪しか解けず、誘導で起きる高圧の輪は表せないため。持たせると『つながっている＝火花が出る』と読めて診断の道具として人を誤らせる（JOURNEY-INDEX §4）。同じ理由でコンデンサ（点火ポイントと並列）も持たない＝L1では導通か非導通しか無く、入れるとポイントを常時短絡させてしまう。原典 D p40 部品29 に『コンデンサ＋アース』の記載があること自体は事実なので、旅ページ側で文章として扱う。",
 
@@ -93,18 +93,18 @@
 
     { "id":"lights", "label":"外部照明スイッチ（ダッシュ）", "role":"input", "default":"OFF",
       "options":[
-        { "v":"OFF",  "label":"消灯",   "set":{ "light_sw":"OFF"  } },
-        { "v":"POS",  "label":"車幅灯", "set":{ "light_sw":"POS"  } },
-        { "v":"HEAD", "label":"前照灯", "set":{ "light_sw":"HEAD" } }
+        { "v":"OFF", "label":"切", "set":{ "light_sw":"OFF" } },
+        { "v":"ON",  "label":"入", "set":{ "light_sw":"ON"  } }
       ],
-      "note":"⭐このスイッチはイグニッションSWの 30/4（常時電源）から来ている＝【キーを抜いても効く】。⚠️OFF＋2段のロータリーであることは原典 p42 の部品24 で確認済（可動接触子と2つの固定接点・破線2組＝HANDOFF その68②）だが、どの位置でどちらの接点が閉じるかは図から読めない＝v:inf" },
+      "note":"⭐このスイッチはイグニッションSWの 30/4（常時電源）から来ている＝【キーを抜いても効く】。⭐【入／切の2位置】＝入れると車幅灯とナンバー灯が点き、同時にコラムレバーと計器盤照明に電気が来る（根拠＝純正取説 500L p9-5／500D p12-6。全文は parts の light_sw の note）。⚠️⚠️2026-08-28 訂正＝以前は「消灯／車幅灯／前照灯の3段」としていたが誤りで、3段はコラムレバー（beam）の方だった" },
 
-    { "id":"beam", "label":"コラムレバー（ロー／ハイ）", "role":"input", "default":"LOW",
+    { "id":"beam", "label":"コラムレバー（I／II／III）", "role":"input", "default":"POS",
       "options":[
-        { "v":"LOW",  "label":"ロービーム", "set":{ "commut":"LOW"  } },
-        { "v":"HIGH", "label":"ハイビーム", "set":{ "commut":"HIGH" } }
+        { "v":"POS",  "label":"I 車幅灯",      "set":{ "commut":"POS"  } },
+        { "v":"LOW",  "label":"II ロービーム",  "set":{ "commut":"LOW"  } },
+        { "v":"HIGH", "label":"III ハイビーム", "set":{ "commut":"HIGH" } }
       ],
-      "note":"外部照明SW（元栓）が【前照灯】のときだけ効く＝行き先を選ぶ側。⚠️コミュテータ内部の接点は原典・再作図物とも印刷解像度で読めない（HANDOFF その67⑥・2026-08-28 に fd_F1.pdf でも同じ結論）＝v:inf" },
+      "note":"⭐【I＝車幅灯だけ／II＝ロービーム／III＝ハイビーム】の3位置＝段があるのはこちら（根拠＝純正取説 500D p12-12／500L p10-12。全文は parts の commut の note）。元栓（lights）が【入】でないとどの位置でも前照灯は点かない＝行き先を選ぶ側。⚠️動きは「回す」ではなく levetta を「倒す」。⚠️v:inf＝コミュテータ内部の接点は原典・再作図物とも印刷解像度で読めない（HANDOFF その67⑥）" },
 
     { "id":"f3", "label":"ヒューズ F3（右ロービーム）", "role":"fault", "default":"OK",
       "options":[
@@ -248,14 +248,14 @@
 
     { "id":"light_sw", "label":"外部照明スイッチ（F原典 部品24）", "kind":"switch", "sys":2, "terms":["30/4","_pos","C"], "types":"FLRD",
       "model":{ "kind":"switch", "v":"inf", "default":"OFF",
-        "positions":{ "OFF":[], "POS":[["30/4","_pos"]], "HEAD":[["30/4","_pos"],["30/4","C"]] },
-        "note":"ダッシュ側の【元栓】。原典 p42 の部品24 を14倍まで拡大して読んだ形＝3端子（BIANCO＝可動接触子の支点／NERO・VERDE＝固定接点2つ）・破線2組で OFF＋2段（HANDOFF その68②）。⚠️v:inf＝『どの位置でどちらが閉じるか』は原典に描かれていない。ここでは【NERO(30/4)が入り、VERDE(_pos)とBIANCO(C)が出。位置1で VERDE だけ、位置2で両方】とした＝VERDE がヒューズ F5/F6 の入り側に着くこと（その69①②）から、電源になりうるのは NERO しかないため。⚠️原典の図では支点が BIANCO なので、この読みは『支点＝機械的な回転中心であって電気的な共通とは限らない』という読み替えを含む（その69④）。⛔原典で確認したかのように書かない。⚠️合成端子 _pos は原典に端子名が無いため" },
+        "positions":{ "OFF":[], "ON":[["30/4","_pos"],["30/4","C"]] },
+        "note":"ダッシュ側の【元栓】＝⭐【入／切の2位置】。段は無い。⭐根拠＝純正取扱説明書の操作ページ。500L取説 p9「5. Interruttore per illuminazione esterna: con interruttore inserito si accendono le luci di posizione, la luce targa e si mettono sotto corrente i circuiti relativi al commutatore comandato dalla levetta 12 ed alla lampada di illuminazione del quadro di controllo」＝【入れると車幅灯とナンバー灯が点き、同時にコラムレバーの回路と計器盤照明に電気が来る】。500D取説 p12 も同内容（部品番号だけ 6）。⚠️⚠️2026-08-28 訂正＝以前は「OFF＋2段（消灯／車幅灯／前照灯）のロータリー」としていたが誤り。3段あるのはコラムレバー（commut）の方で、しかも動きは「回す」ではなく levetta を「倒す」。💡配線図だけでは【スイッチが何段か・どう動かすか】は読めない＝操作系は必ず取説の操作ページを引く。⚠️原典 p42 の部品24 が3端子（BIANCO＝支点／NERO・VERDE＝固定接点2つ）に描かれていること自体は変わらない＝v:inf のまま（入のとき NERO から VERDE と BIANCO の両方へ配る形と読む）。⚠️合成端子 _pos は原典に端子名が無いため" },
       "src":"原典 p42 部品24 Interruttore per illuminazione esterna（その68②③・その69⑤）／NL-F §2「[VERDE] F6→LIGHT_SW」「[水色=BIANCO] LIGHT_SW→コラムコネクタ(320,653)」「[NERO] LIGHT_SW→IGNITION_SW 30/4」" },
 
     { "id":"commut", "label":"コミュテータ（コラムレバー・F原典 部品14）", "kind":"switch", "sys":2, "terms":["C","30/2","30/3","56b","56/a1","56/a2"], "types":"FLRD",
-      "model":{ "kind":"switch", "v":"inf", "default":"LOW",
-        "positions":{ "LOW":[["C","56b"]], "HIGH":[["C","56/a1"],["C","56/a2"]] },
-        "note":"⚠️⚠️v:inf＝コミュテータの内部接点は【原典でも再作図物でも印刷解像度で読めない】（原典8倍まで＝HANDOFF その67⑥／2026-08-28 に再作図 fd_F1.pdf を8倍で見ても同じ結論）。ここでは『C（BIANCO・元栓が前照灯の段でだけ生きる）がロー／ハイの共通電源』とした＝これが回路として成立する唯一の形（30/2・30/3 を共通電源にすると、元栓が【車幅灯だけ】の段でもヘッドライトが点いてしまう＝実車と違う）。⚠️入力側に来ている 30/2(ROSA←F6)・30/3(GIALLO←F5) は端子として持つが内部接点は持たない＝この2本の行き先（INT＝計器盤照明とみられる）は #10 メーター照明の領分。⛔だから『F5/F6 が切れたときヘッドライトがどうなるか』をこの絵に答えさせない。⚠️INT 端子は #10 の実装時に足す" },
+      "model":{ "kind":"switch", "v":"inf", "default":"POS",
+        "positions":{ "POS":[], "LOW":[["C","56b"]], "HIGH":[["C","56/a1"],["C","56/a2"]] },
+        "note":"⭐【I＝車幅灯だけ／II＝ロービーム／III＝ハイビーム の3位置】＝段があるのはこちら。⭐根拠＝純正取扱説明書 500D p12「12) Levetta di commutazione illuminazione esterna anteriore（previo inserimento dell'interruttore 6）: I: luce targa e luci anteriori e posteriori di posizione ／ II: …e proiettori a luce anabbagliante ／ III: …e proiettori a piena luce」（500L p10 も同じ）。⚠️⚠️2026-08-28 訂正＝以前は LOW/HIGH の2位置とし3段を元栓側に置いていたが、逆だった。⚠️⚠️v:inf＝内部接点は【原典でも再作図物でも印刷解像度で読めない】（原典8倍まで＝HANDOFF その67⑥／fd_F1.pdf でも同じ）。ここでは『C（BIANCO・元栓が入なら常に生きている）がロー／ハイの共通電源で、I の位置ではどちらにも渡らない』とした。⚠️入力側に来ている 30/2(ROSA←F6)・30/3(GIALLO←F5) は端子として持つが内部接点は持たない＝⭐この2本の行き先は取説の言う「lampada di illuminazione del quadro di controllo」＝計器盤照明で、#10 メーター照明の領分（2026-08-28 に取説で裏付いた）。⛔だから『F5/F6 が切れたときヘッドライトがどうなるか』をこの絵に答えさせない。⚠️INT 端子は #10 の実装時に足す" },
       "src":"原典 p42 部品14 Commutatore illuminazione esterna e lampi luce anabbaglianti（その69⑤）／LEDGER 189行「端子列は左から 56/a2→30/2→INT→C→56b→30/3→56/a1」・その66③「F原典 p42 と L原典 p59 で端子・色とも完全に同一＝型式差なし」" },
 
     { "id":"f5", "label":"ヒューズ F5（30/3）", "kind":"fuse", "sys":2, "terms":["_in","30/3"], "types":"FLRD",
