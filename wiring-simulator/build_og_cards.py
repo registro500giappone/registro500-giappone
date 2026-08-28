@@ -44,12 +44,28 @@ METER_ZOOM = '28 116 168 106'
 
 
 def scene_svg(slug, zoom=True):
-    """記事の最初の `.scene` の中の <svg>…</svg> を取り出す。"""
+    """記事の最初の `.scene` の中身（<svg> か <img>）を取り出す。
+
+    ⚠️⚠️【2026-08-29 追加】アイキャッチが <img>（生成画像）の回がある＝第8回 headlight。
+    以前は「最初の <svg>」を全文から探していたので、img の回では【2つめの .scene に入って
+    いる「しくみ」の図】を拾ってしまい、記事と違う絵のカードが黙ってできていた。
+    最初の .scene の【中だけ】を見るようにして、svg でも img でも受けられるようにする。
+    """
     src = read(os.path.join(ROOT, 'wiring-journey-%s.html' % slug))
-    m = re.search(r'<div class="scene">\s*(<svg.*?</svg>)', src, flags=re.S)
+    i = src.find('<div class="scene">')
+    if i < 0:
+        raise SystemExit('%s にアイキャッチ（.scene）がありません' % slug)
+    j = src.find('<div class="scene">', i + 1)          # 次の .scene の手前で切る
+    chunk = src[i:j] if j > 0 else src[i:]
+    mi = re.search(r'<img\s[^>]*>', chunk)
+    m = re.search(r'<svg.*?</svg>', chunk, flags=re.S)
+    if mi and (not m or mi.start() < m.start()):
+        # 画像のアイキャッチ＝寸法指定を落として枠いっぱいに載せる（CSS の .pic img に任せる）
+        img = re.sub(r'\s(width|height|style)="[^"]*"', '', mi.group(0))
+        return img
     if not m:
-        raise SystemExit('%s のアイキャッチ（.scene の svg）が見つかりません' % slug)
-    svg = m.group(1)
+        raise SystemExit('%s のアイキャッチ（.scene の svg / img）が見つかりません' % slug)
+    svg = m.group(0)
     # 版下では枠に合わせる＝width/height 属性を外して CSS 側に任せる
     # ⚠️⚠️【2026-08-28 修正】以前は count=2 で先頭から2つ消していた＝<svg> 側に width しか
     #   無い絵では、2つめが【最初の <rect> の width】に当たって図形がまるごと消えていた
@@ -94,6 +110,7 @@ body{background:#888}
      border-radius:14px;display:flex;align-items:center;justify-content:center;
      box-shadow:2px 2px 0 rgba(90,78,55,.13);padding:18px}
 .pic svg{width:100%%;height:auto;max-height:502px}
+.pic img{width:100%%;height:auto;max-height:502px;object-fit:contain}
 .txt{flex:1;min-width:0}
 .brand{font-size:22px;letter-spacing:.22em;font-weight:800;color:#2f4a5c}
 .rule{width:56px;height:5px;background:#2f4a5c;margin:20px 0 24px}
