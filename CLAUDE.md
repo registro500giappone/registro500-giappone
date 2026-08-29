@@ -82,6 +82,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `db-checker` | DB件数確認・統計クエリ |
 | `git-ops` | コミット・プッシュ |
 | `site-checker` | Playwrightでの本番表示確認 |
+| `article-reviewer` | 連載記事の敵対的レビュー（⚠️Haikuではなく sonnet。判断が要るため） |
+
+**`db-checker` と `site-checker` はエージェントメモリを持つ**（`memory: project` → `.claude/agent-memory/`・gitignore済でpublic repoには出ない）。書かせてよいのは**スキーマの罠やURLの癖といった「調べ方のショートカット」だけ**で、⛔**件数・確認結果などの時点情報と、進捗・決定事項は書かせない**（後者の正本は `MEMORY.md` 台帳）。詳細は各エージェント定義の末尾。
 
 DB件数確認・単純検索・ファイル調査も Haiku 委譲の対象。
 
