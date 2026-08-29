@@ -22,9 +22,26 @@
     const vb = svg.viewBox.baseVal;
     const inv = svg.getScreenCTM().inverse();
     const out = [];
+    /* ⚠️【2026-08-29 追加】opacity:0 で重ねて出し分けている「紙芝居のコマ」を除外する。
+       第6回 ignition の j-spark は同じ x/y に4コマ分の文を重ねて opacity で切り替えており、
+       素の getBBox では 168.3×16.3 という巨大な重なりが7件出た＝全部が誤検出だった。
+       ⚠️祖先に効いている opacity も掛け算で効くので svg まで遡って積を取る（svg より上は見ない
+       ＝伏せてある記事を ?preview=1 で開いたときに検査そのものが空振りしないため）。 */
+    const shown = el => {
+      let n = el, o = 1;
+      while (n && n !== svg.parentNode) {
+        const cs = getComputedStyle(n);
+        if (cs.display === 'none' || cs.visibility === 'hidden') return false;
+        o *= parseFloat(cs.opacity);
+        if (!(o > 0.05)) return false;
+        n = n.parentNode;
+      }
+      return true;
+    };
     svg.querySelectorAll('text').forEach(el => {
       const t = (el.textContent || '').trim();
       if (!t) return;
+      if (!shown(el)) return;
       let b; try { b = el.getBBox(); } catch (e) { return; }
       /* ⚠️掛け順に注意＝inv.multiply(el.getScreenCTM())。逆にすると座標が化ける */
       const m = inv.multiply(el.getScreenCTM());
