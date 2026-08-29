@@ -264,10 +264,19 @@
         s.push('<circle cx="' + cx + '" cy="' + HD + '" r="' + (HRD + 24) + '" fill="url(#hlg' + cx + ')"/>');
       }
       s.push('<circle cx="' + cx + '" cy="' + HD + '" r="' + HRD + '" fill="' + (lit ? '#f6e6a8' : '#eae4d5') + '" stroke="' + (lit ? '#c9a83c' : '#c3bba6') + '" stroke-width="2.5"/>');
-      /* 中の2本のフィラメント＝外側寄りがハイ・内側寄りがロー（線の着き方と同じ並び） */
-      var dx = (side === 'l') ? -10 : 10;
-      s.push('<circle cx="' + (cx + dx) + '" cy="' + HD + '" r="5.5" fill="' + (hiOn ? '#e0a921' : '#cfc7b4') + '"/>');
-      s.push('<circle cx="' + (cx - dx) + '" cy="' + HD + '" r="5.5" fill="' + (loOn ? '#e0a921' : '#cfc7b4') + '"/>');
+      /* ⭐中の2本のフィラメント＝【上がロー・下がハイ】＝実物の R2（Bilux）電球と同じ並び（2026-08-29 是正）。
+         ハイは反射鏡の焦点＝ランプの中心、ローは焦点の前かつ光軸より上で、その下をシェードが覆う。
+         だからローの光は反射鏡の【上半分】にしか当たらず、下向きの配光になる（対向車をくらませない）。
+         ⛔左右に並べ替えない＝以前は「線の着き方と同じ並び」で外＝ハイ・内＝ローに置いていたが、
+         読者が実車の電球を覗くと上下に並んでいて合わなかった（第3回のセル接点と同型の誤り）。
+         ⛔端子から粒へ引き込み線を引かない＝一度描いたが、左右の端子から中央の粒へ集まる2本がV字に見えて
+         「線が交差している」と誤読させた（2026-08-29 に目視で落とした）。どちらの端子がどちらのフィラメントかは
+         円の左右に出ている端子名（56a＝ハイ／56b＝ロー）と、上流の線の色で追える。 */
+      var YLOF = HD - 10, YHIF = HD + 11;
+      /* シェード＝ローの粒の下を覆う金属のカップ。⭐実車では「カップが付いている方がロー」で見分けられる */
+      s.push('<path d="M' + (cx - 9) + ',' + (YLOF + 6) + 'A9,5 0 0 0 ' + (cx + 9) + ',' + (YLOF + 6) + '" fill="none" stroke="#8d846f" stroke-width="2"/>');
+      s.push('<circle cx="' + cx + '" cy="' + YLOF + '" r="5.5" fill="' + (loOn ? '#e0a921' : '#cfc7b4') + '"/>');
+      s.push('<circle cx="' + cx + '" cy="' + YHIF + '" r="5.5" fill="' + (hiOn ? '#e0a921' : '#cfc7b4') + '"/>');
       /* 名前はレンズの真上（線の来ない場所） */
       s.push('<text x="' + cx + '" y="' + (HD - HRD - 12) + '" font-size="12" font-weight="700" fill="' + C.deep + '" text-anchor="middle">' + name + '</text>');
       k.term(cx - HRD - 2, HD, side === 'l' ? '56a' : '56b', 'l');
@@ -276,8 +285,8 @@
     lens(XL, on['head_l.lo'], on['head_l.hi'], '左', 'l');
     lens(XR, on['head_r.lo'], on['head_r.hi'], '右', 'r');
     /* ⚠️この註は【2行に割る】＝1行にすると左右のアース線（XL・XR の縦線）を文字が貫く */
-    s.push('<text x="' + XC + '" y="' + (HD + HRD + 20) + '" font-size="10.5" fill="' + C.sub + '" text-anchor="middle">外側の粒＝ハイ</text>');
-    s.push('<text x="' + XC + '" y="' + (HD + HRD + 34) + '" font-size="10.5" fill="' + C.sub + '" text-anchor="middle">内側の粒＝ロー</text>');
+    s.push('<text x="' + XC + '" y="' + (HD + HRD + 20) + '" font-size="10.5" fill="' + C.sub + '" text-anchor="middle">上の粒＝ロー（下がシェード）</text>');
+    s.push('<text x="' + XC + '" y="' + (HD + HRD + 34) + '" font-size="10.5" fill="' + C.sub + '" text-anchor="middle">下の粒＝ハイ</text>');
 
     /* ================= アース ================= */
     if (m.cutGndL) cutV(XL, HD + HRD, GY, 'w02-14');
