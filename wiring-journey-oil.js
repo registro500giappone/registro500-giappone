@@ -24,7 +24,7 @@
     label(X+12,88,'ROSSO 赤・太',WC.ROSSO);
     k.node(X,100);
     k.dashOut(X,100,X+78);
-    label(X+12,116,'始動レバー・セルへ（このストーリーの外）',C.sub,null,11);
+    label(X+12,116,'スターターレバー・セルへ（このストーリーの外）',C.sub,null,10.5);
 
     seg(X,100,X,144,'w11-03',true);
     label(X+12,134,'MARRONE 茶・太',WC.MARRONE);
