@@ -46,5 +46,15 @@ jobs:
             #   公開状態を書き換えても本番に出ない（2026-08-28 の連載開始日に実際に踏んだ）。
             #   [skip actions] は GitHub Actions だけがスキップし、Pages はデプロイする。
             git commit -m "chore(wiring-journey): 週刊連載の公開状態を更新 [skip actions]"
-            git push
+            ok=0
+            for n in 1 2 3; do
+              if git push; then ok=1; break; fi
+              echo "push が弾かれました（試行 $n）— rebase して再試行します"
+              git pull --rebase origin main || true
+              sleep 5
+            done
+            if [ "$ok" != "1" ]; then
+              echo "::error::3回試しても push できませんでした（手動で確認してください）"
+              exit 1
+            fi
           fi
