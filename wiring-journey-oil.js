@@ -35,10 +35,10 @@
     /* J→キースイッチ（w10-01 ROSSO）。途中に F1 の枝＝このストーリーも通らない */
     seg(X,144,X,196,'w10-01');
     label(X+12,190,'ROSSO 赤',WC.ROSSO);
-    k.dashOut(X,176,X-56);
-    s.push('<rect x="'+(X-76)+'" y="168" width="18" height="16" rx="3" fill="none" stroke="'+C.out+'" stroke-width="2.5"/>');
-    label(6,162,'ヒューズF1・ホーンへ',C.sub,null,11);
-    label(2,196,'（このストーリーは通らない）',C.sub,null,11);
+    k.dashOut(X,168,X-56);
+    s.push('<rect x="'+(X-76)+'" y="160" width="18" height="16" rx="3" fill="none" stroke="'+C.out+'" stroke-width="2.5"/>');
+    label(6,154,'ヒューズF1・ホーンへ',C.sub,null,11);
+    label(2,190,'（このストーリーは通らない）',C.sub,null,9.5);
 
     k.keySwitch(X, 196, pos.ign_sw==='ON');
 

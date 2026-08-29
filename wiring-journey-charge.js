@@ -51,7 +51,7 @@
     k.dashOut(X,168,X-56);
     s.push('<rect x="'+(X-76)+'" y="160" width="18" height="16" rx="3" fill="none" stroke="'+C.out+'" stroke-width="2.5"/>');
     label(6,152,'ヒューズF1・ホーンへ',C.sub,null,11);
-    label(2,190,'（このストーリーは通らない）',C.sub,null,11);
+    label(2,190,'（このストーリーは通らない）',C.sub,null,9.5);
 
     /* ===== キースイッチ＝箱の中の接点が、キーを回すと橋を架ける ===== */
     k.keySwitch(X, 196, pos.ign_sw==='ON');
@@ -78,7 +78,7 @@
       /* 本体アース（pga-04）＝ブラケット接地 */
       seg(X,430,X,458,'pga-04',false,WC.NERO);
       ground(X,458,'車体アース');
-      label(X+24,478,'本体はブラケットで接地',C.sub,null,11);
+      label(X+24,488,'本体はブラケットで接地',C.sub,null,11);
       if(mode.suspect) k.suspect(30,322,212,168,514);
       if(mode.probes){
         k.probe(172,392,'①',36,34);
