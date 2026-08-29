@@ -82,7 +82,7 @@
     label(XC + 12, 88, 'ROSSO 赤・太', WC.ROSSO);
     k.node(XC, 100);
     k.dashOut(XC, 100, XC + 74);
-    label(XC + 12, 116, '始動レバー・セルへ', C.sub, null, 11);
+    label(XC + 12, 116, 'スターターレバー・セルへ', C.sub, null, 11);
 
     seg(XC, 100, XC, 144, 'w11-03', true);
     label(XC + 12, 134, 'MARRONE 茶・太', WC.MARRONE);

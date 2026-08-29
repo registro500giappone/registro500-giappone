@@ -61,7 +61,7 @@
     k.label(X + 12, 88, 'ROSSO 赤・太', WC.ROSSO, null, 11);
     k.node(X, 106);
     k.dashOut(X, 106, 190);
-    k.label(184, 98, '始動レバー・セルへ', C.sub, null, 10.5);
+    k.label(184, 98, 'スターターレバー・セルへ', C.sub, null, 10.5);
     k.label(184, 111, '（第3回）', C.sub, null, 10.5);
 
     k.seg(X, 106, X, 152, 'w11-03', true);
