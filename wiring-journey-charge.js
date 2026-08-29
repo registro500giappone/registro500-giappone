@@ -69,10 +69,10 @@
     label(X+12,350,'←テスターで見る線',WC.VERDE,null,11);
 
     if(sc.alt){
-      /* ===== オルタネーター（レギュレータ内蔵） ===== */
+      /* ===== オルタネーター（3端子式＝D+/L端子式。⚠️レギュレータは別体でネジ止め＝絵では本体側にまとめてある。HANDOFF その76・その82） ===== */
       s.push('<rect x="48" y="356" width="124" height="74" rx="14" fill="'+C.body+'" stroke="'+C.deep+'" stroke-width="2.5"/>');
       s.push('<text x="110" y="382" font-size="12" fill="#fffdf8" text-anchor="middle">オルタネーター</text>');
-      s.push('<text x="110" y="398" font-size="10.5" fill="'+C.in_+'" text-anchor="middle">（レギュレータ内蔵）</text>');
+      s.push('<text x="110" y="398" font-size="10.5" fill="'+C.in_+'" text-anchor="middle">（3端子式）</text>');
       label(X-12,352,'D+',C.deep,'end',12); label(176,380,'B+',C.deep,null,12);
       s.push('<text x="110" y="418" font-size="10.5" fill="'+C.in_+'" text-anchor="middle">'+(pos.alternator==='RUN'?'発電中＝D+はB+の高さ':'停止中＝D+はアース近傍')+'</text>');
       /* 本体アース（pga-04）＝ブラケット接地 */
