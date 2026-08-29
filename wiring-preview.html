@@ -301,7 +301,12 @@
   // 頭文字だけが違う。F型=w / L型=l / R型=r。
   const TYPES = ["D", "F", "L", "R"], PREFIX = { D:"d", F:"w", L:"l", R:"r" }, TYPE_KEY = "wiring.type.v1";
   const NPAGE = 16;
-  function srcOf(t, i){ return "/wiring-img/" + PREFIX[t] + String(i).padStart(2,"0") + ".webp"; }
+  // ⚠️/wiring-img/* は immutable（1年キャッシュ）なので、図を差し替えたら【ファイル名を変える】。
+  //   同じ名前で上書きしても、一度見た人のブラウザには古い図が出続ける。
+  //   2026-08-29: L型の燃料センダー2本目（マゼンタ）がワイパー系統に誤分類されていたのを是正し、
+  //   l12（フューエルセンサー）と l13（ワイパー）を作り直した＝この2枚だけ `-v2` を付ける。
+  const IMGV = { "l12": "-v2", "l13": "-v2" };
+  function srcOf(t, i){ const b = PREFIX[t] + String(i).padStart(2,"0"); return "/wiring-img/" + b + (IMGV[b] || "") + ".webp"; }
   const LAB = ["全表示", "アース／マイナス", "ヘッドライト", "ポジション／スモールランプ", "ウインカー", "ホーン", "ブレーキスイッチ", "オイルプレッシャースイッチ", "ルームランプ", "点火系", "イグニッション", "スターター／ダイナモ・発電系", "フューエルセンサー", "ワイパー", "ステアリングコラム", "メーターパネル"];
   const img=document.getElementById('img'), cur=document.getElementById('cur'),
         sel=document.getElementById('sel'), msg=document.getElementById('msg');
