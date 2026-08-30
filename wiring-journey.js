@@ -368,7 +368,10 @@
         for (var j = 0; j < btns.length; j++) btns[j].className = btns[j].getAttribute('data-v') === v ? 'on' : '';
       }
       var cur = axes ? st : v;
-      put('j-main', scenario({ inputs: mainInputs(cur) }), {});
+      /* ⭐main:true ＝【この呼び出しだけが主図】の目印。図の側は、絵の中の押せる場所（data-set）を
+         これが立っているときだけ描く＝紙芝居のコマに押せそうな見た目が出ないようにするため。
+         ⛔見ていない旅では無視されるだけなので、既存の旅に影響はない。 */
+      put('j-main', scenario({ inputs: mainInputs(cur) }), { main: true });
       var cap = document.getElementById('mainCap'); if (cap) cap.innerHTML = capOf(cur);
       if (y0 !== null) { var y1 = anchor.getBoundingClientRect().top; if (Math.abs(y1 - y0) > 0.5) window.scrollBy(0, y1 - y0); }
     }
@@ -405,6 +408,28 @@
       var btns = document.querySelectorAll('.toggle button');
       for (var i = 0; i < btns.length; i++) btns[i].addEventListener('click', function () {
         setMain(this.getAttribute('data-v'), this, this.getAttribute('data-axis'));
+      });
+
+      /* ⭐【絵の中のスイッチを直接押せるようにする】（2026-08-30・ユーザー要望）
+         図の側が押せる場所に data-set="軸=値"（単軸の旅なら data-set="値"）を書いておくと、
+         ここが拾って欄外のトグルと同じ setMain を呼ぶ。
+         ⚠️主図は押すたびに innerHTML ごと差し替わる＝要素ごとに listener を付けると消える。
+           だから【器の #j-main に1回だけ】付けて、中身は毎回そこから探す（イベント委譲）。
+         ⚠️anchor は押した図形ではなく器を渡す＝押した図形は再描画で別物になり、
+           押した後に位置を測れない。
+         ⛔data-set を書いていない旅では、この listener は何も拾わないので従来どおり。 */
+      var stage = document.getElementById('j-main');
+      if (stage) stage.addEventListener('click', function (ev) {
+        var n = ev.target, set = null;
+        /* SVGElement にも closest はあるが、この系の旧端末を考えて素朴に親を辿る */
+        while (n && n !== stage) {
+          if (n.getAttribute) { set = n.getAttribute('data-set'); if (set) break; }
+          n = n.parentNode;
+        }
+        if (!set) return;
+        var eq = set.indexOf('=');
+        if (eq < 0) setMain(set, stage, null);
+        else setMain(set.slice(eq + 1), stage, set.slice(0, eq));
       });
 
       (cfg.scenes ? cfg.scenes(scenario) : []).forEach(function (s) { put(s.id, s.sc, s.mode); });
