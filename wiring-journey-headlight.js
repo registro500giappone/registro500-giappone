@@ -5,8 +5,8 @@
    このストーリーだけの特徴が4つある。
      ①⭐【キースイッチの外側にいる】＝電源はイグニッションSWの 30/4（常時電源）。
         だからキーを抜いてもヘッドライトは点く。シリーズで初めて「キーが関係ない灯」になる。
-     ②⭐【元栓が2段】＝ダッシュの外部照明SW（消灯／車幅灯／前照灯）と、コラムレバー（ロー／ハイ）。
-        原典の凡例でも 24=Interruttore（元栓）・14=Commutatore（行き先を選ぶ）と役割が分かれている。
+     ②⭐【スイッチが2段】＝ダッシュの外部照明SW（消灯／車幅灯／前照灯）と、コラムレバー（ロー／ハイ）。
+        原典の凡例でも 24=Interruttore（入か切か）・14=Commutatore（行き先を選ぶ）と役割が分かれている。
      ③⭐⭐【ロービームだけ左右別のヒューズ】＝コミュテータから出た 56b が1本でヒューズ箱に入り、
         箱の【中】で F3（右）・F4（左）に分かれる。だから「片目だけロービームが消える」。
         いっぽう【ハイビームはヒューズを1つも通らない】。
@@ -28,9 +28,9 @@
   'use strict';
   var WC = Journey.WC, C = Journey.C;
 
-  var XC = 150;                     /* 中央の幹線（バッテリー〜キー〜元栓〜コラムレバー） */
+  var XC = 150;                     /* 中央の幹線（バッテリー〜キー〜ライトスイッチ〜コラムレバー） */
   var KT = 196, KH = 80;            /* キースイッチの箱。⚠️下段に説明の1行を入れるぶん背が高い */
-  var SW = 316, SH = 76;            /* 外部照明SW（元栓）の箱 */
+  var SW = 316, SH = 76;            /* 外部照明SWの箱 */
   var CM = 470, CH = 88;            /* コラムレバーの箱。幅は XC±86 */
   var P_LO = 216, P_HI = 110;       /*  ↑ 箱の中の接点。ロー＝右／ハイ＝左 */
   var YHR = 560, YHL = 568;         /* ハイの横振り（右・左） */
@@ -133,12 +133,12 @@
     label(4, SW - 38, 'NERO 黒＝', nc.dead ? C.dim : WC.NERO, null, 12);
     label(4, SW - 22, 'キーを抜いても生きている線', nc.dead ? C.dim : WC.NERO, null, 12);
 
-    /* ================= ⭐外部照明スイッチ（元栓・ダッシュ） ================= */
+    /* ================= ⭐ライトスイッチ（ダッシュ） ================= */
     (function lightSwitch() {
       var bx = XC - 80, bw = 160;
       s.push('<rect x="' + bx + '" y="' + SW + '" width="' + bw + '" height="' + SH + '" rx="10" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
-      s.push('<text x="' + XC + '" y="' + (SW + 19) + '" font-size="12" fill="#fffdf8" text-anchor="middle">外部照明スイッチ</text>');
-      s.push('<text x="' + XC + '" y="' + (SW + 33) + '" font-size="10.5" fill="' + C.in_ + '" text-anchor="middle">ダッシュの元栓・入／切（部品24）</text>');
+      s.push('<text x="' + XC + '" y="' + (SW + 19) + '" font-size="12" fill="#fffdf8" text-anchor="middle">ライトスイッチ</text>');
+      s.push('<text x="' + XC + '" y="' + (SW + 33) + '" font-size="10.5" fill="' + C.in_ + '" text-anchor="middle">ダッシュ・入／切（部品24）</text>');
       /* ⭐入／切の2位置（2026-08-28 訂正）。⛔3段のボタンに戻さない＝段があるのはコラムレバーの方
          （取説 500L p9-5「con interruttore inserito si accendono le luci di posizione…」）。 */
       var STEP = [['OFF', '切'], ['ON', '入']];
@@ -149,7 +149,7 @@
       }
     })();
 
-    /* 元栓 → ヒューズ F5・F6（車幅灯側）＝このストーリーの本線ではないので枝として描く */
+    /* ライトスイッチ → ヒューズ F5・F6（車幅灯側）＝このストーリーの本線ではないので枝として描く */
     var vc = k.wcol('w02-02', C.dim);
     path('M' + (XC - 62) + ',' + (SW + SH) + ' L' + (XC - 62) + ',' + (SW + SH + 18) + ' L' + (XC - 106) + ',' + (SW + SH + 18), vc.col);
     s.push('<rect x="' + (XC - 126) + '" y="' + (SW + SH + 8) + '" width="20" height="20" rx="3" fill="none" stroke="' + (vc.dead ? C.dim : C.deep) + '" stroke-width="2.5"/>');
@@ -157,7 +157,7 @@
     label(4, SW + SH + 60, '→ 車幅灯・ナンバー灯', C.sub, null, 11);
     label(4, SW + SH + 74, '（入れれば点く）', C.sub, null, 11);
 
-    /* ⭐元栓 → コラムレバー（BIANCO）。⭐元栓が【入】なら常に生きている＝ここから先の行き先を選ぶのはレバー */
+    /* ⭐ライトスイッチ → コラムレバー（BIANCO）。⭐ライトスイッチが【入】なら常に生きている＝ここから先の行き先を選ぶのはレバー */
     if (m.cutC) cutV(XC, SW + SH, CM, 'w02-06');
     else seg(XC, SW + SH, XC, CM, 'w02-06');
     label(XC + 12, SW + SH + 30, 'BIANCO 白', C.deep, null, 12);
@@ -170,7 +170,7 @@
       s.push('<text x="' + XC + '" y="' + (CM + 33) + '" font-size="10.5" fill="' + C.in_ + '" text-anchor="middle">3段で行き先を選ぶ（部品14）</text>');
       /* ⭐可動接触子＝C から、ハイ側（左）／ロー側（右）／どちらでもない中立（＝I の位置）の3つ。
          ⚠️⚠️2026-08-28 訂正＝【3段あるのはこのレバー】（取説 500D p12-12「I: 車幅灯とナンバー灯／
-         II: ＋ロービーム／III: ＋ハイビーム」）。以前は元栓の側を3段に描いていたが逆だった。
+         II: ＋ロービーム／III: ＋ハイビーム」）。以前はライトスイッチの側を3段に描いていたが逆だった。
          ⚠️内部の接点は原典に読めないので「どちらへ倒れているか」だけを描く＝形は推定であることを
          本文と footer で断る。⛔中央（I）に接点の丸を打たない＝そこに端子は無い。 */
       var py = CM + 44, ty = CM + 70;
@@ -316,10 +316,10 @@
   function rd(id) { return function (sc) { return !!sc.on[id]; }; }
   var HEAD_LOW = { lights: 'ON', beam: 'LOW' }, HEAD_HIGH = { lights: 'ON', beam: 'HIGH' };
   var CHECKS = [
-    { label: '元栓が切（キーはON）',                       s: { inputs: { lights: 'OFF', key: 'ON' } },  expect: false },
-    { label: '⭐元栓が切ならレバーを III に倒しても点かない', s: { inputs: { lights: 'OFF', beam: 'HIGH' } }, expect: false, read: rd('head_l.hi') },
+    { label: 'ライトスイッチが切（キーはON）',                       s: { inputs: { lights: 'OFF', key: 'ON' } },  expect: false },
+    { label: '⭐ライトスイッチが切ならレバーを III に倒しても点かない', s: { inputs: { lights: 'OFF', beam: 'HIGH' } }, expect: false, read: rd('head_l.hi') },
     { label: 'レバーが I（車幅灯）＝ヘッドライトはまだ点かない', s: { inputs: { lights: 'ON', beam: 'POS' } }, expect: false },
-    { label: '⭐元栓が前照灯・ロー【キーはOFFのまま】',    s: { inputs: HEAD_LOW },                      expect: true },
+    { label: '⭐ライトスイッチが前照灯・ロー【キーはOFFのまま】',    s: { inputs: HEAD_LOW },                      expect: true },
     { label: '同じ場面でキーをONにしても変わらない',        s: { inputs: { lights: 'ON', beam: 'LOW', key: 'ON' } }, expect: true },
     { label: 'ロー・F4（左）が切れた／左を見る',           s: { inputs: { lights: 'ON', beam: 'LOW', f4: 'BLOWN' } }, expect: false },
     { label: '同じ場面で右を見る（右は点いている）',        s: { inputs: { lights: 'ON', beam: 'LOW', f4: 'BLOWN' } }, expect: true,  read: rd('head_r.lo') },

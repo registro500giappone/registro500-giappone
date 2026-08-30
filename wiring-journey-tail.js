@@ -3,14 +3,14 @@
    ⚠️図の点灯・色・黄点はすべて wiring-sim.js（L1到達性）の solve() 結果＝絵に合わせて数字を作らない。
 
    このストーリーだけの特徴が3つある。
-     ①⭐【元栓ひとつで、前の車幅灯・後ろのテール・ナンバー灯・メーターの緑が同時に点く】。
+     ①⭐【ライトスイッチひとつで、前の車幅灯・後ろのテール・ナンバー灯・メーターの緑が同時に点く】。
         コラムレバー（ロー／ハイ）はいっさい関係しない＝根拠は純正取説 500L p9-5
         「con interruttore inserito si accendono le luci di posizione, la luce targa」。
      ②⭐⭐【ヒューズ2本がたすき掛け】＝F5 は〈右前＋左後〉、F6 は〈左前＋右後＋ナンバー灯＋緑の表示灯〉。
         前2つ・後ろ2つではない。だから「右の前と左の後ろが同時に消える」という、
         実車で見ると意味の分からない消え方をする。⭐この絵で線が2回すれ違うのは実車がそうだから。
      ③⭐【メーターの緑の表示灯が F6 側にしか無い】＝緑が点いたまま片側だけ消えていれば F5。
-        緑ごと消えていれば F6 か、もっと手前（元栓）。切り分けの手がかりが運転席にある。
+        緑ごと消えていれば F6 か、もっと手前（ライトスイッチ）。切り分けの手がかりが運転席にある。
 
    ⚠️系統3 を新設したストーリー＝NET_VERSION 10→11
      （部品 pos_l・pos_r・tail_l・tail_r・plate ＋ quadro に warn_pos と 31 端子／電線 w03-01〜w03-12）。
@@ -28,9 +28,9 @@
   'use strict';
   var WC = Journey.WC, C = Journey.C;
 
-  var XC = 150;                     /* 中央の幹線（バッテリー〜キー〜元栓） */
+  var XC = 150;                     /* 中央の幹線（バッテリー〜キー〜ライトスイッチ） */
   var KT = 196, KH = 80;            /* キースイッチの箱 */
-  var SW = 320, SH = 76;            /* 外部照明SW（元栓）の箱 */
+  var SW = 320, SH = 76;            /* 外部照明SWの箱 */
   var BOX_T = 440, BOX_B = 546;     /* ヒューズ箱の囲い */
   var YBR = 452;                    /* 箱の中の渡り（F6の入り ⇔ F5の入り） */
   var FZ = 470;                     /* ヒューズ管。上端 FZ・下端 FZ+62 */
@@ -120,9 +120,9 @@
     seg(XC, KT + 62, XC, SW, 'w02-01');
     label(XC + 14, KT + 100, 'NERO 黒', C.sub, null, 11);
 
-    /* ===== 外部照明スイッチ（元栓）===== */
+    /* ===== ライトスイッチ ===== */
     s.push('<rect x="' + (XC - 88) + '" y="' + SW + '" width="176" height="' + SH + '" rx="10" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
-    s.push('<text x="' + (XC - 78) + '" y="' + (SW + 20) + '" font-size="12" font-weight="700" fill="' + C.in_ + '">外部照明スイッチ（元栓）</text>');
+    s.push('<text x="' + (XC - 78) + '" y="' + (SW + 20) + '" font-size="12" font-weight="700" fill="' + C.in_ + '">ライトスイッチ</text>');
     s.push('<text x="' + (XC - 78) + '" y="' + (SW + 37) + '" font-size="10.5" fill="' + C.in_ + '">ダッシュの引きスイッチ。入／切の2位置</text>');
     /* 接点（縦につながる） */
     s.push('<circle cx="' + XC + '" cy="' + (SW + 50) + '" r="3.8" fill="' + C.in_ + '"/>');
@@ -224,15 +224,15 @@
          内側へ寄せると F5 の縦線を貫く（2026-08-30・実測）。 */
     if (m.f5) chip(4, BOX_T - 26, 'F5 が切れた');
     else if (m.f6) chip(4, BOX_T - 26, 'F6 が切れた');
-    else if (m.off) chip(XC - 88, SW - 14, '元栓が切');
+    else if (m.off) chip(XC - 88, SW - 14, 'ライトスイッチが切');
 
     return 920;
   }
 
-  /* ---- トグル（元栓 切 ↔ 入）＝⭐キーはOFFのまま＝これがこの回の最初の驚き ---- */
+  /* ---- トグル（ライトスイッチ 切 ↔ 入）＝⭐キーはOFFのまま＝これがこの回の最初の驚き ---- */
   var CAPS = {
-    OFF: '<b>元栓（ダッシュの外部照明スイッチ）が切。</b>ヒューズ箱までは電気が来ていません。前も後ろもナンバー灯も、メーターの緑も、すべて消えたままです。<b>キーは抜いてあります</b>が、この回路にはもともと関係がありません。',
-    ON: '<b>元栓を入れました。</b>キーは抜いたままです。緑の線がヒューズ箱に入り、箱の中で<b>2本のヒューズ（F5・F6）に分かれます</b>。そこから先が問題で、<b>F5 は〈右前と左後〉、F6 は〈左前と右後とナンバー灯と緑の表示灯〉</b>——前後ではなく<b>たすき掛け</b>に分かれています。'
+    OFF: '<b>ダッシュのライトスイッチが切。</b>ヒューズ箱までは電気が来ていません。前も後ろもナンバー灯も、メーターの緑も、すべて消えたままです。<b>キーは抜いてあります</b>が、この回路にはもともと関係がありません。',
+    ON: '<b>ライトスイッチを入れました。</b>キーは抜いたままです。緑の線がヒューズ箱に入り、箱の中で<b>2本のヒューズ（F5・F6）に分かれます</b>。そこから先が問題で、<b>F5 は〈右前と左後〉、F6 は〈左前と右後とナンバー灯と緑の表示灯〉</b>——前後ではなく<b>たすき掛け</b>に分かれています。'
   };
 
   /* ---- 検算（期待値は原典と実車の挙動から先に書いた・計算結果を写していない） ---- */
@@ -251,13 +251,13 @@
   function cut(id) { return [{ op: 'removeWire', id: id }]; }
   var CHECKS = [
     /* ⭐この回のいちばんの主張＝キーを抜いたままでも点く */
-    { label: 'キーOFF・元栓を入れる（左前）', s: { inputs: ON }, expect: true, words: LW },
+    { label: 'キーOFF・ライトスイッチを入れる（左前）', s: { inputs: ON }, expect: true, words: LW },
     { label: '↑同じ場面の右前', s: { inputs: ON }, expect: true, read: posR, words: LW },
     { label: '↑同じ場面の左後', s: { inputs: ON }, expect: true, read: tailL, words: LW },
     { label: '↑同じ場面の右後', s: { inputs: ON }, expect: true, read: tailR, words: LW },
     { label: '↑同じ場面のナンバー灯', s: { inputs: ON }, expect: true, read: plate, words: LW },
     { label: '↑同じ場面のメーターの緑', s: { inputs: ON }, expect: true, read: green, words: GW },
-    { label: '元栓が切（左前）', s: { inputs: { lights: 'OFF' } }, expect: false, words: LW },
+    { label: 'ライトスイッチが切（左前）', s: { inputs: { lights: 'OFF' } }, expect: false, words: LW },
     { label: '↑同じ場面のメーターの緑', s: { inputs: { lights: 'OFF' } }, expect: false, read: green, words: GW },
     /* ⭐⭐たすき掛け＝F5 が切れると【右前と左後】だけが消える */
     { label: 'F5 が切れた（左前は無事）', s: { inputs: { lights: 'ON', f5: 'BLOWN' } }, expect: true, words: LW },
@@ -278,15 +278,15 @@
     { label: '↑同じ場面の右前（無事）', s: { inputs: ON, ops: cut('w03-07') }, expect: true, read: posR, words: LW },
     { label: 'ナンバー灯への枝（w03-04）が外れた', s: { inputs: ON, ops: cut('w03-04') }, expect: false, read: plate, words: LW },
     { label: '↑同じ場面の左前（無事）', s: { inputs: ON, ops: cut('w03-04') }, expect: true, words: LW },
-    /* 元栓より手前で切れた＝全部消える */
-    { label: '元栓からヒューズ箱への緑線（w02-02）が外れた（左前）', s: { inputs: ON, ops: cut('w02-02') }, expect: false, words: LW },
+    /* ライトスイッチより手前で切れた＝全部消える */
+    { label: 'ライトスイッチからヒューズ箱への緑線（w02-02）が外れた（左前）', s: { inputs: ON, ops: cut('w02-02') }, expect: false, words: LW },
     { label: '↑同じ場面の右前（同じく消える）', s: { inputs: ON, ops: cut('w02-02') }, expect: false, read: posR, words: LW },
     { label: '↑同じ場面のメーターの緑（同じく消える）', s: { inputs: ON, ops: cut('w02-02') }, expect: false, read: green, words: GW },
     /* ⭐ヘッドライトはこのヒューズを通らない＝第8回で確かめた道 */
     { label: 'F5・F6 が両方切れてもヘッドライト（ロー）は点く', s: { inputs: { lights: 'ON', beam: 'LOW', f5: 'BLOWN', f6: 'BLOWN' } }, expect: true, read: headL, words: LW },
     { label: '↑同じ場面でホーンも鳴る（別のヒューズ）', s: { inputs: { lights: 'ON', f5: 'BLOWN', f6: 'BLOWN', horn_btn: 'PRESSED' } }, expect: true, read: horn, words: HW },
     { label: 'バッテリーのマイナス端子（w11-10）が外れた', s: { inputs: ON, ops: cut('w11-10') }, expect: false, words: LW },
-    { label: 'オルタネーター換装車・元栓を入れる', s: { alt: true, inputs: ON }, expect: true, words: LW }
+    { label: 'オルタネーター換装車・ライトスイッチを入れる', s: { alt: true, inputs: ON }, expect: true, words: LW }
   ];
 
   Journey.boot({
@@ -319,7 +319,7 @@
     checks: CHECKS,
     scenes: function (scenario) {
       return [
-        /* ★①元栓が切＝これは故障ではない（最初に潰す迷い道） */
+        /* ★①ライトスイッチが切＝これは故障ではない（最初に潰す迷い道） */
         { id: 'j-off', sc: scenario({ inputs: { key: 'OFF', lights: 'OFF' } }), mode: { off: true } },
         /* ★②F5 が切れた＝右前と左後だけが消える。緑は点いたまま */
         { id: 'j-f5', sc: scenario({ inputs: { key: 'OFF', lights: 'ON', f5: 'BLOWN' } }), mode: { f5: true } },
