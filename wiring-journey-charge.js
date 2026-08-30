@@ -1,9 +1,7 @@
-/* ストーリー第1回「チャージランプが消えない」の絵。ID: charge_lamp_on
-   ダイナモ版 wiring-journey-charge.html と オルタ版 wiring-journey-charge-alt.html の2ページで共有する。
+/* ストーリー第1回「チャージランプが消えない」の絵。ID: charge_lamp_on ダイナモ版 wiring-journey-charge.html とオルタ版 wiring-journey-charge-alt.html の2ページで共有する。
    オルタ版は読み込み前に window.JOURNEY_ALT = true を立てる。
    共通の土台（場面の作り方・描画プリミティブ・共通部品・実車図・検算・起動）は /wiring-journey.js。
-   ⚠️図の点灯・色・黄点はすべて wiring-sim.js（L1到達性）の solve() 結果＝絵に合わせて数字を作らない。
-   ⚠️このページはユーザー確定済み（2026-08-20「最初の1本はこれでいい」）＝見た目を変えない。 */
+   図の点灯・色・黄点はすべて wiring-sim.js（L1到達性）の solve() 結果＝絵に合わせて数字を作らない。 */
 (function(){
   'use strict';
   var ALT = !!window.JOURNEY_ALT;
@@ -40,8 +38,8 @@
     s.push('<path d="M'+X+',144 L'+RX+',144 L'+RX+',388 L'+(sc.alt?172:168)+',388" stroke="'+jcol+'" stroke-width="5.5" fill="none" stroke-linecap="round"/>');
     if(sc.charging){
       for(var cy0=180;cy0<376;cy0+=22) s.push('<circle class="dot up" cx="'+RX+'" cy="'+cy0+'" r="4.6"/>');
-      dotsH(388,176,208,'right');            /* 箱の30/B+ → 右の道の下の横 */
-      dotsH(144,134,224,'left');             /* 右の道の上の横 → J（バッテリーへ） */
+      dotsH(388,176,208,'right');            /* 箱の30/B+ →右の道の下の横 */
+      dotsH(144,134,224,'left');             /* 右の道の上の横→ J（バッテリーへ） */
       label(RX+8,264,'充電',WC.ROSSO);
     }
 
@@ -69,7 +67,7 @@
     label(X+12,350,'←テスターで見る線',WC.VERDE,null,11);
 
     if(sc.alt){
-      /* ===== オルタネーター（3端子式＝D+/L端子式。⚠️レギュレータは別体でネジ止め＝絵では本体側にまとめてある。HANDOFF その76・その82） ===== */
+      /* ===== オルタネーター（3端子式＝D+/L端子式。レギュレータは別体でネジ止め＝絵では本体側にまとめてある。 */
       s.push('<rect x="48" y="356" width="124" height="74" rx="14" fill="'+C.body+'" stroke="'+C.deep+'" stroke-width="2.5"/>');
       s.push('<text x="110" y="382" font-size="12" fill="#fffdf8" text-anchor="middle">オルタネーター</text>');
       s.push('<text x="110" y="398" font-size="10.5" fill="'+C.in_+'" text-anchor="middle">（3端子式）</text>');
@@ -92,8 +90,7 @@
     s.push('<rect x="44" y="356" width="124" height="64" rx="8" fill="'+C.body+'" stroke="'+C.deep+'" stroke-width="2.5"/>');
     s.push('<text x="52" y="372" font-size="10.5" fill="'+C.in_+'">レギュレータ</text>');
     label(X-12,352,'51',C.deep,'end',12); label(172,380,'30',C.deep,null,12);
-    /* 51→ダイナモへの素通しの道（接点が開いていてもここは常につながっている）。
-       充電中はダイナモから上がってきた電気がここを通って接点→30へ抜ける＝流れを見せる */
+    /* 51→ダイナモへの素通しの道（接点が開いていてもここは常につながっている）。充電中はダイナモから上がってきた電気がここを通って接点→30へ抜ける＝流れを見せる */
     s.push('<path d="M'+X+',356 L'+X+',420" stroke="'+C.in_+'" stroke-width="3" opacity=".9"/>');
     /* 30への枝＝カットアウト接点。充電中だけ閉じる */
     var cut = pos.regulator==='CHARGE';
@@ -127,7 +124,7 @@
     s.push('<circle cx="184" cy="493" r="4.5" fill="'+C.deep+'"/>');
     label(176,462, arm?'回っていない':'発電中', arm?C.hi:C.ok, null, 12);
     label(176,522,'←ベルトが回す',C.sub,null,10.5);
-    /* 中のコイルの道（止まっている間だけ 51→車体 が通じる） */
+    /* 中のコイルの道（止まっている間だけ 51→車体が通じる） */
     s.push('<circle cx="'+X+'" cy="492" r="3.4" fill="'+C.in_+'"/>');
     s.push('<circle cx="'+X+'" cy="510" r="3.4" fill="'+C.in_+'"/>');
     if(arm) s.push('<path d="M'+X+',492 L'+X+',510" stroke="'+C.in_+'" stroke-width="3.5"/>');

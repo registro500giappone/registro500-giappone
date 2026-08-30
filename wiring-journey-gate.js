@@ -1,21 +1,7 @@
-/* ============================================================================
-   電装トラブルの旅手帳＝週刊連載の「いま誰が読めるか」を1か所で決める門番。
-
-   ⚠️ 公開予定の正本は /journey-schedule.json （日付をここにもHTMLにも書かない）。
-   ⚠️ 各記事HTMLの window.JOURNEY.state は wiring-simulator/publish_journey.py が
-      毎日書き換える生成物＝手で編集しない。3つの値しか取らない：
-        'pre'   … まだ誰も読めない（early 前）
-        'early' … 登録オーナーだけ読める（early 以降・public 前）
-        'open'  … 誰でも読める（public 以降）
-      state を静的に持たせている理由＝公開済みの回で認証もfetchも走らせないため。
-      公開後の記事は門番が即 return するので、読み込みは1ファイル増えるだけで済む。
-
-   資格＝「ログイン済み かつ cars に自分の車がある人」（2026-08-25 ユーザー確定）。
-      メールOTPはアドレスさえあれば誰でも通るので、ログインの有無だけでは
-      「登録オーナーの特典」にならない。
-
-   伏せ方＝画面で伏せる（2026-08-25 ユーザー確定）。HTMLソースを見れば本文は読める。
-      これは機密ではなく「1週早く読める特典」なので、そこは割り切っている。
+/* ============================================================================ 電装トラブルの旅手帳＝週刊連載の「いま誰が読めるか」を1か所で決める門番。
+   3つの値しか取らない： 'pre' …まだ誰も読めない（early 前） 'early' …登録オーナーだけ読める（early 以降・public 前） 'open' …誰でも読める（public 以降） state を静的に持たせている理由＝公開済みの回で認証もfetchも走らせないため。
+   公開後の記事は門番が即 return するので、読み込みは1ファイル増えるだけで済む。
+   資格＝「ログイン済みかつ cars に自分の車がある人」。メールOTPはアドレスさえあれば誰でも通るので、ログインの有無だけでは「登録オーナーの特典」にならない。
    ========================================================================== */
 (function () {
   'use strict';
@@ -25,20 +11,15 @@
   var SUPA_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0';
   var SUPA_SRI = 'sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J';
 
-  /* ⏳確認用＝?preview=1 を付けると門番を素通りできる（作業場での見た目確認用）。
-     ⛔連載が本決まりになったら ?d= と一緒に消す。 */
   var PREVIEW = /[?&]preview=1/.test(location.search);
 
   var J = window.JOURNEY || {};
   var state = J.state || 'open';
 
-  /* 記事ページでは、読ませてよいと分かるまで本文を伏せておく。
-     ⚠️ここは同期実行＝<head> で読み込むこと。判定がついてから見せるのでは
-        一度出た本文が消える形になり、読者には「取り上げられた」ように見える。
-     ⚠️⚠️伏せる規則は共通CSSに置かず、この門番が自分で差し込む。
-        Service Worker が CSS/JS を StaleWhileRevalidate で返す設計なので、
-        共通CSSに置くと「古い版が1回返る＝先行中の本文が丸見え」が起こりうる。
-        門番の挙動は門番のファイルの中だけで完結させる。 */
+  /* 記事ページでは、読ませてよいと分かるまで本文を伏せておく。ここは同期実行＝<head> で読み込むこと。
+     判定がついてから見せるのでは一度出た本文が消える形になり、読者には「取り上げられた」ように見える。
+     伏せる規則は共通CSSに置かず、この門番が自分で差し込む。Service Worker が CSS/JS を StaleWhileRevalidate で返す設計なので、共通CSSに置くと「古い版が1回返る＝先行中の本文が丸見え」が起こりうる。
+     門番の挙動は門番のファイルの中だけで完結させる。 */
   var isArticle = !!J.slug;
   if (isArticle && state !== 'open' && !PREVIEW) {
     var lock = document.createElement('style');
@@ -77,9 +58,7 @@
       return c.auth.getSession().then(function (r) {
         var session = r && r.data ? r.data.session : null;
         if (!session) return { signedIn: false, owner: false };
-        /* ⭐ログイン中のメールアドレスで cars を紐づけてから資格を見る（index.html 等と同型）。
-           ⚠️これを呼ばないと、門番のモーダルからその場でログインした人は
-           owner_user_id が埋まらず、「案内どおりログインしたのに読めない」状態になる（2026-08-27 修正）。
+        /* ログイン中のメールアドレスで cars を紐づけてから資格を見る（index.html 等と同型）。
            紐づけ済みの人は 0 行更新で戻るだけ。失敗しても照会には進む。 */
         return Promise.resolve(c.rpc('link_owner_car'))
           .catch(function () { return null; })
@@ -87,8 +66,7 @@
             return c.from('cars').select('document_id')
               .eq('owner_user_id', session.user.id).limit(1)
               .then(function (q) {
-                /* ⚠️問い合わせが失敗したときはログイン済みとして通す＝フェイルオープン。
-                   1週間後には誰でも読める記事なので、「読めるはずの人が読めない」ほうが害が大きい。 */
+                /* 1週間後には誰でも読める記事なので、「読めるはずの人が読めない」ほうが害が大きい。 */
                 if (q.error) return { signedIn: true, owner: true, degraded: true };
                 return { signedIn: true, owner: !!(q.data && q.data.length) };
               });
@@ -100,9 +78,7 @@
     }).then(function (v) { lastQualify = v; return v; });
   }
 
-  /* ---- ログインモーダル（イベントページ・video.html と同じメールOTP方式） --
-     ⚠️見た目は CSS 変数に頼らずここで完結させる＝目次ページ（/wiring-journey.html）は
-        共通CSS を読み込まない設計なので、変数を使うと目次側で色が落ちる。 */
+  /* ---- ログインモーダル（イベントページ・video.html と同じメールOTP方式） -- 見た目は CSS 変数に頼らずここで完結させる＝目次ページ（/wiring-journey.html）は共通CSS を読み込まない設計なので、変数を使うと目次側で色が落ちる。 */
   var MODAL_CSS =
     '#jLoginModal{display:none;position:fixed;inset:0;background:#00000080;z-index:10000;' +
       'align-items:center;justify-content:center;padding:18px;' +
@@ -195,7 +171,7 @@
           b.disabled = false; b.textContent = 'ログイン';
           if (r.error) { err('コードが正しくないか、期限切れです。もう一度お試しください。'); return; }
           m.style.display = 'none';
-          /* 成功 → onAuthStateChange が拾って画面を作り直す */
+          /* 成功→ onAuthStateChange が拾って画面を作り直す */
         }).catch(function () {
           b.disabled = false; b.textContent = 'ログイン';
           err('確認に失敗しました。通信の状態をご確認ください。');
@@ -220,16 +196,14 @@
     }
   }
 
-  /* ログイン状態が変わったら、開いている画面を作り直す。
-     ⚠️購読は supabase を読んだ後にしか張れない＝門番が動く場面でだけ張る。 */
+  /* ログイン状態が変わったら、開いている画面を作り直す。購読は supabase を読んだ後にしか張れない＝門番が動く場面でだけ張る。 */
   var watching = false;
   function watchAuth(onChange) {
     if (watching) return;
     watching = true;
     supa().then(function (c) {
-      /* ⚠️onAuthStateChange のコールバック内で supabase を直接呼ぶと認証ロックで
-         デッドロックする（index.html に同じ旨の注釈あり）。setTimeout で外へ逃がす。
-         qualify() が rpc を呼ぶようになったため、この回避が必要になった。 */
+      /* onAuthStateChange のコールバック内で supabase を直接呼ぶと認証ロックでデッドロックする（index.html に同じ旨の注釈あり）。
+         setTimeout で外へ逃がす。qualify() が rpc を呼ぶようになったため、この回避が必要になった。 */
       c.auth.onAuthStateChange(function () { setTimeout(function () { qualify().then(onChange); }, 0); });
     }).catch(function () { /* 判定不能のときは張らない */ });
   }
@@ -275,7 +249,6 @@
     var old = col.querySelector('.j-gate');
     if (old) old.remove();
 
-    /* ⏳?preview=1 は state を問わず通す＝作業場で「先行中の見た目」ごと確かめられる */
     var pass = PREVIEW || (state === 'open') || (state === 'early' && q && q.owner);
     if (pass) {
       document.documentElement.classList.remove('j-locked');
