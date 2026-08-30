@@ -51,6 +51,9 @@
     var on = sc.on || {};
 
     function seg(a, b, c, d, e, f) { k.seg(a, b, c, d, e, f); }
+    /* ⭐横線は segH＝線を引いて、通電していれば横向きの黄点も流す。
+       ⚠️引数は【電源側→負荷側】の順（x1 が電源側）＝その並びが流れの向きになる。 */
+    function segH(x1, y, x2, id, thick, fallback) { k.segH(x1, y, x2, id, thick, fallback); }
     function label(x, y, t, col, anchor, size) { k.label(x, y, t, col, anchor, size); }
 
     /* 赤地に白抜きの札（第4回の道具）。⚠️1つの絵に1枚まで。 */
@@ -140,7 +143,9 @@
     s.push('<rect x="4" y="' + BOX_T + '" width="292" height="' + (BOX_B - BOX_T) + '" rx="10" fill="none" stroke="' + C.sub + '" stroke-width="1.6" stroke-dasharray="6 5"/>');
     label(8, BOX_T - 5, 'ヒューズ箱の中', C.sub, null, 11);
     /* 箱の中の渡り（F6の入り ⇔ F5の入り）＝VERDE は1本しか来ない */
-    seg(FX6, YBR, FX5, YBR, 'w02-03');
+    /* ⚠️中央から左右へ分かれる＝1本の横線では向きを表せないので、XC を起点に2本へ分ける */
+    segH(XC, YBR, FX6, 'w02-03');
+    segH(XC, YBR, FX5, 'w02-03');
     seg(XC, BOX_T, XC, YBR, 'w02-02');
     k.node(XC, YBR);
     seg(FX6, YBR, FX6, FZ, 'w02-03');
@@ -160,27 +165,27 @@
     seg(FX6, FB, FX6, Y_MID, 'w03-01');
 
     /* ① F5 → 右前の車幅灯（外側＝いちばん上） */
-    seg(FX5, Y_RF, XRF, Y_RF, 'w03-05');
+    segH(FX5, Y_RF, XRF, 'w03-05');
     seg(XRF, Y_RF, XRF, LF_T, 'w03-05');
     k.node(FX5, Y_RF);
     /* ② F6 → 右後のテール（⚠️ここで F5 の縦線とすれ違う＝node を打たない） */
-    seg(FX6, Y_RR, XRR, Y_RR, 'w03-02');
+    segH(FX6, Y_RR, XRR, 'w03-02');
     seg(XRR, Y_RR, XRR, LR_T, 'w03-02');
     k.node(FX6, Y_RR);
     /* ③ F6 → 左前の車幅灯 */
-    seg(FX6, Y_LF, XLF, Y_LF, 'w03-01');
+    segH(FX6, Y_LF, XLF, 'w03-01');
     seg(XLF, Y_LF, XLF, LF_T, 'w03-01');
     k.node(FX6, Y_LF);
     /* ④ F6 → 中央（メーターの緑とナンバー灯） */
-    seg(FX6, Y_MID, XMD, Y_MID, 'w03-03');
+    segH(FX6, Y_MID, XMD, 'w03-03');
     seg(XMD, Y_MID, XMD, LR_T + 14, 'w03-04');
     seg(XMD, Y_MID, XMD, 660, 'w03-03');
     k.node(XMD, 660);
-    seg(XMD, 660, XC, 660, 'w03-03');
+    segH(XMD, 660, XC, 'w03-03');
     seg(XC, 660, XC, LF_T, 'w03-03');
-    seg(XMD, LR_T + 14, XC - 24, LR_T + 14, 'w03-04');
+    segH(XMD, LR_T + 14, XC - 24, 'w03-04');
     /* ⑤ F5 → 左後のテール（⚠️ここで中央の縦線とすれ違う＝node を打たない） */
-    seg(FX5, Y_LR, XLR, Y_LR, 'w03-06');
+    segH(FX5, Y_LR, XLR, 'w03-06');
     seg(XLR, Y_LR, XLR, LR_T, 'w03-06');
 
     /* ⚠️⚠️色ラベルを横線の上に置くのは【この回では成立しない】＝5本の縦チャンネルを必ず貫く。

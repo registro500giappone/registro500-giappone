@@ -125,6 +125,19 @@
       else if (dir === 'up') this.dots(x1, Math.min(y1, y2) + 26, Math.max(y1, y2) - 6, true);
     }
   };
+  /* ⭐横に走る線＝seg と同じだが、通電していれば【横向きの黄点】も流す（2026-08-30）。
+     ⚠️⚠️seg は `x1 === x2` の条件で【縦線にしか】粒を打たない＝横線は各回が dotsH を
+        手で呼んで補う決まりだったが、呼び忘れた回（oil・key・ignition・horn・tail）で
+        流れが途切れて見えていた。⭐新しく作る回の横線はこれを使う。
+     ⚠️引数は【電源側→負荷側】の順（x1 が電源側）＝その並びが流れの向きになる。
+     ⛔既存の回を機械的に置き換えない＝dotsH を手で呼んでいる回（charge・starter・ground・
+        room・brake）では粒が二重になる。 */
+  Kit.prototype.segH = function (x1, y, x2, id, thick, fallback) {
+    this.seg(x1, y, x2, y, id, thick, fallback);
+    var c = this.wcol(id, fallback);
+    if (c.live && Math.abs(x2 - x1) >= 20)
+      this.dotsH(y, Math.min(x1, x2) + 8, Math.max(x1, x2) - 8, x2 > x1 ? 'right' : 'left');
+  };
   /* 絵の中の極性記号（＋・−）は細くて沈むので、太字にして拾いやすくする。
      ⚠️本文（HTML）側では「プラス端子／マイナス端子」と日本語で書く決まり（2026-08-25 ユーザー確定）。
         絵の中だけは幅が無いので記号のまま残し、代わりにここで太くしている。
