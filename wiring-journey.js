@@ -319,7 +319,13 @@
        draw     … function(kit, mode) → 図の高さ。kit.s に SVG を積む
        caps     … {STOP:…, RUN:…} トグルの説明文（キーは HTML の data-v と揃える）
        mainInputs … トグルの値 → solve に渡す inputs（既定＝{key:'ON', engine:v}）
+                    ⭐mainAxes を使う旅では、引数は値ではなく【軸ごとの状態オブジェクト】になる
        mainInit … トグルの初期値（既定 'STOP'）
+       mainAxes … ⭐独立して動かせるトグルが【2組以上】ある旅だけが使う（第8回＝ライトスイッチ×コラムレバー）。
+                  [{ key:'lights', init:'ON' }, { key:'beam', init:'LOW' }] の形。
+                  HTML 側のボタンに data-axis="lights" を付けると、その軸のボタンだけが排他になる。
+                  ⚠️これを持たない旅は従来どおり【全ボタンが1つの排他グループ】＝挙動は1バイトも変わらない。
+                  ⛔スイッチが1つしかない旅に足さない（押しても何も起きないボタンが増えるだけ）。
        checks   … 検算の配列 [{label, s:{alt,inputs,override}, expect}]
        scenes   … function(scenario) → [{id, sc, mode}]
        carmap   … function(layout, alt) → carMap の opts
@@ -340,15 +346,30 @@
     /* トグルが動かすもの＝ストーリーごとに違う。既定は「エンジン 停止↔回転」（第1・2回）。
        セルのストーリーは動かすのがスターターレバーなので cfg.mainInputs / cfg.mainInit で差し替える。 */
     function mainInputs(v) { return cfg.mainInputs ? cfg.mainInputs(v) : { key: 'ON', engine: v }; }
+    /* ⭐2軸以上の旅＝軸ごとに現在値を持つ。単軸の旅では axes が null で、従来の1値のまま動く。 */
+    var axes = cfg.mainAxes || null, st = null;
+    if (axes) { st = {}; for (var ai = 0; ai < axes.length; ai++) st[axes[ai].key] = axes[ai].init; }
+    function capOf(cur) { return typeof cfg.caps === 'function' ? cfg.caps(cur) : cfg.caps[cur]; }
     /* ⚠️押したボタンが画面上の同じ位置に留まるように補正する。
        第6回は従図の上にもトグルがあり、押すと【上の mainCap の文章量が変わって】
        いま見ている絵が上下に飛ぶ＝実機で「開閉で段ずれする」と報告された。 */
-    function setMain(v, anchor) {
+    function setMain(v, anchor, axis) {
       var y0 = anchor ? anchor.getBoundingClientRect().top : null;
       var btns = document.querySelectorAll('.toggle button');
-      for (var i = 0; i < btns.length; i++) btns[i].className = btns[i].getAttribute('data-v') === v ? 'on' : '';
-      put('j-main', scenario({ inputs: mainInputs(v) }), {});
-      var cap = document.getElementById('mainCap'); if (cap) cap.innerHTML = cfg.caps[v];
+      if (axes) {
+        /* ⭐軸ごとの排他＝押した軸のボタンだけ付け替える（他の軸の選択を落とさない） */
+        if (axis) st[axis] = v;
+        for (var i = 0; i < btns.length; i++) {
+          var bax = btns[i].getAttribute('data-axis');
+          if (!bax) continue;
+          btns[i].className = (st[bax] === btns[i].getAttribute('data-v')) ? 'on' : '';
+        }
+      } else {
+        for (var j = 0; j < btns.length; j++) btns[j].className = btns[j].getAttribute('data-v') === v ? 'on' : '';
+      }
+      var cur = axes ? st : v;
+      put('j-main', scenario({ inputs: mainInputs(cur) }), {});
+      var cap = document.getElementById('mainCap'); if (cap) cap.innerHTML = capOf(cur);
       if (y0 !== null) { var y1 = anchor.getBoundingClientRect().top; if (Math.abs(y1 - y0) > 0.5) window.scrollBy(0, y1 - y0); }
     }
 
@@ -382,7 +403,9 @@
 
       setMain(cfg.mainInit || 'STOP');
       var btns = document.querySelectorAll('.toggle button');
-      for (var i = 0; i < btns.length; i++) btns[i].addEventListener('click', function () { setMain(this.getAttribute('data-v'), this); });
+      for (var i = 0; i < btns.length; i++) btns[i].addEventListener('click', function () {
+        setMain(this.getAttribute('data-v'), this, this.getAttribute('data-axis'));
+      });
 
       (cfg.scenes ? cfg.scenes(scenario) : []).forEach(function (s) { put(s.id, s.sc, s.mode); });
       runChecks();

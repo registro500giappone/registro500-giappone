@@ -49,16 +49,30 @@ function runPage(page) {
   const htmlPath = path.join(REPO, page.html);
   if (!fs.existsSync(htmlPath)) return Promise.resolve({ id: page.id, missing: true });
   const html = fs.readFileSync(htmlPath, 'utf8');
-  /* トグルのボタンは HTML 側が持っている＝そこから data-v を拾う（決め打ちしない） */
+  /* トグルのボタンは HTML 側が持っている＝そこから data-v を拾う（決め打ちしない）。
+     ⚠️⚠️属性の【並び順】を決め打ちにしない＝第8回で data-axis を先に書いた瞬間、
+       旧 /<button\s+data-v="…"/ は1つも拾えなくなった（その46-4 と同じ空回りの穴）。
+       だから button タグを丸ごと拾ってから属性を取り出す。 */
   const toggles = [];
-  html.replace(/<button\s+data-v="([^"]+)"/g, function (_, v) { toggles.push(v); return _; });
+  html.replace(/<button([^>]*)>/g, function (_, attrs) {
+    const v = /data-v="([^"]+)"/.exec(attrs);
+    if (!v) return _;
+    const ax = /data-axis="([^"]+)"/.exec(attrs);
+    toggles.push({ v: v[1], axis: ax ? ax[1] : null });
+    return _;
+  });
 
   const els = {};
   const doc = {
     getElementById: function (id) { return (els[id] = els[id] || makeEl(id)); },
     querySelectorAll: function (sel) {
       if (sel === '.toggle button' || sel === '#tg button') {
-        els._btns = els._btns || toggles.map(function (v) { const b = makeEl('btn:' + v); b._attrs['data-v'] = v; return b; });
+        els._btns = els._btns || toggles.map(function (t) {
+          const b = makeEl('btn:' + t.v);
+          b._attrs['data-v'] = t.v;
+          if (t.axis) b._attrs['data-axis'] = t.axis;
+          return b;
+        });
         return els._btns;
       }
       return [];
@@ -91,11 +105,16 @@ function runPage(page) {
       const cells = tr.innerHTML.split(/<\/td>/).map(function (c) { return c.replace(/<[^>]*>/g, '').trim(); });
       return { label: cells[0], got: cells[1], want: cells[2], ok: tr.innerHTML.indexOf('check-ng') < 0 };
     });
-    /* スナップショット＝場面ごとの SVG。トグルは全ての値で1枚ずつ取る */
-    const snap = {};
+    /* スナップショット＝場面ごとの SVG。トグルは全ての値で1枚ずつ取る。
+       ⭐2軸の旅（data-axis 付き）は、押すと【他の軸の選択が残る】＝キーは押した値ではなく
+         その時点の全軸の状態にする。単軸の旅のキーは従来どおり値そのもの（差分が出ない）。 */
+    const snap = {}, axState = {};
     (els._btns || []).forEach(function (b) {
-      if (b._on) { b._on.call(b); snap['j-main@' + b._attrs['data-v']] = els['j-main'] ? els['j-main'].innerHTML : ''; }
-      snap['cap@' + b._attrs['data-v']] = els.mainCap ? els.mainCap.innerHTML : '';
+      const v = b._attrs['data-v'], ax = b._attrs['data-axis'];
+      if (ax) axState[ax] = v;
+      const key = ax ? Object.keys(axState).sort().map(function (k) { return k + '=' + axState[k]; }).join(',') : v;
+      if (b._on) { b._on.call(b); snap['j-main@' + key] = els['j-main'] ? els['j-main'].innerHTML : ''; }
+      snap['cap@' + key] = els.mainCap ? els.mainCap.innerHTML : '';
     });
     Object.keys(els).forEach(function (k) {
       if (k.indexOf('j-') === 0 && !snap['j-main@' + k]) snap[k] = els[k].innerHTML;
