@@ -225,13 +225,16 @@
     k.node(FX_R, YBR);
     k.fuseV(FX_L, FZ, pos.f4 === 'BLOWN');
     k.fuseV(FX_R, FZ, pos.f3 === 'BLOWN');
-    /* ヒューズの札は F4 が外向き・F3 が内向き＝外向きに揃えるとハイの縦線を貫く */
+    /* 札はそれぞれの管の【外側】へ置く＝2本のあいだに置くと、どちらの札か読めない。
+       F3 の右は HX_R（ハイの縦チャンネル）まで 64px しかないので、はみ出していないか図で見る。 */
     s.push('<text x="102" y="' + (FZ + 22) + '" font-size="12" fill="' + C.deep + '" text-anchor="end">F4（左）</text>');
     s.push('<text x="102" y="' + (FZ + 38) + '" font-size="11.5" font-weight="700" text-anchor="end" fill="'
       + (pos.f4 === 'BLOWN' ? C.hi : C.ok) + '">' + (pos.f4 === 'BLOWN' ? '切れている' : '生きている') + '</text>');
-    s.push('<text x="194" y="' + (FZ + 22) + '" font-size="12" fill="' + C.deep + '" text-anchor="end">F3（右）</text>');
-    s.push('<text x="194" y="' + (FZ + 38) + '" font-size="11.5" font-weight="700" text-anchor="end" fill="'
-      + (pos.f3 === 'BLOWN' ? C.hi : C.ok) + '">' + (pos.f3 === 'BLOWN' ? '切れている' : '生きている') + '</text>');
+    /* F3 の札はヒューズ箱の破線の囲いを跨ぐ＝地色で縁取って、線の上でも読めるようにする。 */
+    var EDGE = ' paint-order="stroke" stroke="#fffdf8" stroke-width="3.5" stroke-linejoin="round"';
+    s.push('<text x="230" y="' + (FZ + 22) + '" font-size="12" fill="' + C.deep + '"' + EDGE + '>F3（右）</text>');
+    s.push('<text x="230" y="' + (FZ + 38) + '" font-size="11" font-weight="700" fill="'
+      + (pos.f3 === 'BLOWN' ? C.hi : C.ok) + '"' + EDGE + '>' + (pos.f3 === 'BLOWN' ? '切れている' : '生きている') + '</text>');
 
     /* ヒューズ→左右のロービーム（横振りは短い＝ハイの縦線と交差させないため） */
     poly([[FX_L, FZ + 62], [FX_L, YLO], [XL + HRD, YLO], [XL + HRD, HD - 10]], k.wcol('w02-10', C.dim));
@@ -375,7 +378,17 @@
       for (var i = 0; i < sc.r.loads.length; i++) sc.on[sc.r.loads[i].id] = sc.r.loads[i].on;
     },
     /* 黄点の向き＝どれかの灯が点いていれば下向き（電源から灯へ） */
-    flow: function (sc) { return (sc.on['head_l.lo'] || sc.on['head_l.hi'] || sc.on['head_r.lo'] || sc.on['head_r.hi']) ? 'down' : null; },
+    /* ⚠️アース（w02-14/15）と表示灯のアース（w02-16）は【常に電位がある】＝
+       どれか1つでも点いていれば流す、では消えている側にも粒が出てしまう。id ごとに判じる。 */
+    flow: function (sc, id) {
+      var o = sc.on || {};
+      var L = o['head_l.lo'] || o['head_l.hi'];
+      var R = o['head_r.lo'] || o['head_r.hi'];
+      if (id === 'w02-14') return L ? 'down' : null;
+      if (id === 'w02-15') return R ? 'down' : null;
+      if (id === 'w02-16') return o['hi_ind'] ? 'down' : null;
+      return (L || R) ? 'down' : null;
+    },
     scenes: function (scenario) {
       return [
         { id: 'j-f4',    sc: scenario({ inputs: { lights: 'ON', beam: 'LOW', f4: 'BLOWN' } }), mode: {} },
