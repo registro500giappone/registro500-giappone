@@ -65,8 +65,11 @@
   /* 【折れ線に沿って黄点を流す】 seg() は【縦線にしか】黄点を打たない作りで（x1===x2 の条件）、横線と、path() で直に描いた折れ線の区間は、通電していても粒が1つも出ていなかった。
      第8回のハイビーム（レバーから左右へ直行する長い折れ線）が全区間まるごと空になり、「電気がどこを通ったのか」が絵から読めなくなっていた。
      点列は【電源側→負荷側】の順に渡す＝その並びがそのまま流れの向きになる。斜めの区間には打たない（CSSは上下左右の4方向しか持っていない＝斜めは向きを表せない）。
-     短い区間（20px未満）も飛ばす＝角に粒が団子になるだけで、流れには見えない。 */
-  Kit.prototype.dotsPoly = function (pts) {
+     短い区間（20px未満）も飛ばす＝角に粒が団子になるだけで、流れには見えない。
+     粒を出すかどうかは flow() に従う＝【線に電位が来ていること（live）だけでは流れていることにならない】。
+     スイッチを切っても電源側の線は live のまま＝そこで粒を流すと「切ったのに電気が走っている」絵になる。 */
+  Kit.prototype.dotsPoly = function (pts, id) {
+    if (!this.flow(id, pts[0][0], pts[0][1], pts[pts.length - 1][1])) return;
     for (var i = 0; i < pts.length - 1; i++) {
       var ax = pts[i][0], ay = pts[i][1], bx = pts[i + 1][0], by = pts[i + 1][1];
       if (ax === bx && ay !== by) {
@@ -104,7 +107,8 @@
   Kit.prototype.segH = function (x1, y, x2, id, thick, fallback) {
     this.seg(x1, y, x2, y, id, thick, fallback);
     var c = this.wcol(id, fallback);
-    if (c.live && Math.abs(x2 - x1) >= 20)
+    /* 縦線（seg）と同じ条件で判じる＝live だけでは流さない。flow() が向きを返したときだけ粒を出す。 */
+    if (c.live && this.flow(id, x1, y, y) && Math.abs(x2 - x1) >= 20)
       this.dotsH(y, Math.min(x1, x2) + 8, Math.max(x1, x2) - 8, x2 > x1 ? 'right' : 'left');
   };
   /* 絵の中の極性記号（＋・−）は細くて沈むので、太字にして拾いやすくする。本文（HTML）側では「プラス端子／マイナス端子」と日本語で書く決まり。
