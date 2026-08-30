@@ -58,6 +58,15 @@
     function path(d, col, w) {
       s.push('<path d="' + d + '" stroke="' + col + '" stroke-width="' + (w || 5) + '" fill="none" stroke-linecap="round" stroke-linejoin="round"/>');
     }
+    /* ⭐折れ線＝線を引いて、通電していれば黄点も流す（2026-08-30）。
+       ⚠️点は【電源側→負荷側】の順に並べる＝その並びがそのまま流れの向きになる。
+       ⛔path() を直に呼ぶのは「粒を流したくない線」だけにする（この回では交差の演出など無い＝全部 poly）。 */
+    function poly(pts, c, w) {
+      var d = 'M' + pts[0][0] + ',' + pts[0][1];
+      for (var i = 1; i < pts.length; i++) d += ' L' + pts[i][0] + ',' + pts[i][1];
+      path(d, c.col, w);
+      if (c.live) k.dotsPoly(pts);
+    }
 
     /* ---- 切断の印。⚠️赤は「切れている場所」ただ1つに取ってある（シリーズ共通の決まり） ---- */
     function xmark(cx, cy) {
@@ -129,7 +138,7 @@
     k.term(XC + 68, KT + 56, '30/4', 'r', true);
     seg(XC + 44, KT + KH, XC + 44, SW - 8, 'w02-01');
     var nc = k.wcol('w02-01', C.dim);
-    path('M' + (XC + 44) + ',' + (SW - 8) + ' L' + XC + ',' + (SW - 8) + ' L' + XC + ',' + SW, nc.col);
+    poly([[XC + 44, SW - 8], [XC, SW - 8], [XC, SW]], nc);
     label(4, SW - 38, 'NERO 黒＝', nc.dead ? C.dim : WC.NERO, null, 12);
     label(4, SW - 22, 'キーを抜いても生きている線', nc.dead ? C.dim : WC.NERO, null, 12);
 
@@ -151,7 +160,7 @@
 
     /* ライトスイッチ → ヒューズ F5・F6（車幅灯側）＝このストーリーの本線ではないので枝として描く */
     var vc = k.wcol('w02-02', C.dim);
-    path('M' + (XC - 62) + ',' + (SW + SH) + ' L' + (XC - 62) + ',' + (SW + SH + 18) + ' L' + (XC - 106) + ',' + (SW + SH + 18), vc.col);
+    poly([[XC - 62, SW + SH], [XC - 62, SW + SH + 18], [XC - 106, SW + SH + 18]], vc);
     s.push('<rect x="' + (XC - 126) + '" y="' + (SW + SH + 8) + '" width="20" height="20" rx="3" fill="none" stroke="' + (vc.dead ? C.dim : C.deep) + '" stroke-width="2.5"/>');
     label(4, SW + SH + 46, 'VERDE 緑 → ヒューズ F5・F6', vc.dead ? C.dim : WC.VERDE, null, 11);
     label(4, SW + SH + 60, '→ 車幅灯・ナンバー灯', C.sub, null, 11);
@@ -194,17 +203,15 @@
     /* ================= ハイビーム＝コラムレバーから直接（ヒューズを通らない） ================= */
     var hlc = k.wcol('w02-11', C.dim), hrc = k.wcol('w02-12', C.dim);
     /* 右ハイ：箱を出て右の外へ。⚠️ここだけロー本線を跨ぐ＝図の中で唯一の交差（node は打たない） */
-    path('M' + P_HI + ',' + (CM + CH) + ' L' + P_HI + ',' + YHR + ' L' + HX_R + ',' + YHR
-      + ' L' + HX_R + ',' + YHI + ' L' + (XR + HRD) + ',' + YHI + ' L' + (XR + HRD) + ',' + (HD - 10), hrc.col);
+    poly([[P_HI, CM + CH], [P_HI, YHR], [HX_R, YHR], [HX_R, YHI], [XR + HRD, YHI], [XR + HRD, HD - 10]], hrc);
     /* 左ハイ：箱を出て左の外へ */
     if (m.cutHiL) {
       var my = (YHL + YHI) / 2;
-      path('M' + P_HI + ',' + (CM + CH) + ' L' + P_HI + ',' + YHL + ' L' + HX_L + ',' + YHL + ' L' + HX_L + ',' + (my - 13), hlc.col);
-      path('M' + HX_L + ',' + (my + 13) + ' L' + HX_L + ',' + YHI + ' L' + (XL - HRD) + ',' + YHI + ' L' + (XL - HRD) + ',' + (HD - 10), hlc.col);
+      poly([[P_HI, CM + CH], [P_HI, YHL], [HX_L, YHL], [HX_L, my - 13]], hlc);
+      poly([[HX_L, my + 13], [HX_L, YHI], [XL - HRD, YHI], [XL - HRD, HD - 10]], hlc);
       xmark(HX_L, my);
     } else {
-      path('M' + P_HI + ',' + (CM + CH) + ' L' + P_HI + ',' + YHL + ' L' + HX_L + ',' + YHL
-        + ' L' + HX_L + ',' + YHI + ' L' + (XL - HRD) + ',' + YHI + ' L' + (XL - HRD) + ',' + (HD - 10), hlc.col);
+      poly([[P_HI, CM + CH], [P_HI, YHL], [HX_L, YHL], [HX_L, YHI], [XL - HRD, YHI], [XL - HRD, HD - 10]], hlc);
     }
     k.term(P_HI, CM + CH + 12, '56/a1', 'l');
 
@@ -212,7 +219,7 @@
     (function highIndicator() {
       var lit = !!on['hi_ind'], ix = 60;
       k.node(HX_L, IND_Y);
-      path('M' + HX_L + ',' + IND_Y + ' L' + (ix - 22) + ',' + IND_Y, k.wcol('w02-13', C.dim).col, 4);
+      poly([[HX_L, IND_Y], [ix - 22, IND_Y]], k.wcol('w02-13', C.dim), 4);
       s.push('<rect x="' + (ix - 22) + '" y="' + (IND_Y - 13) + '" width="44" height="26" rx="5" fill="' + (lit ? '#3f7fd0' : '#eae4d5') + '" stroke="' + (lit ? '#8fc0ff' : '#c3bba6') + '" stroke-width="2"/>');
       s.push('<text x="' + ix + '" y="' + (IND_Y + 4.5) + '" font-size="11" font-weight="700" fill="' + (lit ? '#fffdf8' : '#a89f8b') + '" text-anchor="middle">ハイ</text>');
       s.push('<text x="' + (ix + 28) + '" y="' + (IND_Y + 4.5) + '" font-size="10.5" fill="' + (lit ? C.deep : C.sub) + '">表示灯</text>');
@@ -234,8 +241,8 @@
     s.push('<rect x="100" y="' + BOX_T + '" width="140" height="' + (BOX_B - BOX_T) + '" rx="10" fill="none" stroke="' + C.out + '" stroke-width="2" stroke-dasharray="6 5"/>');
     label(106, BOX_T + 24, 'ヒューズ箱の中', C.sub, null, 11);
     var c8 = k.wcol('w02-08', C.dim);
-    path('M' + FX_R + ',' + YBR + ' L' + FX_L + ',' + YBR + ' L' + FX_L + ',' + FZ
-      + ' M' + FX_R + ',' + YBR + ' L' + FX_R + ',' + FZ, c8.col);
+    poly([[FX_R, YBR], [FX_L, YBR], [FX_L, FZ]], c8);
+    poly([[FX_R, YBR], [FX_R, FZ]], c8);
     k.node(FX_R, YBR);
     k.fuseV(FX_L, FZ, pos.f4 === 'BLOWN');
     k.fuseV(FX_R, FZ, pos.f3 === 'BLOWN');
@@ -248,10 +255,8 @@
       + (pos.f3 === 'BLOWN' ? C.hi : C.ok) + '">' + (pos.f3 === 'BLOWN' ? '切れている' : '生きている') + '</text>');
 
     /* ヒューズ → 左右のロービーム（横振りは短い＝ハイの縦線と交差させないため） */
-    path('M' + FX_L + ',' + (FZ + 62) + ' L' + FX_L + ',' + YLO + ' L' + (XL + HRD) + ',' + YLO
-      + ' L' + (XL + HRD) + ',' + (HD - 10), k.wcol('w02-10', C.dim).col);
-    path('M' + FX_R + ',' + (FZ + 62) + ' L' + FX_R + ',' + YLO + ' L' + (XR - HRD) + ',' + YLO
-      + ' L' + (XR - HRD) + ',' + (HD - 10), k.wcol('w02-09', C.dim).col);
+    poly([[FX_L, FZ + 62], [FX_L, YLO], [XL + HRD, YLO], [XL + HRD, HD - 10]], k.wcol('w02-10', C.dim));
+    poly([[FX_R, FZ + 62], [FX_R, YLO], [XR - HRD, YLO], [XR - HRD, HD - 10]], k.wcol('w02-09', C.dim));
 
     /* ================= ヘッドライト（1つの電球に2本のフィラメント） ================= */
     function lens(cx, loOn, hiOn, name, side) {

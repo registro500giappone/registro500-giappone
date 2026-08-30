@@ -83,6 +83,26 @@
     for (var x = x1; x <= x2; x += 22)
       this.s.push('<circle class="dot ' + dir + '" cx="' + x + '" cy="' + y + '" r="4.6"/>');
   };
+  /* ⭐【折れ線に沿って黄点を流す】（2026-08-30・ユーザー指摘「途中の電気の流れが見えない」）
+     ⚠️⚠️seg() は【縦線にしか】黄点を打たない作りで（x1===x2 の条件）、横線と、path() で
+        直に描いた折れ線の区間は、通電していても粒が1つも出ていなかった。
+        第8回のハイビーム（レバーから左右へ直行する長い折れ線）が全区間まるごと空になり、
+        「電気がどこを通ったのか」が絵から読めなくなっていた。
+     ⭐点列は【電源側→負荷側】の順に渡す＝その並びがそのまま流れの向きになる。
+     ⛔斜めの区間には打たない（CSSは上下左右の4方向しか持っていない＝斜めは向きを表せない）。
+     ⚠️短い区間（20px未満）も飛ばす＝角に粒が団子になるだけで、流れには見えない。 */
+  Kit.prototype.dotsPoly = function (pts) {
+    for (var i = 0; i < pts.length - 1; i++) {
+      var ax = pts[i][0], ay = pts[i][1], bx = pts[i + 1][0], by = pts[i + 1][1];
+      if (ax === bx && ay !== by) {
+        var lo = Math.min(ay, by), hi = Math.max(ay, by);
+        if (hi - lo >= 20) this.dots(ax, lo + 8, hi - 8, by < ay);
+      } else if (ay === by && ax !== bx) {
+        var l = Math.min(ax, bx), r = Math.max(ax, bx);
+        if (r - l >= 20) this.dotsH(ay, l + 8, r - 8, bx > ax ? 'right' : 'left');
+      }
+    }
+  };
   /* 流れの向きの規則。既定＝灯が点いていれば下向き（放電の向き）。
      ストーリーごとに別の流れ（充電の戻りなど）があれば cfg.flow で上書きする。 */
   Kit.prototype.flow = function (id, x, y1, y2) {
