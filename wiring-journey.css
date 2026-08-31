@@ -93,6 +93,20 @@ th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;background:va
 th{color:var(--deep)}
 td.ok{color:var(--ok);font-weight:700}
 td.ng{color:var(--hi);font-weight:700}
+/* 「消え方の一覧」の表（第8回）＝3列のままだと狭い画面で1列目が2文字幅まで潰れる。
+   1行を1枚のカードに崩し、消え方を見出し帯・残り2つをラベル付きで縦に読ませる
+   （2026-08-31 ユーザー確認の実機スクショで決定）。data-l がラベルの正本。 */
+table.dx,table.dx tbody,table.dx tr,table.dx td{display:block;width:auto}
+table.dx{border:0}
+table.dx tr:first-child{display:none}   /* 見出し行は td の data-l が受ける */
+table.dx tr{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:8px}
+table.dx td{border:0;border-top:1px solid var(--line);padding:7px 10px}
+table.dx td:first-child{border-top:0;background:var(--bg);font-size:14px}
+table.dx td::before{content:attr(data-l);display:block;font-size:11px;color:var(--sub);
+  letter-spacing:.06em;font-weight:400;margin-bottom:2px}
+table.dx td:first-child::before{display:none}
+
+
 /* 黄点＝通電。点滅ではなく「流す」（2026-08-20 フィードバック）。.up は充電で戻る向き */
 .dot{fill:var(--flow)}
 @media (prefers-reduced-motion: no-preference){
