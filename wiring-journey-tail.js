@@ -104,15 +104,20 @@
     label(XC + 14, KT + 100, 'NERO 黒', C.sub, null, 11);
 
     /* ===== ライトスイッチ ===== */
-    s.push('<rect x="' + (XC - 88) + '" y="' + SW + '" width="176" height="' + SH + '" rx="10" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
-    s.push('<text x="' + (XC - 78) + '" y="' + (SW + 20) + '" font-size="12" font-weight="700" fill="' + C.in_ + '">ライトスイッチ</text>');
-    s.push('<text x="' + (XC - 78) + '" y="' + (SW + 37) + '" font-size="10.5" fill="' + C.in_ + '">ダッシュの引きスイッチ。入／切の2位置</text>');
-    /* 接点（縦につながる） */
-    s.push('<circle cx="' + XC + '" cy="' + (SW + 50) + '" r="3.8" fill="' + C.in_ + '"/>');
-    s.push('<circle cx="' + XC + '" cy="' + (SW + 68) + '" r="3.8" fill="' + C.in_ + '"/>');
-    if (lightOn) s.push('<path d="M' + XC + ',' + (SW + 50) + ' L' + XC + ',' + (SW + 68) + '" stroke="' + C.in_ + '" stroke-width="3.5"/>');
-    else s.push('<path d="M' + XC + ',' + (SW + 50) + ' L' + (XC + 13) + ',' + (SW + 66) + '" stroke="' + C.in_ + '" stroke-width="3.5"/>');
-    s.push('<text x="' + (XC + 30) + '" y="' + (SW + 63) + '" font-size="10.5" fill="' + C.in_ + '">' + (lightOn ? '入' : '切') + '</text>');
+    /* ダッシュのトグル（入／切の2位置）。第8回と同じ部品なので、同じ形・同じ座標で描く。
+       この絵の「切」「入」が、この回で唯一の操作面＝押せるようにする透明な板は draw の最後に重ねる。 */
+    (function lightSwitch() {
+      var bx = XC - 80, bw = 160;
+      s.push('<rect x="' + bx + '" y="' + SW + '" width="' + bw + '" height="' + SH + '" rx="10" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
+      s.push('<text x="' + XC + '" y="' + (SW + 19) + '" font-size="12" fill="#fffdf8" text-anchor="middle">ライトスイッチ</text>');
+      s.push('<text x="' + XC + '" y="' + (SW + 33) + '" font-size="10.5" fill="' + C.in_ + '" text-anchor="middle">ダッシュ・入／切（部品24）</text>');
+      var STEP = [['OFF', '切'], ['ON', '入']];
+      for (var i = 0; i < 2; i++) {
+        var sx = bx + 45 + i * 70, cur = (lightOn === (STEP[i][0] === 'ON'));
+        s.push('<rect x="' + (sx - 24) + '" y="' + (SW + 42) + '" width="48" height="24" rx="5" fill="' + (cur ? C.in_ : 'none') + '" stroke="' + C.in_ + '" stroke-width="1.6"/>');
+        s.push('<text x="' + sx + '" y="' + (SW + 58) + '" font-size="11" font-weight="' + (cur ? '700' : '400') + '" fill="' + (cur ? C.deep : C.in_) + '" text-anchor="middle">' + STEP[i][1] + '</text>');
+      }
+    })();
 
     seg(XC, SW + SH, XC, BOX_T, 'w02-02');
     label(XC + 14, SW + SH + 22, 'VERDE 緑', C.sub, null, 11);
@@ -205,7 +210,19 @@
        F5 の側（右）に置くと図幅（300）からはみ出し、内側へ寄せると F5 の縦線を貫く。 */
     if (m.f5) chip(4, BOX_T - 26, 'F5 が切れた');
     else if (m.f6) chip(4, BOX_T - 26, 'F6 が切れた');
-    else if (m.off) chip(XC - 88, SW - 14, 'ライトスイッチが切');
+    else if (m.off) chip(XC - 80, SW - 14, 'ライトスイッチが切');
+
+    /* 絵の中のスイッチを直接押せるようにする＝透明な当たり判定の板を、いちばん最後に（＝いちばん上に）重ねる。
+       fill="transparent" にする（"none" だとクリックが素通りする）。主図のときだけ描く＝紙芝居のコマに押せる板を置くと、押しても何も起きず読者を惑わす。
+       箱の見出しの帯より下は、ボタンの絵（48×24）だけでなく【箱の幅いっぱい・下端まで】を当たり判定にする＝押したのに反応しない帯を作らない。 */
+    if (m.main) {
+      var hit = function (x, y, w, h, set, tip) {
+        s.push('<rect class="hit" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h
+          + '" rx="6" fill="transparent" data-set="' + set + '"><title>' + tip + '</title></rect>');
+      };
+      hit(70, SW + 38, 80, SH - 38, 'OFF', 'ライトスイッチを切る');
+      hit(150, SW + 38, 80, SH - 38, 'ON', 'ライトスイッチを入れる');
+    }
 
     return 920;
   }
