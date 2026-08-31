@@ -3720,3 +3720,39 @@ JS版数 `ignition.js` → `d27ef10d`（`ignition.html` の `?v=` も更新）�
 
 💡⭐⭐**外まで効く教訓＝「黄点が無い」には2種類ある。【流れていないから無い】と【線が短くて置けないから無い】。**後者は仕様の穴で、**絵は嘘をつく**（点いている負荷のアースが「電気が来ていない」ように見える）。⛔**表現の規則（両端に余白を取る）を入れたら、その規則が成り立たない大きさの図形が既にどこかに居ないかを必ず数える。**
 💡⭐**ユーザーの「〜していない？」という問いは、たいてい実装の穴の報告である**（その92・その96 と同じ形で3度目＝いずれも「アースに粒が無い」）。
+
+### その112 ⭐⭐⭐**コラムレバーの中身が原典で解明された＝純正整備解説書に、接点機構もパッシングの条件も書いてあった**（2026-08-31・ユーザー指示「web調査で実態を解明」）
+
+**① まず第8回の文を推奨案で直した**（ユーザー承認）
+
+| 直した点 | 前 → 後 |
+|---|---|
+| 出典 | 「**原典も**この部品を…と呼んでいて」→ 「**500D の取扱説明書は**…」（⚠️`lampi luce anabbaglianti` は D 取説の語。F/L の**取説操作ページ**は `sui proiettori` で違う） |
+| 読めない対象 | 「その道は**原典の図では読み切れない**ため」→ 「ただし、その道が**コラムレバーの中でどの接点を通っているのか**は、配線図からは読み取れません」 |
+
+**② ⭐調査で見つけた資料＝`registro500-notes\manuals\FD Ricambi\Fiat 500 D Reparaturanleitung (DE).pdf` の p273〜275**
+
+**純正の FIAT 整備解説書**（"FIAT - NEUER 500 LIMOUSINE UND SPORT"）。**手元にあった。**⭐**web 調査の最大の成果は「何を探せばいいか」が分かったこと**で、答えはローカルの一次資料にあった（`Lenkstockschalter`／`Lichthupe` という**ドイツ語の語**が分かって初めて引けた）。
+
+**③ ⭐⭐⭐ 分かったこと（すべて原典の記述）**
+
+- **レバー3段の中身**＝**I**: ナンバー灯・車幅灯・テール／**II**: それ＋**ロービーム**／**III**: それ＋**ハイビーム**。⭕**I で車幅灯が点く**＝第8回の絵の3接点（ハイ／車幅灯／ロー）と一致。
+- ⭐**注記**：`Der Umschalter der Aussenbeleuchtung wird durch den **Hauptschalter am Instrumentenbrett** unter Strom gesetzt.`＝**切替器はダッシュの主スイッチから通電される**⇒ 記事の「ライトスイッチが入っていなければ、レバーをどこへ倒しても点かない」は**原典どおり**。
+- ⭐⭐⭐**パッシングの条件**：`**Mit Ausnahme der Stellung II** kann der Hebel in allen übrigen Stellungen **gegen das Lenkrad** gekippt werden, um Scheinwerferblinksignale (**mit dem Abblendlicht**) zu erzielen.`
+  ⇒ ⭕**「II を除く」全位置でパッシングできる**／⭕**倒す向きは「ステアリング側へ」＝引く**（D取説 `verso il volante` と一致・F/L の `verso l'alto` ではない）／⭕**光るのはロービーム**。
+- ⭐**内部の接点機構**：`Die verschiedenen elektrischen Anschlüsse erfolgen durch **federnde Kontaktbrücken an je einer drehbaren Schalttrommel** sowie durch **feste Kontakte, die in isolierenden Scheiben aus Kunststoff eingebettet sind**.`＝**回転する切替ドラムのバネ式接点ブリッジ**と、**樹脂の絶縁ディスクに埋めた固定接点**。
+- ⭐**パッシングだけは別機構**＝故障の項に `**Druckstift** zur Verstellung des **beweglichen, elastischen Kontakts der Lichthupe**` と `**Kontaktfläche der drehbaren Schalttrommel, die auf den Druckstift einwirkt**`。⇒ **レバーを引く→ドラムが傾く→ドラムの接触面が押しピンを押す→パッシング用の弾性接点が閉じる**。⭐**II が除外されるのは、その位置にドラムの接触面が無いから**＝**機構として除かれている。**
+- ⭐**故障の3類型**（記事の切り分けに使える）：①パッシングの接点が不規則＝ドラムの遊び・接点やブリッジの摩耗・ブリッジの固着・押しバネの折損 ②⭐**どの位置でもロービームが点きっぱなし＝押しピンが戻らない／弾性接点のへたり** ③パッシングが効かない＝可動接点の折損・接点の酸化・押しピンの摩耗・ドラム接触面の摩耗・**固定接点の配線外れ**。
+
+**④ ⚠️⚠️【その107 ② の訂正】「II で効かないのは観測で説明できる（機構的に排除する接点は要らない）」は誤りだった**
+
+その107 ② では「原典は明言していない」として、**II でも接点は効くが変化が見えないだけ**という説明を採った。⇒ ⛔**原典は `Mit Ausnahme der Stellung II` と明記しており、機構としても除外されている。**⭕**ユーザーの当初の見立て「ロービーム点灯中はレバーを引いてもパッシングにならない」が正しい。**
+💡⭐⭐**外まで効く教訓＝「原典が明言していない」は、その資料を読み切ったという意味でしかない。**シリーズの別の一冊（整備解説書）に明記されていた。⛔**推論で穴を埋める前に、資料の棚をもう一段見る**（その107 の R型ヒューズ・その108 のヒューズ表に続いて**3度目**）。
+
+**⑤ ⏳残る未確定＝パッシングの給電が7端子のどれか**
+
+⭐**コミュテータの端子は7つ**（`d_netlist.md` より）＝`56/a1`←VERDE E NERO（左ハイ）／`56/a2`←VERDE（右ハイ）／`56b`←GRIGIO（ロー）／`30/2`←ROSA・`30/3`←MARRONE（F6・F5 から）／`INT`←NERO ／`C`←BIANCO。
+ドイツの 500forum.de は「**パッシングを担うのは 56b（灰）と INT（黒）**」とし、色は台帳と一致する。一方 `C`←BIANCO は**常時電源系の色**で、`d_netlist` は `INT` を**計器盤の照明ランプ**にもつないでいる（「照明ランプ13←NERO×2（片方は11のINTから）」）。⚠️**整備解説書は端子名を書いていない**ため、**C と INT のどちらがパッシングの給電かは未確定**。⏳次に当たるなら **500forum.de の原文**（今回は socket hang up で読めず）と **Haynes 500L p136**（fiatforum で引用されていた）。
+💡**web で拾った「ドイツ市場向けの車では INT 端子にケーブルが接続されていなかった」という注記も未検証**（出典を特定できていない）。
+
+**⑥ ⚠️型式の範囲**＝この解説書は **D 型**（Nuova 500 セダン/スポーツ）。⚠️部品商では**コラムスイッチは F/L/R 用が別部品**（fiatparts.de「Lenkstockschalter 500 F/L/R」・OEM 4207590/4207591/4204098・**11本結線**）＝⛔**D の内部構造をそのまま F/L/R に当てない。**⭕ただし**配線図の凡例は F・L とも `Commutatore illuminazione esterna e lampi luce anabbaglianti`（＝ロービームのパッシング）**で、機能は同じ（autoricambiugon.it の F 版・L 版 PDF で確認）。
