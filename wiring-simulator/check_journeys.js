@@ -3,6 +3,7 @@
  *   node check_journeys.js              … 全旅ページの検算を実行して ✓/✗ を出す
  *   node check_journeys.js --snapshot   … 各場面の SVG を .snapshots/ へ書き出す
  *   node check_journeys.js --diff       … 前回のスナップショットと突き合わせる（回帰検証）
+ *   node check_journeys.js --dots       … 【通電しているのに黄点が1つも出ない線】を洗い出す
  *
  * ⚠️なぜ要るか（HANDOFF §0 その3・その4の教訓）：
  *   共通ランタイム（wiring-journey.js）や wiring-sim.js・wiring-net.json を触ると、
@@ -14,6 +15,31 @@ const fs = require('fs');
 const vm = require('vm');
 const path = require('path');
 const REPO = path.join(__dirname, '..');
+
+/* ---- --dots ＝【通電しているのに黄点が1つも出ない線】を探す ----
+ * なぜ要るか（その111 の教訓）：seg() の黄点は線の両端に 6px と 26px の余白を取るので、
+ * 【31px 以下の線には黄点が1つも打てない】。第8回のハイビーム表示灯のアースが 13px しかなく、
+ * 「点いているのに電気が流れていない」ようにユーザーの目に映った。
+ * ⭐数え方は【線ID単位】＝同じ線の他の区間に黄点があれば流れは読めるので咎めない。
+ * ⚠️本番の wiring-journey.js には計測を入れない＝ここで読み込む文字列だけを加工する。 */
+const DOTS = process.argv.indexOf('--dots') >= 0;
+function instrument(src) {
+  const jobs = [[`      var dir = this.flow(id, x1, y1, y2);
+      if (dir === 'down')`, `      var dir = this.flow(id, x1, y1, y2);
+      if (dir) { var G=(globalThis.__G=globalThis.__G||{f:{},d:{}}); G.f[id]=1; if (Math.abs(y2-y1) >= HEAD+TAIL) G.d[id]=1; }
+      if (dir === 'down')`],
+                [`    if (c.live && this.flow(id, x1, y, y) && Math.abs(x2 - x1) >= HEAD + TAIL) {`, `    if (c.live && this.flow(id, x1, y, y)) { var G=(globalThis.__G=globalThis.__G||{f:{},d:{}}); G.f[id]=1; if (Math.abs(x2-x1) >= HEAD+TAIL) G.d[id]=1; }
+    if (c.live && this.flow(id, x1, y, y) && Math.abs(x2 - x1) >= HEAD + TAIL) {`],
+                [`    if (!this.flow(id, pts[0][0], pts[0][1], pts[pts.length - 1][1])) return;`, `    if (!this.flow(id, pts[0][0], pts[0][1], pts[pts.length - 1][1])) return;
+    { var G=(globalThis.__G=globalThis.__G||{f:{},d:{}}); G.f[id]=1; for (var q=0;q<pts.length-1;q++){ var qa=pts[q], qb=pts[q+1];
+      if ((qa[0]===qb[0] && Math.abs(qa[1]-qb[1])>=HEAD+TAIL) || (qa[1]===qb[1] && Math.abs(qa[0]-qb[0])>=HEAD+TAIL)) G.d[id]=1; } }`]];
+  for (const j of jobs) {
+    /* ⚠️置換に失敗したら黙って検査が効かなくなる＝必ず落とす */
+    if (src.split(j[0]).length - 1 !== 1) throw new Error('--dots の計測を差し込めない（wiring-journey.js の書き方が変わった）');
+    src = src.replace(j[0], j[1]);
+  }
+  return src;
+}
 const SNAPDIR = path.join(__dirname, '.snapshots');
 
 /* 旅ページの一覧＝HTMLとその旅のJS。増えたらここに足す */
@@ -93,8 +119,11 @@ function runPage(page) {
   };
   ctx.Promise = Promise;
   vm.createContext(ctx);
-  for (const f of ['wiring-sim.js', 'wiring-journey.js', page.js])
-    vm.runInContext(fs.readFileSync(path.join(REPO, f), 'utf8'), ctx, { filename: f });
+  for (const f of ['wiring-sim.js', 'wiring-journey.js', page.js]) {
+    let src = fs.readFileSync(path.join(REPO, f), 'utf8');
+    if (DOTS && f === 'wiring-journey.js') src = instrument(src);
+    vm.runInContext(src, ctx, { filename: f });
+  }
 
   /* boot() の中の fetch チェーンが解けるまで待つ（layout → carMap が最後） */
   return new Promise(function (res) { setTimeout(res, 0); }).then(function () {
@@ -121,6 +150,12 @@ function runPage(page) {
       if (k === 'carmap') snap[k] = els[k].innerHTML + '|vb=' + els[k]._attrs.viewBox;
     });
     snap['_checks'] = rows.map(function (r) { return r.label + '=' + r.got; }).join('\n');
+    if (DOTS) {
+      const G = ctx.__G || { f: {}, d: {} };
+      const gaps = Object.keys(G.f).filter(function (k) { return !G.d[k]; });
+      console.log(gaps.length ? '  ⚠️黄点が1つも出ない通電線 [' + page.id + '] ' + gaps.join(', ')
+                              : '  ・黄点の抜けなし [' + page.id + ']');
+    }
     return { id: page.id, rows: rows, snap: snap };
   });
 }

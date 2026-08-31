@@ -73,9 +73,9 @@
       s.push('<text x="110" y="398" font-size="10.5" fill="'+C.in_+'" text-anchor="middle">（3端子式）</text>');
       label(X-12,352,'D+',C.deep,'end',12); label(176,380,'B+',C.deep,null,12);
       s.push('<text x="110" y="418" font-size="10.5" fill="'+C.in_+'" text-anchor="middle">'+(pos.alternator==='RUN'?'発電中＝D+はB+の高さ':'停止中＝D+はアース近傍')+'</text>');
-      /* 本体アース（pga-04）＝ブラケット接地 */
-      seg(X,430,X,458,'pga-04',false,WC.NERO);
-      ground(X,458,'車体アース');
+      /* 本体アース（pga-04）＝ブラケット接地。⚠️長さ32px以上（理由は w11-09 の注記） */
+      seg(X,430,X,464,'pga-04',false,WC.NERO);
+      ground(X,464,'車体アース');
       label(X+24,488,'本体はブラケットで接地',C.sub,null,11);
       if(mode.suspect) k.suspect(30,322,212,168,514);
       if(mode.probes){
@@ -133,8 +133,10 @@
     s.push('<text x="110" y="524" font-size="10" fill="'+C.in_+'" text-anchor="middle">'+(arm?'いまは通じている':'回転中は通じない')+'</text>');
 
     /* ダイナモ−→車体（w11-09） */
-    seg(X,528,X,558,'w11-09');
-    ground(X,558,'車体アース');
+    /* ⚠️アース線は 32px 以上にする＝seg() の粒は両端に 6px と 26px の余白を取るので、
+       31px 以下だと通電していても粒が1つも打てず「流れていない」ように見える（第8回の表示灯で指摘された。その111）。 */
+    seg(X,528,X,562,'w11-09');
+    ground(X,562,'車体アース');
 
     /* 容疑区間の囲み */
     if(mode.suspect) k.suspect(30,322,212,264,608);
