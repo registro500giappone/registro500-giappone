@@ -54,6 +54,10 @@
     /* raw＝状態を無視した被覆の色。白い線の縁取り（outline）が「薄くなった白」も見分けられるように残す＝縁が消えると、白線だけ【線ごと無くなった】ように見える。 */
     return { col: dead ? C.dim : col, live: (st === 'hot' || st === 'gnd'), raw: col, dead: dead };
   };
+  /* 粒の内側寄せ＝【進む先には 22px より広い余白を残す】。粒は CSS で 1秒に 22px 進むので（@keyframes flowdown 他）、
+     終端の余白が 8px しか無いと、最後の粒が線の端から 14px 先まで出ていく＝線の無いところを電気が走って見える。
+     入り口側は 6px（角の団子を避ける最小）、出口側は 26px（22＋4）。seg() の縦線が最初からこの比で打っているのと同じ規則。 */
+  var HEAD = 6, TAIL = 26;
   Kit.prototype.dots = function (x, y1, y2, up) {          /* 縦線に流れる黄点（CSSで縦に動く） */
     for (var y = y1; y <= y2; y += 22)
       this.s.push('<circle class="' + (up ? 'dot up' : 'dot') + '" cx="' + x + '" cy="' + y + '" r="4.6"/>');
@@ -73,11 +77,11 @@
     for (var i = 0; i < pts.length - 1; i++) {
       var ax = pts[i][0], ay = pts[i][1], bx = pts[i + 1][0], by = pts[i + 1][1];
       if (ax === bx && ay !== by) {
-        var lo = Math.min(ay, by), hi = Math.max(ay, by);
-        if (hi - lo >= 20) this.dots(ax, lo + 8, hi - 8, by < ay);
+        var lo = Math.min(ay, by), hi = Math.max(ay, by), up = by < ay;
+        if (hi - lo >= HEAD + TAIL) this.dots(ax, lo + (up ? TAIL : HEAD), hi - (up ? HEAD : TAIL), up);
       } else if (ay === by && ax !== bx) {
-        var l = Math.min(ax, bx), r = Math.max(ax, bx);
-        if (r - l >= 20) this.dotsH(ay, l + 8, r - 8, bx > ax ? 'right' : 'left');
+        var l = Math.min(ax, bx), r = Math.max(ax, bx), right = bx > ax;
+        if (r - l >= HEAD + TAIL) this.dotsH(ay, l + (right ? HEAD : TAIL), r - (right ? TAIL : HEAD), right ? 'right' : 'left');
       }
     }
   };
@@ -108,8 +112,10 @@
     this.seg(x1, y, x2, y, id, thick, fallback);
     var c = this.wcol(id, fallback);
     /* 縦線（seg）と同じ条件で判じる＝live だけでは流さない。flow() が向きを返したときだけ粒を出す。 */
-    if (c.live && this.flow(id, x1, y, y) && Math.abs(x2 - x1) >= 20)
-      this.dotsH(y, Math.min(x1, x2) + 8, Math.max(x1, x2) - 8, x2 > x1 ? 'right' : 'left');
+    if (c.live && this.flow(id, x1, y, y) && Math.abs(x2 - x1) >= HEAD + TAIL) {
+      var right = x2 > x1, l = Math.min(x1, x2), r = Math.max(x1, x2);
+      this.dotsH(y, l + (right ? HEAD : TAIL), r - (right ? TAIL : HEAD), right ? 'right' : 'left');
+    }
   };
   /* 絵の中の極性記号（＋・−）は細くて沈むので、太字にして拾いやすくする。本文（HTML）側では「プラス端子／マイナス端子」と日本語で書く決まり。
      絵の中だけは幅が無いので記号のまま残し、代わりにここで太くしている。サイズは変えない＝変えると隣のラベルと重なるため（重なりは getBBox で数値判定する作法） */

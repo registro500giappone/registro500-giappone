@@ -126,7 +126,7 @@
     k.term(X, MY, '−', 'l');
     var c4 = k.wcol('w08-04', C.dim);
     s.push('<path d="M' + (LB.x + LB.w) + ',' + MY + ' L' + DX + ',' + MY + ' L' + DX + ',' + DB.y + '" fill="none" stroke="' + c4.col + '" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>');
-    if (c4.live && sc.lampOn && doorOpen) { k.dotsH(MY, 200, DX - 8, 'right'); k.dots(DX, MY + 14, DB.y - 12, false); }
+    if (c4.live && sc.lampOn && doorOpen) { k.dotsH(MY, 200, DX - 26, 'right'); k.dots(DX, MY + 14, DB.y - 12, false); }
     k.label(206, MY + 20, 'NERO 黒', WC.NERO, null, 10.5);
 
     /* ===== ドア柱スイッチ ===== */
