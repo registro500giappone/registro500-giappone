@@ -201,7 +201,10 @@
       poly([[HX_L, IND_Y], [ix - 22, IND_Y]], k.wcol('w02-13', C.dim), 4);
       s.push('<rect x="' + (ix - 22) + '" y="' + (IND_Y - 13) + '" width="44" height="26" rx="5" fill="' + (lit ? '#3f7fd0' : '#eae4d5') + '" stroke="' + (lit ? '#8fc0ff' : '#c3bba6') + '" stroke-width="2"/>');
       s.push('<text x="' + ix + '" y="' + (IND_Y + 4.5) + '" font-size="11" font-weight="700" fill="' + (lit ? '#fffdf8' : '#a89f8b') + '" text-anchor="middle">ハイ</text>');
-      s.push('<text x="' + (ix + 28) + '" y="' + (IND_Y + 4.5) + '" font-size="10.5" fill="' + (lit ? C.deep : C.sub) + '">表示灯</text>');
+      /* 「表示灯」の3文字だけでは何の物か分からない＝名前の下に、実車で何が光るのかを添える。
+         右はローの縦線（P_LO=216）まで 128px あるので、6文字の2行なら収まる。 */
+      s.push('<text x="' + (ix + 28) + '" y="' + (IND_Y - 1) + '" font-size="10.5" fill="' + (lit ? C.deep : C.sub) + '">表示灯</text>');
+      s.push('<text x="' + (ix + 28) + '" y="' + (IND_Y + 12) + '" font-size="9.5" fill="' + C.sub + '">メーターの青</text>');
       /* 表示灯のアースは短く落とす＝下まで引くとヒューズ箱の囲いを貫く */
       seg(ix, IND_Y + 13, ix, IND_Y + 26, 'w02-16');
       k.ground(ix, IND_Y + 26);
