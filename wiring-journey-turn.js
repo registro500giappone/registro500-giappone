@@ -177,13 +177,14 @@
     var STEP = [['RIGHT', '上へ＝右', '上へ倒す＝右'], ['OFF', '中立', '戻す（中立）'], ['LEFT', '下へ＝左', '下へ倒す＝左']];
     /* ⭐ボタンの列ではなく【レバーそのもの】を描く＝支点から棒が上・中立・下へ倒れる（第8回のコラムレバーと同じ流儀）。
        ⛔箱の中に接点の丸を打たない＝レバーの中の接点は原典に描かれていない（連携用の chain でも v:inf にしてある）。 */
-    var PVX = LVX1 + 26, PVY = LV_T + 92, TIPX = LVX1 + 104, TILT = 30;
+    /* ⭐軸は右・レバーは【左へ】出る＝実車どおり（ステアリングコラムから左へ生えている。2026-09-01 オーナー指摘） */
+    var PVX = LVX2 - 26, PVY = LV_T + 92, TIPX = LVX2 - 104, TILT = 30;
     var tipY = PVY + (lever === 'RIGHT' ? -TILT : lever === 'LEFT' ? TILT : 0);
     for (var i = 0; i < 3; i++) {
       var gy = PVY + (i - 1) * TILT, cur = (lever === STEP[i][0]);
       /* 倒せる先の目印は薄い輪郭だけ＝⛔押せる場所を常時光らせない（押せることは本文の一言で断る） */
       if (!cur) s.push('<circle cx="' + TIPX + '" cy="' + gy + '" r="6" fill="none" stroke="' + C.in_ + '" stroke-width="1.4" opacity=".45"/>');
-      s.push('<text x="' + (LVX2 - 10) + '" y="' + (gy + 4) + '" font-size="10.5" font-weight="' + (cur ? '700' : '400') + '" fill="' + C.in_ + '" text-anchor="end"' + (cur ? '' : ' opacity=".55"') + '>' + STEP[i][1] + '</text>');
+      s.push('<text x="' + (LVX1 + 10) + '" y="' + (gy + 4) + '" font-size="10.5" font-weight="' + (cur ? '700' : '400') + '" fill="' + C.in_ + '" text-anchor="start"' + (cur ? '' : ' opacity=".55"') + '>' + STEP[i][1] + '</text>');
     }
     s.push('<path d="M' + PVX + ',' + PVY + ' L' + TIPX + ',' + tipY + '" stroke="' + C.in_ + '" stroke-width="5" stroke-linecap="round"/>');
     s.push('<circle cx="' + PVX + '" cy="' + PVY + '" r="7" fill="' + C.deep + '" stroke="' + C.in_ + '" stroke-width="2"/>');
