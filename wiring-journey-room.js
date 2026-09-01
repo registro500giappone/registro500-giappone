@@ -77,9 +77,9 @@
     k.label(172, FZ + 58, 'ホーンへ', C.sub, null, 10);
     k.label(172, FZ + 71, '（第7回）', C.sub, null, 10);
 
-    /* ===== F1の負荷側→電球の＋（BIANCO） ===== */
+    /* ===== F1の負荷側→電球の＋（VIOLA） ===== */
     if (mode.cut === 'w08-01') cutV(X, FZ + 62, LB.y, 'w08-01');
-    else { k.seg(X, FZ + 62, X, LB.y, 'w08-01'); k.label(X + 14, 306, 'BIANCO 白', '#8a8272', null, 11); }
+    else { k.seg(X, FZ + 62, X, LB.y, 'w08-01'); k.label(X + 14, 306, 'VIOLA 紫', '#7a5296', null, 11); }
 
     /* ===== ルームランプの箱（電球＋内蔵スイッチ＝原典では1つの部品） ===== */
     s.push('<rect x="' + LB.x + '" y="' + LB.y + '" width="' + LB.w + '" height="' + LB.h + '" rx="8" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
@@ -151,7 +151,7 @@
 
   /* ---- トグル（ドア閉↔開）＝内蔵スイッチは「切」のまま固定 ---- 主役の動き＝「スイッチを触っていないのに、ドアを開けると点く」。 */
   var CAPS = {
-    CLOSED: '<b>ドアが閉じている＝柱のボタンが押し込まれて、接点は開いています。</b>電球のプラス端子には12Vが来ていて（白い線に色が付いています）、マイナス側にも電圧は届いています。それでも点かないのは<b>帰り道が両方とも切れているから</b>です。テスターを当てると、電球の両側で12Vが読めます。',
+    CLOSED: '<b>ドアが閉じている＝柱のボタンが押し込まれて、接点は開いています。</b>電球のプラス端子には12Vが来ていて（紫の線に色が付いています）、マイナス側にも電圧は届いています。それでも点かないのは<b>帰り道が両方とも切れているから</b>です。テスターを当てると、電球の両側で12Vが読めます。',
     OPEN: '<b>ドアを開けた＝柱のボタンが戻って、接点が閉じました。</b>人の感覚と逆に見えますが、<b>ドアを「開ける」とスイッチは「入る」</b>のです。帰り道②がアースにつながり、電球が点きます。内蔵スイッチは<b>「切」のまま触っていません</b>——それでも点くのが、帰り道が2本ある回路の姿です。'
   };
 
@@ -180,7 +180,7 @@
     { label: '↑同じ故障のまま、内蔵スイッチを入れる', s: { inputs: SWON, ops: cut('w08-05') }, expect: true, words: LW },
     { label: 'ドアへの黒線（w08-04）が外れた・ドアを開けた', s: { inputs: OPEN, ops: cut('w08-04') }, expect: false, words: LW },
     /* 給電側が切れた＝どちらの帰り道でも点かない */
-    { label: '白い線（w08-01）が外れた・ドアを開けた', s: { inputs: OPEN, ops: cut('w08-01') }, expect: false, words: LW },
+    { label: '紫の線（w08-01）が外れた・ドアを開けた', s: { inputs: OPEN, ops: cut('w08-01') }, expect: false, words: LW },
     { label: '↑同じ場面で内蔵スイッチを入れる', s: { inputs: SWON, ops: cut('w08-01') }, expect: false, words: LW },
     { label: '↑同じ場面でホーンを押す（無実）', s: { inputs: { horn_btn: 'PRESSED' }, ops: cut('w08-01') }, expect: true, read: horn, words: HW },
     { label: 'バッテリーのマイナス端子（w11-10）が外れた・ドアを開けた', s: { inputs: OPEN, ops: cut('w11-10') }, expect: false, words: LW },

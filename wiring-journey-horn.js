@@ -77,9 +77,9 @@
     /* F1の負荷側＝原典に端子名が無い（SCHEMA §G 持ち越し3）。絵の中で正直に書く */
     k.label(X - 12, FZ + 70, '（名前なし）', C.sub, 'end', 9.5);
 
-    /* ===== F1の負荷側→ホーンの＋（BIANCO） ===== */
+    /* ===== F1の負荷側→ホーンの＋（VIOLA） ===== */
     if (mode.cut === 'w05-01') cutV(FZ + 62, HB.y, 'w05-01');
-    else { k.seg(X, FZ + 62, X, HB.y, 'w05-01'); k.label(X + 14, 300, 'BIANCO 白', '#8a8272', null, 11); }
+    else { k.seg(X, FZ + 62, X, HB.y, 'w05-01'); k.label(X + 14, 300, 'VIOLA 紫', '#7a5296', null, 11); }
 
     /* ===== ホーン（電磁石＝この絵で計算している負荷） ===== */
     s.push('<rect x="' + HB.x + '" y="' + HB.y + '" width="' + HB.w + '" height="' + HB.h + '" rx="8" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
@@ -159,7 +159,7 @@
     { label: 'キーへの赤線（w10-01）が外れた・押す', s: { inputs: PRESS, ops: cut('w10-01') }, expect: true, words: HW },
     { label: '↑同じ場面のチャージランプ（キーON）', s: { inputs: { key: 'ON', engine: 'STOP' }, ops: cut('w10-01') }, expect: false, read: chg, words: LW },
     /* 輪を1本ずつ切る＝3か所とも「鳴らない」 */
-    { label: '白い線（w05-01）が外れた・押す', s: { inputs: PRESS, ops: cut('w05-01') }, expect: false, words: HW },
+    { label: '紫の線（w05-01）が外れた・押す', s: { inputs: PRESS, ops: cut('w05-01') }, expect: false, words: HW },
     { label: 'コラムへの黄／黒線（w05-02）が外れた・押す', s: { inputs: PRESS, ops: cut('w05-02') }, expect: false, words: HW },
     { label: 'ボタンのアース（w05-03）が外れた・押す', s: { inputs: PRESS, ops: cut('w05-03') }, expect: false, words: HW },
     /* アースの帰り道（第5回）が切れるとホーンも死ぬ */

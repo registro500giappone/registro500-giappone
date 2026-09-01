@@ -243,10 +243,10 @@ parts 9 = `body` / `battery` / `starter_sw` / `starter` / `regulator` / `dynamo`
 | parts | `room_lamp` | terms `+` / `-`。`kind:"load"`・`pair:["+","-"]` |
 | parts | `room_sw` | terms `_in` / `_gnd`。switch＝`OFF`／`ON`。**`v:"inf"`**（下記⚠️） |
 | parts | `door_sw` | terms `_in` / `_gnd`。switch＝`DOOR_CLOSED`（接点**開**）／`DOOR_OPEN`（接点**閉**） |
-| wires | `w05-01` | `f1._out` → `horn.+`（BIANCO・`v:"orig"`） |
+| wires | `w05-01` | `f1._out` → `horn.+`（**VIOLA**・`v:"orig"`。⚠️2026-09-01 に BIANCO から訂正＝§G-3 を読む） |
 | wires | `w05-02` | `horn.-` → `horn_sw._in`（GIALLO E NERO・`v:"orig"`） |
 | wires | `w05-03` | `horn_sw._gnd` → `body.31`（NERO・`v:"inf"`＝原典はアース記号だけ） |
-| wires | `w08-01` | `f1._out` → `room_lamp.+`（BIANCO・`v:"orig"`） |
+| wires | `w08-01` | `f1._out` → `room_lamp.+`（**VIOLA**・`v:"orig"`。⚠️2026-09-01 に BIANCO から訂正＝§G-3 を読む） |
 | wires | `w08-02` | `room_lamp.-` → `room_sw._in`（NERO・`v:"inf"`＝部品26を2つに分けたことで生じた内部の渡り） |
 | wires | `w08-03` | `room_sw._gnd` → `body.31`（NERO・`v:"orig"`） |
 | wires | `w08-04` | `room_lamp.-` → `door_sw._in`（NERO・`v:"orig"`） |
@@ -260,7 +260,7 @@ parts 9 = `body` / `battery` / `starter_sw` / `starter` / `regulator` / `dynamo`
 
 **⚠️原典側で「既に決着済みだった読み」を2件拾い直した（古い記述を根拠にしない）**
 
-- **F1 負荷側の給電色は F/D とも `BIANCO`＝色差はゼロ。** `df_diff.md` 論点1 で決着済み（「F型＝AZZURRO／D型＝BIANCO の型式差」は撤回された古い読み）。⛔**色差説を復活させない。**
+- ⚠️⚠️**【2026-09-01 訂正】F1 負荷側の給電色は【F/L/R＝`VIOLA`・D＝`BIANCO`】＝色差はある。** 原典 p42「Mod.500」・p59「Mod.500L」の色名を直読して確定（ホーン部品3 の2端子＝`VIOLA`＋`GIALLO-NERO`／ヒューズ箱の負荷側も `VIOLA`×2）。R型は `fd_R.pdf`（部品商版）で同じ＝**記事では出典を断る**。⛔旧記述「F/D とも `BIANCO`＝色差ゼロ（`df_diff.md` 論点1）」は**当会F図の水色を `BIANCO` と読んだ解釈**に依っていた＝原典で覆った。⭐**当会F図が D型の色を引き写す現象（系統2・3・4で既知）が系統5・8 にも及んでいた**ということ。⛔**当会図を塗り替えて直しにいかない・記事の文で受ける。**⛔なお「F型＝`AZZURRO`」説は別件で撤回済＝**これを復活させない**（今回の訂正は `AZZURRO` ではなく `VIOLA`）。⭐**結線と本数は1本も変わらない**（F1 の負荷側に着くのはホーンとルームランプの2本だけ＝`df_diff.md` 論点3 の本数照合はそのまま生きている）。経緯は HANDOFF §0 その123。
 - **ホーンの線は F/D とも `GIALLO E NERO`（黄と黒）＝一致。** ⛔**「F図では無地に見える」を色差の根拠にしない**（描き分けの粗さであって色ではない・`df_diff.md` 冒頭の訂正）。
 - 本数も一致＝`df_diff.md` 論点3 が「F1 の負荷側に着くのは2本」と照合済み。**だから「ホーンとルームランプだけが道連れになる」と言い切ってよい。**
 
@@ -299,7 +299,7 @@ parts 9 = `body` / `battery` / `starter_sw` / `starter` / `regulator` / `dynamo`
 
 **⚠️ストップスイッチは電気のスイッチではない**＝ブレーキ配管に付く**油圧スイッチ**で、踏むと油圧で**閉じる**。**第2号の油圧センダとは向きが逆**（センダは油圧がかかると**開いて**警告灯を消す）で、**油も別物**（ブレーキフルード／エンジンオイル）。`controls.brake` の `note` にも書いた。位置数は原典に記号があるだけなので `v:"inf"`。
 
-⚠️⚠️**【2026-09-01 追記】この「油圧スイッチ」は D・F・L 型の話で、R型だけは【足で押す機械式】**（原典＝500R 取説変更冊子 p5 `azionato meccanicamente dal pedale freni, anziché idraulicamente`／凡例からも `a pressione idraulica` が消えている。F・L の凡例6 には有る）。**部品も別物**＝油圧式は N/D/F/L/Giardiniera で1品番、R型は **126 と共通の押しスイッチ**（現物写真で確認）。⭐**結線・到達性は4型式とも同じ**なので `wiring-net.json` は型式で分けない＝**記事の文だけで受ける**（第7回 `brake` の安全注記・footer）。経緯は HANDOFF §0 その120。
+⚠️⚠️**【2026-09-01 追記】この「油圧スイッチ」は D・F・L 型の話で、R型だけは【足で押す機械式】**（原典＝500R 取説変更冊子 p5 `azionato meccanicamente dal pedale freni, anziché idraulicamente`／凡例からも `a pressione idraulica` が消えている。F・L の凡例6 には有る）。**部品も別物**＝油圧式は N/D/F/L/Giardiniera で1品番、R型は **126 と共通の押しスイッチ**（現物写真で確認）。⭐**結線・到達性は4型式とも同じ**なので `wiring-net.json` は型式で分けない＝**記事の文だけで受ける**（第7回 `brake` の安全注記・footer）。経緯は HANDOFF §0 その121。
 
 **⛔持たないもの**
 

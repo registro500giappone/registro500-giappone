@@ -10,7 +10,9 @@
   var WC = { ROSSO: '#c0392b', AZZURRO: '#4a9fd8', VERDE: '#2f7d4f', MARRONE: '#6f4a2a', NERO: '#33302b', GRIGIO: '#8d8574',
              BIANCO: '#fbf7ee', GIALLO: '#dfae21', 'GIALLO E NERO': '#dfae21',
              /* で追加。 */
-             'GRIGIO-ROSSO': '#8d8574', 'GRIGIO E NERO': '#8d8574', 'VERDE E NERO': '#2f7d4f', ROSA: '#cf7f9b' };
+             'GRIGIO-ROSSO': '#8d8574', 'GRIGIO E NERO': '#8d8574', 'VERDE E NERO': '#2f7d4f', ROSA: '#cf7f9b',
+             /* VIOLA＝原典 F/L のヒューズ F1 負荷側（ホーン・ルームランプ）。D型は BIANCO で、当会F図は D の色を引き写している（その122）。 */
+             VIOLA: '#7a5296', 'AZZURRO-NERO': '#3a5f9e', 'AZZURRO E NERO': '#3a5f9e', 'BIANCO-NERO': '#cfc7b0', 'BIANCO E NERO': '#cfc7b0' };
   var C = { deep: '#2c3a31', body: '#3f5347', in_: '#e6e0d0', sub: '#8d8574', hi: '#b8442e', dim: '#ddd5c4', out: '#c9c2b1', ok: '#2f7d4f' };
 
   var NET = null, PATCHES = null;
