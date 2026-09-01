@@ -8,8 +8,8 @@
    L1 は断続の時間軸を持たないための近似で、正しく出るのは【点くか点かないか】まで。本文の「しくみ」で必ず断ること。
    ⛔`w04-02`（フラッシャー→レバー）を切る場面は【絵にしない】＝L1 では表示灯だけが点いたまま残るが、
    実物の熱式フラッシャーが負荷の切れた状態でどう振る舞うかは原典から断定できない（HANDOFF その124③）。検算表で灯だけを読む形にとどめる。
-   ⚠️後ろへ降りる線（x=72／228）と、前の灯から横の灯への渡り（y=672）は絵の上で交差するが繋がっていない＝そこに node を打たない。
-   縦チャンネルは前の列のアース記号の【隙間】（50..94／206..250）を通してある。 */
+   ⭐後ろへ降りる線（x=26／274）は灯の列より【外側】を通す＝前の灯から横の灯への渡り（y=672・x=58..110）と交差しない。
+   ⛔灯の隙間へ戻さない＝初版はそこを通していて渡りを跨いでいた（オーナー指摘・2026-09-01）。跨ぎは「繋がっている」と誤読される。 */
 (function () {
   'use strict';
   var WC = Journey.WC, C = Journey.C;
@@ -25,9 +25,9 @@
   var LVX1 = 34, LVX2 = 206;
   var Y_BK = 640;                     /* 後ろの灯へ分かれる高さ（レバーの端子で分かれる） */
   var Y_CR = 672;                     /* 前の灯 →横の灯への渡り（前の灯の【直上】＝ここが分岐点） */
-  /* 灯の列。前と横の間は 34px 空ける＝⭐32px 未満の線には黄点が1つも入らない（HANDOFF その111） */
-  var XLS = 34, XLF = 110, XRF = 190, XRS = 266;   /* 左横・左前・右前・右横 */
-  var XLR = 72, XRR = 228;                          /* 後ろへ降りる縦チャンネル＝前の列のアース記号の隙間を通る */
+  /* 灯の列。前と横の渡りは 52px＝⭐32px 未満の線には黄点が1つも入らない（HANDOFF その111） */
+  var XLS = 58, XLF = 110, XRF = 190, XRS = 242;   /* 左横・左前・右前・右横 */
+  var XLR = 26, XRR = 274;                          /* 後ろへ降りる縦チャンネル＝灯の列の【外側】（冒頭のコメント） */
   var F_T = 700, LH = 42, GF = 778, SF = 806;       /* 前の列＝灯・アース記号・状態の語 */
   var R_T = 826, GR = 904, SR = 932;                /* 後ろの列 */
 
@@ -72,13 +72,13 @@
     function turnLamp(cx, top, name, lit) {
       var hw = 21;
       if (lit) s.push('<g class="lampglow"><ellipse cx="' + cx + '" cy="' + (top + LH / 2) + '" rx="' + (hw + 17) + '" ry="32" fill="url(#jturng)"/></g>');
-      s.push('<rect x="' + (cx - hw) + '" y="' + top + '" width="42" height="' + LH + '" rx="9" fill="' + (lit ? '#e8912a' : '#6b5c46') + '" stroke="' + (lit ? '#ffe0b4' : '#8d8574') + '" stroke-width="' + (lit ? 3 : 2) + '"/>');
+      s.push('<rect x="' + (cx - hw) + '" y="' + top + '" width="42" height="' + LH + '" rx="9" fill="' + (lit ? '#ff9a14' : '#6b5c46') + '" stroke="' + (lit ? '#ffd48a' : '#8d8574') + '" stroke-width="' + (lit ? 3 : 2) + '"/>');
       if (lit) s.push('<rect x="' + (cx - hw + 6) + '" y="' + (top + 5) + '" width="30" height="8" rx="4" fill="#fff" opacity=".32"/>');
       s.push('<text x="' + cx + '" y="' + (top + 27) + '" font-size="11.5" font-weight="700" fill="' + (lit ? '#fffdf8' : '#cdc7b8') + '" text-anchor="middle">' + name + '</text>');
     }
     /* 状態の語はアース記号の【下】に置く＝灯の下はアース線が通っている（第9回と同じ作法）。 */
     function state(cx, y, lit) {
-      s.push('<text x="' + cx + '" y="' + y + '" font-size="11" font-weight="700" text-anchor="middle" fill="'
+      s.push('<text x="' + cx + '" y="' + y + '" font-size="10" font-weight="700" text-anchor="middle" fill="'
         + (lit ? '#2f7d4f' : C.hi) + '">' + (lit ? '点いている' : '点かない') + '</text>');
     }
     /* ===== 計器盤の中の【緑の】表示灯 ===== 共通の lampWindow は赤（警告灯）専用＝この灯は警告ではなく
@@ -99,9 +99,9 @@
 
     if (on.fl || on.fr || on.sl || on.sr || on.rl || on.rr) {
       s.push('<defs><radialGradient id="jturng">'
-        + '<stop offset="0%" stop-color="#ffb14a" stop-opacity=".85"/>'
-        + '<stop offset="45%" stop-color="#ff9020" stop-opacity=".38"/>'
-        + '<stop offset="100%" stop-color="#ff9020" stop-opacity="0"/></radialGradient></defs>');
+        + '<stop offset="0%" stop-color="#ffc76a" stop-opacity=".92"/>'
+        + '<stop offset="45%" stop-color="#ff9a14" stop-opacity=".44"/>'
+        + '<stop offset="100%" stop-color="#ff9a14" stop-opacity="0"/></radialGradient></defs>');
     }
 
     /* ===== バッテリー〜キースイッチ ===== 途中のレギュレータ・ヒューズ F1 は第3・7回で描いた道＝ここでは1本にまとめる。 */
@@ -174,12 +174,20 @@
     s.push('<rect x="' + LVX1 + '" y="' + LV_T + '" width="' + (LVX2 - LVX1) + '" height="' + (LV_B - LV_T) + '" rx="10" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
     s.push('<text x="' + XC + '" y="' + (LV_T + 19) + '" font-size="12" fill="#fffdf8" text-anchor="middle">ウインカーレバー</text>');
     s.push('<text x="' + XC + '" y="' + (LV_T + 33) + '" font-size="10" fill="' + C.in_ + '" text-anchor="middle">（部品12・3つの位置）</text>');
-    var STEP = [['RIGHT', '上へ倒す＝右'], ['OFF', '戻している（中立）'], ['LEFT', '下へ倒す＝左']];
+    var STEP = [['RIGHT', '上へ＝右', '上へ倒す＝右'], ['OFF', '中立', '戻す（中立）'], ['LEFT', '下へ＝左', '下へ倒す＝左']];
+    /* ⭐ボタンの列ではなく【レバーそのもの】を描く＝支点から棒が上・中立・下へ倒れる（第8回のコラムレバーと同じ流儀）。
+       ⛔箱の中に接点の丸を打たない＝レバーの中の接点は原典に描かれていない（連携用の chain でも v:inf にしてある）。 */
+    var PVX = LVX1 + 26, PVY = LV_T + 92, TIPX = LVX1 + 104, TILT = 30;
+    var tipY = PVY + (lever === 'RIGHT' ? -TILT : lever === 'LEFT' ? TILT : 0);
     for (var i = 0; i < 3; i++) {
-      var by = LV_T + 48 + i * 28, cur = (lever === STEP[i][0]);
-      s.push('<rect x="' + (LVX1 + 8) + '" y="' + by + '" width="' + (LVX2 - LVX1 - 16) + '" height="24" rx="5" fill="' + (cur ? C.in_ : 'none') + '" stroke="' + C.in_ + '" stroke-width="1.6"/>');
-      s.push('<text x="' + XC + '" y="' + (by + 16) + '" font-size="11" font-weight="' + (cur ? '700' : '400') + '" fill="' + (cur ? C.deep : C.in_) + '" text-anchor="middle">' + STEP[i][1] + '</text>');
+      var gy = PVY + (i - 1) * TILT, cur = (lever === STEP[i][0]);
+      /* 倒せる先の目印は薄い輪郭だけ＝⛔押せる場所を常時光らせない（押せることは本文の一言で断る） */
+      if (!cur) s.push('<circle cx="' + TIPX + '" cy="' + gy + '" r="6" fill="none" stroke="' + C.in_ + '" stroke-width="1.4" opacity=".45"/>');
+      s.push('<text x="' + (LVX2 - 10) + '" y="' + (gy + 4) + '" font-size="10.5" font-weight="' + (cur ? '700' : '400') + '" fill="' + C.in_ + '" text-anchor="end"' + (cur ? '' : ' opacity=".55"') + '>' + STEP[i][1] + '</text>');
     }
+    s.push('<path d="M' + PVX + ',' + PVY + ' L' + TIPX + ',' + tipY + '" stroke="' + C.in_ + '" stroke-width="5" stroke-linecap="round"/>');
+    s.push('<circle cx="' + PVX + '" cy="' + PVY + '" r="7" fill="' + C.deep + '" stroke="' + C.in_ + '" stroke-width="2"/>');
+    s.push('<circle cx="' + TIPX + '" cy="' + tipY + '" r="7.5" fill="' + C.in_ + '"/>');
 
     /* ===== 左回路（端子2）===== 前へ1本・後ろへ1本。横は【前の灯のところで分かれる渡り】。 */
     if (m.cut === 'w04-06') { seg(XLF, LV_B, XLF, Y_BK, 'w04-06'); cutV(XLF, Y_BK, Y_CR, 'w04-06'); seg(XLF, Y_CR, XLF, F_T, 'w04-06'); }
@@ -230,15 +238,16 @@
     /* ⚠️F2 の札は【左の余白】へ＝ヒューズの名札（144..216）と「切れている」に乗る。
        ⛔フラッシャーが働かない場面には札を出さない＝文言が図幅300 に入らない（146px）うえ、
        箱の中の状態語がすでに赤で「働かない」と言っている。 */
+    /* ⛔中立の場面に札を出さない＝赤は「切れている場所」ただ1つに取ってある。中立は故障ではないうえ、
+       レバーが水平に描かれ、箱の中の「中立」も太字になるので札は要らない（2026-09-01・レバーを絵にしたときに削除）。 */
     if (m.f2) chip(4, FZ + 26, 'F2 が切れた');
-    else if (m.off) chip(212, LV_T + 76, '中立');
 
     /* 絵の中のレバーを直接押せるようにする＝透明な当たり判定の板を、いちばん最後に（＝いちばん上に）重ねる。
        fill="transparent" にする（"none" だとクリックが素通りする）。主図のときだけ描く＝紙芝居のコマに押せる板を置くと、押しても何も起きず読者を惑わす。 */
     if (m.main) {
       for (var j = 0; j < 3; j++) {
-        s.push('<rect class="hit" x="' + (LVX1 + 4) + '" y="' + (LV_T + 44 + j * 28) + '" width="' + (LVX2 - LVX1 - 8)
-          + '" height="28" rx="6" fill="transparent" data-set="' + STEP[j][0] + '"><title>レバーを' + STEP[j][1] + '</title></rect>');
+        s.push('<rect class="hit" x="' + (LVX1 + 4) + '" y="' + (PVY + (j - 1) * TILT - 15) + '" width="' + (LVX2 - LVX1 - 8)
+          + '" height="30" rx="6" fill="transparent" data-set="' + STEP[j][0] + '"><title>ウインカーレバーを' + STEP[j][2] + '</title></rect>');
       }
     }
 
@@ -257,10 +266,10 @@
 
   /* ---- トグル（レバー 上＝右／中立／下＝左）＝キーはONで固定（F2 の先だから） ---- */
   var CAPS = {
-    RIGHT: '<b>レバーを上へ倒しました＝右。</b>右の前・右の横・右の後ろ——<b>3つが一組で光ります</b>。左の3つは消えたまま。計器盤の緑も点いていますが、<b>この緑は左に倒しても同じように点きます</b>（あとで効いてきます）。',
+    RIGHT: '<b>ウインカーレバーを上へ倒しました＝右。</b>右の前・右の横・右の後ろ——<b>3つが一組で光ります</b>。左の3つは消えたまま。計器盤の緑も点いていますが、<b>この緑は左に倒しても同じように点きます</b>（あとで効いてきます）。',
     /* ⚠️「レバーの中で切れている」と書かない＝この絵は近似のため【フラッシャーのところで切れている】ように描かれる（本文の注記で断ってある）。 */
-    OFF: '<b>レバーは戻したまま（中立）。</b>ヒューズ F2 からフラッシャーまでは電気が来ていますが、<b>その先へは渡っていません</b>。<b>6つとも消えているのが正常</b>です。ハンドルを戻すと、レバーはここへ自分で帰ってきます。',
-    LEFT: '<b>レバーを下へ倒しました＝左。</b>左の前・左の横・左の後ろの3つと、計器盤の緑が点きます。⭐<b>左右に分かれているのはレバーの中だけ</b>——それより上（フラッシャーまで）は<b>左右共通の1本</b>です。'
+    OFF: '<b>ウインカーレバーは戻したまま（中立）。</b>ヒューズ F2 からフラッシャーまでは電気が来ていますが、<b>その先へは渡っていません</b>。<b>6つとも消えているのが正常</b>です。ハンドルを戻すと、ウインカーレバーはここへ自分で帰ってきます。',
+    LEFT: '<b>ウインカーレバーを下へ倒しました＝左。</b>左の前・左の横・左の後ろの3つと、計器盤の緑が点きます。⭐<b>左右に分かれているのはレバーの中だけ</b>——それより上（フラッシャーまで）は<b>左右共通の1本</b>です。'
   };
 
   /* ---- 検算（期待値は原典と実車の挙動から先に書いた・計算結果を写していない） ---- */
@@ -278,18 +287,18 @@
   function cut(id) { return [{ op: 'removeWire', id: id }]; }
   var CHECKS = [
     /* 左右が分かれるのはレバーの中＝倒した側の3つだけが点く */
-    { label: 'キーON・レバーを下へ倒す＝左（左前）', s: { inputs: L }, expect: true, words: LW },
+    { label: 'キーON・ウインカーレバーを下へ倒す＝左（左前）', s: { inputs: L }, expect: true, words: LW },
     { label: '↑同じ場面の左横', s: { inputs: L }, expect: true, read: sl, words: LW },
     { label: '↑同じ場面の左後', s: { inputs: L }, expect: true, read: rl, words: LW },
     { label: '↑同じ場面の右前（消えたまま）', s: { inputs: L }, expect: false, read: fr, words: LW },
     { label: '↑同じ場面の表示灯（緑）', s: { inputs: L }, expect: true, read: ind, words: GW },
-    { label: 'レバーを上へ倒す＝右（右前）', s: { inputs: R }, expect: true, read: fr, words: LW },
+    { label: 'ウインカーレバーを上へ倒す＝右（右前）', s: { inputs: R }, expect: true, read: fr, words: LW },
     { label: '↑同じ場面の右後', s: { inputs: R }, expect: true, read: rr, words: LW },
     { label: '↑同じ場面の左前（消えたまま）', s: { inputs: R }, expect: false, words: LW },
     { label: '↑同じ場面の表示灯（左と同じ1個が点く）', s: { inputs: R }, expect: true, read: ind, words: GW },
-    { label: 'レバーが中立（左前）', s: { inputs: { key: 'ON', turn: 'OFF' } }, expect: false, words: LW },
+    { label: 'ウインカーレバーが中立（左前）', s: { inputs: { key: 'ON', turn: 'OFF' } }, expect: false, words: LW },
     /* キーOFF＝ヒューズ F2 の先だから点かない（第7回のブレーキランプと同じ） */
-    { label: 'キーOFFでレバーを倒す（左前）', s: { inputs: { key: 'OFF', turn: 'LEFT' } }, expect: false, words: LW },
+    { label: 'キーOFFでウインカーレバーを倒す（左前）', s: { inputs: { key: 'OFF', turn: 'LEFT' } }, expect: false, words: LW },
     { label: '↑同じ場面の表示灯', s: { inputs: { key: 'OFF', turn: 'LEFT' } }, expect: false, read: ind, words: GW },
     /* F2＝ブレーキランプと同じヒューズ */
     { label: 'F2 が切れた（左前）', s: { inputs: { key: 'ON', turn: 'LEFT', f2: 'BLOWN' } }, expect: false, words: LW },
@@ -300,13 +309,13 @@
     { label: 'フラッシャーが働かない（左前）', s: { inputs: L, override: { flasher: 'DEAD' } }, expect: false, words: LW },
     { label: '↑同じ場面の表示灯', s: { inputs: L, override: { flasher: 'DEAD' } }, expect: false, read: ind, words: GW },
     /* ⭐左右共通の1本＝ここが切れると左右とも死ぬ（絵にはしない＝この場面では表示灯だけが残り、実物の振る舞いを断定できない） */
-    { label: 'フラッシャーからレバーへの1本（w04-02）が外れた（左前）', s: { inputs: L, ops: cut('w04-02') }, expect: false, words: LW },
+    { label: 'フラッシャーからウインカーレバーへの1本（w04-02）が外れた（左前）', s: { inputs: L, ops: cut('w04-02') }, expect: false, words: LW },
     { label: '↑同じ場面で右へ倒しても右前は点かない', s: { inputs: R, ops: cut('w04-02') }, expect: false, read: fr, words: LW },
     /* ⭐前と横は1本・後ろは別の1本 */
-    { label: 'レバーから左前への1本（w04-06）が外れた（左前）', s: { inputs: L, ops: cut('w04-06') }, expect: false, words: LW },
+    { label: 'ウインカーレバーから左前への1本（w04-06）が外れた（左前）', s: { inputs: L, ops: cut('w04-06') }, expect: false, words: LW },
     { label: '↑同じ場面の左横（前で分かれているので一緒に消える）', s: { inputs: L, ops: cut('w04-06') }, expect: false, read: sl, words: LW },
     { label: '↑同じ場面の左後（別の1本なので残る）', s: { inputs: L, ops: cut('w04-06') }, expect: true, read: rl, words: LW },
-    { label: 'レバーから左後への1本（w04-08）が外れた（左後）', s: { inputs: L, ops: cut('w04-08') }, expect: false, read: rl, words: LW },
+    { label: 'ウインカーレバーから左後への1本（w04-08）が外れた（左後）', s: { inputs: L, ops: cut('w04-08') }, expect: false, read: rl, words: LW },
     { label: '↑同じ場面の左前（残る）', s: { inputs: L, ops: cut('w04-08') }, expect: true, words: LW },
     /* ⭐1灯だけのアース外れ＝その灯だけが消える */
     { label: '左前のアース（w04-12）が外れた（左前）', s: { inputs: L, ops: cut('w04-12') }, expect: false, words: LW },
@@ -321,7 +330,7 @@
     { label: '↑同じ場面の右横（点いたまま）', s: { inputs: R, ops: cut('w04-15') }, expect: true, read: sr, words: LW },
     /* 全体が落ちる場面 */
     { label: 'バッテリーのマイナス端子（w11-10）が外れた（左前）', s: { inputs: L, ops: cut('w11-10') }, expect: false, words: LW },
-    { label: 'オルタネーター換装車・レバーを下へ倒す（左前）', s: { alt: true, inputs: L }, expect: true, words: LW }
+    { label: 'オルタネーター換装車・ウインカーレバーを下へ倒す（左前）', s: { alt: true, inputs: L }, expect: true, words: LW }
   ];
 
   Journey.boot({

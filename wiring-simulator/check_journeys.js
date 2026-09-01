@@ -24,6 +24,9 @@ const REPO = path.join(__dirname, '..');
  * ⚠️本番の wiring-journey.js には計測を入れない＝ここで読み込む文字列だけを加工する。 */
 const DOTS = process.argv.indexOf('--dots') >= 0;
 function instrument(src) {
+  /* ⚠️下の目印は LF で書いてある＝共通JSが CRLF で保存されていると1件も当たらず、
+     検査は「差し込めない」で落ちる。改行だけ先に揃える（⛔ファイルへは書き戻さない）。 */
+  src = src.replace(/\r\n/g, '\n');
   const jobs = [[`      var dir = this.flow(id, x1, y1, y2);
       if (dir === 'down')`, `      var dir = this.flow(id, x1, y1, y2);
       if (dir) { var G=(globalThis.__G=globalThis.__G||{f:{},d:{}}); G.f[id]=1; if (Math.abs(y2-y1) >= HEAD+TAIL) G.d[id]=1; }
