@@ -262,13 +262,14 @@
 
   /* ================= 実車上面図 ================= */
   /* 車SVGの <style> は文書のどこに置いても全体に効き、CSSはインライン属性に勝つ。 */
-  function scopeCarStyles(inner) {
+  function scopeCarStyles(inner, root) {
+    root = root || '#carcrop';
     return inner.replace(/<style([^>]*)>([\s\S]*?)<\/style>/g, function (_, attrs, css) {
       var scoped = css.replace(/(^|\})([^{}@]+)\{/g, function (_, brace, sel) {
         var s = sel.split(',').map(function (x) {
           x = x.trim();
           if (!x) return x;
-          return x.indexOf('#carcrop') === 0 ? x : '#carcrop ' + x;
+          return x.indexOf(root) === 0 ? x : root + ' ' + x;
         }).join(',');
         return brace + ' ' + s + '{';
       });
@@ -299,6 +300,18 @@
     e.innerHTML = html;
   }
 
+  /* 症状の絵の下敷きに、実車の輪郭をそのまま敷く（第10回）。carMap とは用途が別＝
+     部品を指す印を打たないので wiring-layout.json の実測値に依存しない（灯の位置は原典の座標ではない）。
+     ⚠️灯とラベルは HTML 側に静的に書いてあり、ここで足すのは【輪郭だけ】＝先頭に挿入して他の要素の下へ敷く。
+     JS が動かなくても灯とラベルは読める。opts: {id, transform} */
+  function carArt(opts) {
+    var e = document.getElementById(opts.id); if (!e) return;
+    var inner = CAR_SVG.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
+    e.innerHTML = '<g id="carart" style="color:#cbc4b3"' + (opts.transform ? ' transform="' + opts.transform + '"' : '') + '>'
+      + scopeCarStyles(inner, '#carart') + '</g>' + e.innerHTML;
+  }
+  var CAR_SVG = '';
+
   /* ================= 起動 ================= */
   /* cfg: lampId …このストーリーの主役の負荷ID（例 'quadro.warn_oil'・'starter'）。
      「灯」とは限らない＝ランプでもモーターでも、solve() が返す負荷ならよい alt …既定でパッチ（オルタ換装）を当てるか extra …場面にストーリー固有の判定を足す（例 charging） flow …黄点の流れの向きの上書き draw … function(kit, mode) →図の高さ。
@@ -306,7 +319,7 @@
      [{ key:'lights', init:'ON' }, { key:'beam', init:'LOW' }] の形。
      HTML 側のボタンに data-axis="lights" を付けると、その軸のボタンだけが排他になる。
      これを持たない旅は従来どおり【全ボタンが1つの排他グループ】＝挙動は1バイトも変わらない。
-     スイッチが1つしかない旅に足さない（押しても何も起きないボタンが増えるだけ）。checks …検算の配列 [{label, s:{alt,inputs,override}, expect}] scenes … function(scenario) → [{id, sc, mode}] carmap … function(layout, alt) → carMap の opts lampName …検算表の見出しに使う灯の呼び名（HTML側と揃える必要はない） */
+     スイッチが1つしかない旅に足さない（押しても何も起きないボタンが増えるだけ）。checks …検算の配列 [{label, s:{alt,inputs,override}, expect}] scenes … function(scenario) → [{id, sc, mode}] carmap … function(layout, alt) → carMap の opts carfig … {id, transform} ＝症状の絵の下敷きに実車の輪郭を敷く（carArt）。印を打たない＝実測値に依存しない絵に使う lampName …検算表の見出しに使う灯の呼び名（HTML側と揃える必要はない） */
   function boot(cfg) {
     var scenario = makeScenario(cfg);
 
@@ -368,7 +381,8 @@
       fetch('/wiring-patches.json').then(function (r) { return r.json(); }),
       fetch('/wiring-img/car-top-v9.svg').then(function (r) { return r.text(); })
     ]).then(function (a) {
-      NET = a[0]; PATCHES = a[1];
+      NET = a[0]; PATCHES = a[1]; CAR_SVG = a[2];
+      if (cfg.carfig) carArt(cfg.carfig);
       fetch('/wiring-layout.json').then(function (r) { return r.json(); }).then(function (L) {
         if (cfg.carmap) carMap('carmap', a[2], L, cfg.carmap(L, cfg.alt));
       });

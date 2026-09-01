@@ -72,9 +72,39 @@ def scene_svg(slug, zoom=True):
     #   （第8回のタイヤが片方だけ消えて発覚）。開くタグの中だけを対象にする。
     head = re.match(r'<svg[^>]*>', svg).group(0)
     svg = re.sub(r'\s(width|height)="[^"]*"', '', head) + svg[len(head):]
+    svg = inline_car(svg)
     if not zoom:
         return svg
     return svg.replace('viewBox="%s"' % METER_VIEWBOX, 'viewBox="%s"' % METER_ZOOM, 1)
+
+
+# ⚠️⚠️【2026-09-01 追加】アイキャッチの下敷きに実車の上面線図を敷く回がある（第10回 turn）。
+#   記事では JS（Journey の carfig）が輪郭を後から差し込むが、この版下は【HTML を静的に読むだけ】
+#   ＝そのままだと車体の無い、灯とラベルだけの絵がカードになる。ここで同じ輪郭を埋め込む。
+#   ⛔記事側の座標・transform を写すのではなく、記事の carfig と同じ変換を1か所に書いておく
+#   （記事を直したらここも直す＝下の CARFIG を見る）。
+CAR_TOP = os.path.join(ROOT, 'wiring-img', 'car-top-v9.svg')
+CARFIG = {'carfig': 'translate(1366.3,0) rotate(90)'}   # svg の id → 車体に掛ける transform
+
+
+def inline_car(svg):
+    m = re.search(r'<svg[^>]*id="([^"]+)"', svg)
+    if not m or m.group(1) not in CARFIG:
+        return svg
+    inner = read(CAR_TOP)
+    inner = re.sub(r'^[\s\S]*?<svg[^>]*>', '', inner)
+    inner = re.sub(r'</svg>\s*$', '', inner)
+    # 車SVGの <style> は文書全体に効く＝版下の他の絵に掛からないよう #carart の下へ閉じ込める
+    def scope(mm):
+        css = re.sub(r'(^|\})([^{}@]+)\{',
+                     lambda x: x.group(1) + ' ' + ','.join('#carart ' + t.strip()
+                                                           for t in x.group(2).split(',') if t.strip()) + '{',
+                     mm.group(2))
+        return '<style%s>%s</style>' % (mm.group(1), css)
+    inner = re.sub(r'<style([^>]*)>([\s\S]*?)</style>', scope, inner)
+    g = '<g id="carart" style="color:#cbc4b3" transform="%s">%s</g>' % (CARFIG[m.group(1)], inner)
+    k = svg.index('>') + 1
+    return svg[:k] + g + svg[k:]
 
 
 ONLY = None      # --only を付けたときだけ入る＝1回ぶんの版下を作るための上書き

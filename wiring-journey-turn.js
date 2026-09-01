@@ -325,6 +325,10 @@
   ];
 
   Journey.boot({
+    /* 症状の絵（アイキャッチ）の下敷き＝実車の上面線図をそのまま敷く。前が上・画面左が車の左になるよう90度回す。
+       ⚠️灯とラベルは HTML 側に静的に置いてある＝ここで足すのは輪郭だけ（JS が動かなくても灯は読める）。
+       ⛔この図に部品の印（carmap の marks）は打たない＝灯の位置は wiring-layout.json の実測値ではない。 */
+    carfig: { id: 'carfig', transform: 'translate(1366.3,0) rotate(90)' },
     lampId: 'turn_fl',
     lampName: '左前のウインカー',
     alt: false,
