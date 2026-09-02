@@ -59,7 +59,8 @@ const PAGES = [
   { id: 'brake',      html: 'wiring-journey-brake.html',      js: 'wiring-journey-brake.js' },
   { id: 'headlight',  html: 'wiring-journey-headlight.html',  js: 'wiring-journey-headlight.js' },
   { id: 'tail',       html: 'wiring-journey-tail.html',       js: 'wiring-journey-tail.js' },
-  { id: 'turn',       html: 'wiring-journey-turn.html',       js: 'wiring-journey-turn.js' }
+  { id: 'turn',       html: 'wiring-journey-turn.html',       js: 'wiring-journey-turn.js' },
+  { id: 'wiper',      html: 'wiring-journey-wiper.html',      js: 'wiring-journey-wiper.js' }
 ];
 
 /* ---- ごく小さな DOM の代わり ---- */

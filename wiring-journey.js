@@ -12,7 +12,10 @@
              /* で追加。 */
              'GRIGIO-ROSSO': '#8d8574', 'GRIGIO E NERO': '#8d8574', 'VERDE E NERO': '#2f7d4f', ROSA: '#cf7f9b',
              /* VIOLA＝原典 F/L のヒューズ F1 負荷側（ホーン・ルームランプ）。D型は BIANCO で、当会F図は D の色を引き写している（その122）。 */
-             VIOLA: '#7a5296', 'AZZURRO-NERO': '#3a5f9e', 'AZZURRO E NERO': '#3a5f9e', 'BIANCO-NERO': '#cfc7b0', 'BIANCO E NERO': '#cfc7b0' };
+             VIOLA: '#7a5296', 'AZZURRO-NERO': '#3a5f9e', 'AZZURRO E NERO': '#3a5f9e', 'BIANCO-NERO': '#cfc7b0', 'BIANCO E NERO': '#cfc7b0',
+             /* AZZURRO E BIANCO＝原典 F/L/R のワイパースイッチ C →モーター F（D型だけ BIANCO・その129⑤）。
+                青／白なので AZZURRO より淡く取る＝紙色の地でも沈まない（BIANCO 単色のような縁取りは要らない）。 */
+             'AZZURRO-BIANCO': '#8ecbe8', 'AZZURRO E BIANCO': '#8ecbe8' };
   var C = { deep: '#2c3a31', body: '#3f5347', in_: '#e6e0d0', sub: '#8d8574', hi: '#b8442e', dim: '#ddd5c4', out: '#c9c2b1', ok: '#2f7d4f' };
 
   var NET = null, PATCHES = null;
