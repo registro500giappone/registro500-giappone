@@ -140,7 +140,7 @@
       var bx = XC - 80, bw = 160;
       s.push('<rect x="' + bx + '" y="' + SW + '" width="' + bw + '" height="' + SH + '" rx="10" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
       s.push('<text x="' + XC + '" y="' + (SW + 19) + '" font-size="12" fill="#fffdf8" text-anchor="middle">ライトスイッチ</text>');
-      s.push('<text x="' + XC + '" y="' + (SW + 33) + '" font-size="10.5" fill="' + C.in_ + '" text-anchor="middle">ダッシュ・入／切（部品24）</text>');
+      s.push('<text x="' + XC + '" y="' + (SW + 33) + '" font-size="10.5" fill="' + C.in_ + '" text-anchor="middle">ダッシュ・入／切</text>');
       /* 入／切の2位置。 */
       var STEP = [['OFF', '切'], ['ON', '入']];
       for (var i = 0; i < 2; i++) {
@@ -168,7 +168,7 @@
       var bx = XC - 86, bw = 172;
       s.push('<rect x="' + bx + '" y="' + CM + '" width="' + bw + '" height="' + CH + '" rx="10" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
       s.push('<text x="' + XC + '" y="' + (CM + 19) + '" font-size="12" fill="#fffdf8" text-anchor="middle">コラムレバー</text>');
-      s.push('<text x="' + XC + '" y="' + (CM + 33) + '" font-size="10.5" fill="' + C.in_ + '" text-anchor="middle">3段で行き先を選ぶ（部品14）</text>');
+      s.push('<text x="' + XC + '" y="' + (CM + 33) + '" font-size="10.5" fill="' + C.in_ + '" text-anchor="middle">3段で行き先を選ぶ</text>');
       /* 可動接触子＝C から、ハイ側（左）／ロー側（右）／どちらでもない中立（＝I の位置）の3つ。
          。以前はライトスイッチの側を3段に描いていたが逆だった。内部の接点は原典に読めないので「どちらへ倒れているか」だけを描く＝形は推定であることを本文と footer で断る。
          中央（I）に接点の丸を打たない＝そこに端子は無い。 */

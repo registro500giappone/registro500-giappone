@@ -116,7 +116,7 @@
       var bx = XC - 80, bw = 160;
       s.push('<rect x="' + bx + '" y="' + SW + '" width="' + bw + '" height="' + SH + '" rx="10" fill="' + C.body + '" stroke="' + C.deep + '" stroke-width="2.5"/>');
       s.push('<text x="' + XC + '" y="' + (SW + 19) + '" font-size="12" fill="#fffdf8" text-anchor="middle">ライトスイッチ</text>');
-      s.push('<text x="' + XC + '" y="' + (SW + 33) + '" font-size="10.5" fill="' + C.in_ + '" text-anchor="middle">ダッシュ・入／切（部品24）</text>');
+      s.push('<text x="' + XC + '" y="' + (SW + 33) + '" font-size="10.5" fill="' + C.in_ + '" text-anchor="middle">ダッシュ・入／切</text>');
       var STEP = [['OFF', '切'], ['ON', '入']];
       for (var i = 0; i < 2; i++) {
         var sx = bx + 45 + i * 70, cur = (lightOn === (STEP[i][0] === 'ON'));

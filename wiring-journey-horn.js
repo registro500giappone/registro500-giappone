@@ -108,7 +108,7 @@
       k.seg(X, HB.y + HB.h, X, BB.y, 'w05-02');
       k.label(X + 14, 438, 'GIALLO E NERO', WC.GIALLO, null, 11);
       k.label(X + 14, 451, '黄／黒', WC.GIALLO, null, 11);
-      /* コラムのコネクタ＝原典にインラインコネクタ記号がある所（NL-D の記載）。コミュテータ（部品11）の接点は通らない＝束を共にするだけ、と本文で断る。 */
+      /* コラムのコネクタ＝原典にインラインコネクタ記号がある所（NL-D の記載）。コミュテータ（外部照明の切替器）の接点は通らない＝束を共にするだけ、と本文で断る。 */
       s.push('<rect x="' + (X - 9) + '" y="446" width="18" height="10" rx="2.5" fill="#e8e1d0" stroke="' + C.deep + '" stroke-width="1.8"/>');
       k.label(X - 16, 455, 'コラムの', C.sub, 'end', 9.5);
       k.label(X - 16, 466, 'つなぎ目', C.sub, 'end', 9.5);
