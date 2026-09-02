@@ -300,7 +300,7 @@
     lampName: '左前の車幅灯',
     alt: false,
     mainInit: 'ON',
-    /* キーは OFF のまま＝この回路がキーの外側にいることを、トグルそのもので見せる */
+    /* キーは常に ON＝30/4 はキー位置1・2で生き、位置0では死ぬ（2026-09-02 訂正） */
     mainInputs: function (v) { return { key: 'ON', lights: v }; },
     /* 主役以外の5灯も場面ごとに拾う */
     extra: function (sc) {
