@@ -100,7 +100,8 @@
     k.keySwitch(XC, KT, pos.ign_sw === 'ON', XC + 62);
     k.term(XC, KT + 10, '30', 'l');
     k.term(XC, KT + 62, '30/4', 'l');
-    /* 30/4＝キーの位置に関係なく常に電気が来ている端子。ここが第8回と共通の入口。
+    /* 30/4＝キーを位置1（ON）か位置2（駐車灯）にすると電気が来る端子。ここが第8回と共通の入口。
+       ⚠️【2026-09-02 訂正】旧コメント「キーの位置に関係なく常に電気が来ている」は誤り＝位置0では死ぬ。
        説明の2行はここに置かない＝幹線（x=XC）と重なる。 */
     /* ⚠️線は【箱の底】KT+48 から出す（共通 k.keySwitch の箱は高さ48）。
        端子バッジは KT+62 のままでよいが、線の始点を 62 にすると箱と線の間が14px空いて
@@ -250,32 +251,34 @@
   function headL(sc) { return get(sc, 'head_l.lo'); }
   function horn(sc) { return get(sc, 'horn'); }
   var LW = ['点く', '点かない'], GW = ['点く', '消える'], HW = ['鳴る', '鳴らない'];
-  var ON = { lights: 'ON' };
+  var ON = { key: 'ON', lights: 'ON' };
   function cut(id) { return [{ op: 'removeWire', id: id }]; }
   var CHECKS = [
-    /* この回のいちばんの主張＝キーを抜いたままでも点く */
-    { label: 'キーOFF・ライトスイッチを入れる（左前）', s: { inputs: ON }, expect: true, words: LW },
+    /* この回の入口＝ライトスイッチを入れた場面。⚠️【2026-09-02 訂正】旧版はここを「キーを抜いたままでも点く」と
+       していたが誤り＝30/4 はキー位置1か位置2でしか生きない（原典3点＋オーナーの実車確認で決着）。
+       この回のいちばんの主張は【たすき掛け＝F5/F6 が左右を交差して守っている】ほう。 */
+    { label: 'ライトスイッチを入れる（左前）', s: { inputs: ON }, expect: true, words: LW },
     { label: '↑同じ場面の右前', s: { inputs: ON }, expect: true, read: posR, words: LW },
     { label: '↑同じ場面の左後', s: { inputs: ON }, expect: true, read: tailL, words: LW },
     { label: '↑同じ場面の右後', s: { inputs: ON }, expect: true, read: tailR, words: LW },
     { label: '↑同じ場面のナンバー灯', s: { inputs: ON }, expect: true, read: plate, words: LW },
     { label: '↑同じ場面のメーターの緑', s: { inputs: ON }, expect: true, read: green, words: GW },
-    { label: 'ライトスイッチが切（左前）', s: { inputs: { lights: 'OFF' } }, expect: false, words: LW },
-    { label: '↑同じ場面のメーターの緑', s: { inputs: { lights: 'OFF' } }, expect: false, read: green, words: GW },
+    { label: 'ライトスイッチが切（左前）', s: { inputs: { key: 'ON', lights: 'OFF' } }, expect: false, words: LW },
+    { label: '↑同じ場面のメーターの緑', s: { inputs: { key: 'ON', lights: 'OFF' } }, expect: false, read: green, words: GW },
     /* たすき掛け＝F5 が切れると【右前と左後】だけが消える */
-    { label: 'F5 が切れた（左前は無事）', s: { inputs: { lights: 'ON', f5: 'BLOWN' } }, expect: true, words: LW },
-    { label: '↑同じ場面の右前（消える）', s: { inputs: { lights: 'ON', f5: 'BLOWN' } }, expect: false, read: posR, words: LW },
-    { label: '↑同じ場面の左後（消える）', s: { inputs: { lights: 'ON', f5: 'BLOWN' } }, expect: false, read: tailL, words: LW },
-    { label: '↑同じ場面の右後（無事）', s: { inputs: { lights: 'ON', f5: 'BLOWN' } }, expect: true, read: tailR, words: LW },
-    { label: '↑同じ場面のナンバー灯（無事）', s: { inputs: { lights: 'ON', f5: 'BLOWN' } }, expect: true, read: plate, words: LW },
-    { label: '↑同じ場面のメーターの緑（点いたまま＝手がかり）', s: { inputs: { lights: 'ON', f5: 'BLOWN' } }, expect: true, read: green, words: GW },
+    { label: 'F5 が切れた（左前は無事）', s: { inputs: { key: 'ON', lights: 'ON', f5: 'BLOWN' } }, expect: true, words: LW },
+    { label: '↑同じ場面の右前（消える）', s: { inputs: { key: 'ON', lights: 'ON', f5: 'BLOWN' } }, expect: false, read: posR, words: LW },
+    { label: '↑同じ場面の左後（消える）', s: { inputs: { key: 'ON', lights: 'ON', f5: 'BLOWN' } }, expect: false, read: tailL, words: LW },
+    { label: '↑同じ場面の右後（無事）', s: { inputs: { key: 'ON', lights: 'ON', f5: 'BLOWN' } }, expect: true, read: tailR, words: LW },
+    { label: '↑同じ場面のナンバー灯（無事）', s: { inputs: { key: 'ON', lights: 'ON', f5: 'BLOWN' } }, expect: true, read: plate, words: LW },
+    { label: '↑同じ場面のメーターの緑（点いたまま＝手がかり）', s: { inputs: { key: 'ON', lights: 'ON', f5: 'BLOWN' } }, expect: true, read: green, words: GW },
     /* F6 が切れると【左前・右後・ナンバー灯・緑】が消える */
-    { label: 'F6 が切れた（左前は消える）', s: { inputs: { lights: 'ON', f6: 'BLOWN' } }, expect: false, words: LW },
-    { label: '↑同じ場面の右前（無事）', s: { inputs: { lights: 'ON', f6: 'BLOWN' } }, expect: true, read: posR, words: LW },
-    { label: '↑同じ場面の左後（無事）', s: { inputs: { lights: 'ON', f6: 'BLOWN' } }, expect: true, read: tailL, words: LW },
-    { label: '↑同じ場面の右後（消える）', s: { inputs: { lights: 'ON', f6: 'BLOWN' } }, expect: false, read: tailR, words: LW },
-    { label: '↑同じ場面のナンバー灯（消える）', s: { inputs: { lights: 'ON', f6: 'BLOWN' } }, expect: false, read: plate, words: LW },
-    { label: '↑同じ場面のメーターの緑（消える）', s: { inputs: { lights: 'ON', f6: 'BLOWN' } }, expect: false, read: green, words: GW },
+    { label: 'F6 が切れた（左前は消える）', s: { inputs: { key: 'ON', lights: 'ON', f6: 'BLOWN' } }, expect: false, words: LW },
+    { label: '↑同じ場面の右前（無事）', s: { inputs: { key: 'ON', lights: 'ON', f6: 'BLOWN' } }, expect: true, read: posR, words: LW },
+    { label: '↑同じ場面の左後（無事）', s: { inputs: { key: 'ON', lights: 'ON', f6: 'BLOWN' } }, expect: true, read: tailL, words: LW },
+    { label: '↑同じ場面の右後（消える）', s: { inputs: { key: 'ON', lights: 'ON', f6: 'BLOWN' } }, expect: false, read: tailR, words: LW },
+    { label: '↑同じ場面のナンバー灯（消える）', s: { inputs: { key: 'ON', lights: 'ON', f6: 'BLOWN' } }, expect: false, read: plate, words: LW },
+    { label: '↑同じ場面のメーターの緑（消える）', s: { inputs: { key: 'ON', lights: 'ON', f6: 'BLOWN' } }, expect: false, read: green, words: GW },
     /* 1灯だけの故障＝球切れやアース外れは、その灯だけが消える */
     { label: '左前のアース（w03-07）が外れた', s: { inputs: ON, ops: cut('w03-07') }, expect: false, words: LW },
     { label: '↑同じ場面の右前（無事）', s: { inputs: ON, ops: cut('w03-07') }, expect: true, read: posR, words: LW },
@@ -286,8 +289,8 @@
     { label: '↑同じ場面の右前（同じく消える）', s: { inputs: ON, ops: cut('w02-02') }, expect: false, read: posR, words: LW },
     { label: '↑同じ場面のメーターの緑（同じく消える）', s: { inputs: ON, ops: cut('w02-02') }, expect: false, read: green, words: GW },
     /* ⭐ロービームはこの2本を通らない＝F3・F4 の先（第8回で確かめた道）。⚠️ハイビームのほうは F5・F6 の先にいる（その108）ので「ヘッドライトは通らない」とは書かない */
-    { label: 'F5・F6 が両方切れてもヘッドライト（ロー）は点く', s: { inputs: { lights: 'ON', beam: 'LOW', f5: 'BLOWN', f6: 'BLOWN' } }, expect: true, read: headL, words: LW },
-    { label: '↑同じ場面でホーンも鳴る（別のヒューズ）', s: { inputs: { lights: 'ON', f5: 'BLOWN', f6: 'BLOWN', horn_btn: 'PRESSED' } }, expect: true, read: horn, words: HW },
+    { label: 'F5・F6 が両方切れてもヘッドライト（ロー）は点く', s: { inputs: { key: 'ON', lights: 'ON', beam: 'LOW', f5: 'BLOWN', f6: 'BLOWN' } }, expect: true, read: headL, words: LW },
+    { label: '↑同じ場面でホーンも鳴る（別のヒューズ）', s: { inputs: { key: 'ON', lights: 'ON', f5: 'BLOWN', f6: 'BLOWN', horn_btn: 'PRESSED' } }, expect: true, read: horn, words: HW },
     { label: 'バッテリーのマイナス端子（w11-10）が外れた', s: { inputs: ON, ops: cut('w11-10') }, expect: false, words: LW },
     { label: 'オルタネーター換装車・ライトスイッチを入れる', s: { alt: true, inputs: ON }, expect: true, words: LW }
   ];
@@ -298,7 +301,7 @@
     alt: false,
     mainInit: 'ON',
     /* キーは OFF のまま＝この回路がキーの外側にいることを、トグルそのもので見せる */
-    mainInputs: function (v) { return { key: 'OFF', lights: v }; },
+    mainInputs: function (v) { return { key: 'ON', lights: v }; },
     /* 主役以外の5灯も場面ごとに拾う */
     extra: function (sc) {
       sc.on = {
@@ -323,14 +326,14 @@
     scenes: function (scenario) {
       return [
         /* ★①ライトスイッチが切＝これは故障ではない（最初に潰す迷い道） */
-        { id: 'j-off', sc: scenario({ inputs: { key: 'OFF', lights: 'OFF' } }), mode: { off: true } },
+        { id: 'j-off', sc: scenario({ inputs: { key: 'ON', lights: 'OFF' } }), mode: { off: true } },
         /* ★②F5 が切れた＝右前と左後だけが消える。緑は点いたまま */
-        { id: 'j-f5', sc: scenario({ inputs: { key: 'OFF', lights: 'ON', f5: 'BLOWN' } }), mode: { f5: true } },
+        { id: 'j-f5', sc: scenario({ inputs: { key: 'ON', lights: 'ON', f5: 'BLOWN' } }), mode: { f5: true } },
         /* ★③F6 が切れた＝左前・右後・ナンバー灯・緑が消える */
-        { id: 'j-f6', sc: scenario({ inputs: { key: 'OFF', lights: 'ON', f6: 'BLOWN' } }), mode: { f6: true } },
+        { id: 'j-f6', sc: scenario({ inputs: { key: 'ON', lights: 'ON', f6: 'BLOWN' } }), mode: { f6: true } },
         /* ★④1灯だけのアース外れ＝その灯だけが消える */
-        { id: 'j-gnd', sc: scenario({ inputs: { key: 'OFF', lights: 'ON' }, ops: [{ op: 'removeWire', id: 'w03-07' }] }), mode: { cut: 'w03-07' } },
-        { id: 'j-fixed', sc: scenario({ inputs: { key: 'OFF', lights: 'ON' } }), mode: {} }
+        { id: 'j-gnd', sc: scenario({ inputs: { key: 'ON', lights: 'ON' }, ops: [{ op: 'removeWire', id: 'w03-07' }] }), mode: { cut: 'w03-07' } },
+        { id: 'j-fixed', sc: scenario({ inputs: { key: 'ON', lights: 'ON' } }), mode: {} }
       ];
     }
   });

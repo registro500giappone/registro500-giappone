@@ -1,6 +1,11 @@
 /* ストーリー第8回「ヘッドライトが点かない」の絵。図の点灯・色・黄点はすべて wiring-sim.js（L1到達性）の solve() 結果＝絵に合わせて数字を作らない。
-   このストーリーだけの特徴が4つある。①【キースイッチの外側にいる】＝電源はイグニッションSWの 30/4（常時電源）。
-   だからキーを抜いてもヘッドライトは点く。シリーズで初めて「キーが関係ない灯」になる。
+   このストーリーだけの特徴が4つある。①【キースイッチの中で枝が分かれる】＝電源はイグニッションSWの 30/4。
+   ⚠️⚠️【2026-09-02 訂正】旧版はこれを「常時電源＝キーを抜いても点く」としていたが誤り。実車のキーは 0/1/2 の3位置で、
+   30/4 は【位置1（運転）と位置2（駐車灯）で生き、位置0では死ぬ】。位置2でもキーは抜けるので「キーを抜いても点く」
+   という現象自体は実在するが、原因は「キーと無関係」ではなく「位置2に入っていた」。
+   根拠＝ジャルディニエラ取説 印刷p6 の脚注(**)「キーを位置1または2にすると通電する回路：車幅灯／ハイビーム／
+   ロービーム／パッシング／ナンバー灯」・D取説 印刷p10 の脚注(*)・D整備書 p268-269・オーナーの実車確認（D型）。
+   ⛔「キーが関係ない灯」と書かない＝本当にキーと無関係なのはホーンとルームランプ（F1の先）だけ。
    ②【スイッチが2段】＝ダッシュの外部照明SW（消灯／車幅灯／前照灯）と、コラムレバー（ロー／ハイ）。
    原典の凡例でも 24=Interruttore（入か切か）・14=Commutatore（行き先を選ぶ）と役割が分かれている。
    ③【ロービームだけ左右別のヒューズ】＝コミュテータから出た 56b が1本でヒューズ箱に入り、箱の【中】で F3（右）・F4（左）に分かれる。
@@ -103,14 +108,17 @@
       s.push('<circle cx="' + kx + '" cy="' + (KT + 56) + '" r="3.6" fill="' + C.in_ + '"/>');
       if (keyOn) path('M' + kx + ',' + (KT + 26) + ' L' + kx + ',' + (KT + 56), C.in_, 3.5);
       else path('M' + kx + ',' + (KT + 26) + ' L' + (kx + 12) + ',' + (KT + 50), C.in_, 3.5);
-      /* 右の接点＝常につながったまま（30/4）。これがこの回の入口 */
+      /* 右の接点＝外部照明へ行く枝（30/4）。これがこの回の入口。
+         ⚠️【2026-09-02 訂正】旧版はここを無条件に閉じて描いていた（＝常時電源という誤った読み）。
+         実車は位置1と位置2で閉じ、位置0では開く。L1 は2位置モデルなので keyOn で分岐させる。 */
       s.push('<circle cx="' + cx + '" cy="' + (KT + 26) + '" r="3.6" fill="' + C.in_ + '"/>');
       s.push('<circle cx="' + cx + '" cy="' + (KT + 56) + '" r="3.6" fill="' + C.in_ + '"/>');
-      path('M' + cx + ',' + (KT + 26) + ' L' + cx + ',' + (KT + 56), C.in_, 3.5);
+      if (keyOn) path('M' + cx + ',' + (KT + 26) + ' L' + cx + ',' + (KT + 56), C.in_, 3.5);
+      else path('M' + cx + ',' + (KT + 26) + ' L' + (cx + 12) + ',' + (KT + 50), C.in_, 3.5);
       /* 中で上どうしがつながっている＝どちらの接点も同じ 30（バッテリー）から出ている */
       path('M' + kx + ',' + (KT + 26) + ' L' + cx + ',' + (KT + 26), C.in_, 2.5);
       /* この1行は箱の【中】に入れる。 */
-      s.push('<text x="' + XC + '" y="' + (KT + 72) + '" font-size="11" font-weight="700" fill="#fffdf8" text-anchor="middle">⭐右はいつも閉じている</text>');
+      s.push('<text x="' + XC + '" y="' + (KT + 72) + '" font-size="11" font-weight="700" fill="#fffdf8" text-anchor="middle">⭐右は位置1と2で閉じる</text>');
     })();
 
     /* キーで開く側＝このストーリーは通らない枝。札は箱の左上へ逃がす（NEROの説明と離すため） */
@@ -119,13 +127,13 @@
     label(4, KT - 22, '点火・警告灯・F2 へ', C.sub, null, 11);
     label(4, KT - 8, '（通らない枝）', C.sub, null, 11);
 
-    /* 30/4 →外部照明SW。ここから先はキーの位置と無関係に生きている */
+    /* 30/4 →外部照明SW。ここから先はキー位置1・2で生きている（⚠️位置0では死ぬ＝2026-09-02 訂正） */
     k.term(XC + 68, KT + 56, '30/4', 'r', true);
     seg(XC + 44, KT + KH, XC + 44, SW - 8, 'w02-01');
     var nc = k.wcol('w02-01', C.dim);
     poly([[XC + 44, SW - 8], [XC, SW - 8], [XC, SW]], nc);
     label(4, SW - 38, 'NERO 黒＝', nc.dead ? C.dim : WC.NERO, null, 12);
-    label(4, SW - 22, 'キーを抜いても生きている線', nc.dead ? C.dim : WC.NERO, null, 12);
+    label(4, SW - 22, '位置1・位置2で生きる線', nc.dead ? C.dim : WC.NERO, null, 12);
 
     /* ================= ライトスイッチ（ダッシュ） ================= */
     (function lightSwitch() {
@@ -342,18 +350,20 @@
 
   /* ---- 検算（期待値は原典と実車の挙動から先に書いた・計算結果を写していない） ---- */
   function rd(id) { return function (sc) { return !!sc.on[id]; }; }
-  var HEAD_LOW = { lights: 'ON', beam: 'LOW' }, HEAD_HIGH = { lights: 'ON', beam: 'HIGH' };
+  var HEAD_LOW = { key: 'ON', lights: 'ON', beam: 'LOW' }, HEAD_HIGH = { key: 'ON', lights: 'ON', beam: 'HIGH' };
   var CHECKS = [
-    { label: 'ライトスイッチが切（キーはON）',                       s: { inputs: { lights: 'OFF', key: 'ON' } },  expect: false },
-    { label: '⭐ライトスイッチが切ならコラムレバーを III に倒しても点かない', s: { inputs: { lights: 'OFF', beam: 'HIGH' } }, expect: false, read: rd('head_l.hi') },
-    { label: 'コラムレバーが I（車幅灯）＝ヘッドライトはまだ点かない', s: { inputs: { lights: 'ON', beam: 'POS' } }, expect: false },
-    { label: '⭐ライトスイッチが前照灯・ロー【キーはOFFのまま】',    s: { inputs: HEAD_LOW },                      expect: true },
-    { label: '同じ場面でキーをONにしても変わらない',        s: { inputs: { lights: 'ON', beam: 'LOW', key: 'ON' } }, expect: true },
-    { label: 'ロー・F4（左）が切れた／左を見る',           s: { inputs: { lights: 'ON', beam: 'LOW', f4: 'BLOWN' } }, expect: false },
-    { label: '同じ場面で右を見る（右は点いている）',        s: { inputs: { lights: 'ON', beam: 'LOW', f4: 'BLOWN' } }, expect: true,  read: rd('head_r.lo') },
-    { label: 'ロー・F3（右）が切れた／右を見る',           s: { inputs: { lights: 'ON', beam: 'LOW', f3: 'BLOWN' } }, expect: false, read: rd('head_r.lo') },
-    { label: '⭐ハイのとき F4 が切れていても左は点く',      s: { inputs: { lights: 'ON', beam: 'HIGH', f4: 'BLOWN' } }, expect: true,  read: rd('head_l.hi') },
-    { label: '⭐ハイのとき F3 が切れていても右は点く',      s: { inputs: { lights: 'ON', beam: 'HIGH', f3: 'BLOWN' } }, expect: true,  read: rd('head_r.hi') },
+    { label: 'ライトスイッチが切',                                   s: { inputs: { key: 'ON', lights: 'OFF' } },  expect: false },
+    { label: '⭐ライトスイッチが切ならコラムレバーを III に倒しても点かない', s: { inputs: { key: 'ON', lights: 'OFF', beam: 'HIGH' } }, expect: false, read: rd('head_l.hi') },
+    { label: 'コラムレバーが I（車幅灯）＝ヘッドライトはまだ点かない', s: { inputs: { key: 'ON', lights: 'ON', beam: 'POS' } }, expect: false },
+    { label: 'ライトスイッチが前照灯・ロー（キーは位置1）',  s: { inputs: HEAD_LOW },                      expect: true },
+    /* ⭐【2026-09-02 訂正】旧版はここを「キーはOFFのままでも点く／ONにしても変わらない」としていた＝誤り。
+       30/4 はキー位置1か位置2でしか生きない（原典3点＋オーナーの実車確認で決着）。位置0では点かない。 */
+    { label: '⭐同じ場面でキーを位置0（切）に戻すと点かない', s: { inputs: { key: 'OFF', lights: 'ON', beam: 'LOW' } }, expect: false },
+    { label: 'ロー・F4（左）が切れた／左を見る',           s: { inputs: { key: 'ON', lights: 'ON', beam: 'LOW', f4: 'BLOWN' } }, expect: false },
+    { label: '同じ場面で右を見る（右は点いている）',        s: { inputs: { key: 'ON', lights: 'ON', beam: 'LOW', f4: 'BLOWN' } }, expect: true,  read: rd('head_r.lo') },
+    { label: 'ロー・F3（右）が切れた／右を見る',           s: { inputs: { key: 'ON', lights: 'ON', beam: 'LOW', f3: 'BLOWN' } }, expect: false, read: rd('head_r.lo') },
+    { label: '⭐ハイのとき F4 が切れていても左は点く',      s: { inputs: { key: 'ON', lights: 'ON', beam: 'HIGH', f4: 'BLOWN' } }, expect: true,  read: rd('head_l.hi') },
+    { label: '⭐ハイのとき F3 が切れていても右は点く',      s: { inputs: { key: 'ON', lights: 'ON', beam: 'HIGH', f3: 'BLOWN' } }, expect: true,  read: rd('head_r.hi') },
     { label: 'ハイのとき表示灯が点く',                     s: { inputs: HEAD_HIGH },                     expect: true,  read: rd('hi_ind') },
     { label: 'ローのとき表示灯は消えている',                s: { inputs: HEAD_LOW },                      expect: false, read: rd('hi_ind') },
     { label: '左のアースが落ちた・ロー（左が消える）',      s: { inputs: HEAD_LOW, ops: [{ op: 'removeWire', id: 'w02-14' }] }, expect: false },
@@ -366,7 +376,7 @@
     { label: '同じ断線でハイも消える',                     s: { inputs: HEAD_HIGH, ops: [{ op: 'removeWire', id: 'w02-06' }] }, expect: false, read: rd('head_l.hi') },
     { label: 'ロー本線（56b）が切れた＝ローだけ左右とも消える', s: { inputs: HEAD_LOW, ops: [{ op: 'removeWire', id: 'w02-07' }] }, expect: false },
     { label: '同じ断線でハイに切り替えると点く',            s: { inputs: HEAD_HIGH, ops: [{ op: 'removeWire', id: 'w02-07' }] }, expect: true,  read: rd('head_l.hi') },
-    { label: '⭐30/4 の線が切れた＝キーをONにしても点かない', s: { inputs: { lights: 'ON', beam: 'LOW', key: 'ON' }, ops: [{ op: 'removeWire', id: 'w02-01' }] }, expect: false }
+    { label: '⭐30/4 の線が切れた＝キーをONにしても点かない', s: { inputs: { key: 'ON', lights: 'ON', beam: 'LOW' }, ops: [{ op: 'removeWire', id: 'w02-01' }] }, expect: false }
   ];
 
   Journey.boot({
@@ -379,7 +389,7 @@
     /* 2軸トグル＝この回だけがスイッチを2つ直列に通る（他の回はスイッチが1つなので単軸のまま） */
     mainAxes: [{ key: 'lights', init: 'ON' }, { key: 'beam', init: 'LOW' }],
     /* このストーリーのトグルが動かすのは【コラムレバー】＝キーでもエンジンでもない。キーは既定の OFF のまま＝「キーは関係ない」がトグルを触っても崩れないようにする。 */
-    mainInputs: function (st) { return { lights: st.lights, beam: st.beam }; },
+    mainInputs: function (st) { return { key: 'ON', lights: st.lights, beam: st.beam }; },
     /* 全負荷の点灯を絵から読めるようにする（ロー・ハイ・表示灯の5つを同時に見るため） */
     extra: function (sc) {
       sc.on = {};
@@ -399,12 +409,12 @@
     },
     scenes: function (scenario) {
       return [
-        { id: 'j-f4',    sc: scenario({ inputs: { lights: 'ON', beam: 'LOW', f4: 'BLOWN' } }), mode: {} },
-        { id: 'j-f4hi',  sc: scenario({ inputs: { lights: 'ON', beam: 'HIGH', f4: 'BLOWN' } }), mode: {} },
+        { id: 'j-f4',    sc: scenario({ inputs: { key: 'ON', lights: 'ON', beam: 'LOW', f4: 'BLOWN' } }), mode: {} },
+        { id: 'j-f4hi',  sc: scenario({ inputs: { key: 'ON', lights: 'ON', beam: 'HIGH', f4: 'BLOWN' } }), mode: {} },
         { id: 'j-gndl',  sc: scenario({ inputs: HEAD_HIGH, ops: [{ op: 'removeWire', id: 'w02-14' }] }), mode: { cutGndL: true } },
         { id: 'j-hicut', sc: scenario({ inputs: HEAD_HIGH, ops: [{ op: 'removeWire', id: 'w02-11' }] }), mode: { cutHiL: true } },
         { id: 'j-cutc',  sc: scenario({ inputs: HEAD_LOW, ops: [{ op: 'removeWire', id: 'w02-06' }] }), mode: { cutC: true } },
-        { id: 'j-pos',   sc: scenario({ inputs: { lights: 'ON', beam: 'POS' } }), mode: {} },
+        { id: 'j-pos',   sc: scenario({ inputs: { key: 'ON', lights: 'ON', beam: 'POS' } }), mode: {} },
         { id: 'j-fixed', sc: scenario({ inputs: HEAD_LOW }), mode: {} }
       ];
     }
