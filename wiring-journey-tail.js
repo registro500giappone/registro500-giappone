@@ -279,7 +279,7 @@
     { label: '↑同じ場面の右後（消える）', s: { inputs: { key: 'ON', lights: 'ON', f6: 'BLOWN' } }, expect: false, read: tailR, words: LW },
     { label: '↑同じ場面のナンバー灯（消える）', s: { inputs: { key: 'ON', lights: 'ON', f6: 'BLOWN' } }, expect: false, read: plate, words: LW },
     { label: '↑同じ場面のメーターの緑（消える）', s: { inputs: { key: 'ON', lights: 'ON', f6: 'BLOWN' } }, expect: false, read: green, words: GW },
-    /* 1灯だけの故障＝球切れやアース外れは、その灯だけが消える */
+    /* 1灯だけの故障＝電球切れやアース外れは、その灯だけが消える */
     { label: '左前のアース（w03-07）が外れた', s: { inputs: ON, ops: cut('w03-07') }, expect: false, words: LW },
     { label: '↑同じ場面の右前（無事）', s: { inputs: ON, ops: cut('w03-07') }, expect: true, read: posR, words: LW },
     { label: 'ナンバー灯への枝（w03-04）が外れた', s: { inputs: ON, ops: cut('w03-04') }, expect: false, read: plate, words: LW },

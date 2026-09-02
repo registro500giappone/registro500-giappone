@@ -210,7 +210,7 @@
     s.push('<rect x="' + (x - 15) + '" y="' + tubeTop + '" width="30" height="7" rx="3" fill="#b9b1a0"/>');
     s.push('<rect x="' + (x - 15) + '" y="' + (tubeTop + tubeH - 7) + '" width="30" height="7" rx="3" fill="#b9b1a0"/>');
     if (blown) {
-      /* 切れたヒューズ＝エレメントが中央で分かれる。×印は付けない（球切れの記号と紛れる） */
+      /* 切れたヒューズ＝エレメントが中央で分かれる。×印は付けない（電球切れの記号と紛れる） */
       s.push('<path d="M' + x + ',' + (tubeTop + 7) + ' L' + x + ',' + (tubeTop + 15) + ' M' + x + ',' + (tubeTop + 25) + ' L' + x + ',' + (tubeTop + 33) + '" stroke="' + C.hi + '" stroke-width="2.5" stroke-linecap="round"/>');
       s.push('<circle cx="' + x + '" cy="' + (tubeTop + 20) + '" r="6" fill="none" stroke="' + C.hi + '" stroke-width="2.5"/>');
     } else {

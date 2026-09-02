@@ -124,7 +124,7 @@
        「− と導体だけで導通していれば」アースとして数える。車体は電位の基準ではなく、
        単に − へ戻るための太い導体だから＝バッテリーの −端子が外れれば車体は浮く。
        ⚠️これを入れる前は body を無条件にアース源として扱っていて、−端子外れ
-       （removeWire w11-10）でも「セルが回る」と誤答した（第3号 limitations ②）。
+       （removeWire w11-10）でも「セルが回る」と誤答した（第3回 limitations ②）。
        影響は wiring-simulator/check_ground_basis.js で全数比較済＝差分は w11-10 の1本のみ。 */
     var negC = negNode ? comp[negNode] : -2;
     for (i = 0; i < gndNodes.length; i++) if (comp[gndNodes[i]] === negC) gndC[comp[gndNodes[i]]] = 1;

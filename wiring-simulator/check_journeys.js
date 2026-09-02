@@ -4,6 +4,7 @@
  *   node check_journeys.js --snapshot   … 各場面の SVG を .snapshots/ へ書き出す
  *   node check_journeys.js --diff       … 前回のスナップショットと突き合わせる（回帰検証）
  *   node check_journeys.js --dots       … 【通電しているのに黄点が1つも出ない線】を洗い出す
+ *   node check_journeys.js --terms      … 【廃止語・混入禁止語】が公開ファイルに残っていないか数える
  *
  * ⚠️なぜ要るか（HANDOFF §0 その3・その4の教訓）：
  *   共通ランタイム（wiring-journey.js）や wiring-sim.js・wiring-net.json を触ると、
@@ -165,7 +166,71 @@ function runPage(page) {
   });
 }
 
+/* ---- --terms ＝【廃止語・混入禁止語】が公開ファイルに残っていないか数える ----
+ * なぜ要るか（2026-09-02〜03 の教訓）：一斉訂正のたび、本文は直したのに
+ * 【見出し／図の中の文字（JSの label）／JS・HTMLのコメント／journey-schedule.json の desc】
+ * が旧説のまま公開される事故が3回続いた。「本文と別に数える」を人ではなくここに数えさせる。
+ * ⭐対象は【ブラウザが読むファイル】＝HTML だけでなく JS も JSON も含む（*.json は fetch される＝公開物）。
+ * ⛔語の追加は ref/forbidden-terms.json 側で行う＝このコードは触らない。 */
+function runTerms() {
+  const def = JSON.parse(fs.readFileSync(path.join(__dirname, 'ref', 'forbidden-terms.json'), 'utf8'));
+  /* targets はごく簡易な glob（* だけ）。REPO 直下のみを見る＝旅ページはすべてここに在る */
+  const files = fs.readdirSync(REPO).filter(function (f) {
+    return def.targets.some(function (g) {
+      return new RegExp('^' + g.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$').test(f);
+    });
+  }).sort();
+  if (!files.length) { console.log('⚠️対象ファイルが1つも無い（targets の書き方が repo と合っていない）'); return true; }
+
+  /* ⭐⭐まず自己テスト＝各ルールが【違反文字列を捕まえ、紛らわしい正しい文字列は捕まえない】ことを確かめる。
+   * 💡なぜ要るか：『ゼロ件』には【違反が無いからゼロ】と【ルールが壊れていてゼロ】の2種があり、
+   *   出力を見ただけでは区別できない。⛔対照を書かずにゼロを信じない。 */
+  let broken = 0;
+  for (const r of def.rules) {
+    (r.probe || []).forEach(function (p) {
+      if (!new RegExp(r.re).test(p)) { console.log('✗ 自己テスト失敗 [' + r.id + '] 捕まえられない: ' + p); broken++; }
+    });
+    (r.notProbe || []).forEach(function (p) {
+      if (new RegExp(r.re).test(p)) { console.log('✗ 自己テスト失敗 [' + r.id + '] 誤検出: ' + p); broken++; }
+    });
+    if (!(r.probe || []).length) { console.log('✗ 自己テスト失敗 [' + r.id + '] probe が書かれていない'); broken++; }
+  }
+  if (broken) { console.log('\n⚠️ルールが壊れている（' + broken + '件）＝本検査に進まない。ref/forbidden-terms.json を直すこと'); return true; }
+  console.log('✓ 自己テスト合格（' + def.rules.length + 'ルール）\n');
+
+  let total = 0;
+  for (const rule of def.rules) {
+    const hits = [];
+    for (const f of files) {
+      if ((rule.allow || []).indexOf(f) >= 0) continue;
+      const lines = fs.readFileSync(path.join(REPO, f), 'utf8').replace(/\r\n/g, '\n').split('\n');
+      lines.forEach(function (line, i) {
+        /* ⚠️⚠️1行に複数あれば全部数える＝ wiring-net.json の note は1行が2000字近く、
+           そこに同じ廃止語が2つ入っていた。最初の1件だけ直すと残りが黙って生き残る。 */
+        const re = new RegExp(rule.re, 'g');
+        let m;
+        while ((m = re.exec(line)) !== null) {
+          hits.push({ f: f, n: i + 1, ctx: line.slice(Math.max(0, m.index - 30), m.index + m[0].length + 30).trim() });
+          if (m.index === re.lastIndex) re.lastIndex++;  /* 空マッチでの無限ループ避け */
+        }
+      });
+    }
+    total += hits.length;
+    console.log((hits.length ? '✗ ' : '✓ ') + rule.id + ' 〈' + rule.re + '〉 … ' + (hits.length ? hits.length + '件' : '残存なし'));
+    if (hits.length) {
+      console.log('    → ' + rule.why);
+      console.log('    → 正しくは: ' + rule.fix);
+      hits.forEach(function (h) { console.log('    ' + h.f + ':' + h.n + '  …' + h.ctx + '…'); });
+    }
+  }
+  console.log('\n' + def.rules.length + 'ルール × ' + files.length + 'ファイル ／ 違反 ' + total + '件');
+  if (!total) console.log('→ 廃止語の残存はゼロ');
+  return total > 0;
+}
+
 const mode = process.argv[2] || '';
+if (mode === '--terms') process.exit(runTerms() ? 1 : 0);
+
 (async function () {
   let fail = 0, n = 0;
   const all = {};
