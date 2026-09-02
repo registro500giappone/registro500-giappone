@@ -1,7 +1,9 @@
-/* ストーリー第7回「ホーンが鳴らない」の絵。図の点灯・色・黄点はすべて wiring-sim.js（L1到達性）の solve() 結果＝絵に合わせて数字を作らない。
+/* ストーリー第12回「ホーンが鳴らない」の絵。図の点灯・色・黄点はすべて wiring-sim.js（L1到達性）の solve() 結果＝絵に合わせて数字を作らない。
    このストーリーだけの特徴＝【2つとも、これまでのストーリーとは逆】。①ヒューズが本線に入る。
    第1・4・6回はどれも「ヒューズは無実」だった（キー・コイルへの線はヒューズの電源側から分かれる）。
-   ホーンは F1 の【負荷側】に着く初めての系統＝ヒューズを疑うのが正しい数少ない症状。
+   ホーンは F1 の【負荷側】に着く＝ヒューズを疑うのが正しい数少ない症状。
+   ⛔「ヒューズが犯人になる初めての回」ではない（F2 が犯人になる場面は第7回 brake・第10回 turn・第11回 wiper で既出）。
+   初めてなのは【キーと無関係に生きている F1 が犯人になる】ほう＝2026-09-03 に第7回→第12回へ動かしたとき本文ごと直した。
    ②スイッチがアース側に入る。ホーンには常に12Vが来ていて、ボタンは【帰り道】をつなぐ。
    だからキーを抜いても鳴る。ホーン本体の「通電しても鳴らない・かすれる」（調整ねじ・内部接点の荒れ）は値の話＝この絵の外。 */
 (function () {
@@ -151,7 +153,7 @@
     { label: 'キーOFF・ボタンを押す', s: { inputs: PRESS }, expect: true, words: HW },
     { label: 'キーOFF・ボタンを離す', s: { inputs: { key: 'OFF', horn_btn: 'OFF' } }, expect: false, words: HW },
     { label: 'キーON・ボタンを押す', s: { inputs: PRESS_ON }, expect: true, words: HW },
-    /* このストーリーの山場＝ヒューズが本当に犯人になる初めての系統 */
+    /* このストーリーの山場＝キーと無関係な F1 が犯人になる（⛔「ヒューズが犯人になる初めての回」ではない） */
     { label: 'ヒューズF1が切れている・押す', s: { inputs: { key: 'OFF', horn_btn: 'PRESSED', f1: 'BLOWN' } }, expect: false, words: HW },
     { label: '↑同じ場面のチャージランプ（キーON・無実）', s: { inputs: { key: 'ON', engine: 'STOP', f1: 'BLOWN' } }, expect: true, read: chg, words: LW },
     { label: '↑同じ場面の点火の一次（キーON・無実）', s: { inputs: { key: 'ON', engine: 'STOP', f1: 'BLOWN' } }, expect: true, read: coil, words: PW },
@@ -178,7 +180,7 @@
     checks: CHECKS,
     scenes: function (scenario) {
       return [
-        /* ★①ヒューズが切れた＝この絵の山場。同時にルームランプも点かなくなる（第8回と対） */
+        /* ★①ヒューズが切れた＝この絵の山場。同時にルームランプも点かなくなる（第13回と対） */
         { id: 'j-blown', sc: scenario({ inputs: { key: 'OFF', horn_btn: 'PRESSED', f1: 'BLOWN' } }), mode: {} },
         /* ②ボタンのアースが外れた＝両端に12Vが出るのに鳴らない（第6回の異常②と同じ形） */
         { id: 'j-noearth', sc: scenario({ inputs: PRESS, ops: cut('w05-03') }), mode: { cut: 'w05-03' } },
