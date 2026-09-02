@@ -111,6 +111,8 @@ python ai_marathon_final_v9.py # AI翻訳のみ（category IS NULL を対象）
 - `py/` → クローラースクリプト群（**GitHub Actions用にgit管理対象**、`*.py` / `*.md` はコミット必須。ログ・CSV・機密ファイルは `py/.gitignore` で除外）
 - `126/index.html` → Fiat 126姉妹サイトのトップページ
 - `.claude/agents/` → 専用サブエージェント定義（Haikuモデル）
+- `.claude/skills/` → 作業の入口で自動的に読まれる手順書（**git管理対象**。外部から入れたスキルは `skills-lock.json` から復元できるので除外）
+  - `journey-writing/SKILL.md` → 連載「電装トラブルの旅手帳」の記事を書く・直す・一斉訂正するときの確定ルール（呼び名／作図／公開手順／検品コマンド／事実の確定事項）。⭐**禁忌は台帳ではなく、それを踏む作業の入口に置く**方針の実体。語の禁忌はさらに機械化してあり `node wiring-simulator/check_journeys.js --terms` で数える（台帳＝`wiring-simulator/ref/forbidden-terms.json`）
 - `youtube-portal/` → YouTube動画ポータル（クラシックFIAT 500/126動画キュレーション）の確定設計。`HANDOFF.md`（引き継ぎ書・全決定事項）＋`schema.sql`（適用済みスキーマ）
 - `events-portal/HANDOFF.md` → イベントページ再構成の引き継ぎ書・全決定事項（不変条件は §7）
 - `equipment-notebook/HANDOFF.md` → 装備手帳（みんなの車載手帳）の引き継ぎ書・全決定事項
