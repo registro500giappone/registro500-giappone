@@ -32,12 +32,18 @@ jobs:
       - name: 公開状態を journey-schedule.json に合わせる
         run: python wiring-simulator/publish_journey.py
 
+      - name: 告知メールの下書きを用意する（公開日の3日前から）
+        # 下書きはリポジトリのファイル＝配信前に読めて・直せて・消せる。
+        # 既にあるファイルは触らない（手で直した文面を上書きしない）。
+        run: python wiring-simulator/announce_journey.py --draft
+
       - name: 差分があればコミット
         # ⛔ git add -A は使わない（関係ないファイルを巻き込まないため・ファイル名を明示する）
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add wiring-journey.html wiring-journey-*.html robots.txt
+          if [ -d wiring-simulator/announce ]; then git add wiring-simulator/announce; fi
           if [ -f sitemap-journey.xml ]; then git add sitemap-journey.xml; fi
           if git diff --cached --quiet; then
             echo "公開状態の変更なし — スキップ"
@@ -58,3 +64,12 @@ jobs:
               exit 1
             fi
           fi
+
+      # ⚠️投入を push の後に置いている＝push が失敗した週に告知だけ飛ぶのを防ぐため。
+      # 下書きが無い日／skip: true の日は何もせず正常終了する（毎日流しても静か）。
+      # 記事が open になっていることを確かめてから投入する（announce_journey.py の安全弁）。
+      - name: 告知を news へ投入する（06:20 の朝ダイジェストに乗る）
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python wiring-simulator/announce_journey.py --publish
