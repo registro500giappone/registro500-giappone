@@ -1,0 +1,68 @@
+name: マイ壁紙 スプライト再生成（毎日03:40 JST/手動）
+
+# 壁紙（オールタイル図鑑）は 169台の写真を1枚に焼いたスプライトから組み立てる。
+# ⭐ 焼き直しが要るのは「新規登録・写真の差し替え・SNS掲載設定の変更・色の書き換え」のとき。
+#   イベントを受け取る口が無いので毎日見に行き、対象の署名（document_id＋写真URL＋更新日時）が
+#   前回と変わっていたときだけ焼き直す。変化が無い日は何も書かないのでコミットも増えない。
+# 03:40 JST に置く理由＝週刊連載の公開（05:10）と朝ダイジェスト（06:20）より前に済ませ、
+#   同じ時間帯にジョブを重ねないため。⚠️schedule は実測で数十分〜3時間半遅れることがある。
+on:
+  schedule:
+    - cron: '40 18 * * *'   # UTC 18:40 ＝ JST 翌03:40
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write   # スプライトと manifest をコミットするため
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 依存を入れる
+        run: pip install requests Pillow
+
+      # 写真は1台ぶんずつキャッシュする（キャッシュ名に写真URLと更新日時が入るので、
+      # 差し替えられた車だけが再ダウンロードになる）。
+      - uses: actions/cache@v4
+        with:
+          path: py/.wallpaper-cache
+          key: wallpaper-photos-${{ github.run_id }}
+          restore-keys: wallpaper-photos-
+
+      - name: 変化があればスプライトを焼き直す
+        run: python py/build_wallpaper_sprite.py
+
+      - name: 差分があればコミット
+        # ⛔ git add -A は使わない（関係ないファイルを巻き込まないため・ファイル名を明示する）
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add wallpaper/dist/sprite.webp wallpaper/dist/manifest.json
+          if git diff --cached --quiet; then
+            echo "図鑑の変更なし — スキップ"
+          else
+            # ⚠️⛔[skip ci] にしない＝Cloudflare Pages も同じ文言でビルドを止めるため、
+            #   焼き直しても本番に出ない。[skip actions] は Actions だけがスキップする。
+            git commit -m "chore(wallpaper): 図鑑スプライトを再生成 [skip actions]"
+            ok=0
+            for n in 1 2 3; do
+              if git push; then ok=1; break; fi
+              echo "push が弾かれました（試行 $n）— rebase して再試行します"
+              git pull --rebase origin main || true
+              sleep 5
+            done
+            if [ "$ok" != "1" ]; then
+              echo "::error::3回試しても push できませんでした（手動で確認してください）"
+              exit 1
+            fi
+          fi

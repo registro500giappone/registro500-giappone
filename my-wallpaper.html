@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>マイ壁紙 ── オールタイル図鑑｜REGISTRO 500 GIAPPONE</title>
+<!-- 導線を付けるまでは検索にも出さない（公開の可否はオーナーが決める） -->
+<meta name="robots" content="noindex,nofollow">
+<meta name="description" content="登録されている空冷フィアット500・126をすべて敷き詰めた、スマートフォンの待ち受け画像を作ります。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="マイ壁紙 ── オールタイル図鑑">
+<meta property="og:description" content="登録されている空冷フィアット500・126をすべて敷き詰めた待ち受け画像。">
+<meta property="og:image" content="https://registro500giappone.com/og/site-ja.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon-192.png">
+<style>
+/* 共通CSSは読み込まない。この画面は色を1枚で完結させる＝サイト全体の配色に手を触れないため。 */
+:root{
+  --bg:#fffdf8; --ink:#3a352c; --sub:#8d8574; --deep:#2c3a31;
+  --line:#e6e0d4; --card:#fffefb; --accent:#7a6a53;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+  line-height:1.75;-webkit-text-size-adjust:100%}
+.wrap{max-width:560px;margin:0 auto;padding:22px 18px 64px}
+h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
+.lead{margin:0 0 18px;font-size:13px;color:var(--sub)}
+.stage{background:#141416;border-radius:14px;padding:10px;display:flex;justify-content:center;
+  box-shadow:0 6px 22px #00000018;min-height:120px;align-items:center}
+.stage canvas,.stage img{max-width:100%;height:auto;max-height:58vh;border-radius:6px;display:block}
+.panel{margin:16px 0 0;display:flex;flex-direction:column;gap:12px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.row .label{font-size:12px;color:var(--sub);min-width:5.2em}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--card)}
+.seg button{appearance:none;border:0;background:transparent;color:var(--sub);
+  font:inherit;font-size:13px;padding:7px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--deep);color:#fff}
+.btn{appearance:none;border:1px solid var(--deep);background:var(--deep);color:#fff;
+  font:inherit;font-size:14px;padding:11px 18px;border-radius:10px;cursor:pointer;width:100%}
+.btn[disabled]{opacity:.45;cursor:default}
+.btn.ghost{background:transparent;color:var(--deep);width:auto;padding:8px 14px;font-size:13px}
+.note{font-size:12px;color:var(--sub);margin:10px 0 0}
+.card{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:14px;margin-top:16px;font-size:13px}
+.card h2{font-size:14px;margin:0 0 6px;color:var(--deep)}
+.card p{margin:0 0 8px}
+.card a{color:var(--accent)}
+.pick{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.pick button{appearance:none;border:1px solid var(--line);background:#fff;border-radius:10px;
+  padding:8px;cursor:pointer;font:inherit;font-size:12px;color:var(--ink);
+  display:flex;align-items:center;gap:8px}
+.pick button[aria-pressed="true"]{border-color:var(--deep);box-shadow:0 0 0 2px #2c3a3122}
+.pick canvas{width:44px;height:44px;border-radius:6px;display:block}
+.hide{display:none!important}
+/* ---- ログイン（メールに届く6桁コード） ---- */
+#lg{display:none;position:fixed;inset:0;background:#00000080;z-index:9999;
+  align-items:center;justify-content:center;padding:18px}
+#lg .box{background:var(--bg);border-radius:16px;padding:22px 20px;max-width:340px;width:100%;
+  text-align:center;box-shadow:0 12px 40px #00000038}
+#lg h3{margin:0 0 6px;font-size:17px;color:var(--deep)}
+#lg .lead2{margin:0 0 14px;font-size:12.5px;color:var(--sub)}
+#lg input{width:100%;padding:11px;border:1px solid var(--line);border-radius:9px;font:inherit;font-size:16px}
+#lg .err{color:#a1442f;font-size:12px;margin:8px 0 0;min-height:1em}
+#lg .acts{display:flex;gap:8px;margin-top:12px}
+#lg .acts .btn{flex:1}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>マイ壁紙</h1>
+  <p class="lead">登録されている<span id="nCars">…</span>台をぜんぶ並べた、スマートフォンの待ち受けです。</p>
+
+  <div class="stage">
+    <canvas id="cv" class="hide"></canvas>
+    <img id="out" class="hide" alt="生成した待ち受け画像">
+    <p id="stageMsg" class="note" style="color:#b9b3a6">読み込んでいます…</p>
+  </div>
+
+  <div class="panel" id="panel" hidden>
+    <div class="row">
+      <span class="label">並び順</span>
+      <span class="seg">
+        <button id="sortReg" aria-pressed="true">登録順</button>
+        <button id="sortCol" aria-pressed="false">色順</button>
+      </span>
+    </div>
+    <div class="row hide" id="hiRow">
+      <span class="label">自分の1台</span>
+      <span class="seg">
+        <button id="hiOn" aria-pressed="true">大きく</button>
+        <button id="hiOff" aria-pressed="false">そろえる</button>
+      </span>
+    </div>
+    <button class="btn" id="save">この画像を保存</button>
+    <p class="note" id="saveHint"></p>
+  </div>
+
+  <div id="notice"></div>
+</main>
+
+<div id="lg">
+  <div class="box">
+    <h3>ログイン</h3>
+    <p class="lead2">ご登録のメールアドレスに6桁のコードをお送りします。</p>
+    <div id="lgStep1">
+      <input id="lgMail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
+      <p class="err" id="lgErr"></p>
+      <div class="acts">
+        <button class="btn ghost" id="lgClose" style="flex:0 0 auto">閉じる</button>
+        <button class="btn" id="lgSend">コードを送る</button>
+      </div>
+    </div>
+    <div id="lgStep2" class="hide">
+      <input id="lgCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6桁のコード">
+      <p class="err" id="lgErr2"></p>
+      <div class="acts">
+        <button class="btn ghost" id="lgResend" style="flex:0 0 auto">再送</button>
+        <button class="btn" id="lgVerify">ログイン</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================================
+     オールタイル図鑑の待ち受けを、見ている端末の実サイズで組み立てる。
+     絵の仕様の正本は wallpaper/HANDOFF.md（§1 確定仕様・§2 並び順・§6 不変条件）。
+
+     ⭐ 写真は wallpaper/dist/sprite.webp ＝ 自ドメインから配る1枚に焼いてある。
+        Firebase Storage には CORS が無く、直接読むと canvas が汚染されて
+        書き出しが SecurityError で落ちる。ここでは元写真を一切さわらない。
+     ⭐ 色順の並びは manifest の order_color を読むだけ。並べ替えの判断（色の辞書と
+        濃淡の測定）は py/build_wallpaper_sprite.py が持つ＝ここへ写すと二重管理になる。
+     ========================================================================== */
+
+  var DATA = '/wallpaper/dist/';
+  var GROUND = '#0f0f11';        // 地色 rgb(15,15,17)
+  var FADE = 0.22;               // ハイライト時に周りを地色へ寄せる割合（⛔目立たせるためではない）
+  var SPAN = 2;                  // ハイライトは 2×2 セル・センター固定
+  var PREVIEW = /[?&]preview=1/.test(location.search);
+
+  var SUPA_URL = 'https://ttlttclfovuzafvghvaq.supabase.co';
+  var SUPA_KEY = 'sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt';
+  var SUPA_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0';
+  var SUPA_SRI = 'sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var MAN = null, SPRITE = null;
+  var W = 0, H = 0;
+  var sortKind = 'reg';          // reg | color
+  var hiOn = true;
+  var myIndex = null;            // スプライト内の位置（自分の1台）
+
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  /* ---- 端末の実サイズ ---------------------------------------------------
+     ⭐「見ている端末の実サイズで作る」が確定仕様（HANDOFF §4-3）。
+     縦横は向きで入れ替わるので、短辺を幅・長辺を高さに正規化する（壁紙は縦）。 */
+  function deviceSize() {
+    var dpr = window.devicePixelRatio || 1;
+    var a = window.screen.width, b = window.screen.height;
+    var cssW = Math.min(a, b), cssH = Math.max(a, b);
+    return {
+      w: Math.round(cssW * dpr), h: Math.round(cssH * dpr),
+      cssW: cssW,
+      /* スマホ以外では作らせない（HANDOFF §4-3・PC版は未着手）。
+         指の太さと画面幅の両方で見る＝PCでウィンドウを細めただけでは通らない。 */
+      phone: cssW <= 820 && window.matchMedia('(pointer: coarse)').matches
+    };
+  }
+
+  function note(html) { $('notice').innerHTML = html; }
+
+  /* ---- レイアウト --------------------------------------------------------
+     台数に依存せず、列を1つずつ増やして画面に収まる最大のタイルを選ぶ。
+     最後の行が余るのは許容する（HANDOFF §1）。 */
+  function layout(need) {
+    for (var cols = 5; cols <= 20; cols++) {
+      var t = Math.floor(W / cols);
+      var rows = Math.max(Math.ceil(need / cols), SPAN);
+      if (rows * t <= H) return { cols: cols, rows: rows, T: t };
+    }
+    var c = 20, t2 = Math.floor(W / c);
+    return { cols: c, rows: Math.floor(H / t2), T: t2 };
+  }
+
+  function tileSrc(i) {
+    return [(i % MAN.cols) * MAN.tile, Math.floor(i / MAN.cols) * MAN.tile];
+  }
+
+  function draw() {
+    if (!MAN || !SPRITE) return;
+    var cv = $('cv');
+    cv.width = W; cv.height = H;
+    var ctx = cv.getContext('2d');
+    ctx.imageSmoothingQuality = 'high';
+    ctx.fillStyle = GROUND;
+    ctx.fillRect(0, 0, W, H);
+
+    var seq;
+    if (sortKind === 'color') {
+      seq = MAN.order_color.slice();
+    } else {
+      seq = [];
+      for (var i = 0; i < MAN.count; i++) seq.push(i);
+    }
+    var hi = (hiOn && myIndex !== null) ? myIndex : null;
+
+    /* ロゴは格子に並ぶ1枚の写真として扱う。500 が先頭・126 が末尾（HANDOFF §2-3） */
+    var lead = MAN.logo.r500, trail = MAN.logo.r126;
+    var need = seq.length + (hi !== null ? SPAN * SPAN - 1 : 0) + 2;
+    var L = layout(need);
+    var gw = L.cols * L.T, gh = L.rows * L.T;
+    var ox = Math.floor((W - gw) / 2), oy = Math.floor((H - gh) / 2);
+
+    var blocked = {}, hr = 0, hc = 0;
+    if (hi !== null) {
+      hr = Math.floor((L.rows - SPAN) / 2);
+      hc = Math.floor((L.cols - SPAN) / 2);
+      for (var dr = 0; dr < SPAN; dr++)
+        for (var dc = 0; dc < SPAN; dc++) blocked[(hr + dr) + ',' + (hc + dc)] = 1;
+    }
+    var cells = [];
+    for (var r = 0; r < L.rows; r++)
+      for (var c = 0; c < L.cols; c++)
+        if (!blocked[r + ',' + c]) cells.push([r, c]);
+
+    var rest = (hi !== null) ? seq.filter(function (x) { return x !== hi; }) : seq;
+    var nPlace = Math.min(rest.length, Math.max(cells.length - 2, 0));
+
+    function put(idx, cell, size) {
+      var s = tileSrc(idx);
+      ctx.drawImage(SPRITE, s[0], s[1], MAN.tile, MAN.tile,
+                    ox + cell[1] * L.T, oy + cell[0] * L.T, size, size);
+    }
+    put(lead, cells[0], L.T);                       // 先頭＝500 のロゴ
+    for (var k = 0; k < nPlace; k++) put(rest[k], cells[1 + k], L.T);
+    put(trail, cells[1 + nPlace], L.T);             // 末尾＝126 のロゴ
+
+    if (hi !== null) {
+      /* 周りを地色へ寄せるだけ。囲み線もオーバーレイも置かない（⛔HANDOFF §1）。
+         地色の余白にも同じ幕がかかるが、地色に地色を重ねても色は変わらない。 */
+      ctx.fillStyle = 'rgba(15,15,17,' + FADE + ')';
+      ctx.fillRect(0, 0, W, H);
+      var s2 = tileSrc(hi);
+      ctx.drawImage(SPRITE, s2[0], s2[1], MAN.tile, MAN.tile,
+                    ox + hc * L.T, oy + hr * L.T, L.T * SPAN, L.T * SPAN);
+    }
+
+    cv.classList.remove('hide');
+    $('out').classList.add('hide');
+    $('stageMsg').classList.add('hide');
+    $('saveHint').textContent = W + '×' + H + ' ピクセル・' + L.cols + '列' + L.rows + '行';
+  }
+
+  /* ---- 保存 --------------------------------------------------------------
+     ⚠️ iOS Safari では <a download> が効かない（HANDOFF §6）。
+     画像に置き換えて長押しで「写真に追加」してもらう。 */
+  function save() {
+    var cv = $('cv');
+    var name = 'registro500-wallpaper-' + W + 'x' + H + '.jpg';
+    if (isIOS) {
+      var url = cv.toDataURL('image/jpeg', 0.92);
+      var im = $('out');
+      im.src = url;
+      im.classList.remove('hide');
+      cv.classList.add('hide');
+      $('saveHint').innerHTML = '↑ この画像を<b>長押し</b>して「写真に追加」を選んでください。';
+      return;
+    }
+    cv.toBlob(function (b) {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(b);
+      a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+    }, 'image/jpeg', 0.92);
+  }
+
+  /* ---- Supabase（必要になったときだけ読む） ------------------------------ */
+  var supaPromise = null, client = null;
+  function supa() {
+    if (supaPromise) return supaPromise;
+    supaPromise = new Promise(function (resolve, reject) {
+      if (window.supabase && window.supabase.createClient) return resolve(mk());
+      var s = document.createElement('script');
+      s.src = SUPA_CDN; s.integrity = SUPA_SRI; s.crossOrigin = 'anonymous';
+      s.onload = function () { resolve(mk()); };
+      s.onerror = function () { reject(new Error('supabase-js')); };
+      document.head.appendChild(s);
+    });
+    return supaPromise;
+  }
+  function mk() {
+    if (!client) client = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+    return client;
+  }
+
+  /* ---- ログイン（メールOTP・イベントページや連載と同じ方式） -------------- */
+  function openLogin() {
+    $('lg').style.display = 'flex';
+    var saved = localStorage.getItem('r500_login_email');
+    if (saved && !$('lgMail').value) $('lgMail').value = saved;
+  }
+  $('lgClose').onclick = function () { $('lg').style.display = 'none'; };
+  $('lg').onclick = function (e) { if (e.target === $('lg')) $('lg').style.display = 'none'; };
+  var otpMail = '';
+  $('lgSend').onclick = function () {
+    var m = ($('lgMail').value || '').trim();
+    if (!/.+@.+\..+/.test(m)) { $('lgErr').textContent = 'メールアドレスをご確認ください。'; return; }
+    $('lgErr').textContent = ''; $('lgSend').disabled = true;
+    supa().then(function (c) { return c.auth.signInWithOtp({ email: m }); })
+      .then(function (r) {
+        $('lgSend').disabled = false;
+        if (r.error) { $('lgErr').textContent = '送信できませんでした：' + r.error.message; return; }
+        otpMail = m;
+        localStorage.setItem('r500_login_email', m);
+        $('lgStep1').classList.add('hide'); $('lgStep2').classList.remove('hide');
+      })
+      .catch(function () { $('lgSend').disabled = false; $('lgErr').textContent = '通信に失敗しました。'; });
+  };
+  $('lgResend').onclick = function () {
+    supa().then(function (c) { return c.auth.signInWithOtp({ email: otpMail }); })
+      .then(function (r) { $('lgErr2').textContent = r.error ? '再送に失敗しました。' : 'コードを送り直しました。'; });
+  };
+  $('lgVerify').onclick = function () {
+    var code = ($('lgCode').value || '').trim();
+    if (!/^\d{6}$/.test(code)) { $('lgErr2').textContent = '6桁の数字を入れてください。'; return; }
+    $('lgVerify').disabled = true;
+    supa().then(function (c) { return c.auth.verifyOtp({ email: otpMail, token: code, type: 'email' }); })
+      .then(function (r) {
+        $('lgVerify').disabled = false;
+        if (r.error) { $('lgErr2').textContent = 'コードが違うようです。'; return; }
+        $('lg').style.display = 'none';
+        checkOwner();
+      })
+      .catch(function () { $('lgVerify').disabled = false; $('lgErr2').textContent = '通信に失敗しました。'; });
+  };
+
+  /* ---- 自分の1台 ---------------------------------------------------------
+     ⚠️ 判定がつかないときはハイライトを出さない。
+     連載の門番は「読めるはずの人が読めない」を避けて緩める側へ倒すが、ここは逆＝
+     取り違えると他人の車を「あなたの1台」として大きく出すことになる。 */
+  function checkOwner() {
+    if (PREVIEW) {                                  /* 検証用の逃げ道（本番の導線には出さない） */
+      myIndex = 0; hiOn = true; showHiRow(); draw();
+      note('<div class="card"><h2>プレビュー</h2><p>?preview=1 のため、先頭の1台を仮にハイライトしています。</p></div>');
+      return;
+    }
+    supa().then(function (c) {
+      return c.auth.getSession().then(function (r) {
+        var session = r && r.data ? r.data.session : null;
+        if (!session) { notSignedIn(); return; }
+        /* ログイン中のメールで cars を紐づけてから照会する（index.html 等と同型）。
+           紐づけ済みの人は 0 行更新で戻るだけ。失敗しても照会には進む。 */
+        return Promise.resolve(c.rpc('link_owner_car')).catch(function () { return null; })
+          .then(function () {
+            return c.from('cars')
+              .select('document_id,year,model_display_a,car_type,photo_main,sns_share_optout')
+              .eq('owner_user_id', session.user.id);
+          })
+          .then(function (q) {
+            if (q.error) { note(''); return; }
+            applyCars(q.data || []);
+          });
+      });
+    }).catch(function () { /* CDN が読めない等＝ハイライト無しのまま使ってもらう */ });
+  }
+
+  function notSignedIn() {
+    note('<div class="card"><h2>自分の1台を大きくできます</h2>' +
+         '<p>ご登録のオーナーがログインすると、自分の車だけを中央で大きく表示できます。</p>' +
+         '<button class="btn ghost" id="doLogin">ログイン</button></div>');
+    $('doLogin').onclick = openLogin;
+  }
+
+  function applyCars(cars) {
+    var pos = {};
+    for (var i = 0; i < MAN.ids.length; i++) pos[MAN.ids[i]] = i;
+    var inBook = cars.filter(function (c) { return pos[c.document_id] !== undefined; });
+
+    if (inBook.length === 0) { explainMissing(cars); return; }
+
+    if (inBook.length === 1) {
+      myIndex = pos[inBook[0].document_id];
+      note(''); showHiRow(); draw();
+      return;
+    }
+    /* 2台以上＝どれを大きくするか選んでもらう。2つ置くと「自分の1台」の意味が崩れる。 */
+    var saved = localStorage.getItem('r500_wallpaper_car');
+    var chosen = inBook.filter(function (c) { return c.document_id === saved; })[0] || inBook[0];
+    myIndex = pos[chosen.document_id];
+
+    var html = '<div class="card"><h2>どの車を大きくしますか</h2><div class="pick" id="pick"></div></div>';
+    note(html);
+    var wrap = $('pick');
+    inBook.forEach(function (c) {
+      var b = document.createElement('button');
+      b.setAttribute('aria-pressed', String(c.document_id === chosen.document_id));
+      var tc = document.createElement('canvas');
+      tc.width = tc.height = 88;
+      var s = tileSrc(pos[c.document_id]);
+      tc.getContext('2d').drawImage(SPRITE, s[0], s[1], MAN.tile, MAN.tile, 0, 0, 88, 88);
+      b.appendChild(tc);
+      var sp = document.createElement('span');
+      sp.textContent = [(c.year || ''), (c.model_display_a || '')].join(' ').trim() || c.document_id;
+      b.appendChild(sp);
+      b.onclick = function () {
+        myIndex = pos[c.document_id];
+        localStorage.setItem('r500_wallpaper_car', c.document_id);
+        Array.prototype.forEach.call(wrap.children, function (x) { x.setAttribute('aria-pressed', 'false'); });
+        b.setAttribute('aria-pressed', 'true');
+        draw();
+      };
+      wrap.appendChild(b);
+    });
+    showHiRow(); draw();
+  }
+
+  /* 黙って失敗させない（HANDOFF §4-2）。理由でその後の手が変わるので4つに分ける。 */
+  function explainMissing(cars) {
+    var head = '<div class="card"><h2>お車がまだ図鑑に入っていません</h2>';
+    if (cars.length === 0) {
+      note(head + '<p>このアカウントには車両の登録がありません。登録いただくと、次の更新から図鑑に加わります。</p>' +
+           '<p><a href="/edit?mode=new&type=500">車を登録する</a></p></div>');
+      return;
+    }
+    var c = cars[0];
+    var link = '/edit?doc=' + encodeURIComponent(c.document_id) +
+               '&type=' + encodeURIComponent(c.car_type || '500');
+    if (c.sns_share_optout) {
+      note(head + '<p>SNS掲載をオフにされているため、図鑑には載せていません。' +
+           '設定を変えると次の更新から加わります。</p>' +
+           '<p><a href="' + link + '">車両編集ページをひらく</a></p></div>');
+    } else if (!c.photo_main) {
+      note(head + '<p>メイン写真が未登録です。1枚ご登録いただくと、次の更新から図鑑に加わります。</p>' +
+           '<p><a href="' + link + '">写真を登録する</a></p></div>');
+    } else {
+      /* 登録・写真の差し替えから図鑑の焼き直しまでに時間差がある。落ち度ではないことを伝える。 */
+      note(head + '<p>ご登録は確認できましたが、図鑑の画像がまだ追いついていません。' +
+           '毎日つくり直しているので、しばらくお待ちください。</p></div>');
+    }
+  }
+
+  function showHiRow() { $('hiRow').classList.remove('hide'); }
+
+  /* ---- 起動 -------------------------------------------------------------- */
+  $('sortReg').onclick = function () { setSort('reg'); };
+  $('sortCol').onclick = function () { setSort('color'); };
+  function setSort(k) {
+    sortKind = k;
+    $('sortReg').setAttribute('aria-pressed', String(k === 'reg'));
+    $('sortCol').setAttribute('aria-pressed', String(k === 'color'));
+    draw();
+  }
+  $('hiOn').onclick = function () { setHi(true); };
+  $('hiOff').onclick = function () { setHi(false); };
+  function setHi(v) {
+    hiOn = v;
+    $('hiOn').setAttribute('aria-pressed', String(v));
+    $('hiOff').setAttribute('aria-pressed', String(!v));
+    draw();
+  }
+  $('save').onclick = save;
+
+  var dev = deviceSize();
+  W = dev.w; H = dev.h;
+
+  if (!dev.phone && !PREVIEW) {
+    $('stageMsg').textContent = '';
+    note('<div class="card"><h2>スマートフォンでひらいてください</h2>' +
+         '<p>この待ち受けは、いま見ている端末の画面サイズに合わせて作ります。' +
+         'パソコン向けの壁紙はまだ用意していません。</p></div>');
+    return;
+  }
+
+  fetch(DATA + 'manifest.json', { cache: 'no-cache' })
+    .then(function (r) { return r.json(); })
+    .then(function (m) {
+      MAN = m;
+      $('nCars').textContent = m.count;
+      return new Promise(function (resolve, reject) {
+        var im = new Image();
+        /* 同一オリジンなので crossOrigin は不要＝canvas は汚染されない */
+        im.onload = function () { resolve(im); };
+        im.onerror = reject;
+        im.src = DATA + 'sprite.webp?v=' + String(m.sig).slice(0, 8);
+      });
+    })
+    .then(function (im) {
+      SPRITE = im;
+      $('panel').hidden = false;
+      draw();
+      checkOwner();
+    })
+    .catch(function () {
+      $('stageMsg').textContent = '画像を読み込めませんでした。通信環境をご確認のうえ、開き直してください。';
+    });
+})();
+</script>
+</body>
+</html>
