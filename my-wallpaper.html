@@ -24,10 +24,19 @@ body{margin:0;background:var(--bg);color:var(--ink);
   font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
   line-height:1.75;-webkit-text-size-adjust:100%}
 .wrap{max-width:560px;margin:0 auto;padding:16px 18px 64px}
-/* 戻り先を必ず出す。ここは他のページから来て、作って、帰る画面＝行き止まりにしない。 */
-.topbar{margin:0 0 14px}
+/* 戻り先とログイン状態を必ず出す。ここは他のページから来て、作って、帰る画面＝行き止まりにしない。
+   ⭐ログインの入口は常に見える位置に置く＝下の案内カードは縦長のプレビューに押し下げられる。 */
+.topbar{margin:0 0 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .topbar a{color:var(--sub);text-decoration:none;font-size:13px}
 .topbar a:hover{color:var(--deep)}
+.linkbtn{appearance:none;border:0;background:transparent;color:var(--accent);
+  font:inherit;font-size:13px;padding:0;cursor:pointer;text-decoration:underline}
+.who{font-size:12px;color:var(--sub);white-space:nowrap}
+/* 保存の手順は画像のすぐ下に、はっきり出す（iOS は長押しでしか保存できない） */
+.guide{margin-top:12px;border:2px solid var(--deep);background:#eef2ec;border-radius:12px;
+  padding:14px 16px;color:var(--deep)}
+.guide b{font-size:15px;line-height:1.7}
+.guide .small{font-size:12px;color:var(--sub);margin-top:8px}
 h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
 .lead{margin:0 0 18px;font-size:13px;color:var(--sub)}
 .stage{background:#141416;border-radius:14px;padding:10px;display:flex;justify-content:center;
@@ -71,15 +80,19 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
 </head>
 <body>
 <main class="wrap">
-  <p class="topbar"><a href="/edit?type=500">← マイガレージへ戻る</a></p>
+  <p class="topbar">
+    <a href="/edit?type=500">← マイガレージへ戻る</a>
+    <span id="authState"></span>
+  </p>
   <h1>マイ壁紙</h1>
   <p class="lead">登録されている<span id="nCars">…</span>台をぜんぶ並べた、スマートフォンの待ち受けです。</p>
 
-  <div class="stage">
+  <div class="stage" id="stage">
     <canvas id="cv" class="hide"></canvas>
     <img id="out" class="hide" alt="生成した待ち受け画像">
     <p id="stageMsg" class="note" style="color:#b9b3a6">読み込んでいます…</p>
   </div>
+  <div id="saveGuide" class="guide hide"></div>
 
   <div class="panel" id="panel" hidden>
     <div class="row">
@@ -168,9 +181,11 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
   var sortKind = 'reg';          // reg | color
   var hiOn = true;
   var myIndex = null;            // スプライト内の位置（自分の1台）
+  var myEmail = '';              // いまログインしているアドレス（画面に出す＝取り違えに気づける）
 
   var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+              /[?&]ios=1/.test(location.search);   /* 検証用＝長押し保存の案内をPCで確かめる */
 
   /* ---- 端末の実サイズ ---------------------------------------------------
      ⭐「見ている端末の実サイズで作る」が確定仕様（HANDOFF §4-3）。
@@ -269,22 +284,36 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
     cv.classList.remove('hide');
     $('out').classList.add('hide');
     $('stageMsg').classList.add('hide');
+    clearGuide();                       /* 描き直したら保存の案内は用済み */
     $('saveHint').textContent = W + '×' + H + ' ピクセル・' + L.cols + '列' + L.rows + '行';
   }
 
   /* ---- 保存 --------------------------------------------------------------
      ⚠️ iOS Safari では <a download> が効かない（HANDOFF §6）。
      画像に置き換えて長押しで「写真に追加」してもらう。 */
+  function guide(html) {
+    var g = $('saveGuide');
+    g.innerHTML = html;
+    g.classList.remove('hide');
+  }
+  function clearGuide() { $('saveGuide').classList.add('hide'); }
+
   function save() {
     var cv = $('cv');
     var name = 'registro500-wallpaper-' + W + 'x' + H + '.jpg';
     if (isIOS) {
-      var url = cv.toDataURL('image/jpeg', 0.92);
       var im = $('out');
-      im.src = url;
+      im.src = cv.toDataURL('image/jpeg', 0.92);
       im.classList.remove('hide');
       cv.classList.add('hide');
-      $('saveHint').innerHTML = '↑ この画像を<b>長押し</b>して「写真に追加」を選んでください。';
+      /* ⭐案内は画像の真下に出し、画像ごと画面へ引き戻す。
+         保存ボタンは画面のずっと下にあるので、押した場所に案内を置くと
+         肝心の「長押しする画像」が視界の外に残る。 */
+      guide('<b>⬆ すぐ上の画像を長押しして、「“写真”に追加」を選んでください。</b>' +
+            '<div class="small">iPhone・iPad では、この方法で写真アプリに入ります。' +
+            ' <button class="linkbtn" id="redo">別の並びで作り直す</button></div>');
+      $('redo').onclick = function () { clearGuide(); draw(); };
+      $('stage').scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
     cv.toBlob(function (b) {
@@ -293,6 +322,7 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
       a.download = name;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+      guide('<b>保存しました。</b><div class="small">' + name + '</div>');
     }, 'image/jpeg', 0.92);
   }
 
@@ -374,6 +404,8 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
       return c.auth.getSession().then(function (r) {
         var session = r && r.data ? r.data.session : null;
         if (!session) { notSignedIn(); return; }
+        myEmail = session.user.email || '';
+        setAuthIn(myEmail);
         /* ログイン中のメールで cars を紐づけてから照会する（index.html 等と同型）。
            紐づけ済みの人は 0 行更新で戻るだけ。失敗しても照会には進む。 */
         return Promise.resolve(c.rpc('link_owner_car')).catch(function () { return null; })
@@ -383,16 +415,47 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
               .eq('owner_user_id', session.user.id);
           })
           .then(function (q) {
-            if (q.error) { note(''); return; }
+            /* ⛔黙って何も出さない、をしない。読み手には「壊れている」としか映らない。 */
+            if (q.error) {
+              note('<div class="card"><h2>ご登録の確認ができませんでした</h2>' +
+                   '<p>通信の具合かもしれません。少し時間をおいて開き直してください。' +
+                   '図鑑そのものは、このまま保存していただけます。</p></div>');
+              return;
+            }
             applyCars(q.data || []);
           });
       });
-    }).catch(function () { /* CDN が読めない等＝ハイライト無しのまま使ってもらう */ });
+    }).catch(function () {
+      /* CDN が読めない等＝判定は諦めるが、入口だけは出しておく（押せば読み直しに行く） */
+      setAuthAnon();
+    });
   }
 
   /* 登録済オーナーが未ログインで来る道は、いま一番太い（170台のうち紐づけ済みは116台）。
      ここで「ログインする手立てが見当たらない」状態にしない＝入口を2つ出す。 */
+  /* ---- ログイン状態を画面のいちばん上に必ず出す ------------------------------
+     ⚠️ ログイン済みかどうかが分からないと、「車が出ない」ときに打つ手が無くなる。
+     登録と違うアドレスで入っていることに、本人が気づけるようにする。 */
+  function setAuthAnon() {
+    $('authState').innerHTML = '<button class="linkbtn" id="topLogin">ログイン</button>';
+    $('topLogin').onclick = openLogin;
+  }
+  function setAuthIn(email) {
+    var s = String(email || '').replace(/^(.{3})[^@]*(@.*)$/, '$1…$2') || 'ログイン中';
+    $('authState').innerHTML = '<span class="who">' + s +
+      ' <button class="linkbtn" id="topSwitch">切替</button></span>';
+    $('topSwitch').onclick = switchAccount;
+  }
+  function switchAccount() {
+    supa().then(function (c) { return c.auth.signOut(); })
+      .then(function () {
+        myIndex = null; myEmail = '';
+        setAuthAnon(); notSignedIn(); draw(); openLogin();
+      });
+  }
+
   function notSignedIn() {
+    setAuthAnon();
     showLoginRow();
     note('<div class="card"><h2>自分の1台を大きくできます</h2>' +
          '<p>ご登録いただいているオーナーがログインすると、自分の車だけを中央で大きく表示できます。' +
@@ -451,8 +514,16 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
     $('loginRow').classList.add('hide');       /* ここへ来た時点でログインは済んでいる */
     var head = '<div class="card"><h2>お車がまだ図鑑に入っていません</h2>';
     if (cars.length === 0) {
-      note(head + '<p>このアカウントには車両の登録がありません。登録いただくと、次の更新から図鑑に加わります。</p>' +
-           '<p><a href="/edit?mode=new&type=500">車を登録する</a></p></div>');
+      /* ⭐ここで詰まる人のほとんどは「登録と違うアドレスでログインしている」。
+         いま入っているアドレスを見せて、入り直す道を必ず添える。 */
+      note('<div class="card"><h2>このアカウントにはお車が見あたりません</h2>' +
+           '<p>いまログインしているのは <b>' + (myEmail || '（不明）') + '</b> です。' +
+           '車両を別のアドレスでご登録の場合は、そちらでログインし直してください。</p>' +
+           '<button class="btn ghost" id="reLogin">別のアドレスでログインし直す</button>' +
+           '<p style="margin:12px 0 0">はじめての方は ' +
+           '<a href="/edit?mode=new&type=500">車を登録する</a>' +
+           '（次の更新から図鑑に加わります）。</p></div>');
+      $('reLogin').onclick = switchAccount;
       return;
     }
     var c = cars[0];
