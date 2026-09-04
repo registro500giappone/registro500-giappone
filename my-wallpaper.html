@@ -23,7 +23,11 @@
 body{margin:0;background:var(--bg);color:var(--ink);
   font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
   line-height:1.75;-webkit-text-size-adjust:100%}
-.wrap{max-width:560px;margin:0 auto;padding:22px 18px 64px}
+.wrap{max-width:560px;margin:0 auto;padding:16px 18px 64px}
+/* 戻り先を必ず出す。ここは他のページから来て、作って、帰る画面＝行き止まりにしない。 */
+.topbar{margin:0 0 14px}
+.topbar a{color:var(--sub);text-decoration:none;font-size:13px}
+.topbar a:hover{color:var(--deep)}
 h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
 .lead{margin:0 0 18px;font-size:13px;color:var(--sub)}
 .stage{background:#141416;border-radius:14px;padding:10px;display:flex;justify-content:center;
@@ -67,6 +71,7 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
 </head>
 <body>
 <main class="wrap">
+  <p class="topbar"><a href="/edit?type=500">← マイガレージへ戻る</a></p>
   <h1>マイ壁紙</h1>
   <p class="lead">登録されている<span id="nCars">…</span>台をぜんぶ並べた、スマートフォンの待ち受けです。</p>
 
@@ -83,6 +88,12 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
         <button id="sortReg" aria-pressed="true">登録順</button>
         <button id="sortCol" aria-pressed="false">色順</button>
       </span>
+    </div>
+    <!-- 未ログインの登録済オーナーがここで詰まらないように、操作の並びの中にログインを置く。
+         画面の一番下の案内カードだけでは、縦長のプレビューに隠れて気づかれない。 -->
+    <div class="row hide" id="loginRow">
+      <span class="label">自分の1台</span>
+      <button class="btn ghost" id="loginBtn">ログインして大きくする</button>
     </div>
     <div class="row hide" id="hiRow">
       <span class="label">自分の1台</span>
@@ -141,6 +152,10 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
   var FADE = 0.22;               // ハイライト時に周りを地色へ寄せる割合（⛔目立たせるためではない）
   var SPAN = 2;                  // ハイライトは 2×2 セル・センター固定
   var PREVIEW = /[?&]preview=1/.test(location.search);
+  var FAKE_HI = (function () {
+    var m = /[?&]hi=(\d+)/.exec(location.search);
+    return m ? Number(m[1]) : null;
+  })();
 
   var SUPA_URL = 'https://ttlttclfovuzafvghvaq.supabase.co';
   var SUPA_KEY = 'sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt';
@@ -346,9 +361,13 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
      連載の門番は「読めるはずの人が読めない」を避けて緩める側へ倒すが、ここは逆＝
      取り違えると他人の車を「あなたの1台」として大きく出すことになる。 */
   function checkOwner() {
-    if (PREVIEW) {                                  /* 検証用の逃げ道（本番の導線には出さない） */
-      myIndex = 0; hiOn = true; showHiRow(); draw();
-      note('<div class="card"><h2>プレビュー</h2><p>?preview=1 のため、先頭の1台を仮にハイライトしています。</p></div>');
+    /* ⭐ 検証用の逃げ道は2つに分けてある。
+       ?preview=1 …PC でも組む（ログインの判定は本物のまま＝未ログインの見え方を確かめられる）
+       ?hi=12     …その番号の1台を仮にハイライトする（絵の確認用） */
+    if (FAKE_HI !== null && FAKE_HI < MAN.count) {
+      myIndex = FAKE_HI; hiOn = true; showHiRow(); draw();
+      note('<div class="card"><h2>確認用</h2><p>?hi=' + FAKE_HI +
+           ' のため、その1台を仮にハイライトしています。</p></div>');
       return;
     }
     supa().then(function (c) {
@@ -371,10 +390,16 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
     }).catch(function () { /* CDN が読めない等＝ハイライト無しのまま使ってもらう */ });
   }
 
+  /* 登録済オーナーが未ログインで来る道は、いま一番太い（170台のうち紐づけ済みは116台）。
+     ここで「ログインする手立てが見当たらない」状態にしない＝入口を2つ出す。 */
   function notSignedIn() {
+    showLoginRow();
     note('<div class="card"><h2>自分の1台を大きくできます</h2>' +
-         '<p>ご登録のオーナーがログインすると、自分の車だけを中央で大きく表示できます。</p>' +
-         '<button class="btn ghost" id="doLogin">ログイン</button></div>');
+         '<p>ご登録いただいているオーナーがログインすると、自分の車だけを中央で大きく表示できます。' +
+         'ご登録のメールアドレスに6桁のコードをお送りします。</p>' +
+         '<button class="btn ghost" id="doLogin">このページでログインする</button>' +
+         '<p style="margin:10px 0 0">もしくは<a href="/edit?type=500">マイガレージ</a>でログインしてから、' +
+         'このページへ戻ってきてください。</p></div>');
     $('doLogin').onclick = openLogin;
   }
 
@@ -423,6 +448,7 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
 
   /* 黙って失敗させない（HANDOFF §4-2）。理由でその後の手が変わるので4つに分ける。 */
   function explainMissing(cars) {
+    $('loginRow').classList.add('hide');       /* ここへ来た時点でログインは済んでいる */
     var head = '<div class="card"><h2>お車がまだ図鑑に入っていません</h2>';
     if (cars.length === 0) {
       note(head + '<p>このアカウントには車両の登録がありません。登録いただくと、次の更新から図鑑に加わります。</p>' +
@@ -446,7 +472,14 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
     }
   }
 
-  function showHiRow() { $('hiRow').classList.remove('hide'); }
+  function showHiRow() {
+    $('hiRow').classList.remove('hide');
+    $('loginRow').classList.add('hide');
+  }
+  function showLoginRow() {
+    $('loginRow').classList.remove('hide');
+    $('hiRow').classList.add('hide');
+  }
 
   /* ---- 起動 -------------------------------------------------------------- */
   $('sortReg').onclick = function () { setSort('reg'); };
@@ -466,6 +499,7 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
     draw();
   }
   $('save').onclick = save;
+  $('loginBtn').onclick = openLogin;
 
   var dev = deviceSize();
   W = dev.w; H = dev.h;
