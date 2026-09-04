@@ -163,6 +163,9 @@ wallpaper/proto/
 - ⭐**ページ名は `my-wallpaper.html`（`/my-wallpaper`）。**⚠️`wallpaper.html` にしなかったのは、
   Cloudflare Pages が拡張子なしURLへ寄せる一方で **`wallpaper/` というディレクトリが実在する**ため
   （`/wallpaper` の行き先が曖昧になる）。⛔このURLは変えない。
+- ⚠️**スプライトは `sprite.webp?v=<署名の先頭8桁>` として読む。** Service Worker が画像を
+  CacheFirst で抱えるので（`sw.js:109`）、URLが変わらないと**焼き直しても古い1枚が出続ける**。
+  `manifest.json` は SW 側が NetworkFirst なので素通しでよい（`sw.js:103`）。
 - **判定不能のときはハイライトを出さない。**⚠️連載の門番は「読めるはずの人が読めない」を避けて
   緩める側へ倒すが、ここは**逆に倒す**＝取り違えると他人の車を「あなたの1台」として大きく出すことになる。
 - `?preview=1` で PC でも動く（先頭の1台を仮ハイライト）。⛔本番の導線には出さない。
