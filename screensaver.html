@@ -82,6 +82,8 @@
     -webkit-tap-highlight-color: transparent;
   }
   #hint .mb.on { color: #0b0d10; background: rgba(232,234,237,.9); border-color: transparent; font-weight: 600; }
+  #hint .row + .row { margin-top: .5em; }
+  #hint .mb.rec { color: rgba(232,234,237,.9); background: rgba(255,255,255,.02); border-style: dashed; }
   #hint .sub { margin-top: .7em; font-size: .88em; color: rgba(232,234,237,.45); line-height: 1.8; }
   #hint .k {
     display: inline-block; min-width: 1.5em; padding: .1em .4em; margin: 0 .15em;
@@ -108,6 +110,38 @@
 
   body.playing { cursor: none; }
   body.ui      { cursor: default; }
+
+  /* ---- 収録モード -------------------------------------------------------
+     ⭐ 画面収録で撮っても、アプリ内で録画しても【同じ絵】になるようにする。
+     ⚠️⚠️ canvas.captureStream は canvas の中身しか拾わない＝DOM で描いた文字は録画に写らない。
+     だから収録中は DOM の重ね文字を全部消し、クレジットも車両情報も canvas 側に描く。 */
+  body.rec .layer { display: none; }
+  body.rec { cursor: none; }
+
+  #recui {
+    position: fixed; inset: 0; z-index: 5; display: none;
+    flex-direction: column; align-items: center; justify-content: center; gap: 1.2em;
+    text-align: center; pointer-events: none;
+  }
+  #recui.show { display: flex; }
+  #recui .box {
+    pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 1em;
+    padding: 1.6em 1.8em; border-radius: 20px; max-width: 86vw;
+    background: rgba(20,23,28,.82); border: 1px solid rgba(255,255,255,.14);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  }
+  #count { font-size: clamp(60px, 18vmin, 150px); font-weight: 200; line-height: 1;
+           color: rgba(255,255,255,.92); text-shadow: 0 4px 30px rgba(0,0,0,.8); }
+  #rmsg  { font-size: clamp(12px, 2vmin, 16px); line-height: 1.9; color: rgba(232,234,237,.75); }
+  #recui button {
+    font: inherit; font-size: clamp(13px, 2vmin, 17px); letter-spacing: .06em;
+    color: #e8eaed; background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.26); border-radius: 999px;
+    padding: .8em 2em; cursor: pointer; white-space: nowrap;
+  }
+  #recui button.primary { color: #0b0d10; background: rgba(232,234,237,.92); border-color: transparent; font-weight: 600; }
+  #recui .row2 { display: flex; gap: .6em; flex-wrap: wrap; justify-content: center; }
+  #tags { font-size: clamp(11px, 1.7vmin, 14px); color: rgba(232,234,237,.5); line-height: 1.8; word-break: break-all; }
 </style>
 </head>
 <body>
@@ -119,6 +153,19 @@
   <div id="clock"></div>
   <div id="badge" class="fade"></div>
   <div id="hint" class="fade"></div>
+</div>
+
+<div id="recui">
+  <div id="count"></div>
+  <div class="box" id="rbox">
+    <div id="rmsg"></div>
+    <div class="row2">
+      <button id="rsave" class="primary" hidden>保存・共有</button>
+      <button id="rtag" hidden>ハッシュタグをコピー</button>
+      <button id="rexit" hidden>もどる</button>
+    </div>
+    <div id="tags" hidden></div>
+  </div>
 </div>
 
 <div id="gate">
@@ -224,8 +271,9 @@
   function resize() {
     DPR = Math.min(window.devicePixelRatio || 1, 2);
     W = window.innerWidth; H = window.innerHeight;
-    cv.width  = Math.round(W * DPR);
-    cv.height = Math.round(H * DPR);
+    /* ⚠️ H.264 は幅・高さが偶数でないと録れないことがある＝2の倍数へ丸める */
+    cv.width  = Math.round(W * DPR / 2) * 2;
+    cv.height = Math.round(H * DPR / 2) * 2;
     cv.style.width = W + 'px'; cv.style.height = H + 'px';
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.imageSmoothingQuality = 'high';
@@ -273,7 +321,8 @@
       if (e < F_IN) p = easeOut(e / F_IN);
       else if (e < F_IN + F_HOLD) p = 1;
       else if (e < F_IN + F_HOLD + F_OUT) p = 1 - easeOut((e - F_IN - F_HOLD) / F_OUT);
-      else { g.focus = null; f = null; p = 0; g.nextAt = t + FOCUS_EVERY; hideInfo(); }
+      /* ⭐ 収録中だけ間を詰める＝15秒にちょうど2台が収まる（上の recEnter のコメント参照） */
+      else { g.focus = null; f = null; p = 0; g.nextAt = t + (REC.on ? 1.6 : FOCUS_EVERY); hideInfo(); }
     }
 
     /* ⛔ ピックアップ中も壁を止めない（2026-09-05 ユーザー指示）。
@@ -328,14 +377,17 @@
       ctx.shadowColor = 'rgba(0,0,0,.55)';
       ctx.shadowBlur = 40 * p;
       ctx.shadowOffsetY = 10 * p;
-      if (f.img && f.img.complete && f.img.naturalWidth) {
+      if (!REC.on && f.img && f.img.complete && f.img.naturalWidth) {
         drawCover(f.img, cx - s / 2, cy - s / 2, s, s);   /* 元写真が読めていれば差し替える */
       } else {
         drawTile(f.idx, cx - s / 2, cy - s / 2, s, s);
       }
       ctx.restore();
 
-      if (p > .96) showInfoAt(f.car, cx, iy);
+      if (p > .96) {
+        if (REC.on) drawCarText(f.car, cx, iy, 'center');   /* 収録中は canvas 側へ */
+        else showInfoAt(f.car, cx, iy);
+      }
     }
 
     if (!f && t > g.nextAt) startFocus(t, L, baseRow, frac);
@@ -362,8 +414,9 @@
     g.focus = { idx: pick.idx, row: pick.row, col: pick.col, car: car, t0: t, img: null };
 
     /* ⭐ タイルは 256px なので、大きくすると粗い。元写真（長辺1000px）を裏で読んで差し替える。
-       canvas は汚染されるが、ここでは書き出さないので支障はない。 */
-    if (car && car.photo_main) {
+       ⚠️⚠️ ただし収録中は読まない＝写真を1枚でも描くと canvas が汚染され、録画できなくなる
+       （下の freshCanvas のコメントを見ること）。 */
+    if (!REC.on && car && car.photo_main) {
       var im = new Image();
       im.onload = function () { if (g.focus && g.focus.idx === pick.idx) g.focus.img = im; };
       im.src = car.photo_main;
@@ -434,7 +487,7 @@
 
     ctx.save();
     ctx.globalAlpha = alpha;
-    if (im.complete && im.naturalWidth) {
+    if (!REC.on && im.complete && im.naturalWidth) {   /* ⚠️ 収録中は写真を描かない＝canvas を汚さない */
       if (!o.bg || o.bg._ar !== W / H) o.bg = makeBlurBg(im);
       ctx.drawImage(o.bg, 0, 0, W, H);
       ctx.fillStyle = 'rgba(11,13,16,.42)';      /* 背景を沈めて、写真だけが目に入るようにする */
@@ -471,6 +524,11 @@
     gr.addColorStop(0, 'rgba(11,13,16,0)');
     gr.addColorStop(1, 'rgba(11,13,16,.62)');
     ctx.fillStyle = gr; ctx.fillRect(0, H * 0.62, W, H * 0.38);
+
+    if (REC.on && sh.cur) {                               /* 収録中は canvas 側へ */
+      var b = safeBox();
+      drawCarText(sh.cur.car, W / 2, b.bottom - Math.min(W, H) * 0.30, 'center');
+    }
   }
 
   /* ============================================================ 方式3 色の川 */
@@ -542,6 +600,59 @@
     if (sr > dr) { cw = sh2 * dr; cx = sx + (sw - cw) / 2; }
     else         { ch = sw / dr;  cy = sy + (sh2 - ch) / 2; }
     ctx.drawImage(im, cx, cy, cw, ch, x, y, w, h);
+  }
+
+  /* ============================================================ 収録モードの描き込み
+
+     ⚠️ SNS（Instagram リール・TikTok）は 9:16。iPhone の画面は 9:19.5 前後なので、
+        画面収録した動画は【上下が切られる】。⭐ だから大事な文字は中央 9:16 の内側に置く。
+     ⚠️ さらに TikTok は右側にボタン列・下部にキャプションが重なる＝下端ぎりぎりも避ける。 */
+
+  function safeBox() {
+    var sh2 = Math.min(H, W * 16 / 9);
+    return { top: (H - sh2) / 2, bottom: (H + sh2) / 2, h: sh2 };
+  }
+
+  var FONT = '-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif';
+
+  function drawCredit() {
+    var b = safeBox();
+    var s = Math.max(13, Math.round(Math.min(W, H) * 0.030));
+    ctx.save();
+    /* ⚠️ 白い車のタイルの上だと白文字が沈む＝影だけでは足りない。⛔ 板は置かず、下だけ落とす。 */
+    var gy = b.bottom - s * 4.2;
+    var gr = ctx.createLinearGradient(0, gy, 0, b.bottom + s * 0.6);
+    gr.addColorStop(0, 'rgba(11,13,16,0)');
+    gr.addColorStop(1, 'rgba(11,13,16,.62)');
+    ctx.fillStyle = gr; ctx.fillRect(0, gy, W, b.bottom + s * 0.6 - gy);
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0,0,0,.8)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 1;
+    ctx.font = '600 ' + s + 'px ' + FONT;
+    ctx.fillStyle = 'rgba(255,255,255,.95)';
+    ctx.fillText('Registro500 Giappone', W / 2, b.bottom - s * 2.0);
+    ctx.font = '400 ' + Math.round(s * 0.74) + 'px ' + FONT;
+    ctx.fillStyle = 'rgba(255,255,255,.7)';
+    ctx.fillText('registro500.com', W / 2, b.bottom - s * 0.75);
+    ctx.restore();
+  }
+
+  /* 収録中の車両情報は canvas 側に描く（DOM だと録画に写らないため） */
+  function drawCarText(car, cx, topY, align) {
+    var l = carLine(car);
+    if (!l || (!l.yr && !l.md)) return;
+    var b = safeBox();
+    var s = Math.max(20, Math.round(Math.min(W, H) * 0.055));
+    var y = clamp(topY, b.top + s, b.bottom - s * 3.2);
+    ctx.save();
+    ctx.textAlign = align || 'center';
+    ctx.shadowColor = 'rgba(0,0,0,.85)'; ctx.shadowBlur = 18; ctx.shadowOffsetY = 2;
+    ctx.font = '300 ' + s + 'px ' + FONT;
+    ctx.fillStyle = 'rgba(255,255,255,.96)';
+    ctx.fillText(l.yr, cx, y + s * 0.85);
+    ctx.font = '400 ' + Math.round(s * 0.42) + 'px ' + FONT;
+    ctx.fillStyle = 'rgba(255,255,255,.8)';
+    ctx.fillText(l.md, cx, y + s * 1.45);
+    ctx.restore();
   }
 
   /* ============================================================ 重ねる文字 */
@@ -616,7 +727,16 @@
     for (var m = 1; m <= 3; m++) {
       s += '<button class="mb' + (m === mode ? ' on' : '') + '" data-m="' + m + '">' + MODE_NAME[m] + '</button>';
     }
-    s += '</div><div class="sub">';
+    s += '</div>';
+    /* ⚠️ 方式2は【オーナー写真そのもの】が主役＝タイルでは代わりにならず、しかも写真を描くと
+       canvas が汚れて録画できない。⭐ だから出せないボタンを出さず、理由を1行で言う。 */
+    if (mode === 2) {
+      s += '<div class="sub">スライドショーは写真そのものを映すので、動画にするには'
+         + '<b>端末の画面収録</b>を使ってください</div>';
+    } else {
+      s += '<div class="row"><button class="mb rec" id="hrec">🎬 ' + REC_SECONDS + '秒の動画を撮る</button></div>';
+    }
+    s += '<div class="sub">';
     s += 'キーボードなら <span class="k">1</span><span class="k">2</span><span class="k">3</span>'
        + '　／　<span class="k">←</span><span class="k">→</span> 送る';
     if (canFs) s += '　／　<span class="k">F</span> 全画面';
@@ -624,7 +744,7 @@
     s += '</div>';
     h.innerHTML = s;
 
-    var bs = h.querySelectorAll('.mb');
+    var bs = h.querySelectorAll('.mb[data-m]');
     for (var i = 0; i < bs.length; i++) {
       bs[i].addEventListener('click', function (e) {
         e.stopPropagation();
@@ -632,6 +752,8 @@
         showHint();
       });
     }
+    var rb = $('hrec');
+    if (rb) rb.addEventListener('click', function (e) { e.stopPropagation(); recEnter(); });
   }
 
   /* ============================================================ 全画面・画面の消灯 */
@@ -658,12 +780,168 @@
     if (document.visibilityState === 'visible' && !wakeLock) keepAwake();
   });
 
+  /* ============================================================ 収録・録画
+
+     ⭐ ねらい＝Instagram リール / TikTok にそのまま上げられる15秒。
+     ⚠️⚠️ iOS Safari は `<a download>` が効かない（既知の罠）＝保存させる道は Web Share だけ。
+     ⚠️⚠️ さらに navigator.share は【ユーザー操作から直に呼ばないと拒まれる】。
+        だから「録り終えてから、押してもらって共有する」順にする（自動で共有シートを出さない）。
+     ⭐ MediaRecorder が無い端末でも、UI が消えた画面は残る＝iOS の画面収録で撮れる。 */
+
+  var HASHTAGS = '#registro500giappone #フィアット500 #空冷フィアット500 #ヌォーヴァ500 '
+               + '#fiat500 #classicfiat500 #nuova500 #旧車';
+
+  /* ⚠️⚠️⚠️ 2026-09-05 実測で判明した壁：
+     Firebase Storage は CORS ヘッダを返さない（マイ壁紙 HANDOFF §6 と同じ壁）＝
+     オーナー写真を1枚でも描いた canvas は【汚染】され、captureStream が
+     `SecurityError: Canvas is not origin-clean` で落ちる。⛔ 録画だけが特別ではなく、
+     toBlob・getImageData と同じ扱い。「書き出さないから汚染は無害」は録画を足した時点で崩れた。
+     ⭐ 汚れは canvas【要素】の一生に紐づくので、収録に入るとき要素ごと作り直せばリセットできる。
+     ⭐ そのうえで収録中はスプライト（同一オリジン）だけで描く。 */
+  var lastTap = 0;
+  function bindCanvas() {
+    cv.addEventListener('click', function () {
+      if (!started || REC.on) return;      /* 収録中は画面を触っても UI を出さない */
+      var now = Date.now();
+      if (now - lastTap < 350) { toggleFullscreen(); }   /* ダブルタップで全画面 */
+      lastTap = now;
+      showHint();
+    });
+  }
+  function freshCanvas() {
+    var old = cv, nc = document.createElement('canvas');
+    nc.id = 'cv';
+    old.parentNode.replaceChild(nc, old);
+    cv = nc; ctx = cv.getContext('2d');
+    bindCanvas(); resize();
+  }
+
+  var REC = { on: false, mr: null, chunks: [], blob: null, name: '', timer: null };
+  var REC_SECONDS = 15;
+
+  function pickMime() {
+    if (!window.MediaRecorder) return null;
+    var list = ['video/mp4;codecs=avc1.42E01E', 'video/mp4',
+                'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+    for (var i = 0; i < list.length; i++) {
+      try { if (MediaRecorder.isTypeSupported(list[i])) return list[i]; } catch (e) {}
+    }
+    return null;
+  }
+
+  function recEnter() {
+    REC.on = true; REC.blob = null;
+    freshCanvas();                  /* ⭐ 汚染をここでリセットする（上のコメントを見ること） */
+    if (g.focus) g.focus.img = null;
+    if (sh.cur) sh.cur.bg = null;
+    document.body.classList.add('rec');
+    document.body.classList.remove('ui', 'playing');
+    hideInfo();
+    $('hint').classList.remove('show');
+    clearTimeout(hintTimer);
+    /* ⭐ 15秒の中に2台がきれいに収まるよう頭出しする＝
+       撮影開始（数え終わり＝約2.7秒後）から 1.5秒 壁が流れ、そこで1台目。
+       周期 0.8+3.6+0.7+1.6＝6.7秒なので、2台目は 8.2秒→13.3秒に終わり、最後は壁で締まる。 */
+    if (mode === 1) { g.focus = null; g.nextAt = lastTs + 4.2; }
+
+    $('recui').classList.add('show');
+    $('rsave').hidden = true; $('rtag').hidden = true; $('rexit').hidden = true;
+    $('tags').hidden = true; $('rbox').style.display = '';
+
+    var n = 3;
+    $('count').textContent = n;
+    $('rmsg').innerHTML = 'このあと <b>' + REC_SECONDS + '秒</b> 撮ります<br>'
+                        + '画面の文字は消してあります';
+    REC.timer = setInterval(function () {
+      n--;
+      if (n > 0) { $('count').textContent = n; return; }
+      clearInterval(REC.timer);
+      $('count').textContent = '';
+      $('recui').classList.remove('show');
+      recStart();
+    }, 900);
+  }
+
+  function recStart() {
+    var mime = pickMime();
+    if (!mime) {                       /* 録画できない端末＝画面収録用の無地モードとして続ける */
+      REC.timer = setTimeout(recDone, REC_SECONDS * 1000);
+      return;
+    }
+    try {
+      var stream = cv.captureStream(30);
+      REC.chunks = [];
+      REC.mr = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 9000000 });
+      REC.mr.ondataavailable = function (e) { if (e.data && e.data.size) REC.chunks.push(e.data); };
+      REC.mr.onstop = function () {
+        REC.blob = new Blob(REC.chunks, { type: mime });
+        REC.name = 'registro500-' + Date.now() + (mime.indexOf('mp4') >= 0 ? '.mp4' : '.webm');
+        recDone();
+      };
+      REC.mr.start();
+      REC.timer = setTimeout(function () {
+        try { REC.mr.stop(); } catch (e) { recDone(); }
+      }, REC_SECONDS * 1000);
+    } catch (e) {
+      REC.timer = setTimeout(recDone, REC_SECONDS * 1000);
+    }
+  }
+
+  function recDone() {
+    $('recui').classList.add('show');
+    $('count').textContent = '';
+    $('rexit').hidden = false;
+    $('rtag').hidden = false; $('rtag').textContent = 'ハッシュタグをコピー';
+    $('tags').hidden = false;
+    $('tags').textContent = HASHTAGS;
+
+    if (REC.blob && REC.blob.size) {
+      $('rsave').hidden = false;
+      var mb = (REC.blob.size / 1048576).toFixed(1);
+      var webm = REC.name.slice(-5) === '.webm';
+      $('rmsg').innerHTML = REC_SECONDS + '秒 撮れました（' + mb + 'MB）'
+        + (webm ? '<br>⚠️ この端末では <b>WebM</b> で保存されます。Instagram・TikTok は '
+                + 'WebM を受け付けないので、上げる前に MP4 へ変換が要ります。'
+                + '<br>iPhone で撮ると MP4 になります。' : '');
+    } else {
+      $('rsave').hidden = true;
+      $('rmsg').innerHTML = 'この端末では、ページの中から動画を保存できません。<br>'
+        + '⭐ <b>iPhone の画面収録</b>で撮ってください（文字を消したこの画面のまま撮れます）。';
+    }
+  }
+
+  function recSave() {
+    if (!REC.blob) return;
+    var file = null;
+    try { file = new File([REC.blob], REC.name, { type: REC.blob.type }); } catch (e) {}
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file] }).catch(function () {});   /* 押された流れの中で呼ぶ */
+      return;
+    }
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(REC.blob);
+    a.download = REC.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 30000);
+  }
+
+  function recExit() {
+    REC.on = false;
+    clearTimeout(REC.timer); clearInterval(REC.timer);
+    try { if (REC.mr && REC.mr.state === 'recording') REC.mr.stop(); } catch (e) {}
+    REC.mr = null; REC.blob = null;
+    document.body.classList.remove('rec');
+    $('recui').classList.remove('show');
+    $('count').textContent = '';
+    showHint();
+  }
+
   /* ============================================================ 進行 */
 
   function setMode(m) {
     mode = mod(m - 1, 3) + 1;
     hideInfo();
-    if (mode === 1) { g.focus = null; g.nextAt = (lastTs / 1000) + 3.5; }
+    if (mode === 1) { g.focus = null; g.nextAt = lastTs + 3.5; }   /* lastTs は「秒」 */
     if (mode === 2) { shInit(); sh.cur = null; sh.t0 = -999; }
     showBadge(MODE_NAME[mode]);
     renderHint();
@@ -677,6 +955,10 @@
     if (mode === 1) drawGrid(t, dt);
     else if (mode === 2) drawShow(t, dt);
     else drawRiver(t, dt);
+
+    /* ⚠️⚠️ captureStream は canvas の中身しか拾わない＝DOM で描いた文字は録画に写らない。
+       だからクレジットは canvas に焼き込む。 */
+    if (REC.on) drawCredit();
 
     requestAnimationFrame(frame);
   }
@@ -700,7 +982,21 @@
   cv = $('cv'); ctx = cv.getContext('2d');
   resize();
 
+  $('rsave').addEventListener('click', recSave);
+  $('rexit').addEventListener('click', recExit);
+  $('rtag').addEventListener('click', function () {
+    var done = function () { $('rtag').textContent = 'コピーしました'; };
+    if (navigator.clipboard) navigator.clipboard.writeText(HASHTAGS).then(done, function () {});
+    else {
+      var ta = document.createElement('textarea');
+      ta.value = HASHTAGS; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) {}
+      ta.remove();
+    }
+  });
+
   document.addEventListener('keydown', function (e) {
+    if (REC.on) { if (e.key === 'Escape') recExit(); return; }
     if (!started) { if (e.key === 'Enter' || e.key === ' ') start(); return; }
     var k = e.key;
     if (k === '1' || k === '2' || k === '3') { setMode(+k); showHint(); }
@@ -710,15 +1006,8 @@
     else showHint();
   });
 
-  var lastTap = 0;
-  cv.addEventListener('click', function () {
-    if (!started) return;
-    var now = Date.now();
-    if (now - lastTap < 350) { toggleFullscreen(); }   /* ダブルタップで全画面 */
-    lastTap = now;
-    showHint();
-  });
-  window.addEventListener('mousemove', function () { if (started) showHint(); });
+  bindCanvas();
+  window.addEventListener('mousemove', function () { if (started && !REC.on) showHint(); });
   window.addEventListener('resize', resize);
 
   /* ---- 起動 ---- */
