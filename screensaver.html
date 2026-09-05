@@ -247,9 +247,9 @@
     focus: null,
     nextAt: 4           /* 起動4秒後に最初のピックアップ */
   };
-  /* ⭐ テンポ（2026-09-05 ユーザー指示で詰めた）＝1台あたり約11秒周期（旧36秒）。
-     内訳＝拡大0.8＋静止3.6＋戻り0.7＋壁が流れる6.0 */
-  var FOCUS_EVERY = 6.0;
+  /* ⭐ テンポ（2026-09-05 ユーザー指示で2度詰めた）＝1台あたり約10秒周期（初版36秒）。
+     内訳＝拡大0.8＋静止3.6＋戻り0.7＋壁だけが流れる5.0 */
+  var FOCUS_EVERY = 5.0;
   var F_IN = 0.8, F_HOLD = 3.6, F_OUT = 0.7;
 
   function gridLayout() {
@@ -485,15 +485,25 @@
     ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
 
     var N = ORDER.length;
-    for (var r = 0; r < lanes; r++) {
-      var speed = (0.62 + 0.11 * (r % 4)) * T / 6;   /* レーンごとに速さを変える */
-      var dir = (r % 2 === 0) ? 1 : -1;
+    var step = Math.max(1, Math.round(N / lanes));    /* レーン1本ぶんの色の進み */
+
+    /* ⭐ 縦にも流す（2026-09-05 ユーザー指示）。横だけだと配色が画面に貼り付いてしまい、
+       「まん中がいつも黄色・青系は下で見切れたまま」になる。縦に送れば全部の色が順に真ん中を通る。
+       横より遅くして、斜めに流れる川に見せる。 */
+    var vs = rv.off * (T / 14);
+    var baseLane = Math.floor(vs / T);
+    var vfrac = vs / T - baseLane;
+
+    for (var r = -1; r <= lanes; r++) {               /* 上下に1本ずつ余分に描いて端を埋める */
+      var absLane = baseLane + r;
+      var speed = (0.62 + 0.11 * mod(absLane, 4)) * T / 6;   /* レーンごとに速さを変える */
+      var dir = (mod(absLane, 2) === 0) ? 1 : -1;
       var shift = dir * rv.off * speed;
 
-      /* ⭐ レーンごとの開始位置は、色順の全体を レーン数で割って配る。
-         ⚠️ 固定幅（11台ぶん等）でずらすと、どのレーンもほぼ同じ色になり「色の川」にならない。 */
-      var start = mod(Math.round(r * N / lanes), N);
-      var y = Math.round(r * T - T * 0.5);
+      /* ⚠️ 開始位置を固定幅（11台ぶん等）でずらすと、どのレーンもほぼ同じ色になり
+         「色の川」にならない。色順の全体をレーン数で割って配る。 */
+      var start = mod(absLane * step, N);
+      var y = Math.round((r - vfrac) * T - T * 0.5);
 
       var first = Math.floor(-shift / T) - 1;
       var count = Math.ceil(W / T) + 3;
