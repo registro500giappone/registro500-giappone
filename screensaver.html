@@ -16,8 +16,10 @@
      wallpaper/dist/manifest.json ids（登録順）と order_color（色順の並び）
      車両情報だけは Supabase から匿名で読みます（⛔ sns_share_optout の車は取らない＝掟）。
 
-  ⭐ 壁紙と違い、ここでは canvas から書き出さない＝canvas が汚染されても構いません。
-     そのため Firebase Storage の写真を直接 canvas に描けます（CORS 設定は不要）。
+  ⚠️⚠️ 当初は「ここでは canvas から書き出さないので汚染されても構わない」と考えて
+     Firebase Storage の写真を直接描いていましたが、動画の保存を足した時点でこれは崩れました。
+     汚染された canvas は captureStream も拒みます（詳しくは JS 側 freshCanvas のコメント）。
+     ⭐ そのため【収録中はスプライトだけで描く】＝写真は通常再生でのみ使います。
 -->
 <style>
   :root { color-scheme: dark; }
@@ -142,6 +144,46 @@
   #recui button.primary { color: #0b0d10; background: rgba(232,234,237,.92); border-color: transparent; font-weight: 600; }
   #recui .row2 { display: flex; gap: .6em; flex-wrap: wrap; justify-content: center; }
   #tags { font-size: clamp(11px, 1.7vmin, 14px); color: rgba(232,234,237,.5); line-height: 1.8; word-break: break-all; }
+
+  /* ---- ログイン（マイ壁紙と同じメールOTP。⭐ 目的は「自分の1台を主役にする」ことだけ） ---- */
+  #lg {
+    position: fixed; inset: 0; z-index: 20; display: none;
+    align-items: center; justify-content: center; padding: 20px;
+    background: rgba(6,8,10,.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  #lg.show { display: flex; }
+  #lg .box {
+    width: min(420px, 100%); display: flex; flex-direction: column; gap: .9em;
+    padding: 1.7em 1.6em; border-radius: 20px;
+    background: rgba(22,25,30,.96); border: 1px solid rgba(255,255,255,.14);
+  }
+  #lg h3 { margin: 0; font-size: clamp(16px, 2.4vmin, 20px); font-weight: 500; letter-spacing: .04em; }
+  #lg p { margin: 0; font-size: clamp(12px, 1.8vmin, 15px); line-height: 1.8; color: rgba(232,234,237,.66); }
+  #lg input {
+    font: inherit; font-size: 16px;            /* ⚠️ 16px 未満だと iOS が勝手に拡大する */
+    padding: .75em .9em; border-radius: 12px; width: 100%; box-sizing: border-box;
+    color: #e8eaed; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.22);
+  }
+  #lg .acts { display: flex; gap: .6em; justify-content: flex-end; }
+  #lg button {
+    font: inherit; font-size: clamp(13px, 2vmin, 16px);
+    color: #e8eaed; background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.24); border-radius: 999px;
+    padding: .7em 1.5em; cursor: pointer; white-space: nowrap;
+  }
+  #lg button.primary { color: #0b0d10; background: rgba(232,234,237,.92); border-color: transparent; font-weight: 600; }
+  #lg .err { color: #ffb4a8; min-height: 1.2em; font-size: clamp(11px, 1.7vmin, 14px); }
+  .hide { display: none !important; }
+  #gate .who { font-size: clamp(11px, 1.6vmin, 14px); color: rgba(232,234,237,.5); line-height: 1.9; }
+  #gate .who b { color: rgba(232,234,237,.8); font-weight: 500; }
+  /* ⚠️ #gate button / #hint .mb の丸ボタン指定に負けるので、同じ詳細度で書き直す
+     （クラスだけの `.linkbtn` では効かず、文字の上に大きなボタンが重なった） */
+  .linkbtn, #gate .linkbtn, #hint .linkbtn {
+    font: inherit; font-size: inherit; letter-spacing: inherit;
+    color: rgba(232,234,237,.75);
+    background: none; border: none; border-bottom: 1px solid rgba(255,255,255,.32);
+    border-radius: 0; padding: 0 0 1px; margin: 0; cursor: pointer; white-space: nowrap;
+  }
 </style>
 </head>
 <body>
@@ -173,6 +215,30 @@
   <p id="gstat">読み込んでいます…</p>
   <button id="gbtn" disabled>はじめる</button>
   <p class="sub">3つの方式を切り替えて見比べられます</p>
+  <p class="who" id="gwho"></p>
+</div>
+
+<div id="lg">
+  <div class="box">
+    <h3>ログイン</h3>
+    <p class="lead2">ご登録のメールアドレスに6桁のコードをお送りします。</p>
+    <div id="lgStep1">
+      <input id="lgMail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
+      <p class="err" id="lgErr"></p>
+      <div class="acts">
+        <button id="lgClose">閉じる</button>
+        <button class="primary" id="lgSend">コードを送る</button>
+      </div>
+    </div>
+    <div id="lgStep2" class="hide">
+      <input id="lgCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6桁のコード">
+      <p class="err" id="lgErr2"></p>
+      <div class="acts">
+        <button id="lgResend">再送</button>
+        <button class="primary" id="lgVerify">ログイン</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -184,6 +250,9 @@
   var DATA     = 'wallpaper/dist/';
   var SUPA_URL = 'https://ttlttclfovuzafvghvaq.supabase.co';
   var SUPA_KEY = 'sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt';
+  /* ⚠️ supabase-js はログインに要るときだけ読む（起動を軽く保つ＝この画面は「開いて放置」が本分）。 */
+  var SUPA_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0';
+  var SUPA_SRI = 'sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J';
 
   var BG = '#0b0d10';           /* 地色。沈める時もこの色へ寄せる */
   var SINK = 0.22;              /* ⭐ 周りを沈める量＝マイ壁紙のハイライトと同じ 22%（思想を揃える） */
@@ -196,6 +265,18 @@
 
   var cv, ctx, W = 0, H = 0, DPR = 1;
   var mode = 1, started = false, lastTs = 0;
+
+  /* ⭐「自分の1台を主役にする」＝ログインしている人の車を、必ずピックアップの1台目に出す。
+     ⛔ 見た目に特別な飾りは付けない（マイ壁紙と同じ思想＝囲み線もオーバーレイも置かない）。
+        大きく出ること自体が主役で、留まる時間だけ少し長くする。 */
+  var MY = { idx: null, car: null, email: '', cars: [] };
+
+  /* ⭐ 確認用の逃げ道＝`?mine=12` でその番号の1台を仮に主役にする（マイ壁紙の ?hi= と同型）。
+     ログインしないと動きを確かめられない仕組みなので、絵の検分にはこれを使う。 */
+  var FAKE_MINE = (function () {
+    var m = /[?&]mine=(\d+)/.exec(location.search);
+    return m ? Number(m[1]) : null;
+  })();
 
   /* ⛔ 呼び名はここで確定（2026-09-05 ユーザー確定）。「ドリフト」は車のドリフト走行と紛らわしいので外した。 */
   var MODE_NAME = { 1: 'タイル＆ピックアップ', 2: 'スライドショー', 3: '色の川' };
@@ -293,7 +374,9 @@
   var g = {
     scroll: 0,          /* タイル単位の連続オフセット（増えると絵が上へ流れる） */
     focus: null,
-    nextAt: 4           /* 起動4秒後に最初のピックアップ */
+    nextAt: 4,          /* 起動4秒後に最初のピックアップ */
+    wantMine: false,    /* 次のピックアップを「自分の1台」にする（ログイン時・収録の頭） */
+    seekTry: 0          /* 連れてくるのを試した回数（諦めるための数え） */
   };
   /* ⭐ テンポ（2026-09-05 ユーザー指示で2度詰めた）＝1台あたり約10秒周期（初版36秒）。
      内訳＝拡大0.8＋静止3.6＋戻り0.7＋壁だけが流れる5.0 */
@@ -317,10 +400,12 @@
     /* フォーカスの進行（0＝通常／1＝完全にフォーカス） */
     var p = 0, f = g.focus;
     if (f) {
+      /* ⭐ 自分の1台だけ1秒長く留める＝飾りを足さずに「主役」を出す唯一の差 */
+      var hold = F_HOLD + (f.mine ? 1.0 : 0);
       var e = t - f.t0;
       if (e < F_IN) p = easeOut(e / F_IN);
-      else if (e < F_IN + F_HOLD) p = 1;
-      else if (e < F_IN + F_HOLD + F_OUT) p = 1 - easeOut((e - F_IN - F_HOLD) / F_OUT);
+      else if (e < F_IN + hold) p = 1;
+      else if (e < F_IN + hold + F_OUT) p = 1 - easeOut((e - F_IN - hold) / F_OUT);
       /* ⭐ 収録中だけ間を詰める＝15秒にちょうど2台が収まる（上の recEnter のコメント参照） */
       else { g.focus = null; f = null; p = 0; g.nextAt = t + (REC.on ? 1.6 : FOCUS_EVERY); hideInfo(); }
     }
@@ -393,6 +478,32 @@
     if (!f && t > g.nextAt) startFocus(t, L, baseRow, frac);
   }
 
+  /* 自分の1台を画面へ連れてくる。
+     ⭐ 流れてくるのを待つと最悪2分かかる（171台÷列数×7秒）ので、格子の行だけ飛ばす。
+        ⚠️ 位相（frac）は保つので流れは途切れない＝「別の場所が流れてきた」ようにしか見えない。
+     ⚠️⚠️ 自分が出る列は固定される（絶対行×列数+列 ≡ 位置 mod 171 の解が gcd 周期になるため）。
+        ⛔ その列が左右の端だと `startFocus` の pool から必ず落ちる（端で切れたタイルは選ばない）
+        ＝端でない列に出る行を優先して探す。見つからなければ主役を諦める（無限に待たせない）。 */
+  function seekMine(L) {
+    if (MY.idx == null) { g.wantMine = false; return; }
+    var pos = ORDER.indexOf(MY.idx);
+    if (pos < 0) { g.wantMine = false; return; }
+    if (++g.seekTry > 3) { g.wantMine = false; g.seekTry = 0; return; }
+
+    var N = ORDER.length, base = Math.floor(g.scroll), frac = g.scroll - base;
+    var best = -1, any = -1;
+    for (var d = 1; d < N + 1; d++) {
+      var R = base + d;
+      var c = mod(pos - R * L.scols, N);
+      if (c >= L.scols) continue;
+      if (any < 0) any = R;
+      if (c > 0 && c < L.scols - 1) { best = R; break; }
+    }
+    var goal = best >= 0 ? best : any;
+    if (goal < 0) { g.wantMine = false; return; }
+    g.scroll = (goal - Math.floor(L.srows / 2)) + frac;
+  }
+
   function startFocus(t, L, baseRow, frac) {
     /* 画面の内側にある車のタイルから選ぶ（ロゴと、端で切れているものは避ける） */
     var pool = [];
@@ -409,9 +520,19 @@
     }
     if (!pool.length) { g.nextAt = t + 4; return; }
 
-    var pick = pool[Math.floor(Math.random() * pool.length)];
+    /* ⭐ 自分の1台が画面の中にいれば、それを選ぶ。
+       ⚠️ いなければ格子を動かして連れてくる（下の seekMine）＝ここでは通常の1台を出さずに待つ。 */
+    var pick = null, mine = false;
+    if (g.wantMine && MY.idx != null) {
+      for (var i = 0; i < pool.length; i++) {
+        if (pool[i].idx === MY.idx) { pick = pool[i]; mine = true; break; }
+      }
+      if (!pick) { seekMine(L); g.nextAt = t + 0.35; return; }
+      g.wantMine = false; g.seekTry = 0;
+    }
+    if (!pick) pick = pool[Math.floor(Math.random() * pool.length)];
     var car = carOf(pick.idx);
-    g.focus = { idx: pick.idx, row: pick.row, col: pick.col, car: car, t0: t, img: null };
+    g.focus = { idx: pick.idx, row: pick.row, col: pick.col, car: car, t0: t, img: null, mine: mine };
 
     /* ⭐ タイルは 256px なので、大きくすると粗い。元写真（長辺1000px）を裏で読んで差し替える。
        ⚠️⚠️ ただし収録中は読まない＝写真を1枚でも描くと canvas が汚染され、録画できなくなる
@@ -736,6 +857,18 @@
     } else {
       s += '<div class="row"><button class="mb rec" id="hrec">🎬 ' + REC_SECONDS + '秒の動画を撮る</button></div>';
     }
+    /* ⭐「自分の1台」は方式1でしか意味を持たない（ピックアップされる仕組みだから）。
+       ⛔ 他の方式では触れない＝押しても何も起きない案内を出さない。 */
+    if (mode === 1) {
+      if (MY.idx != null) {
+        var ml = carLine(MY.car);
+        s += '<div class="sub">' + esc(ml && ml.yr ? ml.yr + '年のお車' : 'あなたのお車')
+           + ' が主役です　<button class="linkbtn" id="hout">やめる</button></div>';
+      } else {
+        s += '<div class="sub"><button class="linkbtn" id="hin">ログイン</button>'
+           + 'すると、あなたの1台が主役になります</div>';
+      }
+    }
     s += '<div class="sub">';
     s += 'キーボードなら <span class="k">1</span><span class="k">2</span><span class="k">3</span>'
        + '　／　<span class="k">←</span><span class="k">→</span> 送る';
@@ -743,6 +876,10 @@
     else       s += '<br>ホーム画面に追加して開くと、上のバーが消えて全画面になります';
     s += '</div>';
     h.innerHTML = s;
+
+    var hin = $('hin'), hout = $('hout');
+    if (hin)  hin.addEventListener('click',  function (e) { e.stopPropagation(); openLogin(); });
+    if (hout) hout.addEventListener('click', function (e) { e.stopPropagation(); signOut(); });
 
     var bs = h.querySelectorAll('.mb[data-m]');
     for (var i = 0; i < bs.length; i++) {
@@ -779,6 +916,189 @@
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible' && !wakeLock) keepAwake();
   });
+
+  /* ============================================================ ログインと「自分の1台」
+
+     ⭐ マイ壁紙と同じメールOTP。⛔ ここでログインを求める目的は【自分の1台を主役にする】ことだけで、
+        ログインしなくても絵は全部見られる＝入口は控えめに、断っても何も失われないようにする。
+     ⚠️ 判定がつかないときは主役を立てない（マイ壁紙 §4-2 と同じ）＝
+        取り違えると他人の車を「あなたの1台」として出すことになる。 */
+
+  var supaPromise = null, client = null;
+  function supa() {
+    if (supaPromise) return supaPromise;
+    supaPromise = new Promise(function (resolve, reject) {
+      if (window.supabase && window.supabase.createClient) return resolve(mk());
+      var s = document.createElement('script');
+      s.src = SUPA_CDN; s.integrity = SUPA_SRI; s.crossOrigin = 'anonymous';
+      s.onload = function () { resolve(mk()); };
+      s.onerror = function () { reject(new Error('supabase-js')); };
+      document.head.appendChild(s);
+    });
+    return supaPromise;
+  }
+  function mk() {
+    if (!client) client = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+    return client;
+  }
+
+  /* ⭐ すでにログイン済みの人だけ、静かに読みに行く。
+     ⚠️ セッションの有無は localStorage の鍵で分かる＝未ログインの人に CDN を読ませない。 */
+  function hasSession() {
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf('sb-') === 0 && k.indexOf('-auth-token') > 0) return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  function openLogin() {
+    $('lg').classList.add('show');
+    $('lgStep1').classList.remove('hide'); $('lgStep2').classList.add('hide');
+    $('lgErr').textContent = ''; $('lgErr2').textContent = '';
+    try {
+      var saved = localStorage.getItem('r500_login_email');
+      if (saved && !$('lgMail').value) $('lgMail').value = saved;
+    } catch (e) {}
+    $('lgMail').focus();
+  }
+  function closeLogin() { $('lg').classList.remove('show'); }
+
+  var otpMail = '';
+  $('lgClose').onclick = closeLogin;
+  $('lg').onclick = function (e) { if (e.target === $('lg')) closeLogin(); };
+  $('lgSend').onclick = function () {
+    var m = ($('lgMail').value || '').trim();
+    if (!/.+@.+\..+/.test(m)) { $('lgErr').textContent = 'メールアドレスをご確認ください。'; return; }
+    $('lgErr').textContent = ''; $('lgSend').disabled = true;
+    supa().then(function (c) { return c.auth.signInWithOtp({ email: m }); })
+      .then(function (r) {
+        $('lgSend').disabled = false;
+        if (r.error) { $('lgErr').textContent = '送信できませんでした：' + r.error.message; return; }
+        otpMail = m;
+        try { localStorage.setItem('r500_login_email', m); } catch (e) {}
+        $('lgStep1').classList.add('hide'); $('lgStep2').classList.remove('hide');
+        $('lgCode').focus();
+      })
+      .catch(function () { $('lgSend').disabled = false; $('lgErr').textContent = '通信に失敗しました。'; });
+  };
+  $('lgResend').onclick = function () {
+    supa().then(function (c) { return c.auth.signInWithOtp({ email: otpMail }); })
+      .then(function (r) { $('lgErr2').textContent = r.error ? '再送に失敗しました。' : 'コードを送り直しました。'; });
+  };
+  $('lgVerify').onclick = function () {
+    var code = ($('lgCode').value || '').trim();
+    if (!/^\d{6}$/.test(code)) { $('lgErr2').textContent = '6桁の数字を入れてください。'; return; }
+    $('lgVerify').disabled = true;
+    supa().then(function (c) { return c.auth.verifyOtp({ email: otpMail, token: code, type: 'email' }); })
+      .then(function (r) {
+        $('lgVerify').disabled = false;
+        if (r.error) { $('lgErr2').textContent = 'コードが違うようです。'; return; }
+        closeLogin();
+        checkOwner();
+      })
+      .catch(function () { $('lgVerify').disabled = false; $('lgErr2').textContent = '通信に失敗しました。'; });
+  };
+
+  function checkOwner() {
+    return supa().then(function (c) {
+      return c.auth.getSession().then(function (r) {
+        var session = r && r.data ? r.data.session : null;
+        if (!session) { showWho(null); return; }
+        MY.email = session.user.email || '';
+        /* 紐づけ済みの人は 0 行更新で戻るだけ。失敗しても照会には進む（index.html 等と同型）。 */
+        return Promise.resolve(c.rpc('link_owner_car')).catch(function () { return null; })
+          .then(function () {
+            return c.from('cars')
+              .select('document_id,year,model_display_a,car_type,photo_main,sns_share_optout')
+              .eq('owner_user_id', session.user.id);
+          })
+          .then(function (q) { applyMine(q && q.error ? [] : (q.data || [])); });
+      });
+    }).catch(function () { showWho(null); });   /* CDN が読めない＝主役は立てず、絵はそのまま */
+  }
+
+  /* スプライトの何番が自分の1台か。⚠️ 見つからない理由は3つあり、伝え方が違う。 */
+  function applyMine(rows) {
+    MY.cars = rows || [];
+    MY.idx = null; MY.car = null;
+    for (var i = 0; i < MY.cars.length; i++) {
+      var d = MY.cars[i].document_id;
+      var at = MAN.ids ? MAN.ids.indexOf(d) : -1;
+      if (at >= 0) { MY.idx = at; MY.car = CARS[d] || MY.cars[i]; break; }   /* ⏳2台持ちは1台目 */
+    }
+    if (MY.idx != null) {
+      g.wantMine = true;                    /* 次のピックアップで自分を出す */
+      if (started) { g.focus = null; g.nextAt = lastTs + 0.6; }
+    }
+    showWho(MY.idx != null ? 'ok' : reasonMissing());
+    renderHint();
+  }
+
+  function reasonMissing() {
+    if (!MY.cars.length) return 'nocar';
+    if (MY.cars[0].sns_share_optout) return 'optout';
+    if (!MY.cars[0].photo_main) return 'nophoto';
+    return 'notyet';                        /* 焼き直しが追いついていない（毎日03:40） */
+  }
+
+  /* ゲート画面の一行。⭐ ログインしていない人にも「押さなくてよい」と分かる書き方にする。 */
+  function showWho(state) {
+    var el = $('gwho');
+    if (!el) return;
+    var mail = String(MY.email || '').replace(/^(.{3})[^@]*(@.*)$/, '$1…$2');
+    if (state === 'ok') {
+      var l = carLine(MY.car);
+      el.innerHTML = '<b>' + esc(l && l.yr ? l.yr + '年' : 'あなたのお車') + '</b> が主役になります'
+                   + (mail ? '（' + esc(mail) + '）' : '')
+                   + ' <button class="linkbtn" id="gout">やめる</button>';
+      $('gout').onclick = signOut;
+      return;
+    }
+    if (state === 'nocar') {
+      el.innerHTML = esc(mail) + ' ではお車が見あたりません。'
+                   + '<button class="linkbtn" id="gin">別のアドレスで入り直す</button>';
+      $('gin').onclick = signOut;
+      return;
+    }
+    if (state === 'optout') {
+      el.innerHTML = 'SNS掲載をオフにされているため、お車はこの画面に出していません。'
+                   + '<button class="linkbtn" id="gin">切り替える</button>';
+      $('gin').onclick = signOut;
+      return;
+    }
+    if (state === 'nophoto') {
+      el.innerHTML = 'メイン写真をご登録いただくと、翌日から主役にできます。'
+                   + '<button class="linkbtn" id="gin">入り直す</button>';
+      $('gin').onclick = signOut;
+      return;
+    }
+    if (state === 'notyet') {
+      el.innerHTML = 'ご登録は確認できましたが、絵の焼き直しがまだ追いついていません（毎日つくり直しています）。';
+      return;
+    }
+    if (state === 'loading') { el.textContent = 'お車を確認しています…'; return; }
+    el.innerHTML = '<button class="linkbtn" id="gin">ログイン</button>すると、'
+                 + 'あなたの1台が主役になります';
+    $('gin').onclick = openLogin;
+  }
+
+  function signOut() {
+    var clear = function () {
+      MY.idx = null; MY.car = null; MY.email = ''; MY.cars = [];
+      g.wantMine = false;
+      showWho(null); renderHint();
+    };
+    if (FAKE_MINE !== null) { clear(); return; }        /* 確認用のときは本当のログアウトをしない */
+    supa().then(function (c) { return c.auth.signOut(); }).then(clear, clear);
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
 
   /* ============================================================ 収録・録画
 
@@ -843,7 +1163,11 @@
     /* ⭐ 15秒の中に2台がきれいに収まるよう頭出しする＝
        撮影開始（数え終わり＝約2.7秒後）から 1.5秒 壁が流れ、そこで1台目。
        周期 0.8+3.6+0.7+1.6＝6.7秒なので、2台目は 8.2秒→13.3秒に終わり、最後は壁で締まる。 */
-    if (mode === 1) { g.focus = null; g.nextAt = lastTs + 4.2; }
+    if (mode === 1) {
+      g.focus = null; g.nextAt = lastTs + 4.2;
+      /* ⭐ ログインしていれば1台目は自分の車。数えている3秒のうちに連れてくる。 */
+      if (MY.idx != null) { g.wantMine = true; g.seekTry = 0; seekMine(gridLayout()); }
+    }
 
     $('recui').classList.add('show');
     $('rsave').hidden = true; $('rtag').hidden = true; $('rexit').hidden = true;
@@ -1022,6 +1346,15 @@
     $('gstat').textContent = MAN.count + '台　＋　ロゴ2枚';
     $('gbtn').disabled = false;
     $('gbtn').addEventListener('click', start);
+
+    /* ⭐ すでにログインしている人は、何も押さなくても主役が立つ。
+       ⛔ そうでない人のために supabase-js を読みに行かない（起動を重くしない）。 */
+    if (FAKE_MINE !== null && FAKE_MINE < MAN.count) {
+      MY.idx = FAKE_MINE; MY.car = carOf(FAKE_MINE); g.wantMine = true;
+      showWho('ok'); renderHint();
+    }
+    else if (hasSession()) { showWho('loading'); checkOwner(); }
+    else showWho(null);
   }).catch(function (e) {
     /* ⛔ 黙って何も出さない、をしない（マイ壁紙と同じ作法） */
     $('gstat').innerHTML = '材料を読み込めませんでした。<br>通信の具合かもしれません。少し時間をおいて開き直してください。';
