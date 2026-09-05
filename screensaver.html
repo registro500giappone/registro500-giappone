@@ -177,10 +177,15 @@
     });
   }
 
+  /* ⭐ 車の写真は7種類ある（メインだけではない）。563枚＝メインの3.3倍。 */
+  var PHOTO_COLS = ['photo_main', 'photo_front', 'photo_side', 'photo_rear',
+                    'photo_engine', 'photo_interior', 'photo_steering_cluster'];
+
   /* 車両情報。⛔ sns_share_optout の車は取らない（掟）。
      ⭐ supabase-js は読まない＝認証しないので素の REST で足りる（起動を軽くする）。 */
   function loadCars() {
-    var q = '/rest/v1/cars?select=document_id,year,model_display_a,car_type,body_color,photo_main'
+    var q = '/rest/v1/cars?select=document_id,year,model_display_a,car_type,body_color,'
+          + PHOTO_COLS.join(',')
           + '&photo_main=not.is.null'
           + '&or=(sns_share_optout.is.null,sns_share_optout.is.false)'
           + '&limit=1000';
@@ -241,10 +246,12 @@
     scroll: 0,          /* タイル単位の連続オフセット（増えると絵が上へ流れる） */
     vel: 1,             /* 実効速度の係数（フォーカス中は0へ落とす） */
     focus: null,
-    nextAt: 8           /* 起動8秒後に最初のフォーカス */
+    nextAt: 4           /* 起動4秒後に最初のピックアップ */
   };
-  var FOCUS_EVERY = 26; /* 秒 */
-  var F_IN = 1.2, F_HOLD = 8.0, F_OUT = 1.0;
+  /* ⭐ テンポ（2026-09-05 ユーザー指示で詰めた）＝1台あたり約11秒周期（旧36秒）。
+     内訳＝拡大0.8＋静止3.6＋戻り0.7＋壁が流れる6.0 */
+  var FOCUS_EVERY = 6.0;
+  var F_IN = 0.8, F_HOLD = 3.6, F_OUT = 0.7;
 
   function gridLayout() {
     var T = tileSize();
@@ -273,7 +280,7 @@
     /* フォーカス中はドリフトを止める（読ませるため）。止め方・戻し方はなめらかに。 */
     var want = f ? 0 : 1;
     g.vel += (want - g.vel) * Math.min(1, dt * 1.6);
-    g.scroll += dt * g.vel / 12;            /* 1タイル約12秒 */
+    g.scroll += dt * g.vel / 7;             /* 1タイル約7秒（旧12秒＝テンポを上げた） */
 
     var baseRow = Math.floor(g.scroll), frac = g.scroll - baseRow;
 
@@ -365,17 +372,23 @@
 
   /* ============================================================ 方式2 スライドショー */
 
-  var sh = { list: [], i: -1, t0: 0, cur: null, prev: null, seed: 0 };
-  var SH_HOLD = 9.0, SH_FADE = 1.3;
+  var sh = { list: [], i: -1, t0: 0, cur: null, prev: null };
+  var SH_HOLD = 4.6, SH_FADE = 0.9;      /* 1枚あたり約5.5秒（旧 10.3秒） */
 
+  /* ⭐ 並べるのは「車」ではなく「写真」＝7種すべてを1枚ずつ回す（563枚）。
+     同じ車のエンジンや内装も出るので、169枚だけの時より遥かに飽きにくい。 */
   function shInit() {
     var l = [];
     for (var i = 0; i < CARIDX.length; i++) {
-      var car = carOf(CARIDX[i]);
-      if (car && car.photo_main) l.push(CARIDX[i]);
+      var idx = CARIDX[i], car = carOf(idx);
+      if (!car) continue;
+      for (var j = 0; j < PHOTO_COLS.length; j++) {
+        var u = car[PHOTO_COLS[j]];
+        if (u) l.push({ url: u, car: car, idx: idx });
+      }
     }
-    for (var j = l.length - 1; j > 0; j--) {          /* 毎回ちがう順で（飽きないように） */
-      var k = Math.floor(Math.random() * (j + 1)); var s = l[j]; l[j] = l[k]; l[k] = s;
+    for (var m = l.length - 1; m > 0; m--) {          /* 毎回ちがう順で（飽きないように） */
+      var k = Math.floor(Math.random() * (m + 1)); var s = l[m]; l[m] = l[k]; l[k] = s;
     }
     sh.list = l; sh.i = -1; sh.cur = null; sh.prev = null;
   }
@@ -384,16 +397,15 @@
     if (!sh.list.length) return;
     sh.prev = sh.cur;
     sh.i = (sh.i + 1) % sh.list.length;
-    var idx = sh.list[sh.i], car = carOf(idx);
-    var o = { idx: idx, car: car, img: new Image(), t0: t, seed: Math.random() };
-    o.img.src = car.photo_main;
-    sh.cur = o;
+    var p = sh.list[sh.i];
+    sh.cur = { idx: p.idx, car: p.car, img: new Image(), t0: t, seed: Math.random() };
+    sh.cur.img.src = p.url;
     sh.t0 = t;
-    showInfo(car);
+    showInfo(p.car);
 
     /* 次の1枚を先に読んでおく（切り替わりで待たせない） */
-    var nx = sh.list[(sh.i + 1) % sh.list.length], ncar = carOf(nx);
-    if (ncar && ncar.photo_main) { var pre = new Image(); pre.src = ncar.photo_main; }
+    var nx = sh.list[(sh.i + 1) % sh.list.length];
+    if (nx) { var pre = new Image(); pre.src = nx.url; }
   }
 
   /* 背景用のぼかし。⭐ 写真を極小へ縮めてから画面いっぱいに引き伸ばすだけ＝
@@ -639,7 +651,7 @@
   function setMode(m) {
     mode = mod(m - 1, 3) + 1;
     hideInfo();
-    if (mode === 1) { g.focus = null; g.nextAt = (lastTs / 1000) + 6; }
+    if (mode === 1) { g.focus = null; g.nextAt = (lastTs / 1000) + 3.5; }
     if (mode === 2) { shInit(); sh.cur = null; sh.t0 = -999; }
     showBadge(MODE_NAME[mode]);
     renderHint();
