@@ -1,6 +1,6 @@
 name: マイ壁紙 スプライト再生成（毎日03:40 JST/手動）
 
-# 壁紙（オールタイル図鑑）は 169台の写真を1枚に焼いたスプライトから組み立てる。
+# 壁紙（オールタイル）は 169台の写真を1枚に焼いたスプライトから組み立てる。
 # ⭐ 焼き直しが要るのは「新規登録・写真の差し替え・SNS掲載設定の変更・色の書き換え」のとき。
 #   イベントを受け取る口が無いので毎日見に行き、対象の署名（document_id＋写真URL＋更新日時）が
 #   前回と変わっていたときだけ焼き直す。変化が無い日は何も書かないのでコミットも増えない。
@@ -49,11 +49,11 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add wallpaper/dist/sprite.webp wallpaper/dist/manifest.json
           if git diff --cached --quiet; then
-            echo "図鑑の変更なし — スキップ"
+            echo "タイルの変更なし — スキップ"
           else
             # ⚠️⛔[skip ci] にしない＝Cloudflare Pages も同じ文言でビルドを止めるため、
             #   焼き直しても本番に出ない。[skip actions] は Actions だけがスキップする。
-            git commit -m "chore(wallpaper): 図鑑スプライトを再生成 [skip actions]"
+            git commit -m "chore(wallpaper): タイルのスプライトを再生成 [skip actions]"
             ok=0
             for n in 1 2 3; do
               if git push; then ok=1; break; fi
