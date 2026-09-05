@@ -244,7 +244,6 @@
 
   var g = {
     scroll: 0,          /* タイル単位の連続オフセット（増えると絵が上へ流れる） */
-    vel: 1,             /* 実効速度の係数（フォーカス中は0へ落とす） */
     focus: null,
     nextAt: 4           /* 起動4秒後に最初のピックアップ */
   };
@@ -277,10 +276,9 @@
       else { g.focus = null; f = null; p = 0; g.nextAt = t + FOCUS_EVERY; hideInfo(); }
     }
 
-    /* フォーカス中はドリフトを止める（読ませるため）。止め方・戻し方はなめらかに。 */
-    var want = f ? 0 : 1;
-    g.vel += (want - g.vel) * Math.min(1, dt * 1.6);
-    g.scroll += dt * g.vel / 7;             /* 1タイル約7秒（旧12秒＝テンポを上げた） */
+    /* ⛔ ピックアップ中も壁を止めない（2026-09-05 ユーザー指示）。
+       止めると画面が固まったように見える＝拡大した1台も背景と一緒に流れていく。 */
+    g.scroll += dt / 7;                     /* 1タイル約7秒 */
 
     var baseRow = Math.floor(g.scroll), frac = g.scroll - baseRow;
 
@@ -310,10 +308,12 @@
       var k  = 1 + (kmax - 1) * p;
       var cx = fx + T / 2, cy = fy + T / 2;
 
-      /* 画面から出ないように中心を寄せる（大きくなるほど中央へ） */
+      /* ⭐ 画面からはみ出す時だけ寄せる（元の位置のまま、壁と一緒に流れていくのが基本）。
+         ⛔ 中央へ引き寄せない＝どのタイルが大きくなったのか分からなくなるため。 */
       var m = T * k / 2 + 12;
-      cx += (clamp(cx, m, W - m) - cx) * p;
-      cy += (clamp(cy, m, H * 0.46) - cy) * p;
+      var room = 96;                          /* 下に出す文字のぶん空けておく */
+      cx += (clamp(cx, m, Math.max(m, W - m)) - cx) * p;
+      cy += (clamp(cy, m, Math.max(m, H - m - room)) - cy) * p;
 
       var s = T * k;
 
