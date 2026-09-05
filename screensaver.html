@@ -503,14 +503,16 @@
       /* ⚠️ 開始位置を固定幅（11台ぶん等）でずらすと、どのレーンもほぼ同じ色になり
          「色の川」にならない。色順の全体をレーン数で割って配る。 */
       var start = mod(absLane * step, N);
-      var y = Math.round((r - vfrac) * T - T * 0.5);
+      var y = (r - vfrac) * T - T * 0.5;
 
       var first = Math.floor(-shift / T) - 1;
-      var count = Math.ceil(W / T) + 3;
+      var count = Math.ceil(W / T) + 2;
       for (var c = 0; c < count; c++) {
         var col = first + c;
         var idx = ORDER[mod(start + col, N)];
-        drawTile(idx, Math.round(col * T + shift), y, T, T);
+        /* ⚠️⚠️ 位置を丸めない。⭐ 丸めると 1px ずつ飛んで動き、遅い流れではカクカクに見える
+           （縦は毎秒5px 程度しか進まない）。隙間は【1px 大きく描いて重ねる】ことで防ぐ。 */
+        drawTile(idx, col * T + shift, y, T + 1, T + 1);
       }
     }
 
