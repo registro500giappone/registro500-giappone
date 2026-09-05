@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>スクリーンセーバー（試作） ── Registro500 Giappone</title>
+<meta name="theme-color" content="#0b0d10">
+<!--
+  ⚠️ これは【3方式を見比べるための試作】です。実機で眺めて1つに決め、不採用の2つは削ります。
+  ⛔ 導線（メニュー・sitemap・他ページからのリンク）は、ユーザーの指示が出るまで付けません（CLAUDE.md の掟）。
+     採用が決まった時点で noindex を外し、og:image（1200×630・summary_large_image）を入れます。
+
+  ⭐ 絵の材料は「マイ壁紙」で焼いたものをそのまま使っています。
+     wallpaper/dist/sprite.webp   169台＋ロゴ2枚を1枚に焼いたもの（自ドメイン配信）
+     wallpaper/dist/manifest.json ids（登録順）と order_color（色順の並び）
+     車両情報だけは Supabase から匿名で読みます（⛔ sns_share_optout の車は取らない＝掟）。
+
+  ⭐ 壁紙と違い、ここでは canvas から書き出さない＝canvas が汚染されても構いません。
+     そのため Firebase Storage の写真を直接 canvas に描けます（CORS 設定は不要）。
+-->
+<style>
+  :root { color-scheme: dark; }
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: #0b0d10; color: #e8eaed;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  #cv { display: block; width: 100%; height: 100%; }
+
+  /* 重ねる文字類。⭐ 画面を放置して眺めるものなので、どれも控えめに、消えるように出す。 */
+  .layer {
+    position: fixed; inset: 0; pointer-events: none;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .fade { transition: opacity .8s ease; }
+
+  /* 時計 */
+  #clock {
+    position: absolute; right: max(24px, 4vmin); bottom: max(22px, 4vmin);
+    font-size: clamp(20px, 3.4vmin, 40px); font-weight: 300; letter-spacing: .06em;
+    color: rgba(232,234,237,.72); text-shadow: 0 2px 14px rgba(0,0,0,.7);
+    font-variant-numeric: tabular-nums;
+  }
+  /* 車両情報（方式1のフォーカス中／方式2の表示中） */
+  #info {
+    position: absolute; left: max(24px, 4vmin); bottom: max(22px, 4vmin);
+    max-width: min(70vw, 640px); opacity: 0;
+    text-shadow: 0 2px 16px rgba(0,0,0,.8);
+  }
+  #info .yr { font-size: clamp(26px, 5vmin, 60px); font-weight: 300; letter-spacing: .04em; line-height: 1.1; }
+  #info .md { font-size: clamp(13px, 2.1vmin, 22px); color: rgba(232,234,237,.78); margin-top: .35em; letter-spacing: .04em; }
+  /* 方式1はタイルの真下に出すので、位置をJSから動かす */
+  #info.center { left: 50%; transform: translateX(-50%); text-align: center; bottom: auto; }
+
+  /* 方式名バッジ（切り替えた時だけ2秒） */
+  #badge {
+    position: absolute; top: max(20px, 4vmin); left: 50%; transform: translateX(-50%);
+    font-size: clamp(12px, 1.8vmin, 17px); letter-spacing: .12em; opacity: 0;
+    padding: .5em 1.1em; border-radius: 999px;
+    background: rgba(20,23,28,.72); border: 1px solid rgba(255,255,255,.14);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  /* 操作の手引き（触ると出て、数秒で消える） */
+  #hint {
+    position: absolute; bottom: max(22px, 4vmin); left: 50%; transform: translateX(-50%);
+    text-align: center; font-size: clamp(11px, 1.7vmin, 15px); line-height: 1.9;
+    color: rgba(232,234,237,.62); opacity: 0;
+    padding: .8em 1.4em; border-radius: 14px;
+    background: rgba(20,23,28,.6); border: 1px solid rgba(255,255,255,.1);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  #hint b { font-weight: 600; color: rgba(232,234,237,.9); }
+  #hint .k {
+    display: inline-block; min-width: 1.5em; padding: .1em .4em; margin: 0 .15em;
+    border: 1px solid rgba(255,255,255,.24); border-radius: 5px; font-size: .92em;
+  }
+
+  /* 起動前の入口。⭐ 全画面と画面消灯の抑止は「ユーザーが1回触ってから」でないと許可されない。 */
+  #gate {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 1.6em; text-align: center;
+    background: #0b0d10; z-index: 10; transition: opacity .5s ease;
+  }
+  #gate h1 { font-size: clamp(19px, 3.2vmin, 30px); font-weight: 400; margin: 0; letter-spacing: .06em; }
+  #gate p  { margin: 0; font-size: clamp(12px, 1.9vmin, 16px); color: rgba(232,234,237,.6); line-height: 1.9; }
+  #gate button {
+    font: inherit; font-size: clamp(14px, 2.1vmin, 18px); letter-spacing: .1em;
+    color: #e8eaed; background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.28); border-radius: 999px;
+    padding: .85em 2.4em; cursor: pointer; transition: background .2s;
+  }
+  #gate button:hover { background: rgba(255,255,255,.13); }
+  #gate .sub { font-size: clamp(11px, 1.6vmin, 14px); color: rgba(232,234,237,.38); }
+  #gate.gone { opacity: 0; pointer-events: none; }
+
+  body.playing { cursor: none; }
+  body.ui      { cursor: default; }
+</style>
+</head>
+<body>
+
+<canvas id="cv"></canvas>
+
+<div class="layer">
+  <div id="info" class="fade"><div class="yr"></div><div class="md"></div></div>
+  <div id="clock"></div>
+  <div id="badge" class="fade"></div>
+  <div id="hint" class="fade"></div>
+</div>
+
+<div id="gate">
+  <h1>スクリーンセーバー<span style="opacity:.5">（試作）</span></h1>
+  <p id="gstat">読み込んでいます…</p>
+  <button id="gbtn" disabled>はじめる</button>
+  <p class="sub">3つの方式を切り替えて見比べられます</p>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================ 設定と材料 */
+
+  var DATA     = 'wallpaper/dist/';
+  var SUPA_URL = 'https://ttlttclfovuzafvghvaq.supabase.co';
+  var SUPA_KEY = 'sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt';
+
+  var BG = '#0b0d10';           /* 地色。沈める時もこの色へ寄せる */
+  var SINK = 0.22;              /* ⭐ 周りを沈める量＝マイ壁紙のハイライトと同じ 22%（思想を揃える） */
+
+  var MAN = null;               /* manifest.json */
+  var SPRITE = null;            /* sprite.webp */
+  var CARS = {};                /* document_id -> 行 */
+  var ORDER = [];               /* 表示順（スプライト上のタイル番号）＝色順・両端にロゴ */
+  var CARIDX = [];              /* ORDER のうち車だけ（フォーカス／スライドショーの母集団） */
+
+  var cv, ctx, W = 0, H = 0, DPR = 1;
+  var mode = 1, started = false, lastTs = 0;
+
+  var MODE_NAME = { 1: '図鑑ドリフト', 2: 'スライドショー', 3: '色の川' };
+
+  var $ = function (id) { return document.getElementById(id); };
+  function mod(a, b) { return ((a % b) + b) % b; }
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function easeOut(p) { return 1 - Math.pow(1 - p, 3); }
+  function easeInOut(p) { return p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; }
+
+  /* ============================================================ 読み込み */
+
+  function loadManifest() {
+    return fetch(DATA + 'manifest.json', { cache: 'no-cache' }).then(function (r) {
+      if (!r.ok) throw new Error('manifest');
+      return r.json();
+    });
+  }
+
+  function loadSprite() {
+    return new Promise(function (resolve, reject) {
+      var im = new Image();
+      im.onload = function () { resolve(im); };
+      im.onerror = function () { reject(new Error('sprite')); };
+      im.src = DATA + 'sprite.webp';
+    });
+  }
+
+  /* 車両情報。⛔ sns_share_optout の車は取らない（掟）。
+     ⭐ supabase-js は読まない＝認証しないので素の REST で足りる（起動を軽くする）。 */
+  function loadCars() {
+    var q = '/rest/v1/cars?select=document_id,year,model_display_a,car_type,body_color,photo_main'
+          + '&photo_main=not.is.null'
+          + '&or=(sns_share_optout.is.null,sns_share_optout.is.false)'
+          + '&limit=1000';
+    return fetch(SUPA_URL + q, { headers: { apikey: SUPA_KEY } })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .catch(function () { return []; });   /* 読めなくても絵は出す＝情報だけ出ない */
+  }
+
+  /* ============================================================ 並び順 */
+
+  function buildOrder() {
+    var color = MAN.order_color && MAN.order_color.length ? MAN.order_color.slice() : null;
+    if (!color) { color = []; for (var i = 0; i < MAN.count; i++) color.push(i); }
+
+    /* ⭐ マイ壁紙と同じ「500ロゴを先頭・126ロゴを末尾」＝本の表紙と奥付。
+       流れていく絵なので、周回のたびに表紙が通り過ぎる区切りにもなる。 */
+    ORDER = [];
+    if (MAN.logo && MAN.logo.r500 != null) ORDER.push(MAN.logo.r500);
+    ORDER = ORDER.concat(color);
+    if (MAN.logo && MAN.logo.r126 != null) ORDER.push(MAN.logo.r126);
+
+    CARIDX = color.slice();   /* ロゴはフォーカスもスライドショーもしない */
+  }
+
+  function docOf(spriteIdx) {
+    if (spriteIdx == null || spriteIdx >= MAN.count) return null;   /* ロゴ */
+    return MAN.ids[spriteIdx] || null;
+  }
+  function carOf(spriteIdx) {
+    var d = docOf(spriteIdx);
+    return d ? (CARS[d] || null) : null;
+  }
+
+  /* ============================================================ 画面まわり */
+
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width  = Math.round(W * DPR);
+    cv.height = Math.round(H * DPR);
+    cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.imageSmoothingQuality = 'high';
+  }
+
+  /* スプライト上の1枚を描く */
+  function drawTile(spriteIdx, x, y, w, h) {
+    var t = MAN.tile, c = MAN.cols;
+    ctx.drawImage(SPRITE, (spriteIdx % c) * t, Math.floor(spriteIdx / c) * t, t, t, x, y, w, h);
+  }
+
+  /* 短辺を基準にタイルの大きさを決める。⭐ 画面の向きが変わっても「壁」の密度を保つ。 */
+  function tileSize() { return Math.max(56, Math.round(Math.min(W, H) / 6.5)); }
+
+  /* ============================================================ 方式1 図鑑ドリフト＋フォーカス */
+
+  var g = {
+    scroll: 0,          /* タイル単位の連続オフセット（増えると絵が上へ流れる） */
+    vel: 1,             /* 実効速度の係数（フォーカス中は0へ落とす） */
+    focus: null,
+    nextAt: 8           /* 起動8秒後に最初のフォーカス */
+  };
+  var FOCUS_EVERY = 26; /* 秒 */
+  var F_IN = 1.2, F_HOLD = 8.0, F_OUT = 1.0;
+
+  function gridLayout() {
+    var T = tileSize();
+    var scols = Math.max(1, Math.ceil(W / T));
+    var xpad = (W - scols * T) / 2;         /* はみ出しを左右均等にする */
+    var srows = Math.ceil(H / T) + 2;
+    return { T: T, scols: scols, srows: srows, xpad: xpad };
+  }
+
+  /* 絶対行・列 → ORDER 上の位置 */
+  function seqAt(absRow, col, scols) { return mod(absRow * scols + col, ORDER.length); }
+
+  function drawGrid(t, dt) {
+    var L = gridLayout(), T = L.T;
+
+    /* フォーカスの進行（0＝通常／1＝完全にフォーカス） */
+    var p = 0, f = g.focus;
+    if (f) {
+      var e = t - f.t0;
+      if (e < F_IN) p = easeOut(e / F_IN);
+      else if (e < F_IN + F_HOLD) p = 1;
+      else if (e < F_IN + F_HOLD + F_OUT) p = 1 - easeOut((e - F_IN - F_HOLD) / F_OUT);
+      else { g.focus = null; f = null; p = 0; g.nextAt = t + FOCUS_EVERY; hideInfo(); }
+    }
+
+    /* フォーカス中はドリフトを止める（読ませるため）。止め方・戻し方はなめらかに。 */
+    var want = f ? 0 : 1;
+    g.vel += (want - g.vel) * Math.min(1, dt * 1.6);
+    g.scroll += dt * g.vel / 12;            /* 1タイル約12秒 */
+
+    var baseRow = Math.floor(g.scroll), frac = g.scroll - baseRow;
+
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, W, H);
+
+    for (var r = 0; r < L.srows; r++) {
+      var y = (r - frac) * T - T;
+      for (var c = 0; c < L.scols; c++) {
+        var idx = ORDER[seqAt(baseRow + r, c, L.scols)];
+        drawTile(idx, L.xpad + c * T, y, T, T);
+      }
+    }
+
+    /* ⭐ 周りを地色へ 22% 寄せるだけ＝マイ壁紙のハイライトと同じ作法（囲み線もオーバーレイも置かない） */
+    if (p > 0) {
+      ctx.fillStyle = 'rgba(11,13,16,' + (SINK * p) + ')';
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    /* フォーカスした1台を、その場で大きくする */
+    if (f && p > 0) {
+      var fy = (f.row - baseRow - frac) * T - T;
+      var fx = L.xpad + f.col * T;
+      /* 拡大率はタイルの大きさから決める＝縦画面でも横画面でも「短辺の半分」まで大きくなる */
+      var kmax = clamp(Math.min(W, H) * 0.5 / T, 2.4, 3.8);
+      var k  = 1 + (kmax - 1) * p;
+      var cx = fx + T / 2, cy = fy + T / 2;
+
+      /* 画面から出ないように中心を寄せる（大きくなるほど中央へ） */
+      var m = T * k / 2 + 12;
+      cx += (clamp(cx, m, W - m) - cx) * p;
+      cy += (clamp(cy, m, H * 0.46) - cy) * p;
+
+      var s = T * k;
+
+      /* ⚠️ 文字を写真の壁に直に置くと読めない。⛔ 板を敷かず、文字が来る場所だけを丸くぼかして落とす。 */
+      var iy = cy + s / 2 + Math.max(16, H * 0.025);
+      var gsh = ctx.createRadialGradient(cx, iy + 18, 0, cx, iy + 18, Math.max(170, s * 0.8));
+      gsh.addColorStop(0, 'rgba(11,13,16,' + (0.66 * p) + ')');
+      gsh.addColorStop(1, 'rgba(11,13,16,0)');
+      ctx.fillStyle = gsh; ctx.fillRect(0, 0, W, H);
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.55)';
+      ctx.shadowBlur = 40 * p;
+      ctx.shadowOffsetY = 10 * p;
+      if (f.img && f.img.complete && f.img.naturalWidth) {
+        drawCover(f.img, cx - s / 2, cy - s / 2, s, s);   /* 元写真が読めていれば差し替える */
+      } else {
+        drawTile(f.idx, cx - s / 2, cy - s / 2, s, s);
+      }
+      ctx.restore();
+
+      if (p > .96) showInfoAt(f.car, cx, iy);
+    }
+
+    if (!f && t > g.nextAt) startFocus(t, L, baseRow, frac);
+  }
+
+  function startFocus(t, L, baseRow, frac) {
+    /* 画面の内側にある車のタイルから選ぶ（ロゴと、端で切れているものは避ける） */
+    var pool = [];
+    for (var r = 0; r < L.srows; r++) {
+      var y = (r - frac) * L.T - L.T;
+      if (y < -L.T * .2 || y + L.T > H + L.T * .2) continue;
+      for (var c = 0; c < L.scols; c++) {
+        var x = L.xpad + c * L.T;
+        if (x < -1 || x + L.T > W + 1) continue;
+        var idx = ORDER[seqAt(baseRow + r, c, L.scols)];
+        if (idx >= MAN.count) continue;                    /* ロゴは選ばない */
+        pool.push({ idx: idx, row: baseRow + r, col: c });
+      }
+    }
+    if (!pool.length) { g.nextAt = t + 4; return; }
+
+    var pick = pool[Math.floor(Math.random() * pool.length)];
+    var car = carOf(pick.idx);
+    g.focus = { idx: pick.idx, row: pick.row, col: pick.col, car: car, t0: t, img: null };
+
+    /* ⭐ タイルは 256px なので、大きくすると粗い。元写真（長辺1000px）を裏で読んで差し替える。
+       canvas は汚染されるが、ここでは書き出さないので支障はない。 */
+    if (car && car.photo_main) {
+      var im = new Image();
+      im.onload = function () { if (g.focus && g.focus.idx === pick.idx) g.focus.img = im; };
+      im.src = car.photo_main;
+    }
+  }
+
+  /* ============================================================ 方式2 スライドショー */
+
+  var sh = { list: [], i: -1, t0: 0, cur: null, prev: null, seed: 0 };
+  var SH_HOLD = 9.0, SH_FADE = 1.3;
+
+  function shInit() {
+    var l = [];
+    for (var i = 0; i < CARIDX.length; i++) {
+      var car = carOf(CARIDX[i]);
+      if (car && car.photo_main) l.push(CARIDX[i]);
+    }
+    for (var j = l.length - 1; j > 0; j--) {          /* 毎回ちがう順で（飽きないように） */
+      var k = Math.floor(Math.random() * (j + 1)); var s = l[j]; l[j] = l[k]; l[k] = s;
+    }
+    sh.list = l; sh.i = -1; sh.cur = null; sh.prev = null;
+  }
+
+  function shNext(t) {
+    if (!sh.list.length) return;
+    sh.prev = sh.cur;
+    sh.i = (sh.i + 1) % sh.list.length;
+    var idx = sh.list[sh.i], car = carOf(idx);
+    var o = { idx: idx, car: car, img: new Image(), t0: t, seed: Math.random() };
+    o.img.src = car.photo_main;
+    sh.cur = o;
+    sh.t0 = t;
+    showInfo(car);
+
+    /* 次の1枚を先に読んでおく（切り替わりで待たせない） */
+    var nx = sh.list[(sh.i + 1) % sh.list.length], ncar = carOf(nx);
+    if (ncar && ncar.photo_main) { var pre = new Image(); pre.src = ncar.photo_main; }
+  }
+
+  /* Ken Burns＝ゆっくり拡大しながら少し流す */
+  function drawKen(o, t, alpha) {
+    if (!o) return;
+    var im = o.img;
+    var e = t - o.t0;
+    var k = 1.05 + 0.085 * clamp(e / (SH_HOLD + SH_FADE), 0, 1.2);
+    var dir = o.seed < .5 ? 1 : -1;
+    var dx = dir * (W * 0.016) * clamp(e / (SH_HOLD + SH_FADE), 0, 1.2);
+    var dy = (o.seed < .25 || o.seed > .75 ? 1 : -1) * (H * 0.012) * clamp(e / (SH_HOLD + SH_FADE), 0, 1.2);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    if (im.complete && im.naturalWidth) {
+      var w = W * k, h = H * k;
+      drawCover(im, (W - w) / 2 + dx, (H - h) / 2 + dy, w, h);
+    } else {
+      /* まだ読めていない間は、その車のタイルを引き伸ばして繋ぐ（真っ黒にしない） */
+      ctx.filter = 'blur(24px)';
+      drawCover(SPRITE, 0, 0, W, H, tileRect(o.idx));
+      ctx.filter = 'none';
+    }
+    ctx.restore();
+  }
+
+  function drawShow(t, dt) {
+    ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
+    if (!sh.list.length) return;
+    if (!sh.cur || t - sh.t0 > SH_HOLD + SH_FADE) shNext(t);
+
+    var e = t - sh.t0;
+    if (sh.prev && e < SH_FADE) drawKen(sh.prev, t, 1);
+    drawKen(sh.cur, t, sh.prev ? easeInOut(clamp(e / SH_FADE, 0, 1)) : 1);
+
+    /* 下側をわずかに落として文字を読めるようにする（写真の上に板を置かない） */
+    var gr = ctx.createLinearGradient(0, H * 0.62, 0, H);
+    gr.addColorStop(0, 'rgba(11,13,16,0)');
+    gr.addColorStop(1, 'rgba(11,13,16,.62)');
+    ctx.fillStyle = gr; ctx.fillRect(0, H * 0.62, W, H * 0.38);
+  }
+
+  /* ============================================================ 方式3 色の川 */
+
+  var rv = { off: 0 };
+
+  function drawRiver(t, dt) {
+    var T = Math.max(52, Math.round(Math.min(W, H) / 5.2));
+    var lanes = Math.ceil(H / T) + 1;
+    rv.off += dt;
+
+    ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
+
+    var N = ORDER.length;
+    for (var r = 0; r < lanes; r++) {
+      var speed = (0.62 + 0.11 * (r % 4)) * T / 6;   /* レーンごとに速さを変える */
+      var dir = (r % 2 === 0) ? 1 : -1;
+      var shift = dir * rv.off * speed;
+
+      /* ⭐ レーンごとの開始位置は、色順の全体を レーン数で割って配る。
+         ⚠️ 固定幅（11台ぶん等）でずらすと、どのレーンもほぼ同じ色になり「色の川」にならない。 */
+      var start = mod(Math.round(r * N / lanes), N);
+      var y = Math.round(r * T - T * 0.5);
+
+      var first = Math.floor(-shift / T) - 1;
+      var count = Math.ceil(W / T) + 3;
+      for (var c = 0; c < count; c++) {
+        var col = first + c;
+        var idx = ORDER[mod(start + col, N)];
+        drawTile(idx, Math.round(col * T + shift), y, T, T);
+      }
+    }
+
+    /* 上下を軽く落として、帯が画面の外へ溶けるように見せる */
+    var gr = ctx.createLinearGradient(0, 0, 0, H);
+    gr.addColorStop(0, 'rgba(11,13,16,.55)');
+    gr.addColorStop(.16, 'rgba(11,13,16,0)');
+    gr.addColorStop(.84, 'rgba(11,13,16,0)');
+    gr.addColorStop(1, 'rgba(11,13,16,.55)');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+  }
+
+  /* ============================================================ 描画の共通部品 */
+
+  function tileRect(spriteIdx) {
+    var t = MAN.tile, c = MAN.cols;
+    return { sx: (spriteIdx % c) * t, sy: Math.floor(spriteIdx / c) * t, sw: t, sh: t };
+  }
+
+  /* 枠に対して cover（短辺を合わせて中央で切る）で描く */
+  function drawCover(im, x, y, w, h, srcRect) {
+    var sw = srcRect ? srcRect.sw : im.naturalWidth  || im.width;
+    var sh2 = srcRect ? srcRect.sh : im.naturalHeight || im.height;
+    var sx = srcRect ? srcRect.sx : 0, sy = srcRect ? srcRect.sy : 0;
+    if (!sw || !sh2) return;
+    var sr = sw / sh2, dr = w / h, cw = sw, ch = sh2, cx = sx, cy = sy;
+    if (sr > dr) { cw = sh2 * dr; cx = sx + (sw - cw) / 2; }
+    else         { ch = sw / dr;  cy = sy + (sh2 - ch) / 2; }
+    ctx.drawImage(im, cx, cy, cw, ch, x, y, w, h);
+  }
+
+  /* ============================================================ 重ねる文字 */
+
+  var infoEl = $('info');
+
+  function carLine(car) {
+    if (!car) return null;
+    var sub = [];
+    if (car.model_display_a) sub.push(car.model_display_a);
+    if (car.body_color) sub.push(car.body_color);
+    if (car.car_type && car.car_type !== '500') sub.push('FIAT ' + car.car_type);
+    return { yr: car.year || '', md: sub.join('　／　') };
+  }
+
+  function showInfo(car) {
+    var l = carLine(car);
+    infoEl.classList.remove('center');
+    infoEl.style.top = ''; infoEl.style.bottom = ''; infoEl.style.left = '';
+    if (!l || (!l.yr && !l.md)) { infoEl.style.opacity = 0; return; }
+    infoEl.querySelector('.yr').textContent = l.yr;
+    infoEl.querySelector('.md').textContent = l.md;
+    infoEl.style.opacity = 1;
+  }
+
+  /* 方式1＝大きくなったタイルの真下に置く。
+     ⚠️ 横位置もタイルに合わせること（画面中央に固定すると、左端の車を指していても文字だけ真ん中に出る） */
+  function showInfoAt(car, cxPx, topPx) {
+    var l = carLine(car);
+    if (!l || (!l.yr && !l.md)) { infoEl.style.opacity = 0; return; }
+    infoEl.classList.add('center');
+    infoEl.querySelector('.yr').textContent = l.yr;
+    infoEl.querySelector('.md').textContent = l.md;
+    var half = Math.min(W * 0.35, 320);
+    infoEl.style.left = Math.round(clamp(cxPx, half, W - half)) + 'px';
+    infoEl.style.top = Math.round(clamp(topPx, 0, H - 120)) + 'px';
+    infoEl.style.bottom = 'auto';
+    infoEl.style.opacity = 1;
+  }
+  function hideInfo() { infoEl.style.opacity = 0; }
+
+  function tickClock() {
+    var d = new Date();
+    $('clock').textContent = d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2);
+  }
+
+  var badgeTimer = null;
+  function showBadge(text) {
+    var b = $('badge');
+    b.textContent = text; b.style.opacity = 1;
+    clearTimeout(badgeTimer);
+    badgeTimer = setTimeout(function () { b.style.opacity = 0; }, 2000);
+  }
+
+  var hintTimer = null;
+  function showHint() {
+    var h = $('hint');
+    h.style.opacity = 1;
+    document.body.classList.add('ui'); document.body.classList.remove('playing');
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(function () {
+      h.style.opacity = 0;
+      document.body.classList.add('playing'); document.body.classList.remove('ui');
+    }, 4000);
+  }
+
+  function hintHTML() {
+    var canFs = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+    var s = '<b>' + MODE_NAME[mode] + '</b>　'
+          + '<span class="k">1</span><span class="k">2</span><span class="k">3</span> 方式を切り替え'
+          + '　／　<span class="k">←</span><span class="k">→</span> 送る';
+    if (canFs) s += '<br><span class="k">F</span> 全画面　／　<span class="k">Esc</span> 戻る';
+    else       s += '<br>ホーム画面に追加して開くと、上のバーが消えて全画面になります';
+    return s;
+  }
+
+  /* ============================================================ 全画面・画面の消灯 */
+
+  function toggleFullscreen() {
+    var el = document.documentElement;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      (el.requestFullscreen || el.webkitRequestFullscreen || function () {}).call(el);
+    } else {
+      (document.exitFullscreen || document.webkitExitFullscreen || function () {}).call(document);
+    }
+  }
+
+  /* ⚠️ Wake Lock はユーザーが1回触ってからでないと許可されない。低電力モード中は効かない。 */
+  var wakeLock = null;
+  function keepAwake() {
+    if (!('wakeLock' in navigator)) return;
+    navigator.wakeLock.request('screen').then(function (s) {
+      wakeLock = s;
+      s.addEventListener('release', function () { wakeLock = null; });
+    }).catch(function () { /* 拒否されても絵は動く */ });
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && !wakeLock) keepAwake();
+  });
+
+  /* ============================================================ 進行 */
+
+  function setMode(m) {
+    mode = mod(m - 1, 3) + 1;
+    hideInfo();
+    if (mode === 1) { g.focus = null; g.nextAt = (lastTs / 1000) + 6; }
+    if (mode === 2) { shInit(); sh.cur = null; sh.t0 = -999; }
+    showBadge(MODE_NAME[mode]);
+    $('hint').innerHTML = hintHTML();
+  }
+
+  function frame(ms) {
+    var t = ms / 1000;
+    var dt = lastTs ? Math.min(0.1, t - lastTs) : 0;   /* タブ復帰で飛ばないよう頭打ち */
+    lastTs = t;
+
+    if (mode === 1) drawGrid(t, dt);
+    else if (mode === 2) drawShow(t, dt);
+    else drawRiver(t, dt);
+
+    requestAnimationFrame(frame);
+  }
+
+  function start() {
+    if (started) return;
+    started = true;
+    $('gate').classList.add('gone');
+    setTimeout(function () { $('gate').style.display = 'none'; }, 600);
+
+    keepAwake();
+    setMode(1);
+    showHint();
+    tickClock(); setInterval(tickClock, 10000);
+    requestAnimationFrame(frame);
+  }
+
+  /* ---- 操作 ----
+     ⚠️ リスナーを張る前に canvas を掴んでおくこと（cv が未定義のまま addEventListener して落ちた） */
+
+  cv = $('cv'); ctx = cv.getContext('2d');
+  resize();
+
+  document.addEventListener('keydown', function (e) {
+    if (!started) { if (e.key === 'Enter' || e.key === ' ') start(); return; }
+    var k = e.key;
+    if (k === '1' || k === '2' || k === '3') { setMode(+k); showHint(); }
+    else if (k === 'ArrowRight') { setMode(mode + 1); showHint(); }
+    else if (k === 'ArrowLeft')  { setMode(mode - 1); showHint(); }
+    else if (k === 'f' || k === 'F') { toggleFullscreen(); showHint(); }
+    else showHint();
+  });
+
+  var lastTap = 0;
+  cv.addEventListener('click', function () {
+    if (!started) return;
+    var now = Date.now();
+    if (now - lastTap < 350) { toggleFullscreen(); }   /* ダブルタップで全画面 */
+    lastTap = now;
+    showHint();
+  });
+  window.addEventListener('mousemove', function () { if (started) showHint(); });
+  window.addEventListener('resize', resize);
+
+  /* ---- 起動 ---- */
+
+  Promise.all([loadManifest(), loadSprite(), loadCars()]).then(function (r) {
+    MAN = r[0]; SPRITE = r[1];
+    var rows = r[2] || [];
+    for (var i = 0; i < rows.length; i++) CARS[rows[i].document_id] = rows[i];
+    buildOrder();
+
+    $('gstat').textContent = MAN.count + '台　＋　ロゴ2枚';
+    $('gbtn').disabled = false;
+    $('gbtn').addEventListener('click', start);
+  }).catch(function (e) {
+    /* ⛔ 黙って何も出さない、をしない（マイ壁紙と同じ作法） */
+    $('gstat').innerHTML = '材料を読み込めませんでした。<br>通信の具合かもしれません。少し時間をおいて開き直してください。';
+  });
+
+})();
+</script>
+</body>
+</html>
