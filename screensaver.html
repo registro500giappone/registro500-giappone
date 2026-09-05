@@ -396,21 +396,46 @@
     if (ncar && ncar.photo_main) { var pre = new Image(); pre.src = ncar.photo_main; }
   }
 
-  /* Ken Burns＝ゆっくり拡大しながら少し流す */
+  /* 背景用のぼかし。⭐ 写真を極小へ縮めてから画面いっぱいに引き伸ばすだけ＝
+     blur フィルタを毎フレームかけるより遥かに軽く、結果は同じようにぼける。 */
+  function makeBlurBg(im) {
+    var bw = 44, bh = Math.max(8, Math.round(44 * H / W));
+    var c = document.createElement('canvas');
+    c.width = bw; c.height = bh;
+    var x = c.getContext('2d');
+    var sw = im.naturalWidth, sh2 = im.naturalHeight;
+    var sr = sw / sh2, dr = bw / bh, cw = sw, ch = sh2, cx = 0, cy = 0;
+    if (sr > dr) { cw = sh2 * dr; cx = (sw - cw) / 2; } else { ch = sw / dr; cy = (sh2 - ch) / 2; }
+    x.drawImage(im, cx, cy, cw, ch, 0, 0, bw, bh);
+    c._ar = W / H;
+    return c;
+  }
+
+  /* ⚠️⚠️ メイン写真は 1000×1000 の正方形（edit.html の cropper がそう切っている）。
+     画面いっぱいに cover で入れると iPhone 縦で約1.7倍に引き伸ばされ、ギザギザが出るうえ
+     左右が切れて車が画面の外に出る。⭐ だから【写真の全体を収める】＝引き伸ばさない。
+     余白は同じ写真のぼかしで埋める（フォトフレームの作法）。 */
   function drawKen(o, t, alpha) {
     if (!o) return;
     var im = o.img;
-    var e = t - o.t0;
-    var k = 1.05 + 0.085 * clamp(e / (SH_HOLD + SH_FADE), 0, 1.2);
-    var dir = o.seed < .5 ? 1 : -1;
-    var dx = dir * (W * 0.016) * clamp(e / (SH_HOLD + SH_FADE), 0, 1.2);
-    var dy = (o.seed < .25 || o.seed > .75 ? 1 : -1) * (H * 0.012) * clamp(e / (SH_HOLD + SH_FADE), 0, 1.2);
+    var prog = clamp((t - o.t0) / (SH_HOLD + SH_FADE), 0, 1.1);
 
     ctx.save();
     ctx.globalAlpha = alpha;
     if (im.complete && im.naturalWidth) {
-      var w = W * k, h = H * k;
-      drawCover(im, (W - w) / 2 + dx, (H - h) / 2 + dy, w, h);
+      if (!o.bg || o.bg._ar !== W / H) o.bg = makeBlurBg(im);
+      ctx.drawImage(o.bg, 0, 0, W, H);
+      ctx.fillStyle = 'rgba(11,13,16,.42)';      /* 背景を沈めて、写真だけが目に入るようにする */
+      ctx.fillRect(0, 0, W, H);
+
+      /* ⭐ 近づいてくる動き（0.97→1.00）＝拡大側へ振らないので、はみ出しも粗さも出ない */
+      var k = 0.97 + 0.03 * prog;
+      var r = Math.min(W / im.naturalWidth, H / im.naturalHeight) * k;
+      var w = im.naturalWidth * r, h = im.naturalHeight * r;
+      var dir = o.seed < .5 ? 1 : -1;
+      var dx = dir * (W - w) * 0.10 * prog;
+      var dy = (o.seed < .25 || o.seed > .75 ? 1 : -1) * (H - h) * 0.10 * prog;
+      ctx.drawImage(im, (W - w) / 2 + dx, (H - h) / 2 + dy, w, h);
     } else {
       /* まだ読めていない間は、その車のタイルを引き伸ばして繋ぐ（真っ黒にしない） */
       ctx.filter = 'blur(24px)';
