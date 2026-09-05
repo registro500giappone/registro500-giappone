@@ -62,16 +62,27 @@
     background: rgba(20,23,28,.72); border: 1px solid rgba(255,255,255,.14);
     backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   }
-  /* 操作の手引き（触ると出て、数秒で消える） */
+  /* 操作の手引き（触ると出て、数秒で消える）
+     ⚠️ キーボードの無い端末では、ここが方式を切り替える唯一の手立て＝押せるボタンを必ず置く。 */
   #hint {
     position: absolute; bottom: max(22px, 4vmin); left: 50%; transform: translateX(-50%);
     text-align: center; font-size: clamp(11px, 1.7vmin, 15px); line-height: 1.9;
-    color: rgba(232,234,237,.62); opacity: 0;
-    padding: .8em 1.4em; border-radius: 14px;
-    background: rgba(20,23,28,.6); border: 1px solid rgba(255,255,255,.1);
-    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    color: rgba(232,234,237,.62); opacity: 0; pointer-events: none;
+    padding: .8em 1em; border-radius: 16px; max-width: 92vw;
+    background: rgba(20,23,28,.66); border: 1px solid rgba(255,255,255,.1);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   }
-  #hint b { font-weight: 600; color: rgba(232,234,237,.9); }
+  #hint.show { opacity: 1; pointer-events: auto; }   /* 見えている時だけ押せる */
+  #hint .row { display: flex; gap: .5em; justify-content: center; flex-wrap: wrap; }
+  #hint .mb {
+    font: inherit; font-size: clamp(12px, 1.9vmin, 16px); letter-spacing: .04em;
+    color: rgba(232,234,237,.82); background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.2); border-radius: 999px;
+    padding: .55em 1.1em; cursor: pointer; white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #hint .mb.on { color: #0b0d10; background: rgba(232,234,237,.9); border-color: transparent; font-weight: 600; }
+  #hint .sub { margin-top: .7em; font-size: .88em; color: rgba(232,234,237,.45); line-height: 1.8; }
   #hint .k {
     display: inline-block; min-width: 1.5em; padding: .1em .4em; margin: 0 .15em;
     border: 1px solid rgba(255,255,255,.24); border-radius: 5px; font-size: .92em;
@@ -538,23 +549,39 @@
   var hintTimer = null;
   function showHint() {
     var h = $('hint');
-    h.style.opacity = 1;
+    h.classList.add('show');
     document.body.classList.add('ui'); document.body.classList.remove('playing');
     clearTimeout(hintTimer);
     hintTimer = setTimeout(function () {
-      h.style.opacity = 0;
+      h.classList.remove('show');
       document.body.classList.add('playing'); document.body.classList.remove('ui');
-    }, 4000);
+    }, 9000);   /* ⚠️ 短いと、タップしてボタンを探しているうちに消える */
   }
 
-  function hintHTML() {
+  /* ⚠️ キーの案内だけにしない＝iPhone には切り替える手立てが無くなる（実機で気づいた）。 */
+  function renderHint() {
+    var h = $('hint');
     var canFs = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
-    var s = '<b>' + MODE_NAME[mode] + '</b>　'
-          + '<span class="k">1</span><span class="k">2</span><span class="k">3</span> 方式を切り替え'
-          + '　／　<span class="k">←</span><span class="k">→</span> 送る';
-    if (canFs) s += '<br><span class="k">F</span> 全画面　／　<span class="k">Esc</span> 戻る';
+    var s = '<div class="row">';
+    for (var m = 1; m <= 3; m++) {
+      s += '<button class="mb' + (m === mode ? ' on' : '') + '" data-m="' + m + '">' + MODE_NAME[m] + '</button>';
+    }
+    s += '</div><div class="sub">';
+    s += 'キーボードなら <span class="k">1</span><span class="k">2</span><span class="k">3</span>'
+       + '　／　<span class="k">←</span><span class="k">→</span> 送る';
+    if (canFs) s += '　／　<span class="k">F</span> 全画面';
     else       s += '<br>ホーム画面に追加して開くと、上のバーが消えて全画面になります';
-    return s;
+    s += '</div>';
+    h.innerHTML = s;
+
+    var bs = h.querySelectorAll('.mb');
+    for (var i = 0; i < bs.length; i++) {
+      bs[i].addEventListener('click', function (e) {
+        e.stopPropagation();
+        setMode(+this.getAttribute('data-m'));
+        showHint();
+      });
+    }
   }
 
   /* ============================================================ 全画面・画面の消灯 */
@@ -589,7 +616,7 @@
     if (mode === 1) { g.focus = null; g.nextAt = (lastTs / 1000) + 6; }
     if (mode === 2) { shInit(); sh.cur = null; sh.t0 = -999; }
     showBadge(MODE_NAME[mode]);
-    $('hint').innerHTML = hintHTML();
+    renderHint();
   }
 
   function frame(ms) {
