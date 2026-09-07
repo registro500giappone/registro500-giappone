@@ -1,0 +1,42 @@
+name: 公開HTMLの検品（GA4タグ・head）
+
+# なぜ要るか（2026-09-06）:
+#   マイ壁紙とスクリーンセーバーを公開したとき、2本とも GA4 タグが入っておらず
+#   公開後の訪問が1件も計測されていなかった。canonical と OGP は「公開する」作業の
+#   一部として意識に上がるのに、GA4 タグだけは公開手順のどこにも現れないため抜けた。
+#   ⭐申し送りで塞ぐのではなく機械に数えさせる（連載の check_journeys.js と同じ考え方）。
+#
+# ⚠️ここが赤くなっても Cloudflare Pages のデプロイは止まらない（別系統）。
+#   本番反映を人質に取らず、抜けたことだけを知らせる役目に徹する。
+#   ⛔ここに deploy を足さない。
+on:
+  push:
+    paths:
+      - '**.html'
+      - 'py/check_pages.py'
+      - 'py/check_pages_ignore.json'
+      - '.github/workflows/check-pages.yml'
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 検出そのものが壊れたまま静かに通ることを防ぐ。
+      # 何も検出しない検品は、成功と見分けがつかない。
+      - name: 検出器の自己テスト
+        run: python py/check_pages.py --selftest
+
+      - name: 公開HTMLを検品する
+        run: python py/check_pages.py
