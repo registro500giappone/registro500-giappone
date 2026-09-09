@@ -321,7 +321,9 @@ def main():
         parts.append("お知らせ")
     subject = "【Registro500/126 Giappone】" + "・".join(parts)
 
-    body = "Registro500 / Registro126 Giappone オーナーの皆様\n\nおはようございます。\n"
+    # ⛔時刻に依存する挨拶にしない（2026-09-09 ユーザー確定）。Actions の schedule は
+    # 実測18分〜3時間34分遅れ、午前9時台に届くことがある＝「おはようございます」が嘘になる。
+    body = "Registro500 / Registro126 Giappone オーナーの皆様\n\nご愛用ありがとうございます。\n"
 
     if new_cars:
         body += f"\n■ 🚗 新しい仲間 ({len(new_cars)}台)\n"
