@@ -305,7 +305,8 @@ def main():
     if new_episodes:
         parts.append(f"新着ストーリー{len(new_episodes)}件")
     if new_notebooks:
-        parts.append(f"新着車載手帳{len(new_notebooks)}冊")
+        # 冊数は出さない（2026-09-09 ユーザー確定）
+        parts.append("新着車載手帳")
     if news:
         parts.append("お知らせ")
     subject = "【Registro500/126 Giappone】" + "・".join(parts)
@@ -330,7 +331,7 @@ def main():
         body += f"\n一覧: {SITE}/stories.html\n"
 
     if new_notebooks:
-        body += f"\n■ 🧰 新しい車載手帳 ({len(new_notebooks)}冊)\n"
+        body += "\n■ 🧰 新しい車載手帳が登録されました。\n"
         for n in new_notebooks:
             body += (f"・{n['owner']}様\n"
                      f"　{SITE}/detail.html?doc={n['doc']}#equipment-notebook\n")
