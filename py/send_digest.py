@@ -72,6 +72,12 @@ CHUNK_SIZE = 90          # Brevo の BCC 上限に合わせた main.gs と同じ
 WINDOW_DAYS = 14         # 取り残し救済窓（配信失敗しても14日以内は自動リカバリ）
 NEWS_LIMIT = 5           # main.gs の getUnsentNewsAll_ と同じ
 
+# 車載手帳を初めて載せる便にだけ「対象に加えました」の一文を添える（2026-09-09 ユーザー指示）。
+# 判定＝このアンカー日以降に作られた手帳で、すでに配信済みのものが1件も無ければ初回。
+# アンカーより前の分は追加時に「配信済み扱い」で埋めたものなので数に入れない。
+# 一度配信すれば条件は二度と成立しない＝この分岐を消し忘れても案内が再び出ることはない。
+NOTEBOOK_FIRST_ANCHOR = "2026-09-08T00:00:00Z"
+
 DRY_RUN = str(cfg("DIGEST_DRY_RUN", "")).strip().lower() in ("1", "true", "yes")
 
 
@@ -282,6 +288,10 @@ def main():
     new_notebooks = [{"id": r["id"], "doc": r["vehicle_id"],
                       "owner": (nb_car_map.get(r["vehicle_id"]) or {}).get("handle_name") or "オーナー"}
                      for r in nb_raw if r.get("vehicle_id")]
+    notebook_first = bool(new_notebooks) and not sb_select(
+        "equipment_records", "id",
+        {"notification_sent": "eq.true", "created_at": f"gte.{NOTEBOOK_FIRST_ANCHOR}"},
+        "limit=1")
 
     if not (news or new_cars or new_events or new_episodes or new_notebooks):
         log("配信対象なし")
@@ -331,7 +341,11 @@ def main():
         body += f"\n一覧: {SITE}/stories.html\n"
 
     if new_notebooks:
-        body += "\n■ 🧰 新しい車載手帳が登録されました。\n"
+        if notebook_first:
+            body += "\n■ 🧰 新規で登録された車載手帳もお知らせメールに追加しました。\n"
+            body += "\n新しい車載手帳が登録されました。\n"
+        else:
+            body += "\n■ 🧰 新しい車載手帳が登録されました。\n"
         for n in new_notebooks:
             body += (f"・{n['owner']}様\n"
                      f"　{SITE}/detail.html?doc={n['doc']}#equipment-notebook\n")
