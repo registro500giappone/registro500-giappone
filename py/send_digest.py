@@ -18,6 +18,9 @@ GAS の main.gs sendDailyDigest() からの移植。挙動は1:1で揃えてあ�
   - 新規車両     cars.notification_sent = false        かつ 14日以内
   - 新規イベント  events.notification_sent = false      かつ 14日以内 かつ 開催日が今日以降
   - 新規ストーリー car_episodes.notification_sent = false かつ is_published = true かつ 14日以内
+  - 新規車載手帳  equipment_records.notification_sent = false かつ is_public = true かつ 14日以内
+                 （2026-09-09 追加。公開時から通知経路が無かったため後付け。
+                   車に紐づかない手帳＝vehicle_id が null は行き先が無いので載せない）
   - お知らせ      news.sent_at IS NULL                  かつ 14日以内（最大5件）
 
 送信に1通も成功しなかった場合はフラグを更新せず、次回実行で再送する。
@@ -259,7 +262,28 @@ def main():
                      "owner": (ep_car_map.get(ep.get("car_id")) or {}).get("handle_name") or "オーナー"}
                     for ep in eps_raw]
 
-    if not (news or new_cars or new_events or new_episodes):
+    # 5. 新規の車載手帳（公開設定のものだけ。2026-09-09 追加）
+    #    非公開の手帳を新着として流すと、本人が見せていないものを全オーナーに知らせてしまう。
+    #    車に紐づかない手帳（vehicle_id が null）は行き先が無いので載せない＝フラグも立てず、
+    #    14日の救済窓を過ぎたら自然に対象から外れる。
+    nb_raw = sb_select(
+        "equipment_records", "id,vehicle_id,created_at,notification_sent,is_public",
+        {"notification_sent": "eq.false", "is_public": "eq.true",
+         "created_at": f"gte.{window_start}"},
+        "order=created_at.asc")
+    nb_car_map = {}
+    if nb_raw:
+        ids = sorted({r["vehicle_id"] for r in nb_raw if r.get("vehicle_id")})
+        if ids:
+            in_list = ",".join('"' + str(i) + '"' for i in ids)
+            for c in sb_select("cars", "document_id,handle_name,model_display_c",
+                               {"document_id": f"in.({in_list})"}):
+                nb_car_map[c["document_id"]] = c
+    new_notebooks = [{"id": r["id"], "doc": r["vehicle_id"],
+                      "owner": (nb_car_map.get(r["vehicle_id"]) or {}).get("handle_name") or "オーナー"}
+                     for r in nb_raw if r.get("vehicle_id")]
+
+    if not (news or new_cars or new_events or new_episodes or new_notebooks):
         log("配信対象なし")
         if DRY_RUN:
             # 対象が無い日でも Brevo 送信経路まで通しておかないと試運転の意味が薄い
@@ -272,7 +296,7 @@ def main():
             log(f"✅ DRY RUN: {ADMIN_EMAIL} に疎通確認メールを送信しました。")
         return
 
-    # 5. 件名・本文（main.gs と同一の文面）
+    # 6. 件名・本文（main.gs と同一の文面。車載手帳の節だけ 2026-09-09 に追加）
     parts = []
     if new_cars:
         parts.append(f"新着車両{len(new_cars)}台")
@@ -280,6 +304,8 @@ def main():
         parts.append(f"新着イベント{len(new_events)}件")
     if new_episodes:
         parts.append(f"新着ストーリー{len(new_episodes)}件")
+    if new_notebooks:
+        parts.append(f"新着車載手帳{len(new_notebooks)}冊")
     if news:
         parts.append("お知らせ")
     subject = "【Registro500/126 Giappone】" + "・".join(parts)
@@ -303,6 +329,13 @@ def main():
             body += f"・「{e['title']}」({e['owner']}様)\n　{SITE}/episode.html?ep={e['id']}\n"
         body += f"\n一覧: {SITE}/stories.html\n"
 
+    if new_notebooks:
+        body += f"\n■ 🧰 新しい車載手帳 ({len(new_notebooks)}冊)\n"
+        for n in new_notebooks:
+            body += (f"・{n['owner']}様\n"
+                     f"　{SITE}/detail.html?doc={n['doc']}#equipment-notebook\n")
+        body += f"\n一覧: {SITE}/equipment\n"
+
     if news:
         body += "\n■ 📢 お知らせ\n"
         for n in news:
@@ -312,7 +345,7 @@ def main():
     body += ("\n---------------------------------------------------------\n"
              "Registro500 / Registro126 Giappone\n" + SITE + "/")
 
-    # 6. 宛先（is_sold=true のオーナーは除外）
+    # 7. 宛先（is_sold=true のオーナーは除外）
     recipients = sorted({
         str(c.get("owner_email") or "").strip().lower()
         for c in sb_select("cars", "owner_email", {"is_sold": "is.false"})
@@ -340,7 +373,7 @@ def main():
             failed_chunks += 1
             log(f"メール送信エラー (chunk {i}): {e}")
 
-    # 7. フラグ更新（1chunk以上成功した場合のみ。全滅ならフラグ据え置きで次回再送）
+    # 8. フラグ更新（1chunk以上成功した場合のみ。全滅ならフラグ据え置きで次回再送）
     if sent_chunks == 0:
         log(f"❌ 全chunk送信失敗（成功:0, 失敗:{failed_chunks}）→ フラグ更新スキップ。次回実行で再送されます。")
         send_admin_alert("【要確認】朝ダイジェスト送信失敗",
@@ -366,6 +399,11 @@ def main():
             sb_patch("car_episodes", ep["id"], {"notification_sent": True})
         except Exception as e:
             log(f"car_episodes フラグ更新エラー: {e}")
+    for nb in new_notebooks:
+        try:
+            sb_patch("equipment_records", nb["id"], {"notification_sent": True})
+        except Exception as e:
+            log(f"equipment_records フラグ更新エラー: {e}")
     for n in news:
         try:
             sb_patch("news", n["id"], {
@@ -375,7 +413,8 @@ def main():
             log(f"❌ news フラグ更新エラー (id={n['id']}): {e}")
 
     log(f"メール配信完了: お知らせ{len(news)}件、車両{len(new_cars)}台、"
-        f"イベント{len(new_events)}件、ストーリー{len(new_episodes)}件"
+        f"イベント{len(new_events)}件、ストーリー{len(new_episodes)}件、"
+        f"車載手帳{len(new_notebooks)}冊"
         f"（送信chunk {sent_chunks}成功/{failed_chunks}失敗、宛先{len(recipients)}人）")
 
 

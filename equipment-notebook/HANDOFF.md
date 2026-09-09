@@ -88,6 +88,7 @@
 | `public_list_created_at_2026-08-06.sql`（RPCに登録日を追加） | ✅ 適用済 |
 | `news_insert_2026-08-06.sql`（公開のお知らせ投入） | ✅ **2026-08-06 適用**（`news` id=51・`sent_at` 2026-08-06 21:20 UTC＝A案で配信済み）。⛔ **再実行厳禁＝お知らせが二重に載り、全オーナーへメールが再送される** |
 | `note_prompts_2026-08-10.sql`（メモ欄 10→30項目） | ✅ **2026-08-10 適用**（`note_prompt` 実測30件／`equipment_items` 総数74）。⚠️ **この1本だけ `apply_migration` を通しておらず適用済みmigration一覧に名前が無い**（直接SQLで流した）。一覧に無い＝未適用と読まないこと |
+| `notification_sent_2026-09-09.sql`（朝ダイジェストへの掲載フラグ） | ✅ **2026-09-09 適用**（`apply_migration` 名 `equipment_records_notification_sent`）。⛔ **再実行厳禁＝`update` 節が「2026-09-08 より前は通知済み」を再度書き戻す** |
 | `amazon_tag_swap_TEMPLATE.sql` | ひな型（migrationではない。新タグ発行時に複製して使う） |
 | `verify_phase_b_2026-08-03.sql` | 検証用スクリプト（migrationではない。流しても状態は変わらない） |
 | `schema.sql`／`seed_items.sql`／`recommend_priority.sql`／`items_review_2026-07-23.sql`／`items_pilot_review_2026-07-24.sql`／`stop_modes_schema.sql` | ✅ 適用済（初期構築分。適用済みmigration一覧に対応名あり） |
@@ -1087,3 +1088,23 @@ RPCを呼び、`error` が返ったら従来のクライアント集計にフォ
 **触っていないもの（意図的）**: 一覧の「装備数 72」表示と車載マエストロのピルはそのまま。順序変更で印象が変わるため、まずこの状態で様子を見る。まだ数が目立つようなら装備数の字を小さく・薄くする調整を次の手として残す。
 
 **ローカル確認で分かったこと**: 公開リスト末尾の注記「車両ページと紐付いていない手帳が1件あるため、一覧には出していません。」が実際に出ていた（既存機能）。yoda7jpさんの件がここに表れており、車両が紐づけば自動で消える。
+
+---
+
+## 【2026-09-09 更新】新規登録を朝ダイジェストの配信対象に加えた
+
+**発端**＝オーナーから「昨晩の新規登録がメールで流れてこない」との指摘。調べると**壊れていたのではなく、2026-08-06 の公開時から通知経路そのものが無かった**。`py/send_digest.py` が見ているのは `news` / `cars` / `events` / `car_episodes` の4つだけで、`equipment_records` はどこからも参照されていない（Actions・DBトリガー・Edge Function にも無し）。**8月以降の手帳16冊は1冊も告知されていない。**
+
+**入れたもの**：
+1. `notification_sent_2026-09-09.sql`＝`equipment_records.notification_sent`（既存3種と同じ二重送信防止フラグ）。**既存15冊は通知済み扱い・2026-09-08 作成の1冊（DOC_126）だけを次回配信に残した**（2026-09-09 ユーザー確定＝1週間前の分を今さら新着として出さない）。
+2. `py/send_digest.py` に節を追加。**条件＝`notification_sent=false` かつ `is_public=true` かつ作成14日以内。**
+
+**確定した判断（変えるならユーザーに確認する）**：
+- ⛔**非公開の手帳は流さない**（本人が見せていないものを全オーナーに知らせることになる）。
+- ⛔**「作った」ときだけ通知する＝項目の追記・編集では鳴らさない。** 書きかけの保存でメールが出るため。
+- ⛔**車に紐づかない手帳（`vehicle_id` が null）は載せない**＝行き先のURLが無い。**フラグも立てない**ので、14日の救済窓を過ぎたら自然に対象から外れる（後から車を紐づけて窓内なら流れる）。
+- 行き先は `detail.html?doc=<DOC>#equipment-notebook`（`/equipment` の一覧が使っているのと同じ形。JSが `location.hash` を見てその節へスクロールする）。
+
+**安全確認済み**：`equipment-edit.html` の保存は upsert ではなく `insert` / `update` の分岐で、`update` に `notification_sent` を含めない＝**手帳を編集し直しても再通知されない**。⚠️ただし RLS 上オーナーは自分の行を UPDATE できるため、**手作業でフラグを false へ戻せば再送は可能**（`cars` 等の既存3種とまったく同じ水準。列単位の権限で塞ぐならテーブル全体の GRANT 設計をやり直すことになるので見送った）。
+
+⚠️**ローカルで試運転するときは `PYTHONIOENCODING=utf-8` を付ける**（Windows の cp932 では本文の絵文字で `UnicodeEncodeError` になる。本番の Actions は UTF-8 なので起きない）。
