@@ -84,6 +84,7 @@ week_start = (today - datetime.timedelta(days=today.weekday())).isoformat()  # �
 d7 = (today - datetime.timedelta(days=7)).isoformat()
 d14 = (today - datetime.timedelta(days=14)).isoformat()
 d30 = (today - datetime.timedelta(days=30)).isoformat()
+d90 = (today - datetime.timedelta(days=90)).isoformat()
 
 # ───────────────────────── ① 拡大: cars 集計 ─────────────────────────
 cars = sb("cars", "created_at,updated_at,car_type,is_sold,owner_user_id,accept_inquiry,sns_share_optout,photo_main")
@@ -123,14 +124,15 @@ rels = sb("user_relations", "status,user_id")
 rel_want = sum(1 for r in rels if r.get("status") == "want")
 rel_met = sum(1 for r in rels if r.get("status") == "met")
 rel_users = len({r["user_id"] for r in rels if r.get("user_id")})
-eparts = sb("event_participants", "car_id")
+eparts = sb("event_participants", "car_id,created_at")
 event_cars = len({e["car_id"] for e in eparts if e.get("car_id")})
-episodes = sb("car_episodes", "car_id,is_published")
+episodes = sb("car_episodes", "car_id,is_published,created_at,updated_at")
 ep_pub = sum(1 for e in episodes if e.get("is_published"))
 favs = sb("favorite_spots", "owner_user_id")
 fav_users = len({f["owner_user_id"] for f in favs if f.get("owner_user_id")})
 gnotes = len(sb("garage_notes", "id"))
 usel = len(sb("user_selections", "id"))
+equip_recs = sb("equipment_records", "vehicle_id,created_at,updated_at")
 
 # 真のアクティブ率 & コホート（auth.users 由来、集計RPC経由）
 act = sb_rpc("report_owner_activity")
@@ -138,6 +140,34 @@ linked_n = act["summary"]["linked"]
 active30 = act["summary"]["active_30d"]
 active90 = act["summary"]["active_90d"]
 cohort = act["cohort"]
+
+# ── 90日参加台数（participation_90d・成長戦略の北極星）──────────────────
+# ⛔ active_90d とは別物。active_90d は auth.users 由来の「90日以内にログインした人数」で、
+#    ログインしただけの人も入る＝参加ではない。参加は「この90日に何かした車」を数える。
+# 数える経路は5つ（車ID の和集合・重複なし）。所属は車＝人ではなく車で数えるのが台帳の単位。
+#   ① 新規登録   car_history.kind = registered
+#   ② 車両更新   car_history.kind = updated（occurred_at は cars.last_update_date 由来）
+#   ③ 車載手帳   equipment_records（車に紐づくものだけ。非公開の手帳も参加として数える）
+#   ④ イベント参加表明 event_participants
+#   ⑤ ストーリー car_episodes
+# ⚠️ car_history は 2026-09-10 のバックフィルで作った。バックフィルは車1台につき
+#    updated を最新1件しか持たないので、2026-09-10 より前の窓では②が実際より少なく出る。
+#    以後はトリガーが毎回記録するので正しくなる。
+_hist90 = sb("car_history", "car_id,kind",
+             f"kind=in.(registered,updated)&occurred_at=gte.{d90}")
+_part = {h["car_id"] for h in _hist90 if h.get("car_id")}
+_part |= {e["vehicle_id"] for e in equip_recs
+          if e.get("vehicle_id") and (e.get("updated_at") or e.get("created_at") or "")[:10] >= d90}
+_part |= {e["car_id"] for e in eparts
+          if e.get("car_id") and (e.get("created_at") or "")[:10] >= d90}
+_part |= {e["car_id"] for e in episodes
+          if e.get("car_id") and (e.get("updated_at") or e.get("created_at") or "")[:10] >= d90}
+participation90 = len(_part)
+# ベースライン＝43台（2026-08-29 実測・成長戦略 §1 の定義）。
+# ⚠️ 同じ定義でいま数え直すと 42 になる（差の1台は上の②バックフィル制約）。
+#    旧定義の 34 は「車両更新だけ」の数字なので、ここでは使わない。
+PARTICIPATION_BASE = 43
+PARTICIPATION_BASE_AT = "2026-08-29"
 
 # ───────────────────────── ② 未連携名簿（CSV・個人情報のためHTML非掲載）─────────────────────────
 unlinked = sb("cars", "owner_email,handle_name,car_type,created_at",
@@ -380,6 +410,7 @@ snap = {
     "week_start": week_start,
     "total_cars": total, "n_500": n_500, "n_126": n_126, "new_regs_7d": new_7d,
     "linked": linked, "active_30d": active30, "active_90d": active90, "edited": edited,
+    "participation_90d": participation90,
     "unlinked": n_unlinked,
     "rel_count": rel_want + rel_met, "rel_users": rel_users, "event_cars": event_cars,
     "fav_users": fav_users, "episodes_pub": ep_pub,
@@ -482,8 +513,9 @@ read_reg = (f"今週の新規登録は {new_7d}台（前週 {prev_7d}台）。�
             f"{last_ym} は {last_n}台。旧車ゆえ台数の急増は構造的に見込みにくく、<b>“数”より“質”を重視する局面</b>。")
 read_retain = (f"登録 {total}台のうち連携は {linked}台（{pct(linked, total)}）。残り {n_unlinked}台は"
                f"<b>メール登録のみの休眠</b>。名簿は py/unlinked_owners.csv に出力済。<b>声掛けで最も簡単に活性化できる資産</b>。")
-read_active = (f"連携 {linked_n}人中、90日ログインは {active90}人（{pct(active90, linked_n)}）。"
-               f"<b>連携できれば定着は良好</b>。全登録比の実アクティブは {pct(active90, total)}（90日）。")
+read_active = (f"直近90日に<b>何かした車は {participation90}台</b>（登録 {total}台の {pct(participation90, total)}・基準 {PARTICIPATION_BASE}台/{PARTICIPATION_BASE_AT}）。新規登録・車両更新・車載手帳・イベント参加・ストーリーの重複なし。"
+               f"別指標として、連携 {linked_n}人中の90日ログインは {active90}人（{pct(active90, linked_n)}）"
+               f"＝<b>ログインは参加ではない</b>ので混ぜて読まない。")
 read_cohort = (f"12月の大量登録はいま定着 {_boom:.0f}% まで低下。対して 2026-03 以降は平均 {_recent_avg:.0f}%。"
                f"<b>「数は減ったが質は上がった」</b>。最近の獲得・オンボーディングを伸ばすのが正解。")
 read_engage = (f"繋がり {rel_want + rel_met}件が {rel_users}人に集中。イベント {event_cars}台・スポット {fav_users}人・"
@@ -495,6 +527,12 @@ if usel <= 2:
     unused.append(f"比べ太郎の保存 {usel}件")
 read_unused = "／".join(unused) if unused else "目立った未使用機能なし"
 active_rate90 = pct(active90, total)
+# 北極星（90日参加台数）の基準からの増減。基準は 43台（2026-08-29）で固定＝
+# 週次の前週比とは別に「戦略の目標線をまだ上回っているか」を一目で見るため。
+_bd = participation90 - PARTICIPATION_BASE
+base_delta = (f'<span class="up">+{_bd}</span>' if _bd > 0
+              else f'<span class="down">{_bd}</span>' if _bd < 0
+              else '<span class="flat">±0</span>')
 
 # ───────────────────────── チャート用データ ─────────────────────────
 _coh_rates = [round(r["active_90d"] / r["registered"] * 100) if r["registered"] else 0 for r in cohort]
@@ -514,6 +552,7 @@ chart = {
     "cohReg": [r["registered"] for r in cohort],
     "linked": linked, "unlinked": n_unlinked,
     "active30": active30, "active90": active90, "linkedN": linked_n,
+    "participation90": participation90, "participationBase": PARTICIPATION_BASE,
     "featLabels": ["連携(台)", "登録後編集(台)", "繋がり(件)", "イベント(台)", "スポット(人)", "エピソード(件)"],
     "featVals": [linked, edited, rel_want + rel_met, event_cars, fav_users, ep_pub],
     "bydayDate": [d[5:] for d, _, _ in cur["byday"]],
@@ -626,7 +665,7 @@ HTML = f"""<!DOCTYPE html>
 <div class="kpi-grid">
   <div class="kpi blue"><div class="k">累計 登録台数</div><div class="v">{total}</div><div class="d">500:{n_500} / 126:{n_126}</div></div>
   <div class="kpi green"><div class="k">今週の新規登録</div><div class="v">{new_7d}</div><div class="d">{delta(new_7d, prev_7d)}</div></div>
-  <div class="kpi amber"><div class="k">実アクティブ率(90日)</div><div class="v">{active_rate90}</div><div class="d">{active90}/{total}台 ・ {wdelta('active_90d', active90)}</div></div>
+  <div class="kpi amber"><div class="k">90日参加台数 <small>★北極星</small></div><div class="v">{participation90}</div><div class="d">{pct(participation90, total)} ・ 基準{PARTICIPATION_BASE}台({PARTICIPATION_BASE_AT}) {base_delta} ・ {wdelta('participation_90d', participation90)}</div></div>
   <div class="kpi red"><div class="k">休眠（未連携）</div><div class="v">{n_unlinked}</div><div class="d">{pct(n_unlinked, total)} ・ {wdelta('unlinked', n_unlinked)}</div></div>
 </div>
 
@@ -665,8 +704,9 @@ HTML = f"""<!DOCTYPE html>
 
 <div class="seg-title">③ アクティブ層を満足させる ― 定着と機能</div>
 <div class="kpi-grid">
-  <div class="kpi green"><div class="k">90日アクティブ</div><div class="v">{active90}</div><div class="d">連携比 {pct(active90, linked_n)}</div></div>
-  <div class="kpi green"><div class="k">30日アクティブ</div><div class="v">{active30}</div><div class="d">連携比 {pct(active30, linked_n)}</div></div>
+  <div class="kpi amber"><div class="k">90日参加（台）</div><div class="v">{participation90}</div><div class="d">登録比 {pct(participation90, total)} ・ 何かした車</div></div>
+  <div class="kpi green"><div class="k">90日ログイン（人）</div><div class="v">{active90}</div><div class="d">連携比 {pct(active90, linked_n)} ・ 参加ではない</div></div>
+  <div class="kpi green"><div class="k">30日ログイン（人）</div><div class="v">{active30}</div><div class="d">連携比 {pct(active30, linked_n)}</div></div>
   <div class="kpi blue"><div class="k">繋がり（件 / 人）</div><div class="v">{rel_want + rel_met}</div><div class="d">{rel_users}人に集中</div></div>
   <div class="kpi blue"><div class="k">イベント参加 車両</div><div class="v">{event_cars}</div><div class="d">台</div></div>
 </div>
@@ -706,7 +746,7 @@ HTML = f"""<!DOCTYPE html>
 <details>
   <summary>▸ 詳細データ（コホート表・人気ページ・デバイス）</summary>
   <p style="font-size:.85rem;color:#555;margin:.8em 0 .3em">コホート定着（登録月別）</p>
-  <table><tr><th>登録月</th><th class="num">登録</th><th class="num">連携</th><th class="num">90日活動</th><th class="num">定着率</th></tr>{cohort_rows}</table>
+  <table><tr><th>登録月</th><th class="num">登録</th><th class="num">連携</th><th class="num">90日ログイン</th><th class="num">定着率</th></tr>{cohort_rows}</table>
   <p style="font-size:.85rem;color:#555;margin:1.2em 0 .3em">人気ページ（前週比）</p>
   <table><tr><th>ページ</th><th class="num">今週</th><th class="num">前週</th><th>増減</th></tr>{path_rows}</table>
   <p style="font-size:.85rem;color:#555;margin:1.2em 0 .3em">デバイス</p>
@@ -724,5 +764,5 @@ HTML = f"""<!DOCTYPE html>
 with open(OUT, "w", encoding="utf-8") as f:
     f.write(HTML)
 print("OK ->", OUT)
-print(f"登録 {total} / 連携 {linked} / 実アクティブ90日 {active90} / 休眠 {n_unlinked} / 今週登録 {new_7d}(前週 {prev_7d})")
+print(f"登録 {total} / 連携 {linked} / 90日参加 {participation90}台(基準{PARTICIPATION_BASE}) / 90日ログイン {active90}人 / 休眠 {n_unlinked} / 今週登録 {new_7d}(前週 {prev_7d})")
 print(f"週次スナップショット: week_start={week_start} / 前週記録={'あり' if prev_snap else 'なし(初回)'}")
