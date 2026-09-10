@@ -262,6 +262,12 @@ def render(ev, slug, start, end) -> str:
     elif ev.get("target_car_type") == "126":
         badge = '<span class="badge b126">126</span>'
 
+    # 登録への一言導線（ユーザー指示 2026-09-10・4群の1つ）。126対象イベントだけ data-type を付ける
+    cta_type = ' data-type="126"' if ev.get("target_car_type") == "126" else ""
+    cta_html = (f'  <div id="rg-join-cta" data-where="event"{cta_type} '
+                f'data-benefit="登録すると、イベントに参加予定を表明できます。"></div>\n'
+                f'  <script src="/rg-join-cta.js" defer></script>')
+
     # 地図は施設名と住所を両方入れた方が当たる（例:「静岡県磐田市豊浜4127 福田漁港」）
     map_html = ""
     if loc_lines:
@@ -437,6 +443,7 @@ def render(ev, slug, start, end) -> str:
       <p class="foot">掲載: {e(ev.get('owner_name'))}／内容が変わることがあります。お出かけ前に最新の告知をご確認ください。</p>
     </div>
   </article>
+{cta_html}
   <a class="back-bottom" href="/event">← イベント一覧へ戻る</a>
 </div>
 
