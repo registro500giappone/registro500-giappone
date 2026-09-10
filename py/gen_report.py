@@ -136,6 +136,7 @@ equip_recs = sb("equipment_records", "vehicle_id,created_at,updated_at")
 
 # 真のアクティブ率 & コホート（auth.users 由来、集計RPC経由）
 act = sb_rpc("report_owner_activity")
+dlogins = sb_rpc("report_daily_logins")  # 直近30日・日次ユニークログイン人数（延べではない・個人情報なし）
 linked_n = act["summary"]["linked"]
 active30 = act["summary"]["active_30d"]
 active90 = act["summary"]["active_90d"]
@@ -553,6 +554,7 @@ chart = {
     "linked": linked, "unlinked": n_unlinked,
     "active30": active30, "active90": active90, "linkedN": linked_n,
     "participation90": participation90, "participationBase": PARTICIPATION_BASE,
+    "loginDate": [d["d"][5:] for d in dlogins], "loginN": [d["n"] for d in dlogins],
     "featLabels": ["連携(台)", "登録後編集(台)", "繋がり(件)", "イベント(台)", "スポット(人)", "エピソード(件)"],
     "featVals": [linked, edited, rel_want + rel_met, event_cars, fav_users, ep_pub],
     "bydayDate": [d[5:] for d, _, _ in cur["byday"]],
@@ -619,6 +621,9 @@ new Chart(document.getElementById('cFeat'),{type:'bar',
 new Chart(document.getElementById('cDay'),{type:'line',
  data:{labels:D.bydayDate,datasets:[{data:D.bydayPv,borderColor:'#2e7d32',backgroundColor:'rgba(46,125,50,.12)',fill:true,tension:.3,pointRadius:2}]},
  options:{...noLeg,scales:{y:{beginAtZero:true}}}});
+new Chart(document.getElementById('cLogin'),{type:'line',
+ data:{labels:D.loginDate,datasets:[{data:D.loginN,borderColor:'#3f74d6',backgroundColor:'rgba(63,116,214,.12)',fill:true,tension:.3,pointRadius:2}]},
+ options:{...noLeg,scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});
 """
 
 # ───────────────────────── ① 獲得ファネル・④ 収益（GA4取得結果 or pending）─────────────────────────
@@ -720,6 +725,11 @@ HTML = f"""<!DOCTYPE html>
     <h3>機能の使われ方</h3><div class="cap">単位が違う点に注意（台/件/人）。相対的な使われ度の比較</div>
     <div class="cbox"><canvas id="cFeat"></canvas></div>
     <div class="note">{read_engage}<br>⚠️ ほぼ未使用: {read_unused}</div>
+  </div>
+  <div class="cardbox">
+    <h3>日次ログイン人数（実人数）</h3><div class="cap">直近30日・同じ人が1日に何度ログインしても1人（延べ人数ではない）</div>
+    <div class="cbox"><canvas id="cLogin"></canvas></div>
+    <div class="note">⚠️ 集計は毎日GitHub Actionsで前日分を確定させる（daily_logins・非公開テーブル）。⛔誰がログインしたかは公開しない。</div>
   </div>
 </div>
 
