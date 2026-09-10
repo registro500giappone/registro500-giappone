@@ -15,7 +15,7 @@
 呼ばれ方（.github/workflows/journey-publish.yml）
   publish_journey.py（記事を open にする）→ --draft → コミット・push → --publish
   ⚠️投入を push の後に置いているのは、push が失敗した週に告知だけ飛ぶのを防ぐため。
-  ⚠️05:10 JST に投入すると 06:20 の朝ダイジェストに乗る（この70分差は意図的な設計）。
+  ⚠️04:10 JST に投入すると 06:20 の朝ダイジェストに乗る（この130分差は意図的な設計）。
 
 使い方
   python wiring-simulator/announce_journey.py --draft
@@ -282,7 +282,7 @@ def cmd_publish(sch, today, dry):
         print('同じ件名の news が既にあります＝投入しません')
         return
 
-    # ⚠️date は JST の今日を明示する。既定の CURRENT_DATE は UTC＝05:10 JST では前日になる。
+    # ⚠️date は JST の今日を明示する。既定の CURRENT_DATE は UTC＝04:10 JST では前日になる。
     row = sb_insert('news', {'date': today, 'title': meta['title'], 'content': content,
                              'target_car_type': 'both'})
     print('news に投入しました: id=%s（今朝のダイジェストで配信されます）' % row[0]['id'])
