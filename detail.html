@@ -130,6 +130,11 @@
     .rg-episode-timeline-item:last-child { border-bottom: none; }
     .rg-episode-date { font-size: 0.8rem; color: var(--rg-muted); margin-bottom: 0.2rem; }
     .rg-episodes-more { display: block; text-align: center; padding: 0.75rem; font-size: 0.9rem; color: var(--rg-accent); text-decoration: none; margin-top: 0.25rem; }
+    /* 「この1台の歩み」の自動行（登録・更新・イベント参加・車載手帳・売却）。
+       ストーリー行（rg-episode-timeline-item）と余白感を揃える。 */
+    .rg-history-item { border-bottom: 1px solid var(--rg-border); padding: 0.75rem 0; font-size: 0.92rem; line-height: 1.6; }
+    .rg-history-item:last-child { border-bottom: none; }
+    .rg-history-item a { color: var(--rg-accent); text-decoration: none; font-weight: 600; }
     .rg-btn-add-episode { width: 100%; padding: 0.75rem; margin-top: 0.75rem; border: 1px dashed var(--rg-border); background: none; color: var(--rg-muted); border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
     .rg-btn-add-episode:hover { border-color: var(--rg-accent); color: var(--rg-accent); }
     /* エピソード写真グリッド */
@@ -342,7 +347,7 @@
             <div id="acquisitionContent"></div>
           </section>
           <section class="rg-card" id="episodesSection" style="display:none;">
-            <h2 class="rg-section-title">出来事タイムライン</h2>
+            <h2 class="rg-section-title">この1台の歩み</h2>
             <div id="episodesList"></div>
             <a id="episodesMoreLink" class="rg-episodes-more" style="display:none;" href="#">すべてのエピソードを見る →</a>
             <button id="addEpisodeBtn" class="rg-btn-add-episode" style="display:none;">＋ エピソードを追加</button>
@@ -1127,6 +1132,155 @@
         }
       }
     } catch(e) { /* エピソード取得失敗は無視 */ }
+      // ここまでの描画（入手セクション・エピソード一覧の3件・もっと見るリンク）は残したまま、
+      // 「この1台の歩み」は年表として episodesList を描き直す（登録・更新・イベント参加・車載手帳も混ぜる）
+      fetchHistory(carDocId);
+    }
+
+    // ─── この1台の歩み（自動年表） ───
+    // 出典は4つ：①car_history（登録・更新・売却＝DBトリガーが貯める）②イベント参加
+    // ③車載手帳（equipment_records）④ストーリー（currentEpisodes・入手も含む）。
+    // 1つでも取得に失敗しても他は出す（Promise.allSettled）。car_history が空/失敗のときは
+    // currentCar.created_at から「登録されました」1行だけ作るフォールバックを必ず持つ
+    // （セクションを常に表示にする前提のため）。
+    const HISTORY_FIELD_LABELS = [
+      { test: c => c.indexOf('photo_') === 0, label: '写真' },
+      { test: c => c === 'highlights', label: 'こだわり' },
+      { test: c => c.indexOf('tire_') === 0, label: 'タイヤ' },
+      { test: c => c === 'carburetor_name', label: 'キャブレター' },
+      { test: c => c === 'engine_cc', label: '排気量' },
+      { test: c => c === 'wheel', label: 'ホイール' },
+      { test: c => c === 'body_color', label: 'ボディカラー' },
+      { test: c => c === 'plug_name', label: 'プラグ' },
+      { test: c => c === 'coil_name', label: 'コイル' },
+      { test: c => c === 'year', label: '年式' }
+    ];
+
+    // last_update_fields（カンマ区切りの列名）から「（写真・こだわり）」のような添え書きを作る。
+    // 対応表に無い列は出さない＝最大3語まで
+    function historyFieldsSuffix(fieldsStr) {
+      if (!fieldsStr) return '';
+      const cols = String(fieldsStr).split(',').map(s => s.trim()).filter(Boolean);
+      const labels = [];
+      cols.forEach(col => {
+        const hit = HISTORY_FIELD_LABELS.find(f => f.test(col));
+        if (hit && labels.indexOf(hit.label) === -1) labels.push(hit.label);
+      });
+      if (labels.length === 0) return '';
+      return `（${esc(labels.slice(0, 3).join('・'))}）`;
+    }
+
+    function renderHistoryLine(dateStr, emoji, textHtml) {
+      const day = dateStr ? String(dateStr).slice(0, 10) : '';
+      const dateLabel = day ? formatEpisodeDate(day, 'day', false) : '';
+      return `<div class="rg-history-item">
+        <div class="rg-episode-date">${esc(dateLabel)}</div>
+        <div>${emoji} ${textHtml}</div>
+      </div>`;
+    }
+
+    let rgHistoryRows = [];
+
+    // 8行まで表示し、超過分は「もっと見る」でクライアント側展開する
+    function renderHistoryRows(limit) {
+      const list = document.getElementById('episodesList');
+      if (!list) return;
+      const shown = rgHistoryRows.slice(0, limit);
+      let html = shown.map(r => r.html).join('');
+      if (rgHistoryRows.length > limit) {
+        html += `<button type="button" id="historyMoreBtn" class="rg-episodes-more" style="width:100%;border:none;background:none;cursor:pointer;">もっと見る →</button>`;
+      }
+      list.innerHTML = html;
+      const moreBtn = document.getElementById('historyMoreBtn');
+      if (moreBtn) moreBtn.onclick = () => renderHistoryRows(rgHistoryRows.length);
+    }
+
+    async function fetchHistory(carDocId) {
+      // registered 行が必ず1つはある前提のセクションなので、フォールバックが動く場合も含めて常に表示
+      document.getElementById('episodesSection').style.display = 'block';
+      const rows = [];
+
+      const [historyRes, participantRes, slugsRes, equipmentRes] = await Promise.allSettled([
+        supabaseClient.from('car_history').select('kind, fields, occurred_at').eq('car_id', carDocId),
+        supabaseClient.from('event_participants').select('event_id').eq('car_id', carDocId),
+        fetch('/event-slugs.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}),
+        supabaseClient.from('equipment_records').select('created_at, updated_at').eq('vehicle_id', carDocId).eq('is_public', true)
+      ]);
+
+      // ① car_history（登録・更新・売却）。取れなければ currentCar.created_at で登録行だけ作る
+      const historyRows = (historyRes.status === 'fulfilled' && historyRes.value.data) || [];
+      if (historyRows.length > 0) {
+        historyRows.forEach(h => {
+          if (!h.occurred_at) return;
+          if (h.kind === 'registered') {
+            rows.push({ date: h.occurred_at, kind: 'registered', html: renderHistoryLine(h.occurred_at, '🏁', 'Registro500 に登録されました') });
+          } else if (h.kind === 'updated') {
+            rows.push({ date: h.occurred_at, kind: 'updated', html: renderHistoryLine(h.occurred_at, '✏️', '情報を更新しました' + historyFieldsSuffix(h.fields)) });
+          } else if (h.kind === 'sold') {
+            rows.push({ date: h.occurred_at, kind: 'sold', html: renderHistoryLine(h.occurred_at, '🔑', '手放しました') });
+          }
+          // unsold（出品取り下げ）は年表には出さない
+        });
+      } else if (currentCar && currentCar.created_at) {
+        rows.push({ date: currentCar.created_at, kind: 'registered', html: renderHistoryLine(currentCar.created_at, '🏁', 'Registro500 に登録されました') });
+      }
+
+      // ② イベント参加。event_participants → events を in() で引き、リンクは event-slugs.json
+      try {
+        const participantRows = (participantRes.status === 'fulfilled' && participantRes.value.data) || [];
+        const eventIds = participantRows.map(r => r.event_id).filter(Boolean);
+        if (eventIds.length > 0) {
+          const { data: evs } = await supabaseClient.from('events').select('id, event_name, event_date').in('id', eventIds);
+          const slugs = (slugsRes.status === 'fulfilled' && slugsRes.value) || {};
+          (evs || []).forEach(ev => {
+            if (!ev.event_date) return;
+            const name = esc(ev.event_name || 'イベント');
+            const slug = slugs[ev.id];
+            const label = slug ? `<a href="/event/${encodeURIComponent(slug)}/">${name}</a>` : name;
+            // 開催日が未来なら「参加予定」（参加表明の記録であって、まだ行っていない）
+            const verb = new Date(ev.event_date) > new Date() ? 'に参加予定' : 'に参加';
+            rows.push({ date: ev.event_date, kind: 'event', html: renderHistoryLine(ev.event_date, '🎪', `「${label}」${verb}`) });
+          });
+        }
+      } catch (e) { /* イベント参加の取得失敗は無視 */ }
+
+      // ③ 車載手帳（公開分）。作成の1行＋1日以上あとの更新があればもう1行
+      const equipmentRows = (equipmentRes.status === 'fulfilled' && equipmentRes.value.data) || [];
+      equipmentRows.forEach(rec => {
+        if (!rec.created_at) return;
+        rows.push({ date: rec.created_at, kind: 'equipment', html: renderHistoryLine(rec.created_at, '🧰', '<a href="#equipment-notebook" onclick="var s=document.getElementById(\'equipmentSection\'); if(s) s.scrollIntoView({behavior:\'smooth\',block:\'start\'});">車載手帳をつくりました</a>') });
+        if (rec.updated_at && (new Date(rec.updated_at) - new Date(rec.created_at)) / 86400000 >= 1) {
+          rows.push({ date: rec.updated_at, kind: 'equipment', html: renderHistoryLine(rec.updated_at, '🧰', '<a href="#equipment-notebook" onclick="var s=document.getElementById(\'equipmentSection\'); if(s) s.scrollIntoView({behavior:\'smooth\',block:\'start\'});">車載手帳を更新しました</a>') });
+        }
+      });
+
+      // ④ ストーリー（入手も含む）。見た目は既存の renderEpisodeTimelineItem をそのまま使う
+      // 日付未記入のストーリーは書いた日で並べる（年表から消さない）
+      (currentEpisodes || []).forEach(ep => {
+        const d = ep.episode_date || ep.created_at;
+        if (!d) return;
+        rows.push({ date: d, kind: 'story', html: renderEpisodeTimelineItem(ep) });
+      });
+
+      // 新しい順に並べ、同じ日の「更新」は1行に畳み、登録日と同日の「更新」は出さない
+      rows.sort((a, b) => new Date(b.date) - new Date(a.date));
+      const dayKey = d => { const dt = new Date(d); return isNaN(dt) ? String(d) : dt.toDateString(); };
+      const registeredRow = rows.find(r => r.kind === 'registered');
+      const registeredDay = registeredRow ? dayKey(registeredRow.date) : null;
+      const seenUpdatedDays = new Set();
+      const finalRows = [];
+      rows.forEach(r => {
+        if (r.kind === 'updated') {
+          const dk = dayKey(r.date);
+          if (dk === registeredDay) return;
+          if (seenUpdatedDays.has(dk)) return;
+          seenUpdatedDays.add(dk);
+        }
+        finalRows.push(r);
+      });
+
+      rgHistoryRows = finalRows;
+      renderHistoryRows(8);
     }
 
     function renderEpisodeFull(ep) {
