@@ -140,6 +140,8 @@
   var LW = ['点く', '点かない'], CW = ['回る', '回らない'];
   var ON = { key: 'ON', engine: 'STOP' };
   var PULL = { key: 'ON', engine: 'STOP', starter: 'START' };
+  var HEAD = { key: 'ON', engine: 'STOP', lights: 'ON', beam: 'HIGH' };
+  function hed(sc) { return get(sc, 'head_l.hi'); }
   function cut(id) { return [{ op: 'removeWire', id: id }]; }
   var CHECKS = [
     { label: 'キーON・停止中（正常）＝油圧警告灯', s: { inputs: ON }, expect: true, words: LW },
@@ -159,6 +161,12 @@
     { label: 'バッテリーのマイナス端子（w11-10）が外れた＝油圧警告灯', s: { inputs: ON, ops: cut('w11-10') }, expect: false, words: LW },
     { label: '↑同じ場面のチャージランプ', s: { inputs: ON, ops: cut('w11-10') }, expect: false, read: chg, words: LW },
     { label: '↑同じ場面のセル（レバーを引く）', s: { inputs: PULL, ops: cut('w11-10') }, expect: false, read: cel, words: CW },
+    { label: '↑同じ場面のヘッドライト（ライトON・ハイ）', s: { inputs: HEAD, ops: cut('w11-10') }, expect: false, read: hed, words: LW },
+    /* アースバンド＝エンジンに付いた部品の帰り道はこの1本。車体に直接落ちるヘッドライトは巻き添えにならない＝−端子外れとの見分け */
+    { label: 'アースバンド（w11-12）が切れた＝油圧警告灯', s: { inputs: ON, ops: cut('w11-12') }, expect: false, words: LW },
+    { label: '↑同じ場面のチャージランプ', s: { inputs: ON, ops: cut('w11-12') }, expect: false, read: chg, words: LW },
+    { label: '↑同じ場面のセル（レバーを引く）', s: { inputs: PULL, ops: cut('w11-12') }, expect: false, read: cel, words: CW },
+    { label: '↑同じ場面のヘッドライト（ライトON・ハイ）', s: { inputs: HEAD, ops: cut('w11-12') }, expect: true, read: hed, words: LW },
     /* 車体側の落とし先が全部外れても、−が生きていれば…という誤解を潰す */
     { label: 'アースを5か所とも外した＝油圧警告灯', s: { inputs: ON, ops: [{ op: 'removeWire', id: ['w11-08', 'w11-09', 'w11-10', 'w11-11', 'w07-02'] }] }, expect: false, words: LW },
     { label: 'キーOFF（正常＝消えている）', s: { inputs: { key: 'OFF', engine: 'STOP' } }, expect: false, words: LW },

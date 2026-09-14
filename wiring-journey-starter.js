@@ -138,6 +138,9 @@
        いまは実車どおり「戻り道が無い＝全部死ぬ」と答えるので、検算に昇格させた。 */
     { label: 'バッテリーのマイナス端子（アース線）が外れた・レバーを引く', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-10' }] }, expect: false, words: CELLW },
     { label: '↑同じ場面のチャージランプ', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-10' }] }, expect: false, read: warnLamp, words: LAMPW },
+    /* アースバンド＝セルの帰り道はエンジンを通ってここ1本。警告灯の部品もエンジンに付いているので一緒に死ぬ＝異常②の側 */
+    { label: 'アースバンドが切れた・レバーを引く', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-12' }] }, expect: false, words: CELLW },
+    { label: '↑同じ場面のチャージランプ', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-12' }] }, expect: false, read: warnLamp, words: LAMPW },
     { label: 'オルタネーター換装車・レバーを引く', s: { alt: true, inputs: { key: 'ON', engine: 'STOP', starter: 'START' } }, expect: true, words: CELLW }
   ];
 
