@@ -86,15 +86,16 @@
     s.push('<text x="222" y="284" font-size="10" fill="' + C.sub + '">フライホイール</text>');
     s.push('<text x="222" y="297" font-size="10" fill="' + (pull ? C.deep : C.sub) + '">' + (pull ? '噛んでいる' : '離れている') + '</text>');
 
-    /* ===== セル→車体（w11-11 NERO）。この線が細っても警告灯には出ない＝セルにだけ出る ===== */
+    /* ===== セル→車体（w11-11）。電線ではない＝原典はアース記号だけで、実車はセル本体の取り付け→エンジン→アースバンド→車体。
+       その道を線1本に畳んで描く（色は他のアースと揃えて黒）。ここが細っても警告灯には出ない＝セルにだけ出る ===== */
     if (mode.cut === 'w11-11') {
       var c2 = k.wcol('w11-11', WC.NERO);
       s.push('<path d="M' + X + ',332 L' + X + ',346" stroke="' + c2.col + '" stroke-width="5" fill="none" stroke-linecap="round"/>');
       s.push('<circle cx="' + X + '" cy="352" r="6" fill="none" stroke="' + C.hi + '" stroke-width="3"/>');
-      label(X + 14, 348, '外れている', C.hi, null, 12);
+      label(X + 14, 348, '切れている', C.hi, null, 12);
     } else {
       seg(X, 332, X, 364, 'w11-11');
-      label(X + 12, 352, 'NERO 黒', WC.NERO);
+      label(X + 12, 352, '本体の取り付け', C.sub);
     }
     k.ground(X, 364, '');
     label(X + 12, 376, '車体アース', C.deep, null, 11.5);
@@ -128,7 +129,7 @@
     { label: 'キーON・レバーは戻したまま', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'OFF' } }, expect: false, words: CELLW },
     { label: 'キーON・レバーを引く', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' } }, expect: true, words: CELLW },
     { label: 'ヒューズF1切れ・レバーを引く', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START', f1: 'BLOWN' } }, expect: true, words: CELLW },
-    { label: 'セルのアース線（黒）が外れた・レバーを引く', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-11' }] }, expect: false, words: CELLW },
+    { label: 'セルのアース（本体の取り付け）が切れた・レバーを引く', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-11' }] }, expect: false, words: CELLW },
     { label: '↑同じ場面のチャージランプ', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-11' }] }, expect: true, read: warnLamp, words: LAMPW },
     { label: 'レバー→セルの太線（茶）が外れた・レバーを引く', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-02' }] }, expect: false, words: CELLW },
     { label: 'バッテリーのプラス側の太線（赤）が外れた・レバーを引く', s: { inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-01' }] }, expect: false, words: CELLW },
@@ -156,7 +157,7 @@
     scenes: function (scenario) {
       return [
         /* 異常①＝引いても回らない・警告灯は点いたまま。上半分は無実＝容疑者はレバーから下だけ。
-           絵はその一例（セルのアース線が外れた場合）。 */
+           絵はその一例（セルのアースが切れた場合）。 */
         { id: 'j-fault', sc: scenario({ inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-11' }] }), mode: { suspect: true, cut: 'w11-11' } },
         /* 異常②＝引いても回らない・警告灯も点かない。＋の太線から先が全部死んでいる。 */
         { id: 'j-dead', sc: scenario({ inputs: { key: 'ON', engine: 'STOP', starter: 'START' }, ops: [{ op: 'removeWire', id: 'w11-01' }] }), mode: { cut: 'w11-01' } },
