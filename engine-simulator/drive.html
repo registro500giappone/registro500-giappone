@@ -144,6 +144,7 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
 
     <h2>ギアと回転</h2>
     <div id="gearTable"></div>
+    <p class="note">「80km/h の回転」の <b>—</b> は、そのギアでは回転が上限を超えてしまい 80km/h を出せないという意味。</p>
     <details><summary>勾配ごとに維持できる速度（4速に限らず、いちばん速く登れるギアで）</summary><div id="gradeTable"></div></details>
 
     <h2>この道具の限界</h2>
@@ -157,7 +158,7 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
 import { simulate } from './sim.js';
 import { MODELS, SLOTS, DEFAULT_CHOICES, buildSpec, modelById } from './presets.js';
 import { GEARBOXES, FINALS, TIRES, LOADS, DEFAULT_DRIVE_CHOICES, buildVehicle } from './presets_vehicle.js';
-import { climbHill, accelerate, steadySpeed, topSpeed, gearTable, rpmAtSpeed, speedKmh, sceneLength, gradeAt } from './vehicle.js';
+import { climbHill, accelerate, steadySpeed, topSpeed, gearTable, rpmAtSpeed, speedKmh, sceneLength, gradeAt, redline } from './vehicle.js';
 import { SCENES, sceneById } from './scenes.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -307,7 +308,7 @@ function render(L) {
     story.append(p1, p2);
   } else {
     hero.append(tile('坂の中でいちばん落ちた速度', `${rA.minKmh.toFixed(0)} → ${rB.minKmh.toFixed(0)} km/h`, `入口 ${sc.entryKmh} km/h・いちばん急な区間 ${rA.maxGrade}%`, fmtDelta(rB.minKmh, rA.minKmh, ' km/h')));
-    hero.append(tile('登り切るまでの時間', `${fmtTime(rA.time_s)} → ${fmtTime(rB.time_s)}`, `${(rA.length_m / 1000).toFixed(1)} km・平均 ${rA.avgKmh.toFixed(0)} → ${rB.avgKmh.toFixed(0)} km/h`, fmtDelta(rB.time_s, rA.time_s, ' 秒', 0, true)));
+    hero.append(tile('登り切るまでの時間', `${fmtTime(rA.time_s)} → ${fmtTime(rB.time_s)}`, `${(rA.length_m / 1000).toFixed(1)} km・平均 ${rA.avgKmh.toFixed(0)} → ${rB.avgKmh.toFixed(0)} km/h`, fmtDelta(roundSec(rB.time_s), roundSec(rA.time_s), ' 秒', 0, true)));
     story.append(...tellHill(L));
   }
   // 読み取り（HUD の初期値）
@@ -320,7 +321,10 @@ function render(L) {
   // 並走
   startAnim(L);
 }
-const fmtTime = (s) => s >= 90 ? `${Math.floor(s / 60)}分${Math.round(s % 60).toString().padStart(2, '0')}秒` : `${s.toFixed(0)} 秒`;
+// ⚠️ 秒に丸めてから分秒に割る（243.8 と 238.5 を別々に丸めると 4分04秒→3分58秒＝見た目 6 秒差なのに、
+//    生の差 5.3 から出した「−5 秒」と食い違う。表示する3つの数が互いに合うよう、丸めた秒を唯一の出所にする）
+const roundSec = (s) => Math.round(s);
+const fmtTime = (s) => { const n = roundSec(s); return n >= 90 ? `${Math.floor(n / 60)}分${(n % 60).toString().padStart(2, '0')}秒` : `${n} 秒`; };
 function tellHill(L) {
   const { sc, rA, rB, VA, VB, resA, resB } = L;
   const out = [];
@@ -337,7 +341,7 @@ function tellHill(L) {
   const p1 = document.createElement('p'); p1.innerHTML = `<span class="a">いま</span>：${seg(rA)}。`;
   const p2 = document.createElement('p'); p2.innerHTML = `<span class="b">変えた後</span>：${seg(rB)}。`;
   out.push(p1, p2);
-  const d = rB.minKmh - rA.minKmh, dt = rA.time_s - rB.time_s;
+  const d = rB.minKmh - rA.minKmh, dt = roundSec(rA.time_s) - roundSec(rB.time_s);   // 見出しの数字と同じ丸めを使う
   const p3 = document.createElement('p');
   if (Math.abs(d) < 1.5 && Math.abs(dt) < 3) p3.textContent = 'この坂では差がほとんど出ない。差が出るのは、もっと急な坂か、乗員を増やしたとき。';
   else if (d > 0) p3.textContent = `いちばん落ちた所で ${d.toFixed(0)} km/h 速く、登り切るのは ${dt.toFixed(0)} 秒早い。${gapText(rA, rB)}`;
@@ -346,7 +350,11 @@ function tellHill(L) {
   // いちばん急な区間で「維持できる速度」（定常）
   const sA = rA.steadyAtMax, sB = rB.steadyAtMax;
   const p4 = document.createElement('p');
-  p4.textContent = `いちばん急な ${rA.maxGrade}% が延々と続いたら：いま ${sA ? `${sA.kmh.toFixed(0)} km/h（${sA.gear}速・${sA.rpm.toFixed(0)}rpm）` : '登れない'} → 変えた後 ${sB ? `${sB.kmh.toFixed(0)} km/h（${sB.gear}速・${sB.rpm.toFixed(0)}rpm）` : '登れない'}に張り付く。`;
+  // ⚠️ 定常速度が制限速度を上回るときは数字を出さない（走らせ方は「制限を超えては踏まない」＝グラフと食い違う）
+  const steadyText = (s) => !s ? '登れない'
+    : (sc.limitKmh && s.kmh > sc.limitKmh) ? `制限の ${sc.limitKmh} km/h を保ったまま余力あり`
+    : `${s.kmh.toFixed(0)} km/h（${s.gear}速・${s.rpm.toFixed(0)}rpm）に張り付く`;
+  p4.textContent = `いちばん急な ${rA.maxGrade}% が延々と続いたら：いま ${steadyText(sA)} → 変えた後 ${steadyText(sB)}。`;
   out.push(p4);
   const same = JSON.stringify(state.da) === JSON.stringify(state.db);
   if (!same) { const p5 = document.createElement('p'); p5.textContent = `駆動系も違う（${DRIVE_ORDER.filter(k => state.da[k] !== state.db[k]).map(k => DRIVE_LABEL[k].replace(/（.*$/, '')).join('・')}）ので、エンジンだけの差ではない。`; out.push(p5); }
@@ -521,7 +529,9 @@ function drawGearTables(L) {
   const t = document.createElement('table');
   t.innerHTML = '<thead><tr><th>ギア</th><th>いま km/h／1000rpm</th><th>80km/h の回転</th><th>変えた後 km/h／1000rpm</th><th>80km/h の回転</th></tr></thead>';
   const tb = document.createElement('tbody');
-  gtA.forEach((ga, i) => { const gb = gtB[i]; const tr = document.createElement('tr'); tr.innerHTML = `<td>${ga.gear}速（${ga.ratio}）</td><td>${ga.kmhAt1000.toFixed(1)}</td><td>${Math.round(rpmAtSpeed(80, VA.drive.gears[i], VA.drive) / 10) * 10}</td><td>${gb.kmhAt1000.toFixed(1)}</td><td>${Math.round(rpmAtSpeed(80, VB.drive.gears[i], VB.drive) / 10) * 10}</td>`; tb.append(tr); });
+  // ⚠️ 80km/h の回転は、そのギアで回り切れる範囲でだけ出す（1速の 16440rpm のような、実在しない数を出さない）
+  const rpm80 = (res, drive, gearRatio) => { const n = rpmAtSpeed(80, gearRatio, drive); return n > redline(res) ? '—' : `${Math.round(n / 10) * 10}`; };
+  gtA.forEach((ga, i) => { const gb = gtB[i]; const tr = document.createElement('tr'); tr.innerHTML = `<td>${ga.gear}速（${ga.ratio}）</td><td>${ga.kmhAt1000.toFixed(1)}</td><td>${rpm80(resA, VA.drive, VA.drive.gears[i])}</td><td>${gb.kmhAt1000.toFixed(1)}</td><td>${rpm80(resB, VB.drive, VB.drive.gears[i])}</td>`; tb.append(tr); });
   const ta = topSpeed(resA, VA.vehicle, VA.drive), tbp = topSpeed(resB, VB.vehicle, VB.drive);
   const tr = document.createElement('tr'); tr.innerHTML = `<td>平地の最高速</td><td colspan="2">${ta ? `${ta.kmh.toFixed(0)} km/h（${ta.gear}速・${ta.rpm.toFixed(0)}rpm）` : '—'}</td><td colspan="2">${tbp ? `${tbp.kmh.toFixed(0)} km/h（${tbp.gear}速・${tbp.rpm.toFixed(0)}rpm）` : '—'}</td>`; tb.append(tr);
   t.append(tb); box.append(t);
