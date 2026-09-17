@@ -299,4 +299,25 @@
 - ファン係数を 500F ぴったり（1.8 kW）に取ると **126 が −6〜7%** になる。500 系と 126 系の差を一次資料で説明できる要素は現時点で無い（純正マフラー・ポート径は DB にも資料にも数値が無い＝db-checker で確認済）。
 - そこで **4機が同じ帯に入る 1.5 kW（≒2.0 CV@4600）＋消音器 kExh 0.08** を採った＝500F +4%／500R +5%／126-652 −2%／126-594 −3%／500F SAE +4%。**どの型式も ±5% 以内・ピーク回転は 4600〜5000**。
 - 低回転トルクの形は Fiat 図45 に合わせて混合気の質（mixMin 0.6・vMixRef 42 m/s）を強めた＝1500rpm 2.8 kgm（Fiat 2.6）・2500〜4000 で 3.2〜3.3（Fiat 3.0〜3.1）・4600 で 2.8（Fiat 2.9）。**500R の低速トルクだけ +13% 残る**（Axel の 500R 表はカムが別資料と食い違う＝資料の信頼度が低い機種）。
-- ⚠️ スポーツカム側は未検証＝Abarth 595SS 相当が **−20%**（一般知識 ≈32CV に対し 25.4）。長作用角カムが純正消音器の背圧でオーバーラップ吹き返しを起こす計算が強めに出ている。**段2の前に、スポーツカム＋キャブ＋排気の実測（雑誌・ショップの公表値）で当てるのが次の校正**。
+- ~~⚠️ スポーツカム側は未検証＝Abarth 595SS 相当が −20%~~ → **【2026-09-17 同日】Abarth 3機で校正済＝下の §⑦**（公表諸元に置き換えたら −6%。旧 −20% は諸元が一般知識だったのが主因）。
+
+## ⑦ スポーツカム側の校正目標＝Abarth 595 / 595 SS / 695 SS（2026-09-17・Web 転記の突き合わせ）
+
+⚠️ **Abarth の一次資料（libretto uso e manutenzione・Abarth のカタログ）は手元に無い。** 以下は Web の転記どうしを突き合わせて一致した値だけを採った（信頼度は §①〜⑥ の純正より低い）。**公表馬力の測定条件（DIN／SAE・ファンの有無）はどの出典にも書かれていない**＝模型ではファン込み／無しの両方を出して挟む。
+
+| 項目 | 595 (1963) | 595 SS (1964) | 695 SS | 出典 |
+|---|---|---|---|---|
+| ボア×行程・排気量 | 73.5×70＝593.7 | 同 | **76×76＝689.5**（行程も違う） | motor-car.net／autotecnica |
+| 圧縮比 | 9.5（autotecnica）／10〜10.5（500forum） | 9.9 | 9.8 | motor-car.net／autotecnica／500forum |
+| カム角（IVO/IVC-EVO/EVC） | **40/80-80/40** | 同 | **45/80-85/40** | 手元 `FD Ricambi\Fiat 500_126 Camshaft Specs (EN).pdf`（595・695 の行）＝500forum の転記と一致 |
+| 角の測定条件 | 「gioco a freddo 0,20 mm」＝運転クリアランスで測定→模型 `checkLift 0.05` | 同 | 同（仮定） | 500forum |
+| バルブリフト | 10.7 mm | 同 | 同（仮定） | 500forum「Alzata valvola 10,7」 |
+| バルブ径 | 吸 34／排 28 | 同 | 同（仮定） | 500forum「Diam. esterno max. valvola 34 / 28」 |
+| キャブ | Solex C28 PBJ（ベンチュリ未確認→24 と仮定） | Solex 34 PBIC・**diffusore Ø28**・getto pompa Ø40 | Solex 34 PBIC・**diffusore Ø30** | bicilindriche.blogspot（Solex 34 PBIC の Abarth 設定表）／classicregister／autotecnica |
+| 排気 | Record Monza 2本出し | 同 | 同 | autotecnica |
+| ヘッド | — | 「re-worked inlet ports」 | — | classicregister |
+| **出力** | **27 CV/5000** | **32 CV/5000**（motor-car.net「DIN」）／32 CV/6000（500forum） | **38 CV/5400**（motor-car.net）／5200（conceptcarz） | |
+| **トルク** | 5.0 kgm/3500 | 5.2 kgm/3800 | 記載なし | autotecnica／motor-car.net |
+
+- 出典 URL：motor-car.net `italian-makes/abarth/item/27277-fiat-595-abarth`／autotecnica.org `fiat-abarth-595-ss-piccola-e-cattiva`／500forum.it `viewtopic.php?t=129`（Dati e caratteristiche Abarth 595）／bicilindriche.blogspot.com `2011/09/solex-34-pbic.html`／classicregister.com（595 SS info guide）。
+- 模型の結果（ファン込み）＝595 26.8 CV（−1%）／595 SS 30.0（−6%）／695 SS 33.4（−12%）、ファン無し＝31.4／34.7／37.4（+16／+8／−1%）。トルクは −11〜−16%（5.2 kgm＝BMEP 10.8 bar は共鳴の無い模型では出ない）。詳細＝HANDOFF §5【2026-09-17 Abarth 校正】。

@@ -22,8 +22,7 @@ add('126 652 純正', base652);
 { const s = clone(base652); s.cam = cam4080; s.valves = { dIn: 36, dEx: 31, stemIn: 8, stemEx: 8 }; s.intake = { venturi: 26 }; s.engine.cr = 8.5; add('652 + 40/80 + 36/31 + 30DGF相当(26) + CR8.5', s); }
 { const s = clone(base652); s.engine.bore = 79.5; s.engine.cr = 9.0; s.cam = cam4575; s.valves = { dIn: 39, dEx: 33, stemIn: 8, stemEx: 8 }; s.intake = { venturi: 30, barrels: 1 }; s.exhaust = { kExh: 0.05 }; s.ignition = [[1000, 12], [3000, 34], [6000, 34]]; add('700cc + 45/75 + 39/33 + 40DCOE(30) + CR9 + スポーツ排気', s); }
 { const s = clone(base652); s.engine.bore = 85.5; s.engine.cr = 9.5; s.cam = cam4575; s.valves = { dIn: 39, dEx: 33, stemIn: 8, stemEx: 8 }; s.intake = { venturi: 32, barrels: 1 }; s.exhaust = { kExh: 0.05 }; s.ignition = [[1000, 12], [3000, 34], [6000, 34]]; add('800cc(85.5) + 45/75 + 39/33 + 45DCOE(32) + CR9.5', s); }
-// Abarth 595 SS 相当（一般知識ベース・方向確認のみ）：594cc・CR≈9・カム40/80・Solex 34 PBIC(ベンチュリ≈28)
-{ const s = clone(base652); s.engine.bore = 73.5; s.engine.cr = 9.0; s.cam = cam4080; s.valves = { dIn: 33, dEx: 28, stemIn: 8, stemEx: 8 }; s.intake = { venturi: 28 }; s.exhaust = { kExh: 0.06 }; add('Abarth 595SS 相当 (実車 ≈32CV/5200)', s); }
+// Abarth 595 / 595 SS / 695 SS は engines_abarth.js（公表値付き）＝ node test_abarth.js で見る
 console.log('名称 | ピーク CV@rpm | ピーク Nm@rpm | Nm@2000 | Nm@3000 | 逆流%@2000 | dpVen/dpVal@4600 kPa');
 for (const [name, spec] of cases) {
   const r = simulate(spec, RPM); const s = summarize(r);

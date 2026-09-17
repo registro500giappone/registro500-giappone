@@ -69,7 +69,7 @@ export const DEFAULT_CAL = {
   fmepA: 0.45, fmepB: 0.005, fmepC: 0.09, fmepD: 0.0012,
   kFan_kW: 1.5,                                 // 冷却ファン＋発電機の吸収動力 [kW at 4600rpm]（∝ rpm³）。DIN/Fiat「con ventilatore」条件に含まれる。spec.accessories.fan=false で外す（SAE 総出力相当）
   pExh_bar: 1.0, kExh: 0.08, tExh: 900,        // 背圧＝1.0 + kExh·(rpm/4600)²·(総排気量/500cc) bar（純正消音器。SAE 検証は kExh 0）
-  dTheat: 35, vMixRef: 42, mixMin: 0.6,         // 吸気の加熱（低回転ほど大）と、ベンチュリ流速が低いときの混合気の質（Fiat 資料 p.39 図45 のベンチ曲線＝1500rpm で 2.6kgm・2500〜4200 平坦 に合わせた）
+  dTheat: 35, vMixRef: 42, mixMin: 0.6,         // 吸気の加熱（低回転ほど大）と、ベンチュリ流速が低いときの混合気の質（Fiat 資料 p.39 図45 のベンチ曲線＝1500rpm で 2.6kgm・2500〜4200 平坦 に合わせた）。mixMin は spec.intake.mixMin で上書き可（加速ポンプ付きキャブ＝0.8・2026-09-17 Abarth 校正）
   runnerLen_m: 0.12, runnerXi: 1.5, kPortArea: 0.72, // 吸気ランナー（慣性＝ラム効果）：長さ・損失係数・ポート面積/バルブ面積比
   exRunnerLen_m: 0.35, exRunnerXi: 2.0,              // 排気管（慣性＝掃気効果）：純正の短い管。スポーツ排気は spec.exhaust.runnerLen_m で
   afr: 13.2, lhv: 44.0e6, effComb: 0.95,
@@ -118,7 +118,8 @@ export function simulate(spec, rpmList, opts = {}) {
     const pExh = ((X.backPressure_bar ?? cal.pExh_bar) + kExh * (rpm / 4600) ** 2 * (Vd * nCyl / 500e-6)) * 1e5;
     const tMan = T_ATM + cal.dTheat * Math.sqrt(2500 / rpm);
     const vMix = (Vd * nCyl * rpm / 120) / venturiArea;
-    const mixQ = cal.mixMin + (1 - cal.mixMin) * Math.min(1, vMix / cal.vMixRef);
+    const mixMin = I.mixMin ?? cal.mixMin;              // キャブの属性：加速ポンプ付き（Solex PBIC・Weber DGF/DCOE 等）は低流速の損が小さい＝ 0.8。純正 26/28 IMB（ポンプ無し）は cal.mixMin
+    const mixQ = mixMin + (1 - mixMin) * Math.min(1, vMix / cal.vMixRef);
 
     // 状態
     let mCyl = P_ATM * vol(0) / (R * 600), tCyl = 600;
