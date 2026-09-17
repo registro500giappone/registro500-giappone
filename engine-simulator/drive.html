@@ -328,32 +328,35 @@ const fmtTime = (s) => { const n = roundSec(s); return n >= 90 ? `${Math.floor(n
 function tellHill(L) {
   const { sc, rA, rB, VA, VB, resA, resB } = L;
   const out = [];
+  // 出口の言い方＝常に全開なので、緩い区間では入口より伸びる／戻る／届かない の3通り
+  const exitText = (r) => r.exitKmh > sc.entryKmh + 1.5 ? `、出口では ${r.exitKmh.toFixed(0)} km/h まで伸びる`
+    : r.exitKmh >= sc.entryKmh - 1.5 ? `、出口で入口の ${sc.entryKmh} km/h に戻る` : `、出口で ${r.exitKmh.toFixed(0)} km/h`;
   const seg = (r) => {
     const held = r.minKmh >= sc.entryKmh - 1.5;
-    if (held) return `${sc.entryKmh} km/h で入って、そのまま${r.minGear}速で登り切る`;
+    if (held) return `${sc.entryKmh} km/h で入って、そのまま${r.minGear}速で登り切る` + exitText(r);
     const shift = r.shifts.find(s => s.to < s.from);
     const ev = [];
     if (shift) ev.push({ x: shift.x_m, t: `${shift.x_m < 100 ? '入口で' : `${(shift.x_m / 1000).toFixed(1)} km で`} ${shift.to}速に落とし` });
     ev.push({ x: r.minAt_m, t: `${(r.minAt_m / 1000).toFixed(1)} km 地点で ${r.minKmh.toFixed(0)} km/h まで落ち` });
     ev.sort((a, b) => a.x - b.x);
-    return `${sc.entryKmh} km/h で入って、` + ev.map(e => e.t).join('、') + (shift ? '' : `（${r.minGear}速のまま）`) + (r.exitKmh >= sc.entryKmh - 1.5 ? `、出口では ${sc.entryKmh} km/h に戻す` : `、出口で ${r.exitKmh.toFixed(0)} km/h`);
+    return `${sc.entryKmh} km/h で入って、` + ev.map(e => e.t).join('、') + (shift ? '' : `（${r.minGear}速のまま）`) + exitText(r);
   };
   const p1 = document.createElement('p'); p1.innerHTML = `<span class="a">いま</span>：${seg(rA)}。`;
   const p2 = document.createElement('p'); p2.innerHTML = `<span class="b">変えた後</span>：${seg(rB)}。`;
   out.push(p1, p2);
   const d = rB.minKmh - rA.minKmh, dt = roundSec(rA.time_s) - roundSec(rB.time_s);   // 見出しの数字と同じ丸めを使う
   const p3 = document.createElement('p');
+  const dtText = dt > 0 ? `登り切るのは ${dt} 秒早い` : dt < 0 ? `登り切るのは ${-dt} 秒遅い` : '登り切る時間は同じ';
   if (Math.abs(d) < 1.5 && Math.abs(dt) < 3) p3.textContent = 'この坂では差がほとんど出ない。差が出るのは、もっと急な坂か、乗員を増やしたとき。';
-  else if (d > 0) p3.textContent = `いちばん落ちた所で ${d.toFixed(0)} km/h 速く、登り切るのは ${dt.toFixed(0)} 秒早い。${gapText(rA, rB)}`;
-  else p3.textContent = `変えた後のほうが ${(-d).toFixed(0)} km/h 遅い。${gapText(rA, rB)}`;
+  else if (d >= 1.5) p3.textContent = `いちばん落ちた所で ${d.toFixed(0)} km/h 速く、${dtText}。${gapText(rA, rB)}`;
+  else if (d > -1.5) p3.textContent = `いちばん落ちた所の速度は同じ（どちらも落ちない坂）。緩い区間の伸びで差がつき、${dtText}。${gapText(rA, rB)}`;   // 制限を勘案しない理論値＝落ちない坂でも差は出る
+  else p3.textContent = `変えた後のほうがいちばん落ちた所で ${(-d).toFixed(0)} km/h 遅く、${dtText}。${gapText(rA, rB)}`;
   out.push(p3);
   // いちばん急な区間で「維持できる速度」（定常）
   const sA = rA.steadyAtMax, sB = rB.steadyAtMax;
   const p4 = document.createElement('p');
-  // ⚠️ 定常速度が制限速度を上回るときは数字を出さない（走らせ方は「制限を超えては踏まない」＝グラフと食い違う）
-  const steadyText = (s) => !s ? '登れない'
-    : (sc.limitKmh && s.kmh > sc.limitKmh) ? `制限の ${sc.limitKmh} km/h を保ったまま余力あり`
-    : `${s.kmh.toFixed(0)} km/h（${s.gear}速・${s.rpm.toFixed(0)}rpm）に張り付く`;
+  // 理論値＝制限速度は勘案しない（2026-09-18 ユーザー確定）
+  const steadyText = (s) => !s ? '登れない' : `${s.kmh.toFixed(0)} km/h（${s.gear}速・${s.rpm.toFixed(0)}rpm）に張り付く`;
   p4.textContent = `いちばん急な ${rA.maxGrade}% が延々と続いたら：いま ${steadyText(sA)} → 変えた後 ${steadyText(sB)}。`;
   out.push(p4);
   const same = JSON.stringify(state.da) === JSON.stringify(state.db);
@@ -483,7 +486,7 @@ function drawChart(root, L) {
   for (let v = 0; v <= ymax; v += step) { g.beginPath(); g.moveTo(padL, Y(v)); g.lineTo(W - padR, Y(v)); g.stroke(); g.textAlign = 'right'; g.fillText(v, padL - 6, Y(v) + 4); }
   g.textAlign = 'center'; const tick = len >= 8000 ? 2000 : len >= 3000 ? 1000 : 100;
   for (let x = 0; x <= len + 1; x += tick) g.fillText(x >= 1000 ? `${x / 1000}km` : `${x}m`, X(x), H - 8);
-  if (sc.limitKmh) { g.setLineDash([4, 4]); g.strokeStyle = '#b9b1a2'; g.beginPath(); g.moveTo(padL, Y(sc.limitKmh)); g.lineTo(W - padR, Y(sc.limitKmh)); g.stroke(); g.setLineDash([]); g.fillStyle = ink; g.textAlign = 'left'; g.fillText(`制限 ${sc.limitKmh}`, W - padR + 4, Y(sc.limitKmh) + 4); }
+  // 制限速度の線は描かない（理論値＝常に全開・2026-09-18 ユーザー確定）
   const line = (tr, col, label) => {
     g.strokeStyle = col; g.lineWidth = 2; g.lineJoin = 'round'; g.beginPath();
     tr.forEach((p, i) => i ? g.lineTo(X(p.x_m), Y(p.kmh)) : g.moveTo(X(p.x_m), Y(p.kmh))); g.stroke();
@@ -547,7 +550,7 @@ function drawGearTables(L) {
 function drawLimits(L) {
   const ul = $('#limits'); ul.textContent = '';
   const items = [
-    'エンジンは常に全開（制限速度を超えては踏まない）。運転者の上手さ・半クラッチ・渋滞は扱わない。ギアは回転 5000 で上げ、2500 を割るか力が足りなくなったら下げる。',
+    '理論値＝入口から出口まで常に全開で、制限速度は勘案しない（緩い区間では入口速度より伸びる）。運転者の上手さ・半クラッチ・渋滞は扱わない。ギアは回転 5000 で上げ、2500 を割るか力が足りなくなったら下げる。',
     '走行抵抗の係数（空気抵抗 Cd 0.40・前面投影面積 1.7m²・転がり 0.018・伝達効率 0.87）は取説の「満載での最大登坂勾配」と最高速に合わせて 2026-09 に選んだ共通値。実車は 1〜2 割ずれる。',
     'エンジン側の誤差（±5%・改造の効きは控えめ）がそのまま乗る。エンジンの画面の「この道具の限界」も同じ。',
     '坂の勾配の分布は、一次資料で確認できた最急勾配と区間の標高差に合わせた近似。縦断図そのものではない。',

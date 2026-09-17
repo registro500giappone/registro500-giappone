@@ -124,10 +124,8 @@ export function climbHill(res, vehicle, drive, scene, dt = 0.1) {
     if (g2 !== gear) { shifts.push({ x_m: Math.round(x), from: gear + 1, to: g2 + 1, kmh: Math.round(kmh) }); gear = g2; }
     const F = tractiveForce_N(res, kmh, drive.gears[gear], drive);
     const a = (F - need) / (vehicle.mass * 1.05);   // 回転部分の等価質量 +5%
-    // 運転者は制限速度（無ければ入口速度）を超えては踏まない＝上限で頭打ち。下回っている間は全開。
-    const vTarget = (scene.limitKmh ?? scene.entryKmh) / 3.6;
-    const vNext = v + a * dt;
-    v = Math.max(0.5, a > 0 ? Math.min(vNext, Math.max(vTarget, v)) : vNext); x += v * dt; t += dt;
+    // 理論値＝入口から出口まで常に全開（制限速度は勘案しない・2026-09-18 ユーザー確定）。緩い区間では入口速度より伸びる。
+    v = Math.max(0.5, v + a * dt); x += v * dt; t += dt;
     if (x >= nextSample) { trace.push({ x_m: Math.round(x), t, kmh: v * 3.6, gear: gear + 1, rpm: rpmAtSpeed(v * 3.6, drive.gears[gear], drive), gradePct }); nextSample += sampleEvery; }
     if (v * 3.6 < minKmh) minKmh = v * 3.6;
   }

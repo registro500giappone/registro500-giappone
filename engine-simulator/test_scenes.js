@@ -23,7 +23,7 @@ ok(b.minKmh > a.minKmh + 5, 'まず650 で最低速度が 5km/h 以上上がる�
 ok(c.minKmh < a.minKmh, '2人乗ると最低速度が下がる、が出ない');
 const o = run('500F', {}, {}, om), of = run('500F', {}, { load: 'full' }, om);
 console.log(`Ω 500F 純正1人：60→${o.exitKmh.toFixed(0)} 最低 ${o.minKmh.toFixed(0)}km/h 最低ギア ${o.minGear} 所要 ${(o.time_s / 60).toFixed(1)}分／満載：最低 ${of.minKmh.toFixed(0)}km/h 最低ギア ${of.minGear}`);
-ok(a.exitKmh <= dz.limitKmh + 0.5, '談合坂の出口で制限速度を超えている');
+ok(a.exitKmh >= dz.entryKmh - 0.5, '談合坂の出口（2% 区間の末）で入口速度まで戻れていない');   // 理論値＝常に全開（制限速度は勘案しない）
 ok(of.minKmh < o.minKmh - 2 && of.minGear <= 3, 'Ω を満載で登ると 1人より遅くなり 3速以下に落ちる、が出ない');
 const d = run('500F', {}, {}, dr), e = run('500F', p650, {}, dr);
 console.log(`0-400 500F 純正 ${d.time_s.toFixed(1)}s／まず650 ${e.time_s.toFixed(1)}s`);
