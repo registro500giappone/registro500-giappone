@@ -1,5 +1,6 @@
 // 車両側のプリセット（変速比・最終減速比・タイヤ・重量）。出典＝ref/vehicle_specs.md（手元の取説・整備書から実読）と ref/packages_research.md §4。
-// ⚠️ 126 の車重・Cd・前面投影面積は一次資料に無い＝assumed に明記した仮定値。差を見る道具なので絶対値は追わない（HANDOFF §2）。
+// ⚠️ Cd・前面投影面積は一次資料に無い＝assumed に明記した仮定値。差を見る道具なので絶対値は追わない（HANDOFF §2）。
+// ⭐ 126 の車重は 2026-09-18 に Haynes 126 整備書で確定（下の '126A'・'126A1' の src）。残る仮定は総重量だけ。
 
 // ───────────── 変速機（1〜4速・後退） ─────────────
 export const GEARBOXES = [
@@ -52,10 +53,11 @@ export const VEHICLES = {
              calib: { climb: [22, 11.5, 6, 3], vmax: 95, gearVmax: null }, src: 'G 取説 印刷 p.41', assumed: ['ワゴン形の Cd・面積は少し大きいと仮定'] },
   '500R':  { gearbox: 'sync', final: 'f839', tire: 't125', mass_kg: 525, gvw_kg: 845, ...AERO,
              calib: { climb: [24.5, 14.5, 8.5, 4.5], vmax: 100, gearVmax: [30, 45, 75, 100] }, src: 'R 取説 p.3（525/845 は要再確認）' },
+  // ⭐ 2026-09-18：車重は Haynes 126 整備書で裏が取れた（旧「Web の一般値」＝580/600 と同値だった）。総重量だけは依然どの本にも無い。
   '126A':  { gearbox: 'sync', final: 'f839', tire: 't135', mass_kg: 580, gvw_kg: 900, ...AERO,
-             calib: null, src: '変速比・ファイナル・タイヤは Autobook／Reparaturhandbuch。車重は一次資料に無い', assumed: ['車重 580kg・総重量 900kg は Web の一般値'] },
+             calib: null, src: '変速比・ファイナル・タイヤは Autobook／Reparaturhandbuch。車重 580kg は Haynes 126（印刷 p.9「Kerb weight 1279 lb (580 kg)」）', assumed: ['総重量 900kg は Web の一般値（どの資料にも総重量の記載が無い）'] },
   '126A1': { gearbox: 'sync', final: 'f839', tire: 't135', mass_kg: 600, gvw_kg: 920, ...AERO,
-             calib: null, src: '同上', assumed: ['車重 600kg・総重量 920kg は Web の一般値'] },
+             calib: null, src: '同上。車重 600kg は Haynes 126 補遺 Chapter 12（印刷 p.121「Kerb weight 1323 lbs (600 kg)」＝1977年8月以降）', assumed: ['総重量 920kg は Web の一般値'] },
 };
 
 export const DEFAULT_DRIVE_CHOICES = { gearbox: 'stock', final: 'stock', tire: 'stock', load: 'solo' };

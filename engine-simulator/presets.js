@@ -54,7 +54,7 @@ export const MODELS = [
   {
     id: '126A', label: '126 前期（594cc・23CV）', family: '126', block: '126',
     engine: { bore: 73.5, stroke: 70, rod: 126, cr: 7.5, ncyl: 2 },
-    cam: { ivo: 26, ivc: 56, evo: 66, evc: 16, liftIn: 9.24, liftEx: 9.24, checkLift: 0.42 },
+    cam: { ivo: 26, ivc: 56, evo: 66, evc: 16, liftIn: 9.32, liftEx: 9.32, checkLift: 0.42 },
     valves: { dIn: 32, dEx: 28, stemIn: 8, stemEx: 8 },
     carb: 'w28imb', ignition: IGN_126,
     note: '純正 23CV/4800・4.0kgm/3400',
@@ -62,7 +62,7 @@ export const MODELS = [
   {
     id: '126A1', label: '126 後期（652cc・24CV）', family: '126', block: '126',
     engine: { bore: 77, stroke: 70, rod: 126, cr: 7.5, ncyl: 2 },
-    cam: { ivo: 26, ivc: 57, evo: 66, evc: 17, liftIn: 9.24, liftEx: 9.24, checkLift: 0.42 },
+    cam: { ivo: 26, ivc: 57, evo: 66, evc: 17, liftIn: 9.32, liftEx: 9.32, checkLift: 0.42 },
     valves: { dIn: 33, dEx: 28, stemIn: 8, stemEx: 8 },
     carb: 'w28imb', ignition: IGN_126,
     note: '純正 24CV/4500・4.2kgm/3000',

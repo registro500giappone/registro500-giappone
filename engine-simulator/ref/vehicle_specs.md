@@ -281,7 +281,8 @@ Web 知識・推測による補完は一切行っていない。値が見つか�
 
 - **前面投影面積・Cd**：全資料に記載なし（語句「area frontale／Stirnfläche／frontal area／coefficiente」で全テキスト層 PDF を検索、画像 PDF は Caratteristiche 章を目視）。模型では未取得として扱う。
 - **500 R のタイヤサイズ**：R取説（Varianti 13 頁）は「コンベンショナル／オプションでラジアル」とのみ。他資料に R の記載なし。
-- **126（594・652 とも）の車両重量・総重量・最高速・登坂勾配・燃費**：Autobook・Reparaturhandbuch のどちらにも総括の車両データ表がない（両書とも修理データ主体）。
+- ⭐**【2026-09-18 解決】126 の車両重量**＝**594（1972-76）580 kg／652（1977年8月以降）600 kg**。出典＝`手元資料\マニュアル\FIAT126OwnersWorkshopManual.pdf`（**Haynes 126 Owners Workshop Manual**・画像のみ84頁・1頁＝見開き2頁）＝**file p.6 右＝印刷 p.9「General dimensions, weights and capacities → Kerb weight 1279 lb (580 kg)」**、**file p.62 右＝印刷 p.121「Chapter 12 Supplement → Weights → Kerb weight 1323 lbs (600 kg)」**。⚠️**この本は既調査の Autobook 853 とは別の本**＝`MANUALFIAT126.pdf` の方が Autobook の重複（同一書）。⭐同じ頁で全長 305.4／全幅 137.7／全高 133.5／軸距 184.0／輪距 前114.2・後120.3 cm（652 は全長 3109 mm）も取れた。
+- **126 の総重量（満載）・最高速・登坂勾配・燃費**：Haynes にも無い（Haynes は「Maximum towing weight (braked) 400 kg」だけ）。Autobook・Reparaturhandbuch にも総括の車両データ表がない（3書とも修理データ主体）＝**総重量 900/920 kg は依然 Web の一般値**。
 - **500 D／F／L／R／Giardiniera の燃費**：取説に CUNA 燃費の記載があるのは N取説と N英文リーフのみ（4,5 l/100 km）。
 - **500 F／L／R・126 の総減速比（車輪で）**：資料値は D（Caratteristiche p.48）と Giardiniera（独語整備書G）と N/Sport（独語整備書 p.129）だけ。他は計算で出す（§2 メモ）。
 - **500 R の燃料タンク容量・軸重**、**500 N（伊取説）の軸重**。

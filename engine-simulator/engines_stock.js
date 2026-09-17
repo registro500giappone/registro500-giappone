@@ -20,7 +20,7 @@ export const engines = {
   },
   '126 652 純正 (24CV/4500, 4.2kgm)': {
     engine: { bore: 77, stroke: 70, rod: 126, cr: 7.5, ncyl: 2 },
-    cam: { ivo: 26, ivc: 57, evo: 66, evc: 17, liftIn: 9.24, liftEx: 9.24, checkLift: 0.42 },
+    cam: { ivo: 26, ivc: 57, evo: 66, evc: 17, liftIn: 9.32, liftEx: 9.32, checkLift: 0.42 },
     valves: { dIn: 33, dEx: 28, stemIn: 8, stemEx: 8 },
     intake: { venturi: 23 },
     ignition: [[1000, 10], [2300, 30], [3000, 38], [6000, 38]],
@@ -28,7 +28,7 @@ export const engines = {
   },
   '126 594 純正 (23CV/4800, 4.0kgm)': {
     engine: { bore: 73.5, stroke: 70, rod: 126, cr: 7.5, ncyl: 2 },
-    cam: { ivo: 26, ivc: 56, evo: 66, evc: 16, liftIn: 9.24, liftEx: 9.24, checkLift: 0.42 },
+    cam: { ivo: 26, ivc: 56, evo: 66, evc: 16, liftIn: 9.32, liftEx: 9.32, checkLift: 0.42 },
     valves: { dIn: 32, dEx: 28, stemIn: 8, stemEx: 8 },
     intake: { venturi: 23 },
     ignition: [[1000, 10], [2300, 30], [3000, 38], [6000, 38]],
