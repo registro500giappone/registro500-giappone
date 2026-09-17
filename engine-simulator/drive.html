@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>坂と加速の妄想｜エンジン妄想シミュレーター｜REGISTRO 500 GIAPPONE</title>
+<!-- 段3（2026-09-18）＝まだ導線なし・noindex。公開時に noindex を外し canonical を足す（名称・URLは未決＝HANDOFF §4） -->
+<meta name="robots" content="noindex">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH');
+</script>
+<meta name="description" content="空冷フィアット500・126で、談合坂やΩカーブの上りを何km/hで登れるか。エンジン・ミッション・ファイナル・タイヤ・乗員を変えて、いまの車と並走させる道具。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="坂と加速の妄想｜エンジン妄想シミュレーター">
+<meta property="og:description" content="談合坂やΩカーブの上りを何km/hで登れるか。改造前後の車を並走させて比べる。">
+<meta property="og:image" content="https://www.registro500.com/og/site-ja.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon-192.png">
+<style>
+:root{
+  --bg:#fffdf8; --ink:#3a352c; --sub:#8d8574; --deep:#2c3a31; --line:#e6e0d4; --card:#fffefb; --accent:#7a6a53;
+  --surface-1:#fffdf8; --text-primary:#3a352c; --text-secondary:#8d8574; --grid:#ece7dc;
+  --series-a:#2a78d6; --series-b:#eb6834;
+  --warn:#8a5a00; --warnbg:#fff4dc; --stop:#8f2a1f; --stopbg:#fdeae6; --info:#3f5a4a; --infobg:#eef2ec;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;line-height:1.75;-webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto;padding:16px 16px 72px}
+.topbar{margin:0 0 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.topbar a{color:var(--sub);text-decoration:none;font-size:13px}
+.topbar a:hover{color:var(--deep)}
+h1{font-size:21px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
+h2{font-size:15px;margin:26px 0 8px;color:var(--deep);border-left:4px solid var(--deep);padding-left:8px}
+.lead{margin:0 0 16px;font-size:13px;color:var(--sub)} .lead b{color:var(--ink)}
+label.row{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--sub);margin:0 0 8px}
+select,input[type=range]{font:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%}
+input[type=range]{padding:0;border:0;background:transparent}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+@media (max-width:640px){.cols{grid-template-columns:1fr}}
+.panel{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px}
+.panel h3{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+.key{display:inline-block;width:18px;height:0;border-top:3px solid;border-radius:2px}
+.key.a{border-color:var(--series-a)} .key.b{border-color:var(--series-b)}
+.eng{font-size:12px;color:var(--ink);background:#faf7f0;border:1px dashed var(--line);border-radius:9px;padding:7px 10px;margin:0 0 10px;line-height:1.5}
+.eng .k{color:var(--sub)} .eng a{color:var(--deep);font-size:12px;white-space:nowrap}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.chips button,.btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--deep);font:inherit;font-size:12px;padding:5px 10px;border-radius:999px;cursor:pointer}
+.chips button:hover,.btn:hover{border-color:var(--deep)}
+.chips button.on{border-color:var(--deep);background:var(--deep);color:#fff}
+.scenes button{font-size:13px;padding:7px 12px}
+.facts{font-size:12px;color:var(--sub);margin:0 0 6px} .facts b{color:var(--ink)}
+.free[hidden]{display:none}
+.free{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 10px} .free label{font-size:12px;color:var(--sub)} .free output{color:var(--ink);font-weight:700;margin-left:6px}
+.stage{position:relative;border:1px solid var(--line);background:linear-gradient(#f6f9fc,#fffdf8 70%);border-radius:12px;margin-top:12px;overflow:hidden}
+.stage canvas{display:block;width:100%;height:300px}
+.stage.flat canvas{height:190px}
+.stage .hud{position:absolute;left:10px;top:8px;font-size:12px;color:var(--sub);display:flex;gap:14px;flex-wrap:wrap}
+.stage .hud b{color:var(--ink)}
+.stage .ctl{position:absolute;right:10px;top:8px;display:flex;gap:6px}
+.readout{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.readout .r{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:8px 12px;font-size:12px;color:var(--sub);border-top:3px solid}
+.readout .r.a{border-top-color:var(--series-a)} .readout .r.b{border-top-color:var(--series-b)}
+.readout .r .v{font-size:20px;font-weight:700;color:var(--deep);line-height:1.2} .readout .r .v small{font-size:12px;font-weight:400;color:var(--sub)}
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+@media (max-width:420px){.hero,.readout{grid-template-columns:1fr}}
+.tile{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px}
+.tile .cap{font-size:11px;color:var(--sub)} .tile .val{font-size:22px;font-weight:700;color:var(--deep);line-height:1.2;margin-top:2px} .tile .val small{font-size:12px;font-weight:400;color:var(--sub)} .tile .sub{font-size:12px;color:var(--sub);margin-top:2px}
+.delta{font-weight:700} .delta.up{color:#1f6e3a} .delta.down{color:var(--stop)}
+.chart{position:relative;border:1px solid var(--line);background:var(--surface-1);border-radius:12px;padding:10px 8px 6px;margin-top:12px}
+.chart .title{font-size:13px;color:var(--deep);margin:0 4px 4px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--text-secondary)} .legend span{display:inline-flex;align-items:center;gap:6px}
+.chart canvas{display:block;width:100%;height:230px;touch-action:pan-y}
+.tip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px;color:var(--text-secondary);box-shadow:0 4px 14px #00000014;display:none;min-width:150px}
+.tip b{color:var(--text-primary);font-size:13px} .tip .r{display:flex;justify-content:space-between;gap:10px;align-items:center} .tip .r i{display:inline-block;width:14px;border-top:2px solid;margin-right:6px}
+details{margin-top:8px;font-size:12px;color:var(--sub)} summary{cursor:pointer}
+table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:right} th:first-child,td:first-child{text-align:left}
+.story{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px;margin-top:10px}
+.story p{margin:6px 0;font-size:14px} .story p:first-child{margin-top:0}
+.story .a{color:var(--series-a);font-weight:700} .story .b{color:var(--series-b);font-weight:700}
+.warns{list-style:none;padding:0;margin:8px 0 0;display:flex;flex-direction:column;gap:6px}
+.warns li{border-radius:10px;padding:8px 12px;font-size:13px;border:1px solid}
+.warns li.info{background:var(--infobg);border-color:#cfdad2;color:var(--info)}
+.limits{font-size:13px;color:var(--ink);padding-left:1.2em;margin:6px 0 0} .limits li{margin:4px 0}
+.note{font-size:12px;color:var(--sub);margin:10px 0 0}
+.busy{opacity:.55;transition:opacity .15s}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar"><a id="toEngine" href="./">← エンジンの画面へ</a><a href="/">トップへ戻る</a></div>
+  <h1>坂と加速の妄想</h1>
+  <p class="lead">エンジンの画面で選んだ<b>「いま」と「変えた後」</b>のエンジンを同じ車に載せ、ミッション・ファイナル・タイヤ・乗員まで決めて、談合坂やΩカーブの上りを並走させます。<b>差を見る道具</b>です。絶対値の誤差は1〜2割あります（下の「この道具の限界」）。</p>
+
+  <label class="row">土台になる型式<select id="model"></select></label>
+  <p class="note" id="modelNote"></p>
+
+  <div class="cols">
+    <section class="panel">
+      <h3><span class="key a"></span>いま</h3>
+      <div class="eng" id="engA"></div>
+      <div class="slots" data-side="a"></div>
+    </section>
+    <section class="panel">
+      <h3><span class="key b"></span>変えてみる</h3>
+      <div class="eng" id="engB"></div>
+      <div class="chips"><button type="button" id="copyAB">「いま」と同じ駆動系にする</button></div>
+      <div class="slots" data-side="b"></div>
+    </section>
+  </div>
+
+  <h2>場面</h2>
+  <div class="chips scenes" id="scenes"></div>
+  <p class="facts" id="sceneFacts"></p>
+  <div class="free" id="free" hidden>
+    <label>勾配<output id="gOut"></output><input type="range" id="gRange" min="1" max="8" step="0.5"></label>
+    <label>長さ<output id="lOut"></output><input type="range" id="lRange" min="500" max="12000" step="500"></label>
+  </div>
+
+  <div id="result" class="busy">
+    <div class="stage" id="stage">
+      <canvas id="stageCv"></canvas>
+      <div class="hud" id="hud"></div>
+      <div class="ctl"><button type="button" class="btn" id="replay">もう一度</button></div>
+    </div>
+    <div class="readout">
+      <div class="r a" id="roA"></div>
+      <div class="r b" id="roB"></div>
+    </div>
+
+    <div class="hero" id="hero"></div>
+
+    <div class="story" id="story"></div>
+
+    <div class="chart" id="chartV">
+      <div class="title"><span id="chartTitle">速度の変化（横軸＝距離）</span><span class="legend"><span><i class="key a"></i>いま</span><span><i class="key b"></i>変えた後</span></span></div>
+      <canvas></canvas><div class="tip"></div>
+    </div>
+    <details><summary>数値の表</summary><div id="tableV"></div></details>
+
+    <h2>ギアと回転</h2>
+    <div id="gearTable"></div>
+    <details><summary>勾配ごとに維持できる速度（4速に限らず、いちばん速く登れるギアで）</summary><div id="gradeTable"></div></details>
+
+    <h2>この道具の限界</h2>
+    <ul class="limits" id="limits"></ul>
+    <p class="note" id="assumed"></p>
+  </div>
+  <p class="note" id="status"></p>
+</div>
+
+<script type="module">
+import { simulate } from './sim.js';
+import { MODELS, SLOTS, DEFAULT_CHOICES, buildSpec, modelById } from './presets.js';
+import { GEARBOXES, FINALS, TIRES, LOADS, DEFAULT_DRIVE_CHOICES, buildVehicle } from './presets_vehicle.js';
+import { climbHill, accelerate, steadySpeed, topSpeed, gearTable, rpmAtSpeed, speedKmh, sceneLength, gradeAt } from './vehicle.js';
+import { SCENES, sceneById } from './scenes.js';
+
+const $ = (s, r = document) => r.querySelector(s);
+const RPM = [1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500];
+const SLOT_ORDER = ['disp', 'cr', 'cam', 'head', 'carb', 'exh'];
+const DRIVE_SLOTS = { gearbox: GEARBOXES, final: FINALS, tire: TIRES, load: LOADS };
+const DRIVE_LABEL = { gearbox: 'ミッション（変速比）', final: 'ファイナル（最終減速比）', tire: 'タイヤ', load: '乗員・荷物' };
+const DRIVE_ORDER = ['gearbox', 'final', 'tire', 'load'];
+const state = { model: '500F', a: { ...DEFAULT_CHOICES }, b: { ...DEFAULT_CHOICES }, da: { ...DEFAULT_DRIVE_CHOICES }, db: { ...DEFAULT_DRIVE_CHOICES }, scene: 'dangozaka', g: 4, l: 3000 };
+
+// ───── URL ハッシュ（エンジン画面と同じ m/a/b に da/db/s/g/l を足す） ─────
+function readHash() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get('m') && modelById(h.get('m')).id === h.get('m')) state.model = h.get('m');
+  for (const side of ['a', 'b']) {
+    const v = h.get(side); if (!v) continue;
+    v.split(',').forEach(kv => { const [k, val] = kv.split(':'); if (SLOTS[k] && SLOTS[k].some(o => o.id === val)) state[side][k] = val; });
+  }
+  for (const side of ['da', 'db']) {
+    const v = h.get(side); if (!v) continue;
+    v.split(',').forEach(kv => { const [k, val] = kv.split(':'); if (DRIVE_SLOTS[k] && (val === 'stock' || DRIVE_SLOTS[k].some(o => o.id === val))) state[side][k] = val; });
+  }
+  if (h.get('s') && SCENES.some(s => s.id === h.get('s'))) state.scene = h.get('s');
+  if (h.get('g')) state.g = Math.min(8, Math.max(1, +h.get('g') || 4));
+  if (h.get('l')) state.l = Math.min(12000, Math.max(500, +h.get('l') || 3000));
+}
+function writeHash() {
+  const enc = (c, order, def) => order.filter(k => c[k] !== def[k]).map(k => `${k}:${c[k]}`).join(',');
+  const p = new URLSearchParams(); p.set('m', state.model);
+  const ea = enc(state.a, SLOT_ORDER, DEFAULT_CHOICES), eb = enc(state.b, SLOT_ORDER, DEFAULT_CHOICES);
+  if (ea) p.set('a', ea); if (eb) p.set('b', eb);
+  const dA = enc(state.da, DRIVE_ORDER, DEFAULT_DRIVE_CHOICES), dB = enc(state.db, DRIVE_ORDER, DEFAULT_DRIVE_CHOICES);
+  if (dA) p.set('da', dA); if (dB) p.set('db', dB);
+  p.set('s', state.scene); if (state.scene === 'free') { p.set('g', state.g); p.set('l', state.l); }
+  history.replaceState(null, '', '#' + p.toString());
+  // エンジン画面へ戻るリンクにも m/a/b を持たせる
+  const q = new URLSearchParams(); q.set('m', state.model); if (ea) q.set('a', ea); if (eb) q.set('b', eb);
+  $('#toEngine').href = './#' + q.toString();
+}
+
+// ───── 選択肢 ─────
+function renderModel() {
+  const sel = $('#model'); sel.textContent = '';
+  for (const m of MODELS) { const o = document.createElement('option'); o.value = m.id; o.textContent = m.label; sel.append(o); }
+  sel.value = state.model;
+  sel.addEventListener('change', () => { state.model = sel.value; renderSlots('a'); renderSlots('b'); renderEngines(); update(); });
+}
+function stockText(k, base) {
+  const list = DRIVE_SLOTS[k];
+  if (k === 'load') return null;
+  const o = list.find(x => x.id === base[k]); return o ? `純正のまま（${o.label.replace(/（.*$/, '')}）` : '純正のまま';
+}
+function renderSlots(side) {
+  const box = $(`.slots[data-side="${side}"]`); box.textContent = '';
+  const key = side === 'a' ? 'da' : 'db'; const base = buildVehicle(state.model, {}).base;
+  for (const k of DRIVE_ORDER) {
+    const lab = document.createElement('label'); lab.className = 'row'; lab.textContent = DRIVE_LABEL[k];
+    const sel = document.createElement('select');
+    if (k !== 'load') { const o = document.createElement('option'); o.value = 'stock'; o.textContent = stockText(k, base); sel.append(o); }
+    for (const opt of DRIVE_SLOTS[k]) { const o = document.createElement('option'); o.value = opt.id; o.textContent = opt.label + (opt.assumed ? '　※' : ''); sel.append(o); }
+    sel.value = state[key][k];
+    sel.addEventListener('change', () => { state[key][k] = sel.value; update(); });
+    lab.append(sel); box.append(lab);
+  }
+}
+$('#copyAB').addEventListener('click', () => { state.db = { ...state.da }; renderSlots('b'); update(); });
+
+function engineSummary(built) {
+  const parts = SLOT_ORDER.filter(k => built.picks[k].id !== 'stock').map(k => built.picks[k].label.replace(/（.*$/, ''));
+  return `${Math.round(built.cc)}cc・圧縮比 ${built.spec.engine.cr}` + (parts.length ? '・' + parts.join('・') : '・純正のまま');
+}
+function renderEngines() {
+  const A = buildSpec(state.model, state.a), B = buildSpec(state.model, state.b);
+  for (const [id, built, side] of [['#engA', A, 'a'], ['#engB', B, 'b']]) {
+    const el = $(id); el.textContent = '';
+    const k = document.createElement('span'); k.className = 'k'; k.textContent = 'エンジン：';
+    el.append(k, engineSummary(built), ' ');
+    const a = document.createElement('a'); a.textContent = '変える →'; a.href = '#'; a.addEventListener('click', (ev) => { ev.preventDefault(); location.href = $('#toEngine').href; });
+    el.append(a);
+  }
+  const m = modelById(state.model); $('#modelNote').textContent = m.note || '';
+}
+
+// ───── 場面 ─────
+function renderScenes() {
+  const box = $('#scenes'); box.textContent = '';
+  for (const sc of SCENES) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = (sc.region ? sc.region + '・' : '') + sc.short; b.dataset.id = sc.id;
+    b.addEventListener('click', () => { state.scene = sc.id; markScene(); update(); });
+    box.append(b);
+  }
+  $('#gRange').value = state.g; $('#lRange').value = state.l;
+  const syncFree = () => { $('#gOut').value = state.g + ' %'; $('#lOut').value = (state.l / 1000).toFixed(1) + ' km'; };
+  $('#gRange').addEventListener('input', () => { state.g = +$('#gRange').value; syncFree(); update(); });
+  $('#lRange').addEventListener('input', () => { state.l = +$('#lRange').value; syncFree(); update(); });
+  syncFree(); markScene();
+}
+function markScene() {
+  for (const b of $('#scenes').querySelectorAll('button')) b.classList.toggle('on', b.dataset.id === state.scene);
+  const sc = sceneById(state.scene);
+  const f = $('#sceneFacts'); f.textContent = ''; const nm = document.createElement('b'); nm.textContent = sc.name + '　'; f.append(nm, sc.facts + (sc.src && sc.src !== '—' ? `　出典：${sc.src}` : ''));
+  $('#free').hidden = !sc.adjustable;
+}
+function currentScene() {
+  const sc = sceneById(state.scene);
+  return sc.adjustable ? { ...sc, gradePct: state.g, length_m: state.l } : sc;
+}
+
+// ───── 計算 ─────
+let timer = null, last = null;
+function update() {
+  writeHash(); $('#result').classList.add('busy'); $('#status').textContent = '計算中…';
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    const A = buildSpec(state.model, state.a), B = buildSpec(state.model, state.b);
+    const resA = simulate(A.spec, RPM), resB = simulate(B.spec, RPM);
+    const VA = buildVehicle(state.model, state.da), VB = buildVehicle(state.model, state.db);
+    const sc = currentScene();
+    const run = (res, V) => sc.kind === 'drag' ? accelerate(res, V.vehicle, V.drive, { distance_m: sc.distance_m }) : climbHill(res, V.vehicle, V.drive, sc);
+    const rA = run(resA, VA), rB = run(resB, VB);
+    last = { A, B, resA, resB, VA, VB, sc, rA, rB };
+    render(last); $('#result').classList.remove('busy'); $('#status').textContent = '';
+    gtag('event', 'drive_sim_update', { model: state.model, scene: state.scene });
+  }, 30);
+}
+
+// ───── 描画 ─────
+const fmtDelta = (b, a, unit = '', d = 0, lowerIsBetter = false) => { const p = b - a; const good = lowerIsBetter ? p <= -0.5 : p >= 0.5, bad = lowerIsBetter ? p >= 0.5 : p <= -0.5; const el = document.createElement('span'); el.className = 'delta ' + (good ? 'up' : bad ? 'down' : ''); el.textContent = (p > 0 ? '+' : '') + p.toFixed(d) + unit; return el; };
+function tile(cap, valText, sub, delta) {
+  const t = document.createElement('div'); t.className = 'tile';
+  const c = document.createElement('div'); c.className = 'cap'; c.textContent = cap;
+  const v = document.createElement('div'); v.className = 'val'; v.textContent = valText; if (delta) { v.append(' '); v.append(delta); }
+  const s = document.createElement('div'); s.className = 'sub'; s.textContent = sub;
+  t.append(c, v, s); return t;
+}
+function render(L) {
+  const { sc, rA, rB, VA, VB, resA, resB } = L;
+  const hero = $('#hero'); hero.textContent = '';
+  const story = $('#story'); story.textContent = '';
+  if (sc.kind === 'drag') {
+    hero.append(tile('0-400m のタイム', `${rA.time_s.toFixed(1)} → ${rB.time_s.toFixed(1)} 秒`, 'いま → 変えた後', fmtDelta(rB.time_s, rA.time_s, ' 秒', 1, true)));
+    hero.append(tile('400m 通過時の速度', `${rA.finalKmh.toFixed(0)} → ${rB.finalKmh.toFixed(0)} km/h`, `0-60km/h ${rA.marks[60]?.toFixed(1) ?? '—'} → ${rB.marks[60]?.toFixed(1) ?? '—'} 秒`, fmtDelta(rB.finalKmh, rA.finalKmh, ' km/h')));
+    const gap = posAt(rA.trace, rB.time_s); // B がゴールした瞬間の A の位置
+    const p1 = document.createElement('p');
+    p1.innerHTML = `<span class="b">変えた後</span>が 400m を通過した瞬間、<span class="a">いま</span>は ${Math.max(0, 400 - gap).toFixed(0)} m 後ろ${rB.time_s < rA.time_s ? '' : '（＝先行）'}。`;
+    const p2 = document.createElement('p'); p2.textContent = `0-60km/h は ${rA.marks[60]?.toFixed(1) ?? '—'} 秒 → ${rB.marks[60]?.toFixed(1) ?? '—'} 秒。ゴールのギアは ${rA.gear}速 → ${rB.gear}速。`;
+    story.append(p1, p2);
+  } else {
+    hero.append(tile('坂の中でいちばん落ちた速度', `${rA.minKmh.toFixed(0)} → ${rB.minKmh.toFixed(0)} km/h`, `入口 ${sc.entryKmh} km/h・いちばん急な区間 ${rA.maxGrade}%`, fmtDelta(rB.minKmh, rA.minKmh, ' km/h')));
+    hero.append(tile('登り切るまでの時間', `${fmtTime(rA.time_s)} → ${fmtTime(rB.time_s)}`, `${(rA.length_m / 1000).toFixed(1)} km・平均 ${rA.avgKmh.toFixed(0)} → ${rB.avgKmh.toFixed(0)} km/h`, fmtDelta(rB.time_s, rA.time_s, ' 秒', 0, true)));
+    story.append(...tellHill(L));
+  }
+  // 読み取り（HUD の初期値）
+  drawReadout(rA, rB, VA, VB, 0);
+  // チャート・表
+  drawChart($('#chartV'), L);
+  drawTable(L);
+  drawGearTables(L);
+  drawLimits(L);
+  // 並走
+  startAnim(L);
+}
+const fmtTime = (s) => s >= 90 ? `${Math.floor(s / 60)}分${Math.round(s % 60).toString().padStart(2, '0')}秒` : `${s.toFixed(0)} 秒`;
+function tellHill(L) {
+  const { sc, rA, rB, VA, VB, resA, resB } = L;
+  const out = [];
+  const seg = (r) => {
+    const held = r.minKmh >= sc.entryKmh - 1.5;
+    if (held) return `${sc.entryKmh} km/h で入って、そのまま${r.minGear}速で登り切る`;
+    const shift = r.shifts.find(s => s.to < s.from);
+    const ev = [];
+    if (shift) ev.push({ x: shift.x_m, t: `${shift.x_m < 100 ? '入口で' : `${(shift.x_m / 1000).toFixed(1)} km で`} ${shift.to}速に落とし` });
+    ev.push({ x: r.minAt_m, t: `${(r.minAt_m / 1000).toFixed(1)} km 地点で ${r.minKmh.toFixed(0)} km/h まで落ち` });
+    ev.sort((a, b) => a.x - b.x);
+    return `${sc.entryKmh} km/h で入って、` + ev.map(e => e.t).join('、') + (shift ? '' : `（${r.minGear}速のまま）`) + (r.exitKmh >= sc.entryKmh - 1.5 ? `、出口では ${sc.entryKmh} km/h に戻す` : `、出口で ${r.exitKmh.toFixed(0)} km/h`);
+  };
+  const p1 = document.createElement('p'); p1.innerHTML = `<span class="a">いま</span>：${seg(rA)}。`;
+  const p2 = document.createElement('p'); p2.innerHTML = `<span class="b">変えた後</span>：${seg(rB)}。`;
+  out.push(p1, p2);
+  const d = rB.minKmh - rA.minKmh, dt = rA.time_s - rB.time_s;
+  const p3 = document.createElement('p');
+  if (Math.abs(d) < 1.5 && Math.abs(dt) < 3) p3.textContent = 'この坂では差がほとんど出ない。差が出るのは、もっと急な坂か、乗員を増やしたとき。';
+  else if (d > 0) p3.textContent = `いちばん落ちた所で ${d.toFixed(0)} km/h 速く、登り切るのは ${dt.toFixed(0)} 秒早い。${gapText(rA, rB)}`;
+  else p3.textContent = `変えた後のほうが ${(-d).toFixed(0)} km/h 遅い。${gapText(rA, rB)}`;
+  out.push(p3);
+  // いちばん急な区間で「維持できる速度」（定常）
+  const sA = rA.steadyAtMax, sB = rB.steadyAtMax;
+  const p4 = document.createElement('p');
+  p4.textContent = `いちばん急な ${rA.maxGrade}% が延々と続いたら：いま ${sA ? `${sA.kmh.toFixed(0)} km/h（${sA.gear}速・${sA.rpm.toFixed(0)}rpm）` : '登れない'} → 変えた後 ${sB ? `${sB.kmh.toFixed(0)} km/h（${sB.gear}速・${sB.rpm.toFixed(0)}rpm）` : '登れない'}に張り付く。`;
+  out.push(p4);
+  const same = JSON.stringify(state.da) === JSON.stringify(state.db);
+  if (!same) { const p5 = document.createElement('p'); p5.textContent = `駆動系も違う（${DRIVE_ORDER.filter(k => state.da[k] !== state.db[k]).map(k => DRIVE_LABEL[k].replace(/（.*$/, '')).join('・')}）ので、エンジンだけの差ではない。`; out.push(p5); }
+  return out;
+}
+function gapText(rA, rB) {
+  const lead = rB.time_s < rA.time_s ? rB : rA, other = lead === rB ? rA : rB;
+  const x = posAt(other.trace, lead.time_s); const gap = lead.length_m - x;
+  if (gap < 30) return '';
+  return `${lead === rB ? '変えた後' : 'いま'}が登り切ったとき、${lead === rB ? 'いま' : '変えた後'}は ${gap >= 1000 ? (gap / 1000).toFixed(1) + ' km' : gap.toFixed(0) + ' m'} 後ろ。`;
+}
+// 時刻 t での位置（trace は {t, x_m} の並び）
+function posAt(trace, t) {
+  if (!trace.length) return 0;
+  if (t <= trace[0].t) return trace[0].x_m * (t / Math.max(trace[0].t, 1e-6));
+  for (let i = 1; i < trace.length; i++) if (t <= trace[i].t) { const a = trace[i - 1], b = trace[i]; const f = (t - a.t) / Math.max(b.t - a.t, 1e-6); return a.x_m + (b.x_m - a.x_m) * f; }
+  return trace[trace.length - 1].x_m;
+}
+function stateAt(trace, t) {
+  if (!trace.length) return null;
+  for (let i = 1; i < trace.length; i++) if (t <= trace[i].t) return trace[i];
+  return trace[trace.length - 1];
+}
+function drawReadout(rA, rB, VA, VB, t) {
+  for (const [id, r, V] of [['#roA', rA, VA], ['#roB', rB, VB]]) {
+    const el = $(id); el.textContent = '';
+    const s = stateAt(r.trace, t) || { kmh: 0, gear: 1, rpm: 0 };
+    const v = document.createElement('div'); v.className = 'v'; v.textContent = `${s.kmh.toFixed(0)}`; const sm = document.createElement('small'); sm.textContent = ` km/h・${s.gear}速・${Math.round(s.rpm / 10) * 10} rpm`; v.append(sm);
+    const sub = document.createElement('div'); sub.textContent = `${V.picks.gearbox.label.replace(/（.*$/, '')}・${V.picks.final.label.replace(/（.*$/, '')}・${V.picks.tire.label.replace(/（.*$/, '')}・${V.picks.load.label.replace(/（.*$/, '')}・${V.vehicle.mass} kg`;
+    el.append(v, sub);
+  }
+}
+
+// ───── 並走アニメ ─────
+const car = new Image(); car.src = 'img/car_side.png'; let carReady = false; car.onload = () => { carReady = true; if (last) drawStage(last, animT); };
+let animT = 0, animReq = null, animStart = 0, animScale = 1;
+function startAnim(L) {
+  cancelAnimationFrame(animReq);
+  const total = Math.max(L.rA.time_s, L.rB.time_s);
+  animScale = total / Math.min(14, Math.max(6, total / 12));   // 再生 6〜14 秒に収める
+  animStart = performance.now(); animT = 0;
+  const step = (now) => {
+    animT = Math.min(total, (now - animStart) / 1000 * animScale);
+    drawStage(L, animT); drawReadout(L.rA, L.rB, L.VA, L.VB, animT);
+    if (animT < total) animReq = requestAnimationFrame(step);
+  };
+  animReq = requestAnimationFrame(step);
+}
+$('#replay').addEventListener('click', () => { if (last) startAnim(last); });
+function drawStage(L, t) {
+  const { sc, rA, rB } = L;
+  $('#stage').classList.toggle('flat', sc.kind === 'drag');   // 平地は舞台を低く
+  const cv = $('#stageCv'), W = cv.clientWidth, H = cv.clientHeight, dpr = window.devicePixelRatio || 1;
+  cv.width = W * dpr; cv.height = H * dpr; const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+  const len = sc.kind === 'drag' ? sc.distance_m : sceneLength(sc);
+  const padL = 56, padR = 56, roadTop = 120, roadBottom = H - 28;   // 上 120px は HUD と2レーンの車のぶん。左右の余白は車の半分の幅（端で切れないように）
+  // 車は左向きの写真＝右から左へ走る。x=0 が右端。
+  const X = (x) => W - padR - (x / len) * (W - padL - padR);
+  // 標高（勾配の積分）を線で描く。誇張率は最大標高差が高さの 45% に収まるように。
+  const prof = []; let e = 0; const n = 120;
+  for (let i = 0; i <= n; i++) { const x = len * i / n; prof.push({ x, e }); if (i < n) e += (sc.kind === 'drag' ? 0 : gradeAt(sc, x) / 100) * (len / n); }
+  const emax = Math.max(1, ...prof.map(p => p.e));
+  const Y = (el) => roadBottom - (el / emax) * (roadBottom - roadTop) * 0.9;
+  // 地面
+  g.beginPath(); g.moveTo(X(0), roadBottom + 20);
+  for (const p of prof) g.lineTo(X(p.x), Y(p.e));
+  g.lineTo(X(len), roadBottom + 20); g.closePath(); g.fillStyle = '#e9e3d6'; g.fill();
+  g.beginPath(); for (const [i, p] of prof.entries()) i ? g.lineTo(X(p.x), Y(p.e)) : g.moveTo(X(p.x), Y(p.e)); g.strokeStyle = '#b9b1a2'; g.lineWidth = 2; g.stroke();
+  // 勾配の区間ラベル
+  g.font = '11px system-ui, sans-serif'; g.fillStyle = '#8d8574'; g.textAlign = 'center';
+  if (sc.profile) { let acc = 0; for (const seg of sc.profile) { const mid = acc + seg.len_m / 2; const el = prof.reduce((m, p) => Math.abs(p.x - mid) < Math.abs(m.x - mid) ? p : m, prof[0]).e; g.fillText(`${seg.gradePct}%`, X(mid), Y(el) - 8); acc += seg.len_m; } }
+  else if (sc.kind !== 'drag') g.fillText(`${sc.gradePct}%`, X(len / 2), Y(prof[60].e) - 8);
+  // 距離目盛
+  g.textAlign = 'center'; g.fillStyle = '#8d8574';
+  const tick = len >= 8000 ? 2000 : len >= 3000 ? 1000 : 100;
+  for (let x = 0; x <= len + 1; x += tick) { g.fillText(x >= 1000 ? `${x / 1000}km` : `${x}m`, X(x), H - 8); }
+  // 車（同じ写真の2台。上下に少しずらして、色の旗で区別）
+  const cars = [[rA, '#2a78d6', 'いま', -1], [rB, '#eb6834', '変えた後', 1]];
+  const ch = 40, cw = ch * (car.naturalWidth || 530) / (car.naturalHeight || 252);
+  for (const [r, col, lab, side] of cars) {
+    const x = Math.min(len, posAt(r.trace, t));
+    const el = prof.reduce((m, p) => Math.abs(p.x - x) < Math.abs(m.x - x) ? p : m, prof[0]).e;
+    const cx = X(x) + (side > 0 ? 0 : 8), cy = Y(el) - ch + 6 + (side > 0 ? 10 : -32);   // いま＝奥のレーン（上）・変えた後＝手前（下）
+    // 勾配に合わせて少し傾ける
+    const gr = sc.kind === 'drag' ? 0 : gradeAt(sc, x) / 100;
+    g.save(); g.translate(cx, cy + ch); g.rotate(Math.atan(gr));   // 左向きに走る＝上りなら左が高い＝反時計回りに見えるよう正の回転
+    if (carReady) g.drawImage(car, -cw / 2, -ch, cw, ch); else { g.fillStyle = col; g.fillRect(-cw / 2, -ch, cw, ch); }
+    g.restore();
+    // 旗
+    // 旗＝車の横（いまは左＝進行方向側・変えた後は右＝後ろ側）。端では画面内に収める
+    let fx = cx + (side > 0 ? cw / 2 + 30 : -(cw / 2 + 30)), fy = cy + ch / 2 + 4;
+    if (fx < 30 || fx > W - 30) { fx = cx; fy = cy - 4; }   // 端で画面から出るなら車の真上
+    g.fillStyle = col; g.beginPath(); g.roundRect(fx - 26, fy - 12, 52, 16, 8); g.fill();
+    g.fillStyle = '#fff'; g.font = 'bold 10px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText(lab, fx, fy);
+  }
+  // HUD
+  const hud = $('#hud'); hud.textContent = '';
+  const s1 = document.createElement('span'); s1.innerHTML = `経過 <b>${fmtTime(t)}</b>`;
+  const gapM = Math.abs(posAt(rA.trace, t) - posAt(rB.trace, t));
+  const s2 = document.createElement('span'); s2.innerHTML = `車間 <b>${gapM >= 1000 ? (gapM / 1000).toFixed(2) + ' km' : gapM.toFixed(0) + ' m'}</b>`;
+  const s3 = document.createElement('span'); s3.textContent = `再生 ${animScale.toFixed(0)} 倍速`;
+  hud.append(s1, s2, s3);
+}
+
+// ───── チャート（速度 vs 距離） ─────
+let chartState = null;
+function drawChart(root, L) {
+  const { sc, rA, rB } = L;
+  const cv = $('canvas', root), tip = $('.tip', root);
+  const css = getComputedStyle(document.documentElement);
+  const colA = css.getPropertyValue('--series-a').trim(), colB = css.getPropertyValue('--series-b').trim();
+  const ink = css.getPropertyValue('--text-secondary').trim(), grid = css.getPropertyValue('--grid').trim();
+  const W = cv.clientWidth, H = cv.clientHeight, dpr = window.devicePixelRatio || 1;
+  cv.width = W * dpr; cv.height = H * dpr; const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const padL = 40, padR = 60, padT = 10, padB = 26;
+  const len = sc.kind === 'drag' ? sc.distance_m : sceneLength(sc);
+  const ymax = Math.max(40, ...rA.trace.map(p => p.kmh), ...rB.trace.map(p => p.kmh)) * 1.15;
+  const X = (x) => padL + (x / len) * (W - padL - padR);
+  const Y = (v) => padT + (1 - v / ymax) * (H - padT - padB);
+  g.clearRect(0, 0, W, H);
+  // 勾配の帯（背景）
+  if (sc.profile) { let acc = 0; for (const seg of sc.profile) { g.fillStyle = `rgba(122,106,83,${0.04 + seg.gradePct / 100 * 1.2})`; g.fillRect(X(acc), padT, X(acc + seg.len_m) - X(acc), H - padT - padB); acc += seg.len_m; } }
+  g.font = '11px system-ui, sans-serif'; g.fillStyle = ink; g.strokeStyle = grid; g.lineWidth = 1;
+  const step = ymax > 90 ? 20 : 10;
+  for (let v = 0; v <= ymax; v += step) { g.beginPath(); g.moveTo(padL, Y(v)); g.lineTo(W - padR, Y(v)); g.stroke(); g.textAlign = 'right'; g.fillText(v, padL - 6, Y(v) + 4); }
+  g.textAlign = 'center'; const tick = len >= 8000 ? 2000 : len >= 3000 ? 1000 : 100;
+  for (let x = 0; x <= len + 1; x += tick) g.fillText(x >= 1000 ? `${x / 1000}km` : `${x}m`, X(x), H - 8);
+  if (sc.limitKmh) { g.setLineDash([4, 4]); g.strokeStyle = '#b9b1a2'; g.beginPath(); g.moveTo(padL, Y(sc.limitKmh)); g.lineTo(W - padR, Y(sc.limitKmh)); g.stroke(); g.setLineDash([]); g.fillStyle = ink; g.textAlign = 'left'; g.fillText(`制限 ${sc.limitKmh}`, W - padR + 4, Y(sc.limitKmh) + 4); }
+  const line = (tr, col, label) => {
+    g.strokeStyle = col; g.lineWidth = 2; g.lineJoin = 'round'; g.beginPath();
+    tr.forEach((p, i) => i ? g.lineTo(X(p.x_m), Y(p.kmh)) : g.moveTo(X(p.x_m), Y(p.kmh))); g.stroke();
+    const lp = tr[tr.length - 1]; g.fillStyle = col; g.textAlign = 'left'; g.fillText(label, X(lp.x_m) + 6, Y(lp.kmh) + (label === 'いま' ? 14 : -6));
+  };
+  line(rA.trace, colA, 'いま'); line(rB.trace, colB, '変えた後');
+  chartState = { W, H, X, Y, len, colA, colB };
+  if (!root.dataset.bound) {
+    root.dataset.bound = '1';
+    const move = (ev) => {
+      if (!chartState || !last) return;
+      const rect = cv.getBoundingClientRect(); const px = (ev.touches ? ev.touches[0].clientX : ev.clientX) - rect.left;
+      const x = Math.max(0, Math.min(chartState.len, (px - padL) / (W - padL - padR) * chartState.len));
+      drawChart(root, last);
+      const g2 = cv.getContext('2d'); g2.strokeStyle = '#b9b1a2'; g2.lineWidth = 1; g2.setLineDash([3, 3]); g2.beginPath(); g2.moveTo(X(x), 8); g2.lineTo(X(x), H - 22); g2.stroke(); g2.setLineDash([]);
+      tip.textContent = ''; const h = document.createElement('div'); h.textContent = x >= 1000 ? `${(x / 1000).toFixed(2)} km 地点` : `${x.toFixed(0)} m 地点`; tip.append(h);
+      for (const [tr, col, lab] of [[last.rA.trace, colA, 'いま'], [last.rB.trace, colB, '変えた後']]) {
+        const p = tr.reduce((m, q) => Math.abs(q.x_m - x) < Math.abs(m.x_m - x) ? q : m, tr[0]);
+        g2.beginPath(); g2.arc(X(p.x_m), Y(p.kmh), 4.5, 0, Math.PI * 2); g2.fillStyle = col; g2.fill(); g2.lineWidth = 2; g2.strokeStyle = '#fffdf8'; g2.stroke();
+        const r = document.createElement('div'); r.className = 'r'; const l = document.createElement('span'); const ii = document.createElement('i'); ii.style.borderColor = col; l.append(ii, lab);
+        const b = document.createElement('b'); b.textContent = `${p.kmh.toFixed(0)} km/h・${p.gear}速`; r.append(l, b); tip.append(r);
+      }
+      tip.style.display = 'block'; const left = Math.min(Math.max(X(x) + 12, 4), W - tip.offsetWidth - 4); tip.style.left = left + 'px'; tip.style.top = '30px';
+    };
+    cv.addEventListener('pointermove', move); cv.addEventListener('pointerdown', move);
+    cv.addEventListener('pointerleave', () => { tip.style.display = 'none'; if (last) drawChart(root, last); });
+  }
+}
+function drawTable(L) {
+  const { sc, rA, rB } = L; const box = $('#tableV'); box.textContent = '';
+  const t = document.createElement('table'); const thead = document.createElement('thead'); thead.innerHTML = '<tr><th>地点</th><th>いま km/h</th><th>ギア</th><th>変えた後 km/h</th><th>ギア</th></tr>'; t.append(thead);
+  const tb = document.createElement('tbody'); const len = sc.kind === 'drag' ? sc.distance_m : sceneLength(sc); const stepM = len >= 8000 ? 1000 : len >= 3000 ? 500 : 50;
+  for (let x = 0; x <= len; x += stepM) {
+    const pa = rA.trace.reduce((m, q) => Math.abs(q.x_m - x) < Math.abs(m.x_m - x) ? q : m, rA.trace[0]), pb = rB.trace.reduce((m, q) => Math.abs(q.x_m - x) < Math.abs(m.x_m - x) ? q : m, rB.trace[0]);
+    const tr = document.createElement('tr'); tr.innerHTML = `<td>${x >= 1000 ? (x / 1000).toFixed(1) + ' km' : x + ' m'}</td><td>${pa.kmh.toFixed(0)}</td><td>${pa.gear}</td><td>${pb.kmh.toFixed(0)}</td><td>${pb.gear}</td>`; tb.append(tr);
+  }
+  t.append(tb); box.append(t);
+}
+function drawGearTables(L) {
+  const { resA, resB, VA, VB } = L;
+  const box = $('#gearTable'); box.textContent = '';
+  const gtA = gearTable(resA, VA.drive), gtB = gearTable(resB, VB.drive);
+  const t = document.createElement('table');
+  t.innerHTML = '<thead><tr><th>ギア</th><th>いま km/h／1000rpm</th><th>80km/h の回転</th><th>変えた後 km/h／1000rpm</th><th>80km/h の回転</th></tr></thead>';
+  const tb = document.createElement('tbody');
+  gtA.forEach((ga, i) => { const gb = gtB[i]; const tr = document.createElement('tr'); tr.innerHTML = `<td>${ga.gear}速（${ga.ratio}）</td><td>${ga.kmhAt1000.toFixed(1)}</td><td>${Math.round(rpmAtSpeed(80, VA.drive.gears[i], VA.drive) / 10) * 10}</td><td>${gb.kmhAt1000.toFixed(1)}</td><td>${Math.round(rpmAtSpeed(80, VB.drive.gears[i], VB.drive) / 10) * 10}</td>`; tb.append(tr); });
+  const ta = topSpeed(resA, VA.vehicle, VA.drive), tbp = topSpeed(resB, VB.vehicle, VB.drive);
+  const tr = document.createElement('tr'); tr.innerHTML = `<td>平地の最高速</td><td colspan="2">${ta ? `${ta.kmh.toFixed(0)} km/h（${ta.gear}速・${ta.rpm.toFixed(0)}rpm）` : '—'}</td><td colspan="2">${tbp ? `${tbp.kmh.toFixed(0)} km/h（${tbp.gear}速・${tbp.rpm.toFixed(0)}rpm）` : '—'}</td>`; tb.append(tr);
+  t.append(tb); box.append(t);
+  const gb2 = $('#gradeTable'); gb2.textContent = '';
+  const t2 = document.createElement('table'); t2.innerHTML = '<thead><tr><th>勾配</th><th>いま</th><th>変えた後</th></tr></thead>'; const tb2 = document.createElement('tbody');
+  for (const gr of [2, 3, 4, 5, 6, 8]) {
+    const sa = steadySpeed(resA, VA.vehicle, VA.drive, gr).best, sb = steadySpeed(resB, VB.vehicle, VB.drive, gr).best;
+    const f = (s) => s ? `${s.kmh.toFixed(0)} km/h（${s.gear}速）` : '登れない';
+    const r = document.createElement('tr'); r.innerHTML = `<td>${gr}%</td><td>${f(sa)}</td><td>${f(sb)}</td>`; tb2.append(r);
+  }
+  t2.append(tb2); gb2.append(t2);
+}
+function drawLimits(L) {
+  const ul = $('#limits'); ul.textContent = '';
+  const items = [
+    'エンジンは常に全開（制限速度を超えては踏まない）。運転者の上手さ・半クラッチ・渋滞は扱わない。ギアは回転 5000 で上げ、2500 を割るか力が足りなくなったら下げる。',
+    '走行抵抗の係数（空気抵抗 Cd 0.40・前面投影面積 1.7m²・転がり 0.018・伝達効率 0.87）は取説の「満載での最大登坂勾配」と最高速に合わせて 2026-09 に選んだ共通値。実車は 1〜2 割ずれる。',
+    'エンジン側の誤差（±5%・改造の効きは控えめ）がそのまま乗る。エンジンの画面の「この道具の限界」も同じ。',
+    '坂の勾配の分布は、一次資料で確認できた最急勾配と区間の標高差に合わせた近似。縦断図そのものではない。',
+    '風・気温・標高（空気密度）・路面・タイヤの銘柄差は入れていない。エンジンの疲れ（圧縮抜け）も入れていない＝古い実車はこれより落ちる。',
+  ];
+  for (const s of items) { const li = document.createElement('li'); li.textContent = s; ul.append(li); }
+  const as = [...new Set([...L.VA.assumed, ...L.VB.assumed, ...(L.A.assumed || []), ...(L.B.assumed || [])])];
+  $('#assumed').textContent = as.length ? '※ 仮定で計算している所：' + as.join('／') : '';
+}
+window.addEventListener('resize', () => { if (last) { drawChart($('#chartV'), last); drawStage(last, animT); } });
+
+// ───── 起動 ─────
+readHash(); renderModel(); renderScenes(); renderSlots('a'); renderSlots('b'); renderEngines(); update();
+</script>
+</body>
+</html>

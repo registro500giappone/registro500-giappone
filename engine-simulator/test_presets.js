@@ -1,6 +1,6 @@
 // 段2の検品：全プリセットが計算を通ること＋物語・判定が段1の結論と矛盾しないこと。node test_presets.js
 import { simulate } from './sim.js';
-import { MODELS, SLOTS, START_EXAMPLES, buildSpec } from './presets.js';
+import { MODELS, SLOTS, START_EXAMPLES, PACKAGES, buildSpec } from './presets.js';
 import { tellStory, findBottleneck, warnings, summarizeRes } from './story.js';
 const RPM = [1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500];
 let fails = 0;
@@ -56,6 +56,21 @@ console.log(`1. 単独選択 ${n} 通り：${fails ? '失敗あり' : 'すべて
 // 4. 出発点の例が全部 buildSpec を通る
 for (const ex of START_EXAMPLES) for (const m of MODELS) { if (ex.families && !ex.families.includes(m.family)) continue; ok(finite(simulate(buildSpec(m.id, ex.choices).spec, RPM)), `出発点の例 ${ex.id} × ${m.id}`); }
 console.log('4. 出発点の例：' + (fails ? '要確認' : 'OK'));
+
+// 5. 王道パッケージ：選択肢 id が実在し、対象の型式で有限値を返し、「まず650」は純正より街乗りも回したときも増える
+for (const pk of PACKAGES) {
+  for (const [slot, id] of Object.entries(pk.choices)) ok(SLOTS[slot] && SLOTS[slot].some(o => o.id === id), `パッケージ ${pk.id} の ${slot}=${id} が選択肢に無い`);
+  for (const m of MODELS) { if (pk.families && !pk.families.includes(m.family)) continue; ok(finite(simulate(buildSpec(m.id, pk.choices).spec, RPM)), `パッケージ ${pk.id} × ${m.id}`); }
+}
+{
+  const b0 = buildSpec('500F', {}), b1 = buildSpec('500F', PACKAGES.find(p => p.id === 'p650').choices);
+  const st = tellStory(simulate(b0.spec, RPM), simulate(b1.spec, RPM), b0, b1);
+  ok(st.zones.find(z => z.id === 'town').delta > 15 && st.zones.find(z => z.id === 'high').delta > 15, '「まず650」で街乗り・高回転とも +15% を超えない');
+  const b7 = buildSpec('500F', PACKAGES.find(p => p.id === 'p700').choices);
+  const w = warnings(b7, simulate(b7.spec, RPM));
+  ok(w.some(x => /ケース|ブロック/.test(x.text)), '500F に 700 DCOE を当てたときブロック不適合の警告が出ない');
+}
+console.log('5. 王道パッケージ：' + (fails ? '要確認' : 'OK'));
 
 console.log(fails ? `\n失敗 ${fails} 件` : '\nすべて通過');
 process.exit(fails ? 1 : 0);

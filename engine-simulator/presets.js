@@ -76,9 +76,9 @@ export const DISPLACEMENTS = [
   { id: 'b70', label: '540cc（Ø70.0）', bore: 70.0, nominal: 540, blocks: ['500'],
     shops: ['FD Ricambi「Piston and Cylinder Kit 540cc」', 'Axel Gerstl「Cylinder Kit 540cc (500-block)」', 'EuroItalia500「540cc Ø70」'],
     crHint: 7.5, hint: '500ブロック用の定番。ヘッドはそのまま' },
-  { id: 'b735', label: '594cc（Ø73.5）', bore: 73.5, nominal: 600, blocks: ['126'],
+  { id: 'b735', label: '594cc（Ø73.5）', bore: 73.5, nominal: 600, blocks: ['500', '126'],
     shops: ['FD Ricambi「Piston and Cylinder Kit 600cc 126A5/126A」', 'Axel Gerstl「600cc」', 'EuroItalia500「600cc Ø73.5」'],
-    crHint: 7.5, hint: '500R・126前期と同じ寸法' },
+    crHint: 7.5, hint: '500R・126前期と同じ寸法。Abarth 595 も 500 のケースにこの径' },
   { id: 'b77', label: '652cc（Ø77.0）', bore: 77.0, nominal: 650, blocks: ['500', '126'],
     shops: ['FD Ricambi「Piston and Cylinder Kit 650cc 126A1」', 'Axel Gerstl「650cc (500-block)」「650cc」', "D'Angelo Motori「650cc Ø77」", 'EuroItalia500「650cc Ø77」'],
     crHint: 7.5, hint: '一番よく見る改造。126後期と同じ寸法＝500ブロック専用品もある' },
@@ -135,6 +135,11 @@ export const CAMS = [
     shops: ["D'Angelo Motori「Albero a camme 367/105° 60/90 90/60 per le gare in pista」"], hint: '店が「con gioco 0,25」と基準を明記している数少ない品' },
   { id: 'd5170', label: "D'Angelo 66/94-94/66（最長・340°）", cam: cam(66, 94, 94, 66, 8.10, 0.10),
     shops: ["D'Angelo Motori「Albero a camme 944/104° 66/94 94/66」"], assumed: ['測定基準は店に記載なし＝同店の他品（gioco 0,25）と同じと仮定'] },
+  // Abarth 純正カム＝角は運転クリアランス 0.20 で測った値（checkLift 0.05）。同じ「40/80」でも店のカタログ角（checkLift 0.5）より作用角が長い＝別物として持つ。
+  { id: 'a4080', label: 'Abarth 595 純正 40/80-80/40（運転隙で測定）', cam: cam(40, 80, 80, 40, 7.13, 0.05),
+    shops: ['Axel Gerstl「Abarth 595 camshaft」（復刻）'], hint: '§5 Abarth 校正で当てた値。店の 40/80 とは測り方が違うので同じ数字でも長い' },
+  { id: 'a4585', label: 'Abarth 695 純正 45/80-85/40（運転隙で測定）', cam: cam(45, 80, 85, 40, 7.13, 0.05),
+    shops: ['fiat500sport「Abarth 695 用」'], hint: '695 SS の角。「695 相当」のカムは店ごとに 45/75・40/80 と割れる' },
 ];
 
 // ───────────── 欄4：ヘッド（バルブ径・ポート） ─────────────
@@ -215,6 +220,30 @@ export const START_EXAMPLES = [
   { id: '650+28+cam', label: '650cc＋28 IMB＋カム 35/75', choices: { disp: 'b77', cr: 'cr75', carb: 'w28imb', cam: 'c3575' }, families: ['500'] },
   { id: '28', label: '28 IMB に換装済み', choices: { carb: 'w28imb' }, families: ['500'] },
   { id: '126cam', label: 'カム 40/80＋スポーツマフラー', choices: { cam: 'c4080', exh: 'sport' }, families: ['126'] },
+];
+
+// ───────────── 王道パッケージ（2026-09-18・根拠は ref/packages_research.md）─────────────
+// evidence＝その組合せが出た独立した店・スレの数。⚠️ CR はどのキットも固定しない（店の「q.c.」はピストン圧縮高さで圧縮比ではない）＝慣用値を置き画面で断る。
+// needs126＝500 のクランクケースは 652cc が上限。700 以上は 126 のケースが要る（500 系の型式では警告が出る）。
+export const PACKAGES = [
+  { id: 'p650', name: 'まず 650', sub: 'Ø77＋28 IMB＋カム 35/75＋スポーツマフラー', evidence: 5,
+    why: '店3店とフォーラム2スレが一致する入門形。狙いは最高速ではなく登坂と巡航の余裕。圧縮比はキットで決まらないので 7.5 を置いた',
+    choices: { disp: 'b77', cr: 'cr75', cam: 'c3575', carb: 'w28imb', exh: 'sport' }, families: ['500'] },
+  { id: 'p126', name: '素の 126（652）', sub: 'Ø77＋28 IMB・カムとヘッドは純正', evidence: 3,
+    why: '126 のエンジンをそのまま載せる形。英・日でいちばん多い実例。英フォーラム曰く「素の 650 はポート加工した 500 と大差ない＝4本柱を一緒に触って初めて差が出る」',
+    choices: { disp: 'b77', cr: 'cr75', carb: 'w28imb' }, families: ['500'] },
+  { id: 'p650s', name: '650 スポーツ', sub: 'Ø77＋40/80＋ヘッド 36/31＋二連 30 DGF＋スポーツマフラー・CR 9', evidence: 4,
+    why: 'フォーラムで「一段上」と言われる実組み。⚠️ 二連キャブはヘッドの通路と組で決める（モノ通路の 500 ヘッド＋30 DGF は始動・アイドルが決まらなかった報告あり）',
+    choices: { disp: 'b77', cr: 'cr90', cam: 'c4080', head: 'h3631', carb: 'dgf30', exh: 'sport' }, families: ['500', '126'] },
+  { id: 'p595ss', name: 'Abarth 595 SS 相当', sub: 'Ø73.5＋Abarth 40/80＋吸気弁 34 ポート加工＋Solex 34 PBIC＋Record・CR 9.5', evidence: 3,
+    why: '史実の組合せ（公表 32CV）。段1で校正した値そのもの。実車は CR 9.9 だがここでは 9.5（10 でノッキングの警告が出る境目）',
+    choices: { disp: 'b735', cr: 'cr95', cam: 'a4080', head: 'h34', carb: 'pbic34', exh: 'sport' }, families: ['500', '126'] },
+  { id: 'p700', name: '700 DCOE', sub: 'Ø79.5＋40/80＋ヘッド 36/31＋Weber 40 DCOE＋スポーツ排気・CR 9', evidence: 2, needs126: true,
+    why: '店の「本気」段階。126 のクランクケースが前提（500 のケースは 652 が上限）。同じ「700」でも Ø79.5 と Ø80 が混在する',
+    choices: { disp: 'b795', cr: 'cr90', cam: 'c4080', head: 'h3631', carb: 'dcoe40', exh: 'sport' }, families: ['500', '126'] },
+  { id: 'p800', name: '800 頂点', sub: 'Ø85＋40/80＋Lavazza 39/33＋Weber 45 DCOE＋スポーツ排気・CR 9.5', evidence: 1, needs126: true,
+    why: '完成キットは2店だけで、実際に組んだ報告は拾えなかった＝憧れ枠。ケースの Ø92 加工が要る',
+    choices: { disp: 'b85', cr: 'cr95', cam: 'c4080', head: 'h3933', carb: 'dcoe45', exh: 'sport' }, families: ['500', '126'] },
 ];
 
 export const DEFAULT_CHOICES = { disp: 'stock', cr: 'stock', cam: 'stock', head: 'stock', carb: 'stock', exh: 'stock' };

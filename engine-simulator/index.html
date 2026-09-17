@@ -50,6 +50,15 @@ select{font:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px s
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
 .chips button,.btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--deep);font:inherit;font-size:12px;padding:5px 10px;border-radius:999px;cursor:pointer}
 .chips button:hover,.btn:hover{border-color:var(--deep)}
+.packs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:0 0 10px}
+.packs button{appearance:none;text-align:left;border:1px solid var(--line);background:#fff;color:var(--deep);font:inherit;padding:8px 10px;border-radius:10px;cursor:pointer;display:flex;flex-direction:column;gap:3px}
+.packs button:hover{border-color:var(--deep)}
+.packs button.on{border-color:#eb6834;box-shadow:inset 0 0 0 1px #eb6834}
+.packs button.dim{opacity:.6}
+.packs b{font-size:14px}
+.packs small{font-size:11px;color:#5a5650;line-height:1.35}
+.packs .ev{font-size:10px;color:#8a857c}
+.packwhy{font-size:12px;color:#5a5650;margin:0 0 10px;min-height:1em}
 .btn{border-radius:9px;font-size:13px;padding:7px 12px}
 .hero{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
 .tile{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px}
@@ -94,7 +103,7 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
 </head>
 <body>
 <div class="wrap">
-  <p class="topbar"><a href="/">← トップへ戻る</a><span id="status" style="font-size:12px;color:var(--sub)"></span></p>
+  <p class="topbar"><a href="/">← トップへ戻る</a><span id="status" style="font-size:12px;color:var(--sub)"></span><a id="toDrive" href="drive.html" style="margin-left:auto">坂と加速で走らせる →</a></p>
   <h1>エンジン妄想シミュレーター</h1>
   <p class="lead">空冷フィアット500・126のエンジンを、定番の改造部品を選ぶだけで「妄想」する道具です。<b>正確さを極める道具ではありません</b>。数字は「純正と比べてどれくらい変わりそうか」の目安で、絶対値の誤差は1〜2割あります（下の「この道具の限界」）。</p>
 
@@ -112,6 +121,9 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
     </section>
     <section class="panel" id="panelB">
       <h3><span class="key b"></span>変えてみる</h3>
+      <p class="note" style="margin:0 0 6px">王道パッケージ（店の一式キットとフォーラムで繰り返し出る組合せ。押すと下の6欄に入る。そこから個別に触ってよい）</p>
+      <div class="packs" id="packs"></div>
+      <p class="packwhy" id="packWhy"></p>
       <div class="chips"><button type="button" id="copyAB">「いま」の内容をここへ写す</button><button type="button" id="resetB">純正に戻す</button></div>
       <div class="slots" data-side="b"></div>
     </section>
@@ -154,7 +166,7 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
 
 <script type="module">
 import { simulate } from './sim.js';
-import { MODELS, SLOTS, START_EXAMPLES, DEFAULT_CHOICES, buildSpec, modelById } from './presets.js';
+import { MODELS, SLOTS, START_EXAMPLES, PACKAGES, DEFAULT_CHOICES, buildSpec, modelById } from './presets.js';
 import { tellStory, findBottleneck, warnings, LIMITS } from './story.js';
 
 const RPM = [1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500];
@@ -177,6 +189,7 @@ function writeHash() {
   const p = new URLSearchParams(); p.set('m', state.model);
   if (enc(state.a)) p.set('a', enc(state.a)); if (enc(state.b)) p.set('b', enc(state.b));
   history.replaceState(null, '', '#' + p.toString());
+  $('#toDrive').href = 'drive.html#' + p.toString();
 }
 
 // ───── 選択肢の描画 ─────
@@ -203,7 +216,7 @@ function renderSlots(side) {
       sel.append(opt);
     }
     sel.value = state[side][k];
-    sel.addEventListener('change', () => { state[side][k] = sel.value; onDispChange(side, k); update(); });
+    sel.addEventListener('change', () => { state[side][k] = sel.value; onDispChange(side, k); if (side === 'b') markPack(); update(); });
     lab.append(sel); box.append(lab);
   }
 }
@@ -220,7 +233,7 @@ function renderModel() {
   const sel = $('#model'); sel.textContent = '';
   for (const m of MODELS) { const o = document.createElement('option'); o.value = m.id; o.textContent = m.label; sel.append(o); }
   sel.value = state.model;
-  sel.addEventListener('change', () => { state.model = sel.value; renderChips(); renderSlots('a'); renderSlots('b'); update(); });
+  sel.addEventListener('change', () => { state.model = sel.value; renderChips(); renderPacks(); renderSlots('a'); renderSlots('b'); update(); });
 }
 function renderChips() {
   const m = modelById(state.model); const box = $('#startChips'); box.textContent = '';
@@ -232,8 +245,33 @@ function renderChips() {
   }
   $('#modelNote').textContent = m.note + (m.assumed ? '　※' + m.assumed.join('／') : '');
 }
-$('#copyAB').addEventListener('click', () => { state.b = { ...state.a }; renderSlots('b'); update(); });
-$('#resetB').addEventListener('click', () => { state.b = { ...DEFAULT_CHOICES }; renderSlots('b'); update(); });
+function renderPacks() {
+  const m = modelById(state.model); const box = $('#packs'); box.textContent = '';
+  for (const pk of PACKAGES) {
+    if (pk.families && !pk.families.includes(m.family)) continue;
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.id = pk.id;
+    const dim = pk.needs126 && m.family === '500';
+    if (dim) b.className = 'dim';
+    b.innerHTML = `<b>${pk.name}</b><small>${pk.sub}</small><span class="ev">根拠 ${pk.evidence} 件${dim ? '・126 のケースが要る' : ''}</span>`;
+    b.addEventListener('click', () => {
+      state.b = { ...DEFAULT_CHOICES, ...pk.choices }; renderSlots('b'); markPack(); update();
+      $('#packWhy').textContent = pk.why;
+      gtag('event', 'engine_sim_package', { model: state.model, package: pk.id });
+    });
+    box.append(b);
+  }
+  markPack();
+}
+// 6欄がどれかのパッケージと一致していればそのカードを点灯（手で崩したら消える）
+function markPack() {
+  const cur = { ...DEFAULT_CHOICES, ...state.b };
+  let hit = null;
+  for (const pk of PACKAGES) { const c = { ...DEFAULT_CHOICES, ...pk.choices }; if (Object.keys(cur).every(k => cur[k] === c[k])) hit = pk.id; }
+  for (const b of $('#packs').querySelectorAll('button')) b.classList.toggle('on', b.dataset.id === hit);
+  if (!hit) $('#packWhy').textContent = '';
+}
+$('#copyAB').addEventListener('click', () => { state.b = { ...state.a }; renderSlots('b'); markPack(); update(); });
+$('#resetB').addEventListener('click', () => { state.b = { ...DEFAULT_CHOICES }; renderSlots('b'); markPack(); update(); });
 
 // ───── 計算と描画 ─────
 let timer = null, last = null;
@@ -365,7 +403,7 @@ window.addEventListener('resize', () => { if (last) { drawChartBase($('#chartT')
 for (const t of LIMITS) { const li = document.createElement('li'); li.textContent = t; $('#limits').append(li); }
 
 // ───── 起動 ─────
-readHash(); renderModel(); renderChips(); renderSlots('a'); renderSlots('b'); update();
+readHash(); renderModel(); renderChips(); renderPacks(); renderSlots('a'); renderSlots('b'); update();
 </script>
 </body>
 </html>
