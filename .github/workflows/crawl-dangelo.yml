@@ -1,8 +1,16 @@
 name: クロール D'Angelo Motori（週2回）
 
+# 2026-08-08: 定期実行を停止した。
+# dangelomotori.it が SiteGround のボット保護を有効にしたらしく、Store API も
+# robots.txt も HTTP 202 + `sg-captcha: challenge` を返してデータセンターIPからの
+# アクセスを遮断している。リトライでは通らないので、走らせるだけ失敗通知が出る。
+# CAPTCHAの回避はしない（相手が明示的に拒否しているため）。
+# 再開するには、ショップにクロールの可否を確認し、許可が得られる場合に
+# Bot UA/送信元の許可リスト登録を依頼したうえで cron を戻すこと。
+# 状況確認用に手動実行だけは残してある。
 on:
-  schedule:
-    - cron: '0 12 * * 2,6'  # 火・土 JST 21:00 (UTC 12:00)
+  # schedule:
+  #   - cron: '0 12 * * 2,6'  # 火・土 JST 21:00 (UTC 12:00)
   workflow_dispatch:          # 手動実行ボタン
 
 env:

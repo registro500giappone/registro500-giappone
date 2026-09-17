@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Schema elettrico FIAT 500 F – visualizzatore circuito per circuito | Impianto elettrico del Cinquecento</title>
+<meta name="description" content="Lo schema elettrico della Fiat 500 F (Cinquecento) diviso in 16 circuiti – fari, indicatori di direzione, tergicristallo e altro. Scegli un circuito e si accende solo quello. Comprese le differenze sulla L (Lusso).">
+<link rel="canonical" href="https://www.registro500.com/it/wiring-preview">
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH');
+</script>
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Schema elettrico FIAT 500 F – visualizzatore circuito per circuito">
+<meta property="og:description" content="Lo schema elettrico della Fiat 500 F diviso in 16 circuiti. Scegli un circuito e si accende solo quello. Comprese le differenze sulla L.">
+<meta property="og:url" content="https://www.registro500.com/it/wiring-preview">
+<meta property="og:image" content="https://www.registro500.com/og/wiring-it.png">
+<meta property="og:site_name" content="Registro500 Giappone">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="alternate" hreflang="it" href="https://www.registro500.com/it/wiring-preview">
+<link rel="alternate" hreflang="en" href="https://www.registro500.com/en/wiring-preview">
+<link rel="alternate" hreflang="ja" href="https://www.registro500.com/wiring-preview">
+<link rel="alternate" hreflang="x-default" href="https://www.registro500.com/en/wiring-preview">
+<!-- 最初に出す1枚を先読みする。型式は下の本体スクリプトと同じ優先順位（?type= → 端末の
+     保存値 → F型）で決める。ここを w00.webp 固定にすると、L型・R型を選んでいる人に
+     F型の1枚（約110KB）を毎回よけいに取らせることになる。判定を変えるときは
+     本体側（TYPE_KEY を読んでいる箇所）と必ず揃えること。 -->
+<script>
+(function(){
+  var t = 'F';
+  try {
+    var m = /[?&]type=([DFLR])\b/i.exec(location.search);
+    if (m) { t = m[1].toUpperCase(); }
+    else { var v = localStorage.getItem('wiring.type.v1');
+           if (v === 'D' || v === 'F' || v === 'L' || v === 'R') t = v; }
+  } catch (e) { /* プライベートブラウズ等では F型のまま */ }
+  var l = document.createElement('link');
+  l.rel = 'preload'; l.as = 'image';
+  l.setAttribute('fetchpriority', 'high');
+  l.href = '/wiring-img/it/' + ({ D:'d', F:'w', L:'l', R:'r' }[t]) + '00.webp';
+  document.head.appendChild(l);
+})();
+</script>
+<style>
+  :root { --bg:#eceef1; --panel:#fff; --ink:#1c2230; --sub:#6b7280; --accent:#c0392b; --line:#e3e6ea; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1216; --panel:#1c2027; --ink:#e8eaed; --sub:#9aa2ad; --accent:#e05a47; --line:#2a2f38; }
+  }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; display:flex; flex-direction:column; height:100vh; overflow:hidden;
+         font-family:-apple-system,"Segoe UI",sans-serif;
+         background:var(--bg); color:var(--ink); }
+  header { position:relative; flex:none; display:flex; align-items:center; gap:10px; padding:calc(8px + env(safe-area-inset-top)) 12px 8px;
+           border-bottom:1px solid var(--line); background:var(--panel); }
+  header .back { display:flex; align-items:center; gap:4px; flex:none; z-index:2;
+                 color:var(--ink); text-decoration:none; font-size:13px; font-weight:700; white-space:nowrap; }
+  header .back .ico { font-size:16px; line-height:1; }
+  header .back:hover { color:var(--accent); }
+  header .brand { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+                  font-size:15px; font-weight:800; letter-spacing:.3px; white-space:nowrap; pointer-events:none;
+                  max-width:60%; overflow:hidden; text-overflow:ellipsis; }
+  header .cur { font-size:13px; font-weight:700; color:var(--accent); white-space:nowrap; }
+  .ctl { display:flex; align-items:center; gap:6px; margin-left:auto; flex:none; }
+  .navbtn { border:1px solid var(--line); background:var(--bg); color:var(--ink); border-radius:8px;
+            width:38px; height:38px; font-size:20px; line-height:1; cursor:pointer; flex:none; }
+  #sel { display:none; font-size:15px; padding:8px 8px; border-radius:8px; border:1px solid var(--line);
+         background:var(--panel); color:var(--ink); max-width:42vw; }
+  .wrap { flex:1; display:flex; min-height:0; }
+  nav { width:210px; flex:0 0 210px; overflow-y:auto; padding:8px; border-right:1px solid var(--line);
+        background:var(--panel); }
+  .tab { display:block; width:100%; text-align:left; margin:2px 0; padding:8px 11px; border:1px solid transparent;
+         border-radius:8px; background:transparent; color:var(--ink); font-size:13.5px; cursor:pointer; }
+  .tab:hover { background:var(--bg); }
+  .tab.active { background:var(--accent); color:#fff; font-weight:700; }
+  .tab[data-i="0"] { font-weight:700; margin-bottom:6px; border-bottom:1px solid var(--line); border-radius:8px; }
+  main { flex:1; min-width:0; overflow:auto; -webkit-overflow-scrolling:touch; position:relative;
+         display:flex; align-items:center; justify-content:center; padding:6px; }
+  #img { display:block; max-width:100%; max-height:100%; object-fit:contain;
+         background:#fff; border:1px solid var(--line); border-radius:4px;
+         box-shadow:0 1px 8px rgba(0,0,0,.12); cursor:zoom-in;
+         touch-action:none; transform-origin:0 0; transition:transform .15s ease-out; }
+  #msg { position:absolute; font-size:13px; color:var(--sub); }
+  /* 端子番号オーバーレイ：画像と同じ座標系(1684x2382)のSVGを #img に重ね、
+     同じ transform を適用してズーム・パンに追従させる（画像は一切触らない） */
+  #tlayer { position:absolute; transform-origin:0 0; pointer-events:none; display:none;
+            transition:transform .15s ease-out; z-index:2; }
+  #termbtn { position:absolute; top:10px; right:10px; z-index:3;
+             border:1px solid var(--line); background:var(--bg); color:var(--ink);
+             border-radius:20px; padding:6px 14px; font-size:12.5px; font-weight:700;
+             cursor:pointer; box-shadow:0 1px 6px rgba(0,0,0,.15); }
+  #termbtn:hover { border-color:var(--accent); color:var(--accent); }
+  #termbtn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  #termbtn:disabled { display:none; }
+  /* 図だけの全画面：PCは body が height:100vh・overflow:hidden の縦積みなので、
+     上に積んだ行（header+lead+tbar＝約182px）がそのまま図の縮小になる。
+     隠せばその分そのまま図が大きくなる（図は縦フィットで縮尺が決まるため）。 */
+  #fsbtn { position:absolute; top:10px; left:10px; z-index:3;
+           border:1px solid var(--line); background:var(--bg); color:var(--ink);
+           border-radius:20px; padding:6px 12px; font-size:12.5px; font-weight:700;
+           cursor:pointer; box-shadow:0 1px 6px rgba(0,0,0,.15); }
+  #fsbtn:hover { border-color:var(--accent); color:var(--accent); }
+  body.fs > header, body.fs > .lead, body.fs > .tbar { display:none; }
+  /* 注記帯（#tnote/#lnote/#dnote）は全画面では図の上に重ねる。縦の場所を取らせない＝図をさらに約49px大きく
+     できるが、⛔文面自体は隠さない（#lnote は「番号が無いのは手を抜いたから」という誤解を防ぐ断り＝実態は原典の側に端子名が無い）。
+     通常時は display:contents ＝ラッパーが無いのと同じ挙動なので、既存レイアウトは1pxも変わらない。 */
+  #notes { display:contents; }
+  /* 図は縦フィットなので、横長の画面では main の中に左右の余白ができる（1440x900 で片側約300px）。
+     全画面のときは注記をその左余白へ寄せる＝縦を1pxも使わせずに図を大きくできる。
+     ⛔図の上に重ねない（頭＝前まわりの配線が隠れる）。⛔系統リスト（main の外）にも重ねない
+     ＝position は fixed ではなく main 基準の absolute。⛔文面自体は隠さない。
+     余白が足りない縦長の画面では contents のまま＝これまでどおり図の上に行として並べる。 */
+  @media (min-aspect-ratio: 3/2) and (min-width: 721px) {
+    /* 左端から nav(210px)+10px。幅は「図の左端まで」で頭打ちにする＝図の左端は
+       210 + (100vw - 210 - 0.707*図の高さ)/2 ≒ 50vw + 105 - 35.4vh（図は縦フィット・原図比 1684:2382）。 */
+    body.fs #notes { display:block; position:fixed; left:220px; top:52px; z-index:4;
+                     width:min(300px, calc(50vw - 35.4vh - 125px));
+                     max-height:calc(100vh - 72px); overflow:auto;
+                     border:1px solid var(--line); border-radius:8px;
+                     box-shadow:0 2px 10px rgba(0,0,0,.18); }
+    body.fs #notes .dnote { border-bottom:none; }
+    body.fs #notes .dnote + .dnote { border-top:1px solid var(--line); }
+  }
+  .hint { position:fixed; bottom:10px; left:50%; transform:translateX(-50%);
+          font-size:11px; color:#fff; background:rgba(0,0,0,.55); padding:4px 10px; border-radius:20px;
+          pointer-events:none; opacity:.9; }
+  .hint-mobile { display:none; }
+  .lead { flex:none; padding:7px 12px; font-size:12.5px; line-height:1.45; color:var(--ink);
+          background:var(--panel); border-bottom:1px solid var(--line); }
+  .lead b { color:var(--accent); }
+  .lead .sub { display:block; color:var(--sub); margin-top:2px; }
+  .lead .lang { white-space:nowrap; margin-left:10px; }
+  .lead .lang a { color:var(--accent); text-decoration:none; font-weight:600; }
+  .lead .lang a:hover { text-decoration:underline; }
+  .lead .lang i { font-style:normal; color:var(--sub); margin:0 5px; }
+  /* 型式（F／L／R）の切替バー。冒頭に置き、スクロールでは固定しない
+     （「見たい系統」バーだけを sticky に残したいため） */
+  .tbar { flex:none; display:flex; align-items:center; gap:10px; padding:7px 12px;
+          background:var(--panel); border-bottom:1px solid var(--line); }
+  .tbar-label { font-size:12px; font-weight:700; color:var(--sub); white-space:nowrap; }
+  .tbar-btns { display:flex; gap:6px; }
+  .tbtn { border:1px solid var(--line); background:var(--bg); color:var(--ink);
+          font-size:13px; font-weight:700; padding:6px 15px; border-radius:16px;
+          cursor:pointer; white-space:nowrap; }
+  .tbtn:hover { border-color:var(--accent); color:var(--accent); }
+  .tbtn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  /* D型選択時だけ出す断り書き（表頭の一部＝スマホではリード文と同じくスクロールで隠れる） */
+  .dnote { display:none; flex:none; padding:6px 12px; font-size:11.5px; line-height:1.5;
+           color:var(--sub); background:var(--panel); border-bottom:1px solid var(--line); }
+  .mbar { display:none; }
+  @media (max-width:720px) {
+    .tbar { padding:8px 10px; gap:8px; }
+    .tbar-btns { flex:1; }
+    .tbtn { flex:1; min-height:40px; padding:9px 0; font-size:14px; text-align:center; }
+    nav { display:none; }
+    #sel { display:block; }
+    header .cur { display:none; }
+    header .brand { font-size:13px; }
+    .ctl { display:none; }
+    /* スマホは body が overflow-y:auto ＝上の行はスクロールで逃がせるので全画面は不要 */
+    #fsbtn { display:none; }
+    .lead { font-size:13px; padding:9px 12px; }
+    .hint-desktop { display:none; }
+    .hint-mobile { display:inline; }
+    .mbar { display:flex; align-items:center; gap:8px; padding:8px 10px;
+            border-bottom:1px solid var(--line); background:var(--panel); }
+    .mbar-btn { flex:none; width:44px; height:44px; border:1px solid var(--line); background:var(--bg);
+                color:var(--ink); border-radius:10px; font-size:18px; cursor:pointer; }
+    .mbar-center { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; }
+    .mbar-caption { font-size:10.5px; color:var(--sub); }
+    .mbar-select { width:100%; min-height:44px; font-size:16px; font-weight:700; padding:6px 6px;
+                   border-radius:8px; border:1px solid var(--line); background:var(--panel);
+                   color:var(--accent); text-align:center; }
+    /* スマホ：表頭（タイトル・リード文）はスクロールで上に隠す。メニュー（見たい系統バー）は上に残す */
+    body { height:auto; min-height:100dvh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+    .mbar { position:sticky; top:0; z-index:20; box-shadow:0 2px 6px rgba(0,0,0,.06); }
+    .wrap { display:block; flex:none; }
+    main { height:calc(100dvh - 62px); align-items:flex-start; }
+  }
+  .ldiff-btn { display:inline-block; margin-top:0; margin-left:4px; vertical-align:baseline; border:1px solid var(--accent); background:transparent;
+              color:var(--accent); font-size:12px; font-weight:700; padding:4px 11px; border-radius:14px; cursor:pointer; }
+  .ldiff-btn:hover { background:var(--accent); color:#fff; }
+  #ldiff-overlay, #tinfo-overlay { position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.5); display:none; }
+  #ldiff-overlay.open, #tinfo-overlay.open { display:block; }
+  #ldiff-panel, #tinfo-panel { position:absolute; top:0; right:0; bottom:0; width:min(560px,92vw); background:var(--panel);
+                 color:var(--ink); overflow-y:auto; -webkit-overflow-scrolling:touch;
+                 box-shadow:-4px 0 24px rgba(0,0,0,.28); padding:16px 18px 44px; }
+  #ldiff-panel h2, #tinfo-panel h2 { font-size:17px; margin:0 6px 4px 0; }
+  #ldiff-panel h3, #tinfo-panel h3 { font-size:13.5px; color:var(--accent); margin:18px 0 6px; }
+  #ldiff-panel p, #ldiff-panel li, #tinfo-panel p, #tinfo-panel li { font-size:13px; line-height:1.65; }
+  #ldiff-panel ul, #tinfo-panel ul { margin:6px 0; padding-left:1.2em; }
+  #ldiff-panel .k, #tinfo-panel .k { color:var(--accent); font-weight:700; }
+  #ldiff-panel .note, #tinfo-panel .note { color:var(--sub); font-size:12px; margin-top:16px; }
+  #ldiff-close, #tinfo-close { position:sticky; top:0; float:right; border:none; background:var(--bg); color:var(--ink);
+                 width:34px; height:34px; border-radius:17px; font-size:18px; line-height:1; cursor:pointer; }
+  /* 端子番号の用語表（パネル内） */
+  #tinfo-panel dl { margin:6px 0 0; font-size:13px; line-height:1.6; }
+  #tinfo-panel dt { font-weight:700; color:var(--accent); margin-top:9px; }
+  #tinfo-panel dd { margin:1px 0 0 0; }
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="/it/" aria-label="Torna all'indice italiano"><span class="ico">←</span><span class="txt">Home</span></a>
+  <span class="brand" id="brand">Schema FIAT 500 F</span>
+  <span class="cur" id="cur"></span>
+  <div class="ctl">
+    <button class="navbtn" id="prev" aria-label="Circuito precedente">‹</button>
+    <select id="sel"><option value="0">Tutti i circuiti</option>
+<option value="1">Massa</option>
+<option value="2">Fari</option>
+<option value="3">Luci di posizione</option>
+<option value="4">Indicatori di direzione</option>
+<option value="5">Clacson</option>
+<option value="6">Interruttore stop</option>
+<option value="7">Interruttore pressione olio</option>
+<option value="8">Plafoniera</option>
+<option value="9">Circuito di accensione</option>
+<option value="10">Commutatore di accensione</option>
+<option value="11">Avviamento / Dinamo (ricarica)</option>
+<option value="12">Sensore livello carburante</option>
+<option value="13">Tergicristallo</option>
+<option value="14">Devioluci</option>
+<option value="15">Quadro di controllo</option></select>
+    <button class="navbtn" id="next" aria-label="Circuito successivo">›</button>
+  </div>
+</header>
+<div class="lead" id="lead">L'impianto della FIAT 500 per <b>quattro modelli &mdash; D, F, L e R</b>, ognuno diviso in <b>16 circuiti</b>. Scegline uno e si accende solo quello (gli altri restano grigi). <span class="sub"><button type="button" id="ldiff-open" class="ldiff-btn">Differenze fra i modelli ›</button><span class="lang"><a href="/wiring-preview" hreflang="ja">日本語</a><i>·</i><a href="/en/wiring-preview" hreflang="en">English</a></span></span></div>
+<div class="tbar" id="tbar">
+  <span class="tbar-label">Modello</span>
+  <div class="tbar-btns" role="group" aria-label="Scegli il modello">
+    <button type="button" class="tbtn" data-t="D">D</button>
+    <button type="button" class="tbtn active" data-t="F">F</button>
+    <button type="button" class="tbtn" data-t="L">L</button>
+    <button type="button" class="tbtn" data-t="R">R</button>
+  </div>
+</div>
+<!-- D型選択時だけ出す断り書き。詳細は #ldiff-overlay の「F e D」節に集約し、
+     ここは1行＋ボタンのみ（2026-08-18・6行の帯が視認性を阻害するため短縮）。 -->
+<div id="notes"><div class="dnote" id="dnote">La versione D è un disegno di riferimento realizzato da questo sito. <button type="button" id="dnote-open" class="ldiff-btn">Dettagli ›</button></div>
+<!-- L型で端子番号を出したときだけの断り書き。番号が無い箇所を「原典にも無い」と誤解させないため
+     ⚠️実態＝突き合わせは終わっていて【原典の側に端子名の記載が無い】（ヒューズ箱・フラッシャー等）。
+     推測で補わない方針なので出していない。 -->
+<div class="dnote" id="lnote">Sulla L mostriamo <b>solo i morsetti la cui sigla abbiamo potuto verificare sul libretto di uso e manutenzione originale</b>. I componenti le cui sigle non sono proprio riportate nello schema originale &mdash; per esempio la scatola dei fusibili e l&rsquo;intermittenza &mdash; restano senza numero (non colmiamo le lacune per supposizione).</div>
+<div class="dnote" id="rnote">Sulla R mostriamo <b>solo i morsetti in comune con la F</b>. Il quadro di controllo resta senza numeri: sulla R c&rsquo;&egrave; l&rsquo;indicatore del livello carburante e i morsetti sono diversi, e non abbiamo potuto verificarli.</div>
+<div class="dnote" id="tnote">I cerchi rossi indicano i <b>morsetti</b> (i punti in cui si collega un cavo); le targhette bianche sono le loro sigle, trascritte dallo schema elettrico del libretto di uso e manutenzione FIAT. <button type="button" id="tinfo-open" class="ldiff-btn">Come leggere i morsetti ›</button></div></div>
+<div class="mbar" id="mbar">
+  <button class="mbar-btn" id="mprev" aria-label="Circuito precedente">◀</button>
+  <div class="mbar-center">
+    <span class="mbar-caption">Scegli un circuito</span>
+    <select id="msel" class="mbar-select"><option value="0">Tutti i circuiti</option>
+<option value="1">Massa</option>
+<option value="2">Fari</option>
+<option value="3">Luci di posizione</option>
+<option value="4">Indicatori di direzione</option>
+<option value="5">Clacson</option>
+<option value="6">Interruttore stop</option>
+<option value="7">Interruttore pressione olio</option>
+<option value="8">Plafoniera</option>
+<option value="9">Circuito di accensione</option>
+<option value="10">Commutatore di accensione</option>
+<option value="11">Avviamento / Dinamo (ricarica)</option>
+<option value="12">Sensore livello carburante</option>
+<option value="13">Tergicristallo</option>
+<option value="14">Devioluci</option>
+<option value="15">Quadro di controllo</option></select>
+  </div>
+  <button class="mbar-btn" id="mnext" aria-label="Circuito successivo">▶</button>
+</div>
+<div class="wrap">
+  <nav id="nav"><button class="tab active" data-i="0">Tutti i circuiti</button>
+<button class="tab" data-i="1">Massa</button>
+<button class="tab" data-i="2">Fari</button>
+<button class="tab" data-i="3">Luci di posizione</button>
+<button class="tab" data-i="4">Indicatori di direzione</button>
+<button class="tab" data-i="5">Clacson</button>
+<button class="tab" data-i="6">Interruttore stop</button>
+<button class="tab" data-i="7">Interruttore pressione olio</button>
+<button class="tab" data-i="8">Plafoniera</button>
+<button class="tab" data-i="9">Circuito di accensione</button>
+<button class="tab" data-i="10">Commutatore di accensione</button>
+<button class="tab" data-i="11">Avviamento / Dinamo (ricarica)</button>
+<button class="tab" data-i="12">Sensore livello carburante</button>
+<button class="tab" data-i="13">Tergicristallo</button>
+<button class="tab" data-i="14">Devioluci</button>
+<button class="tab" data-i="15">Quadro di controllo</button></nav>
+  <main id="main"><div id="msg">Caricamento…</div><img id="img" alt=""><svg id="tlayer" viewBox="0 0 1684 2382" aria-hidden="true"></svg><button type="button" id="termbtn" aria-pressed="false">Morsetti</button><button type="button" id="fsbtn" aria-pressed="false" title="Mostra solo lo schema, più grande (Esc per tornare)">⛶ Ingrandisci</button></main>
+</div>
+<div class="hint" id="hint">Pizzica per lo zoom / tocca per ingrandire e ridurre / trascina per spostare<span class="hint-desktop"> · rotella per lo zoom · ← → cambia circuito</span></div>
+<script>
+  // 図の中の系統名だけをイタリア語に差し替えた別ファイル（元の日本語版は /wiring-img/ 直下）。
+  // 型式ごとに16枚あり、3型式とも同じ16系統・同じ座標系（1684x2382）でファイル名の
+  // 頭文字だけが違う。D型=d / F型=w / L型=l / R型=r。
+  const TYPES = ["D", "F", "L", "R"], PREFIX = { D:"d", F:"w", L:"l", R:"r" }, TYPE_KEY = "wiring.type.v1";
+  const NPAGE = 16;
+  // ⚠️/wiring-img/* は immutable（1年キャッシュ）なので、図を差し替えたら【ファイル名を変える】。
+  //   同じ名前で上書きしても、一度見た人のブラウザには古い図が出続ける。
+  //   2026-08-29: L型の燃料センダー2本目（マゼンタ）がワイパー系統に誤分類されていたのを是正し、
+  //   l12（フューエルセンサー）と l13（ワイパー）を作り直した＝この2枚だけ `-v2` を付ける。
+  const IMGV = { "l12": "-v2", "l13": "-v2" };
+  function srcOf(t, i){ const b = PREFIX[t] + String(i).padStart(2,"0"); return "/wiring-img/it/" + b + (IMGV[b] || "") + ".webp"; }
+  const LAB = ["Tutti i circuiti", "Massa", "Fari", "Luci di posizione", "Indicatori di direzione", "Clacson", "Interruttore stop", "Interruttore pressione olio", "Plafoniera", "Circuito di accensione", "Commutatore di accensione", "Avviamento / Dinamo (ricarica)", "Sensore livello carburante", "Tergicristallo", "Devioluci", "Quadro di controllo"];
+  const img=document.getElementById('img'), cur=document.getElementById('cur'),
+        sel=document.getElementById('sel'), msg=document.getElementById('msg');
+  const msel=document.getElementById('msel'), mprev=document.getElementById('mprev'), mnext=document.getElementById('mnext');
+  const tabs=[...document.querySelectorAll('.tab')]; let idx=0;
+  const main=document.getElementById('main');
+  const brand=document.getElementById('brand'), tbtns=[...document.querySelectorAll('.tbtn')];
+  // 初期の型式＝URLの ?type= → この端末に保存された型式 → F型。日本語版と同じキーを見るので
+  // 日本語版でL型を選んだ人はイタリア語版でもL型で開く。URL で来た型式は保存しない＝共有リンクで
+  // 相手の設定を書き換えない。
+  let typ = (function(){
+    const m = /[?&]type=([DFLR])\b/i.exec(location.search);
+    if (m) return m[1].toUpperCase();
+    try { const v = localStorage.getItem(TYPE_KEY); if (TYPES.indexOf(v) >= 0) return v; }
+    catch(e){ /* プライベートブラウズ等で使えなくても機能は落とさない */ }
+    return 'F';
+  })();
+  const zstate={scale:1,tx:0,ty:0}; let base=null;
+  const ZOOM_SCALE=2.6, TAP_SLOP=8, EDGE_MARGIN=60;
+  function measureBase(){
+    const prev=img.style.transform; img.style.transform='none';
+    const r=img.getBoundingClientRect();
+    base={left:r.left,top:r.top,width:r.width,height:r.height};
+    img.style.transform=prev;
+  }
+  function applyTransform(){
+    img.style.transform=`translate(${zstate.tx}px,${zstate.ty}px) scale(${zstate.scale})`;
+    tlayer.style.transform=img.style.transform;
+    img.style.cursor=zstate.scale>1.01?'move':'zoom-in';
+  }
+  function resetZoom(){ zstate.scale=1; zstate.tx=0; zstate.ty=0; applyTransform(); }
+  function clampPan(){
+    if(!base) return;
+    const m=main.getBoundingClientRect();
+    const scaledW=base.width*zstate.scale, scaledH=base.height*zstate.scale;
+    let left=base.left+zstate.tx, top=base.top+zstate.ty, right=left+scaledW, bottom=top+scaledH;
+    if(right<m.left+EDGE_MARGIN) zstate.tx+=(m.left+EDGE_MARGIN-right);
+    if(left>m.right-EDGE_MARGIN) zstate.tx-=(left-(m.right-EDGE_MARGIN));
+    left=base.left+zstate.tx; top=base.top+zstate.ty; bottom=top+scaledH;
+    if(bottom<m.top+EDGE_MARGIN) zstate.ty+=(m.top+EDGE_MARGIN-bottom);
+    if(top>m.bottom-EDGE_MARGIN) zstate.ty-=(top-(m.bottom-EDGE_MARGIN));
+  }
+  let pStart=null, dragging=false, moved=0;
+  const pointers=new Map(); let pinch=null; const MAX_SCALE=6;   // 2本指ピンチ用
+  img.addEventListener('pointerdown',e=>{
+    try{ img.setPointerCapture(e.pointerId); }catch(_){}
+    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    img.style.transition='none'; tlayer.style.transition='none';
+    if(pointers.size===2){            // 2本指→ピンチ開始
+      measureBase();
+      const p=[...pointers.values()];
+      const mx=(p[0].x+p[1].x)/2, my=(p[0].y+p[1].y)/2;
+      pinch={ d0:Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y), s0:zstate.scale,
+              lx:(mx-base.left-zstate.tx)/zstate.scale, ly:(my-base.top-zstate.ty)/zstate.scale };
+      pStart=null; dragging=false; moved=999;
+    } else {
+      pStart={x:e.clientX,y:e.clientY,tx:zstate.tx,ty:zstate.ty};
+      moved=0; dragging=zstate.scale>1.01;
+    }
+  });
+  img.addEventListener('pointermove',e=>{
+    if(pointers.has(e.pointerId)) pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pinch && pointers.size>=2){    // ピンチ：焦点を保ったまま倍率と位置を更新
+      const p=[...pointers.values()];
+      const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+      const mx=(p[0].x+p[1].x)/2, my=(p[0].y+p[1].y)/2;
+      const sN=Math.min(MAX_SCALE, Math.max(1, pinch.s0*(d/pinch.d0)));
+      zstate.scale=sN;
+      zstate.tx=mx-base.left-sN*pinch.lx;
+      zstate.ty=my-base.top-sN*pinch.ly;
+      clampPan(); applyTransform(); return;
+    }
+    if(!pStart) return;
+    const dx=e.clientX-pStart.x, dy=e.clientY-pStart.y;
+    moved=Math.max(moved,Math.hypot(dx,dy));
+    if(dragging){ zstate.tx=pStart.tx+dx; zstate.ty=pStart.ty+dy; clampPan(); applyTransform(); }
+  });
+  function endPointer(e){
+    pointers.delete(e.pointerId);
+    if(pinch){                        // ピンチ終了処理
+      if(pointers.size>=2) return;
+      pinch=null; img.style.transition=''; tlayer.style.transition='';
+      if(pointers.size===1){ const q=[...pointers.values()][0];
+        pStart={x:q.x,y:q.y,tx:zstate.tx,ty:zstate.ty}; moved=999; dragging=zstate.scale>1.01; return; }
+      if(zstate.scale<=1.01) resetZoom();
+      pStart=null; dragging=false; return;
+    }
+    if(!pStart) return;
+    img.style.transition=''; tlayer.style.transition='';
+    if(moved<TAP_SLOP){
+      if(zstate.scale>1.01){ resetZoom(); }
+      else{
+        measureBase();
+        const lx=(e.clientX-base.left-zstate.tx)/zstate.scale;
+        const ly=(e.clientY-base.top-zstate.ty)/zstate.scale;
+        zstate.scale=ZOOM_SCALE;
+        zstate.tx=e.clientX-base.left-ZOOM_SCALE*lx;
+        zstate.ty=e.clientY-base.top-ZOOM_SCALE*ly;
+        clampPan(); applyTransform();
+      }
+    }
+    pStart=null; dragging=false;
+  }
+  img.addEventListener('pointerup',endPointer);
+  img.addEventListener('pointercancel',endPointer);
+  img.addEventListener('wheel',e=>{   // PC：カーソル中心にホイールズーム
+    e.preventDefault(); measureBase();
+    const lx=(e.clientX-base.left-zstate.tx)/zstate.scale;
+    const ly=(e.clientY-base.top-zstate.ty)/zstate.scale;
+    const sN=Math.min(MAX_SCALE, Math.max(1, zstate.scale*(e.deltaY<0?1.15:1/1.15)));
+    zstate.scale=sN;
+    zstate.tx=e.clientX-base.left-sN*lx;
+    zstate.ty=e.clientY-base.top-sN*ly;
+    if(sN<=1.01){ resetZoom(); } else { clampPan(); applyTransform(); }
+  },{passive:false});
+  img.addEventListener('dragstart',e=>e.preventDefault());
+  img.addEventListener('load', ()=>{ msg.style.display='none'; syncTermBox(); });
+  img.addEventListener('error', ()=>{ msg.style.display='block'; msg.textContent='Impossibile caricare l\'immagine'; });
+  function loadImage(){
+    msg.style.display='block'; msg.textContent='Caricamento…';
+    img.src=srcOf(typ, idx);
+  }
+  function show(i){
+    idx=(i+NPAGE)%NPAGE; loadImage(); resetZoom();
+    cur.textContent=LAB[idx]; sel.value=idx; msel.value=idx;
+    tabs.forEach(t=>t.classList.toggle('active',+t.dataset.i===idx));
+    document.getElementById('main').scrollTo(0,0);
+    renderTerm();
+  }
+  function applyType(){
+    tbtns.forEach(b=>b.classList.toggle('active', b.dataset.t===typ));
+    brand.textContent='Schema FIAT 500 '+typ;
+    document.getElementById('dnote').style.display = (typ==='D') ? 'block' : 'none';
+    updateTermBtn(); renderTerm();
+  }
+
+  // ---- 端子番号オーバーレイ ----
+  // 純正取説の配線図に載っている端子番号(DIN)を、同じ座標系のSVGで図に重ねる。
+  // データは日本語版と共通の /wiring-terminals.json（札の中身は数字と記号だけ＝言語に依らない）。
+  // D型はF型と16系統すべて結線同一（確認済み）なのでF型のデータを共用する。
+  // L型は原典で端子名を確認できた端子だけを持つ（原典に記載の無いヒューズ箱・L型固有スイッチは出さない＝#lnote で断る）。
+  // R型はF型と共通の端子だけを持つ（メーターはR型で構成が違うので出さない＝#rnote で断る）。
+  const TERM_VERSION='9';
+  const tlayer=document.getElementById('tlayer'), termbtn=document.getElementById('termbtn');
+  const TERM_SRC={ F:'F', D:'F', L:'L', R:'R' };
+  let termOn=false, termData=null, termLoading=false;
+  function syncTermBox(){
+    tlayer.style.left=img.offsetLeft+'px'; tlayer.style.top=img.offsetTop+'px';
+    tlayer.style.width=img.clientWidth+'px'; tlayer.style.height=img.clientHeight+'px';
+    tlayer.style.transform=img.style.transform||'';
+  }
+  function updateTermBtn(){
+    const avail=!!TERM_SRC[typ];
+    termbtn.disabled=!avail;
+    termbtn.classList.toggle('active', termOn&&avail);
+    termbtn.setAttribute('aria-pressed', (termOn&&avail)?'true':'false');
+    document.getElementById('tnote').style.display=(termOn&&avail)?'block':'none';
+    // L型の「準備中」は端子番号を出しているときだけ（番号を見ていない人には無関係な帯）
+    document.getElementById('lnote').style.display=(termOn&&avail&&typ==='L')?'block':'none';
+    document.getElementById('rnote').style.display=(termOn&&avail&&typ==='R')?'block':'none';
+  }
+  // 札の自動配置：元の位置が他の札や端子と重なるときだけ、上下（それでも駄目なら左右反転）にずらす。
+  // 図が密なので固定のdx/dyだけでは「全表示」で必ず重なる＝表示のたびに配置し直す。
+  function layoutTerm(list){
+    function boxOf(p){
+      const w=p.t.length*15+24, cx=p.x+p.dx, cy=p.y+p.dy;
+      return [cx-w/2-6, cy-27, cx+w/2+6, cy+25];
+    }
+    function hit(a,b){ return !(a[2]<b[0]||b[2]<a[0]||a[3]<b[1]||b[3]<a[1]); }
+    const placed=[], out=[];
+    for(const p0 of list){
+      const dx0=(p0.dx===undefined)?50:p0.dx, dy0=(p0.dy===undefined)?-90:p0.dy;
+      const cands=[[dx0,dy0]];
+      for(let k=1;k<=7;k++) cands.push([dx0,dy0-46*k],[dx0,dy0+46*k]);
+      for(let k=0;k<=5;k++) cands.push([-dx0,dy0-46*k],[-dx0,dy0+46*k]);
+      let best=null;
+      for(const c of cands){
+        const p=Object.assign({}, p0, {dx:c[0], dy:c[1]}), r=boxOf(p);
+        let pen=0;
+        for(const q of placed) if(hit(r,q)) pen+=100;
+        for(const q of list) if(q.x>r[0]-15&&q.x<r[2]+15&&q.y>r[1]-15&&q.y<r[3]+15) pen+=25; // 端子の丸を隠さない
+        pen+=(Math.abs(c[0]-dx0)+Math.abs(c[1]-dy0))*0.03; // 元の位置からむやみに離さない
+        if(!best||pen<best.pen) best={pen:pen, p:p, r:r};
+        if(pen<1) break;
+      }
+      placed.push(best.r); out.push(best.p);
+    }
+    return out;
+  }
+  function termChip(p,i,arr){
+    const dx=(p.dx===undefined)?50:p.dx, dy=(p.dy===undefined)?-90:p.dy;
+    const cx=p.x+dx, cy=p.y+dy;
+    const w=p.t.length*15+24;
+    // 端子が密に並ぶ場所（コラムSW・ワイパーモーター等）は輪同士が団子になるので、隣が近いときだけ輪を小さくする
+    let nd=1e9;
+    if(arr) for(let k=0;k<arr.length;k++){ if(k===i) continue; const q=arr[k]; const d=Math.hypot(q.x-p.x,q.y-p.y); if(d<nd) nd=d; }
+    const r=(nd<24)?6:13;
+    return '<line x1="'+p.x+'" y1="'+p.y+'" x2="'+cx+'" y2="'+(cy+18)+'" stroke="#111" stroke-width="2.5"/>'+
+           '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+r+'" fill="none" stroke="#c81e1e" stroke-width="'+(r<10?3:4)+'"/>'+
+           '<rect x="'+(cx-w/2)+'" y="'+(cy-21)+'" width="'+w+'" height="40" rx="9" fill="#fff" stroke="#111" stroke-width="3"/>'+
+           '<text x="'+cx+'" y="'+(cy+9)+'" text-anchor="middle" font-family="Arial,sans-serif" font-size="26" font-weight="700" fill="#111">'+p.t+'</text>';
+  }
+  function renderTerm(){
+    const src=TERM_SRC[typ];
+    if(!termOn||!termData||!src||!termData[src]){ tlayer.style.display='none'; tlayer.innerHTML=''; return; }
+    const data=termData[src];
+    let list;
+    if(idx===0){ // 全表示＝全系統の和集合。同じ番号が近接して重複する場合（同じヒューズ端子など）は1つに間引く
+      list=[];
+      for(const k in data){ for(const p of data[k]){
+        if(!list.some(q=>q.t===p.t && Math.abs(q.x-p.x)<40 && Math.abs(q.y-p.y)<40)) list.push(p);
+      } }
+    } else {
+      list=data[String(idx)]||[];
+    }
+    let html=layoutTerm(list).map(termChip).join('');
+    if(list.length){
+      html+='<text x="20" y="2372" font-family="sans-serif" font-size="20" fill="#667">Sigle dei morsetti trascritte dallo schema elettrico del libretto FIAT &#8212; verifica sempre sull&#8217;auto reale.</text>';
+    }
+    tlayer.innerHTML=html;
+    tlayer.style.display='block';
+    syncTermBox();
+  }
+  function toggleTerm(){
+    if(termOn){ termOn=false; updateTermBtn(); renderTerm(); return; }
+    termOn=true; updateTermBtn();
+    if(termData){ renderTerm(); return; }
+    if(termLoading) return;
+    termLoading=true;
+    fetch('/wiring-terminals.json?v='+TERM_VERSION)
+      .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
+      .then(d=>{ termData=d; termLoading=false; renderTerm();
+        if(window.gtag) gtag('event','wiring_terminals',{ wiring_type: typ }); })
+      .catch(()=>{ termLoading=false; termOn=false; updateTermBtn();
+        msg.style.display='block'; msg.textContent='Impossibile caricare i dati dei morsetti';
+        setTimeout(()=>{ msg.style.display='none'; }, 2500); });
+  }
+  termbtn.addEventListener('click', toggleTerm);
+  window.addEventListener('resize', ()=>{ if(termOn) syncTermBox(); });
+  // 図だけの全画面（PCのみ）。上の3行を隠すと、その高さがそのまま図の拡大になる。
+  // ⛔状態は保存しない（型式と同じ考え方＝再訪や共有リンクで意図しない画面にしない）
+  const fsbtn=document.getElementById('fsbtn');
+  function setFs(on){
+    document.body.classList.toggle('fs', on);
+    fsbtn.setAttribute('aria-pressed', on?'true':'false');
+    fsbtn.textContent = on ? '⛶ Riduci' : '⛶ Ingrandisci';
+    if(termOn) syncTermBox();   // 画像の表示サイズが変わるので端子札を追従させる
+  }
+  fsbtn.addEventListener('click', ()=>setFs(!document.body.classList.contains('fs')));
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && document.body.classList.contains('fs')) setFs(false); });
+  function setType(t){
+    if (TYPES.indexOf(t) < 0 || t === typ) return;
+    typ = t;
+    try { localStorage.setItem(TYPE_KEY, t); } catch(e){}
+    applyType();
+    // 3型式は同じ座標系・同じ縮尺なので、ズームと位置はそのまま残す。
+    // 同じ場所を拡大したまま型式を切り替えて見比べられる。
+    loadImage();
+    preloadRest();
+    if (window.gtag) gtag('event','wiring_type',{ wiring_type: t });
+  }
+  tbtns.forEach(b=>b.addEventListener('click',()=>setType(b.dataset.t)));
+  tabs.forEach(t=>t.addEventListener('click',()=>show(+t.dataset.i)));
+  sel.addEventListener('change',()=>show(+sel.value));
+  document.getElementById('prev').addEventListener('click',()=>show(idx-1));
+  document.getElementById('next').addEventListener('click',()=>show(idx+1));
+  msel.addEventListener('change',()=>show(+msel.value));
+  mprev.addEventListener('click',()=>show(idx-1));
+  mnext.addEventListener('click',()=>show(idx+1));
+  document.addEventListener('keydown',e=>{ if(e.key==='ArrowRight')show(idx+1); if(e.key==='ArrowLeft')show(idx-1); });
+  applyType(); show(0);
+  // 残り15系統は初回表示を待たせないよう、読み込み後のアイドル時に1枚ずつそっと先読みする
+  // （切替時の待ちを消す。画像は Service Worker の CacheFirst で2回目以降は再取得しない）
+  // ⚠️先読みするのは「今選んでいる型式の16枚」だけ。3型式48枚をまとめて先読みすると
+  //   転送量が単純に3倍になる。型式を切り替えたら前の先読みは打ち切って読み直す。
+  const idle = window.requestIdleCallback || (fn => setTimeout(fn, 1200));
+  let preToken = 0;
+  function preloadRest(){
+    const my = ++preToken, t = typ;
+    let n = 0;
+    (function next(){
+      if (my !== preToken) return;      // 型式が変わった＝この先読みは用済み
+      if (n === idx) n++;               // 表示中の1枚は飛ばす
+      if (n >= NPAGE) return;
+      const k = n++;
+      const pre = new Image();
+      pre.onload = pre.onerror = () => idle(next);
+      pre.src = srcOf(t, k);
+    })();
+  }
+  window.addEventListener('load', preloadRest);
+</script>
+<div id="tinfo-overlay"><div id="tinfo-panel">
+  <button id="tinfo-close" aria-label="Chiudi">×</button>
+  <h2>Come leggere i morsetti</h2>
+  <p>Un <span class="k">cerchio rosso indica un morsetto</span>: il punto in cui un cavo si collega a un componente. La targhetta bianca è la sigla di quel morsetto, trascritta così come è riportata nello schema elettrico del libretto di uso e manutenzione FIAT. I numeri sono le sigle DIN (la norma tedesca) e spesso si ritrovano stampigliate sul componente stesso, per esempio sul regolatore.</p>
+  <h3>Alimentazione e massa</h3>
+  <dl>
+    <dt>30</dt><dd>Alimentazione permanente dalla batteria. Sotto tensione anche con la chiave estratta (<b>30/2, 30/3, 30/4</b> sono derivazioni della stessa alimentazione permanente).</dd>
+    <dt>15/54</dt><dd>Alimentazione presente solo con il commutatore di accensione inserito.</dd>
+    <dt>31</dt><dd>Massa (la scocca, lato negativo).</dd>
+  </dl>
+  <h3>Ricarica e avviamento</h3>
+  <dl>
+    <dt>51</dt><dd>Uscita della dinamo (lato positivo).</dd>
+    <dt>67</dt><dd>Morsetto di eccitazione (campo) sul regolatore.</dd>
+    <dt>+</dt><dd>Il morsetto positivo del componente stesso (batteria, bobina, motorino d'avviamento, intermittenza).</dd>
+  </dl>
+  <h3>Luci</h3>
+  <dl>
+    <dt>56a</dt><dd>Abbaglianti.</dd>
+    <dt>56/a1, 56/a2</dt><dd>Abbaglianti separati fra destra e sinistra (56/a1 = sinistra, 56/a2 = destra).</dd>
+    <dt>56b</dt><dd>Anabbaglianti.</dd>
+    <dt>56/b1, 56/b2</dt><dd>Anabbaglianti separati dai fusibili fra destra e sinistra (56/b1 = sinistra, 56/b2 = destra).</dd>
+    <dt>57</dt><dd>Circuito delle luci di posizione. Sul quadro alimenta la spia delle luci di posizione.</dd>
+  </dl>
+  <h3>Sigle con lettere</h3>
+  <p>Le targhette che non sono numeri sono le sigle dei contatti interni di quel componente: <span class="k">C, F, INT</span> sul motorino del tergicristallo, <span class="k">C, D, H, L</span> sull'interruttore del tergicristallo, <span class="k">+, P, L</span> sull'intermittenza, <span class="k">2, L, 5</span> sul devioluci degli indicatori di direzione, <span class="k">C, INT</span> sul commutatore luci esterne al piantone, <span class="k">L</span> sull'interruttore luce quadro e <span class="k">E, F</span> sull'interruttore luci esterne della 500 L, e <span class="k">INTER</span> (alimentazione sotto chiave) o <span class="k">0</span> (spia della pressione dell'olio) sul quadro.</p>
+  <p><span class="k">Lo stesso cavo prende un nome diverso alle due estremità.</span> Il cavo azzurro del tergicristallo, per esempio, è &laquo;F&raquo; sul motorino e &laquo;C&raquo; sull'interruttore. La sigla non è il nome del cavo ma <b>il nome del morsetto sul componente</b>.</p>
+  <h3>Modelli con i morsetti</h3>
+  <p>I morsetti sono disponibili per tutti e quattro i modelli &mdash; D, F, L e R (la D usa gli stessi dati della F, perché tutti i 16 circuiti hanno collegamenti identici). <span class="k">Sulla L mostriamo solo le sigle che abbiamo potuto verificare sul libretto originale</span>: i componenti le cui sigle non vi sono proprio riportate, come la scatola dei fusibili e l&rsquo;intermittenza, restano senza etichetta. <span class="k">Sulla R mostriamo solo i morsetti in comune con la F</span>: il quadro di controllo resta escluso, perché sulla R c&rsquo;è l&rsquo;indicatore del livello carburante e i morsetti sono diversi.</p>
+  <p class="note">Solo per i contatti della scatola dei fusibili le sigle provengono dallo schema originale della D: lo schema originale della F (e della D) indica i fusibili unicamente con la posizione (1&ndash;6, A&ndash;F) e la D è verificata come identica nei collegamenti. Questo passaggio non vale per la L, la cui assegnazione dei fusibili è diversa da quella della F: per questo sulla scatola dei fusibili della L non compaiono targhette. I morsetti che nello schema originale non hanno sigla (fanali posteriori, clacson, interruttori delle porte, trasmettitore del carburante e altri) restano senza targhetta. I dettagli variano con l'anno, il mercato e le modifiche: prima di intervenire verifica sempre sull'auto reale.</p>
+</div></div>
+<div id="ldiff-overlay"><div id="ldiff-panel">
+  <button id="ldiff-close" aria-label="Chiudi">×</button>
+  <h2>Differenze fra D, F, L e R</h2>
+  <p>La F, la L e la R sono <span class="k">lo schema reale di quel modello</span>; la D è <span class="k">un disegno di riferimento realizzato da questo sito a partire dallo schema della F</span>. Non serve leggerne uno al posto di un altro. Scegli quello che ti interessa in &laquo;Modello&raquo; qui sopra.</p>
+  <h3>In comune fra D / F / L / R</h3>
+  <ul>
+    <li>Impianto: 12V, negativo a massa</li>
+    <li>Batteria: 32Ah</li>
+    <li>Ricarica: dinamo, 16A continui (non un alternatore)</li>
+    <li>Motorino d'avviamento: 0,5kW</li>
+    <li>Colori dei cavi &mdash; indicati sul cablaggio: Azzurro / Giallo / Grigio / Nero / Rosso / Rosa / Verde / Viola / Bianco / Marrone</li>
+  </ul>
+  <h3>F e D</h3>
+  <p>Dal confronto con lo schema elettrico originale della D risulta che <span class="k">tutti i 16 circuiti sono identici per collegamenti e colori dei cavi</span>. La versione D è quindi lo stesso disegno della F, con la sola lettera del modello cambiata nel titolo. L'unica differenza riguarda il percorso attorno all'interruttore dell'illuminazione del quadro (legenda 9). Questo disegno segue il percorso della F, mentre nello schema originale della D l'interruttore si trova sul lato alimentazione (alimentazione sotto chiave → interruttore → lampada). In entrambi i casi il funzionamento e l'uso sono gli stessi.</p>
+  <h3>F e R</h3>
+  <p>Come disegno cambiano <span class="k">solo tre circuiti: tergicristallo, indicatori di direzione e quadro di controllo</span>. Negli altri 13 circuiti non cambia un solo cavo.</p>
+  <h3>F e L</h3>
+  <p>Le differenze si concentrano <span class="k">quasi tutte nell'abitacolo</span> (dal cruscotto agli strumenti). <span class="k">Il vano motore è identico alla F</span>: ricarica e accensione sono lo stesso disegno su tutti i modelli.</p>
+  <p>Cosa aggiunge la L:</p>
+  <ul>
+    <li><span class="k">Indicatore del livello carburante</span> (trasmettitore nel serbatoio + strumento sul cruscotto) &hellip; la F non ha l'indicatore e si affida al rubinetto della riserva. Qui si concentra quasi tutto il cablaggio in più.</li>
+    <li>Spie raccolte in un unico quadro di controllo: riserva carburante, ricarica, pressione olio, abbaglianti, luci di posizione e indicatori di direzione, oltre all'illuminazione del quadro.<br>Nota: anche la F ha queste spie &mdash; la L si limita a raggrupparle in un unico quadro.</li>
+  </ul>
+  <h3>La Giardiniera (Tipo 120)</h3>
+  <p>La Giardiniera non c'&egrave; ancora. Lo schema elettrico originale ce l'abbiamo &mdash; la tavola dello schema nel libretto di uso e manutenzione dell'Autobianchi Giardiniera &mdash; ma &egrave; stampato in piccolo e, anche ingrandendolo, non si riesce a leggere il nome del colore di ogni singolo filo. <span class="k">Uno schema cos&igrave; si pu&ograve; separare in circuiti solo quando i colori dei fili sono leggibili</span>, quindi aggiungeremo la Giardiniera appena troveremo un originale leggibile.</p>
+  <p>L'elenco dei componenti invece si legge. <span class="k">La Giardiniera condivide con la D 34 componenti su 35</span>, con due differenze: un solo interruttore comanda sia le luci esterne sia l'illuminazione del quadro (sulla D sono due interruttori distinti) e c'&egrave; una seconda luce interna oltre a quella incorporata nello specchio retrovisore. Non possiamo dire che lo schema della F o della D vada bene al suo posto, quindi non ne mostriamo uno finch&eacute; non potremo verificarlo.</p>
+  <p class="note">I dettagli variano con l'anno, il mercato e le modifiche. Prima di intervenire verifica sempre sull'auto reale. Schemi disegnati da OTSUKA / separazione in livelli per circuito a cura di Sushio.</p>
+</div></div>
+<script>
+(function(){
+  function bind(ovId, openIds, closeId){
+    var ov=document.getElementById(ovId);
+    var cl=document.getElementById(closeId);
+    function setO(v){ ov.classList.toggle('open', v); }
+    openIds.forEach(function(id){
+      var op=document.getElementById(id);
+      if(op) op.addEventListener('click', function(){ setO(true); });
+    });
+    cl.addEventListener('click', function(){ setO(false); });
+    ov.addEventListener('click', function(e){ if(e.target===ov) setO(false); });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') setO(false); });
+  }
+  bind('ldiff-overlay',['ldiff-open','dnote-open'],'ldiff-close');
+  bind('tinfo-overlay',['tinfo-open'],'tinfo-close');
+})();
+</script>
+</body>
+</html>

@@ -8,19 +8,25 @@
   ② 登録のみ層（活性化）: 連携率・休眠・未連携名簿CSV
   ③ アクティブ層（満足）: 真アクティブ率・コホート定着・機能利用・死蔵機能
   ④ 収益（送客）     : アフィリクリック。GA4拡張計測ONで取得開始（フェーズ2）
-  流入（当面 Cloudflare、フェーズ3でGA4へ移管）
+  流入（2026-08-09〜 GA4 が主・Cloudflare は保険。下記「流入データの主従」を参照）
 
 時系列:
   - フロー指標（登録など）は created_at で遡及し前週比
   - ストック指標（連携率・アクティブ率）は weekly_metrics に毎週記録し前週比
 実行: python py/gen_report.py（週1回想定）
 """
-import json, urllib.request, datetime, os, html, csv
+import json, urllib.request, urllib.parse, datetime, os, html, csv
 from collections import defaultdict
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENV = os.path.join(BASE, "py", ".env")
 OUT = os.path.join(BASE, "report.html")
+
+# REPORT_DRY_RUN=1 で実行すると weekly_metrics への書き込みをスキップし、HTML も
+# report_dryrun.html へ出す。週次スナップショットの時系列を汚さずに動作確認するため。
+DRY_RUN = os.environ.get("REPORT_DRY_RUN") == "1"
+if DRY_RUN:
+    OUT = os.path.join(BASE, "report_dryrun.html")
 
 env = {}
 for line in open(ENV, encoding="utf-8"):
@@ -78,6 +84,7 @@ week_start = (today - datetime.timedelta(days=today.weekday())).isoformat()  # �
 d7 = (today - datetime.timedelta(days=7)).isoformat()
 d14 = (today - datetime.timedelta(days=14)).isoformat()
 d30 = (today - datetime.timedelta(days=30)).isoformat()
+d90 = (today - datetime.timedelta(days=90)).isoformat()
 
 # ───────────────────────── ① 拡大: cars 集計 ─────────────────────────
 cars = sb("cars", "created_at,updated_at,car_type,is_sold,owner_user_id,accept_inquiry,sns_share_optout,photo_main")
@@ -117,21 +124,51 @@ rels = sb("user_relations", "status,user_id")
 rel_want = sum(1 for r in rels if r.get("status") == "want")
 rel_met = sum(1 for r in rels if r.get("status") == "met")
 rel_users = len({r["user_id"] for r in rels if r.get("user_id")})
-eparts = sb("event_participants", "car_id")
+eparts = sb("event_participants", "car_id,created_at")
 event_cars = len({e["car_id"] for e in eparts if e.get("car_id")})
-episodes = sb("car_episodes", "car_id,is_published")
+episodes = sb("car_episodes", "car_id,is_published,created_at,updated_at")
 ep_pub = sum(1 for e in episodes if e.get("is_published"))
 favs = sb("favorite_spots", "owner_user_id")
 fav_users = len({f["owner_user_id"] for f in favs if f.get("owner_user_id")})
 gnotes = len(sb("garage_notes", "id"))
 usel = len(sb("user_selections", "id"))
+equip_recs = sb("equipment_records", "vehicle_id,created_at,updated_at")
 
 # 真のアクティブ率 & コホート（auth.users 由来、集計RPC経由）
 act = sb_rpc("report_owner_activity")
+dlogins = sb_rpc("report_daily_logins")  # 直近30日・日次ユニークログイン人数（延べではない・個人情報なし）
 linked_n = act["summary"]["linked"]
 active30 = act["summary"]["active_30d"]
 active90 = act["summary"]["active_90d"]
 cohort = act["cohort"]
+
+# ── 90日参加台数（participation_90d・成長戦略の北極星）──────────────────
+# ⛔ active_90d とは別物。active_90d は auth.users 由来の「90日以内にログインした人数」で、
+#    ログインしただけの人も入る＝参加ではない。参加は「この90日に何かした車」を数える。
+# 数える経路は5つ（車ID の和集合・重複なし）。所属は車＝人ではなく車で数えるのが台帳の単位。
+#   ① 新規登録   car_history.kind = registered
+#   ② 車両更新   car_history.kind = updated（occurred_at は cars.last_update_date 由来）
+#   ③ 車載手帳   equipment_records（車に紐づくものだけ。非公開の手帳も参加として数える）
+#   ④ イベント参加表明 event_participants
+#   ⑤ ストーリー car_episodes
+# ⚠️ car_history は 2026-09-10 のバックフィルで作った。バックフィルは車1台につき
+#    updated を最新1件しか持たないので、2026-09-10 より前の窓では②が実際より少なく出る。
+#    以後はトリガーが毎回記録するので正しくなる。
+_hist90 = sb("car_history", "car_id,kind",
+             f"kind=in.(registered,updated)&occurred_at=gte.{d90}")
+_part = {h["car_id"] for h in _hist90 if h.get("car_id")}
+_part |= {e["vehicle_id"] for e in equip_recs
+          if e.get("vehicle_id") and (e.get("updated_at") or e.get("created_at") or "")[:10] >= d90}
+_part |= {e["car_id"] for e in eparts
+          if e.get("car_id") and (e.get("created_at") or "")[:10] >= d90}
+_part |= {e["car_id"] for e in episodes
+          if e.get("car_id") and (e.get("updated_at") or e.get("created_at") or "")[:10] >= d90}
+participation90 = len(_part)
+# ベースライン＝43台（2026-08-29 実測・成長戦略 §1 の定義）。
+# ⚠️ 同じ定義でいま数え直すと 42 になる（差の1台は上の②バックフィル制約）。
+#    旧定義の 34 は「車両更新だけ」の数字なので、ここでは使わない。
+PARTICIPATION_BASE = 43
+PARTICIPATION_BASE_AT = "2026-08-29"
 
 # ───────────────────────── ② 未連携名簿（CSV・個人情報のためHTML非掲載）─────────────────────────
 unlinked = sb("cars", "owner_email,handle_name,car_type,created_at",
@@ -146,7 +183,7 @@ with open(CSV_OUT, "w", encoding="utf-8-sig", newline="") as f:
                     u.get("car_type"), (u.get("created_at") or "")[:10]])
 
 
-# ───────────────────────── 流入: Cloudflare ─────────────────────────
+# ───────────────────────── 流入: Cloudflare（保険・GA4が落ちたときの代替）─────────────────────────
 PAGE_LABEL = {
     "/": "トップ", "/detail": "車両個別ページ", "/event": "イベント",
     "/episode": "エピソード", "/stories": "ストーリー一覧", "/edit": "登録・編集",
@@ -160,6 +197,10 @@ REF_LABEL = {
     "www.google.com": "Google検索", "search.yahoo.co.jp": "Yahoo!検索",
     "t.co": "X (Twitter)", "l.instagram.com": "Instagram",
     "l.facebook.com": "Facebook", "www.facebook.com": "Facebook",
+    # GA4 の pageReferrer は Facebook のホストが分かれて出る（2026-08-09 実測で
+    # facebook.com / lm.facebook.com / l.facebook.com の3種を確認）ので全部ラベル化する
+    "facebook.com": "Facebook", "lm.facebook.com": "Facebook", "m.facebook.com": "Facebook",
+    "www.instagram.com": "Instagram", "instagram.com": "Instagram",
     "www.bing.com": "Bing検索", "note.com": "note",
     "accounts.google.com": "Googleログイン経由", "mail.google.com": "Gmail",
     "com.google.android.gm": "Gmailアプリ",
@@ -198,10 +239,25 @@ g1 = (today - datetime.timedelta(days=7)).isoformat()
 l1 = today.isoformat()
 g0 = (today - datetime.timedelta(days=14)).isoformat()
 l0 = g1
-cur = fetch(g1, l1)
-prev = fetch(g0, g1)
-prev_paths = dict(prev["paths"])
-prev_ref = dict(prev["ref"])
+
+
+def empty_traffic():
+    return {"pv": 0, "visits": 0, "byday": [], "paths": [], "ref": [], "country": [], "dev": []}
+
+
+# Cloudflare は 2026-08-09 の GA4 照合をもって「引退予定・保険」の位置づけに降格した。
+# 28日間の実測で総量は GA4 と +6%(PV)/+5%(訪問) の差に収まり整合したが、
+# Cloudflare 側はサンプリング外挿で日別が全て10の倍数に丸められており日次の精度が無い。
+# ユーザー数・イベント計測も取れないため主データには使わない。
+# ビーコンとトークンは GA4 が壊れたときの保険として残してあるので取得は続けるが、
+# **失敗してもレポートは止めない**（以前はここが素の呼び出しで、Cloudflare が落ちると
+# 週次レポート全体が例外で配信されなくなる主従逆転の状態だった）。
+cf_cur = cf_prev = None
+try:
+    cf_cur = fetch(g1, l1)
+    cf_prev = fetch(g0, g1)
+except Exception as e:
+    print("Cloudflare取得失敗（GA4のみでレポートを継続）:", e)
 
 # ───────────────────────── GA4 Data API（フェーズ2配線・失敗時はpending表示にフォールバック）─────────────────────────
 GA4_PROPERTY_ID = env.get("GA4_PROPERTY_ID")
@@ -211,23 +267,86 @@ GA4_EDIT_PATH = "/edit"
 ga4 = None
 
 
-def ga4_report(metrics, dimensions=None, dimension_filter=None):
+def ga4_report(metrics, dimensions=None, dimension_filter=None,
+               start="7daysAgo", end="today", limit=None, order_desc=None):
     from google.oauth2 import service_account
     from google.auth.transport.requests import Request as GARequest
     creds = service_account.Credentials.from_service_account_file(
         GA4_SA_JSON, scopes=["https://www.googleapis.com/auth/analytics.readonly"])
     creds.refresh(GARequest())
-    body = {"dateRanges": [{"startDate": "7daysAgo", "endDate": "today"}],
+    body = {"dateRanges": [{"startDate": start, "endDate": end}],
             "metrics": [{"name": m} for m in metrics]}
     if dimensions:
         body["dimensions"] = [{"name": d} for d in dimensions]
     if dimension_filter:
         body["dimensionFilter"] = dimension_filter
+    if limit:
+        body["limit"] = limit
+    if order_desc:
+        body["orderBys"] = [{"metric": {"metricName": order_desc}, "desc": True}]
     req = urllib.request.Request(
         f"https://analyticsdata.googleapis.com/v1beta/properties/{GA4_PROPERTY_ID}:runReport",
         data=json.dumps(body).encode(),
         headers={"Authorization": "Bearer " + creds.token, "Content-Type": "application/json"})
     return json.load(urllib.request.urlopen(req, timeout=40))
+
+
+SELF_HOSTS = ("www.registro500.com", "registro500.com")
+
+
+def ga4_traffic(start, end):
+    """流入データを GA4 から取り、Cloudflare の fetch() と同じ形の辞書で返す。
+
+    2026-08-09 以降はこちらが流入セクションの主データ。取得できなければ None を返し、
+    呼び出し側が Cloudflare → 空 の順にフォールバックする。
+    """
+    if not (GA4_PROPERTY_ID and os.path.exists(GA4_SA_JSON)):
+        return None
+    try:
+        trows = ga4_report(["screenPageViews", "sessions"], start=start, end=end).get("rows") or []
+        pv = int(trows[0]["metricValues"][0]["value"]) if trows else 0
+        visits = int(trows[0]["metricValues"][1]["value"]) if trows else 0
+
+        byday = []
+        for r in ga4_report(["screenPageViews", "sessions"], ["date"],
+                            start=start, end=end, limit=40).get("rows", []):
+            d = r["dimensionValues"][0]["value"]  # YYYYMMDD
+            byday.append((f"{d[:4]}-{d[4:6]}-{d[6:]}",
+                          int(r["metricValues"][0]["value"]),
+                          int(r["metricValues"][1]["value"])))
+        byday.sort()
+
+        paths = [(r["dimensionValues"][0]["value"], int(r["metricValues"][0]["value"]))
+                 for r in ga4_report(["screenPageViews"], ["pagePath"], start=start, end=end,
+                                     limit=12, order_desc="screenPageViews").get("rows", [])]
+
+        # 参照元は Cloudflare の refererHost に合わせてホスト名へ揃える（REF_LABELS がホスト名基準のため）。
+        # 自サイト内の遷移は流入ではないので除く。
+        agg = {}
+        label_rep = {}  # 同じ表示ラベルになるホストは1行にまとめる（Facebook が3ホストに割れるため）
+        # pageReferrer はフルURL単位で行が出るため件数が多い。ホスト集約の取りこぼしを
+        # 避けるので limit は大きめに取る（2026-08-09 実測: 直近7日で生100行→21ホスト）。
+        for r in ga4_report(["sessions"], ["pageReferrer"], start=start, end=end,
+                            limit=500, order_desc="sessions").get("rows", []):
+            raw = (r["dimensionValues"][0]["value"] or "").strip()
+            host = urllib.parse.urlparse(raw).netloc if "://" in raw else raw
+            if host in SELF_HOSTS:
+                continue  # サイト内の遷移は流入ではない（Cloudflare 版では「サイト内回遊」として混ざっていた）
+            host = host or "(直接)"
+            lab = REF_LABEL.get(host)
+            key = label_rep.setdefault(lab, host) if lab else host
+            agg[key] = agg.get(key, 0) + int(r["metricValues"][0]["value"])
+        ref = sorted(agg.items(), key=lambda x: -x[1])[:12]
+
+        dev = [(r["dimensionValues"][0]["value"], int(r["metricValues"][0]["value"]))
+               for r in ga4_report(["screenPageViews"], ["deviceCategory"],
+                                   start=start, end=end).get("rows", [])]
+
+        return {"pv": pv, "visits": visits, "byday": byday, "paths": paths,
+                "ref": ref, "country": [], "dev": dev}
+    except Exception as e:
+        print("GA4流入データ取得失敗（Cloudflareへフォールバック）:", e)
+        return None
 
 
 if GA4_PROPERTY_ID and os.path.exists(GA4_SA_JSON):
@@ -266,6 +385,24 @@ if GA4_PROPERTY_ID and os.path.exists(GA4_SA_JSON):
     except Exception as e:
         print("GA4取得失敗（pending表示にフォールバック）:", e)
 
+# ───────── 流入データの主従（2026-08-09〜）: GA4 が主・Cloudflare は保険 ─────────
+# どちらか片方が落ちてもレポートは必ず出る。両方落ちたときだけ流入セクションが空になる。
+_g_cur = ga4_traffic(g1, l1)
+_g_prev = ga4_traffic(g0, g1)
+if _g_cur:
+    cur, prev = _g_cur, (_g_prev or empty_traffic())
+    traffic_source = "GA4"
+elif cf_cur:
+    cur, prev = cf_cur, (cf_prev or empty_traffic())
+    traffic_source = "Cloudflare（GA4取得失敗のため代替）"
+else:
+    cur = prev = empty_traffic()
+    traffic_source = "取得失敗"
+    print("流入データを GA4・Cloudflare のどちらからも取得できませんでした。")
+prev_paths = dict(prev["paths"])
+prev_ref = dict(prev["ref"])
+
+
 # ───────────────────────── 週次スナップショット（前週比の起点）─────────────────────────
 _psnap = sb("weekly_metrics", "*", f"week_start=lt.{week_start}&order=week_start.desc&limit=1")
 prev_snap = _psnap[0] if _psnap else None
@@ -274,11 +411,15 @@ snap = {
     "week_start": week_start,
     "total_cars": total, "n_500": n_500, "n_126": n_126, "new_regs_7d": new_7d,
     "linked": linked, "active_30d": active30, "active_90d": active90, "edited": edited,
+    "participation_90d": participation90,
     "unlinked": n_unlinked,
     "rel_count": rel_want + rel_met, "rel_users": rel_users, "event_cars": event_cars,
     "fav_users": fav_users, "episodes_pub": ep_pub,
     "garage_notes": gnotes, "user_selections": usel,
-    "pv_7d": cur["pv"], "visits_7d": cur["visits"],
+    # pv_7d / visits_7d は Cloudflare 由来の時系列。GA4 の値は下の pv / visits に別カラムで入るので、
+    # 過去との継続性を壊さないよう混ぜない。Cloudflare が取れなかった週は null のままにする。
+    "pv_7d": cf_cur["pv"] if cf_cur else None,
+    "visits_7d": cf_cur["visits"] if cf_cur else None,
 }
 if ga4:
     snap.update({
@@ -287,7 +428,10 @@ if ga4:
         "signup_cvr": ga4["signup_cvr"],
         "affil_clicks": ga4["affil_clicks"], "affil_click_by_page": ga4["affil_click_by_page"],
     })
-sb_upsert("weekly_metrics", snap)
+if DRY_RUN:
+    print(f"[DRY RUN] weekly_metrics への upsert をスキップ（week_start={week_start}／流入ソース={traffic_source}）")
+else:
+    sb_upsert("weekly_metrics", snap)
 
 
 # ───────────────────────── 表示ヘルパ（前週比）─────────────────────────
@@ -370,8 +514,9 @@ read_reg = (f"今週の新規登録は {new_7d}台（前週 {prev_7d}台）。�
             f"{last_ym} は {last_n}台。旧車ゆえ台数の急増は構造的に見込みにくく、<b>“数”より“質”を重視する局面</b>。")
 read_retain = (f"登録 {total}台のうち連携は {linked}台（{pct(linked, total)}）。残り {n_unlinked}台は"
                f"<b>メール登録のみの休眠</b>。名簿は py/unlinked_owners.csv に出力済。<b>声掛けで最も簡単に活性化できる資産</b>。")
-read_active = (f"連携 {linked_n}人中、90日ログインは {active90}人（{pct(active90, linked_n)}）。"
-               f"<b>連携できれば定着は良好</b>。全登録比の実アクティブは {pct(active90, total)}（90日）。")
+read_active = (f"直近90日に<b>何かした車は {participation90}台</b>（登録 {total}台の {pct(participation90, total)}・基準 {PARTICIPATION_BASE}台/{PARTICIPATION_BASE_AT}）。新規登録・車両更新・車載手帳・イベント参加・ストーリーの重複なし。"
+               f"別指標として、連携 {linked_n}人中の90日ログインは {active90}人（{pct(active90, linked_n)}）"
+               f"＝<b>ログインは参加ではない</b>ので混ぜて読まない。")
 read_cohort = (f"12月の大量登録はいま定着 {_boom:.0f}% まで低下。対して 2026-03 以降は平均 {_recent_avg:.0f}%。"
                f"<b>「数は減ったが質は上がった」</b>。最近の獲得・オンボーディングを伸ばすのが正解。")
 read_engage = (f"繋がり {rel_want + rel_met}件が {rel_users}人に集中。イベント {event_cars}台・スポット {fav_users}人・"
@@ -383,6 +528,12 @@ if usel <= 2:
     unused.append(f"比べ太郎の保存 {usel}件")
 read_unused = "／".join(unused) if unused else "目立った未使用機能なし"
 active_rate90 = pct(active90, total)
+# 北極星（90日参加台数）の基準からの増減。基準は 43台（2026-08-29）で固定＝
+# 週次の前週比とは別に「戦略の目標線をまだ上回っているか」を一目で見るため。
+_bd = participation90 - PARTICIPATION_BASE
+base_delta = (f'<span class="up">+{_bd}</span>' if _bd > 0
+              else f'<span class="down">{_bd}</span>' if _bd < 0
+              else '<span class="flat">±0</span>')
 
 # ───────────────────────── チャート用データ ─────────────────────────
 _coh_rates = [round(r["active_90d"] / r["registered"] * 100) if r["registered"] else 0 for r in cohort]
@@ -402,6 +553,8 @@ chart = {
     "cohReg": [r["registered"] for r in cohort],
     "linked": linked, "unlinked": n_unlinked,
     "active30": active30, "active90": active90, "linkedN": linked_n,
+    "participation90": participation90, "participationBase": PARTICIPATION_BASE,
+    "loginDate": [d["d"][5:] for d in dlogins], "loginN": [d["n"] for d in dlogins],
     "featLabels": ["連携(台)", "登録後編集(台)", "繋がり(件)", "イベント(台)", "スポット(人)", "エピソード(件)"],
     "featVals": [linked, edited, rel_want + rel_met, event_cars, fav_users, ep_pub],
     "bydayDate": [d[5:] for d, _, _ in cur["byday"]],
@@ -468,6 +621,9 @@ new Chart(document.getElementById('cFeat'),{type:'bar',
 new Chart(document.getElementById('cDay'),{type:'line',
  data:{labels:D.bydayDate,datasets:[{data:D.bydayPv,borderColor:'#2e7d32',backgroundColor:'rgba(46,125,50,.12)',fill:true,tension:.3,pointRadius:2}]},
  options:{...noLeg,scales:{y:{beginAtZero:true}}}});
+new Chart(document.getElementById('cLogin'),{type:'line',
+ data:{labels:D.loginDate,datasets:[{data:D.loginN,borderColor:'#3f74d6',backgroundColor:'rgba(63,116,214,.12)',fill:true,tension:.3,pointRadius:2}]},
+ options:{...noLeg,scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});
 """
 
 # ───────────────────────── ① 獲得ファネル・④ 収益（GA4取得結果 or pending）─────────────────────────
@@ -509,12 +665,12 @@ HTML = f"""<!DOCTYPE html>
 <body>
 <div class="wrap">
 <h1>📊 成長レポート</h1>
-<div class="sub">対象週 {week_start} 〜（週次）／ 登録・定着=Supabase全期間・流入=Cloudflare直近7日／ 北極星は「質・活性化・満足・収益」</div>
+<div class="sub">対象週 {week_start} 〜（週次）／ 登録・定着=Supabase全期間・流入={traffic_source}直近7日／ 北極星は「質・活性化・満足・収益」</div>
 
 <div class="kpi-grid">
   <div class="kpi blue"><div class="k">累計 登録台数</div><div class="v">{total}</div><div class="d">500:{n_500} / 126:{n_126}</div></div>
   <div class="kpi green"><div class="k">今週の新規登録</div><div class="v">{new_7d}</div><div class="d">{delta(new_7d, prev_7d)}</div></div>
-  <div class="kpi amber"><div class="k">実アクティブ率(90日)</div><div class="v">{active_rate90}</div><div class="d">{active90}/{total}台 ・ {wdelta('active_90d', active90)}</div></div>
+  <div class="kpi amber"><div class="k">90日参加台数 <small>★北極星</small></div><div class="v">{participation90}</div><div class="d">{pct(participation90, total)} ・ 基準{PARTICIPATION_BASE}台({PARTICIPATION_BASE_AT}) {base_delta} ・ {wdelta('participation_90d', participation90)}</div></div>
   <div class="kpi red"><div class="k">休眠（未連携）</div><div class="v">{n_unlinked}</div><div class="d">{pct(n_unlinked, total)} ・ {wdelta('unlinked', n_unlinked)}</div></div>
 </div>
 
@@ -553,8 +709,9 @@ HTML = f"""<!DOCTYPE html>
 
 <div class="seg-title">③ アクティブ層を満足させる ― 定着と機能</div>
 <div class="kpi-grid">
-  <div class="kpi green"><div class="k">90日アクティブ</div><div class="v">{active90}</div><div class="d">連携比 {pct(active90, linked_n)}</div></div>
-  <div class="kpi green"><div class="k">30日アクティブ</div><div class="v">{active30}</div><div class="d">連携比 {pct(active30, linked_n)}</div></div>
+  <div class="kpi amber"><div class="k">90日参加（台）</div><div class="v">{participation90}</div><div class="d">登録比 {pct(participation90, total)} ・ 何かした車</div></div>
+  <div class="kpi green"><div class="k">90日ログイン（人）</div><div class="v">{active90}</div><div class="d">連携比 {pct(active90, linked_n)} ・ 参加ではない</div></div>
+  <div class="kpi green"><div class="k">30日ログイン（人）</div><div class="v">{active30}</div><div class="d">連携比 {pct(active30, linked_n)}</div></div>
   <div class="kpi blue"><div class="k">繋がり（件 / 人）</div><div class="v">{rel_want + rel_met}</div><div class="d">{rel_users}人に集中</div></div>
   <div class="kpi blue"><div class="k">イベント参加 車両</div><div class="v">{event_cars}</div><div class="d">台</div></div>
 </div>
@@ -569,12 +726,17 @@ HTML = f"""<!DOCTYPE html>
     <div class="cbox"><canvas id="cFeat"></canvas></div>
     <div class="note">{read_engage}<br>⚠️ ほぼ未使用: {read_unused}</div>
   </div>
+  <div class="cardbox">
+    <h3>日次ログイン人数（実人数）</h3><div class="cap">直近30日・同じ人が1日に何度ログインしても1人（延べ人数ではない）</div>
+    <div class="cbox"><canvas id="cLogin"></canvas></div>
+    <div class="note">⚠️ 集計は毎日GitHub Actionsで前日分を確定させる（daily_logins・非公開テーブル）。⛔誰がログインしたかは公開しない。</div>
+  </div>
 </div>
 
 <div class="seg-title">④ 収益 ― アフィリエイト送客</div>
 {revenue_html}
 
-<div class="seg-title">流入（Cloudflare 直近7日 / フェーズ3でGA4へ移管）</div>
+<div class="seg-title">流入（{traffic_source} 直近7日）</div>
 <div class="kpi-grid">
   <div class="kpi blue"><div class="k">ページビュー</div><div class="v">{cur['pv']:,}</div><div class="d">{delta(cur['pv'], prev['pv'])}</div></div>
   <div class="kpi blue"><div class="k">訪問数</div><div class="v">{cur['visits']:,}</div><div class="d">{delta(cur['visits'], prev['visits'])}</div></div>
@@ -586,7 +748,7 @@ HTML = f"""<!DOCTYPE html>
     <div class="cbox"><canvas id="cDay"></canvas></div>
   </div>
   <div class="cardbox">
-    <h3>流入元（前週比）</h3><div class="cap">どこから来ているか</div>
+    <h3>流入元（前週比）</h3><div class="cap">どこから来ているか（セッション数・サイト内の遷移は除く）</div>
     <table><tr><th>流入元</th><th class="num">今週</th><th class="num">前週</th><th>増減</th></tr>{ref_rows}</table>
   </div>
 </div>
@@ -594,7 +756,7 @@ HTML = f"""<!DOCTYPE html>
 <details>
   <summary>▸ 詳細データ（コホート表・人気ページ・デバイス）</summary>
   <p style="font-size:.85rem;color:#555;margin:.8em 0 .3em">コホート定着（登録月別）</p>
-  <table><tr><th>登録月</th><th class="num">登録</th><th class="num">連携</th><th class="num">90日活動</th><th class="num">定着率</th></tr>{cohort_rows}</table>
+  <table><tr><th>登録月</th><th class="num">登録</th><th class="num">連携</th><th class="num">90日ログイン</th><th class="num">定着率</th></tr>{cohort_rows}</table>
   <p style="font-size:.85rem;color:#555;margin:1.2em 0 .3em">人気ページ（前週比）</p>
   <table><tr><th>ページ</th><th class="num">今週</th><th class="num">前週</th><th>増減</th></tr>{path_rows}</table>
   <p style="font-size:.85rem;color:#555;margin:1.2em 0 .3em">デバイス</p>
@@ -612,5 +774,5 @@ HTML = f"""<!DOCTYPE html>
 with open(OUT, "w", encoding="utf-8") as f:
     f.write(HTML)
 print("OK ->", OUT)
-print(f"登録 {total} / 連携 {linked} / 実アクティブ90日 {active90} / 休眠 {n_unlinked} / 今週登録 {new_7d}(前週 {prev_7d})")
+print(f"登録 {total} / 連携 {linked} / 90日参加 {participation90}台(基準{PARTICIPATION_BASE}) / 90日ログイン {active90}人 / 休眠 {n_unlinked} / 今週登録 {new_7d}(前週 {prev_7d})")
 print(f"週次スナップショット: week_start={week_start} / 前週記録={'あり' if prev_snap else 'なし(初回)'}")

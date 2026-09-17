@@ -67,6 +67,7 @@ week_start (date, PK)
 -- 登録/定着（Supabase）
 total_cars, n_500, n_126, new_regs_week,
 linked, new_links_week, active_30d, active_90d, edited,
+participation_90d,              -- ★北極星: 直近90日に「何かした」車の台数
 unlinked,                       -- 休眠の規模
 -- エンゲージメント
 rel_count, rel_users, event_cars, fav_users, episodes_pub,
@@ -76,6 +77,47 @@ pv, visits, signup_page_views, signups, signup_cvr,
 affil_clicks, affil_click_by_page (jsonb)
 generated_at
 ```
+
+### `participation_90d` と `active_90d` は別物（2026-09-10 追加）
+
+3つの数字が「90日参加」を名乗って並存していたので1本化した。
+
+| 列 | 数えるもの | 単位 |
+|---|---|---|
+| `participation_90d` | **直近90日に何かした車**（★北極星） | 台 |
+| `active_90d` | 90日以内にログインしたオーナー | 人 |
+| `active_30d` | 30日以内にログインしたオーナー | 人 |
+
+`participation_90d` の定義＝次の5経路の**車IDの和集合（重複なし）**。
+
+1. 新規登録 … `car_history.kind = registered`
+2. 車両更新 … `car_history.kind = updated`（`occurred_at` は `cars.last_update_date` 由来）
+3. 車載手帳 … `equipment_records`（車に紐づくものだけ。**非公開の手帳も参加として数える**）
+4. イベント参加表明 … `event_participants`
+5. ストーリー … `car_episodes`
+
+- **ベースライン＝43台（2026-08-29）**。旧ベースライン 34 は「車両更新だけ」の古い定義なので使わない。
+- ⚠️ `car_history` は 2026-09-10 のバックフィルで作った。バックフィルは車1台につき `updated` を
+  **最新1件しか持たない**ため、2026-09-10 より前の窓では経路2が実際より少なく出る。以後はトリガーが
+  毎回記録するので正しくなる（同じ定義で 2026-08-29 を数え直すと 42＝基準 43 との差1台はこれ）。
+- ⛔ `active_90d` を「参加」と読まない。レポートの見出しは「90日ログイン（人）」に統一した。
+
+### 日次ユニークログイン人数（`daily_logins`・2026-09-10 追加）
+
+「延べ」ではなく「実人数」で日次のログインを見たい要望に応えて新設。同じ人が1日に何度
+ログインしても1人として数える。**非公開**：`public.daily_logins` はRLS有効・ポリシーなし
+＝`service_role` 以外は読み書きできない。SQLは `py/create_daily_logins_2026-09-10.sql`。
+
+- 収集本体 `public.sync_daily_logins(target_date)`：`auth.sessions.created_at`（新しい
+  セッションの開始＝サインイン。トークンのリフレッシュは数えない）をJSTの日付に変換し、
+  ユニーク `user_id` を数えて `cars` から `handle_name` / `owner_email` / `car_id` を
+  突き合わせる。個人の特定はこのテーブルを直接見る（Supabase MCP等）運用で、自動の
+  CSVエクスポートはあえて作っていない。
+- `public.report_daily_logins(days)`：人数だけを `{date, n}` の配列で返す読み取り関数
+  （個人情報を含まない）。`report.html` の「日次ログイン人数（実人数）」グラフはこれを使う。
+- 収集は毎日 `py/collect_daily_logins.py` を GitHub Actions（`daily-login-collect.yml`・
+  JST 04:20）が呼び、前日分を確定させる。`auth.sessions` の保持期間が不確定なため、
+  日をまたぐ前に固定保存する設計。
 
 ---
 

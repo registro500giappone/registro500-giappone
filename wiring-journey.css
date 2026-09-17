@@ -1,0 +1,289 @@
+/* 旅ページ共通の外観（1症状=1ページ=1URLの「旅の絵」）。
+   配色はサイトの「クラシコ・イタリアーノ」（アイボリー＋深緑）。
+   通電の色は案C（2026-08-20 決裁）＝線は原典の被覆色・通電は黄点の動き・無電は薄く。
+   ⚠️下の C1_CSS マーカーに挟まれた #c1{} は wiring-simulator/splice_c1_meter.py が
+     wiring-story.html から自動で差し込む。手で書き換えない。 */
+:root{
+  --bg:#faf7f0; --card:#fffdf8; --ink:#3a352c; --deep:#2c3a31; --sub:#8d8574;
+  --line:#ddd5c4; --hi:#b8442e; --flow:#f7c948; --ok:#2f7d4f;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+     font:15px/1.8 system-ui,-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif}
+.sitebar{background:var(--deep);color:#f2ead8;font-size:13px;letter-spacing:.08em;
+         padding:9px 16px;text-align:center}
+.sitebar{font-weight:700}   /* ⛔ここはページの名札＝リンクにしない（2026-08-25 ユーザー指摘） */
+.sitebar .kai{margin-left:14px;opacity:.75;letter-spacing:.1em;font-weight:400}
+/* 読み終わりに置く目次への戻り口 */
+.backlink{margin:30px 0 0;text-align:center}
+.backlink a{display:inline-block;padding:11px 20px;color:var(--deep);font-weight:700;
+            font-size:14px;text-decoration:none;border:1px solid var(--line);border-radius:999px}
+.backlink a:hover{background:var(--deep);color:#f7f2e4;border-color:var(--deep)}
+.col{max-width:460px;margin-inline:auto;padding:16px 14px 56px}
+/* 頭は詰める＝タイトルのすぐ下にメーター（アイキャッチ）が来る（2026-08-21 FB） */
+header{margin-bottom:12px}
+header h1{font-size:23px;line-height:1.32;margin:0 0 4px;color:var(--deep);text-wrap:balance}
+header p{margin:0;color:var(--sub);font-size:13.5px;line-height:1.6}
+h2{font-size:18px;margin:30px 0 10px;color:var(--deep);text-wrap:balance}
+/* ⚠️見出しを【意味の切れ目でだけ】折る。text-wrap:balance は行長を均等にするので
+   「犯人は「2／つに共通する…」のように語の途中で割れる。keep-all で自動折返しを止め、
+   <wbr> を置いた所だけを候補にする。⚠️overflow-wrap:anywhere を足すと keep-all を打ち消して
+   任意の位置で折れてしまうので入れない（実測で確認済み）＝その代わり <wbr> の入れ漏れは
+   はみ出しとして現れる。実測スクリプトの scrollWidth 判定で拾うこと。
+   ⚠️このクラスを付けた h2 だけに効く＝<wbr> を入れていない号の見た目は変わらない。 */
+h1.brk>span,h2.brk>span{display:inline-block}
+.eyebrow{font-size:12px;letter-spacing:.14em;color:var(--hi);font-weight:700;margin-top:30px}
+.eyebrow+h2{margin-top:2px}
+.safety{background:#fbeeea;border:1px solid #e4b7a9;border-left:5px solid var(--hi);
+        border-radius:10px;padding:12px 14px;margin:16px 0;font-size:14px}
+.safety b{color:var(--hi)}
+.fork{background:#eef2ec;border:1px solid #c6d2c3;border-radius:10px;
+      padding:10px 14px;margin:14px 0;font-size:13.5px}
+.fork a{color:var(--deep);font-weight:700}
+/* この旅がどの車の配線なのか＝126オーナーが自分の車として読まないための帯。
+   ⚠️赤（.safety）と競わせない＝安全上の警告ではなく「適用範囲」の話なので地味に置く。 */
+.scope{border:1px solid var(--line);border-left:4px solid var(--sub);border-radius:8px;
+       padding:8px 12px;margin:14px 0 0;font-size:12.5px;color:var(--sub);line-height:1.65}
+.scope b{color:var(--deep)}
+/* ⭐トグルを「その図を見ている間だけ」画面の上端に張り付ける（2026-08-28 ユーザー指摘）。
+   狙い＝ボタンを押した瞬間に【何が変わったか】が同じ画面に入っていること。
+   💡絵の全体が1画面に収まっている必要はない＝【変化する場所とボタンが同時に見えれば解決する】。
+   ⚠️必ず .stick で【トグル＋その図＋その説明文】だけを包むこと。包まないと sticky の親が
+     記事全体になり、本文を読んでいる間ずっとボタンが上端に居座る。 */
+.stick{position:relative}
+.stick .toggle{position:sticky;top:0;z-index:5;background:var(--bg);
+               padding:8px 0 6px;margin:0 0 8px;
+               box-shadow:0 8px 10px -8px rgba(58,53,44,.28)}
+.scene{background:var(--card);border:1px solid var(--line);border-radius:12px;
+       padding:10px;display:flex;justify-content:center}
+.scene svg{display:block;max-width:100%;height:auto}
+svg text{font-family:system-ui,-apple-system,"Hiragino Sans",sans-serif}
+.cap{font-size:14px;margin:10px 2px 0}
+.cap b{color:var(--deep)}
+.note{font-size:13px;color:var(--sub);margin:6px 2px 0}
+/* よくある疑問＝地の注記と同じ体裁だと埋もれる（2026-08-21 FB）。囲って一段持ち上げる */
+.qa{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--deep);
+    border-radius:10px;padding:11px 13px;margin:14px 0 0;font-size:13.5px;line-height:1.75}
+.qa b{color:var(--deep)}
+.qa-h{display:block;font-size:12px;letter-spacing:.1em;color:var(--hi);font-weight:700;margin-bottom:2px}
+ol.causes{font-size:14px;margin:10px 0 0;padding-left:1.5em}
+ol.causes li{margin-bottom:6px}
+ol.causes b{color:var(--deep)}
+/* 本文中のリンク＝既定の青はこの紙のトーンから浮く（.fork a と同じ色に寄せ、
+   本文の中なので下線でリンクだと分かるようにする） */
+ol.causes a{color:var(--deep);font-weight:700;text-decoration:underline;text-underline-offset:2px}
+/* 番号を持たない注記＝道順を語る ol の途中に差し込んでも 1→2→4 と番号が飛ばない。
+   （第4回でオルタネーター換装車への読み替えを②の直後に置くために作った） */
+ol.causes li.aside{list-style:none;counter-increment:list-item 0;/* ⚠️これが無いと番号が飛ぶ（1→2→4）*/
+                   margin-left:-1.5em;padding:9px 12px;
+                   background:#f4efe2;border-left:3px solid var(--line);border-radius:0 6px 6px 0}
+/* 同じ注記を ol の外（表の直後など）にも置けるようにしたもの。見た目は li.aside と対。
+   （第5回でオルタネーター換装車への読み替えを絞り込みの表の後ろに置くために作った）
+   ⚠️色と余白を変えるときは上の ol.causes li.aside と両方直す。 */
+p.aside{margin:12px 0 0;padding:9px 12px;font-size:14px;
+        background:#f4efe2;border-left:3px solid var(--line);border-radius:0 6px 6px 0}
+p.aside a{color:var(--deep);font-weight:700;text-decoration:underline;text-underline-offset:2px}
+/* 操作は図の直上（教訓：離すと変化を追えない） */
+.toggle{display:flex;gap:6px;margin:0 0 8px}
+.toggle button{flex:1;font:inherit;font-size:14px;padding:9px 8px;border:1px solid var(--line);
+               border-radius:999px;background:var(--card);color:var(--ink);cursor:pointer}
+.toggle button.on{background:var(--deep);color:var(--card);border-color:var(--deep);font-weight:700}
+table{border-collapse:collapse;font-size:13px;width:100%;margin-top:10px}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;background:var(--card);vertical-align:top}
+th{color:var(--deep)}
+td.ok{color:var(--ok);font-weight:700}
+td.ng{color:var(--hi);font-weight:700}
+/* 「消え方の一覧」の表（第8回）＝3列のままだと狭い画面で1列目が2文字幅まで潰れる。
+   1行を1枚のカードに崩し、消え方を見出し帯・残り2つをラベル付きで縦に読ませる
+   （2026-08-31 ユーザー確認の実機スクショで決定）。data-l がラベルの正本。 */
+table.dx,table.dx tbody,table.dx tr,table.dx td{display:block;width:auto}
+table.dx{border:0}
+table.dx tr:first-child{display:none}   /* 見出し行は td の data-l が受ける */
+table.dx tr{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:8px}
+table.dx td{border:0;border-top:1px solid var(--line);padding:7px 10px}
+table.dx td:first-child{border-top:0;background:var(--bg);font-size:14px}
+table.dx td::before{content:attr(data-l);display:block;font-size:11px;color:var(--sub);
+  letter-spacing:.06em;font-weight:400;margin-bottom:2px}
+table.dx td:first-child::before{display:none}
+
+
+/* 黄点＝通電。点滅ではなく「流す」（2026-08-20 フィードバック）。.up は充電で戻る向き */
+.dot{fill:var(--flow)}
+@media (prefers-reduced-motion: no-preference){
+  /* 警告灯のにじみ。⛔点滅ではなくゆっくりした明滅（実車の警告灯は点滅しない）。
+     動きを止めている人にはこのブロックごと効かず、静止した赤で出る */
+  .lampglow{animation:glow 1.5s ease-in-out infinite}
+  .dot{animation:flowdown 1s linear infinite}
+  .dot.up{animation:flowup 1s linear infinite}
+  .spin{animation:spin 1.2s linear infinite}
+  @keyframes flowdown{to{transform:translateY(22px)}}
+  @keyframes flowup{to{transform:translateY(-22px)}}
+  .dot.right{animation:flowright 1s linear infinite}
+  .dot.left{animation:flowleft 1s linear infinite}
+  @keyframes flowright{to{transform:translateX(22px)}}
+  @keyframes flowleft{to{transform:translateX(-22px)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  /* ⭐第6回の従図＝点火のしくみを【1周10秒の通しアニメ】で見せる（2026-08-26 ユーザー確定）。
+     物語＝「電気が来る → 一次に磁気が溜まる → ポイントが開いて電流が切れる →
+             二次に高圧が生まれる → 高圧が線を伝ってプラグまで届く → 火花が飛ぶ」。
+     ⭐⭐【1周＝5秒のサイクル2回】でできている＝前半で プラグ① が、後半で プラグ② が光る。
+       ⚠️500 はデスビ配電＝【交互点火】で、2本が同時に飛ぶことはない。だから絵も交互にする
+       （2026-08-26 ユーザー指摘「同時点火？」で直した。⛔同時に戻さない）。
+       ⚠️だから keyframes は【0〜50% と 50〜100% に同じ形が2回】書いてある。
+         片方だけ直すと前半と後半で動きが食い違う＝必ず両方を同じだけ直すこと。
+     ⚠️⚠️すべて同じ 10s 周期・linear で回す＝【%がそのまま物語の順番】になる。
+       ⛔どれか1つだけ duration や timing を変えないこと（順番が崩れて意味が壊れる）。
+     ⚠️高圧の発生と火花は【わざと同時にしていない】＝間を `ig-runA/B`（線が伸びる）で繋いだので、
+       「出た → 伝わった → 飛んだ」が読める。⛔同時に戻さない（2026-08-26 ユーザー確定）。
+     ⚠️ここは【繰り返し起きる現象】なので繰り返してよい＝本文にも「毎秒何十回も」と書いてある。
+       ⛔ただし速い点滅にはしない。警告灯の点滅を禁じている理由（断続する不具合に読める）とは
+       別物＝あちらは「状態」、こちらは「動作」。混ぜないこと。
+     ⚠️アニメが効かない読者（prefers-reduced-motion: reduce）には「①溜まっている」静止画が
+       残るよう、SVG 側に opacity 属性を置いてある＝⛔属性を消さないこと。 */
+  .ig-cycle{animation-duration:10s;animation-iteration-count:infinite;animation-timing-function:linear}
+  .ig-mag{transform-box:fill-box;transform-origin:center}
+  .ig-s1{animation-name:igs1}
+  .ig-s2{animation-name:igs2}
+  .ig-s3a{animation-name:igs3a}
+  .ig-s3b{animation-name:igs3b}
+  .ig-m2{animation-name:igm2}
+  .ig-prim{animation-name:igprim}
+  .ig-mag{animation-name:igmag}
+  .ig-ptC{animation-name:igptc}
+  .ig-ptO{animation-name:igpto}
+  .ig-snap{animation-name:igsnap;transform-box:fill-box;transform-origin:center}
+  .ig-sec{animation-name:igsec}
+  .ig-bolt{animation-name:igbolt}
+  .ig-runA{animation-name:igrunA}
+  .ig-runB{animation-name:igrunB}
+  .ig-sparkA{animation-name:igsparkA}
+  .ig-sparkB{animation-name:igsparkB}
+  /* 見出し4枚（同じ場所に重ねてある）と右上のラベル2枚 */
+  @keyframes igs1{0%,19%{opacity:1}21%,44%{opacity:0}47%,69%{opacity:1}71%,94%{opacity:0}97%,100%{opacity:1}}
+  @keyframes igs2{0%,19%{opacity:0}21%,26%{opacity:1}28%,69%{opacity:0}71%,76%{opacity:1}78%,100%{opacity:0}}
+  @keyframes igs3a{0%,26%{opacity:0}28%,44%{opacity:1}47%,100%{opacity:0}}
+  @keyframes igs3b{0%,76%{opacity:0}78%,94%{opacity:1}97%,100%{opacity:0}}
+  @keyframes igm2{0%,19%{opacity:0}21%,44%{opacity:1}47%,69%{opacity:0}71%,94%{opacity:1}97%,100%{opacity:0}}
+  /* 一次に流れる点＝キーから来て、ポイントで切れるまで（不可視の間に先頭へ巻き戻す） */
+  @keyframes igprim{0%{opacity:1;stroke-dashoffset:0}
+                    20%{opacity:1;stroke-dashoffset:-252}
+                    21%{opacity:0;stroke-dashoffset:-252}
+                    45%{opacity:0;stroke-dashoffset:0}
+                    48%,50%{opacity:1;stroke-dashoffset:0}
+                    70%{opacity:1;stroke-dashoffset:-252}
+                    71%{opacity:0;stroke-dashoffset:-252}
+                    95%{opacity:0;stroke-dashoffset:0}
+                    98%,100%{opacity:1;stroke-dashoffset:0}}
+  /* 磁気の輪＝育つ→満ちる→崩れて消える（色も緑→橙へ）を2回 */
+  @keyframes igmag{0%{transform:scale(.5);opacity:0;stroke:#7fd6a0}
+                   11%{transform:scale(1);opacity:.85;stroke:#7fd6a0}
+                   20%{transform:scale(1);opacity:.9;stroke:#7fd6a0}
+                   21%{stroke:#e8a33d}
+                   26%{transform:scale(1.55);opacity:0;stroke:#e8a33d}
+                   44%,50%{transform:scale(.5);opacity:0;stroke:#7fd6a0}
+                   61%{transform:scale(1);opacity:.85;stroke:#7fd6a0}
+                   70%{transform:scale(1);opacity:.9;stroke:#7fd6a0}
+                   71%{stroke:#e8a33d}
+                   76%{transform:scale(1.55);opacity:0;stroke:#e8a33d}
+                   94%,100%{transform:scale(.5);opacity:0;stroke:#7fd6a0}}
+  /* ポイントの接点＝閉じている腕と開いている腕を差し替える（回転させない＝端末差が出ないため）。
+     ⚠️ig-ptO は【開いた腕・橙のリング・⚡・「ここで切れる」の文字】が共有している＝
+       この4つが同時に出入りすることで「切れた」が目に留まる。⛔ばらばらの名前に分けない。 */
+  @keyframes igptc{0%,20%{opacity:1}21%,45%{opacity:0}48%,70%{opacity:1}71%,95%{opacity:0}98%,100%{opacity:1}}
+  @keyframes igpto{0%,20%{opacity:0}21%,45%{opacity:1}48%,70%{opacity:0}71%,95%{opacity:1}98%,100%{opacity:0}}
+  /* 切れた【瞬間】の波紋＝1サイクルに1回だけ、接点からぱっと広がって消える。
+     ⚠️これが「切れる動作」の主役＝腕の差し替えだけだと切り替わったことに気づけない
+     （2026-08-26 ユーザー要望「切れる動作ももっと目立たせたい」）。 */
+  @keyframes igsnap{0%,20%{opacity:0;transform:scale(.35)}
+                    21%{opacity:.95;transform:scale(.35)}
+                    27%{opacity:0;transform:scale(2.2)}
+                    48%,70%{opacity:0;transform:scale(.35)}
+                    71%{opacity:.95;transform:scale(.35)}
+                    77%{opacity:0;transform:scale(2.2)}
+                    98%,100%{opacity:0;transform:scale(.35)}}
+  /* 二次巻線＝高圧が出ている間だけ色が変わる */
+  @keyframes igsec{0%,23%{stroke:#e6e0d0}26%,40%{stroke:#e8a33d}44%,73%{stroke:#e6e0d0}76%,90%{stroke:#e8a33d}94%,100%{stroke:#e6e0d0}}
+  @keyframes igbolt{0%,23%{opacity:0}26%,38%{opacity:1}42%,73%{opacity:0}76%,88%{opacity:1}92%,100%{opacity:0}}
+  /* 高圧がプラグまで【伸びていく】＝--L は SVG 側で渡す道の実長。A は前半・B は後半だけ光る */
+  @keyframes igrunA{0%,26%{opacity:0;stroke-dashoffset:var(--L)}
+                    28%{opacity:1;stroke-dashoffset:var(--L)}
+                    35%,42%{opacity:1;stroke-dashoffset:0}
+                    45%{opacity:0;stroke-dashoffset:0}
+                    48%,100%{opacity:0;stroke-dashoffset:var(--L)}}
+  @keyframes igrunB{0%,76%{opacity:0;stroke-dashoffset:var(--L)}
+                    78%{opacity:1;stroke-dashoffset:var(--L)}
+                    85%,92%{opacity:1;stroke-dashoffset:0}
+                    95%{opacity:0;stroke-dashoffset:0}
+                    98%,100%{opacity:0;stroke-dashoffset:var(--L)}}
+  @keyframes igsparkA{0%,33%{opacity:0}36%,44%{opacity:1}47%,100%{opacity:0}}
+  @keyframes igsparkB{0%,83%{opacity:0}86%,94%{opacity:1}97%,100%{opacity:0}}
+}
+/* C1文字盤（UCM-1メーターアプリから移植）用 */
+.hid{display:none}
+/* ⚠️振れ幅を .35 まで落とすと、暗い側の瞬間に「消えている」ように見える（PCで実測）。
+   下限を上げて「ずっと光っていて、息をしている」だけにする（2026-08-21 その2）。
+   その3＝光の広がりもわずかに呼吸させる＝色より動きの方が小さい画面で目に入る。
+   ⛔点滅ではない（実車の警告灯は点滅しない）＝1.5秒でゆっくり */
+@keyframes glow{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.66;transform:scale(.93)}}
+.lampglow{transform-box:fill-box;transform-origin:center}
+/*C1_CSS_BEGIN*/#c1{
+    --f0:#151310; --f1:#080706;      /* 文字盤の地（中心→外周） */
+    --tick:#1b1815; --num:#f4f1e8;   /* 目盛り／数字 */
+    --plate:#efece3; --plate2:#d6d0c1;
+    --needle:#e0402c; --hub:#d8402c;
+    --accent:#c9a44e; --ivory:#ece7db; --dim:#8b8474; --line:#28221866;
+    --b0:#f5f5f3; --b1:#5c5c5a;
+    --amber:#ffac2e; --red:#ff4a35;
+    --dialfont:system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif; --nw:600;
+  }/*C1_CSS_END*/
+details{margin-top:26px;font-size:13px;color:var(--sub)}
+details table{font-size:12.5px}
+.check-ok{color:var(--ok);font-weight:700}
+.check-ng{color:var(--hi);font-weight:700}
+footer{margin-top:34px;border-top:1px solid var(--line);padding-top:12px;
+       font-size:12px;color:var(--sub)}
+
+/* 本文の●＝carmap の点と同じ色にする（2026-08-25 FB「絵と記事の文字色が不統一」）。
+   ⚠️色の値は各ページの carmap の marks[].color と対で、片方だけ変えない。 */
+.pin-hot{color:#b8442e}    /* 主役の部品 */
+.pin-sub{color:#2c3a31}    /* 脇役の部品 */
+.pin-mute{color:#8d8574}   /* 位置を掴むための目印 */
+
+/* 図の中の丸番号を、本文の側にも同じ形で出すためのバッジ。
+   絵の circle（薄い地色＋細い縁）と見え方を揃えてあり、片方だけ色を変えない。 */
+.fignum{display:inline-block;min-width:1.3em;height:1.3em;line-height:1.24em;
+        margin-right:.4em;border-radius:50%;background:#e8e1d2;border:1px solid #8d8574;
+        color:#3a352c;font-size:.82em;font-weight:400;text-align:center;vertical-align:.08em}
+
+/* ==========================================================================
+   週刊連載の門番（/wiring-journey-gate.js）。
+   ⚠️読ませてよいと分かるまで本文を伏せる＝一度出してから消すと「取り上げられた」
+     ように見えるので、伏せる側を既定にして、開くときにクラスを外す。
+   ========================================================================== */
+/* ⚠️伏せる規則（html.j-locked …）はここに置かない＝門番の JS が自分で差し込む。
+   共通CSSの古い版が1回返るだけで先行中の本文が出てしまうため（sw.js は CSS を
+   StaleWhileRevalidate で返す）。ここに在るのは門番が出す札とカードの見た目だけ。 */
+.j-gate{background:var(--card);border:1px solid var(--line);border-radius:14px;
+        padding:22px 18px;margin:22px 0 0;box-shadow:0 1px 0 #0000000a}
+.j-gate h2{margin:0 0 10px;font-size:17px;color:var(--deep);line-height:1.5}
+.j-gate p{margin:0 0 10px;font-size:14px;line-height:1.85;color:var(--ink)}
+.j-gate-note{color:var(--hi)}
+.j-gate-act{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.j-btn{display:inline-block;padding:11px 18px;border-radius:10px;border:1px solid var(--deep);
+       background:var(--deep);color:#f7f2e4;font-size:14px;font-weight:700;
+       font-family:inherit;cursor:pointer;text-decoration:none}
+.j-btn.ghost{background:none;color:var(--deep)}
+.j-btn:hover{opacity:.88}
+/* 先行中に読めている人へ、なぜ読めているのかを本文の頭で1行言う。
+   ⚠️名札（.sitebar）の中には入れない＝中央揃えの1行なので、狭い画面で折り返して崩れる。 */
+.j-early{margin:14px 0 -4px;padding:8px 12px;border:1px dashed var(--line);border-radius:10px;
+         background:#fffdf880;font-size:12.5px;line-height:1.7;color:var(--sub)}
+.j-early b{color:var(--deep)}
+
+/* ⭐絵の中の押せる場所（2026-08-30・第8回のスイッチとレバー）
+   図の側が data-set を書いた透明の板。触ると薄く光らせて「ここは押せる」と伝える。
+   ⚠️presentation attribute の fill="transparent" は CSS が上書きできるので、これで色が乗る。
+   ⚠️スマホには hover が無い＝押せることは本文でも一言断ること（:active は押した瞬間しか出ない）。 */
+#j-main .hit { cursor: pointer; }
+#j-main .hit:hover { fill: rgba(255, 255, 255, .22); }
+#j-main .hit:active { fill: rgba(255, 255, 255, .32); }

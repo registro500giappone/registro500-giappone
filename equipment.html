@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <link rel="canonical" href="https://www.registro500.com/equipment">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="みんなの車載手帳">
+  <meta property="og:description" content="空冷クラシックFiat 500・126オーナーが公開している車載手帳の一覧。誰が何を車載しているかを手帳ごとに見られます。あわせて全体の車載率（工具・パーツ・ケミカル・安全・救援・非常時対応・洗車用品）も集計しています。">
+  <meta property="og:url" content="https://www.registro500.com/equipment">
+  <meta property="og:image" content="https://www.registro500.com/og/equipment-ja.png">
+  <meta property="og:site_name" content="Registro500 Giappone">
+  <meta name="twitter:card" content="summary_large_image">
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
   <script>
@@ -16,7 +23,7 @@
   <title>みんなの車載手帳 | Registro500 Giappone</title>
   <meta name="description" content="空冷クラシックFiat 500・126オーナーが公開している車載手帳の一覧。誰が何を車載しているかを手帳ごとに見られます。あわせて全体の車載率（工具・パーツ・ケミカル・安全・救援・非常時対応・洗車用品）も集計しています。">
 
-  <link rel="icon" href="logo_horizontal.png">
+  <link rel="icon" href="/favicon.ico">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
@@ -25,17 +32,29 @@
 
   <style>
     :root {
-      --bg-main: #f4f4f7;
-      --card-bg: #ffffff;
-      --border-soft: #e5e7eb;
-      --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.08);
-      --text-main: #111827;
-      --text-sub: #6b7280;
-      --accent: #2856a8;
-      --accent-soft: #e6efff;
+      --bg-main: #f5f0e6;
+      --card-bg: #fffefb;
+      --border-soft: #d6c9b0;
+      --shadow-soft: 0 2px 8px rgba(70, 58, 40, 0.10);
+      --text-main: #2e2a24;
+      --text-sub: #7a705f;
+      --accent: #1f5c3d;
+      --accent-soft: #e7efe7;
       --occasional: #7c8db5;
-      --radius-lg: 12px;
+      --radius-lg: 8px;
       --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-main: #1a1714;
+        --card-bg: #2b2721;
+        --border-soft: #403a30;
+        --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.35);
+        --text-main: #ece6d9;
+        --text-sub: #a89e8c;
+        --accent: #7fb894;
+        --accent-soft: #24382c;
+      }
     }
     * { box-sizing: border-box; }
     html { font-size: 16px; max-width: 100%; overflow-x: hidden; }
@@ -68,8 +87,17 @@
       padding: 12px 16px; margin-bottom: 20px;
     }
 
+    /* このページの立場を最初に言う帯。equipment-edit.html の .concept-band と同じ意匠に揃える
+       （2つのページで別のものに見えると、書く側と読む側で目的が違うように受け取られる） */
+    .concept-band {
+      background: linear-gradient(135deg, #17452e 0%, #1f5c3d 100%);
+      color: #fff; border-radius: var(--radius-lg);
+      padding: 20px 22px; margin-bottom: 24px; line-height: 1.9; font-size: 0.9rem;
+    }
+    .concept-band strong { font-weight: 700; }
+
     .cta-band {
-      background: var(--card-bg); border: 1px dashed #c2d4ff; border-radius: var(--radius-lg);
+      background: var(--card-bg); border: 1px dashed #c3d6c6; border-radius: var(--radius-lg);
       padding: 18px 20px; margin-bottom: 24px; text-align: center;
     }
     .cta-band p { margin: 0 0 12px; font-size: 0.9rem; color: var(--text-sub); }
@@ -77,7 +105,7 @@
       display: inline-block; background: var(--accent); color: #fff; text-decoration: none;
       border-radius: 8px; padding: 10px 22px; font-weight: 600; font-size: 0.9rem;
     }
-    .btn-cta:hover { background: #1d3f8a; }
+    .btn-cta:hover { background: #17452e; }
 
     /* ===== 母数ゼロ時 ===== */
     .empty-state {
@@ -105,10 +133,93 @@
     .stat-label { font-size: 0.9rem; margin-bottom: 4px; display: flex; justify-content: space-between; gap: 8px; }
     .stat-label .name { flex: 1; min-width: 0; overflow-wrap: break-word; }
     .stat-pct { font-weight: 700; color: var(--accent); white-space: nowrap; }
-    .bar-track { background: #e5e7eb; border-radius: 4px; height: 10px; overflow: hidden; display: flex; }
+    .bar-track { background: var(--border-soft); border-radius: 4px; height: 10px; overflow: hidden; display: flex; }
     .bar-fill { height: 100%; background: var(--accent); transition: width 0.6s ease; }
     .bar-fill.occasional { background: var(--occasional); }
     .stat-breakdown { font-size: 0.75rem; color: var(--text-sub); margin-top: 3px; }
+
+    /* ===== 人数の帯（2026-08-10 改修） =====
+       母数が小さいうちはパーセントに意味のある精度が無い。12人なら値は12段階しか刻めず、
+       実測でも 66.7% が10項目・25% が10項目と同じ値が団子で並ぶ。にもかかわらず率の降順で
+       縦一列に並べると、差の無いものが順位に見え、同率内の並びはDBの順という恣意的なものになる。
+       そこで順位ではなく「どのくらいの人が積んでいるか」の層で束ね、1人＝1ドットで母数をそのまま示す。
+       あわせて縦一列67行（実測5,702px）を畳み、この下にある公開手帳へ届く距離を縮める。 */
+    .band + .band { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-soft); }
+    .band-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 2px; }
+    .band-title { font-size: 0.95rem; font-weight: 700; }
+    .band-sub { font-size: 0.72rem; color: var(--text-sub); }
+    .band-note { font-size: 0.75rem; color: var(--text-sub); margin: 0 0 10px; }
+
+    .eq-row {
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      padding: 8px 0; border: 0; border-bottom: 1px dotted var(--border-soft);
+      background: none; text-align: left; font: inherit; color: inherit; cursor: pointer;
+    }
+    .eq-row:last-of-type { border-bottom: 0; }
+    .eq-row:hover .eq-name, .eq-row[aria-expanded="true"] .eq-name { color: var(--accent); }
+    .eq-cat { flex: none; font-size: 0.85rem; }
+    .eq-name { flex: 1; min-width: 0; font-size: 0.85rem; overflow-wrap: break-word; }
+    /* 括弧の中は補足（サイズや型番の指定）なので、品名より弱く見せて行を読みやすくする */
+    .eq-name small { color: var(--text-sub); font-size: 0.72rem; }
+    .eq-count { flex: none; font-size: 0.72rem; color: var(--text-sub); white-space: nowrap; }
+    .eq-count b { font-size: 0.85rem; color: var(--text-main); font-weight: 700; }
+
+    .dots { display: flex; gap: 2px; flex: none; }
+    .dots .d { width: 7px; height: 7px; border-radius: 50%; background: var(--border-soft); }
+    .dots .d.always { background: var(--accent); }
+    .dots .d.occasional { background: var(--occasional); }
+
+    /* 母数が増えるとドットは1行に収まらなくなるので、そのときだけ従来のバーに戻す */
+    .mini-bar { flex: none; width: 84px; height: 8px; border-radius: 4px; background: var(--border-soft); overflow: hidden; display: flex; }
+    .mini-bar span { height: 100%; background: var(--accent); }
+    .mini-bar span.occasional { background: var(--occasional); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      font: inherit; font-size: 0.75rem; border: 1px solid var(--border-soft); background: #faf6ec;
+      border-radius: 999px; padding: 5px 11px; color: #374151; cursor: pointer;
+    }
+    .chip:hover, .chip[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+    .chip i { font-style: normal; color: var(--text-sub); font-size: 0.7rem; margin-left: 4px; }
+    .chip[aria-expanded="true"] i { color: inherit; }
+
+    /* 行を押すと開く中身＝この機能の主役。率だけ見せて終わりにせず、
+       「誰が・どんな物を・なぜ」まで辿れるようにする（メモは公開手帳のぶんだけ出る） */
+    .detail {
+      background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0;
+      padding: 12px 14px; margin: 2px 0 10px;
+    }
+    .detail .d-head { font-size: 0.75rem; color: var(--text-sub); margin: 0 0 8px; }
+    .detail .memo {
+      background: var(--card-bg); border: 1px solid var(--border-soft); border-radius: 8px;
+      padding: 9px 11px; margin-bottom: 6px; font-size: 0.82rem; overflow-wrap: break-word;
+    }
+    .detail .memo .who { display: block; font-size: 0.72rem; margin-top: 5px; }
+    .detail a { color: var(--accent); text-decoration: none; }
+    .detail a:hover { text-decoration: underline; }
+    .detail .others { font-size: 0.78rem; color: var(--text-sub); margin: 8px 0 0; line-height: 2; }
+    .detail .d-note { font-size: 0.72rem; color: var(--text-sub); margin: 8px 0 0; }
+
+    .more-btn {
+      display: block; width: 100%; margin-top: 12px; background: var(--accent-soft); border: 1px solid #c3d6c6;
+      color: var(--accent); border-radius: 8px; padding: 9px; font: inherit; font-size: 0.8rem;
+      font-weight: 600; text-align: center; cursor: pointer;
+    }
+    .more-btn:hover { background: var(--accent-soft); }
+
+    /* ===== 出先の経験談（2026-08-10 追加） =====
+       本文はこれまで各車両ページにしか無く、この一覧では行に付く ✎ の記号だけだった。
+       「なぜそれを積むのか」がいちばん濃く出るテキストなので、読める場所に出す。 */
+    .exp-lead { font-size: 0.78rem; color: var(--text-sub); margin: 10px 0 16px; }
+    .exp-card {
+      border-left: 3px solid var(--accent); background: var(--accent-soft);
+      border-radius: 0 8px 8px 0; padding: 14px 16px; margin-bottom: 12px;
+    }
+    .exp-card:last-of-type { margin-bottom: 0; }
+    .exp-body { font-size: 0.88rem; white-space: pre-wrap; line-height: 1.9; overflow-wrap: break-word; margin: 0; }
+    .exp-who { display: block; font-size: 0.75rem; margin-top: 10px; color: var(--accent); text-decoration: none; }
+    a.exp-who:hover { text-decoration: underline; }
+    .exp-note { font-size: 0.75rem; color: var(--text-sub); margin: 12px 0 0; }
 
     /* ===== 公開手帳一覧 =====
        このページの主役。「誰が何を積んでいるか」を見に来る導線なので集計より上に置く。
@@ -128,7 +239,7 @@
       text-decoration: none; color: var(--text-main); border-top: 1px solid var(--border-soft);
     }
     .owner-row:first-child { border-top: none; }
-    .owner-row:hover { background: #f8faff; }
+    .owner-row:hover { background: var(--accent-soft); }
     .row-thumb {
       position: relative;
       width: 40px; height: 40px; flex: 0 0 40px; border-radius: 6px; overflow: visible;
@@ -210,7 +321,19 @@
       border-top: 1px dashed var(--border-soft); padding-top: 10px; margin-top: 4px;
       font-size: 0.76rem;
     }
+
+    /* ダークモード：CSS変数だけでは追随できない直書き色（案A・暖色系パレット） */
+    @media (prefers-color-scheme: dark) {
+      .cta-band { border-color: #3d6b4d; }
+      .more-btn { border-color: #3d6b4d; }
+      .btn-cta:hover { background: #6ba580; }
+      .chip { background: #221f1a; color: #ece6d9; }
+      .row-exp { color: #7fb894; }
+      .brand-header img { mix-blend-mode: normal; filter: brightness(1.12); }
+    }
   </style>
+  <!-- 左下「一つ前に戻る」（ホーム画面起動時のみ）／右下「先頭へ」の浮かぶボタン -->
+  <script src="fab-nav.js" defer></script>
 </head>
 
 <body>
@@ -224,10 +347,54 @@
     <p>オーナーが公開した車載品リストと、全体の車載率</p>
   </div>
 
+  <!-- 2026-08-09 ユーザー確定: 積んでいる数の多さを競うページだと誤解されないよう、
+       立場を最初に明示する。あわせて公開中の手帳の一覧を車載率の下へ移した（順番自体が
+       「人を並べたページ」に見せていたため）。 -->
+  <div class="concept-band">
+    <strong>積んでいる数を競うページではありません。</strong><br>
+    遠出の頻度も、車の状態も、自分で直せる範囲も人それぞれです。多く積むことが正解とはかぎりません。<br>
+    このページは、<strong>他のオーナーが何を積んでいるかを見てもらうため</strong>にあります。「その手があったか」と思える物が1つ見つかれば、それで十分です。
+  </div>
+
   <div id="loading">読み込み中…</div>
 
   <div id="content">
 
+    <div id="rates-heading" class="section-title" style="display:none;">
+      <span class="icon">📊</span> みんなが積んでいるもの
+    </div>
+
+    <div id="summary-badge" class="summary-badge"></div>
+    <!-- 一覧のカード枚数と集計の母数が食い違って見えるため、理由を先に書いておく
+         （非公開の手帳も人数としては集計に入る＝公開しなくても貢献している、と伝える意図） -->
+    <p id="rates-note" class="rates-note">人数は<strong>非公開の手帳も含めた全員</strong>から集計しています。公開していない方の装備も、この数字に反映されています。</p>
+
+    <div id="empty-state" class="empty-state" style="display:none;">
+      <p>まだ記録がありません。最初の1件はあなたです。</p>
+      <a class="btn-cta" href="/equipment-edit">車載手帳を書いてみる →</a>
+    </div>
+
+    <div id="legend" class="legend" style="display:none;">
+      <span class="legend-item"><span class="legend-dot always"></span>常時積んでいる</span>
+      <span class="legend-item"><span class="legend-dot occasional"></span>随時（必要な時だけ）</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--border-soft);"></span>積んでいない</span>
+    </div>
+
+    <div id="categories"></div>
+
+    <!-- 出先の経験談（2026-08-10 ユーザー確定）。公開中の手帳の直前に置く。
+         装備そのもの（何を積むか）を見たあとに、その理由にあたる話が来る順番。
+         本文はこれまで各車両ページにしか無く、この一覧では ✎ の記号だけだった。 -->
+    <div id="experience-section" class="section" style="display:none;">
+      <div class="section-title"><span class="icon">✎</span> 出先で助かった／困った経験<span id="experience-count" class="section-count"></span></div>
+      <p class="exp-lead">オーナーが実際に出先で経験したことです。<strong>なぜそれを積むのか</strong>が、いちばん濃く出ています。</p>
+      <div id="experience-list"></div>
+      <p id="experience-note" class="exp-note" style="display:none;"></p>
+    </div>
+
+    <!-- 公開中の手帳＝車載率の下に置く（2026-08-09 ユーザー確定）。
+         先頭に置くと名前と装備数が並んだ「順位表」に見え、数を競うページだと誤解される。
+         先に匿名の集計（何を積むか）を見せ、個々の手帳はその参照先として後ろに置く。 -->
     <div id="public-list-section" class="public-list-section" style="display:none;">
       <div class="section-title"><span class="icon">📖</span> 公開中の手帳<span id="public-count" class="section-count"></span></div>
       <p class="public-list-lead">オーナーが公開設定にした車載手帳です。タップすると、その車の車両ページで装備・メモ・経験談を見られます。</p>
@@ -242,27 +409,6 @@
       <p>あなたの車載手帳はまだですか？ 記入すると車載率の集計に反映され、公開設定にすればこの一覧にも並びます。</p>
       <a class="btn-cta" href="/equipment-edit">車載手帳を書く・更新する →</a>
     </div>
-
-    <div id="rates-heading" class="section-title" style="display:none;">
-      <span class="icon">📊</span> みんなの車載率
-    </div>
-
-    <div id="summary-badge" class="summary-badge"></div>
-    <!-- 一覧のカード枚数と集計の母数が食い違って見えるため、理由を先に書いておく
-         （非公開の手帳も人数としては集計に入る＝公開しなくても貢献している、と伝える意図） -->
-    <p id="rates-note" class="rates-note">車載率は<strong>非公開の手帳も含めた全員</strong>から集計しています。公開していない方の装備も、この数字に反映されています。</p>
-
-    <div id="empty-state" class="empty-state" style="display:none;">
-      <p>まだ記録がありません。最初の1件はあなたです。</p>
-      <a class="btn-cta" href="/equipment-edit">車載手帳を書いてみる →</a>
-    </div>
-
-    <div id="legend" class="legend" style="display:none;">
-      <span class="legend-item"><span class="legend-dot always"></span>常時積んでいる</span>
-      <span class="legend-item"><span class="legend-dot occasional"></span>随時（必要な時だけ）</span>
-    </div>
-
-    <div id="categories"></div>
 
     <!-- 車載マエストロの判定条件（2026-08-06 ユーザー確定）。
          称号バッジが実際に並ぶこのページに置き、<details>で畳んで「探せば見つかる」距離感にする。
@@ -304,6 +450,56 @@
     document.getElementById('empty-state').style.display = 'block';
   }
 
+  // 「ほぼ全員」「半分以上」の線引きは母数に対する割合で決める（人数が増えても効くように）
+  const BAND_MOST = 0.8;
+  const BAND_HALF = 0.5;
+  const BAND2_VISIBLE = 12;   // 「半分以上」は項目数が多いので、最初はこの数だけ出す
+  const DOTS_MAX = 20;        // 母数がこれを超えたらドットが1行に収まらないのでバーに戻す
+
+  let itemIndex = {};         // item_id → 集計行（展開パネルの見出しに使う）
+  let totalRecordsCache = 0;
+
+  function shortName(name) {
+    // チップは横幅が限られるので補足の括弧を落とす（全文は title 属性に残す）
+    return String(name).replace(/[（(].*$/, '').trim() || String(name);
+  }
+
+  function nameHtml(name) {
+    // 「スペアタイヤ（空気圧点検済み）」の括弧以降は補足なので弱く見せる
+    const m = String(name).match(/^(.*?)([（(].*)$/);
+    return m ? `${esc(m[1])}<small>${esc(m[2])}</small>` : esc(name);
+  }
+
+  function gaugeHtml(always, occasional, total) {
+    if (total <= DOTS_MAX) {
+      let h = '<span class="dots">';
+      for (let i = 0; i < total; i++) {
+        const cls = i < always ? ' always' : (i < always + occasional ? ' occasional' : '');
+        h += `<span class="d${cls}"></span>`;
+      }
+      return h + '</span>';
+    }
+    const a = total ? (always / total) * 100 : 0;
+    const o = total ? (occasional / total) * 100 : 0;
+    return `<span class="mini-bar"><span style="width:${a}%"></span><span class="occasional" style="width:${o}%"></span></span>`;
+  }
+
+  function rowHtml(item, total) {
+    const always = Number(item.always_count);
+    const occasional = Number(item.occasional_count);
+    return `<button type="button" class="eq-row" data-item="${item.item_id}" aria-expanded="false">
+      <span class="eq-cat" aria-hidden="true">${CATEGORY_ICONS[item.category] || '📦'}</span>
+      <span class="eq-name">${nameHtml(item.name)}</span>
+      ${gaugeHtml(always, occasional, total)}
+      <span class="eq-count"><b>${always + occasional}</b>人</span>
+    </button>`;
+  }
+
+  function chipHtml(item) {
+    const count = Number(item.always_count) + Number(item.occasional_count);
+    return `<button type="button" class="chip" data-item="${item.item_id}" aria-expanded="false" title="${esc(item.name)}">${esc(shortName(item.name))}<i>${count}人</i></button>`;
+  }
+
   function renderRows(rows) {
     const totalRecords = rows.length ? Number(rows[0].total_records) : 0;
 
@@ -312,65 +508,222 @@
       return;
     }
 
+    totalRecordsCache = totalRecords;
+    itemIndex = {};
+    rows.forEach(r => { itemIndex[r.item_id] = r; });
+
     document.getElementById('summary-badge').textContent =
-      `${totalRecords}名の車載手帳から集計（複数回答・車載率）`;
+      `${totalRecords}名の車載手帳から集計（●1つが1人・複数回答）`;
     document.getElementById('rates-heading').style.display = 'flex';
     document.getElementById('legend').style.display = 'flex';
 
-    const byCategory = {};
-    rows.forEach(r => {
-      if (!byCategory[r.category]) byCategory[r.category] = [];
-      byCategory[r.category].push(r);
+    // 人数の多い順に並べたうえで3つの層に分ける。層の中は順位ではないので、
+    // 同じ人数のものが並ぶ順に意味は無い（item_id で安定させているだけ）。
+    const counted = rows
+      .map(r => Object.assign({}, r, { count: Number(r.always_count) + Number(r.occasional_count) }))
+      .sort((a, b) => b.count - a.count || a.item_id - b.item_id);
+
+    const zero = counted.filter(r => r.count === 0);
+    const most = [], half = [], few = [];
+    counted.filter(r => r.count > 0).forEach(r => {
+      const ratio = r.count / totalRecords;
+      if (ratio >= BAND_MOST) most.push(r);
+      else if (ratio >= BAND_HALF) half.push(r);
+      else few.push(r);
     });
+
+    const minMost = Math.ceil(totalRecords * BAND_MOST);
+    const minHalf = Math.ceil(totalRecords * BAND_HALF);
 
     const container = document.getElementById('categories');
     container.innerHTML = '';
 
-    CATEGORIES.forEach(cat => {
-      const items = byCategory[cat];
-      if (!items || !items.length) return;
+    const section = document.createElement('div');
+    section.className = 'section';
+    let h = '';
 
-      // 車載率が高い順（0%の項目も含めて表示＝「まだ誰も挙げていない」ことも情報）
-      items.sort((a, b) => Number(b.load_rate) - Number(a.load_rate) || a.item_id - b.item_id);
+    if (most.length) {
+      h += `<div class="band" data-band="most">
+        <div class="band-head"><span class="band-title">ほぼ全員が積んでいる</span><span class="band-sub">${totalRecords}人中 ${minMost}人以上・${most.length}項目</span></div>
+        <p class="band-note">迷ったら、まずこのあたりから。<strong>項目を押すと、積んでいる人の手帳とメモが読めます。</strong></p>
+        ${most.map(r => rowHtml(r, totalRecords)).join('')}
+      </div>`;
+    }
 
-      const section = document.createElement('div');
-      section.className = 'section';
+    if (half.length) {
+      const shown = half.slice(0, BAND2_VISIBLE);
+      const rest = half.slice(BAND2_VISIBLE);
+      h += `<div class="band" data-band="half">
+        <div class="band-head"><span class="band-title">半分以上が積んでいる</span><span class="band-sub">${totalRecords}人中 ${minHalf}〜${minMost - 1}人・${half.length}項目</span></div>
+        <p class="band-note">自分で直せる範囲や、遠出の多さで分かれてくるところ。</p>
+        ${shown.map(r => rowHtml(r, totalRecords)).join('')}
+        <div class="band-rest" hidden>${rest.map(r => rowHtml(r, totalRecords)).join('')}</div>
+        ${rest.length ? `<button type="button" class="more-btn" data-more="half">残り${rest.length}項目を見る ＋</button>` : ''}
+      </div>`;
+    }
 
-      const title = document.createElement('div');
-      title.className = 'section-title';
-      title.innerHTML = `<span class="icon">${CATEGORY_ICONS[cat] || '📦'}</span> ${esc(cat)}`;
-      section.appendChild(title);
+    if (few.length) {
+      h += `<div class="band" data-band="few">
+        <div class="band-head"><span class="band-title">人によって分かれる</span><span class="band-sub">${totalRecords}人中 1〜${minHalf - 1}人・${few.length}項目</span></div>
+        <p class="band-note">ここは正解ではなく、好みや車の個体差が出るところ。気になるものを押してみてください。</p>
+        <div class="chips">${few.map(chipHtml).join('')}</div>
+      </div>`;
+    }
 
-      const note = document.createElement('p');
-      note.className = 'section-note';
-      note.textContent = `${items.length}項目`;
-      section.appendChild(note);
+    if (zero.length) {
+      // 「まだ誰も挙げていない」ことも情報なので消さない（押しても中身が無いので押せなくしてある）
+      h += `<div class="band" data-band="zero">
+        <div class="band-head"><span class="band-title">まだ誰も挙げていない</span><span class="band-sub">${zero.length}項目</span></div>
+        <p class="band-note">${zero.map(r => esc(r.name)).join('・')}</p>
+      </div>`;
+    }
 
-      items.forEach(item => {
-        const always = Number(item.always_count);
-        const occasional = Number(item.occasional_count);
-        const pct = Math.round(Number(item.load_rate) * 1000) / 10; // 小数1桁
-        const alwaysPct = totalRecords ? (always / totalRecords) * 100 : 0;
-        const occasionalPct = totalRecords ? (occasional / totalRecords) * 100 : 0;
+    section.innerHTML = h;
+    container.appendChild(section);
+    container.addEventListener('click', onContainerClick);
+  }
 
-        const row = document.createElement('div');
-        row.className = 'stat-item';
-        row.innerHTML = `
-          <div class="stat-label">
-            <span class="name">${esc(item.name)}</span>
-            <span class="stat-pct">${pct}%</span>
-          </div>
-          <div class="bar-track">
-            <div class="bar-fill" style="width:${alwaysPct}%"></div>
-            <div class="bar-fill occasional" style="width:${occasionalPct}%"></div>
-          </div>
-          <div class="stat-breakdown">常時 ${always}件・随時 ${occasional}件（母数 ${totalRecords}件）</div>
-        `;
-        section.appendChild(row);
-      });
+  // ===== 行を押したときの中身（案2の主役） =====
+  // 集計の人数は非公開の手帳も含むが、ここに出せるのは公開されている手帳のぶんだけ。
+  // 取得は押された項目1つに絞る（全項目ぶんの entries を先読みすると、公開25〜30人あたりで
+  // PostgREST の返却上限1000行に達して黙って切れるため。equipment_public_list のコメント参照）。
+  let recordOwners = {};   // record_id → { docId, handleName }
+  let ownersReady = null;  // 対応表の読み込み。押された時点でまだ途中なら待つ
 
-      container.appendChild(section);
+  async function loadRecordOwners(publicRows) {
+    const nameByDoc = {};
+    (publicRows || []).forEach(r => { if (r.docId) nameByDoc[r.docId] = r.handleName; });
+    const res = await supabaseClient
+      .from('equipment_records')
+      .select('id, vehicle_id')
+      .eq('is_public', true);
+    if (res.error) { console.error('公開手帳の対応表を読めませんでした:', res.error.message); return; }
+    (res.data || []).forEach(r => {
+      recordOwners[r.id] = {
+        docId: r.vehicle_id || null,
+        handleName: r.vehicle_id ? (nameByDoc[r.vehicle_id] || null) : null
+      };
     });
+  }
+
+  async function detailHtml(itemId) {
+    const item = itemIndex[itemId];
+    if (!item) return '<p class="d-head">この項目の情報を読めませんでした。</p>';
+    if (ownersReady) await ownersReady;
+
+    let entries = [];
+    try {
+      const res = await supabaseClient
+        .from('equipment_entries')
+        .select('record_id, frequency, note')
+        .eq('item_id', itemId);
+      if (res.error) throw res.error;
+      entries = res.data || [];
+    } catch (e) {
+      console.error('項目の内訳を読めませんでした:', e);
+      return '<p class="d-head">読み込めませんでした。時間をおいて開き直してください。</p>';
+    }
+
+    const memos = [], named = [];
+    let unnamed = 0;
+    entries.forEach(e => {
+      const o = recordOwners[e.record_id] || {};
+      const link = o.docId ? `/detail?doc=${encodeURIComponent(o.docId)}#equipment-notebook` : null;
+      const name = o.handleName || null;
+      // 「（運営で正規化）」で始まるものはオーナーが書いた言葉ではなく運営の作業メモなので出さない
+      const note = String(e.note || '').trim();
+      const ownNote = note && !note.startsWith('（運営で正規化）') ? note : '';
+      if (ownNote) memos.push({ name, link, note: ownNote });
+      else if (name && link) named.push({ name, link });
+      else unnamed++;
+    });
+
+    let h = `<p class="d-head">${esc(item.name)}を積んでいる人</p>`;
+    memos.forEach(m => {
+      h += `<div class="memo">${esc(m.note)}` +
+        (m.link && m.name
+          ? `<a class="who" href="${m.link}">${esc(m.name)}さんの手帳を見る →</a>`
+          : `<span class="who">（車両ページ未登録のオーナー）</span>`) +
+        `</div>`;
+    });
+    if (named.length) {
+      h += `<p class="others">${memos.length ? 'ほかに積んでいる人：' : '積んでいる人：'}` +
+        named.map(o => `<a href="${o.link}">${esc(o.name)}さん</a>`).join('・') + `</p>`;
+    }
+    if (unnamed) {
+      h += `<p class="others">ほかに${unnamed}人（車両ページが未登録のため、お名前は出ません）</p>`;
+    }
+    if (!memos.length) {
+      // メモが無い項目で「いません」と言って終わると行き止まりになるので、書き足せる先を示す
+      h += `<p class="d-note">この項目にメモを書いている人は、まだいません。銘柄やサイズを書き添えると、同じ物を探している人の助けになります。<br><a href="/equipment-edit">自分の手帳に書き添える →</a></p>`;
+    }
+    const count = Number(item.always_count) + Number(item.occasional_count);
+    if (entries.length < count) {
+      h += `<p class="d-note">集計上は${count}人ですが、公開されている手帳は${entries.length}人ぶんです。非公開の方はここには出ません。</p>`;
+    }
+    return h;
+  }
+
+  async function onContainerClick(ev) {
+    const more = ev.target.closest('.more-btn');
+    if (more) {
+      const band = more.closest('.band');
+      const rest = band.querySelector('.band-rest');
+      if (rest) rest.hidden = false;
+      more.remove();
+      return;
+    }
+
+    const btn = ev.target.closest('.eq-row, .chip');
+    if (!btn) return;
+
+    const wasOpen = btn.getAttribute('aria-expanded') === 'true';
+    // 開くのは一度に1つ（次々開くと結局また縦に長くなるため）
+    document.querySelectorAll('#categories .detail').forEach(d => d.remove());
+    document.querySelectorAll('#categories [aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+    if (wasOpen) return;
+
+    btn.setAttribute('aria-expanded', 'true');
+    const panel = document.createElement('div');
+    panel.className = 'detail';
+    panel.innerHTML = '<p class="d-head">読み込み中…</p>';
+    // チップはボタンが折り返して並ぶので、パネルはチップ群のまとまりの下に出す
+    const anchor = btn.classList.contains('chip') ? btn.closest('.chips') : btn;
+    anchor.insertAdjacentElement('afterend', panel);
+    panel.innerHTML = await detailHtml(Number(btn.dataset.item));
+  }
+
+  // ===== 出先の経験談（2026-08-10 追加） =====
+  // RLS により返るのは公開手帳のぶんだけ。本文が空の行は数えない（車両ページ・RPCの条件と揃える）。
+  const EXPERIENCE_LIMIT = 8;
+
+  async function loadExperiences() {
+    const res = await supabaseClient
+      .from('equipment_experiences')
+      .select('record_id, body, created_at')
+      .order('created_at', { ascending: false });
+    if (res.error) { console.error('経験談を読めませんでした:', res.error.message); return []; }
+    return (res.data || []).filter(e => e.body && e.body.trim());
+  }
+
+  function renderExperiences(list) {
+    if (!list || !list.length) return;   // 0件のときは見出しごと出さない
+    const shown = list.slice(0, EXPERIENCE_LIMIT);
+    document.getElementById('experience-list').innerHTML = shown.map(e => {
+      const o = recordOwners[e.record_id] || {};
+      const link = o.docId ? `/detail?doc=${encodeURIComponent(o.docId)}#equipment-notebook` : null;
+      const who = (link && o.handleName)
+        ? `<a class="exp-who" href="${link}">${esc(o.handleName)}さんの手帳を見る →</a>`
+        : `<span class="exp-who">（車両ページ未登録のオーナー）</span>`;
+      return `<div class="exp-card"><p class="exp-body">${esc(e.body.trim())}</p>${who}</div>`;
+    }).join('');
+    document.getElementById('experience-count').textContent = `（${list.length}件）`;
+    if (list.length > shown.length) {
+      const note = document.getElementById('experience-note');
+      note.textContent = `ほかに${list.length - shown.length}件あります。公開中の手帳から、それぞれの車両ページで読めます。`;
+      note.style.display = 'block';
+    }
+    document.getElementById('experience-section').style.display = 'block';
   }
 
   // ===== 公開手帳一覧 =====
@@ -665,17 +1018,24 @@
     try {
       // 項目マスターは判定条件の表示（項目名と件数の解決）に使う。
       // 失敗しても一覧・集計は出せるので、ここでは落とさず条件表示だけ諦める。
-      const [ratesRes, publicList, itemsRes] = await Promise.all([
+      const [ratesRes, publicList, itemsRes, expList] = await Promise.all([
         supabaseClient.rpc('equipment_item_rates'),
         loadPublicRecords().catch(e => { console.error('公開手帳一覧の読み込みに失敗:', e); return []; }),
         // ⚠️ クエリビルダは then だけを持つ thenable で .catch() を持たない。
         //    直接 .catch() を繋ぐと TypeError になるため Promise.resolve() で包む。
         Promise.resolve(supabaseClient.from('equipment_items').select('id, name'))
-          .catch(e => { console.error('項目マスターの読み込みに失敗:', e); return { data: null }; })
+          .catch(e => { console.error('項目マスターの読み込みに失敗:', e); return { data: null }; }),
+        loadExperiences().catch(e => { console.error('経験談の読み込みに失敗:', e); return []; })
       ]);
       if (ratesRes.error) throw ratesRes.error;
       renderPublicList(publicList);
       renderRows(ratesRes.data || []);
+      // 行を開いたときに名前と手帳へのリンクを出すための対応表。
+      // 押されるまでに間に合えばよいので、ここでは待たずに走らせる（detailHtml 側で待つ）。
+      ownersReady = loadRecordOwners(publicList)
+        .catch(e => { console.error('公開手帳の対応表の作成に失敗:', e); });
+      // 経験談は書いた人の名前と手帳へのリンクに対応表が要るので、それができてから描く
+      ownersReady.then(() => renderExperiences(expList));
       if (itemsRes && !itemsRes.error && itemsRes.data) renderCriteria(itemsRes.data);
     } catch (e) {
       console.error(e);

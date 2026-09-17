@@ -42,7 +42,7 @@
     .opt-section > *:not(summary) { margin-left:1rem; margin-right:1rem; }
     .opt-section[open] > *:last-child { margin-bottom:0.9rem; }
     /* 「ここまでで登録できます」案内 */
-    .req-note { background:#eef6ee; border:1px solid #cfe6cf; border-radius:8px; padding:0.7rem 0.9rem; font-size:0.85rem; line-height:1.6; color:#2e6b2e; margin:0.5rem 0 1.1rem; }
+    .req-note { background:var(--rg-accent-soft); border:1px solid var(--rg-accent-border); border-radius:8px; padding:0.7rem 0.9rem; font-size:0.85rem; line-height:1.6; color:var(--rg-accent); margin:0.5rem 0 1.1rem; }
     .main-photo-solo { margin:0.3rem 0 0.2rem; max-width:240px; }
     
     input[type="text"], input[type="number"], textarea, select { width: 100%; padding: 0.7rem; border-radius: 0.5rem; border: 1px solid #d1d5db; font-size: 1rem; margin-bottom: 0.5rem; box-sizing: border-box; }
@@ -70,11 +70,11 @@
     .btn-crop-done { background: var(--rg-primary-red); color: white; border: none; padding: 12px 40px; border-radius: 999px; font-weight: bold; font-size: 1rem; cursor: pointer; }
     .btn-crop-cancel { background: none; border: 1px solid #666; color: #ccc; padding: 8px 20px; border-radius: 999px; cursor: pointer; margin-right: 10px; }
 
-    .submit-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 1rem; background: rgba(255,255,255,0.98); border-top: 1px solid #ccc; text-align: center; z-index: 100; display: flex; gap: 12px; justify-content: center; }
+    .submit-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px)); background: rgba(255,255,255,0.98); border-top: 1px solid #ccc; text-align: center; z-index: 100; display: flex; gap: 12px; justify-content: center; }
     #submitButton { flex: 2; max-width: 400px; padding: 0.8rem; border-radius: 999px; border: none; background: var(--rg-primary-red); color: white; font-weight: bold; font-size: 1rem; cursor: pointer; }
     #cancelButton { flex: 1; max-width: 150px; padding: 0.8rem; border-radius: 999px; border: 1.5px solid #ccc; background: #fff; color: #666; font-weight: bold; font-size: 1rem; cursor: pointer; }
     
-    #loginOverlay { position: fixed; inset: 0; background: rgba(244, 246, 248, 0.98); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    #loginOverlay { position: fixed; inset: 0; background: rgba(245, 240, 230, 0.98); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     #loginOverlay.hidden { display: none; }
     .btn-google { background: #4285F4; color: white; border: none; border-radius: 999px; padding: 12px 24px; font-weight: bold; cursor: pointer; }
     
@@ -89,16 +89,19 @@
 
     /* ダークモード */
     @media (prefers-color-scheme: dark) {
-      input[type="text"], input[type="number"], textarea, select { background: #0f172a; color: #e2e8f0; border-color: #334155; }
-      .photo-upload-box { background: #1e293b; border-color: #334155; color: #e2e8f0; }
-      .preview-area { background: #334155; }
-      .photo-label { color: #94a3b8; }
-      .submit-bar { background: rgba(15, 23, 42, 0.98); border-top-color: #334155; }
-      #cancelButton { background: #1e293b; color: #94a3b8; border-color: #334155; }
-      #loginOverlay { background: rgba(15, 23, 42, 0.98); }
-      .car-select-item { background: #1e293b; color: #e2e8f0; }
+      input[type="text"], input[type="number"], textarea, select { background: #221f1a; color: #ece6d9; border-color: #403a30; }
+      .photo-upload-box { background: #2b2721; border-color: #403a30; color: #ece6d9; }
+      .preview-area { background: #403a30; }
+      .photo-label { color: #a89e8c; }
+      .submit-bar { background: rgba(26, 23, 20, 0.98); border-top-color: #403a30; }
+      #cancelButton { background: #2b2721; color: #a89e8c; border-color: #403a30; }
+      #loginOverlay { background: rgba(26, 23, 20, 0.98); }
+      .car-select-item { background: #2b2721; color: #ece6d9; }
       .car-select-item:hover { background: var(--rg-accent-soft); }
       .risk-note { background: #2d1a1e; border-color: #5c2830; }
+      .opt-section { background: #2b2721; }
+      /* アクセント塗り潰しボタンは暗地で淡緑になるため、文字は白ではなく濃色にする */
+      #emailLoginBtn, #otpVerifyBtn, #emailChangeSendBtn, #emailChangeVerifyBtn { color: #1a1714 !important; }
     }
 
     /* ─── ナンバーマスキングモーダル ─── */
@@ -116,8 +119,10 @@
     .btn-mask-green { background: #16a34a; color: white; display: inline-block; text-align: center; }
     .mask-status { color: #94a3b8; font-size: 0.78rem; text-align: center; width: 100%; line-height: 1.4; }
   </style>
+  <!-- 左下「一つ前に戻る」（ホーム画面起動時のみ）／右下「先頭へ」の浮かぶボタン -->
+  <script src="fab-nav.js" defer></script>
 </head>
-<body>
+<body data-fab-above=".submit-bar">
 
   <header class="rg-header-bar">
     <div class="rg-back-link">
@@ -131,7 +136,7 @@
   </header>
 
   <div id="loginOverlay" class="hidden">
-    <div style="background:white; padding:40px; border-radius:20px; text-align:center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+    <div style="background:var(--rg-surface); color:var(--rg-text); padding:40px; border-radius:20px; text-align:center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
       <h2 style="margin-top:0;">オーナー認証</h2>
       <p>マイガレージを利用するにはログインが必要です。</p>
       <div style="display:flex;flex-direction:column;gap:10px;max-width:320px;margin:0 auto;text-align:left;">
@@ -141,7 +146,7 @@
                  style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:15px;">
           <button type="button" id="clearEmailBtn" style="display:none;background:none;border:0;color:#888;font-size:12px;cursor:pointer;align-self:flex-start;padding:0;">別のアドレスを使う</button>
           <button id="emailLoginBtn"
-                  style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">
+                  style="padding:12px;border:0;border-radius:8px;background:var(--rg-accent);color:#fff;font-weight:700;cursor:pointer;">
             確認コードを送信
           </button>
           <div style="display:flex;align-items:center;gap:8px;color:#aaa;font-size:12px;margin:4px 0;">
@@ -157,10 +162,10 @@
           <input type="text" id="otpCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"
                  style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:22px;letter-spacing:8px;text-align:center;">
           <button id="otpVerifyBtn"
-                  style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">
+                  style="padding:12px;border:0;border-radius:8px;background:var(--rg-accent);color:#fff;font-weight:700;cursor:pointer;">
             ログイン
           </button>
-          <button id="otpResendBtn" style="background:none;border:0;color:#2856a8;cursor:pointer;font-size:13px;">確認コードを再送する</button>
+          <button id="otpResendBtn" style="background:none;border:0;color:var(--rg-accent);cursor:pointer;font-size:13px;">確認コードを再送する</button>
         </div>
         <p id="otpErrorMsg" style="display:none;font-size:13px;color:#c62828;margin:8px 0 0;"></p>
       </div>
@@ -172,19 +177,19 @@
       <h1 class="page-title">マイガレージ</h1>
       <p style="text-align:center; font-size:0.9rem; margin:0;">
         ログイン中: <span id="userEmailDisplay">確認中...</span>
-        <button id="logoutBtn" style="font-size:0.7rem; padding:2px 6px; cursor:pointer; margin-left:10px; border-radius:4px; border:1px solid #ccc; background:#fff;">ログアウト</button>
+        <button id="logoutBtn" style="font-size:0.7rem; padding:2px 6px; cursor:pointer; margin-left:10px; border-radius:4px; border:1px solid var(--rg-border); background:var(--rg-surface); color:var(--rg-text);">ログアウト</button>
       </p>
       <!-- メールアドレス変更（折りたたみ・OTPコード方式） -->
       <div style="text-align:center; margin-top:8px;">
-        <button type="button" id="emailChangeToggle" style="background:none;border:0;color:#2856a8;cursor:pointer;font-size:0.8rem;text-decoration:underline;">メールアドレスを変更</button>
+        <button type="button" id="emailChangeToggle" style="background:none;border:0;color:var(--rg-accent);cursor:pointer;font-size:0.8rem;text-decoration:underline;">メールアドレスを変更</button>
       </div>
-      <div id="emailChangePanel" style="display:none; max-width:320px; margin:10px auto 0; text-align:left; background:#f7f9fc; border:1px solid #e0e6f0; border-radius:10px; padding:16px;">
+      <div id="emailChangePanel" style="display:none; max-width:320px; margin:10px auto 0; text-align:left; background:var(--rg-surface-sub); border:1px solid var(--rg-border); border-radius:10px; padding:16px;">
         <!-- ステップ1: 新しいメールアドレス入力 -->
         <div id="emailChangeStep1" style="display:flex;flex-direction:column;gap:10px;">
           <input type="email" id="newEmailInput" placeholder="新しいメールアドレス" autocomplete="email"
                  style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:15px;">
           <button id="emailChangeSendBtn"
-                  style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">確認コードを送信</button>
+                  style="padding:12px;border:0;border-radius:8px;background:var(--rg-accent);color:#fff;font-weight:700;cursor:pointer;">確認コードを送信</button>
           <p style="font-size:12px;color:#888;margin:0;">新しいメールアドレスに6桁の確認コードを送ります。届いたコードで変更を確定すると、以降のログインと各種お知らせの宛先が新しいアドレスに切り替わります。</p>
         </div>
         <!-- ステップ2: 確認コード入力 -->
@@ -193,8 +198,8 @@
           <input type="text" id="emailChangeCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"
                  style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:22px;letter-spacing:8px;text-align:center;">
           <button id="emailChangeVerifyBtn"
-                  style="padding:12px;border:0;border-radius:8px;background:#2856a8;color:#fff;font-weight:700;cursor:pointer;">変更を確定</button>
-          <button id="emailChangeResendBtn" style="background:none;border:0;color:#2856a8;cursor:pointer;font-size:13px;">確認コードを再送する</button>
+                  style="padding:12px;border:0;border-radius:8px;background:var(--rg-accent);color:#fff;font-weight:700;cursor:pointer;">変更を確定</button>
+          <button id="emailChangeResendBtn" style="background:none;border:0;color:var(--rg-accent);cursor:pointer;font-size:13px;">確認コードを再送する</button>
         </div>
         <p id="emailChangeMsg" style="display:none;font-size:13px;margin:8px 0 0;"></p>
       </div>
@@ -215,7 +220,7 @@
         <input type="hidden" id="DocumentID" name="DocumentID">
 
         <h2 class="rg-section-title">まずはこれだけ（必須）</h2>
-        <p class="req-note" style="background:#eef4ff; border-color:#cfe0fb; color:#1f4a8a;">登録に必要なのは下の6項目だけ。まずは気軽に登録して、あとから愛車の情報を少しずつ育てていけます。</p>
+        <p class="req-note" style="background:var(--rg-accent-soft); border-color:var(--rg-accent-border); color:var(--rg-accent);">登録に必要なのは下の6項目だけ。まずは気軽に登録して、あとから愛車の情報を少しずつ育てていけます。</p>
 
         <!-- 車両タイプは入り口（index）で確定済み -->
         <input type="hidden" id="CarType" name="CarType" value="500">
@@ -247,24 +252,31 @@
           <!-- 500の選択肢 -->
           <option value="Nuova500" data-car-type="500">Nuova500</option>
           <option value="FIAT ABARTH" data-car-type="500">FIAT ABARTH</option>
-          <!-- 126の選択肢（完全版：20種類） -->
-          <!-- 基本モデル（Fiat本家・イタリア） -->
-          <option value="Fiat 126" data-car-type="126">Fiat 126</option>          
+          <!-- 126の選択肢。
+               500と違い126は「シリーズ×グレード」ではなく時系列でモデル名そのものが変わるため、
+               1階層で並べるのが日本国内の流通表記（日本語Wikipedia・旧車メディア）と一致する。
+               ここを500に合わせて2階層に畳むと、かえって独自ルールになるので変えないこと。
+               ・1992年に「ポルスキ」の名は消滅し、以降のポーランド製も単に Fiat 126 を名乗る
+               ・Maluch は愛称ではなく1997年からの正式なモデル名（日本の旧車誌では「マルチ」表記） -->
+          <!-- イタリア製（1972-1980） -->
+          <option value="Fiat 126" data-car-type="126">Fiat 126</option>
+          <option value="Fiat 126E" data-car-type="126">Fiat 126E</option>
           <option value="Fiat 126 Personal" data-car-type="126">Fiat 126 Personal</option>
           <!-- ポーランド製 -->
-          <option value="Polski Fiat 126p" data-car-type="126">Polski Fiat 126p</option>
+          <option value="Polski Fiat 126p" data-car-type="126">Polski Fiat 126p（1973-1987）</option>
           <option value="Polski Fiat 126p FL" data-car-type="126">Polski Fiat 126p FL</option>
-          <option value="Fiat 126 BIS" data-car-type="126">Fiat 126 BIS</option>
-          <option value="Fiat 126 EL" data-car-type="126">Fiat 126 EL</option>
-          <option value="Fiat 126 ELX" data-car-type="126">Fiat 126 ELX</option>
-          <option value="Fiat 126 Maluch" data-car-type="126">Fiat 126 Maluch</option>
+          <option value="Fiat 126 BIS" data-car-type="126">Fiat 126 BIS（1987-1991）</option>
+          <option value="Fiat 126 EL" data-car-type="126">Fiat 126 EL（1994-1996）</option>
+          <option value="Fiat 126 ELX" data-car-type="126">Fiat 126 ELX（1996-1999）</option>
+          <option value="Fiat 126 Maluch" data-car-type="126">Fiat 126 Maluch（マルチ・1997-1998）</option>
+          <option value="Fiat 126 Maluch Town" data-car-type="126">Fiat 126 Maluch Town（1998-2000）</option>
           <!-- ライセンス生産版 -->
           <option value="Zastava 126 (126 PGL)" data-car-type="126">Zastava 126 (126 PGL)</option>
           <option value="Steyr-Puch 126" data-car-type="126">Steyr-Puch 126</option>
           <option value="FSM Niki" data-car-type="126">FSM Niki</option>
           <!-- 特別仕様・地域限定 -->
           <option value="Fiat 126 Bambino" data-car-type="126">Fiat 126 Bambino</option>
-          <option value="Fiat 126 Happy End" data-car-type="126">Fiat 126 Happy End</option>
+          <option value="Fiat 126 Happy End" data-car-type="126">Fiat 126 Happy End（2000）</option>
           <!-- パフォーマンス・コーチビルド -->
           <option value="Giannini 126 GP" data-car-type="126">Giannini 126 GP</option>
           <option value="Fiat 126 Cabriolet" data-car-type="126">Fiat 126 Cabriolet</option>
@@ -275,7 +287,10 @@
           <!-- 共通 -->
           <option value="その他">その他</option>
         </select>
-        <div id="ModelSelectAWrapper" style="display:none;"><input type="text" name="ModelTextA" placeholder="車種名を入力"></div>
+        <div id="ModelSelectAWrapper" style="display:none;">
+          <input type="text" name="ModelTextA" placeholder="車種名のみ（例：Steyr-Puch）">
+          <p style="font-size:0.8rem; color:var(--rg-muted); margin:0.4rem 0 0; line-height:1.6;">車種名だけをご記入ください。F・L・R などのグレードは下の「モデル詳細」でお選びいただけます。</p>
+        </div>
 
         <label>モデル詳細 <span class="badge-required">必須</span></label>
         <select name="ModelSelectB" id="ModelSelectB" required>
@@ -289,7 +304,11 @@
         </select>
         <div id="ModelSelectBWrapper" style="display:none;"><input type="text" name="ModelTextB" placeholder="グレード詳細を入力"></div>
 
-        <div><label>年式 <span class="badge-required">必須</span></label><input type="text" name="Year" placeholder="1970等" pattern="[0-9]{4}" title="4桁の西暦で入力してください" required></div>
+        <div>
+          <label>年式 <span class="badge-required">必須</span></label>
+          <input type="text" name="Year" placeholder="1970等" pattern="[0-9]{4}" title="4桁の西暦で入力してください" required>
+          <p style="font-size:0.8rem; color:var(--rg-muted); margin:0.4rem 0 0; line-height:1.6;">製造年（分かる範囲で）をご記入ください。レストアなどで車検証の初度登録年しか分からない場合は、そちらでも構いません。</p>
+        </div>
 
         <div class="photo-grid main-photo-solo">
           <div class="photo-upload-box js-photo-upload" data-target="PhotoMain">
@@ -703,6 +722,12 @@
       };
 
       function fillForm(data) {
+        // 値を入れる前に車種ごとのUIを確定させる。126の選択肢は差し替えで作られるため、
+        // 順序が逆だとモデル詳細やエンジン形式が「選択肢に無い値」となって空に落ちる。
+        if (data.car_type) {
+          document.getElementById('CarType').value = data.car_type;
+          applyCarTypeUi();
+        }
         const mapping = {
           document_id: 'DocumentID', car_type: 'CarType', handle_name: 'HandleName', prefecture: 'Prefecture',
           model_select_a: 'ModelSelectA', model_text_a: 'ModelTextA', model_select_b: 'ModelSelectB', model_text_b: 'ModelTextB',
@@ -816,13 +841,33 @@
         }, 'image/jpeg', 0.85);
       };
 
+      // 入力のゆれを保存前にそろえる。
+      // ・「その他」以外を選び直したのに残った自由入力欄は捨てる（表示に使われないまま残り続けるため）
+      // ・車種名・グレードの前後／連続の空白（全角含む）を詰める
+      // ・年式の全角数字を半角に直す（このボタンはtype=buttonでpattern検証が走らないため）
+      function normalizeRaw(raw) {
+        [['ModelSelectA', 'ModelTextA'], ['ModelSelectB', 'ModelTextB'], ['EngineTypeSelect', 'EngineTypeText']]
+          .forEach(([selKey, textKey]) => { if (raw[selKey] !== 'その他') raw[textKey] = ''; });
+        ['ModelTextA', 'ModelTextB', 'EngineTypeText'].forEach(k => {
+          if (typeof raw[k] === 'string') raw[k] = raw[k].replace(/[\s　]+/g, ' ').trim();
+        });
+        if (typeof raw.Year === 'string') {
+          raw.Year = raw.Year.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).trim();
+        }
+      }
+
       submitBtn.onclick = async () => {
         const fd = new FormData(carForm); const raw = {}; fd.forEach((v, k) => raw[k] = v);
+        normalizeRaw(raw);
         const requiredFields = [
           ['HandleName', 'ハンドルネーム'], ['Prefecture', '都道府県'],
           ['ModelSelectA', '車両モデル'], ['ModelSelectB', 'モデル詳細'],
           ['Year', '年式'], ['PhotoMain', 'メイン写真']
         ];
+        // 「その他」を選んだのに中身が空だと、車名やエンジン形式が表示から消えたまま保存される
+        if (raw.ModelSelectA === 'その他') requiredFields.push(['ModelTextA', '車種名']);
+        if (raw.ModelSelectB === 'その他') requiredFields.push(['ModelTextB', 'モデル詳細']);
+        if (raw.EngineTypeSelect === 'その他') requiredFields.push(['EngineTypeText', 'エンジン形式']);
         const missing = requiredFields.find(([k]) => !raw[k] || String(raw[k]).trim() === '');
         if (missing) {
           const [key, label] = missing;
@@ -898,7 +943,16 @@
           if (error) throw error;
           const finalDocId = savedData[0].document_id;
           if (isNew) {
-            fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'send_thanks_email', formData: { email: userEmail, handleName: raw.HandleName, docId: finalDocId } }) });
+            // 登録完了メール。宛先はサーバー側が docId から引くので渡さない。
+            // 旧実装は mode:'no-cors' で投げっぱなしにしており、GAS側に分岐が無く
+            // 落ちていたことに誰も気づけなかった。失敗はコンソールに残す。
+            fetch('/api/thanks', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ docId: finalDocId })
+            }).then(async res => {
+              if (!res.ok) console.error('サンクスメール送信に失敗:', res.status, await res.text());
+            }).catch(err => console.error('サンクスメール送信に失敗:', err));
             // GA4: 新規登録完了（獲得ファネルのゴール）。GA4管理画面で「キーイベント」に指定する
             if (typeof gtag === 'function') gtag('event', 'sign_up', { method: 'web_form', car_type: dbData.car_type });
           }
@@ -1008,9 +1062,15 @@
         document.getElementById('CarTypeDisplay').textContent = `FIAT ${typeParam}`;
       }
 
-      // 126サイト用のUI切り替え
-      const is126 = document.getElementById('CarType').value === '126';
-      if (is126) {
+      // 126サイト用のUI切り替え。
+      // URLに ?type=126 が無い入口（メール・ブックマーク等）から既存の126車両を開く経路があるため、
+      // 車両データを読み込んだ後（fillForm の冒頭）からも呼べるように関数にしてある。
+      // 選択肢を差し替えると選択済みの値が消えるので、必ず値をセットする前に呼ぶこと。
+      let is126Applied = false;
+      function applyCarTypeUi() {
+        if (document.getElementById('CarType').value !== '126' || is126Applied) return;
+        is126Applied = true;
+        document.getElementById('CarTypeDisplay').textContent = 'FIAT 126';
         // タイトル
         document.title = 'マイガレージ - Registro126 Giappone';
         // ヘッダーロゴ
@@ -1019,7 +1079,8 @@
         // 「ガレージに戻る」リンク
         const backLink = document.querySelector('.rg-back-link a');
         if (backLink) backLink.href = '/126/';
-        // ModelSelectB を126用に差し替え（500専用の選択肢を非表示・126用を追加）
+        // ModelSelectB を126用に差し替え（500専用の選択肢を非表示・126用を追加）。
+        // 126はモデル名自体が世代を表すため、ここに入れる区分は無い。「標準」のままでよい。
         const selB = document.getElementById('ModelSelectB');
         if (selB) {
           selB.innerHTML = `
@@ -1028,22 +1089,27 @@
             <option value="その他">その他</option>`;
         }
         // エンジン形式を126用に差し替え
+        // ※594ccの型式は 126A.000。かつて「126A1.048（594cc・空冷）」という誤った組み合わせを
+        //   出していたため、その値を持つ既存車が編集時に空へ落ちないよう旧値も残してある。
         const selE = document.getElementById('EngineTypeSelect');
         if (selE) {
           selE.innerHTML = `
             <option value="">選択してください</option>
-            <option value="126A1.048（594cc・空冷）">126A1.048（594cc・空冷）</option>
+            <option value="126A.000（594cc・空冷）">126A.000（594cc・空冷）</option>
             <option value="126A1.048（652cc・空冷）">126A1.048（652cc・空冷）</option>
             <option value="BIS（704cc・水冷）">BIS（704cc・水冷）</option>
+            <option value="126A1.048（594cc・空冷）">126A1.048（594cc・空冷）※旧表記</option>
             <option value="不明">不明</option>
             <option value="その他">その他</option>`;
         }
         // 冷却方式セクションを表示
         const coolingSection = document.getElementById('coolingTypeSection');
         if (coolingSection) coolingSection.style.display = '';
+        updateModelOptions();
       }
 
       // 初期表示時にもフィルタを適用
+      applyCarTypeUi();
       updateModelOptions();
 
       document.getElementById('googleLoginBtn').onclick = () => supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });

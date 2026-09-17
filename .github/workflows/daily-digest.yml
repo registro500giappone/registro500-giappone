@@ -1,0 +1,47 @@
+name: 朝ダイジェスト配信（毎朝6:20 JST/手動）
+
+# GAS の時間トリガーから移設したもの。
+# GASは 2026-08-07 のSupabaseレガシーキー無効化以降、新形式のシークレットキーを
+# 使えない（UrlFetchApp の User-Agent がブラウザ判定され Supabase が401を返す。
+# GAS側でUAを変更する手段は無い）。詳細は py/send_digest.py の冒頭コメント。
+on:
+  schedule:
+    - cron: '20 21 * * *'   # 21:20 UTC = 翌 06:20 JST
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '試運転（管理者1人にだけ送り、送信済みフラグを更新しない）'
+        type: boolean
+        default: true
+
+# 二重配信を防ぐ（GAS の LockService の代わり）。
+# 走行中に手動実行が重なっても待たせるだけで、キャンセルはしない。
+concurrency:
+  group: daily-digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # send_digest.py は標準ライブラリだけで動くので pip install は不要
+
+      - name: .env 作成
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
+          echo "SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}" >> py/.env
+          echo "BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}" >> py/.env
+
+      - name: ダイジェスト配信
+        env:
+          DIGEST_DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        run: python py/send_digest.py

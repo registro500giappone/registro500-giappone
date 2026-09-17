@@ -1,0 +1,79 @@
+name: 電装トラブルの旅手帳 週刊公開（毎日04:10 JST/手動）
+
+# 連載は毎週金曜に1回ずつ出す（journey-schedule.json が正本）。
+# ⚠️金曜だけ流さない理由＝その週のジョブが落ちると1回分が出ないまま次の金曜まで気づけない。
+#   毎日流して冪等にしてあるので、落ちた翌日に自然と復旧する。差分が無い日は何もしない。
+# 04:10 JST に置く理由＝朝ダイジェストの配信（06:20）より前に公開状態を確定させるため。
+#   このジョブが先に走らないと、その週の告知が news に入らないまま digest が走り、
+#   記事は出るのにメールだけ1週後ろへずれる（記事側は毎日冪等なので落ちない）。
+# ⚠️2026-08-27 に 06:10 → 05:10（差70分）、2026-09-11 に 05:10 → 04:10（差130分）へ前倒し。
+#   schedule は実測で 18分〜3時間34分 遅れる。当初は「遅延幅は両ワークフローでほぼ一致する
+#   （同じキューで同じだけ遅れる）」と見て70分取ったが、2026-09-11 にこの前提が崩れた＝
+#   実測 publish 2時間19分遅れ・digest 1時間54分遅れで 25分ずれ、間隔が70分→45分に縮んだ。
+#   ⛔digest 側（06:20）は他の通知に効くので動かさない＝広げるのは常にこちら側。
+on:
+  schedule:
+    - cron: '10 19 * * *'   # UTC 19:10 ＝ JST 翌04:10
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write   # noindex の解除と sitemap をコミットするため
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 公開状態を journey-schedule.json に合わせる
+        run: python wiring-simulator/publish_journey.py
+
+      - name: 告知メールの下書きを用意する（公開日の3日前から）
+        # 下書きはリポジトリのファイル＝配信前に読めて・直せて・消せる。
+        # 既にあるファイルは触らない（手で直した文面を上書きしない）。
+        run: python wiring-simulator/announce_journey.py --draft
+
+      - name: 差分があればコミット
+        # ⛔ git add -A は使わない（関係ないファイルを巻き込まないため・ファイル名を明示する）
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add wiring-journey.html wiring-journey-*.html robots.txt
+          if [ -d wiring-simulator/announce ]; then git add wiring-simulator/announce; fi
+          if [ -f sitemap-journey.xml ]; then git add sitemap-journey.xml; fi
+          if git diff --cached --quiet; then
+            echo "公開状態の変更なし — スキップ"
+          else
+            # ⚠️⛔[skip ci] にしない＝Cloudflare Pages も同じ文言を見てビルドをスキップするため、
+            #   公開状態を書き換えても本番に出ない（2026-08-28 の連載開始日に実際に踏んだ）。
+            #   [skip actions] は GitHub Actions だけがスキップし、Pages はデプロイする。
+            git commit -m "chore(wiring-journey): 週刊連載の公開状態を更新 [skip actions]"
+            ok=0
+            for n in 1 2 3; do
+              if git push; then ok=1; break; fi
+              echo "push が弾かれました（試行 $n）— rebase して再試行します"
+              git pull --rebase origin main || true
+              sleep 5
+            done
+            if [ "$ok" != "1" ]; then
+              echo "::error::3回試しても push できませんでした（手動で確認してください）"
+              exit 1
+            fi
+          fi
+
+      # ⚠️投入を push の後に置いている＝push が失敗した週に告知だけ飛ぶのを防ぐため。
+      # 下書きが無い日／skip: true の日は何もせず正常終了する（毎日流しても静か）。
+      # 記事が open になっていることを確かめてから投入する（announce_journey.py の安全弁）。
+      - name: 告知を news へ投入する（06:20 の朝ダイジェストに乗る）
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python wiring-simulator/announce_journey.py --publish

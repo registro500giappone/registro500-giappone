@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<!-- ⛔作業場ページ。導線は付けない（HANDOFF §6-3・CLAUDE.md 全体原則）。仕上がるまで検索にも出さない -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>電気の通り道（作業場・第1層＋第2層の試作）｜Registro500</title>
+
+<!-- Google tag (gtag.js) — 公開ページを増やしたらタグの有無を必ず確認する（過去に計測漏れ実績あり） -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH');
+</script>
+
+<style>
+  :root{
+    --bg:#f6f1e7; --card:#fffdf8; --ink:#23201a; --sub:#6b6357; --line:#ddd4c2; --accent:#1f4d3a;
+    --live:#d32f2f;        /* 電気が流れている道 */
+    --dead:#c9c2b4;        /* 流れていない道 */
+    --spark:#ffd54a;       /* 流れる点 */
+    --lamp:#ff9e1b;        /* 警告灯の光 */
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+       line-height:1.75;-webkit-text-size-adjust:100%}
+  .wrap{max-width:760px;margin:0 auto;padding:14px 13px 80px}
+  h1{font-size:1.06rem;margin:.2em 0 .15em}
+  .lead{color:var(--sub);font-size:.8rem;margin:0 0 14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px 14px;margin:0 0 12px}
+
+  /* 操作は図の直上に固定。⚠️縦に伸ばさない（伸びると図が画面外へ出て変化を追えない・既知の失敗） */
+  .sticky{position:sticky;top:0;z-index:5;background:var(--bg);padding-top:6px;margin:0 0 10px;
+          border-bottom:1px solid var(--line)}
+  .sticky .card{margin-bottom:8px;padding:10px 12px}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .lab{font-size:.72rem;color:var(--sub);width:100%;margin:0 0 -2px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
+  .seg button{appearance:none;border:0;background:#fff;padding:7px 14px;font:inherit;font-size:.85rem;
+              cursor:pointer;color:var(--ink);border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:0}
+  .seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+  .seg button[disabled]{opacity:.4;cursor:not-allowed}
+
+  /* 舞台。第1層＝メーターだけを大きく／第2層＝引いて一周が見える。同じSVGのviewBoxを動かす
+     ＝実物から裏側への移行が断絶しない（別画像に切り替えると「別の絵」になってしまう） */
+  .stage{position:relative;background:#fffdf8;border:1px solid var(--line);border-radius:12px;
+         overflow:hidden;width:100%;aspect-ratio:64/70;
+         transition:aspect-ratio .7s cubic-bezier(.2,.7,.3,1)}
+  .stage svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+  .why{appearance:none;border:0;border-radius:999px;padding:11px 20px;font:inherit;font-size:.92rem;
+       font-weight:700;cursor:pointer;background:var(--accent);color:#fff;box-shadow:0 2px 7px rgba(31,77,58,.28)}
+  .whywrap{display:flex;justify-content:center;margin:11px 0 0}
+
+  .say{margin:12px 0 0;font-size:.93rem;background:#fff7e3;border:1px solid #e8d9a8;
+       border-radius:11px;padding:11px 13px;color:#4a3f22}
+  .say b{color:#2f2712}
+  .say .big{display:block;font-size:1.02rem;font-weight:700;color:#2f2712;margin:0 0 3px}
+  .note{font-size:.76rem;color:var(--sub);margin:9px 0 0}
+  .key{display:flex;gap:16px;align-items:center;font-size:.78rem;color:var(--sub);margin:10px 0 0;flex-wrap:wrap}
+  .key span{display:flex;align-items:center;gap:6px}
+  .key i{width:26px;height:5px;border-radius:3px;flex:none}
+  .key .i-live{background:var(--live)} .key .i-dead{background:var(--dead)}
+  .key .i-spark{width:11px;height:11px;border-radius:50%;background:var(--spark);border:1.5px solid #a8760a}
+
+  /* 電線。⚠️電位の色分け（B+/アース…）はやめた＝素人に要るのは「流れているか」だけ。
+     色は2値（流れている赤／流れていない灰）＋流れる点、これ以上増やさない */
+  .wire{fill:none;stroke:var(--dead);stroke-width:7;stroke-linecap:round;stroke-linejoin:round}
+  .wire.live{stroke:var(--live)}
+  /* セルの線だけ太い＝一瞬に大量の電気が流れることを線の太さで言う */
+  .wire.fat{stroke-width:13}
+  /* 交差でつながって見えないようにする下敷き（舞台の地色で隙間を作る） */
+  .wirebg{fill:none;stroke:#fffdf8;stroke-width:26;stroke-linecap:round}
+  .partlab{font-size:20px;font-weight:700;fill:#3a342a}
+  .partsub{font-size:15px;fill:#7b7263}
+  .hid{display:none}
+  @keyframes glow{0%,100%{opacity:.85}50%{opacity:.35}}
+  .lampglow{animation:glow 1.5s ease-in-out infinite}
+
+  /* 移植した C1 文字盤が参照する色変数。移植元 ucm1 の [data-face="cinque"] の値をそのまま持ってくる。
+     ⚠️1つでも欠けるとその要素が黒く落ちる（var() の既定値が無いため） */
+  #c1{
+    --f0:#151310; --f1:#080706;      /* 文字盤の地（中心→外周） */
+    --tick:#1b1815; --num:#f4f1e8;   /* 目盛り／数字 */
+    --plate:#efece3; --plate2:#d6d0c1;
+    --needle:#e0402c; --hub:#d8402c;
+    --accent:#c9a44e; --ivory:#ece7db; --dim:#8b8474; --line:#28221866;
+    --b0:#f5f5f3; --b1:#5c5c5a;
+    --amber:#ffac2e; --red:#ff4a35;
+    --dialfont:system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif; --nw:600;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  /* 始動レバーのボタン。押している間だけセルが回る＝clickではなくpointerdown/upで受ける */
+  .knob{font:inherit;font-weight:700;padding:9px 16px;border-radius:10px;cursor:pointer;
+        border:2px solid #7a5a2a;background:#f6e7c8;color:#5a4318;touch-action:none;
+        display:flex;flex-direction:column;align-items:center;line-height:1.25}
+  .knob span{font-weight:400;font-size:.72em;opacity:.75}
+  .knob[aria-pressed="true"]{background:#7a5a2a;color:#fff;border-color:#5a4318}
+  .knob:disabled{opacity:.4;cursor:default}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>電気の通り道 — 作業場（第1層＋第2層の試作）</h1>
+<p class="lead">
+  実物（メーター）から入り、裏側の電気の流れまでを一続きで見せる試作。配線図は出しません。
+  正常に動いている様子だけを扱います（故障診断は別テーマ）。⛔どこからもリンクしていない作業場です。
+</p>
+
+<div class="sticky">
+  <div class="card">
+    <div class="row">
+      <span class="lab">運転席でやること</span>
+      <div class="seg" id="keyseg">
+        <button type="button" data-v="OFF" aria-pressed="true">キーを抜く</button>
+        <button type="button" data-v="ON" aria-pressed="false">キーを回す</button>
+      </div>
+      <!-- ⚠️500はキーではセルが回らない＝キーを回してから始動レバーを引く。
+           押している間だけセルが回り、離すとエンジンが掛かる（実車の手順そのまま） -->
+      <button type="button" class="knob" id="startBtn">レバーを引く<span>押している間</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="stage">
+    <svg id="stage" viewBox="186 20 268 262" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+
+      <defs>
+        <linearGradient id="bezel" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#f5f5f3"/><stop offset="35%" stop-color="#8e8e8c"/>
+          <stop offset="62%" stop-color="#e3e3e0"/><stop offset="100%" stop-color="#585856"/>
+        </linearGradient>
+        <radialGradient id="lampg">
+          <stop offset="0%" stop-color="#ff5a3c" stop-opacity=".9"/>
+          <stop offset="40%" stop-color="#ff3a20" stop-opacity=".45"/>
+          <stop offset="100%" stop-color="#ff3a20" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+
+      <!-- ============ 電線（部品より先に描いて下に敷く）
+           ⚠️第1層では丸ごと隠す＝メーターだけを見せたいのに線の端が画面に覗くと気が散る ============ -->
+      <g id="wires" class="hid">
+        <path id="s1" class="wire" d="M80,444 L80,203"/>
+        <path id="s2" class="wire" d="M80,137 C128,88 182,116 235,120"/>
+        <path id="s3" class="wire" d="M395,152 C450,192 490,230 522,264"/>
+        <path id="s4" class="wire" d="M561,338 L561,436"/>
+        <path id="s5" class="wire" d="M538,504 C468,552 408,588 374,605"/>
+        <path id="s6" class="wire" d="M266,606 C222,578 176,520 150,472 C142,458 130,450 118,446"/>
+        <!-- 発電した電気がバッテリーへ戻る道＝エンジンが回っているときだけ現れる -->
+        <path id="s7" class="wire hid" d="M536,262 C610,100 450,22 320,22 C190,22 14,105 16,300 L16,428 C16,446 44,452 74,447"/>
+
+        <!-- ============ セルモーターの枝（バッテリー＋ → 始動レバー → スターター → 車体）
+             ⚠️ここだけ太い。一瞬に大量の電気が流れる＝実車でも一番太いケーブル。
+             ⚠️s8 は s6（アースからバッテリー−へ帰る線）と交差する。触れていないことを示すため
+                背景色の太い線を下に敷いて隙間を作る（またぎの表現）。順序を入れ替えないこと ============ -->
+        <path class="wirebg" d="M88,448 C130,458 168,504 186,556 C198,592 196,636 180,664 C172,678 156,688 142,690"/>
+        <path id="s8" class="wire fat" d="M88,448 C130,458 168,504 186,556 C198,592 196,636 180,664 C172,678 156,688 142,690"/>
+        <path id="s9" class="wire fat" d="M164,700 L262,700"/>
+        <!-- 油圧警告灯の枝。計器盤から後ろのエンジンまで1本で行く（原典の GRIGIO）。s5 と1回交差する -->
+        <path class="wirebg" d="M390,186 C438,214 448,252 440,300 C430,352 404,382 400,430 C382,494 388,556 408,598 C420,624 480,632 530,634"/>
+        <path id="s11" class="wire" d="M390,186 C438,214 448,252 440,300 C430,352 404,382 400,430 C382,494 388,556 408,598 C420,624 480,632 530,634"/>
+        <path id="s12" class="wire" d="M494,655 C452,650 414,634 394,617"/>
+        <path id="s10" class="wire fat" d="M356,674 C358,652 356,632 356,617"/>
+      </g>
+      <!-- 流れる点をここへ差し込む（線の上・部品の下） -->
+      <g id="sparks"></g>
+
+      <!-- ============ 部品（すべて「見れば分かる形」で描く。記号にしない） ============ -->
+
+      <!-- メーター（第1層の主役＝オーナーが毎日見ているもの） -->
+      <g id="meter">
+        <!-- 外周の金属リング（UCM-1側はCSSの conic-gradient。SVGでは持てないので線形で近似） -->
+        <circle cx="320" cy="120" r="93" fill="url(#bezel)"/>
+        <circle cx="320" cy="120" r="93" fill="none" stroke="#3a3a38" stroke-width="1.5" opacity=".55"/>
+        <!-- ============ 文字盤＝UCM-1 メーターアプリの C1「チンクエ」face をそのまま移植 ============
+             出典: Documents/ucm1/ucm1_ui_mockup_v17.html の FACES[4]（実車写真から採寸した純正準拠の作図）
+             gauge座標は viewBox 0 0 200 200・中心(100,100)・半径100。
+             ここでは半径86で置きたいので scale(0.86) → 中心が(320,120)に来るよう translate(234,34)。
+             ⚠️数字・目盛り・オドメーターはすべてパス（グリフ）なのでフォント非依存。
+                下端の4つの小窓の並びは実写採寸で LUCI / GENERAT. / BENZINA / OLIO。 -->
+        <g id="c1" transform="translate(234,34) scale(0.86)">
+          <defs><radialGradient id="gAf" cx="50%" cy="42%" r="70%">
+    <stop offset="0%" stop-color="var(--f0)"></stop><stop offset="100%" stop-color="var(--f1)"></stop></radialGradient>
+   <radialGradient id="gAh" cx="38%" cy="34%" r="80%">
+    <stop offset="0%" stop-color="#fff" stop-opacity=".55"></stop><stop offset="45%" stop-color="var(--hub)"></stop><stop offset="100%" stop-color="#000" stop-opacity=".55"></stop></radialGradient>
+   <radialGradient id="gAg" cx="50%" cy="0%" r="90%">
+    <stop offset="0%" stop-color="#fff" stop-opacity=".10"></stop><stop offset="60%" stop-color="#fff" stop-opacity="0"></stop></radialGradient><radialGradient id="gApl" cx="50%" cy="40%" r="72%">
+    <stop offset="0%" stop-color="var(--plate)"></stop><stop offset="100%" stop-color="var(--plate2)"></stop></radialGradient><linearGradient id="gAd" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#000" stop-opacity=".72"></stop><stop offset="26%" stop-color="#000" stop-opacity="0"></stop>
+    <stop offset="74%" stop-color="#000" stop-opacity="0"></stop><stop offset="100%" stop-color="#000" stop-opacity=".66"></stop></linearGradient><radialGradient id="gAk" cx="34%" cy="30%" r="78%">
+    <stop offset="0%" stop-color="#fff" stop-opacity=".4"></stop><stop offset="52%" stop-color="#fff" stop-opacity="0"></stop>
+    <stop offset="100%" stop-color="#000" stop-opacity=".45"></stop></radialGradient></defs><circle cx="100" cy="100" r="99" fill="url(#gAf)"></circle><circle cx="100" cy="100" r="97" fill="none" stroke="#000" stroke-opacity="0.45" stroke-width="4"></circle><circle cx="100" cy="100" r="61" fill="url(#gApl)"></circle><circle cx="100" cy="100" r="59" fill="none" stroke="#000" stroke-opacity="0.45" stroke-width="1"></circle><circle cx="100" cy="100" r="60.3" fill="none" stroke="var(--b0)" stroke-opacity="0.7" stroke-width="1.5"></circle><circle cx="100" cy="100" r="61.05" fill="none" stroke="var(--b1)" stroke-opacity="0.7" stroke-width="0.5"></circle><line x1="47.09750003839515" y1="124.73631940714702" x2="62.950132732369205" y2="117.32389492726564" stroke="var(--tick)" stroke-width="4" opacity="1" stroke-linecap="butt"></line><g transform="translate(27.530821970404304 133.88536905088634) rotate(-115.06) scale(0.215) translate(-20 -50)"><path d="M5.25 18.75 L5.25 81.25 A10 13.5 0 0 0 15.25 94.75 L24.75 94.75 A10 13.5 0 0 0 34.75 81.25 L34.75 18.75 A10 13.5 0 0 0 24.75 5.25 L15.25 5.25 A10 13.5 0 0 0 5.25 18.75 Z" transform="translate(0 0)" fill="none" stroke="var(--num)" stroke-width="10.5" stroke-linecap="butt" stroke-linejoin="round"></path></g><line x1="42.70673334597942" y1="111.31554665543354" x2="52.02669966812318" y2="109.4748327303202" stroke="var(--tick)" stroke-width="3.1" opacity="0.9" stroke-linecap="butt"></line><line x1="41.66557688583199" y1="97.23321848762492" x2="59.145926277920005" y2="98.06230541342225" stroke="var(--tick)" stroke-width="4" opacity="1" stroke-linecap="butt"></line><g transform="translate(20.089831350454773 96.20988833921223) rotate(-87.284516) scale(0.215) translate(-42.25 -50)"><path d="M5.25 22.5 L5.25 18.75 A10 13.5 0 0 1 15.25 5.25 L24.75 5.25 A10 13.5 0 0 1 34.75 18.75 L34.75 26 C24 50 3 60 5.25 88 L5.25 94.75 L39.5 94.75" transform="translate(0 0)" fill="none" stroke="var(--num)" stroke-width="10.5" stroke-linecap="butt" stroke-linejoin="round"></path><path d="M5.25 18.75 L5.25 81.25 A10 13.5 0 0 0 15.25 94.75 L24.75 94.75 A10 13.5 0 0 0 34.75 81.25 L34.75 18.75 A10 13.5 0 0 0 24.75 5.25 L15.25 5.25 A10 13.5 0 0 0 5.25 18.75 Z" transform="translate(44.5 0)" fill="none" stroke="var(--num)" stroke-width="10.5" stroke-linecap="butt" stroke-linejoin="round"></path></g><line x1="45.94502576052639" y1="77.89525480875555" x2="54.73821506318049" y2="81.49106096144087" stroke="var(--tick)" stroke-width="3.1" opacity="0.9" stroke-linecap="butt"></line><line x1="56.44168616561333" y1="61.0997005679252" x2="69.49426308516414" y2="72.75646837719418" stroke="var(--tick)" stroke-width="4" opacity="1" stroke-linecap="butt"></line><g transform="translate(40.33107693919635 46.711918586198905) rotate(-48.233152000000004) scale(0.215) translate(-42.25 -50)"><path d="M31 5.25 L5.25 75.5 L39.5 75.5 M31 5.25 L22.5 94.75" transform="translate(0 0)" fill="none" stroke="var(--num)" stroke-width="10.5" stroke-linecap="butt" stroke-linejoin="round"></path><path d="M5.25 18.75 L5.25 81.25 A10 13.5 0 0 0 15.25 94.75 L24.75 94.75 A10 13.5 0 0 0 34.75 81.25 L34.75 18.75 A10 13.5 0 0 0 24.75 5.25 L15.25 5.25 A10 13.5 0 0 0 5.25 18.75 Z" transform="translate(44.5 0)" fill="none" stroke="var(--num)" stroke-width="10.5" stroke-linecap="butt" stroke-linejoin="round"></path></g><line x1="72.97208108235264" y1="48.230785219581705" x2="77.36874597477816" y2="56.65214721297167" stroke="var(--tick)" stroke-width="3.1" opacity="0.9" stroke-linecap="butt"></line><line x1="92.98036582175489" y1="42.0234121735022" x2="95.0838520909208" y2="59.39653352562055" stroke="var(--tick)" stroke-width="4" opacity="1" stroke-linecap="butt"></line><g transform="translate(90.38406276952725 20.58001667603041) rotate(-6.9036000000000115) scale(0.215) translate(-42.25 -50)"><path d="M34.75 20 L34.75 18.75 A10 13.5 0 0 0 24.75 5.25 L15.25 5.25 A10 13.5 0 0 0 5.25 18.75 L5.25 81.25 A10 13.5 0 0 0 15.25 94.75 L24.75 94.75 A10 13.5 0 0 0 34.75 81.25 L34.75 58.25 A10 13.5 0 0 0 24.75 44.75 L15.25 44.75 A10 13.5 0 0 0 5.25 58.25" transform="translate(0 0)" fill="none" stroke="var(--num)" stroke-width="10.5" stroke-linecap="butt" stroke-linejoin="round"></path><path d="M5.25 18.75 L5.25 81.25 A10 13.5 0 0 0 15.25 94.75 L24.75 94.75 A10 13.5 0 0 0 34.75 81.25 L34.75 18.75 A10 13.5 0 0 0 24.75 5.25 L15.25 5.25 A10 13.5 0 0 0 5.25 18.75 Z" transform="translate(44.5 0)" fill="none" stroke="var(--num)" stroke-width="10.5" stroke-linecap="butt" stroke-linejoin="round"></path></g><line x1="113.25315363691745" y1="43.12369633427062" x2="111.0972467952956" y2="52.37583477304509" stroke="var(--tick)" stroke-width="3.1" opacity="0.9" stroke-linecap="butt"></line><line x1="131.9241798001963" y1="51.09798834316998" x2="122.35785879842514" y2="65.75184457595296" stroke="var(--tick)" stroke-width="4" opacity="1" stroke-linecap="butt"></line><g transform="translate(143.7317531509538 33.010942935849286) rotate(33.137280000000004) scale(0.215) translate(-42.25 -50)"><path d="M5.25 18.75 L5.25 29.5 A10 13.5 0 0 0 15.25 43 L24.75 43 A10 13.5 0 0 0 34.75 29.5 L34.75 18.75 A10 13.5 0 0 0 24.75 5.25 L15.25 5.25 A10 13.5 0 0 0 5.25 18.75 Z M5.25 56.5 L5.25 81.25 A10 13.5 0 0 0 15.25 94.75 L24.75 94.75 A10 13.5 0 0 0 34.75 81.25 L34.75 56.5 A10 13.5 0 0 0 24.75 43 L15.25 43 A10 13.5 0 0 0 5.25 56.5 Z" transform="translate(0 0)" fill="none" stroke="var(--num)" stroke-width="10.5" stroke-linecap="butt" stroke-linejoin="round"></path><path d="M5.25 18.75 L5.25 81.25 A10 13.5 0 0 0 15.25 94.75 L24.75 94.75 A10 13.5 0 0 0 34.75 81.25 L34.75 18.75 A10 13.5 0 0 0 24.75 5.25 L15.25 5.25 A10 13.5 0 0 0 5.25 18.75 Z" transform="translate(44.5 0)" fill="none" stroke="var(--num)" stroke-width="10.5" stroke-linecap="butt" stroke-linejoin="round"></path></g><line x1="146.87015435730808" y1="65.16110463114373" x2="139.24572856288296" y2="70.82839069285836" stroke="var(--tick)" stroke-width="3.1" opacity="0.9" stroke-linecap="butt"></line><line x1="156.02836249462308" y1="83.52630593427472" x2="139.23904154161104" y2="88.4627724779424" stroke="var(--tick)" stroke-width="4" opacity="1" stroke-linecap="butt"></line><g transform="translate(176.7511814994837 77.43329580037631) rotate(73.615388) scale(0.215) translate(-52.75 -50)"><path d="M5.25 17 L10.75 5.25 L10.75 100" transform="translate(0 0)" fill="none" stroke="var(--num)" stroke-width="10.5" stroke-linecap="butt" stroke-linejoin="round"></path><path d="M5.25 18.75 L5.25 81.25 A10 13.5 0 0 0 15.25 94.75 L24.75 94.75 A10 13.5 0 0 0 34.75 81.25 L34.75 18.75 A10 13.5 0 0 0 24.75 5.25 L15.25 5.25 A10 13.5 0 0 0 5.25 18.75 Z" transform="translate(21 0)" fill="none" stroke="var(--num)" stroke-width="10.5" stroke-linecap="butt" stroke-linejoin="round"></path><path d="M5.25 18.75 L5.25 81.25 A10 13.5 0 0 0 15.25 94.75 L24.75 94.75 A10 13.5 0 0 0 34.75 81.25 L34.75 18.75 A10 13.5 0 0 0 24.75 5.25 L15.25 5.25 A10 13.5 0 0 0 5.25 18.75 Z" transform="translate(65.5 0)" fill="none" stroke="var(--num)" stroke-width="10.5" stroke-linecap="butt" stroke-linejoin="round"></path></g><line x1="158.23271847915905" y1="104.4170689973112" x2="148.75993037039174" y2="103.69853893781709" stroke="var(--tick)" stroke-width="3.1" opacity="0.9" stroke-linecap="butt"></line><line x1="152.90249996160486" y1="124.73631940714704" x2="137.0498672676308" y2="117.32389492726566" stroke="var(--tick)" stroke-width="4" opacity="1" stroke-linecap="butt"></line><g transform="translate(172.4691780295957 133.88536905088637) rotate(115.06) scale(0.215) translate(-52.75 -50)"><path d="M5.25 17 L10.75 5.25 L10.75 100" transform="translate(0 0)" fill="none" stroke="var(--num)" stroke-width="10.5" stroke-linecap="butt" stroke-linejoin="round"></path><path d="M5.25 22.5 L5.25 18.75 A10 13.5 0 0 1 15.25 5.25 L24.75 5.25 A10 13.5 0 0 1 34.75 18.75 L34.75 26 C24 50 3 60 5.25 88 L5.25 94.75 L39.5 94.75" transform="translate(21 0)" fill="none" stroke="var(--num)" stroke-width="10.5" stroke-linecap="butt" stroke-linejoin="round"></path><path d="M5.25 18.75 L5.25 81.25 A10 13.5 0 0 0 15.25 94.75 L24.75 94.75 A10 13.5 0 0 0 34.75 81.25 L34.75 18.75 A10 13.5 0 0 0 24.75 5.25 L15.25 5.25 A10 13.5 0 0 0 5.25 18.75 Z" transform="translate(65.5 0)" fill="none" stroke="var(--num)" stroke-width="10.5" stroke-linecap="butt" stroke-linejoin="round"></path></g><rect x="72.5" y="67.55" width="55" height="12.9" rx="1.2" fill="#0a0908"></rect><rect x="72.5" y="67.55" width="55" height="12.9" rx="1.2" fill="none" stroke="var(--plate)" stroke-width="0.9" opacity="0.85"></rect><line x1="83.5" y1="67.55" x2="83.5" y2="80.45" stroke="var(--plate)" stroke-width="0.5" opacity="0.2"></line><line x1="94.5" y1="67.55" x2="94.5" y2="80.45" stroke="var(--plate)" stroke-width="0.5" opacity="0.2"></line><line x1="105.5" y1="67.55" x2="105.5" y2="80.45" stroke="var(--plate)" stroke-width="0.5" opacity="0.2"></line><line x1="116.5" y1="67.55" x2="116.5" y2="80.45" stroke="var(--plate)" stroke-width="0.5" opacity="0.2"></line><g data-v="00500" id="gAo"><g transform="translate(78 74) scale(0.1) translate(-40 -50)"><path d="M23.8 0 L56.2 0 A21 16 0 0 1 77.2 16 L77.2 84 A21 16 0 0 1 56.2 100 L23.8 100 A21 16 0 0 1 2.8 84 L2.8 16 A21 16 0 0 1 23.8 0 Z M34.7 11.8 L45.3 11.8 A17 10.5 0 0 1 62.3 22.3 L62.3 77.7 A17 10.5 0 0 1 45.3 88.2 L34.7 88.2 A17 10.5 0 0 1 17.7 77.7 L17.7 22.3 A17 10.5 0 0 1 34.7 11.8 Z" transform="translate(0 0)" fill="var(--plate)" fill-rule="evenodd" stroke="none"></path></g><g transform="translate(89 74) scale(0.1) translate(-40 -50)"><path d="M23.8 0 L56.2 0 A21 16 0 0 1 77.2 16 L77.2 84 A21 16 0 0 1 56.2 100 L23.8 100 A21 16 0 0 1 2.8 84 L2.8 16 A21 16 0 0 1 23.8 0 Z M34.7 11.8 L45.3 11.8 A17 10.5 0 0 1 62.3 22.3 L62.3 77.7 A17 10.5 0 0 1 45.3 88.2 L34.7 88.2 A17 10.5 0 0 1 17.7 77.7 L17.7 22.3 A17 10.5 0 0 1 34.7 11.8 Z" transform="translate(0 0)" fill="var(--plate)" fill-rule="evenodd" stroke="none"></path></g><g transform="translate(100 74) scale(0.1) translate(-40 -50)"><path d="M68.2 9 L11.8 9 L11.8 40 A26 9 0 0 1 40 34 A28.2 28 0 0 1 68.2 62 A28.2 29 0 0 1 40 91 A28.2 17 0 0 1 11.8 74" transform="translate(0 0)" fill="none" stroke="var(--plate)" stroke-width="18" stroke-linecap="butt" stroke-linejoin="round"></path></g><g transform="translate(111 74) scale(0.1) translate(-40 -50)"><path d="M23.8 0 L56.2 0 A21 16 0 0 1 77.2 16 L77.2 84 A21 16 0 0 1 56.2 100 L23.8 100 A21 16 0 0 1 2.8 84 L2.8 16 A21 16 0 0 1 23.8 0 Z M34.7 11.8 L45.3 11.8 A17 10.5 0 0 1 62.3 22.3 L62.3 77.7 A17 10.5 0 0 1 45.3 88.2 L34.7 88.2 A17 10.5 0 0 1 17.7 77.7 L17.7 22.3 A17 10.5 0 0 1 34.7 11.8 Z" transform="translate(0 0)" fill="var(--plate)" fill-rule="evenodd" stroke="none"></path></g><g transform="translate(122 74) scale(0.1) translate(-40 -50)"><path d="M23.8 0 L56.2 0 A21 16 0 0 1 77.2 16 L77.2 84 A21 16 0 0 1 56.2 100 L23.8 100 A21 16 0 0 1 2.8 84 L2.8 16 A21 16 0 0 1 23.8 0 Z M34.7 11.8 L45.3 11.8 A17 10.5 0 0 1 62.3 22.3 L62.3 77.7 A17 10.5 0 0 1 45.3 88.2 L34.7 88.2 A17 10.5 0 0 1 17.7 77.7 L17.7 22.3 A17 10.5 0 0 1 34.7 11.8 Z" transform="translate(0 0)" fill="var(--plate)" fill-rule="evenodd" stroke="none"></path></g></g><rect x="72.5" y="67.55" width="55" height="12.9" rx="1.2" fill="url(#gAd)" pointer-events="none"></rect><circle cx="52.53634012314325" cy="92.84451321753313" r="6.4" fill="var(--needle)"></circle><rect x="51.73634012314325" y="89.34451321753313" width="1.6" height="7" fill="var(--plate)"></rect><circle cx="62.10426831955292" cy="70.53962796562882" r="6.4" fill="var(--needle)"></circle><rect x="59.704268319552924" y="67.03962796562882" width="1.6" height="7" fill="var(--plate)"></rect><rect x="62.904268319552926" y="67.03962796562882" width="1.6" height="7" fill="var(--plate)"></rect><circle cx="100.92531010655512" cy="52.008919566166185" r="6.4" fill="var(--needle)"></circle><rect x="96.92531010655512" y="48.508919566166185" width="1.6" height="7" fill="var(--plate)"></rect><rect x="100.12531010655512" y="48.508919566166185" width="1.6" height="7" fill="var(--plate)"></rect><rect x="103.32531010655512" y="48.508919566166185" width="1.6" height="7" fill="var(--plate)"></rect><circle cx="70" cy="100" r="2.6" fill="#0b0a08" opacity="0.8"></circle><circle cx="130" cy="100" r="2.6" fill="#0b0a08" opacity="0.8"></circle><path d="M177.7145961456971 162.93203910498374 A100 100 0 0 1 22.285403854302928 162.93203910498377 L48.70836654383994 141.5351458092893 A66 66 0 0 0 151.29163345616007 141.53514580928928 Z" fill="none" stroke="var(--num)" stroke-width="0.8" opacity="0.8"></path><text x="46.65060232500912" y="151.61268548078908" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(407.3794071076551 46.65060232500912 149.09268548078907)" style="font: 500 7px var(--dialfont);">L</text><text x="49.98641860939237" y="155.0070619913619" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(403.61764282514093 49.98641860939237 152.48706199136188)" style="font: 500 7px var(--dialfont);">U</text><text x="53.53774608904357" y="158.175268946559" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(399.8558785426269 53.53774608904357 155.65526894655898)" style="font: 500 7px var(--dialfont);">C</text><text x="57.289281904046526" y="161.10365437328056" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(396.09411426011275 57.289281904046526 158.58365437328055)" style="font: 500 7px var(--dialfont);">I</text><circle cx="36.01578751005272" cy="165.33852655241986" r="6.6" fill="#000" opacity="0.5"></circle><circle cx="36.01578751005272" cy="165.33852655241986" r="6.6" fill="none" stroke="var(--num)" stroke-width="0.5" opacity="0.16"></circle><text x="65.59256843529468" y="166.33519139766113" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(388.3323499775987 65.59256843529468 163.81519139766112)" style="font: 500 7px var(--dialfont);">G</text><text x="69.85348811734215" y="168.45510310380027" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(384.57058569508456 69.85348811734215 165.93510310380026)" style="font: 500 7px var(--dialfont);">E</text><text x="74.24431073032049" y="170.29089692665812" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(380.8088214125705 74.24431073032049 167.7708969266581)" style="font: 500 7px var(--dialfont);">N</text><text x="78.74611598491587" y="171.83466233253503" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(377.0470571300564 78.74611598491587 169.31466233253502)" style="font: 500 7px var(--dialfont);">E</text><text x="83.33950536168007" y="173.07974715378813" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(373.28529284754234 83.33950536168007 170.55974715378812)" style="font: 500 7px var(--dialfont);">R</text><text x="88.00468570028758" y="174.02078625337708" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(369.5235285650282 88.00468570028758 171.50078625337707)" style="font: 500 7px var(--dialfont);">A</text><text x="92.72155448932129" y="174.65372464352637" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(365.7617642825141 92.72155448932129 172.13372464352636)" style="font: 500 7px var(--dialfont);">T</text><text x="97.4697864890687" y="174.97583495888446" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(362 97.4697864890687 172.45583495888445)" style="font: 500 7px var(--dialfont);">.</text><circle cx="76.63948543677195" cy="188.41599888787783" r="6.6" fill="#000" opacity="0.5"></circle><circle cx="76.63948543677195" cy="188.41599888787783" r="6.6" fill="none" stroke="var(--num)" stroke-width="0.5" opacity="0.16"></circle><text x="107.27844551067865" y="174.65372464352637" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(354.23823571748596 107.27844551067865 172.13372464352636)" style="font: 500 7px var(--dialfont);">B</text><text x="111.99531429971238" y="174.02078625337708" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(350.4764714349718 111.99531429971238 171.50078625337707)" style="font: 500 7px var(--dialfont);">E</text><text x="116.66049463831986" y="173.07974715378816" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(346.7147071524578 116.66049463831986 170.55974715378815)" style="font: 500 7px var(--dialfont);">N</text><text x="121.25388401508405" y="171.8346623325351" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(342.9529428699436 121.25388401508405 169.31466233253508)" style="font: 500 7px var(--dialfont);">Z</text><text x="125.75568926967944" y="170.29089692665812" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(339.1911785874296 125.75568926967944 167.7708969266581)" style="font: 500 7px var(--dialfont);">I</text><text x="130.14651188265782" y="168.45510310380027" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(335.42941430491544 130.14651188265782 165.93510310380026)" style="font: 500 7px var(--dialfont);">N</text><text x="134.4074315647053" y="166.33519139766113" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(331.66765002240135 134.4074315647053 163.81519139766112)" style="font: 500 7px var(--dialfont);">A</text><circle cx="123.36051456322807" cy="188.41599888787783" r="6.6" fill="#000" opacity="0.5"></circle><circle cx="123.36051456322807" cy="188.41599888787783" r="6.6" fill="none" stroke="var(--num)" stroke-width="0.5" opacity="0.16"></circle><text x="142.7107180959534" y="161.1036543732806" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(323.90588573988725 142.7107180959534 158.58365437328058)" style="font: 500 7px var(--dialfont);">O</text><text x="146.46225391095638" y="158.17526894655904" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(320.1441214573732 146.46225391095638 155.65526894655903)" style="font: 500 7px var(--dialfont);">L</text><text x="150.01358139060758" y="155.00706199136195" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(316.38235717485907 150.01358139060758 152.48706199136194)" style="font: 500 7px var(--dialfont);">I</text><text x="153.34939767499083" y="151.61268548078914" fill="var(--num)" font-size="7" text-anchor="middle" opacity="0.9" transform="rotate(312.62059289234503 153.34939767499083 149.09268548078913)" style="font: 500 7px var(--dialfont);">O</text><circle cx="163.98421248994728" cy="165.33852655241986" r="6.6" fill="#000" opacity="0.5"></circle><circle cx="163.98421248994728" cy="165.33852655241986" r="6.6" fill="none" stroke="var(--num)" stroke-width="0.5" opacity="0.16"></circle><text x="100" y="135.5" fill="var(--tick)" font-size="9" text-anchor="middle" letter-spacing="1.4" opacity="0.85">km/h</text><line x1="100" y1="2" x2="100" y2="9" stroke="var(--amber)" stroke-width="3" opacity="0" stroke-linecap="round" id="gAp"></line><g id="gAn" transform="rotate(-115.06 100 100)" style="filter: drop-shadow(rgba(0, 0, 0, 0.55) 1.5px 3px 2.5px);"><path d="M96.5 100 L100 43.20 L103.5 100 Z M97.6 100 L102.4 100 L101.2 123 L98.8 123 Z" fill="var(--needle)"></path><circle cx="100" cy="100" r="14" fill="var(--hub)"></circle><circle cx="100" cy="100" r="14" fill="url(#gAk)"></circle><circle cx="100" cy="100" r="14" fill="none" stroke="#000" stroke-width="1" opacity="0.28"></circle><circle cx="100" cy="100" r="2" fill="var(--f1)"></circle></g><ellipse cx="100" cy="52" rx="80" ry="44" fill="url(#gAg)" pointer-events="none"></ellipse>
+          <!-- 充電警告灯＝GENERAT. の穴（gauge座標 76.639,188.416 / r6.6）に光を重ねる。
+               ⚠️座標は移植元の実測値。ここを勝手に動かさない -->
+          <g id="lampGen" class="hid">
+            <circle class="lampglow" cx="76.639" cy="188.416" r="26" fill="url(#lampg)"/>
+            <circle cx="76.639" cy="188.416" r="6.6" fill="#ff2a14"/>
+            <circle cx="76.639" cy="188.416" r="6.6" fill="none" stroke="#ff8a70" stroke-width="1.2"/>
+            <circle cx="75.2" cy="186.6" r="2.4" fill="#fff" opacity=".55"/>
+          </g>
+          <!-- 油圧警告灯＝OLIO の穴（gauge座標 163.984,165.339 / r6.6）。GENERAT. と同じく移植元の実測値 -->
+          <g id="lampOil" class="hid">
+            <circle class="lampglow" cx="163.984" cy="165.339" r="26" fill="url(#lampg)"/>
+            <circle cx="163.984" cy="165.339" r="6.6" fill="#ff2a14"/>
+            <circle cx="163.984" cy="165.339" r="6.6" fill="none" stroke="#ff8a70" stroke-width="1.2"/>
+            <circle cx="162.5" cy="163.5" r="2.4" fill="#fff" opacity=".55"/>
+          </g>
+        </g>
+        <!-- ラベルはメーター円（下端 y=213）より下に出す＝円と文字を重ねない -->
+        <text x="320" y="243" class="partlab" text-anchor="middle">メーター</text>
+        <text x="320" y="267" class="partsub" text-anchor="middle">下の小窓が警告灯です</text>
+      </g>
+
+      <!-- キースイッチ -->
+      <g id="keysw">
+        <circle cx="80" cy="170" r="33" fill="#e8e2d5" stroke="#8d8574" stroke-width="3"/>
+        <circle cx="80" cy="170" r="24" fill="#cfc8b8"/>
+        <g id="keyrot" style="transition:transform .45s ease" transform-origin="80px 170px">
+          <rect x="75" y="140" width="10" height="34" rx="3" fill="#7a7365"/>
+          <rect x="68" y="128" width="24" height="16" rx="5" fill="#7a7365"/>
+        </g>
+        <text x="80" y="230" class="partlab" text-anchor="middle">キースイッチ</text>
+      </g>
+
+      <!-- バッテリー（＋端子を上に出して s1・s7 をそこへ差す） -->
+      <g id="battery">
+        <rect x="26" y="462" width="108" height="76" rx="8" fill="#e8e2d5" stroke="#8d8574" stroke-width="3"/>
+        <rect x="26" y="462" width="108" height="15" rx="6" fill="#d6cfc0"/>
+        <rect x="72" y="444" width="16" height="19" rx="3" fill="#b8442e"/>
+        <rect x="110" y="444" width="16" height="19" rx="3" fill="#5c5a56"/>
+        <text x="60" y="458" font-size="20" font-weight="700" fill="#b8442e" text-anchor="middle">+</text>
+        <text x="140" y="458" font-size="22" font-weight="700" fill="#5c5a56" text-anchor="middle">−</text>
+        <g stroke="#b3ab9a" stroke-width="2"><line x1="58" y1="492" x2="58" y2="530"/><line x1="102" y1="492" x2="102" y2="530"/></g>
+        <text x="80" y="568" class="partlab" text-anchor="middle">バッテリー</text>
+      </g>
+
+      <!-- レギュレータ -->
+      <g id="regulator">
+        <rect x="516" y="266" width="90" height="72" rx="7" fill="#e8e2d5" stroke="#8d8574" stroke-width="3"/>
+        <g stroke="#b3ab9a" stroke-width="3">
+          <line x1="530" y1="276" x2="592" y2="276"/><line x1="530" y1="287" x2="592" y2="287"/>
+        </g>
+        <g fill="#9a9285"><rect x="528" y="330" width="11" height="12" rx="2"/><rect x="556" y="330" width="11" height="12" rx="2"/>
+          <rect x="584" y="330" width="11" height="12" rx="2"/></g>
+        <text x="561" y="374" class="partlab" text-anchor="middle">レギュレータ</text>
+        <text x="561" y="396" class="partsub" text-anchor="middle">（電気の交通整理）</text>
+      </g>
+
+      <!-- ダイナモ -->
+      <g id="dynamo">
+        <rect x="496" y="436" width="112" height="70" rx="34" fill="#e8e2d5" stroke="#8d8574" stroke-width="3"/>
+        <g stroke="#b3ab9a" stroke-width="2.5">
+          <line x1="526" y1="446" x2="526" y2="496"/><line x1="546" y1="446" x2="546" y2="496"/>
+          <line x1="566" y1="446" x2="566" y2="496"/>
+        </g>
+        <circle id="pulley" cx="608" cy="471" r="20" fill="#cfc8b8" stroke="#8d8574" stroke-width="3"
+                transform-origin="608px 471px"/>
+        <circle cx="608" cy="471" r="6" fill="#8d8574"/>
+        <text x="552" y="542" class="partlab" text-anchor="middle">ダイナモ（発電機）</text>
+      </g>
+
+      <!-- 車体アース。⚠️ラベルは帯の「上」に置く＝下はスターターとその線が通る -->
+      <g id="ground">
+        <rect x="240" y="600" width="160" height="14" rx="7" fill="#cfc8b8" stroke="#8d8574" stroke-width="3"/>
+        <g stroke="#8d8574" stroke-width="4" stroke-linecap="round">
+          <line x1="268" y1="628" x2="332" y2="628"/>
+          <line x1="280" y1="642" x2="320" y2="642"/>
+          <line x1="292" y1="656" x2="308" y2="656"/>
+        </g>
+        <text x="320" y="588" class="partlab" text-anchor="middle">車体（アース）</text>
+      </g>
+
+      <!-- 始動レバー（スタータSW）＝手で引いている間だけ閉じる。実車もキーではセルは回らない -->
+      <g id="startknob">
+        <rect x="120" y="694" width="46" height="13" rx="6" fill="#cfc8b8" stroke="#8d8574" stroke-width="2"/>
+        <g id="knobpull" style="transition:transform .18s ease" transform-origin="112px 700px">
+          <circle cx="112" cy="700" r="23" fill="#e8e2d5" stroke="#8d8574" stroke-width="3"/>
+          <circle cx="112" cy="700" r="13" fill="#cfc8b8"/>
+        </g>
+        <text x="112" y="758" class="partlab" text-anchor="middle">始動レバー</text>
+        <text x="112" y="780" class="partsub" text-anchor="middle">（セルのスイッチ）</text>
+      </g>
+
+      <!-- 油圧センダ＝エンジンにねじ込まれている。圧が無い間だけ閉じて油圧灯をアースに落とす -->
+      <g id="oilsender">
+        <rect x="496" y="634" width="68" height="42" rx="20" fill="#e8e2d5" stroke="#8d8574" stroke-width="3"/>
+        <rect x="556" y="646" width="16" height="18" rx="3" fill="#cfc8b8" stroke="#8d8574" stroke-width="2"/>
+        <text x="530" y="706" class="partlab" text-anchor="middle">油圧センダ</text>
+        <text x="530" y="728" class="partsub" text-anchor="middle">（圧が無い間だけ閉じる）</text>
+      </g>
+
+      <!-- スターター（セルモーター） -->
+      <g id="starter">
+        <rect x="262" y="674" width="138" height="52" rx="26" fill="#e8e2d5" stroke="#8d8574" stroke-width="3"/>
+        <g stroke="#b3ab9a" stroke-width="2.5">
+          <line x1="292" y1="684" x2="292" y2="716"/><line x1="312" y1="684" x2="312" y2="716"/>
+          <line x1="332" y1="684" x2="332" y2="716"/>
+        </g>
+        <circle id="pinion" cx="412" cy="700" r="16" fill="#cfc8b8" stroke="#8d8574" stroke-width="3"
+                transform-origin="412px 700px"/>
+        <circle cx="412" cy="700" r="5" fill="#8d8574"/>
+        <text x="331" y="758" class="partlab" text-anchor="middle">スターター</text>
+        <text x="331" y="780" class="partsub" text-anchor="middle">（セルモーター）</text>
+      </g>
+
+    </svg>
+  </div>
+
+  <div class="whywrap">
+    <button type="button" class="why" id="whyBtn">なぜ点いたの？ 裏側を見る</button>
+  </div>
+
+  <p class="say" id="say"></p>
+
+  <div class="key hid" id="keyEl">
+    <span><i class="i-live"></i>電気が来ている道</span>
+    <span><i class="i-dead"></i>来ていない道</span>
+    <span><i class="i-spark"></i>いま流れている電気</span>
+  </div>
+  <p class="note hid" id="simpleNote">
+    つながり方を見るための図です。部品の位置は実車と異なります（実車ではバッテリーは前のトランク、ダイナモは後ろのエンジンルームにあります）。
+    途中のつなぎ目（レギュレータやヒューズの通過点）は省いています。
+    エンジンが掛かる仕組みそのもの（点火系）はこの図にはまだ入っていません——ここで扱うのは「電気がどう流れるか」だけです。
+    <b>この道にヒューズは入っていません</b>——だから充電警告灯はヒューズが切れても点きます。
+  </p>
+</div>
+
+<script src="/wiring-sim.js?v=2"></script>
+<script>
+(function(){
+  'use strict';
+  var NET_VERSION='4', TYPE='F';
+  var net=null, inputs={}, revealed=false, cranking=false;
+
+  var stage=document.getElementById('stage'), sparks=document.getElementById('sparks'),
+      lampGen=document.getElementById('lampGen'), lampOil=document.getElementById('lampOil'),
+      keyrot=document.getElementById('keyrot'),
+      pulley=document.getElementById('pulley'), s7=document.getElementById('s7'),
+      pinion=document.getElementById('pinion'), knobpull=document.getElementById('knobpull'),
+      startBtn=document.getElementById('startBtn'),
+      whyBtn=document.getElementById('whyBtn'), sayEl=document.getElementById('say'),
+      simpleNote=document.getElementById('simpleNote'), keyEl=document.getElementById('keyEl'),
+      wiresG=document.getElementById('wires');
+
+  /* 第1層＝メーターだけを大きく／第2層＝引いて一周が見える。
+     ⚠️別画像に差し替えず同じSVGのviewBoxを動かす＝「いま見ていたメーターが輪の一部だった」が伝わる */
+  var VIEW_METER=[186,20,268,262], VIEW_ALL=[0,0,640,800];
+  var VB=VIEW_METER.slice(), tween=null;
+  function setView(t){
+    var from=VB.slice(), t0=null;
+    if(tween) cancelAnimationFrame(tween);
+    (function step(ts){
+      if(t0===null) t0=ts;
+      var k=Math.min((ts-t0)/700,1), e=1-Math.pow(1-k,3), i;
+      for(i=0;i<4;i++) VB[i]=from[i]+(t[i]-from[i])*e;
+      stage.setAttribute('viewBox', VB.map(function(n){return n.toFixed(1);}).join(' '));
+      if(k<1) tween=requestAnimationFrame(step);
+    })(performance.now());
+  }
+
+  /* 電気の道のり。⚠️「状態」（全部が同時に光る）ではなく「順を追う旅」にするのがこの画面の要。
+     rev＝図に描いた向きと逆に流れる区間（帰り道）。 */
+  var ALL=['s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11','s12'];
+  var FAT={s8:1,s9:1,s10:1};                      // セルの太いケーブル
+  // 灯が点いている一周：バッテリー＋ → キー → 警告灯 → ダイナモ → 車体 → バッテリー−
+  var PATH_LAMP=[{id:'s1'},{id:'s2'},{id:'s3'},{id:'s4'},{id:'s5'},{id:'s6'},
+                 {id:'s11'},{id:'s12'},{id:'s8',still:true}];
+  /* 充電の一周：ダイナモ → レギュレータ → バッテリー＋ …… バッテリー− → 車体 → ダイナモ。
+     ⚠️警告灯の枝（s1〜s3）は消えるが、電気が来ていないのではない＝両側が同じ＋になって流れないだけ。
+        だから灰色にせず赤のまま「点だけ止める」。ここがこの画面で一番伝えたい所 */
+  var PATH_CHARGE=[{id:'s4',rev:true},{id:'s7'},{id:'s6',rev:true},{id:'s5',rev:true},
+                   {id:'s1',still:true},{id:'s2',still:true},{id:'s3',still:true},{id:'s8',still:true}];
+  // キーを抜いているとき：キースイッチの手前で止まっている。
+  // セルの太い線もレバーの手前まで来ている＝キーに関係なく常にバッテリーとつながっている
+  var PATH_OFF=[{id:'s1',still:true},{id:'s8',still:true}];
+  // セルが回っている間：太い一周（バッテリー＋ → レバー → スターター → 車体 → バッテリー−）。
+  // 警告灯の一周も同時に生きている＝セルを回している間も灯は点いたまま
+  var PATH_CRANK=[{id:'s8'},{id:'s9'},{id:'s10'},{id:'s6'},
+                  {id:'s1'},{id:'s2'},{id:'s3'},{id:'s4'},{id:'s5'},{id:'s11'},{id:'s12'}];
+
+  function seg(id){ return document.getElementById(id); }
+
+  var timers=[];
+  function clearSeq(){
+    timers.forEach(clearTimeout); timers=[];
+    sparks.innerHTML='';
+    ALL.forEach(function(id){
+      var p=seg(id);
+      p.setAttribute('class','wire'+(FAT[id]?' fat':'')+(id==='s7'?' hid':''));
+      p.style.strokeDasharray=''; p.style.strokeDashoffset=''; p.style.transition='';
+    });
+  }
+
+  /* 線を順に描き進める＝始まりと終わりのある「旅」に見せる。描き終わったら流れる点に引き継ぐ */
+  function runSeq(list){
+    var delay=0;
+    list.forEach(function(it){
+      var p=seg(it.id), len=p.getTotalLength();
+      var dur=Math.max(240, len*1.15);              // 長い線ほど時間をかける＝速度が一定に見える
+      timers.push(setTimeout(function(){
+        p.style.transition='none';
+        p.style.strokeDasharray=len+' '+len;
+        p.style.strokeDashoffset=(it.rev? -len : len);   // 逆向きは反対の端から描く
+        p.setAttribute('class','wire live'+(FAT[it.id]?' fat':''));
+        p.getBoundingClientRect();                  // 反映させてから transition を効かせる
+        p.style.transition='stroke-dashoffset '+dur+'ms linear';
+        p.style.strokeDashoffset='0';
+      }, delay));
+      delay+=dur*0.72;                              // 少し重ねて繋がって見せる
+    });
+    timers.push(setTimeout(function(){
+      addSparks(list.filter(function(it){ return !it.still; }));   // 流れていない道には点を出さない
+    }, delay+260));
+  }
+
+  /* 流れる点＝SMIL animateMotion（JSでフレームを回さない・向き＝実際の電流の向き） */
+  function addSparks(list){
+    var html='';
+    list.forEach(function(it,i){
+      var p=seg(it.id), len=p.getTotalLength(), f=!!FAT[it.id],
+          dur=Math.max(f?.45:.9, len/(f?300:150)), cnt=f?3:2;
+      for(var n=0;n<cnt;n++){
+        html+='<circle r="'+(f?9.5:6.5)+'" fill="#ffd54a" stroke="#a8760a" stroke-width="1.5">'+
+              '<animateMotion dur="'+dur.toFixed(2)+'s" repeatCount="indefinite" begin="'+
+              (i*0.18+n*dur/cnt).toFixed(2)+'s"'+
+              (it.rev?' keyPoints="1;0" keyTimes="0;1" calcMode="linear"':'')+'>'+
+              '<mpath href="#'+it.id+'"/></animateMotion></circle>';
+      }
+    });
+    sparks.innerHTML=html;
+  }
+
+  /* 画面の言葉。⚠️端子名・DIN番号は一切出さない（この層の読者は配線図を読まない） */
+  var SAY={
+    off:{ t:'キーを抜いた状態', b:'メーターの警告灯はどれも消えています。',
+          w:'電気はバッテリーから出ていますが、<b>キースイッチで道が断たれている</b>ので、警告灯までは届きません。'+
+             '<br>下の<b>太い線</b>は、キーに関係なく<b>いつもバッテリーとつながっています</b>（始動レバーの手前まで）。' },
+    crank:{ t:'レバーを引いています（セルが回る）',
+          b:'エンジンが回されています。<b>2つとも点いたまま</b>です——セルで回しているだけで、まだ発電も油圧も立ち上がっていません。',
+          w:'セルモーターは<b>ヒューズもキースイッチも通りません</b>。バッテリーから<b>太い線で直接</b>つながっていて、'+
+             'レバーを引いている間だけその道が閉じます。<b>線が太いのは、一瞬に大量の電気が流れるから</b>です。' },
+    on: { t:'キーを回しました', b:'<b>2つ点きます</b>。GENERAT.（発電）と OLIO（油圧）です。<b>どちらも故障ではありません</b>——「まだ発電していませんよ」「まだ油圧が上がっていませんよ」という合図です。',
+          w:'電気がバッテリーを出て、キースイッチを通ると、そこから<b>2手に分かれます</b>。'+'一方は<b>GENERAT. を光らせて</b>ダイナモの中を通り、もう一方は<b>OLIO を光らせて</b>エンジンの油圧センダを通って、'+'どちらも車体（アース）へ戻ります。<b>一周つながったから光ります。</b>' },
+    run:{ t:'エンジンがかかりました', b:'<b>2つとも消えます。</b>ダイナモが発電を始め、油圧が上がった合図です。',
+          w:'発電した電気が<b>バッテリーへ戻る道</b>ができました（上を回る道）。すると警告灯の<b>両側が同じ「＋」</b>になり、'+
+             '電気が流れなくなって消えます——<b>水位が同じだと水が流れないのと同じ</b>です。'+
+             '<br>警告灯までの道は<b>赤いまま＝電気は来ています</b>。でも<b>点が止まっています</b>——'+
+             'これが「来ているが流れていない」ということです。' }
+  };
+
+  fetch('/wiring-net.json?v='+NET_VERSION).then(function(r){ return r.json(); })
+    .then(function(j){ net=j; (net.controls||[]).forEach(function(c){ inputs[c.id]=c.default; }); update(); })
+    .catch(function(e){ sayEl.innerHTML='<b>データを読み込めませんでした：</b>'+e; });
+
+  document.getElementById('keyseg').addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    [].forEach.call(this.children,function(x){ x.setAttribute('aria-pressed', x===b?'true':'false'); });
+    inputs.key=b.getAttribute('data-v');
+    if(inputs.key==='OFF'){ setEngine('STOP'); crankEnd(); }   // キーを抜いたらエンジンも止まる（実車と同じ）
+    update();
+  });
+  function setEngine(v){ inputs.engine=v; }
+
+  /* 始動レバー＝押している間だけ閉じるモーメンタリ。離した瞬間にエンジンが掛かる。
+     ⚠️click では「引いている間」が表現できないので pointerdown/up で受ける（キーボードは Space/Enter の押し下げ） */
+  function crankStart(e){
+    if(startBtn.disabled || cranking) return;
+    if(e && e.cancelable) e.preventDefault();
+    cranking=true; inputs.starter='START';
+    startBtn.setAttribute('aria-pressed','true');
+    update();
+  }
+  function crankEnd(){
+    if(!cranking) return;
+    cranking=false; inputs.starter='OFF';
+    startBtn.setAttribute('aria-pressed','false');
+    if(inputs.key==='ON') setEngine('RUN');   // 離すとエンジンが掛かって回り続ける
+    update();
+  }
+  startBtn.addEventListener('pointerdown', crankStart);
+  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){
+    startBtn.addEventListener(ev, crankEnd);
+  });
+  startBtn.addEventListener('keydown', function(e){ if(e.key===' '||e.key==='Enter') crankStart(e); });
+  startBtn.addEventListener('keyup',   function(e){ if(e.key===' '||e.key==='Enter') crankEnd(); });
+
+  whyBtn.addEventListener('click', function(){
+    revealed=!revealed;
+    whyBtn.textContent = revealed ? 'メーターに戻る' : 'なぜ点いたの？ 裏側を見る';
+    simpleNote.classList.toggle('hid', !revealed);
+    keyEl.classList.toggle('hid', !revealed);
+    wiresG.classList.toggle('hid', !revealed);
+    stage.parentNode.style.aspectRatio = revealed?'64/80':'64/70';
+    setView(revealed?VIEW_ALL:VIEW_METER);
+    update();
+  });
+
+  function update(){
+    if(!net) return;
+    /* 灯が点くかどうかは必ずソルバーに聞く＝画面の都合で書かない。
+       （パッチでオルタ車にしてもこの画面のロジックを変えずに正しくなるのはこのため） */
+    var r=WiringSim.solve(net,{inputs:inputs,type:TYPE});
+    var lit={}; r.loads.forEach(function(l){ lit[l.id]=l.on; });
+    var on=!!lit['quadro.warn_charge'], onOil=!!lit['quadro.warn_oil'];
+    var running=(inputs.engine==='RUN'), keyOn=(inputs.key==='ON');
+
+    // 実物の反応（オーナーが自分の車で見たことのあるものだけが動く）
+    /* 警告灯＝GENERAT.（発電）と OLIO（油圧）の穴に光を重ねる。消灯時は移植元の黒い穴がそのまま見える。
+       ⚠️BENZINA は落とし先がタンクのフロート＝エンジンとは無関係なので、ここには出てこない */
+    lampGen.classList.toggle('hid', !on);
+    lampOil.classList.toggle('hid', !onOil);
+    /* ⚠️針は動かさない＝エンジンがかかっても車は止まっている。動かすと嘘になる */
+    keyrot.style.transform = keyOn?'rotate(72deg)':'rotate(0deg)';
+    // セルで回されている間もクランクは回る＝ダイナモのプーリーも回る（ただしまだ発電しない）
+    pulley.style.animation = running?'spin 1s linear infinite':(cranking?'spin 2.4s linear infinite':'');
+    pinion.style.animation = cranking?'spin .35s linear infinite':'';
+    knobpull.style.transform = cranking?'translateX(-15px)':'translateX(0)';
+
+    // セルはキーONで、かつエンジンが止まっているときだけ回せる（実車と同じ・迷子にしない）
+    startBtn.disabled = !keyOn || running;
+
+    var k = cranking?'crank':(running?'run':(keyOn?'on':'off')), s=SAY[k];
+    sayEl.innerHTML='<span class="big">'+s.t+'</span>'+s.b+(revealed?('<br><br>'+s.w):'');
+
+    // 裏側（第2層）
+    clearSeq();
+    s7.classList.toggle('hid', !running);
+    if(!revealed) return;
+    runSeq(cranking?PATH_CRANK:(running?PATH_CHARGE:(keyOn?PATH_LAMP:PATH_OFF)));
+  }
+})();
+</script>
+</div>
+</body>
+</html>

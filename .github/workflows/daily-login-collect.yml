@@ -1,0 +1,36 @@
+name: 日次ログイン人数の収集（非公開・延べではなくユニーク）
+
+# 毎日、前日ぶんのユニークログイン人数を daily_logins（非公開テーブル）へ記録する。
+# 集計本体は Supabase 側の public.sync_daily_logins()（auth.sessions を参照）。
+# JSTで日付が完全に終わってから取りに行くため、前日分を対象にする
+# （schedule は実測で数十分〜数時間遅れることがあるが、前日確定分の収集なので実害はない）。
+on:
+  schedule:
+    - cron: '20 19 * * *'   # UTC 19:20 ＝ JST 翌04:20
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: '収集対象日（YYYY-MM-DD・空欄ならJSTの昨日）'
+        required: false
+        type: string
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 標準ライブラリだけで動くので pip install は不要
+
+      - name: .env 作成
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
+          echo "SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}" >> py/.env
+
+      - name: 日次ログイン収集
+        run: python py/collect_daily_logins.py ${{ inputs.target_date }}

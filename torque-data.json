@@ -1,0 +1,3152 @@
+{
+  "_readme": [
+    "締め付けトルク早見帳のデータ。torque.html が読み込む。",
+    "【値の持ち方】kgf·m は Fiat 純正マニュアル（独語版）の記載値、lb·ft は Autobooks 英語版の記載値。",
+    "【fits】適合。エンジンに付く部品は engine（エンジン系統）、車体に付く部品は chassis（ベース車体）で判定する。",
+    "  500 R は 126 のエンジン（126 A5.000）を積むため、車種だけでは切り分けられない＝エンジン載せ替え車にも対応する。",
+    "  実データでは 500車体に126系エンジンが35台（21.6%）あり、この2軸を1本に畳むことはできない。",
+    "  どちらも原典の記載をそのまま保存する（換算で埋めた箇所は notes に明記）。",
+    "  N·m は表示時に kgm × 9.80665 で計算する（データには持たない＝二重管理を避ける）。",
+    "【engines】エンジン軸は『系統』の2つだけ（e500 / e126）。細かい形式（110 / 110D / 110F / 120 / 126A / 126A5 / 126A1）は選ばせない。",
+    "  理由＝2026-08-14 の全数検証で、形式によって値が分かれている項目は 110項目中 0件だった。fits.engine の28項目は『500系4形式ちょうど』『126系2形式ちょうど』『全形式』の3通りしか無く、",
+    "  notes / cross / procedure の本文にも形式差の記述は1件も無い。形式まで見ている箇所はヘッド締付順序の図だけ（110 は FIG 1:44、110D/110F/120 は FIG 1:46。トルク値は共通）。",
+    "  形式は engines[].forms にメタデータとして残してある。用途は①登録車両の engine_type_select から系統を当てる判定表 ②順序図の出し分け ③将来の逃げ道。",
+    "  ⚠️ 逃げ道＝fits.engine には系統ID・形式IDのどちらも書ける。後日『110F だけ値が違う』資料が出たら、その項目だけ fits.engine: [\"110F\"] と書けば形式単位で分岐する。この受け口を潰さないこと。",
+    "【chassis】ベース車体。500 / 126 の2つだけで、500 の中の世代分け（N/D・F/L・R）は持たない。",
+    "  根拠＝Fiat 純正の R 差分補遺（603.91.687）に足回り・ステアリング・ブレーキ機構の変更が1件も無く、N/D と F/L も2資料照合で差あり0件。詳細は torque-HANDOFF.md §6.8。",
+    "【verified】出典が特定できているものが true。false は出典未確認＝画面上でグレー表示される。",
+    "【cross】2つ目以降の出典。agree が true なら値が一致、false なら資料間で差がある（notes に差の内容を書く）。",
+    "【値が空の項目】kgm が null のものは原典に記載が見つからなかった箇所。",
+    "  thread（ねじサイズ）を入れると、値が無くても『ねじサイズからの一般的な目安』が出る。",
+    "【sequences】締め付け順序の図。layout=head8 は上下2列×4本のヘッドナット。top/bottom は原典の図と同じ左→右の並びで、値が締める順番。",
+    "  図そのものは原典の転載ではなく、番号の並びだけを取って独自に描き起こしている（PDFを持ち出さない方針のため）。",
+    "  engines を持つのは、同じ部位でも形式で順序が違うため（500 は Nuova と D 以降で別の図）。ここだけは形式IDのまま持つ。",
+    "  表示時は選択中の系統に属する形式（engines[].forms）で絞る。500系を選ぶと2枚とも該当するので、2枚並べて label（車名）で見分けさせる＝形式を選ばせない。",
+    "【no_spec】true は『原典を全部当たった結果、その箇所の指定が無かった』と確認済みの項目。単なる未調査（no_spec なし）と区別する。",
+    "  画面には『整備書に指定がありません』と出し、未確認バッジは出さない。同じ探索を繰り返さないための印でもある。",
+    "【no_spec_note】no_spec の項目に足す補足。『別の項目に値がある』『後付け部品なので原典に無くて当然』等、指定が無い理由や次の当たり先を書く。",
+    "【procedure】単純なトルク値では表せない手順（角度戻し等）。ここが入っていると値より優先して表示する。",
+    "【source_id】転記元のマニュアル項目ID。原本と突き合わせるときの手がかり。",
+    "【126のデータ】126 Autobook（594cc・本 p112 の一覧表）を原値とし、Bucheli 独語整備書（652cc）と全項目を突き合わせた。値が食い違う4項目は cross に相手の値を残し、画面に差を出している。",
+    "【注記の中の単位】注記・手順・差分説明の中でトルク値に触れるときは、必ず N·m を先頭に書く。日本で流通するトルクレンチは N·m が主流で、注記の中だけ kgf·m や lb·ft しか無いと使えないため。併記する N·m は kgf·m × 9.80665 の計算値に統一し、原典の丸めた N·m はそのまま書かない。",
+    "【lb·ft の扱い】原典に書かれていない lb·ft を換算で作らない。片側しか記載が無ければ片側だけ載せる。英語版WSMは kg m から換算した小数1桁（18.1 / 23.9 等）で書いている章と、整数（14 to 18 / 39 to 43）で書いている章があり、どちらも原典の記載なのでそのまま入れる。"
+  ],
+  "version": "2026-08-15a",
+  "target": "FIAT 500 / FIAT 126（エンジン系統とベース車体で絞り込める）",
+  "sources": [
+    {
+      "id": "wsm",
+      "label": "ワークショップマニュアル Autobooks「FIAT 500 1957-73」英語版",
+      "note": "記載単位は lb·ft。2026-08-13 に原典PDFで全項目を再照合した（従来はウィキ日本語訳経由だった）。原典内に1件矛盾があり、リレーレバーのピン締付が p94 で 39〜43、p95 で 78〜85 lb·ft と二重に記載されている。純正マニュアルとの照合で p94 側を採った。"
+    },
+    {
+      "id": "oem",
+      "label": "Fiat 純正リペアマニュアル「Neuer 500 und 500 D」独語版",
+      "note": "記載単位は mmkg（kgf·m × 1000）。締付トルクの一覧表は章ごとに分かれていて、p57（エンジン）・p128（ミッション／デフ）・p146（フロントサス）・p161（リアサス）・p179（ステアリング）・p193（ブレーキ）・p205〜206（シャシー総括）の7つ。kgf·m 値はこちらを原値としている。"
+    },
+    {
+      "id": "a126",
+      "label": "ワークショップマニュアル Autobook 853「FIAT 126 1972-1976」英語版",
+      "note": "対象は 126.A（594cc）＝500 R と同じエンジン。記載は lb·ft 主で kgf·m を括弧併記。巻末に締付トルクの一覧表がある（本 p112「TIGHTENING TORQUES」）。126 の kgf·m / lb·ft はこの一覧表を原値としている。"
+    },
+    {
+      "id": "buch126",
+      "label": "Verlag Bucheli「Fiat 126」整備書 独語版",
+      "note": "対象は 126.A1（652cc）のみ。純正ではない。表は本 p91-92 で、冒頭に「Angaben in Nm; um mkp-Werte zu erhalten, sind die Nm-Werte durch 10 zu dividieren」＝N·m 表記・10で割ると kgf·m、と単位が明記されている。⚠️ ただし本書の N·m は kgf·m を10倍しただけの簡便表記で、正確な換算（×9.80665）ではない。当ページの N·m は kgf·m から正確に換算しているため、本書の紙面の数字より少し小さく出る（例＝本書 70 N·m ＝ 7.0 kgf·m ＝ 当ページ 69 N·m）。"
+    },
+    {
+      "id": "haynes500",
+      "label": "Haynes「FIAT 500 1957-73」日本語版（ヴィンテージ・パブリケーションズ）",
+      "note": "記載単位は kgf-m。対象は 479 / 499 / 594cc で、1973年型（エンジン 126.000・594cc）＝500 R まで明示的にカバーする唯一の資料。締付トルクの表は章ごとに分かれていて、エンジン p22・クラッチ p83・ミッション p90・ブレーキ p107・リアサス p137・フロントサス／ステアリング p143 の6つ。本書は N·m を併記していないため、当ページの N·m は kgf·m から換算した値（×9.80665）。"
+    },
+    {
+      "id": "haynes126",
+      "label": "Haynes「Fiat 126 Owners Workshop Manual」英語版",
+      "note": "対象は 126 全モデル（594 & 652cc）。記載は lb·ft と N·m の2列で、表はエンジン p13・ギアボックス p53・ブレーキ p66・サスペンション／ステアリング p89。⚠️ 本書の N·m 列は丸めた値で、正確な換算ではない（例＝29 lb·ft を 40 N·m と書いているが、正確には 39.3 N·m）。当ページの N·m は kgf·m から正確に換算しているため、本書の紙面の数字と少し食い違うのは正常。"
+    }
+  ],
+  "areas": [
+    {
+      "id": "engine",
+      "label": "エンジン",
+      "icon": "⚙️",
+      "short": "エンジン"
+    },
+    {
+      "id": "fuel",
+      "label": "燃料・点火",
+      "icon": "🔥",
+      "short": "燃料点火"
+    },
+    {
+      "id": "driveline",
+      "label": "駆動系",
+      "icon": "🔗",
+      "short": "駆動系"
+    },
+    {
+      "id": "suspension",
+      "label": "足回り・操舵",
+      "icon": "🛞",
+      "short": "足回り"
+    },
+    {
+      "id": "brake",
+      "label": "ブレーキ",
+      "icon": "🛑",
+      "short": "ブレーキ"
+    },
+    {
+      "id": "body",
+      "label": "ボディ・その他",
+      "icon": "🚗",
+      "short": "ボディ他"
+    }
+  ],
+  "items": [
+    {
+      "id": "cylinder-head-nut",
+      "sequences": [
+        {
+          "engines": ["110"],
+          "label": "Nuova500 N（エンジン 110.000）",
+          "layout": "head8",
+          "top": [5, 1, 4, 8],
+          "bottom": [7, 3, 2, 6],
+          "source": "wsm",
+          "ref": "FIG 1:44"
+        },
+        {
+          "engines": ["110D", "110F", "120"],
+          "label": "Nuova500 D / F / L / Giardiniera（エンジン 110D・110F・120）",
+          "layout": "head8",
+          "top": [8, 2, 1, 7],
+          "bottom": [4, 5, 6, 3],
+          "source": "wsm",
+          "ref": "FIG 1:46"
+        }
+      ],
+      "name": "シリンダーヘッドナット",
+      "area": "engine",
+      "aliases": ["ヘッド", "ヘッドナット", "シリンダーヘッド", "腰上", "head"],
+      "fits": {
+        "engine": ["e500"]
+      },
+      "kgm": 3.3,
+      "kgm_max": null,
+      "lbft": 23.9,
+      "lbft_max": null,
+      "notes": [
+        "必ず対角線上の順序で締める",
+        "2段階に分けるのが推奨（1回目 25 N·m ＝ 2.5 kgf·m／18.1 lb·ft → 最終値）",
+        "締付順序は形式で図が違う。Nuova500 N は図 1:44、Nuova500 D / F / L と Giardiniera は図 1:46（英語版WSM）。トルク値は共通。"
+      ],
+      "source": "wsm",
+      "source_id": "1-17-1",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "haynes500",
+          "ref": "p22",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "rocker-shaft-support",
+      "name": "ロッカーアームシャフト サポートナット",
+      "area": "engine",
+      "aliases": ["ロッカーアーム", "ロッカー", "シャフト", "サポート"],
+      "fits": {
+        "engine": ["e500"]
+      },
+      "kgm": 2.1,
+      "kgm_max": null,
+      "lbft": 15.2,
+      "lbft_max": null,
+      "notes": ["取り付け後に必ずバルブクリアランスを調整し直す"],
+      "source": "wsm",
+      "source_id": "1-17-2",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "haynes500",
+          "ref": "p22",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "main-bearing-carrier",
+      "name": "主軸受ボディ（ベアリングキャリア）固定ボルト",
+      "area": "engine",
+      "aliases": ["主軸受", "メインベアリング", "ベアリングキャリア", "クランクケース", "腰下"],
+      "fits": {
+        "engine": ["e500"]
+      },
+      "kgm": 2.1,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": [
+        "クランクのメインベアリングブッシュを保持するボディの固定ボルト。",
+        "純正独語版のエンジン締付一覧にのみある項目で、英語版WSMには対応する行が無い。原典に無い値は換算で作らない方針のため lb·ft は空。"
+      ],
+      "source": "oem",
+      "source_id": "p57 ANZUGSDREHMOMENTE DES MOTORS",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "haynes500",
+          "ref": "p22",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "conrod-cap",
+      "name": "コンロッドキャップ（ビッグエンド）",
+      "area": "engine",
+      "aliases": ["コンロッド", "ビッグエンド", "大端", "メタル", "子メタル"],
+      "fits": {
+        "engine": ["e500"]
+      },
+      "kgm": 3.3,
+      "kgm_max": null,
+      "lbft": 23.9,
+      "lbft_max": null,
+      "notes": ["ベアリングクリアランスはプラスチゲージで測る（規定 0.011〜0.061mm）"],
+      "source": "wsm",
+      "source_id": "1-10",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p32",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p22",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "flywheel-bolt",
+      "name": "フライホイール固定ボルト",
+      "area": "engine",
+      "aliases": ["フライホイール", "はずみ車", "クランク先端"],
+      "fits": {
+        "engine": ["e500"]
+      },
+      "kgm": 3.2,
+      "kgm_max": null,
+      "lbft": 23.1,
+      "lbft_max": null,
+      "notes": ["新しいロックプレートと共に使い、締結後にプレートを曲げて固定する", "取り付け前にクランクシャフトとの合いマークを確認"],
+      "source": "wsm",
+      "source_id": "1-12",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "haynes500",
+          "ref": "p22",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "centrifugal-filter-bolt",
+      "name": "遠心オイルフィルター 中空ボルト",
+      "area": "engine",
+      "aliases": ["遠心", "オイルフィルター", "フィルター", "ろ過", "中空ボルト"],
+      "fits": {
+        "engine": ["e500"]
+      },
+      "kgm": 15.0,
+      "kgm_max": null,
+      "lbft": 108.5,
+      "lbft_max": null,
+      "notes": ["非常に強いトルク。ロック工具なしでは規定値まで締められない", "Oリングが正しく装着されているか確認してから締める"],
+      "source": "wsm",
+      "source_id": "1-14",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p81 / p82",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "camshaft-sprocket",
+      "name": "カムシャフトギア 固定ボルト",
+      "area": "engine",
+      "aliases": ["カムギア", "カムシャフト", "タイミングギア", "カム", "ギア"],
+      "fits": {
+        "engine": ["e500"]
+      },
+      "kgm": 0.9,
+      "kgm_max": null,
+      "lbft": 6.5,
+      "lbft_max": null,
+      "notes": ["126（594/652cc）の同じ箇所は 1.0 kgf·m ＝ 10 N·m で、ちょうど中間にあたる。"],
+      "source": "haynes500",
+      "source_id": "p22 カムチェーンスプロケット",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "wsm",
+          "ref": "本 p28",
+          "agree": true,
+          "lbft": 6.5
+        },
+        {
+          "id": "oem",
+          "ref": "p57 ANZUGSDREHMOMENTE DES MOTORS",
+          "agree": false,
+          "kgm": 1.1,
+          "note": "純正独語版だけが 1.1 kgf·m ＝ 11 N·m と高い。英語版WSM の 6.5 lb·ft（＝約 8.8 N·m）と Haynes 日本語版 p22 の 0.9 kgf·m ＝ 8.8 N·m が一致するため、当ページは 0.9 kgf·m を主にしている。"
+        }
+      ]
+    },
+    {
+      "id": "centrifugal-filter-cover",
+      "name": "遠心オイルフィルター カバーの小ボルト",
+      "area": "engine",
+      "aliases": ["フィルターカバー", "カバー", "プーリー", "小ボルト"],
+      "fits": {
+        "engine": ["e500"]
+      },
+      "kgm": 0.8,
+      "kgm_max": null,
+      "lbft": 5.8,
+      "lbft_max": null,
+      "notes": ["中空ボルト（15.0 kg m）とは別物。取り違えると壊す"],
+      "source": "wsm",
+      "source_id": "1-14",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p18 / p82",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "generator-pulley-nut",
+      "name": "ジェネレータープーリー ナット",
+      "area": "engine",
+      "aliases": ["プーリー", "ダイナモ", "発電機", "ファンベルト", "ベルト"],
+      "fits": {
+        "engine": ["e500"]
+      },
+      "kgm": 2.0,
+      "kgm_max": null,
+      "lbft": 14.5,
+      "lbft_max": null,
+      "notes": [
+        "ベルトの張りは分割シムの枚数で調整（抜くと張り、足すと緩む）",
+        "中央を10kgで押してたわみ約10mmが適正",
+        "英語版WSMはプーリーとファンのナットを同じ 14.5 lb·ft としているが、純正独語版はファン側を 3.5 kgf·m ＝ 34 N·m と別値にしている。ファンのナットは別項目を見ること。"
+      ],
+      "source": "wsm",
+      "source_id": "1-20 / 11-3",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p223",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p22",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "generator-bearing-stop",
+      "name": "ジェネレーター コミュテーター（ブラシ）側 ベアリング外輪ストッパー ねじナット",
+      "area": "engine",
+      "aliases": ["ジェネレーター", "ダイナモ", "発電機", "ベアリング", "オーバーホール"],
+      "fits": {
+        "engine": ["e500"]
+      },
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": 0.8,
+      "lbft_max": null,
+      "notes": ["発電機を分解したときだけ触る極小トルク。1 N·m ほどしかなく、一般的なトルクレンチの測定範囲を下回る。", "英語版WSMにのみ記載。原典に無い値は換算で作らないため kgf·m は空。"],
+      "source": "wsm",
+      "source_id": "本 p114",
+      "verified": true,
+      "critical": false,
+      "cross": []
+    },
+    {
+      "id": "generator-fan-nut",
+      "name": "冷却ファン → ジェネレーター ナット",
+      "area": "engine",
+      "aliases": ["ファン", "冷却ファン", "ダイナモ", "ジェネレーター", "発電機", "ブロワー"],
+      "fits": {
+        "engine": ["e500"]
+      },
+      "kgm": 3.5,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["126（594/652cc）の同じ箇所も 3.5 kgf·m ＝ 34 N·m で、純正独語版と一致する。"],
+      "source": "oem",
+      "source_id": "p57 ANZUGSDREHMOMENTE DES MOTORS",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "a126",
+          "ref": "本 p112 一覧表",
+          "agree": true,
+          "kgm": 3.5
+        },
+        {
+          "id": "wsm",
+          "ref": "本 p114",
+          "agree": false,
+          "lbft": 14.5,
+          "note": "英語版WSMはプーリーとファンを1行にまとめて 14.5 lb·ft ＝ 約 20 N·m と書いている。純正独語版はファンのナットを別行で 3.5 kgf·m ＝ 34 N·m としており、126 の整備書2冊も 3.5 kgf·m 側と一致する。"
+        },
+        {
+          "id": "haynes500",
+          "ref": "p22",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "spark-plug",
+      "name": "スパークプラグ",
+      "area": "fuel",
+      "aliases": ["プラグ", "ぷらぐ", "点火プラグ", "NGK", "plug"],
+      "fits": {
+        "engine": ["e500"]
+      },
+      "kgm": 2.5,
+      "kgm_max": 2.9,
+      "lbft": 18,
+      "lbft_max": 21,
+      "notes": ["ねじ山に焼付き防止剤の塗布を推奨", "電極ギャップの規定値は 0.48〜0.58mm"],
+      "source": "wsm",
+      "source_id": "3-8",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "haynes500",
+          "ref": "p22",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "clutch-cover",
+      "name": "クラッチカバー 取付ボルト",
+      "area": "driveline",
+      "aliases": ["クラッチ", "カバー", "プレッシャープレート", "圧着板"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 0.8,
+      "kgm_max": 1.0,
+      "lbft": 5.8,
+      "lbft_max": 7.2,
+      "notes": ["対角線上に少しずつ締め込む", "締めすぎに注意（値は見た目より小さい）", "芯出しツール(A.62023)の使用を推奨"],
+      "source": "wsm",
+      "source_id": "5-5",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "haynes500",
+          "ref": "p83",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "gearbox-primary-shaft",
+      "name": "ギアボックス プライマリシャフト ナット",
+      "area": "driveline",
+      "aliases": ["プライマリ", "ミッション", "ギアボックス", "シャフト"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 2.5,
+      "kgm_max": 3.5,
+      "lbft": 18.1,
+      "lbft_max": 25.3,
+      "notes": [],
+      "source": "wsm",
+      "source_id": "6-4",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p205",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p90",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "gearbox-layshaft",
+      "name": "ギアボックス レイシャフト ナット",
+      "area": "driveline",
+      "aliases": ["レイシャフト", "ミッション", "ギアボックス", "副軸"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 4.0,
+      "kgm_max": 5.0,
+      "lbft": 28.9,
+      "lbft_max": 36.2,
+      "notes": [],
+      "source": "wsm",
+      "source_id": "6-4",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p205",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p90",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "gearbox-to-engine",
+      "name": "クラッチハウジングとエンジンの結合ナット",
+      "area": "driveline",
+      "aliases": ["ミッション", "ギアボックス", "クラッチハウジング", "エンジン結合", "ベルハウジング"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 2.5,
+      "kgm_max": 3.0,
+      "lbft": 18.1,
+      "lbft_max": 21.7,
+      "notes": [
+        "純正マニュアルの表記は「Mutter zur Befestigung des Kupplungsgehäuses am Motor」＝クラッチハウジングをエンジンに留めるナット。ボディへの結合ではない。"
+      ],
+      "source": "wsm",
+      "source_id": "6-4",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p205",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p90",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "diff-bearing-cap",
+      "name": "デフ ベアリングキャップ ナット",
+      "area": "driveline",
+      "aliases": ["デフ", "ファイナル", "リングギア", "ピニオン", "差動"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 3.8,
+      "kgm_max": null,
+      "lbft": 27.5,
+      "lbft_max": null,
+      "notes": ["リングギアとピニオンのバックラッシュ規定は 0.08〜0.12mm"],
+      "source": "wsm",
+      "source_id": "6-7",
+      "verified": true,
+      "critical": true
+    },
+    {
+      "id": "diff-rolling-torque",
+      "name": "デフ ベアリング プリロード（回転抵抗）",
+      "area": "driveline",
+      "aliases": ["デフ", "プリロード", "回転抵抗", "ベアリング", "シム", "与圧"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "procedure": "トルクレンチで締め付ける箇所ではない。デフ本体を回したときの回転抵抗が 1.37 ± 0.09 N·m（1.01 ± 0.07 lb·ft）に入るよう、アジャスターで調整する。",
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["この数値を締付トルクと取り違えないこと。"],
+      "source": "wsm",
+      "source_id": "本 p74",
+      "verified": true,
+      "critical": false,
+      "cross": []
+    },
+    {
+      "id": "diff-bearing-housing",
+      "name": "デフ ベアリングハウジング 取付ナット",
+      "area": "driveline",
+      "aliases": ["デフ", "ベアリングハウジング", "ハウジング", "ファイナル", "デファレンシャル"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 1.8,
+      "kgm_max": null,
+      "lbft": 13,
+      "lbft_max": null,
+      "notes": [],
+      "source": "oem",
+      "source_id": "p128 ギアボックス／デフ一覧",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "wsm",
+          "ref": "本 p71",
+          "agree": true,
+          "kgm": 1.8
+        }
+      ]
+    },
+    {
+      "id": "crown-wheel-bolt",
+      "name": "クラウンホイール（リングギア）取付ボルト",
+      "area": "driveline",
+      "aliases": ["クラウンホイール", "リングギア", "デフ", "ファイナル", "crown wheel"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 3.2,
+      "kgm_max": null,
+      "lbft": 23.1,
+      "lbft_max": null,
+      "notes": ["取り付けには新品のロックプレートを使い、締結後に爪を折り曲げて固定する。"],
+      "source": "wsm",
+      "source_id": "6-7",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p205",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p90",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "driveshaft-flange",
+      "name": "ドライブシャフト フランジのネジ",
+      "area": "driveline",
+      "aliases": ["ドラシャ", "ドライブシャフト", "フランジ", "駆動軸"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 2.8,
+      "kgm_max": null,
+      "lbft": 20.3,
+      "lbft_max": null,
+      "notes": [],
+      "source": "wsm",
+      "source_id": "7-6",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p127 / p206",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p90",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "starter-motor",
+      "name": "スターターモーター 取付ナット",
+      "area": "engine",
+      "aliases": ["セル", "セルモーター", "スターター", "スタータ", "始動"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": 18.1,
+      "lbft_max": 21.7,
+      "notes": ["クラッチハウジング側に付くため、エンジンを載せ替えても車体側の値として使える。", "英語版WSMにのみ記載があり、純正独語版に対応する行が無い。原典に無い値は換算で作らないため kgf·m は空。"],
+      "source": "wsm",
+      "source_id": "本 p74",
+      "verified": true,
+      "critical": false,
+      "cross": []
+    },
+    {
+      "id": "wheel-bolt",
+      "name": "ホイール取付ボルト",
+      "area": "suspension",
+      "aliases": ["ホイール", "タイヤ交換", "ナット", "ボルト", "輪"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 4.5,
+      "kgm_max": 5.5,
+      "lbft": 32.5,
+      "lbft_max": 39.8,
+      "notes": ["対角順に締める", "走行後に必ず増し締めして確認する", "社外ホイールは座面形状が違うと規定値でも効かないことがある"],
+      "source": "wsm",
+      "source_id": "7-5",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p206",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p143",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "rear-swingarm-pivot",
+      "name": "リア スイングアーム ピボットピンナット",
+      "area": "suspension",
+      "aliases": ["スイングアーム", "ピボット", "リアサス", "後ろ"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 6.0,
+      "kgm_max": 7.0,
+      "lbft": 43.4,
+      "lbft_max": 50.6,
+      "notes": [],
+      "source": "wsm",
+      "source_id": "7-5",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p158 / p206",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p137",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "rear-outer-support",
+      "name": "リア 外部サポート 取付ネジ",
+      "area": "suspension",
+      "aliases": ["外部サポート", "リアサス", "トーイン", "サポート"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 4.0,
+      "kgm_max": 5.0,
+      "lbft": 28.9,
+      "lbft_max": 36.2,
+      "notes": ["ここを動かしてリアのトーインを調整する（許容 0度10分）"],
+      "source": "wsm",
+      "source_id": "7-5",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p158 / p206",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p137",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "rear-hub-bearing",
+      "name": "リアホイールベアリング（ホイールシャフトナット）",
+      "area": "suspension",
+      "aliases": ["リアハブ", "ハブ", "ベアリング", "ホイールシャフト", "後ろハブ"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "procedure": "規定トルクで締めるのではなく、回転抵抗で決める。ナットを徐々に締めていき、回転トルク（抵抗）が 0.5 N·m（0.05 kgf·m／0.36 lb·ft）を超えないところで止める。抵抗が強すぎる場合は弾性スペーサーを新品に交換する。",
+      "notes": ["ベアリングにはFiat MRグリスを充填"],
+      "source": "wsm",
+      "source_id": "7-3",
+      "verified": true,
+      "critical": true
+    },
+    {
+      "id": "front-swingarm-hub-nut",
+      "name": "フロント スイングアームとホイールアセンブリのナット",
+      "area": "suspension",
+      "aliases": ["フロントサス", "スイングアーム", "前", "ナックル"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 5.5,
+      "kgm_max": 6.0,
+      "lbft": 39.8,
+      "lbft_max": null,
+      "notes": [
+        "上限は純正マニュアルの 59 N·m（6.0 kgf·m）による。英語版WSMは 39.8 lb·ft（54 N·m）の単一値しか書いていないため、lb·ft は原典どおり単一値のまま載せている（換算で上限を作らない）。"
+      ],
+      "source": "wsm",
+      "source_id": "8-8",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p206",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p143",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "leaf-spring-kingpin",
+      "name": "板バネとキングピンハウジングの結合",
+      "area": "suspension",
+      "aliases": ["リーフ", "板バネ", "リーフスプリング", "キングピン", "横置き"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 4.0,
+      "kgm_max": null,
+      "lbft": 28.9,
+      "lbft_max": null,
+      "notes": [],
+      "source": "wsm",
+      "source_id": "8-8",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p206",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p143",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "front-swingarm-pin-body",
+      "name": "フロント スイングアームピンとボディ",
+      "area": "suspension",
+      "aliases": ["スイングアームピン", "フロントサス", "ボディ側", "前"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 4.0,
+      "kgm_max": null,
+      "lbft": 28.9,
+      "lbft_max": null,
+      "notes": [],
+      "source": "wsm",
+      "source_id": "8-8",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p141 / p206",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p143",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "front-hub-nut",
+      "name": "フロントハブナット（ベアリング調整）",
+      "area": "suspension",
+      "aliases": ["フロントハブ", "ハブ", "ハブナット", "ベアリング", "前ハブ"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "procedure": "締めっぱなしにせず、締めてから戻す。ハブの形式で手順が違う。\n【コッターピン（割ピン）タイプ】29 N·m（3.0 kgf·m／21.7 lb·ft）で締めた後、60度（六角1面分）戻す。\n【カシメタイプ】20 N·m（2.0 kgf·m／14.5 lb·ft）で締めて馴染ませ、一度緩める。再度 6.9 N·m（0.7 kgf·m／5.1 lb·ft）で締め、そこから30度戻す。",
+      "notes": ["最終的にハブのエンドプレイ（ガタ）が 0.025〜0.10mm になるようにする", "締めすぎるとベアリングが焼ける"],
+      "source": "wsm",
+      "source_id": "8-8-3",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p206",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "brake-backplate-front",
+      "name": "ブレーキ バックプレート → ナックル（フロント）",
+      "area": "brake",
+      "aliases": ["バックプレート", "ブレーキ", "ブレーキ台座", "ナックル", "前ブレーキ"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 2.0,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["ねじは M8×1.25。", "出典は純正独語版で kgf·m のみの記載。英語版WSMに対応する記述が無いため lb·ft は載せていない。"],
+      "source": "oem",
+      "source_id": "p193 / p205",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "haynes500",
+          "ref": "p107 / p143",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "brake-backplate-rear",
+      "name": "ブレーキ バックプレート → トレーリングアーム（リア）",
+      "area": "brake",
+      "aliases": ["バックプレート", "ブレーキ", "ブレーキ台座", "トレーリングアーム", "後ブレーキ"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 6.0,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": [
+        "ねじは M10×1.25。リアはベアリングのフランジと共締めになる。",
+        "出典は純正独語版で kgf·m のみの記載。英語版WSMに対応する記述が無いため lb·ft は載せていない。"
+      ],
+      "source": "oem",
+      "source_id": "p193 / p206",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "haynes500",
+          "ref": "p107",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "pitman-arm-nut",
+      "name": "ピットマンアーム ナット（ステアリング）",
+      "area": "suspension",
+      "aliases": ["ピットマン", "ステアリング", "ハンドル", "アーム"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 10.0,
+      "kgm_max": 11.0,
+      "lbft": 72,
+      "lbft_max": null,
+      "notes": [
+        "このページで最も高いトルクのひとつ",
+        "上限は純正マニュアルの 108 N·m（11.0 kgf·m）による。英語版WSMは 72 lb·ft（98 N·m）の単一値しか書いていないため、lb·ft は原典どおり単一値のまま載せている（換算で上限を作らない）。"
+      ],
+      "source": "wsm",
+      "source_id": "9-4",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p179 / p206",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p143",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "steering-box-to-body",
+      "name": "ステアリングボックスとボディの固定ナット",
+      "area": "suspension",
+      "aliases": ["ステアリングボックス", "ステアリング", "ハンドル", "ギアボックス"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 2.0,
+      "kgm_max": 2.5,
+      "lbft": 14,
+      "lbft_max": 18,
+      "notes": [],
+      "source": "wsm",
+      "source_id": "9-4",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p179 / p206",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p143",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "tie-rod-ball-pin",
+      "name": "タイロッドエンド ボールピンナット",
+      "area": "suspension",
+      "aliases": ["タイロッド", "タイロッドエンド", "ボールジョイント", "トー調整", "ナックルアーム"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 2.5,
+      "kgm_max": 3.0,
+      "lbft": 18,
+      "lbft_max": 21,
+      "notes": ["フロントのトーインは 0〜2mm（ホイールリム間で測定）"],
+      "source": "wsm",
+      "source_id": "9-6",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p179 / p206",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p143",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "relay-lever-pivot",
+      "name": "リレーレバー ピボットピンナット",
+      "area": "suspension",
+      "aliases": ["リレーレバー", "ステアリング", "ピボット", "レバー"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 5.5,
+      "kgm_max": 6.0,
+      "lbft": 39,
+      "lbft_max": 43,
+      "notes": [
+        "英語版WSMは同じ箇所を p94 で 39〜43 lb·ft（53〜58 N·m）、p95 で 78〜85 lb·ft（106〜115 N·m）と二重に記載している。純正マニュアルの 5500〜6000 mmkg ＝ 5.5〜6.0 kgf·m（54〜59 N·m）と一致する p94 側を採用した。"
+      ],
+      "source": "wsm",
+      "source_id": "9-6",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p179 / p206",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p143",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "relay-lever-support",
+      "name": "リレーレバー サポート → ボディ 固定",
+      "area": "suspension",
+      "aliases": ["リレーレバー", "サポート", "ステアリング", "ハンドル", "操舵"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": 14,
+      "lbft_max": 18,
+      "notes": [
+        "サポートを車体に留めるボルト。リレーレバーのピン本体（別項目）とは値が違うので取り違えないこと。",
+        "英語版WSMにのみ記載があり、純正独語版の一覧（p179）はステアリング5行のみでこの行が無い。原典に無い値は換算で作らないため kgf·m は空。"
+      ],
+      "source": "wsm",
+      "source_id": "本 p101",
+      "verified": true,
+      "critical": true,
+      "cross": []
+    },
+    {
+      "id": "steering-wheel-nut",
+      "name": "ステアリングホイール 取付ナット",
+      "area": "suspension",
+      "aliases": ["ステアリング", "ハンドル", "ステアリングホイール", "ハンドルナット", "steering wheel"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": 4.0,
+      "kgm_max": 5.0,
+      "lbft": 29,
+      "lbft_max": 36,
+      "notes": ["ハンドルが外れると操舵不能になる。取り外したら必ず規定トルクで締め直す。"],
+      "source": "wsm",
+      "source_id": "9-3（図 9:2）",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "oem",
+          "ref": "p179 / p206",
+          "agree": true
+        },
+        {
+          "id": "haynes500",
+          "ref": "p143",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "oil-drain",
+      "name": "エンジンオイル ドレンボルト",
+      "area": "engine",
+      "aliases": ["ドレン", "どれん", "オイル抜き", "オイル交換", "ドレンプラグ"],
+      "fits": {
+        "engine": ["e500", "e126"]
+      },
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["ワッシャは毎回交換", "アルミ側のねじ山なので締めすぎ厳禁"],
+      "no_spec": true,
+      "source": "",
+      "source_id": "",
+      "verified": false,
+      "critical": false
+    },
+    {
+      "id": "rocker-cover",
+      "name": "ロッカーカバー（タペットカバー）",
+      "area": "engine",
+      "aliases": ["タペットカバー", "ヘッドカバー", "カバー"],
+      "fits": {
+        "engine": ["e500", "e126"]
+      },
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["締めすぎるとガスケットが潰れて逆に漏れる"],
+      "no_spec": true,
+      "source": "",
+      "source_id": "",
+      "verified": false,
+      "critical": false
+    },
+    {
+      "id": "exhaust-manifold",
+      "name": "エキゾーストマニホールド／マフラー",
+      "area": "engine",
+      "aliases": ["マフラー", "エキマニ", "排気", "エキゾースト", "タコ足"],
+      "fits": {
+        "engine": ["e500", "e126"]
+      },
+      "kgm": 2.5,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": [
+        "熱で緩むので、しばらく走ってから増し締めする",
+        "値はマニホールド → シリンダーヘッドのもの。出典は kgf·m のみの記載（2.5 kgf·m ＝ 24.5 N·m）で、原典に無い値は換算で作らない方針のため lb·ft は載せていない。",
+        "この箇所の指定があるのは Haynes 日本語版だけで、英語版WSM・純正独語版・126 の整備書2冊には対応する行が無い。"
+      ],
+      "source": "haynes500",
+      "source_id": "p22 エキゾーストマニホールド→シリンダーヘッド",
+      "verified": true,
+      "critical": false
+    },
+    {
+      "id": "engine-mount",
+      "name": "エンジンマウント",
+      "area": "engine",
+      "aliases": ["マウント", "エンジン吊り", "防振ゴム"],
+      "fits": {
+        "engine": ["e500", "e126"]
+      },
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["ゴムに捻れが残らないよう、車重をかけた状態で本締めする"],
+      "no_spec": true,
+      "no_spec_note": "マウント全体をまとめた指定は無いが、締める場所ごとの値はある。500＝別項目「パワーユニット 下側マウントナット（車体側）」24.5〜29.4 N·m（18.1〜21.7 lb·ft）。126＝「エンジンマウント：〜」の5項目。",
+      "source": "",
+      "source_id": "",
+      "verified": false,
+      "critical": false
+    },
+    {
+      "id": "powerplant-mount-lower",
+      "name": "パワーユニット 下側マウントナット（車体側）",
+      "area": "body",
+      "aliases": ["マウント", "エンジンマウント", "ミッションマウント", "パワーユニット", "防振ゴム"],
+      "fits": {
+        "chassis": ["500"]
+      },
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": 18.1,
+      "lbft_max": 21.7,
+      "notes": [
+        "ギアボックス／デフを車体に留める下側の4本。先に前側サポートのネジを仮締めしておき、最後に本締めする。",
+        "英語版WSMにのみ記載。原典に無い値は換算で作らないため kgf·m は空。"
+      ],
+      "source": "wsm",
+      "source_id": "本 p74",
+      "verified": true,
+      "critical": true,
+      "cross": []
+    },
+    {
+      "id": "carburettor",
+      "name": "キャブレター取付ナット",
+      "area": "fuel",
+      "aliases": ["キャブ", "きゃぶ", "ウェーバー", "weber", "solex", "デロルト"],
+      "fits": {
+        "engine": ["e500", "e126"]
+      },
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["締めすぎるとフランジが歪んで二次エアを吸う", "左右を少しずつ交互に"],
+      "no_spec": true,
+      "source": "",
+      "source_id": "",
+      "verified": false,
+      "critical": false
+    },
+    {
+      "id": "intake-manifold",
+      "name": "インテークマニホールド",
+      "area": "fuel",
+      "aliases": ["インマニ", "吸気", "マニホールド"],
+      "fits": {
+        "engine": ["e500", "e126"]
+      },
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["二次エア吸い込みの原因になりやすい箇所"],
+      "no_spec": true,
+      "source": "",
+      "source_id": "",
+      "verified": false,
+      "critical": false
+    },
+    {
+      "id": "brake-pipe",
+      "name": "ブレーキパイプ フレアナット",
+      "area": "brake",
+      "aliases": ["ブレーキパイプ", "フレア", "配管", "エア抜き", "ブリーダー"],
+      "fits": {
+        "chassis": ["500", "126"]
+      },
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["締めすぎるとフレア部が潰れて逆に漏れる", "作業後は必ず踏んで漏れを確認"],
+      "no_spec": true,
+      "no_spec_note": "資料に指定なし。英語版WSMはホースの外し方（本 p101）を手順として書いているが、フレアナットのトルクは付いていない。",
+      "source": "",
+      "source_id": "",
+      "verified": false,
+      "critical": true
+    },
+    {
+      "id": "wheel-cylinder",
+      "name": "ホイールシリンダー取付",
+      "area": "brake",
+      "aliases": ["ホイールシリンダー", "カップ", "ドラム"],
+      "fits": {
+        "chassis": ["500", "126"]
+      },
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["ライニングの摩耗限度は 1.5mm、ドラムの研磨限界は標準+1.0mm"],
+      "no_spec": true,
+      "no_spec_note": "126（652cc・Bucheli）には 9.8 N·m（1.0 kgf·m）の指定があり、当ページでは別項目「ホイールシリンダー 取付ボルト」として載せている。500 も同じ値かどうかは裏が取れていない。",
+      "source": "",
+      "source_id": "",
+      "verified": false,
+      "critical": true
+    },
+    {
+      "id": "master-cylinder",
+      "name": "マスターシリンダー取付",
+      "area": "brake",
+      "aliases": ["マスター", "マスターシリンダー", "ブレーキ"],
+      "fits": {
+        "chassis": ["500", "126"]
+      },
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": [],
+      "no_spec": true,
+      "no_spec_note": "126（652cc・Bucheli）には 14.7 N·m（1.5 kgf·m）の指定があり、当ページでは別項目「マスターシリンダー → ペダルブラケット」として載せている。500 も同じ値かどうかは裏が取れていない。",
+      "source": "",
+      "source_id": "",
+      "verified": false,
+      "critical": true
+    },
+    {
+      "id": "seat-belt-anchor",
+      "name": "シートベルト アンカー",
+      "area": "body",
+      "aliases": ["シートベルト", "ベルト", "アンカー", "3点式"],
+      "fits": {
+        "chassis": ["500", "126"]
+      },
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["ボディ側の板厚が足りない場合は裏当てを入れる"],
+      "no_spec": true,
+      "no_spec_note": "当時の純正装備ではないため、整備書に項目自体がない（英語版WSM 本 p102 に「シートベルトの取付部を床から外す」という手順が出てくるだけ）。後付け品なので、取付キットの指定値に従う。",
+      "source": "",
+      "source_id": "",
+      "verified": false,
+      "critical": true
+    },
+    {
+      "id": "seat-rail",
+      "name": "シートレール固定",
+      "area": "body",
+      "aliases": ["シート", "座席", "レール", "バケット"],
+      "fits": {
+        "chassis": ["500", "126"]
+      },
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": [],
+      "no_spec": true,
+      "source": "",
+      "source_id": "",
+      "verified": false,
+      "critical": true
+    },
+    {
+      "id": "door-hinge",
+      "name": "ドアヒンジ",
+      "area": "body",
+      "aliases": ["ドア", "ヒンジ", "蝶番", "建て付け"],
+      "fits": {
+        "chassis": ["500", "126"]
+      },
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["仮締めで建て付けを合わせてから本締め"],
+      "no_spec": true,
+      "source": "",
+      "source_id": "",
+      "verified": false,
+      "critical": false
+    },
+    {
+      "id": "cylinder-head-nut-126",
+      "sequences": [
+        {
+          "engines": ["126A", "126A5", "126A1"],
+          "label": "Nuova500 R / Fiat 126（エンジン 126A・126A5・126A1）",
+          "layout": "head8",
+          "top": [5, 1, 4, 8],
+          "bottom": [7, 3, 2, 6],
+          "source": "a126",
+          "ref": "FIG 1:5"
+        }
+      ],
+      "name": "シリンダーヘッドナット",
+      "area": "engine",
+      "aliases": ["ヘッドナット", "シリンダーヘッド", "ヘッド", "腰上"],
+      "fits": {
+        "engine": ["e126"]
+      },
+      "kgm": 4.0,
+      "kgm_max": null,
+      "lbft": 29,
+      "lbft_max": null,
+      "notes": ["キャップナット（袋ナット）も同じ 39 N·m（4.0 kgf·m）。", "締付順序は FIG 1:5 の指定順。冷間で締め、規定の慣らし後に再確認する。"],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p13",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "main-bearing-support-126",
+      "name": "クランクシャフト主軸受サポート ボルト",
+      "area": "engine",
+      "aliases": ["主軸受", "メインベアリング", "クランクケース", "親メタル"],
+      "fits": {
+        "engine": ["e126"]
+      },
+      "kgm": 3.0,
+      "kgm_max": null,
+      "lbft": 22,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p13",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "conrod-cap-126",
+      "name": "コンロッドキャップ（ビッグエンド）",
+      "area": "engine",
+      "aliases": ["コンロッド", "ビッグエンド", "大端", "メタル", "子メタル"],
+      "fits": {
+        "engine": ["e126"]
+      },
+      "kgm": 3.5,
+      "kgm_max": null,
+      "lbft": 25,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p13",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "flywheel-bolt-126",
+      "name": "フライホイール固定ボルト",
+      "area": "engine",
+      "aliases": ["フライホイール", "はずみ車", "クランクシャフト"],
+      "fits": {
+        "engine": ["e126"]
+      },
+      "kgm": 3.5,
+      "kgm_max": null,
+      "lbft": 25,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p13",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "camshaft-sprocket-126",
+      "name": "カムシャフトスプロケット ボルト",
+      "area": "engine",
+      "aliases": ["カムギア", "カムシャフト", "タイミングギア", "スプロケット"],
+      "fits": {
+        "engine": ["e126"]
+      },
+      "kgm": 1.0,
+      "kgm_max": null,
+      "lbft": 7,
+      "lbft_max": null,
+      "notes": ["低い値なので締めすぎに注意。"],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p13",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "rocker-shaft-support-126",
+      "name": "ロッカーアームシャフト サポートナット",
+      "area": "engine",
+      "aliases": ["ロッカーアーム", "ロッカーシャフト", "タペット", "バルブクリアランス"],
+      "fits": {
+        "engine": ["e126"]
+      },
+      "kgm": 2.5,
+      "kgm_max": null,
+      "lbft": 18,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p13",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "engine-pulley-bolt-126",
+      "name": "エンジンプーリー中央ボルト（遠心オイルフィルター）",
+      "area": "engine",
+      "aliases": ["プーリー", "クランクプーリー", "遠心フィルター", "オイルフィルター", "中空ボルト"],
+      "fits": {
+        "engine": ["e126"]
+      },
+      "kgm": 15.0,
+      "kgm_max": null,
+      "lbft": 108,
+      "lbft_max": null,
+      "notes": ["非常に高いトルク。フライホイールを固定して回り止めをする。"],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p13",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "generator-fan-nut-126",
+      "name": "冷却ファン → ジェネレーター ナット",
+      "area": "engine",
+      "aliases": ["ファン", "冷却ファン", "ダイナモ", "ジェネレーター", "発電機"],
+      "fits": {
+        "engine": ["e126"]
+      },
+      "kgm": 3.5,
+      "kgm_max": null,
+      "lbft": 25,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "generator-pulley-nut-126",
+      "name": "ジェネレータープーリー ナット",
+      "area": "engine",
+      "aliases": ["プーリー", "ダイナモ", "ジェネレーター", "発電機", "ファンベルト"],
+      "fits": {
+        "engine": ["e126"]
+      },
+      "kgm": 3.5,
+      "kgm_max": null,
+      "lbft": 25,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "spark-plug-126",
+      "name": "スパークプラグ",
+      "area": "fuel",
+      "aliases": ["プラグ", "点火プラグ", "スパークプラグ"],
+      "fits": {
+        "engine": ["e126"]
+      },
+      "kgm": 3.0,
+      "kgm_max": null,
+      "lbft": 22,
+      "lbft_max": null,
+      "notes": ["整備書は「29 N·m（3.0 kgf·m／22 lb·ft）を超えないこと」と上限で書いている。", "指定プラグは Marelli CW 8 NP / Champion L 81 Y。"],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p13",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "mount-rubber-crossmember-126",
+      "name": "エンジンマウント：ゴムマウント → クロスメンバー",
+      "area": "engine",
+      "aliases": ["エンジンマウント", "マウント", "ミッションマウント", "ゴムブッシュ"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 1.5,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["652cc の整備書にのみ記載。594cc 側の資料に対応する数値が無い。"],
+      "source": "buch126",
+      "source_id": "本 p91-92",
+      "verified": true,
+      "critical": false,
+      "cross": []
+    },
+    {
+      "id": "mount-crossmember-body-126",
+      "name": "エンジンマウント：クロスメンバー → ボディ",
+      "area": "engine",
+      "aliases": ["クロスメンバー", "トラバース", "エンジンマウント", "メンバー"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 4.0,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["652cc の整備書にのみ記載。"],
+      "source": "buch126",
+      "source_id": "本 p91-92",
+      "verified": true,
+      "critical": false,
+      "cross": []
+    },
+    {
+      "id": "mount-rubber-gearbox-126",
+      "name": "エンジンマウント：ゴムマウント → ミッションケース",
+      "area": "engine",
+      "aliases": ["ミッションマウント", "ギアボックス", "マウント"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 2.5,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["652cc の整備書にのみ記載。"],
+      "source": "buch126",
+      "source_id": "本 p91-92",
+      "verified": true,
+      "critical": false,
+      "cross": []
+    },
+    {
+      "id": "mount-bracket-rear-crossmember-126",
+      "name": "エンジンマウント：ブラケット → リアクロスメンバー",
+      "area": "engine",
+      "aliases": ["ブラケット", "リアメンバー", "エンジンマウント"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 5.0,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["652cc の整備書にのみ記載。"],
+      "source": "buch126",
+      "source_id": "本 p91-92",
+      "verified": true,
+      "critical": false,
+      "cross": []
+    },
+    {
+      "id": "mount-bracket-powerplant-126",
+      "name": "エンジンマウント：ブラケット → パワーユニット",
+      "area": "engine",
+      "aliases": ["ブラケット", "エンジンマウント", "パワーユニット"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 5.0,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["652cc の整備書にのみ記載。"],
+      "source": "buch126",
+      "source_id": "本 p91-92",
+      "verified": true,
+      "critical": false,
+      "cross": []
+    },
+    {
+      "id": "clutch-cable-bracket-126",
+      "name": "クラッチワイヤー アウター受けブラケット",
+      "area": "driveline",
+      "aliases": ["クラッチワイヤー", "クラッチケーブル", "ブラケット"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 1.5,
+      "kgm_max": null,
+      "lbft": 11,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "clutch-release-fork-126",
+      "name": "クラッチ レリーズフォーク 固定",
+      "area": "driveline",
+      "aliases": ["レリーズフォーク", "クラッチフォーク", "レリーズ"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 2.5,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["652cc の整備書にのみ記載。"],
+      "source": "buch126",
+      "source_id": "本 p91-92",
+      "verified": true,
+      "critical": false,
+      "cross": []
+    },
+    {
+      "id": "clutch-pedal-shaft-126",
+      "name": "クラッチ／ブレーキ ペダルシャフト ナット",
+      "area": "driveline",
+      "aliases": ["ペダル", "ペダルシャフト", "クラッチペダル", "ブレーキペダル"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 1.5,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["652cc の整備書にのみ記載。"],
+      "source": "buch126",
+      "source_id": "本 p91-92",
+      "verified": true,
+      "critical": false,
+      "cross": []
+    },
+    {
+      "id": "bellhousing-to-engine-126",
+      "name": "クラッチハウジング → エンジン ナット",
+      "area": "driveline",
+      "aliases": ["ベルハウジング", "クラッチハウジング", "ミッション", "エンジン結合"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 2.5,
+      "kgm_max": null,
+      "lbft": 18,
+      "lbft_max": null,
+      "notes": [
+        "Bucheli は同じ箇所を2か所に書いており、片方は 25 N·m（2.5 kgf·m）、もう片方は 25〜34 N·m（2.5〜3.5 kgf·m）。Autobook の一覧表と一致する 25 N·m（2.5 kgf·m）を採った。"
+      ],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p53",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "gearbox-to-bellhousing-126",
+      "name": "ミッションケース → クラッチハウジング ナット",
+      "area": "driveline",
+      "aliases": ["ミッション", "ギアボックス", "ベルハウジング", "ケース結合"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 3.5,
+      "kgm_max": null,
+      "lbft": 25,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p53",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "gearbox-layshaft-126",
+      "name": "ギアボックス レイシャフト（カウンターシャフト）ナット",
+      "area": "driveline",
+      "aliases": ["レイシャフト", "カウンターシャフト", "副軸", "ミッション"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 5.0,
+      "kgm_max": null,
+      "lbft": 36,
+      "lbft_max": null,
+      "notes": ["規定トルクまで締めたあと、割ピンの穴が合うまでさらに締め込む（緩める方向には戻さない）。", "割ピンは必ず新品を使う。"],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p53",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "gearbox-mainshaft-126",
+      "name": "ギアボックス メインシャフト ナット",
+      "area": "driveline",
+      "aliases": ["メインシャフト", "主軸", "ミッション"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 5.0,
+      "kgm_max": null,
+      "lbft": 36,
+      "lbft_max": null,
+      "notes": ["規定トルクまで締めたあと、割ピンの穴が合うまでさらに締め込む（緩める方向には戻さない）。", "割ピンは必ず新品を使う。"],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p53",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "reverse-shaft-126",
+      "name": "リバースギア シャフト ボルト",
+      "area": "driveline",
+      "aliases": ["リバース", "バック", "後退", "ミッション"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 1.5,
+      "kgm_max": null,
+      "lbft": 11,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "gearlever-support-126",
+      "name": "シフトレバー サポート ボルト",
+      "area": "driveline",
+      "aliases": ["シフトレバー", "シフト", "ギアレバー"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 1.5,
+      "kgm_max": null,
+      "lbft": 11,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "gearlever-inner-cup-126",
+      "name": "シフトレバー インナーカップ ナット",
+      "area": "driveline",
+      "aliases": ["シフトレバー", "シフト", "カップ", "ギアレバー"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 1.5,
+      "kgm_max": null,
+      "lbft": 11,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "crown-wheel-bolt-126",
+      "name": "クラウンホイール（リングギア）取付ボルト",
+      "area": "driveline",
+      "aliases": ["クラウンホイール", "リングギア", "デフ", "ファイナル"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 4.5,
+      "kgm_max": null,
+      "lbft": 32.5,
+      "lbft_max": null,
+      "notes": ["500 は 31 N·m（3.2 kgf·m）で、126 とは値が違う。車体を間違えないこと。"],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p53",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "diff-bearing-housing-126",
+      "name": "デフ ベアリングハウジング ナット",
+      "area": "driveline",
+      "aliases": ["デフ", "ベアリングキャップ", "ベアリングハウジング", "ファイナル"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 1.5,
+      "kgm_max": null,
+      "lbft": 11,
+      "lbft_max": null,
+      "notes": ["500 のデフ ベアリングキャップ（37 N·m＝3.8 kgf·m）とは構造も値も違う。"],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "axle-sleeve-126",
+      "name": "ドライブシャフト スリーブ結合ボルト",
+      "area": "driveline",
+      "aliases": ["ドライブシャフト", "スリーブ", "ジョイント", "駆動軸"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 2.5,
+      "kgm_max": null,
+      "lbft": 18,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "diff-rolling-torque-126",
+      "name": "デフ ベアリング プリロード（回転抵抗）",
+      "area": "driveline",
+      "aliases": ["デフ", "プリロード", "回転抵抗", "ベアリング", "シム"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "procedure": "トルクレンチで締める箇所ではなくシムで調整する。デフ単体の回転抵抗が 1.3〜1.5 N·m（13〜15 kgf·cm）、クラウンホイールを組んだ状態で 2.0〜4.9 N·m（20〜50 kgf·cm）に入るようシムを選ぶ。",
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["数値を締付トルクと取り違えないこと。"],
+      "source": "a126",
+      "source_id": "本文",
+      "verified": true,
+      "critical": false,
+      "cross": []
+    },
+    {
+      "id": "wheel-bolt-126",
+      "name": "ホイール取付ボルト",
+      "area": "suspension",
+      "aliases": ["ホイール", "ホイールボルト", "タイヤ交換", "ナット", "前後共通"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 5.0,
+      "kgm_max": null,
+      "lbft": 36,
+      "lbft_max": null,
+      "notes": ["前後とも同じ値。対角に少しずつ、数回に分けて締める。"],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": false,
+          "kgm": 7.0,
+          "note": "652cc の Bucheli は 69 N·m（7.0 kgf·m）と、594cc の Autobook より4割高い。Haynes126 p89 は 36 lb·ft／50 N·m ＝ 5.0 kgf·m で Autobook 側と一致し、FD Ricambi のサイトの表も 49 N·m（5.0 kgf·m）側。当ページは 5.0 kgf·m を主にしているが、車体の年式・ホイールのボルトサイズを確認して判断すること。"
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "leaf-spring-kingpin-126",
+      "name": "板バネ → キングピンハウジング（ナックル）ナット",
+      "area": "suspension",
+      "aliases": ["板バネ", "リーフスプリング", "キングピン", "ナックル"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 4.0,
+      "kgm_max": null,
+      "lbft": 29,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "control-arm-shaft-126",
+      "name": "フロント ロアアーム → シャフト ナット",
+      "area": "suspension",
+      "aliases": ["ロアアーム", "コントロールアーム", "サスアーム", "シャフト"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 2.5,
+      "kgm_max": null,
+      "lbft": 18,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "front-rubber-buffer-126",
+      "name": "フロント ラバーバンプストップ ナット",
+      "area": "suspension",
+      "aliases": ["バンプラバー", "バンプストップ", "ゴムバッファ", "ラバー"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 1.5,
+      "kgm_max": null,
+      "lbft": 11,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "leaf-spring-insulator-126",
+      "name": "板バネ ゴムマウント（インシュレーター）ナット",
+      "area": "suspension",
+      "aliases": ["板バネ", "リーフスプリング", "インシュレーター", "ゴムマウント"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 3.0,
+      "kgm_max": null,
+      "lbft": 22,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": false,
+          "kgm": 5.0,
+          "note": "652cc の Bucheli だけが 49 N·m（5.0 kgf·m）と高い。594cc の Autobook（29 N·m ＝ 3.0 kgf·m）と Haynes126 p89（22 lb·ft／30 N·m ＝ 3.0 kgf·m）が一致するため、当ページは 3.0 kgf·m を主にしている。"
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "control-arm-shaft-body-126",
+      "name": "フロント ロアアーム シャフト → ボディ ナット",
+      "area": "suspension",
+      "aliases": ["ロアアーム", "コントロールアーム", "シャフト", "ボディ"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 3.0,
+      "kgm_max": null,
+      "lbft": 22,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": false,
+          "kgm": 5.0,
+          "note": "652cc の Bucheli だけが 49 N·m（5.0 kgf·m）と高い。594cc の Autobook（29 N·m ＝ 3.0 kgf·m）と Haynes126 p89（22 lb·ft／30 N·m ＝ 3.0 kgf·m）が一致するため、当ページは 3.0 kgf·m を主にしている。"
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "control-arm-knuckle-126",
+      "name": "フロント ロアアーム → キングピンハウジング ナット",
+      "area": "suspension",
+      "aliases": ["ロアアーム", "キングピン", "ナックル", "ボールジョイント"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 6.0,
+      "kgm_max": null,
+      "lbft": 43.5,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": false,
+          "kgm": 7.0,
+          "note": "652cc の Bucheli は自己ロックナット 69 N·m（7.0 kgf·m）としている。ナットの種類が違う可能性はあるが、594cc の Autobook（59 N·m ＝ 6.0 kgf·m）と Haynes126 p89（44 lb·ft／61 N·m ＝ 6.0 kgf·m）が一致するため、当ページは 6.0 kgf·m を主にしている。"
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "front-damper-126",
+      "name": "フロント ダンパー（ショック）上下 ナット",
+      "area": "suspension",
+      "aliases": ["ダンパー", "ショックアブソーバー", "ショック"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 2.0,
+      "kgm_max": null,
+      "lbft": 14.5,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "front-hub-nut-126",
+      "name": "フロントハブナット（ベアリング調整）",
+      "area": "suspension",
+      "aliases": ["ハブナット", "ホイールベアリング", "ベアリング調整", "ガタ"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "procedure": "規定トルクで締めっぱなしにしない。6.9 N·m（0.7 kgf·m／5 lb·ft）まで締めてベアリングをなじませ、そこから約30度戻して割ピンで固定する。",
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": [
+        "数値だけ見て強く締めるとベアリングを壊す。",
+        "Bucheli も 4.9 N·m（0.5 kgf·m）と同じく極端に低い値を載せており、「締め付けてから戻す」手順である点で両資料は一致している。"
+      ],
+      "source": "a126",
+      "source_id": "本文（フロントハブ）",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "brake-backplate-front-126",
+      "name": "ブレーキ バックプレート → キングピンハウジング（フロント）",
+      "area": "brake",
+      "aliases": ["バックプレート", "ブレーキ", "ドラム", "ナックル"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 2.0,
+      "kgm_max": null,
+      "lbft": 14.5,
+      "lbft_max": null,
+      "notes": [
+        "Bucheli は同じ箇所を足回りの表で 29 N·m（3.0 kgf·m）、ブレーキの表で 20 N·m（2.0 kgf·m）と二重に載せている。Autobook と一致するブレーキ表の 20 N·m（2.0 kgf·m）を採った。"
+      ],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p66",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "rear-rubber-buffer-126",
+      "name": "リア ラバーバンプストップ ナット",
+      "area": "suspension",
+      "aliases": ["バンプラバー", "バンプストップ", "ゴムバッファ", "ラバー"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 1.5,
+      "kgm_max": null,
+      "lbft": 11,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "rear-arm-support-front-126",
+      "name": "リア トレーリングアーム 前側サポート ボルト",
+      "area": "suspension",
+      "aliases": ["トレーリングアーム", "スイングアーム", "サポート", "リアサス"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 5.0,
+      "kgm_max": null,
+      "lbft": 36,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "rear-arm-shaft-126",
+      "name": "リア トレーリングアーム シャフト ナット",
+      "area": "suspension",
+      "aliases": ["トレーリングアーム", "スイングアーム", "ピボット", "リアサス"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 8.0,
+      "kgm_max": null,
+      "lbft": 58,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "rear-damper-126",
+      "name": "リア ダンパー（ショック）上下 ナット",
+      "area": "suspension",
+      "aliases": ["ダンパー", "ショックアブソーバー", "ショック"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 3.0,
+      "kgm_max": null,
+      "lbft": 22,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "rear-brake-drum-bolt-126",
+      "name": "リア ブレーキドラム 取付ボルト",
+      "area": "brake",
+      "aliases": ["ブレーキドラム", "ドラム", "リアブレーキ"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 8.5,
+      "kgm_max": null,
+      "lbft": 61.5,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p66",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "brake-backplate-rear-126",
+      "name": "ブレーキ バックプレート → トレーリングアーム（リア）",
+      "area": "brake",
+      "aliases": ["バックプレート", "ブレーキ", "ドラム", "トレーリングアーム"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 5.5,
+      "kgm_max": null,
+      "lbft": 40,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p66",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "rear-hub-bearing-126",
+      "name": "リアホイールベアリング（ハブナット）",
+      "area": "suspension",
+      "aliases": ["ハブナット", "リアハブ", "ホイールベアリング", "ベアリング"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "procedure": "固定トルクではなく回転抵抗で管理する箇所。組付け時にスペーサー（カラー）を必ず新品にし、指定グリス（Fiat MR 3）を使って、規定の回転抵抗に入るまで締める。",
+      "kgm": null,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["スペーサーを再使用すると規定の与圧が出ない。", "数値を大きく出すと事故につながるため、ここは手順を守ること。"],
+      "source": "a126",
+      "source_id": "本文（リアハブ）",
+      "verified": true,
+      "critical": true,
+      "cross": []
+    },
+    {
+      "id": "steering-wheel-nut-126",
+      "name": "ステアリングホイール 取付ナット",
+      "area": "suspension",
+      "aliases": ["ステアリング", "ハンドル", "ステアリングホイール"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 5.0,
+      "kgm_max": null,
+      "lbft": 36,
+      "lbft_max": null,
+      "notes": ["締めたあとナットをかしめて回り止めをする。"],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "steering-column-uj-126",
+      "name": "ステアリングコラム ユニバーサルジョイント ナット",
+      "area": "suspension",
+      "aliases": ["ステアリング", "コラム", "ユニバーサルジョイント", "自在継手"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 2.5,
+      "kgm_max": null,
+      "lbft": 18,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "steering-column-support-126",
+      "name": "ステアリングコラム 上部 後側取付ナット",
+      "area": "suspension",
+      "aliases": ["ステアリング", "コラム", "コラムサポート"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 1.5,
+      "kgm_max": null,
+      "lbft": 11,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "steering-box-to-body-126",
+      "name": "ステアリングギアボックス 取付ナット",
+      "area": "suspension",
+      "aliases": ["ステアリング", "ギアボックス", "ステアリングボックス"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 3.0,
+      "kgm_max": null,
+      "lbft": 22,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "pitman-arm-nut-126",
+      "name": "ピットマンアーム ナット",
+      "area": "suspension",
+      "aliases": ["ピットマンアーム", "ステアリング", "ドロップアーム"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 10.0,
+      "kgm_max": null,
+      "lbft": 72,
+      "lbft_max": null,
+      "notes": ["500 も 98〜108 N·m（10.0〜11.0 kgf·m）で、桁は同じ。"],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": false,
+          "kgm": 1.0,
+          "note": "Bucheli は「Lenkhebelbefestigungsmutter 10」＝9.8 N·m（1.0 kgf·m）と読める書き方をしているが、594cc の Autobook が 98 N·m（10 kgf·m／72 lb·ft）、500 も 98〜108 N·m（10〜11 kgf·m）。Bucheli 側が桁を落とした誤植と判断した。9.8 N·m では絶対に締め足りない。Haynes126 p89 も「Drop arm nut 72 lb·ft／100 N·m」＝10.0 kgf·m 側で、3冊目の資料で誤植と確定した。FD Ricambi のサイトの表は Bucheli の「10」をそのまま転載している。"
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "idler-arm-support-126",
+      "name": "アイドラーアーム（リレーレバー）サポート ナット",
+      "area": "suspension",
+      "aliases": ["アイドラーアーム", "リレーレバー", "ステアリング"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 3.0,
+      "kgm_max": null,
+      "lbft": 22,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "idler-arm-nut-126",
+      "name": "アイドラーアーム（リレーレバー）ピボットナット",
+      "area": "suspension",
+      "aliases": ["アイドラーアーム", "リレーレバー", "ピボット", "ステアリング"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 7.0,
+      "kgm_max": null,
+      "lbft": 50.5,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "tie-rod-clamp-126",
+      "name": "タイロッド クランプ（調整スリーブ）ナット",
+      "area": "suspension",
+      "aliases": ["タイロッド", "クランプ", "トー調整", "アライメント"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 1.5,
+      "kgm_max": null,
+      "lbft": 11,
+      "lbft_max": null,
+      "notes": ["トー調整のあとに締める。"],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": false,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "ball-joint-stud-126",
+      "name": "タイロッドエンド ボールジョイント ナット",
+      "area": "suspension",
+      "aliases": ["タイロッドエンド", "ボールジョイント", "ボールピン", "ステアリング"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 3.5,
+      "kgm_max": null,
+      "lbft": 25,
+      "lbft_max": null,
+      "notes": ["割ピンは新品にする。"],
+      "source": "a126",
+      "source_id": "本 p112 一覧表",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p89",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "wheel-cylinder-126",
+      "name": "ホイールシリンダー 取付ボルト",
+      "area": "brake",
+      "aliases": ["ホイールシリンダー", "ブレーキ", "カップ"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 1.0,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["652cc の整備書にのみ記載。低い値なので締めすぎに注意。"],
+      "source": "buch126",
+      "source_id": "本 p91-92",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "haynes126",
+          "ref": "p66",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "brake-hose-union-126",
+      "name": "ブレーキホース ユニオン（ホイールシリンダー側）",
+      "area": "brake",
+      "aliases": ["ブレーキホース", "ユニオン", "フレアナット", "ブレーキライン"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 2.0,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["652cc の整備書にのみ記載。"],
+      "source": "buch126",
+      "source_id": "本 p91-92",
+      "verified": true,
+      "critical": true,
+      "cross": []
+    },
+    {
+      "id": "master-cylinder-126",
+      "name": "マスターシリンダー → ペダルブラケット",
+      "area": "brake",
+      "aliases": ["マスターシリンダー", "ブレーキ", "ペダルブラケット"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 1.5,
+      "kgm_max": null,
+      "lbft": 11,
+      "lbft_max": null,
+      "notes": [],
+      "source": "a126",
+      "source_id": "本文（ブレーキ）",
+      "verified": true,
+      "critical": true,
+      "cross": [
+        {
+          "id": "buch126",
+          "ref": "本 p91-92",
+          "agree": true
+        },
+        {
+          "id": "haynes126",
+          "ref": "p66",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "id": "handbrake-lever-126",
+      "name": "ハンドブレーキレバー 取付",
+      "area": "brake",
+      "aliases": ["ハンドブレーキ", "サイドブレーキ", "パーキングブレーキ"],
+      "fits": {
+        "chassis": ["126"]
+      },
+      "kgm": 1.5,
+      "kgm_max": null,
+      "lbft": null,
+      "lbft_max": null,
+      "notes": ["652cc の整備書にのみ記載。"],
+      "source": "buch126",
+      "source_id": "本 p91-92",
+      "verified": true,
+      "critical": false,
+      "cross": []
+    }
+  ],
+  "generic": {
+    "_note": "ねじサイズ・強度区分からの一般的な目安（鋼／並目／乾式・摩擦係数0.14前後）。特定車種の規定値ではない。",
+    "grades": [
+      {
+        "id": "4.8",
+        "label": "4.8（軟らかい・一般ボルト）"
+      },
+      {
+        "id": "8.8",
+        "label": "8.8（標準的な機械ねじ）"
+      },
+      {
+        "id": "10.9",
+        "label": "10.9（強度の高いもの）"
+      }
+    ],
+    "table": [
+      {
+        "size": "M5",
+        "4.8": 3.0,
+        "8.8": 5.9,
+        "10.9": 8.7
+      },
+      {
+        "size": "M6",
+        "4.8": 5.2,
+        "8.8": 10.1,
+        "10.9": 15.0
+      },
+      {
+        "size": "M7",
+        "4.8": 8.5,
+        "8.8": 16.5,
+        "10.9": 24.0
+      },
+      {
+        "size": "M8",
+        "4.8": 12.5,
+        "8.8": 24.6,
+        "10.9": 36.0
+      },
+      {
+        "size": "M10",
+        "4.8": 25.0,
+        "8.8": 48.0,
+        "10.9": 72.0
+      },
+      {
+        "size": "M12",
+        "4.8": 43.0,
+        "8.8": 85.0,
+        "10.9": 125.0
+      },
+      {
+        "size": "M14",
+        "4.8": 68.0,
+        "8.8": 135.0,
+        "10.9": 200.0
+      },
+      {
+        "size": "M16",
+        "4.8": 105.0,
+        "8.8": 210.0,
+        "10.9": 310.0
+      }
+    ],
+    "cautions": [
+      "アルミ・鋳鉄の相手にねじ込む場合は、この値より落とすのが普通（ねじ山を持っていく）",
+      "ねじ山にオイル・グリスが付いていると、同じトルクでも軸力が2〜3割上がる＝締めすぎになる",
+      "細目ねじ（M12×1.25 など）は並目より高めになる",
+      "錆・かじりのあるねじでは、トルクの大半が摩擦で消えて締結力にならない"
+    ]
+  },
+  "engines": [
+    {
+      "id": "e500",
+      "label": "500系エンジン",
+      "cc": "479〜499cc",
+      "forms": ["110", "110D", "110F", "120"],
+      "form_labels": "110.000 / 110D.000 / 110F.000 / 120.000",
+      "cars": "Nuova500 N・D・F・L / Giardiniera",
+      "note": "値の出典は Fiat 純正整備書（独語版・110/110D）と Autobooks 英語版WSM（1957-73）。Giardiniera の 120.000 は純正の補遺のエンジン表が 110D と同一構成・同一部品番号なので同じ値を当てている（締付順序の図だけ別）。"
+    },
+    {
+      "id": "e126",
+      "label": "126系エンジン",
+      "cc": "594〜652cc",
+      "forms": ["126A", "126A5", "126A1"],
+      "form_labels": "126A.000 / 126A5.000 / 126A1.000・126A1.048",
+      "cars": "Nuova500 R / Fiat 126",
+      "note": "値の出典は 126 Autobook（594cc・126 A.000）で、Bucheli 整備書（652cc・126 A1）と全項目で一致を確認済み。Nuova500 R の 126 A5.000 との違いはカム・キャブレター・出力・発電機で、締結トルクの差は資料にありません（出典＝Fiat 純正『500 VARIANTI』603.91.687）。"
+    }
+  ],
+  "chassis": [
+    {
+      "id": "500",
+      "label": "FIAT 500"
+    },
+    {
+      "id": "126",
+      "label": "FIAT 126"
+    }
+  ]
+}

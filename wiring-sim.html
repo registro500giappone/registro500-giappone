@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<!-- ⛔作業場ページ。導線は付けない（HANDOFF §6-3・CLAUDE.md 全体原則）。仕上がるまで検索にも出さない -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>配線シミュレーター L1（作業場）｜Registro500</title>
+
+<!-- Google tag (gtag.js) — 公開ページを増やしたらタグの有無を必ず確認する（過去に計測漏れ実績あり） -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH');
+</script>
+
+<style>
+  :root{
+    --bg:#f6f1e7; --card:#fffdf8; --ink:#23201a; --sub:#6b6357; --line:#ddd4c2; --accent:#1f4d3a;
+    --hot:#d32f2f; --post:#e08a00; --gnd:#1565c0; --off:#b9bfc4;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+       line-height:1.7;-webkit-text-size-adjust:100%}
+  .wrap{max-width:1100px;margin:0 auto;padding:12px 12px 70px}
+  h1{font-size:1.05rem;margin:.2em 0 .1em}
+  .lead{color:var(--sub);font-size:.8rem;margin:0 0 12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin:0 0 12px}
+  .card h2{font-size:.92rem;margin:0 0 9px;color:var(--accent)}
+
+  /* 図を見ながら操作できるように操作列は上に貼り付ける。
+     ⚠️iOSの固定要素は backdrop-filter を足さない（既知の不具合・MEMORY参照） */
+  .sticky{position:sticky;top:0;z-index:5;background:var(--bg);
+          padding-top:6px;margin:0 0 10px;border-bottom:1px solid var(--line)}
+  .sticky .card{margin-bottom:8px}
+
+  /* 試す場面。⚠️ここが縦に伸びると図が画面外に出て変化を追えない＝常に詰めておく */
+  .scenes{display:flex;flex-wrap:wrap;gap:6px}
+  .scene{appearance:none;border:1px solid var(--line);background:#fff;border-radius:8px;
+         padding:5px 10px;font:inherit;font-size:.79rem;cursor:pointer;color:var(--ink);white-space:nowrap}
+  .scene[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .hint{margin:7px 0 0;font-size:.8rem;color:var(--accent);font-weight:700}
+  .watch{margin:0 0 0;font-size:.83rem;background:#fff7e3;border:1px solid #e8d9a8;
+         border-radius:9px;padding:8px 11px;color:#5a4a1d}
+  .watch b{color:#3d3210}
+
+  /* 状態表示（いちばん分かりやすい信号なので操作のすぐ下に置く） */
+  .lamps{display:flex;flex-wrap:wrap;gap:8px;margin:9px 0 0}
+  .lamp{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;
+        padding:4px 12px 4px 8px;background:#fff;font-size:.82rem}
+  .bulb{width:12px;height:12px;border-radius:50%;background:#d9dce0;border:1px solid #b3b8bd;flex:none}
+  .lamp.on .bulb{background:#ffb300;border-color:#c98a00;box-shadow:0 0 9px 2px rgba(255,179,0,.75)}
+  .lamp.on{font-weight:700}
+  .changed{font-size:.83rem;color:var(--sub);margin:7px 0 0;min-height:1.2em;
+           transition:background .15s,padding .15s}
+  .changed.hit{background:#fff3b0;border:1px solid #e0b800;border-radius:8px;
+               padding:5px 9px;color:#4a3c00;font-weight:700}
+  .changed b{color:inherit}
+
+  details.ctrlbox{margin:8px 0 0}
+  details.ctrlbox>summary{font-size:.8rem;color:var(--sub);cursor:pointer;list-style:revert}
+  .ctrls{display:flex;flex-wrap:wrap;gap:10px 14px;margin-top:8px}
+  .ctrl .lab{font-size:.74rem;color:var(--sub);margin-bottom:3px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+  .seg button{appearance:none;border:0;background:#fff;padding:5px 10px;font:inherit;font-size:.8rem;
+              cursor:pointer;color:var(--ink);border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:0}
+  .seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+  .fault .seg button[aria-pressed="true"]{background:var(--hot)}
+
+  /* 図＝残りの画面に収める。操作しても図が画面外に出ないのが狙い。
+     ⚠️図はSVGの中に取り込んである＝viewBox を動かすだけで図と端子が一緒に拡大する
+     （img と重ねる方式だと拡大のたびに両方の座標を合わせる必要があって必ずずれる） */
+  .fig{position:relative;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;
+       width:100%;aspect-ratio:4/3;max-height:56vh}
+  .fig.tall{aspect-ratio:1684/2382;max-height:none}
+  .fig svg{position:absolute;left:0;top:0;width:100%;height:100%}
+  /* ⚠️変化アテンションはユーザー指摘で強化：状態色と別の高コントラスト色・無限パルス・
+     マーカー自体もビートさせる（旧: 薄いリング1回強→2秒で消え「前後」が分からなかった） */
+  @keyframes flash{0%{opacity:1;r:16px;stroke-width:11}70%{opacity:.12;r:58px;stroke-width:2}100%{opacity:0;r:62px;stroke-width:2}}
+  /* ⚠️「いま変わった」の合図は紫に統一＝赤(B+)/橙(負荷の先)/青(アース)/灰(無電) のどれとも
+     被らない色をあえて選んでいる（この系統の原典配線色にVIOLAが無いことも確認済み） */
+  .fl{fill:none;stroke:#7c3aed;animation:flash 1.15s ease-out infinite;
+      filter:drop-shadow(0 0 6px #7c3aed) drop-shadow(0 0 2px #4c1d95)}
+  @keyframes beat{0%,100%{transform:scale(1)}50%{transform:scale(1.22)}}
+  .beacon{animation:beat .85s ease-in-out infinite}
+  /* ⚠️色（赤=B+）だけでは常時30系の既存の赤と区別が付かない、というユーザー指摘への対応。
+     色に頼らず「レイヤー」で分ける＝変化が起きた瞬間、変化していない端子と背景画像を丸ごと沈め、
+     変化した端子だけを素の明るさで浮かせる（スポットライト方式）。 */
+  #img{transition:opacity .3s ease}
+  .term{transition:opacity .3s ease}
+  .term.dim{opacity:.2}
+
+  .figbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:9px 0 0;font-size:.76rem;color:var(--sub)}
+  .legend span{display:flex;align-items:center;gap:5px}
+  .dot{width:13px;height:13px;border-radius:50%;flex:none}
+  .d-hot{background:var(--hot)} .d-gnd{background:var(--gnd)}
+  .d-post{background:#fff8e1;border:3px dashed var(--post)}
+  .d-off{background:var(--off);width:9px;height:9px;margin:0 2px}
+  .d-chg{background:none;border:2px solid #7c3aed;box-shadow:0 0 4px #7c3aed}
+  table{border-collapse:collapse;width:100%;font-size:.78rem}
+  th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;white-space:nowrap}
+  th{color:var(--sub);font-weight:600}
+  td.st{font-weight:700}
+  .st-hot{color:var(--hot)} .st-gnd{color:var(--gnd)} .st-post{color:var(--post)} .st-off{color:#98a0a6}
+  .nocoord td:first-child::after{content:" ◇";color:var(--sub)}
+  .note{font-size:.76rem;color:var(--sub);margin:8px 0 0}
+  .ok{color:#1f7a3f;font-weight:700} .ng{color:var(--hot);font-weight:700}
+  code{background:#efe9db;padding:1px 5px;border-radius:4px;font-size:.85em}
+  @media(min-width:900px){ .fig{max-height:70vh} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>配線シミュレーター L1（通電ハイライト）— 作業場</h1>
+<p class="lead">
+  系統11（スターター／ダイナモ・発電系）＋系統10からキー回りの2本。まだ線は光らず<strong>端子が光る</strong>（線の幾何は段取り4）。
+  ⛔どこからもリンクしていない作業場です。
+</p>
+
+<!-- 操作は図のすぐ上に貼り付ける。ここが縦に伸びると図が押し出されて変化を追えなくなるので、
+     長い説明（見るところ）は図の下に置いている -->
+<div class="sticky">
+  <div class="card">
+    <div class="scenes" id="scenes"></div>
+    <div class="lamps" id="lamps"></div>
+    <p class="hint" id="hint"></p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="figbar">
+    <div class="seg" id="bgseg">
+      <button type="button" data-i="11" aria-pressed="true">系統11だけ</button>
+      <button type="button" data-i="0" aria-pressed="false">全表示</button>
+    </div>
+    <div class="seg" id="zoomseg">
+      <button type="button" data-z="near" aria-pressed="true">変わった所に寄る</button>
+      <button type="button" data-z="all" aria-pressed="false">図の全体</button>
+    </div>
+  </div>
+  <div class="fig" id="fig">
+    <svg id="ov" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1684 2382"
+         preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <image id="img" href="/wiring-img/w11.webp" xlink:href="/wiring-img/w11.webp"
+             x="0" y="0" width="1684" height="2382"></image>
+      <g id="marks"></g>
+    </svg>
+  </div>
+  <div class="legend">
+    <span><i class="dot d-hot"></i>B+ に通じている（電流を流せる）</span>
+    <span><i class="dot d-post"></i>負荷の先（電圧は来ているが電流は流れない・点線の輪）</span>
+    <span><i class="dot d-gnd"></i>アース側</span>
+    <span><i class="dot d-off"></i>無電</span>
+    <span><i class="dot d-chg"></i>いま変わった場所</span>
+  </div>
+  <p class="changed" id="changed"></p>
+</div>
+
+<div class="card">
+  <h2>見るところ</h2>
+  <p class="watch" id="watch"></p>
+  <details class="ctrlbox">
+    <summary>自分で操作する（キー・エンジン・故障を個別に動かす）</summary>
+    <div class="ctrls" id="ctrls"></div>
+  </details>
+  <p class="note">変わった端子は図の上で光ります。図に座標を持たない端子（合成端子・アース側など）は下の表に ◇ 付きで出しています。</p>
+</div>
+
+<div class="card">
+  <h2>④ 仕様パッチを試す（段取り3・作業場限定）</h2>
+  <label style="display:flex;align-items:center;gap:8px;font-size:.86rem;cursor:pointer">
+    <input type="checkbox" id="patchToggle" style="width:17px;height:17px">
+    <span><b>オルタネーター換装</b>を適用する（<code>generator=オルタネーター</code> の車を想定）</span>
+  </label>
+  <p class="note" id="patchNote">
+    レギュレータ＋ダイナモを外し、社外オルタネーター1台（B+・D+・アース）に置き換えます。
+    チャージ灯はD+端子経由に付け替わりますが、点灯条件は原典のダイナモ+レギュレータ構成と同じになるはずです。
+    ⚠️このモデルはFIAT純正取説には無い改造の再構成（v:inf）＝出典は <code>wiring-patches.json</code> の <code>ledger</code>。
+    「レギュレータ故障」の場面はオルタネーター車には対応するモデルが無いため無効（レギュレータ自体が存在しない）。
+  </p>
+</div>
+
+<details class="card">
+  <summary style="font-size:.92rem;color:var(--accent);font-weight:700;cursor:pointer">端子の状態（全部）</summary>
+  <table id="tbl"><tbody></tbody></table>
+  <p class="note" id="cnt"></p>
+</details>
+
+<details class="card">
+  <summary style="font-size:.92rem;color:var(--accent);font-weight:700;cursor:pointer">検算（原典から分かっている挙動と突き合わせる）</summary>
+  <table id="chk"><tbody></tbody></table>
+  <p class="note">
+    期待値は計算結果を写したものではなく、<strong>原典と実車から分かっている挙動</strong>を書いています。
+    データを足したときにここが崩れたら、足したデータのほうが間違っているという意味です。
+  </p>
+</details>
+
+<details class="card">
+  <summary style="font-size:.92rem;color:var(--accent);font-weight:700;cursor:pointer">検算（gen-altパッチ適用時＝オルタネーター車でも同じ条件で点灯/消灯するか）</summary>
+  <table id="chkp"><tbody></tbody></table>
+  <p class="note">
+    期待値は原典（ダイナモ+レギュレータ構成）の検算と<strong>同じ表</strong>を使っています。
+    パッチが部品を置き換えても「キーONで点く」「エンジン回転で消える」等の<strong>外から見た挙動が変わらないこと</strong>を確認するためのものです。
+    ここが崩れたら、パッチのモデル（<code>wiring-patches.json</code>）のほうが間違っています。
+  </p>
+</details>
+
+<script src="/wiring-sim.js?v=2"></script>
+<script>
+(function(){
+  'use strict';
+  var NET_VERSION='4', TERM_VERSION='9', PATCH_VERSION='1', TYPE='F';
+  var net=null, terms=null, patches=null, inputs={}, prev=null, curNet=null, patchOn=false;
+  var ctrlsEl=document.getElementById('ctrls'), lampsEl=document.getElementById('lamps'),
+      ov=document.getElementById('ov'), tbody=document.querySelector('#tbl tbody'),
+      cntEl=document.getElementById('cnt'), chkBody=document.querySelector('#chk tbody'),
+      chkpBody=document.querySelector('#chkp tbody'),
+      img=document.getElementById('img'), scenesEl=document.getElementById('scenes'),
+      watchEl=document.getElementById('watch'), changedEl=document.getElementById('changed'),
+      hintEl=document.getElementById('hint'), fig=document.getElementById('fig'),
+      marksEl=document.getElementById('marks'), patchToggle=document.getElementById('patchToggle');
+
+  /* 試す場面。⚠️これは「見せ方」なのでページ側に置く（車の事実＝wiring-net.json の controls とは別物）。
+     set は controls の値。書いていない項目は既定に戻す＝場面を選べば必ず同じ状態から始まる。 */
+  var SCENES=[
+    { k:'key',   t:'キーON', h:'チャージ警告灯が点きます', f:['ign_sw.15/54','quadro.INTER','quadro.51'],
+      set:{ key:'ON' },
+      w:'<b>キーを回す。</b>チャージ警告灯が点きます。図では計器盤の <b>INTER</b> とイグニッションSWの <b>15/54</b> が赤（B+）に変わります。灯の反対側（51）は青のまま＝ダイナモの巻線を通ってアースに落ちているから点く、という意味です。' },
+    { k:'run',   t:'エンジン始動', h:'灯が消えます（51が青→赤）', f:['regulator.51','dynamo.51','quadro.51'],
+      set:{ key:'ON', engine:'RUN' },
+      w:'<b>エンジンをかける。</b>灯が消えます。ダイナモの <b>51</b>・計器盤の <b>51</b>・レギュレータの <b>51</b> が青（アース）から赤（B+）に変わります。両側とも赤＝電位差が無い＝灯は消える、が図の上で見えます。' },
+    { k:'start', t:'スタータ', h:'スターターが回ります', f:['battery.+','starter.+'],
+      set:{ starter:'START' },
+      w:'<b>始動レバーを引く。</b>キーはOFFのままです（500はキーで始動しません）。バッテリー＋からスタータSWを通って赤が伸びます。' },
+    { k:'f1',    t:'F1切れ', h:'切れても灯は点きます', f:['f1.30','ign_sw.30','quadro.INTER'],
+      set:{ key:'ON', f1:'BLOWN' },
+      w:'<b>F1ヒューズが切れたら。</b>それでもチャージ灯は点きます。イグニッションSWの30がヒューズの<b>手前</b>から分岐しているためで、原典どおりの挙動がデータだけで出ています（作り込んだ結果ではありません）。' },
+    { k:'reg',   t:'レギュレータ故障', h:'⚠️51の3点が橙＝ここを見てください', f:['regulator.51','dynamo.51','quadro.51'],
+      set:{ key:'ON', engine:'RUN', reg_fail:'FAIL' },
+      w:'⚠️<b>ここが今回いちばん見てほしい場面です。</b>エンジンは回っているのにレギュレータのカットアウトが閉じない故障。灯は点かないのに <b>51 の3点が橙</b>になります。橙＝テスターを当てれば電圧は出るが電流は流れない場所。球切れかレギュレータか迷う実際の場面で、この3点を赤（B+）と同じ色にすると人を誤らせます。<br>この4色目が要るかどうかが、いま決めたい設計判断です。' }
+  ];
+  var sceneKey=null, focusNodes=null;
+
+  Promise.all([
+    fetch('/wiring-net.json?v='+NET_VERSION).then(function(r){ return r.json(); }),
+    fetch('/wiring-terminals.json?v='+TERM_VERSION).then(function(r){ return r.json(); }),
+    fetch('/wiring-patches.json?v='+PATCH_VERSION).then(function(r){ return r.json(); })
+  ]).then(function(a){ net=a[0]; terms=a[1]; patches=a[2]; buildControls(); buildScenes(); runChecks(); runChecksPatched(); update(true); })
+    .catch(function(e){ document.querySelector('.wrap').insertAdjacentHTML('afterbegin',
+      '<p class="ng">データを読み込めませんでした: '+e+'</p>'); });
+
+  /* 段取り3＝仕様パッチ。適用は「netlist に ops を当ててから solve する」だけ＝WiringSim.solve
+     自体は変えていない（wiring-simulator/SCHEMA.md §G 次の一手のとおり）。ここではオルタネーター
+     換装（generator=オルタネーター）1本だけをチェックボックスで試せるようにしている。 */
+  var GENALT_SPEC={ generator:'オルタネーター' };
+  function activeNet(){
+    if(!patchOn || !patches) return net;
+    return WiringSim.applyPatches(net, patches.patches, GENALT_SPEC, TYPE);
+  }
+  patchToggle.addEventListener('change', function(){ patchOn=patchToggle.checked; update(); });
+
+  function buildScenes(){
+    scenesEl.innerHTML='<button type="button" class="scene" data-k="" aria-pressed="true">はじめの状態</button>'+
+      SCENES.map(function(s){ return '<button type="button" class="scene" data-k="'+s.k+'" aria-pressed="false">'+s.t+'</button>'; }).join('');
+    hintEl.textContent='↑ボタンを押すと図が変わります';
+    watchEl.innerHTML='上のボタンで場面を選ぶと、図のどこを見ればいいかをここに出します。いまはキーもエンジンも切った状態＝常時電源（30系）だけが赤くなっています。';
+    scenesEl.addEventListener('click', function(e){
+      var b=e.target.closest('button'); if(!b) return;
+      sceneKey=b.getAttribute('data-k');
+      [].forEach.call(scenesEl.children,function(x){ x.setAttribute('aria-pressed', x===b?'true':'false'); });
+      var sc=null; SCENES.forEach(function(s){ if(s.k===sceneKey) sc=s; });
+      // 場面は既定から作り直す＝前の場面が残らない
+      (net.controls||[]).forEach(function(c){ inputs[c.id]=c.default; });
+      if(sc) for(var k in sc.set) inputs[k]=sc.set[k];
+      watchEl.innerHTML = sc ? sc.w : 'キーもエンジンも切った状態です。常時電源（30系）だけが赤くなります。';
+      hintEl.textContent = sc ? sc.h : 'キーもエンジンも切った状態';
+      focusNodes = sc ? sc.f : null;
+      syncControls(); update();
+    });
+  }
+
+  function buildControls(){
+    var html='';
+    (net.controls||[]).forEach(function(c){
+      inputs[c.id]=c.default;
+      html+='<div class="ctrl'+(c.role==='fault'?' fault':'')+'"><div class="lab">'+
+            (c.role==='fault'?'⚠ ':'')+c.label+'</div><div class="seg" data-c="'+c.id+'">'+
+            c.options.map(function(o){
+              return '<button type="button" data-v="'+o.v+'" aria-pressed="'+(o.v===c.default)+'">'+o.label+'</button>';
+            }).join('')+'</div></div>';
+    });
+    ctrlsEl.innerHTML=html;
+    ctrlsEl.addEventListener('click', function(e){
+      var b=e.target.closest('button'); if(!b) return;
+      var seg=b.parentNode;
+      inputs[seg.getAttribute('data-c')]=b.getAttribute('data-v');
+      [].forEach.call(seg.children, function(x){ x.setAttribute('aria-pressed', x===b?'true':'false'); });
+      // 手で動かしたら場面の選択は外す（表示と実際がずれないように）
+      sceneKey=null;
+      [].forEach.call(scenesEl.children,function(x){ x.setAttribute('aria-pressed','false'); });
+      watchEl.innerHTML='自分で操作しています。変わった端子は図の上で光ります。';
+      hintEl.textContent='自分で操作中';
+      focusNodes=null;
+      update();
+    });
+  }
+
+  function syncControls(){
+    [].forEach.call(ctrlsEl.querySelectorAll('.seg'), function(seg){
+      var v=inputs[seg.getAttribute('data-c')];
+      [].forEach.call(seg.children,function(x){ x.setAttribute('aria-pressed', x.getAttribute('data-v')===v?'true':'false'); });
+    });
+  }
+
+  document.getElementById('bgseg').addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    [].forEach.call(this.children, function(x){ x.setAttribute('aria-pressed', x===b?'true':'false'); });
+    var u='/wiring-img/w'+(b.getAttribute('data-i')==='0'?'00':'11')+'.webp';
+    img.setAttribute('href',u); img.setAttribute('xlink:href',u);
+  });
+  var zoomNear=true;
+  document.getElementById('zoomseg').addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    [].forEach.call(this.children, function(x){ x.setAttribute('aria-pressed', x===b?'true':'false'); });
+    zoomNear=(b.getAttribute('data-z')==='near');
+    fig.classList.toggle('tall', !zoomNear);
+    setView(zoomNear?lastBox:null);
+  });
+
+  /* 表示範囲。⚠️375px の画面に図の全体を出すと端子番号が読めない＝
+     いま変わった端子のまわりに寄る。寄り先が無いときは全体に戻す。 */
+  var VB={x:0,y:0,w:1684,h:2382}, ASPECT=4/3, lastBox=null, tween=null;
+  function setView(box){
+    var t;
+    if(!box){ t={x:0,y:0,w:1684,h:2382}; }
+    else{
+      var pad=140, x0=box.x0-pad, y0=box.y0-pad, x1=box.x1+pad, y1=box.y1+pad;
+      var w=Math.max(x1-x0, 560), h=Math.max(y1-y0, 420);
+      if(w/h < ASPECT) w=h*ASPECT; else h=w/ASPECT;      // 枠の縦横比に合わせる
+      var cx=(box.x0+box.x1)/2, cy=(box.y0+box.y1)/2;
+      t={ x:Math.min(Math.max(cx-w/2, -60), 1744-w), y:Math.min(Math.max(cy-h/2, -60), 2442-h), w:w, h:h };
+    }
+    if(!zoomNear && box) return;
+    var from={x:VB.x,y:VB.y,w:VB.w,h:VB.h}, t0=null;
+    if(tween) cancelAnimationFrame(tween);
+    (function step(ts){                                   // 一瞬で飛ぶと今どこを見ているか分からなくなるので送る
+      if(t0===null) t0=ts;
+      var k=Math.min((ts-t0)/260,1), e=1-Math.pow(1-k,3);
+      VB={ x:from.x+(t.x-from.x)*e, y:from.y+(t.y-from.y)*e,
+           w:from.w+(t.w-from.w)*e, h:from.h+(t.h-from.h)*e };
+      ov.setAttribute('viewBox', VB.x.toFixed(1)+' '+VB.y.toFixed(1)+' '+VB.w.toFixed(1)+' '+VB.h.toFixed(1));
+      if(k<1) tween=requestAnimationFrame(step);
+    })(performance.now());
+  }
+
+  /* wiring-terminals.json から、この型式で座標が解決できる端子を集める。
+     同じ端子が複数の系統に載っている（f1.30 など）ので近接重複は間引く。 */
+  var _coords=null;
+  function coordList(){
+    if(_coords) return _coords;
+    var d=terms[TYPE]||{}, out=[];
+    for(var k in d) d[k].forEach(function(p){
+      if(!p.p) return;
+      if(out.some(function(q){ return q.p===p.p && q.t===p.t && Math.abs(q.x-p.x)<40 && Math.abs(q.y-p.y)<40; })) return;
+      out.push(p);
+    });
+    _coords=out; return out;
+  }
+
+  function update(first){
+    curNet=activeNet();
+    var r=WiringSim.solve(curNet,{inputs:inputs,type:TYPE});
+    var chg={}, names=[];
+    if(!first && prev){
+      var label={}; curNet.parts.forEach(function(p){ label[p.id]=p.label; });
+      r.nodes.forEach(function(n){
+        if(prev[n]!==undefined && prev[n]!==r.node[n]){
+          chg[n]=1;
+          names.push(label[n.slice(0,n.indexOf('.'))]+' '+n.slice(n.indexOf('.')+1));
+        }
+      });
+    }
+    changedEl.classList.toggle('hit', names.length>0);
+    changedEl.innerHTML = names.length ? ('⚡ いま変わった端子：<b>'+names.join('、')+'</b>') :
+                          (first?'':'端子の状態は変わりませんでした');
+    drawOverlay(r, chg); drawTable(r); drawLamps(r);
+
+    // 寄る先＝場面が「見てほしい端子」を指定していればそこ。指定が無ければ変わった端子。
+    // ⚠️場面は既定から作り直すので「変わった端子」だと図全体に散ることがある＝それでは寄る意味が無い
+    var box=null, want=focusNodes;
+    coordList().forEach(function(p){
+      var n=p.p+'.'+p.t;
+      if(want ? want.indexOf(n)<0 : !chg[n]) return;
+      if(!box) box={x0:p.x,y0:p.y,x1:p.x,y1:p.y};
+      box.x0=Math.min(box.x0,p.x); box.y0=Math.min(box.y0,p.y);
+      box.x1=Math.max(box.x1,p.x); box.y1=Math.max(box.y1,p.y);
+    });
+    lastBox=box;
+    setView(box);
+    cntEl.textContent='B+ '+r.count.hot+' ／ 負荷の先 '+r.count.post+' ／ アース '+r.count.gnd+
+                      ' ／ 無電 '+r.count.off+(r.shorted?'　⚠ 短絡':'');
+    prev=r.node;
+  }
+
+  var FILL={hot:'#d32f2f',gnd:'#1565c0',post:'#fff8e1',off:'#b9bfc4'};
+  var RING={hot:'#ffffff',gnd:'#ffffff',post:'#e08a00',off:'#9aa1a7'};
+  var EDGE={hot:'#d32f2f',gnd:'#1565c0',post:'#e08a00',off:'#9aa1a7'};
+
+  function drawOverlay(r, chg){
+    var html='', hasChg=false;
+    for(var k in chg){ hasChg=true; break; }
+    // ⚠️DIN番号だけだと「51」が3部品に同時に出て初見では誰の端子か分からない、という
+    //   実機検証での指摘への対応＝ラベルの1行目に部品名（短縮）を必ず添える
+    var pname={}; curNet.parts.forEach(function(pt){ pname[pt.id]=(pt.label||'').split('（')[0]; });
+    coordList().forEach(function(p){
+      var node=p.p+'.'+p.t, st=r.node[node];
+      if(!st) return; // netlist にまだ部品が無い端子は出さない
+      var dx=(p.dx===undefined)?50:p.dx, dy=(p.dy===undefined)?-90:p.dy;
+      var cx=p.x+dx, cy=p.y+dy, nm=pname[p.p]||'';
+      var w=Math.max(p.t.length*15, nm.length*18)+30;
+      var rad=(st==='off')?9:14, sw=(st==='post')?6:4, lowsig=(st==='off');
+      var isChg=!!chg[node], faded=(hasChg && !isChg);
+      // post（負荷の先）は色（橙）だけでなく輪を破線にして、赤/変化パルスと見分けやすくする
+      var dash=(st==='post')?' stroke-dasharray="6 4"':'';
+      // ⚠️色（赤=B+）だけでは常時30系の既存の赤と区別が付かないというユーザー指摘への対応。
+      //   .fl（無限パルス）と .beacon（拍動）は残しつつ、変化が起きた瞬間はそれ以外の端子と
+      //   背景画像ごと dim で沈める＝色に頼らず「レイヤー」そのもので変化した端子だけを浮かせる
+      var body='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+cx+'" y2="'+(cy+30)+'" stroke="#111" stroke-width="2.5" opacity="'+(lowsig?0.35:0.9)+'"/>'+
+            (st==='hot'?'<circle cx="'+p.x+'" cy="'+p.y+'" r="26" fill="#d32f2f" opacity="0.22"/>':'')+
+            (isChg?'<circle class="fl" cx="'+p.x+'" cy="'+p.y+'" r="20"/>':'')+
+            '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+rad+'" fill="'+FILL[st]+'" stroke="'+RING[st]+'" stroke-width="'+sw+'"'+dash+'/>'+
+            '<rect x="'+(cx-w/2)+'" y="'+(cy-33)+'" width="'+w+'" height="64" rx="10" fill="#fff" stroke="'+(isChg?'#7c3aed':EDGE[st])+'" stroke-width="'+(isChg?5:3)+'" opacity="'+(lowsig?0.6:1)+'"/>'+
+            '<text x="'+cx+'" y="'+(cy-11)+'" text-anchor="middle" font-family="inherit" font-size="19" font-weight="700" fill="#5a4a1d" opacity="'+(lowsig?0.55:1)+'">'+nm+'</text>'+
+            '<text x="'+cx+'" y="'+(cy+21)+'" text-anchor="middle" font-family="Arial,sans-serif" font-size="26" font-weight="700" fill="#111" opacity="'+(lowsig?0.55:1)+'">'+p.t+'</text>';
+      var cls='term'+(isChg?' beacon':'')+(faded?' dim':'');
+      html += '<g class="'+cls+'"'+(isChg?' style="transform-origin:'+p.x+'px '+p.y+'px"':'')+'>'+body+'</g>';
+    });
+    marksEl.innerHTML=html;   // ⚠️ov 全体を書き換えると背景の <image> ごと消える
+    img.style.opacity = hasChg ? '0.3' : '1';
+  }
+
+  function drawTable(r){
+    var coords={}; coordList().forEach(function(p){ coords[p.p+'.'+p.t]=1; });
+    var label={}; curNet.parts.forEach(function(p){ label[p.id]=p.label; });
+    var LAB={hot:'B+',post:'負荷の先',gnd:'アース',off:'無電'}, ORD={hot:0,post:1,gnd:2,off:3};
+    var rows=r.nodes.slice().sort(function(a,b){ return (ORD[r.node[a]]-ORD[r.node[b]])||a.localeCompare(b); });
+    tbody.innerHTML='<tr><th>端子</th><th>部品</th><th>状態</th></tr>'+rows.map(function(n){
+      var st=r.node[n], i=n.indexOf('.');
+      return '<tr class="'+(coords[n]?'':'nocoord')+'"><td>'+n.slice(i+1)+'</td><td>'+(label[n.slice(0,i)]||'')+
+             '</td><td class="st st-'+st+'">'+LAB[st]+'</td></tr>';
+    }).join('');
+  }
+
+  function drawLamps(r){
+    lampsEl.innerHTML=r.loads.map(function(l){
+      return '<span class="lamp'+(l.on?' on':'')+'"><i class="bulb"></i>'+l.label+'：'+
+             (l.on?(l.part==='starter'?'回る':'点灯'):'—')+'</span>';
+    }).join('');
+  }
+
+  /* 原典と実車から分かっている挙動。⛔計算結果を写して作らない（回帰の見張りにならなくなる） */
+  var CASES=[
+    ['キーOFF・エンジン停止',   {key:'OFF',engine:'STOP',starter:'OFF'},            false,false],
+    ['キーON・エンジン停止',    {key:'ON', engine:'STOP',starter:'OFF'},            true, false],
+    ['キーON・エンジン回転',    {key:'ON', engine:'RUN', starter:'OFF'},            false,false],
+    ['キーOFF・スタータを引く', {key:'OFF',engine:'STOP',starter:'START'},          false,true ],
+    ['F1切れ・キーON',          {key:'ON', engine:'STOP',starter:'OFF',f1:'BLOWN'}, true, false]
+  ];
+  function runChecks(){
+    chkBody.innerHTML='<tr><th>状態</th><th>チャージ灯</th><th>スターター</th><th>B+</th><th>負荷の先</th><th></th></tr>'+
+      CASES.map(function(c){
+        var r=WiringSim.solve(net,{inputs:c[1],type:TYPE});
+        function on(id){ var f=false; r.loads.forEach(function(x){ if(x.id===id&&x.on) f=true; }); return f; }
+        var a=on('quadro.warn_charge'), b=on('starter'), ok=(a===c[2]&&b===c[3]);
+        return '<tr><td>'+c[0]+'</td><td>'+(a?'点':'消')+'</td><td>'+(b?'回る':'—')+'</td><td>'+
+               r.count.hot+'</td><td>'+r.count.post+'</td><td class="'+(ok?'ok':'ng')+'">'+(ok?'一致':'不一致')+'</td></tr>';
+      }).join('');
+  }
+
+  /* gen-altパッチを常に適用した netlist で同じ5ケースを回す＝画面のトグルとは独立に、
+     パッチを当てても「外から見た挙動（点灯/消灯・スターター）」が変わらないことを検算する。
+     期待値の列は CASES（原典の挙動）をそのまま使う＝二重管理しない。 */
+  function runChecksPatched(){
+    if(!patches){ chkpBody.innerHTML=''; return; }
+    var pnet=WiringSim.applyPatches(net, patches.patches, GENALT_SPEC, TYPE);
+    chkpBody.innerHTML='<tr><th>状態</th><th>チャージ灯</th><th>スターター</th><th>B+</th><th>負荷の先</th><th></th></tr>'+
+      CASES.map(function(c){
+        var r=WiringSim.solve(pnet,{inputs:c[1],type:TYPE});
+        function on(id){ var f=false; r.loads.forEach(function(x){ if(x.id===id&&x.on) f=true; }); return f; }
+        var a=on('quadro.warn_charge'), b=on('starter'), ok=(a===c[2]&&b===c[3]);
+        return '<tr><td>'+c[0]+'</td><td>'+(a?'点':'消')+'</td><td>'+(b?'回る':'—')+'</td><td>'+
+               r.count.hot+'</td><td>'+r.count.post+'</td><td class="'+(ok?'ok':'ng')+'">'+(ok?'一致':'不一致')+'</td></tr>';
+      }).join('');
+  }
+})();
+</script>
+</div>
+</body>
+</html>
