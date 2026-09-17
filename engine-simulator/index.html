@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>エンジン妄想シミュレーター｜REGISTRO 500 GIAPPONE</title>
+<!-- 段2（2026-09-17）＝まだ導線なし・noindex。公開時に noindex を外し canonical を足す（名称・URLは未決＝HANDOFF §4） -->
+<meta name="robots" content="noindex">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH');
+</script>
+<meta name="description" content="空冷フィアット500・126のエンジンを、ボアアップ・圧縮比・カム・ヘッド・キャブ・マフラーの組み合わせで「妄想」して、出力とトルクの出方がおおよそどう変わるかを眺める道具です。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="エンジン妄想シミュレーター">
+<meta property="og:description" content="空冷フィアット500・126のエンジンを、定番の改造部品の組み合わせで妄想する道具。">
+<meta property="og:image" content="https://www.registro500.com/og/site-ja.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon-192.png">
+<style>
+/* 共通CSSは読み込まない（マイ壁紙と同じ＝サイト全体の配色に手を触れない） */
+:root{
+  --bg:#fffdf8; --ink:#3a352c; --sub:#8d8574; --deep:#2c3a31; --line:#e6e0d4; --card:#fffefb; --accent:#7a6a53;
+  --surface-1:#fffdf8; --text-primary:#3a352c; --text-secondary:#8d8574; --grid:#ece7dc;
+  --series-a:#2a78d6; --series-b:#eb6834;      /* dataviz 検証済（light・#fffdf8）：CVD ΔE 24.7・通常 33.6・コントラスト 3:1 以上 */
+  --warn:#8a5a00; --warnbg:#fff4dc; --stop:#8f2a1f; --stopbg:#fdeae6; --info:#3f5a4a; --infobg:#eef2ec;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;line-height:1.75;-webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto;padding:16px 16px 72px}
+.topbar{margin:0 0 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.topbar a{color:var(--sub);text-decoration:none;font-size:13px}
+.topbar a:hover{color:var(--deep)}
+h1{font-size:21px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
+h2{font-size:15px;margin:26px 0 8px;color:var(--deep);border-left:4px solid var(--deep);padding-left:8px}
+.lead{margin:0 0 16px;font-size:13px;color:var(--sub)}
+.lead b{color:var(--ink)}
+label.row{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--sub);margin:0 0 8px}
+select{font:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+@media (max-width:640px){.cols{grid-template-columns:1fr}}
+.panel{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px}
+.panel h3{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+.key{display:inline-block;width:18px;height:0;border-top:3px solid;border-radius:2px}
+.key.a{border-color:var(--series-a)} .key.b{border-color:var(--series-b)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.chips button,.btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--deep);font:inherit;font-size:12px;padding:5px 10px;border-radius:999px;cursor:pointer}
+.chips button:hover,.btn:hover{border-color:var(--deep)}
+.btn{border-radius:9px;font-size:13px;padding:7px 12px}
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.tile{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px}
+.tile .cap{font-size:11px;color:var(--sub)}
+.tile .val{font-size:22px;font-weight:700;color:var(--deep);line-height:1.2;margin-top:2px}
+.tile .val small{font-size:12px;font-weight:400;color:var(--sub)}
+.tile .sub{font-size:12px;color:var(--sub);margin-top:2px}
+.delta{font-weight:700} .delta.up{color:#1f6e3a} .delta.down{color:var(--stop)}
+.chart{position:relative;border:1px solid var(--line);background:var(--surface-1);border-radius:12px;padding:10px 8px 6px;margin-top:12px}
+.chart .title{font-size:13px;color:var(--deep);margin:0 4px 4px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--text-secondary)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.chart canvas{display:block;width:100%;height:230px;touch-action:pan-y}
+.tip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px;color:var(--text-secondary);box-shadow:0 4px 14px #00000014;display:none;min-width:120px;z-index:2}
+.tip b{color:var(--text-primary);font-size:13px}
+.tip .r{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.tip .r i{display:inline-block;width:14px;border-top:2px solid;margin-right:6px}
+details{margin-top:8px;font-size:12px;color:var(--sub)} summary{cursor:pointer}
+table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:right} th:first-child,td:first-child{text-align:left}
+.story{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px;margin-top:10px}
+.story .zone{padding:8px 0;border-bottom:1px dashed var(--line)} .story .zone:last-child{border-bottom:0}
+.story .zone .t{font-size:13px;font-weight:700;color:var(--deep)} .story .zone .v{font-size:12px;color:var(--sub);margin-left:6px;font-weight:400}
+.story .zone p{margin:2px 0 0;font-size:14px}
+.bottle{border:2px solid var(--deep);background:#eef2ec;border-radius:12px;padding:12px 14px;margin-top:10px;color:var(--deep)}
+.bottle b{font-size:15px}
+.bottle p{margin:4px 0 0;font-size:13px}
+.warns{list-style:none;padding:0;margin:8px 0 0;display:flex;flex-direction:column;gap:6px}
+.warns li{border-radius:10px;padding:8px 12px;font-size:13px;border:1px solid}
+.warns li.warn{background:var(--warnbg);border-color:#e8d2a0;color:var(--warn)}
+.warns li.stop{background:var(--stopbg);border-color:#e8b3aa;color:var(--stop)}
+.warns li.info{background:var(--infobg);border-color:#cfdad2;color:var(--info)}
+.parts{font-size:13px;margin:8px 0 0;padding:0;list-style:none}
+.parts li{padding:6px 0;border-bottom:1px dashed var(--line)}
+.parts .k{color:var(--sub);font-size:12px}
+.parts .shops{color:var(--sub);font-size:12px;margin-top:2px}
+.tag{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:999px;padding:0 7px;margin-left:6px;color:var(--accent);vertical-align:middle}
+.limits{font-size:13px;color:var(--ink);padding-left:1.2em;margin:6px 0 0} .limits li{margin:4px 0}
+.note{font-size:12px;color:var(--sub);margin:10px 0 0}
+.busy{opacity:.55;transition:opacity .15s}
+.opt-reg::after{content:"（登録車で使用例あり）"}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="topbar"><a href="/">← トップへ戻る</a><span id="status" style="font-size:12px;color:var(--sub)"></span></p>
+  <h1>エンジン妄想シミュレーター</h1>
+  <p class="lead">空冷フィアット500・126のエンジンを、定番の改造部品を選ぶだけで「妄想」する道具です。<b>正確さを極める道具ではありません</b>。数字は「純正と比べてどれくらい変わりそうか」の目安で、絶対値の誤差は1〜2割あります（下の「この道具の限界」）。</p>
+
+  <label class="row">土台になる型式
+    <select id="model"></select>
+  </label>
+  <p class="note" id="modelNote"></p>
+  <p class="note">選択肢の「◎」＝登録されているお車で実際に使われている部品。「※」＝店に数値の記載が無く、同系の品から借りた仮の値で計算している部品。</p>
+
+  <div class="cols">
+    <section class="panel" id="panelA">
+      <h3><span class="key a"></span>いま</h3>
+      <div class="chips" id="startChips"></div>
+      <div class="slots" data-side="a"></div>
+    </section>
+    <section class="panel" id="panelB">
+      <h3><span class="key b"></span>変えてみる</h3>
+      <div class="chips"><button type="button" id="copyAB">「いま」の内容をここへ写す</button><button type="button" id="resetB">純正に戻す</button></div>
+      <div class="slots" data-side="b"></div>
+    </section>
+  </div>
+
+  <div id="result" class="busy">
+    <div class="hero">
+      <div class="tile"><div class="cap">最高出力</div><div class="val" id="heroCv">…</div><div class="sub" id="heroCvSub"></div></div>
+      <div class="tile"><div class="cap">最大トルク</div><div class="val" id="heroNm">…</div><div class="sub" id="heroNmSub"></div></div>
+    </div>
+
+    <div class="chart" id="chartT">
+      <div class="title"><span>トルク（Nm）</span><span class="legend"><span><i class="key a"></i>いま</span><span><i class="key b"></i>変えた後</span></span></div>
+      <canvas></canvas><div class="tip"></div>
+    </div>
+    <div class="chart" id="chartP">
+      <div class="title"><span>出力（CV）</span><span class="legend"><span><i class="key a"></i>いま</span><span><i class="key b"></i>変えた後</span></span></div>
+      <canvas></canvas><div class="tip"></div>
+    </div>
+    <details><summary>数値の表を見る</summary><div id="tableWrap"></div></details>
+
+    <h2>力の出方はこう変わる</h2>
+    <div class="story" id="story"></div>
+
+    <h2>足を引っ張っている所</h2>
+    <div class="bottle" id="bottle"></div>
+
+    <h2>気をつけること</h2>
+    <ul class="warns" id="warns"></ul>
+
+    <h2>この妄想で使った部品</h2>
+    <ul class="parts" id="parts"></ul>
+    <p class="note">部品は Axel Gerstl／FD Ricambi／EuroItalia500（Julcar）／D'Angelo Motori／PBP の掲載品と、登録されているお車で使われている物を載せています。価格・在庫・適合は各店で確かめてください。</p>
+  </div>
+
+  <h2>この道具の限界</h2>
+  <ul class="limits" id="limits"></ul>
+  <p class="note">計算の中身＝0次元の充填・排出モデル（クランク角 0.25° 刻み・バルブとベンチュリの圧縮性流れ・吸排気の慣性・Wiebe 燃焼・摩擦と冷却ファンの損失）。純正4機種と Abarth 3機種の公表値で校正しています。</p>
+</div>
+
+<script type="module">
+import { simulate } from './sim.js';
+import { MODELS, SLOTS, START_EXAMPLES, DEFAULT_CHOICES, buildSpec, modelById } from './presets.js';
+import { tellStory, findBottleneck, warnings, LIMITS } from './story.js';
+
+const RPM = [1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500];
+const SLOT_LABELS = { disp: '排気量（シリンダー＋ピストン）', cr: '圧縮比', cam: 'カム', head: 'ヘッド（バルブ径・ポート）', carb: 'キャブ', exh: 'マフラー' };
+const SLOT_ORDER = ['disp', 'cr', 'cam', 'head', 'carb', 'exh'];
+const $ = (s, r = document) => r.querySelector(s);
+const state = { model: '500F', a: { ...DEFAULT_CHOICES }, b: { ...DEFAULT_CHOICES } };
+
+// ───── URL ハッシュに状態を持つ（共有できるように） ─────
+function readHash() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get('m') && modelById(h.get('m')).id === h.get('m')) state.model = h.get('m');
+  for (const side of ['a', 'b']) {
+    const v = h.get(side); if (!v) continue;
+    v.split(',').forEach(kv => { const [k, val] = kv.split(':'); if (SLOTS[k] && SLOTS[k].some(o => o.id === val)) state[side][k] = val; });
+  }
+}
+function writeHash() {
+  const enc = (c) => SLOT_ORDER.filter(k => c[k] !== 'stock').map(k => `${k}:${c[k]}`).join(',');
+  const p = new URLSearchParams(); p.set('m', state.model);
+  if (enc(state.a)) p.set('a', enc(state.a)); if (enc(state.b)) p.set('b', enc(state.b));
+  history.replaceState(null, '', '#' + p.toString());
+}
+
+// ───── 選択肢の描画 ─────
+function stockText(slot, m) {
+  const b = buildSpec(m.id, {});
+  switch (slot) {
+    case 'disp': return `純正のまま（${b.cc.toFixed(0)}cc・Ø${m.engine.bore}）`;
+    case 'cr': return `純正のまま（${m.engine.cr}）`;
+    case 'cam': return `純正のまま（${m.cam.ivo}/${m.cam.ivc}-${m.cam.evo}/${m.cam.evc}）`;
+    case 'head': return `純正のまま（吸 ${m.valves.dIn}／排 ${m.valves.dEx}）`;
+    case 'carb': return `純正のまま（${b.picks.carb.label.replace(/（.*$/, '')}）`;
+    default: return '純正のまま';
+  }
+}
+function renderSlots(side) {
+  const box = $(`.slots[data-side="${side}"]`); box.textContent = '';
+  const m = modelById(state.model);
+  for (const k of SLOT_ORDER) {
+    const lab = document.createElement('label'); lab.className = 'row'; lab.append(SLOT_LABELS[k]);
+    const sel = document.createElement('select'); sel.dataset.slot = k; sel.dataset.side = side;
+    for (const o of SLOTS[k]) {
+      const opt = document.createElement('option'); opt.value = o.id;
+      opt.textContent = o.id === 'stock' ? stockText(k, m) : o.label + (o.assumed ? ' ※' : '') + (o.registered ? '　◎' : '');
+      sel.append(opt);
+    }
+    sel.value = state[side][k];
+    sel.addEventListener('change', () => { state[side][k] = sel.value; onDispChange(side, k); update(); });
+    lab.append(sel); box.append(lab);
+  }
+}
+// 排気量を選んだら圧縮比の初期値を店の実態に寄せる（126 後期＝77mm・7.5 が根拠）。ユーザーが圧縮比を触っていれば上書きしない。
+function onDispChange(side, k) {
+  if (k !== 'disp') return;
+  const d = SLOTS.disp.find(o => o.id === state[side].disp);
+  if (d && d.crHint && state[side].cr === 'stock') {
+    const cr = SLOTS.cr.find(o => o.cr === d.crHint); if (cr) { state[side].cr = cr.id; const s = $(`select[data-side="${side}"][data-slot="cr"]`); if (s) s.value = cr.id; }
+  }
+  if (d && !d.bore) { state[side].cr = 'stock'; const s = $(`select[data-side="${side}"][data-slot="cr"]`); if (s) s.value = 'stock'; }
+}
+function renderModel() {
+  const sel = $('#model'); sel.textContent = '';
+  for (const m of MODELS) { const o = document.createElement('option'); o.value = m.id; o.textContent = m.label; sel.append(o); }
+  sel.value = state.model;
+  sel.addEventListener('change', () => { state.model = sel.value; renderChips(); renderSlots('a'); renderSlots('b'); update(); });
+}
+function renderChips() {
+  const m = modelById(state.model); const box = $('#startChips'); box.textContent = '';
+  for (const ex of START_EXAMPLES) {
+    if (ex.families && !ex.families.includes(m.family)) continue;
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = ex.label;
+    b.addEventListener('click', () => { state.a = { ...DEFAULT_CHOICES, ...ex.choices }; renderSlots('a'); update(); });
+    box.append(b);
+  }
+  $('#modelNote').textContent = m.note + (m.assumed ? '　※' + m.assumed.join('／') : '');
+}
+$('#copyAB').addEventListener('click', () => { state.b = { ...state.a }; renderSlots('b'); update(); });
+$('#resetB').addEventListener('click', () => { state.b = { ...DEFAULT_CHOICES }; renderSlots('b'); update(); });
+
+// ───── 計算と描画 ─────
+let timer = null, last = null;
+function update() {
+  writeHash(); $('#result').classList.add('busy'); $('#status').textContent = '計算中…';
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    const A = buildSpec(state.model, state.a), B = buildSpec(state.model, state.b);
+    const resA = simulate(A.spec, RPM), resB = simulate(B.spec, RPM);
+    last = { A, B, resA, resB };
+    render(last); $('#result').classList.remove('busy'); $('#status').textContent = '';
+    gtag('event', 'engine_sim_update', { model: state.model, b: Object.entries(state.b).filter(([, v]) => v !== 'stock').map(([k, v]) => `${k}:${v}`).join(',') || 'stock' });
+  }, 30);
+}
+const fmtDelta = (b, a, d = 0) => { const p = 100 * (b / a - 1); const el = document.createElement('span'); el.className = 'delta ' + (p >= 0.5 ? 'up' : p <= -0.5 ? 'down' : ''); el.textContent = (p > 0 ? '+' : '') + p.toFixed(d) + '%'; return el; };
+function render({ A, B, resA, resB }) {
+  const st = tellStory(resA, resB, A, B);
+  // ヒーロー数値
+  const cv = $('#heroCv'); cv.textContent = ''; cv.append(`${st.B.peakCv.toFixed(1)} `, Object.assign(document.createElement('small'), { textContent: `CV @${st.B.peakCvRpm}` }), ' ', fmtDelta(st.B.peakCv, st.A.peakCv));
+  $('#heroCvSub').textContent = `いま ${st.A.peakCv.toFixed(1)} CV @${st.A.peakCvRpm}`;
+  const nm = $('#heroNm'); nm.textContent = ''; nm.append(`${st.B.peakNm.toFixed(1)} `, Object.assign(document.createElement('small'), { textContent: `Nm @${st.B.peakNmRpm}` }), ' ', fmtDelta(st.B.peakNm, st.A.peakNm));
+  $('#heroNmSub').textContent = `いま ${st.A.peakNm.toFixed(1)} Nm @${st.A.peakNmRpm}`;
+  // チャート
+  drawChart($('#chartT'), resA, resB, 'torque', 'Nm');
+  drawChart($('#chartP'), resA, resB, 'powerCv', 'CV');
+  // 表
+  const tw = $('#tableWrap'); tw.textContent = '';
+  const tb = document.createElement('table');
+  const tr0 = document.createElement('tr'); ['rpm', 'いま Nm', '変えた後 Nm', 'いま CV', '変えた後 CV'].forEach(h => { const th = document.createElement('th'); th.textContent = h; tr0.append(th); }); tb.append(tr0);
+  RPM.forEach((r, i) => { const tr = document.createElement('tr'); [r, resA[i].torque.toFixed(1), resB[i].torque.toFixed(1), resA[i].powerCv.toFixed(1), resB[i].powerCv.toFixed(1)].forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.append(td); }); tb.append(tr); });
+  tw.append(tb);
+  // 物語
+  const sb = $('#story'); sb.textContent = '';
+  for (const z of st.zones) {
+    const d = document.createElement('div'); d.className = 'zone';
+    const t = document.createElement('div'); t.className = 't'; t.textContent = z.title; const v = document.createElement('span'); v.className = 'v'; v.textContent = z.value; t.append(v);
+    const p = document.createElement('p'); p.textContent = z.text; d.append(t, p); sb.append(d);
+  }
+  // ボトルネック
+  const bn = findBottleneck(resB, B); const bb = $('#bottle'); bb.textContent = '';
+  const b1 = document.createElement('b'); b1.textContent = bn.main; bb.append(b1);
+  for (const m of bn.more) { const p = document.createElement('p'); p.textContent = m; bb.append(p); }
+  const pm = document.createElement('p'); pm.style.color = 'var(--sub)'; pm.style.fontSize = '12px';
+  pm.textContent = `目安：ピーク回転でのベンチュリ前後の圧力差 ${bn.dpVenturi.toFixed(1)} kPa／バルブ前後 ${bn.dpValve.toFixed(1)} kPa／排気背圧 ${bn.pExh.toFixed(2)} bar／充填効率 ${(100 * bn.ve).toFixed(0)}%`; bb.append(pm);
+  // 注意
+  const wl = $('#warns'); wl.textContent = '';
+  const ws = warnings(B, resB); if (!ws.length) ws.push({ level: 'info', text: 'この組合せに目立った注意点はありません。' });
+  for (const w of ws) { const li = document.createElement('li'); li.className = w.level; li.textContent = w.text; wl.append(li); }
+  // 部品
+  const pl = $('#parts'); pl.textContent = '';
+  for (const k of SLOT_ORDER) {
+    const o = B.picks[k]; if (o.id === 'stock') continue;
+    const li = document.createElement('li'); const kk = document.createElement('div'); kk.className = 'k'; kk.textContent = SLOT_LABELS[k];
+    const nm2 = document.createElement('div'); nm2.textContent = o.label; if (o.registered) { const tg = document.createElement('span'); tg.className = 'tag'; tg.textContent = '登録車で使用例あり'; nm2.append(tg); }
+    li.append(kk, nm2);
+    if (o.hint) { const h = document.createElement('div'); h.className = 'shops'; h.textContent = o.hint; li.append(h); }
+    if (o.shops && o.shops.length) { const s = document.createElement('div'); s.className = 'shops'; s.textContent = '掲載：' + o.shops.join('／'); li.append(s); }
+    if (o.assumed) { const s = document.createElement('div'); s.className = 'shops'; s.textContent = '※ ' + o.assumed.join('／'); li.append(s); }
+    pl.append(li);
+  }
+  if (!pl.children.length) { const li = document.createElement('li'); li.textContent = '「変えてみる」がすべて純正のままです。右の欄で部品を選んでください。'; pl.append(li); }
+}
+
+// ───── チャート（canvas・1軸・2系列・ホバー読み取り） ─────
+const charts = new Map();
+function drawChart(root, resA, resB, key, unit) {
+  const cv = $('canvas', root), tip = $('.tip', root);
+  const css = getComputedStyle(document.documentElement);
+  const colA = css.getPropertyValue('--series-a').trim(), colB = css.getPropertyValue('--series-b').trim();
+  const ink = css.getPropertyValue('--text-secondary').trim(), grid = css.getPropertyValue('--grid').trim();
+  const W = cv.clientWidth, H = cv.clientHeight, dpr = window.devicePixelRatio || 1;
+  cv.width = W * dpr; cv.height = H * dpr; const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const padL = 40, padR = 52, padT = 10, padB = 26;
+  const xs = RPM, ya = resA.map(r => r[key]), yb = resB.map(r => r[key]);
+  const ymax = Math.max(1, ...ya, ...yb) * 1.12;
+  const X = (r) => padL + (r - xs[0]) / (xs[xs.length - 1] - xs[0]) * (W - padL - padR);
+  const Y = (v) => padT + (1 - v / ymax) * (H - padT - padB);
+  g.clearRect(0, 0, W, H);
+  // グリッド（控えめ）と軸ラベル
+  g.font = '11px system-ui, sans-serif'; g.fillStyle = ink; g.strokeStyle = grid; g.lineWidth = 1;
+  const step = ymax > 60 ? 20 : ymax > 30 ? 10 : 5;
+  for (let v = 0; v <= ymax; v += step) { g.beginPath(); g.moveTo(padL, Y(v)); g.lineTo(W - padR, Y(v)); g.stroke(); g.textAlign = 'right'; g.fillText(v, padL - 6, Y(v) + 4); }
+  g.textAlign = 'center'; for (const r of xs) if (r % 1000 === 500 || r === 1500) { } ; for (const r of [2000, 3000, 4000, 5000, 6000]) g.fillText(r, X(r), H - 8);
+  g.fillText('rpm', W - padR + 26, H - 8);
+  // 線（2px）＋末尾の直接ラベル
+  const line = (ys, col, label) => {
+    g.strokeStyle = col; g.lineWidth = 2; g.lineJoin = 'round'; g.beginPath();
+    ys.forEach((v, i) => i ? g.lineTo(X(xs[i]), Y(v)) : g.moveTo(X(xs[i]), Y(v))); g.stroke();
+    g.fillStyle = col; g.textAlign = 'left'; g.fillText(label, X(xs[xs.length - 1]) + 6, Y(ys[ys.length - 1]) + 4);
+  };
+  line(ya, colA, 'いま'); line(yb, colB, '変えた後');
+  const st = { W, H, X, Y, xs, ya, yb, colA, colB, unit, base: cv.toDataURL ? null : null };
+  charts.set(root, st);
+  if (!root.dataset.bound) {
+    root.dataset.bound = '1';
+    const move = (ev) => {
+      const s = charts.get(root); if (!s) return;
+      const rect = cv.getBoundingClientRect(); const px = (ev.touches ? ev.touches[0].clientX : ev.clientX) - rect.left;
+      let bi = 0, bd = 1e9; s.xs.forEach((r, i) => { const d = Math.abs(s.X(r) - px); if (d < bd) { bd = d; bi = i; } });
+      redrawHover(root, bi);
+    };
+    cv.addEventListener('pointermove', move); cv.addEventListener('pointerdown', move);
+    cv.addEventListener('pointerleave', () => { tip.style.display = 'none'; redrawHover(root, -1); });
+  }
+}
+function redrawHover(root, i) {
+  const s = charts.get(root); if (!s) return;
+  const cv = $('canvas', root), tip = $('.tip', root); const g = cv.getContext('2d');
+  // 線を描き直してから十字線と点を重ねる（ベース画像は毎回描く＝軽い）
+  const key = root.id === 'chartT' ? 'torque' : 'powerCv';
+  if (last) drawChartBase(root, key);
+  if (i < 0) return;
+  const x = s.X(s.xs[i]);
+  g.strokeStyle = '#b9b1a2'; g.lineWidth = 1; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(x, 8); g.lineTo(x, s.H - 22); g.stroke(); g.setLineDash([]);
+  for (const [ys, col] of [[s.ya, s.colA], [s.yb, s.colB]]) { g.beginPath(); g.arc(x, s.Y(ys[i]), 4.5, 0, Math.PI * 2); g.fillStyle = col; g.fill(); g.lineWidth = 2; g.strokeStyle = '#fffdf8'; g.stroke(); }
+  tip.textContent = '';
+  const h = document.createElement('div'); h.textContent = `${s.xs[i]} rpm`; tip.append(h);
+  for (const [ys, col, lab] of [[s.ya, s.colA, 'いま'], [s.yb, s.colB, '変えた後']]) {
+    const r = document.createElement('div'); r.className = 'r'; const l = document.createElement('span'); const ii = document.createElement('i'); ii.style.borderColor = col; l.append(ii, lab);
+    const b = document.createElement('b'); b.textContent = `${ys[i].toFixed(1)} ${s.unit}`; r.append(l, b); tip.append(r);
+  }
+  tip.style.display = 'block';
+  const left = Math.min(Math.max(x + 12, 4), s.W - tip.offsetWidth - 4); tip.style.left = left + 'px'; tip.style.top = '30px';
+}
+function drawChartBase(root, key) { const { resA, resB } = last; const unit = key === 'torque' ? 'Nm' : 'CV'; const bound = root.dataset.bound; drawChart(root, resA, resB, key, unit); root.dataset.bound = bound; }
+window.addEventListener('resize', () => { if (last) { drawChartBase($('#chartT'), 'torque'); drawChartBase($('#chartP'), 'powerCv'); } });
+
+// ───── 限界 ─────
+for (const t of LIMITS) { const li = document.createElement('li'); li.textContent = t; $('#limits').append(li); }
+
+// ───── 起動 ─────
+readHash(); renderModel(); renderChips(); renderSlots('a'); renderSlots('b'); update();
+</script>
+</body>
+</html>
