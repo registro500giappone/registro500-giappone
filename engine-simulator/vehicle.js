@@ -112,7 +112,10 @@ function pickGearForSpeed(res, drive, kmh, curGear, policy, gradeNeed) {
   const rpm = (gi) => rpmAtSpeed(kmh, drive.gears[gi], drive);
   const force = (gi) => tractiveForce_N(res, kmh, drive.gears[gi], drive);
   const up = Math.min(policy.shiftUp, rl * 0.98);   // 上限が変速回転より低い型式（純正＝取説の許容回転）では上限で上げる
-  if (g < top && rpm(g) > up && (force(g + 1) >= gradeNeed || rpm(g) > rl * 0.98)) g += 1;
+  // ⚠️上限に当たっていても「上のギアが抵抗に勝てない」なら上げない＝実車の「3速で最高回転のまま登る」。
+  //   以前は「レブに当たったら無条件で上げる」だったため、上のギアで力が足りず即座に下げ、2m ごとに 3↔4 を往復していた（談合坂・2人で 530 回）。
+  //   上げる側に 5% の余裕を要求するのは、上げた直後の速度変化で往復しないため。
+  if (g < top && rpm(g) > up && force(g + 1) >= gradeNeed * 1.05) g += 1;
   else if (g > 0 && rpm(g - 1) < rl * 0.98 && force(g - 1) > force(g) && (rpm(g) < policy.shiftDown || force(g) < gradeNeed)) g -= 1;
   return g;
 }
