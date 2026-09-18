@@ -268,8 +268,10 @@ export const modelById = (id) => MODELS.find(m => m.id === id) || MODELS[2];
 //   ⛔上限を上げてよいのはカムだけ（回るようにする部品はカム＝ボアアップや排気だけでは上限は動かない）。
 export function revCapRpm(built, res) {
   if (built.picks.cam.id === 'stock') return built.model.revLimit.rpm;
-  const peak = res.reduce((m, p) => (p.powerCv > m.powerCv ? p : m), res[0]);   // 改造カム＝最高出力の 500rpm 上まで（資料が無いので仮定）
-  return Math.min(res[res.length - 1].rpm, Math.round((peak.rpm + 500) / 25) * 25);
+  // 改造カム＝最高出力の回転まで（2026-09-18 オーナー実測＝Colombo & Bariani のロード・ミディアム＋純正マフラーで 5500 がいいところ。
+  // 6000 まで回るのはよほどのレース仕様）。⛔以前の「最高出力の 500rpm 上」は回りすぎだった。純正の許容回転を下回らせない。
+  const peak = res.reduce((m, p) => (p.powerCv > m.powerCv ? p : m), res[0]);
+  return Math.min(res[res.length - 1].rpm, Math.max(built.model.revLimit.rpm, Math.round(peak.rpm / 25) * 25));
 }
 export function buildSpec(modelId, choices) {
   const m = modelById(modelId);
