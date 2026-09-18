@@ -32,8 +32,11 @@ ok(c.minGear <= 3, '500F 純正・2人は談合坂で 3速に落ちる、が出�
 }
 ok(b.minKmh > a.minKmh + 5, 'まず650 で最低速度が 5km/h 以上上がる、が出ない');
 ok(c.minKmh < a.minKmh, '2人乗ると最低速度が下がる、が出ない');
-const o = run('500F', {}, {}, om), of = run('500F', {}, { load: 'full' }, om);
-console.log(`Ω 500F 純正1人：60→${o.exitKmh.toFixed(0)} 最低 ${o.minKmh.toFixed(0)}km/h 最低ギア ${o.minGear} 所要 ${(o.time_s / 60).toFixed(1)}分／満載：最低 ${of.minKmh.toFixed(0)}km/h 最低ギア ${of.minGear}`);
+const o = run('500F', {}, {}, om), of = run('500F', {}, { load: 'full' }, om), o650 = run('500F', p650, {}, om);
+console.log(`Ω 500F 純正1人：${om.entryKmh}→${o.exitKmh.toFixed(0)} 最低 ${o.minKmh.toFixed(0)}km/h 最低ギア ${o.minGear} 所要 ${(o.time_s / 60).toFixed(1)}分／満載：最低 ${of.minKmh.toFixed(0)}km/h 最低ギア ${of.minGear}／まず650：最低 ${o650.minKmh.toFixed(0)}km/h 最低ギア ${o650.minGear}`);
+// ⭐入口を 80km/h に揃えた理由＝制限の 60 で入ると純正 500 でも 60km/h を保ててしまい、改造の差が最低速度にもギアにも出なかった（2026-09-18 ユーザー確定＝法定速度は勘案しない試算値）。
+ok(o.minGear <= 3 && o650.minGear >= 4, 'Ω で純正は 3速に落ち、まず650 は 4速のまま登り切る、が出ない');
+ok(o650.minKmh > o.minKmh + 10, 'Ω で 650 化すると最低速度が 10km/h 以上上がる、が出ない');
 ok(a.exitKmh >= dz.entryKmh - 0.5, '談合坂の出口（2% 区間の末）で入口速度まで戻れていない');   // 理論値＝常に全開（制限速度は勘案しない）
 ok(of.minKmh < o.minKmh - 2 && of.minGear <= 3, 'Ω を満載で登ると 1人より遅くなり 3速以下に落ちる、が出ない');
 const d = run('500F', {}, {}, dr), e = run('500F', p650, {}, dr);
