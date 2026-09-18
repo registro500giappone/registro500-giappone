@@ -410,6 +410,8 @@ function tellHill(L) {
     ev.push({ x: r.minAt_m, t: `${(r.minAt_m / 1000).toFixed(1)} km 地点で ${r.minKmh.toFixed(0)} km/h まで落ち` });
     if (back) ev.push({ x: back.x_m, t: `${km(back.x_m)} ${back.to}速に戻し` });
     ev.sort((a, b) => a.x - b.x);
+    // 落とした直後が最低速度なら（同じ km 表示になる）「落とし→落ち」の順に読ませる
+    if (down && Math.abs(r.minAt_m - down.x_m) < 100) { const di = ev.findIndex(e => e.x === down.x_m), mi = ev.findIndex(e => e.x === r.minAt_m); if (mi >= 0 && di > mi) [ev[mi], ev[di]] = [ev[di], ev[mi]]; }
     return `${sc.entryKmh} km/h で入って、` + ev.map(e => e.t).join('、') + (down ? '' : `（${r.minGear}速のまま）`) + exitText(r);
   };
   const p1 = document.createElement('p'); p1.innerHTML = `<span class="a">いま</span>：${seg(rA)}。`;
