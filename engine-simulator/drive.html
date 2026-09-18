@@ -155,7 +155,7 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
 
     <details class="sec" id="dGear"><summary>ギアと回転</summary><div class="body">
       <div id="gearTable"></div>
-      <p class="note">「80km/h の回転」の <b>—</b> は、そのギアでは回転が上限を超えてしまい 80km/h を出せないという意味。</p>
+      <p class="note">「80km/h の回転」の <b>—</b> は、そのギアでは回転が上限を超えてしまい 80km/h を出せないという意味。上限は純正なら取説の「各ギアの最大許容速度」に相当する回転（下の「この道具の限界」）。</p>
       <details class="inner"><summary>勾配ごとに維持できる速度（4速に限らず、いちばん速く登れるギアで）</summary><div id="gradeTable"></div></details>
     </div></details>
 
@@ -169,9 +169,9 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
 
 <script type="module">
 import { simulate } from './sim.js';
-import { MODELS, SLOTS, PACKAGES, DEFAULT_CHOICES, buildSpec, modelById } from './presets.js';
+import { MODELS, SLOTS, PACKAGES, DEFAULT_CHOICES, buildSpec, modelById, revCapRpm } from './presets.js';
 import { GEARBOXES, FINALS, TIRES, DEFAULT_DRIVE_CHOICES, buildVehicle } from './presets_vehicle.js';
-import { climbHill, accelerate, steadySpeed, topSpeed, gearTable, rpmAtSpeed, sceneLength, gradeAt, redline } from './vehicle.js';
+import { climbHill, accelerate, steadySpeed, topSpeed, gearTable, rpmAtSpeed, sceneLength, gradeAt, redline, capRes } from './vehicle.js';
 import { SCENES, sceneById } from './scenes.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -318,12 +318,16 @@ function update() {
   clearTimeout(timer);
   timer = setTimeout(() => {
     const A = buildSpec(state.model, state.a), B = buildSpec(state.model, state.b);
-    const resA = simulate(A.spec, RPM), resB = simulate(B.spec, RPM);
+    // 回転の上限＝取説の「各ギアの最大許容速度」に相当する回転（純正）／改造カムなら最高出力の 500rpm 上。
+    // 曲線をそこで切るとレブリミッターと同じ働きになり、坂の登り方・ギア表・最高速がその範囲に収まる。
+    const rawA = simulate(A.spec, RPM), rawB = simulate(B.spec, RPM);
+    const capA = revCapRpm(A, rawA), capB = revCapRpm(B, rawB);
+    const resA = capRes(rawA, capA), resB = capRes(rawB, capB);
     const VA = buildVehicle(state.model, state.da), VB = buildVehicle(state.model, state.db);
     const sc = currentScene();
     const run = (res, V) => sc.kind === 'drag' ? accelerate(res, V.vehicle, V.drive, { distance_m: sc.distance_m }) : climbHill(res, V.vehicle, V.drive, sc);
     const rA = run(resA, VA), rB = run(resB, VB);
-    last = { A, B, resA, resB, VA, VB, sc, rA, rB, nameA: engineName('a', A), nameB: engineName('b', B) };
+    last = { A, B, resA, resB, VA, VB, sc, rA, rB, capA, capB, nameA: engineName('a', A), nameB: engineName('b', B) };
     render(last); $('#result').classList.remove('busy'); $('#status').textContent = '';
     gtag('event', 'drive_sim_update', { model: state.model, scene: state.scene });
   }, 30);
@@ -648,7 +652,8 @@ function drawLimits(L) {
   const ul = $('#limits'); ul.textContent = '';
   const items = [
     `この場面＝${sc.name}。${sc.facts}` + (sc.src && sc.src !== '—' ? `　出典：${sc.src}` : ''),
-    '理論値＝入口から出口まで常に全開で、制限速度は勘案しない（緩い区間では入口速度より伸びる）。運転者の上手さ・半クラッチ・渋滞は扱わない。ギアは回転 5000 で上げ、2500 を割るか力が足りなくなったら下げる。乗員は 1人（75kg）固定。',
+    '理論値＝入口から出口まで常に全開で、制限速度は勘案しない（緩い区間では入口速度より伸びる）。運転者の上手さ・半クラッチ・渋滞は扱わない。ギアは上限か 5000 回転で上げ、2500 を割るか力が足りなくなったら下げる。乗員は 1人（75kg）固定。',
+    `回転の上限＝いま ${L.capA} rpm／変えた後 ${L.capB} rpm。純正は取説の「各ギアの最大許容速度」に相当する回転までで走らせる（${L.A.model.revLimit.src}）。⛔上限が上がるのはカムを換えたときだけ＝ボアアップや排気だけでは回るようにならない（改造カムの上限は最高出力の 500rpm 上と仮定）。`,
     '走行抵抗の係数（空気抵抗 Cd 0.40・前面投影面積 1.7m²・転がり 0.018・伝達効率 0.87）は取説の「満載での最大登坂勾配」と最高速に合わせて 2026-09 に選んだ共通値。実車は 1〜2 割ずれる。',
     'エンジン側の誤差（±5%・改造の効きは控えめ）がそのまま乗る。エンジンの画面の「この道具の限界」も同じ。',
     '坂の勾配の分布は、一次資料で確認できた最急勾配と区間の標高差に合わせた近似。縦断図そのものではない。舞台の絵は勾配を 2 倍に誇張している。',

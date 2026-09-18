@@ -30,7 +30,9 @@ export function rpmAtSpeed(kmh, gearRatio, drive) {
 export function torqueAt(res, rpm) {
   if (rpm <= res[0].rpm) return res[0].torque;
   const last = res[res.length - 1];
-  if (rpm >= last.rpm) return rpm > last.rpm * 1.02 ? 0 : last.torque;
+  // ⚠️ 以前は 2% の猶予を持たせていたが、回転の上限を入れた（2026-09-18）ら画面の数字が食い違った
+  //    （上限 4650rpm と書きながら「4746rpm に張り付く」と出た）＝上限はきっちり効かせる。
+  if (rpm >= last.rpm) return rpm > last.rpm ? 0 : last.torque;
   for (let i = 1; i < res.length; i++) {
     if (rpm <= res[i].rpm) {
       const a = res[i - 1], b = res[i], f = (rpm - a.rpm) / (b.rpm - a.rpm);
@@ -40,6 +42,21 @@ export function torqueAt(res, rpm) {
   return 0;
 }
 export const redline = (res) => res[res.length - 1].rpm;
+
+// ── 回転の上限で曲線を切る（レブリミッターと同じ働き）─────────────────────
+// torqueAt は最後の点の 2% 上でトルクを 0 にするので、ここで切るだけで駆動力・定常速度・ギア選び・
+// ギア表の「—」が全部その上限を守る＝物理側は一切触らない。上限の出所は presets.js の revLimit。
+// ⚠️ 継ぎ足す点の torque/powerCv は前後の線形補間。ve など他の欄は上側の点の値が入る（車の計算では使わない）。
+export function capRes(res, rpmCap) {
+  if (!rpmCap || rpmCap >= res[res.length - 1].rpm) return res;
+  const out = res.filter(p => p.rpm < rpmCap);
+  const i = res.findIndex(p => p.rpm >= rpmCap);
+  if (i > 0) {
+    const a = res[i - 1], b = res[i], f = (rpmCap - a.rpm) / (b.rpm - a.rpm);
+    out.push({ ...b, rpm: rpmCap, torque: a.torque + (b.torque - a.torque) * f, powerCv: a.powerCv + (b.powerCv - a.powerCv) * f });
+  }
+  return out;
+}
 
 // ── 力 ─────────────────────────────────────────────────
 // vehicle = { mass: 走行時の総質量 kg（車両＋乗員＋荷物）, cd, area_m2, crr }
@@ -65,7 +82,9 @@ export function steadySpeedInGear(res, vehicle, drive, gearRatio, gradePct, vMax
   for (let v = 0; v <= vMax; v += step) {
     const m = tractiveForce_N(res, v, gearRatio, drive) - resistance_N(v, vehicle, gradePct);
     if (prev !== null) {
-      if (prev.m >= 0 && m < 0) stable = { kmh: v, rpm: rpmAtSpeed(v, gearRatio, drive) };
+      // 釣り合い点＝「まだ余力が残っている最後の速度」を採る。1つ先（余力が負になった最初の速度）を採ると
+      // 回転の上限をわずかに超えた値が画面に出る（上限 4650rpm なのに「4656rpm に張り付く」）。
+      if (prev.m >= 0 && m < 0) stable = { kmh: prev.v, rpm: rpmAtSpeed(prev.v, gearRatio, drive) };
       if (prev.m < 0 && m >= 0 && stable === null) unstable = { kmh: v, rpm: rpmAtSpeed(v, gearRatio, drive) };
     }
     prev = { v, m };
@@ -92,7 +111,8 @@ function pickGearForSpeed(res, drive, kmh, curGear, policy, gradeNeed) {
   const top = drive.gears.length - 1, rl = redline(res);
   const rpm = (gi) => rpmAtSpeed(kmh, drive.gears[gi], drive);
   const force = (gi) => tractiveForce_N(res, kmh, drive.gears[gi], drive);
-  if (g < top && rpm(g) > policy.shiftUp && (force(g + 1) >= gradeNeed || rpm(g) > rl * 0.98)) g += 1;
+  const up = Math.min(policy.shiftUp, rl * 0.98);   // 上限が変速回転より低い型式（純正＝取説の許容回転）では上限で上げる
+  if (g < top && rpm(g) > up && (force(g + 1) >= gradeNeed || rpm(g) > rl * 0.98)) g += 1;
   else if (g > 0 && rpm(g - 1) < rl * 0.98 && force(g - 1) > force(g) && (rpm(g) < policy.shiftDown || force(g) < gradeNeed)) g -= 1;
   return g;
 }
@@ -149,7 +169,10 @@ export function accelerate(res, vehicle, drive, opts = {}, dt = 0.05) {
   while (x < target_m && v * 3.6 < targetKmh && t < maxT) {
     const kmh = v * 3.6;
     let rpm = rpmAtSpeed(kmh, drive.gears[gear], drive);
-    if (rpm >= policy.shiftUp && gear < drive.gears.length - 1) { gear++; rpm = rpmAtSpeed(kmh, drive.gears[gear], drive); t += 0.4; }  // 変速に 0.4 秒（駆動力ゼロ）
+    // ⚠️ 上限が変速回転より低い型式（純正＝取説の許容回転）では上限で上げる。ここを policy.shiftUp のままにすると
+    //    レブに当たったまま変速せず、0-400 が 60 秒台になる（2026-09-18 に踏んだ）。
+    const up = Math.min(policy.shiftUp, redline(res) * 0.98);
+    if (rpm >= up && gear < drive.gears.length - 1) { gear++; rpm = rpmAtSpeed(kmh, drive.gears[gear], drive); t += 0.4; }  // 変速に 0.4 秒（駆動力ゼロ）
     const r = rollingRadius_m(drive.tire);
     const useRpm = Math.max(rpm, gear === 0 ? launchRpm : 0);
     const F = torqueAt(res, useRpm) * drive.gears[gear] * drive.final * (drive.eff ?? 0.90) / r;

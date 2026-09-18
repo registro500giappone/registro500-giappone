@@ -18,6 +18,7 @@ export const MODELS = [
     carb: 'w24imb', ignition: IGN_500,
     assumed: ['バルブ径 32/28 とリフト 8.4 は 500D と同じと仮定（取説に記載なし）'],
     note: '純正 13CV/4000（取説の値・ファン付）',
+    revLimit: { rpm: 4400, src: 'N取説 印刷 p.45 の各ギア最高速 25/40/60/85 km/h から換算（4543/4591/4331/4130）' },
   },
   {
     id: '500D', label: '500 D（499.5cc・17.5CV）', family: '500', block: '500',
@@ -26,6 +27,7 @@ export const MODELS = [
     valves: { dIn: 32, dEx: 28, stemIn: 8, stemEx: 8 },
     carb: 'w26imb', ignition: IGN_500,
     note: '純正 17.5CV/4400（DIN）',
+    revLimit: { rpm: 4650, src: 'D取説 印刷 p.44 の 23/40/65/95 km/h から換算（4725/4591/4692/4616）' },
   },
   {
     id: '500F', label: '500 F・L（499.5cc・18CV）', family: '500', block: '500',
@@ -34,6 +36,7 @@ export const MODELS = [
     valves: { dIn: 32, dEx: 28, stemIn: 8, stemEx: 8 },
     carb: 'w26imb', ignition: IGN_500,
     note: '純正 18CV/4600・3.1kgm/3000（DIN）',
+    revLimit: { rpm: 4650, src: 'L取説 印刷 p.50 の 23/40/65/95 km/h から換算（4725/4591/4692/4616）' },
   },
   {
     id: 'GIA', label: 'ジャルディニエラ（499.5cc・17.5CV）', family: '500', block: '500',
@@ -42,6 +45,7 @@ export const MODELS = [
     valves: { dIn: 32, dEx: 28, stemIn: 8, stemEx: 8 },
     carb: 'w26oc', ignition: IGN_500,
     note: '純正 17.5CV/4600・3.0kgm/3000（DIN）。横倒しエンジン＝カムは専用品',
+    revLimit: { rpm: 4650, src: 'G取説 印刷 p.41 の 23/40/65/95 km/h から換算（横倒しでも変速比は同じ）' },
   },
   {
     id: '500R', label: '500 R（594cc・18CV）', family: '126', block: '126',
@@ -50,6 +54,7 @@ export const MODELS = [
     valves: { dIn: 32, dEx: 28, stemIn: 8, stemEx: 8 },
     carb: 'w24imb', ignition: IGN_500,
     note: '純正 18CV/4600・3.7kgm/2800（Axel 表）。⚠️資料の信頼度が低い型式',
+    revLimit: { rpm: 4950, src: 'R取説 p.3 の 30/45/75/約100 km/h から換算（5150/4913/5150/4606）' },
   },
   {
     id: '126A', label: '126 前期（594cc・23CV）', family: '126', block: '126',
@@ -58,6 +63,8 @@ export const MODELS = [
     valves: { dIn: 32, dEx: 28, stemIn: 8, stemEx: 8 },
     carb: 'w28imb', ignition: IGN_126,
     note: '純正 23CV/4800・4.0kgm/3400',
+    assumed: ['126 の回転上限 5050 は取説の裏付けが無い（500 の5型式で「許容速度の回転÷公称回転」が 1.01〜1.10 だったことから 1.05 を採った）'],
+    revLimit: { rpm: 5050, src: '126 の資料に速度表が無い＝公称 23CV/4800 の 5% 増し' },
   },
   {
     id: '126A1', label: '126 後期（652cc・24CV）', family: '126', block: '126',
@@ -66,6 +73,8 @@ export const MODELS = [
     valves: { dIn: 33, dEx: 28, stemIn: 8, stemEx: 8 },
     carb: 'w28imb', ignition: IGN_126,
     note: '純正 24CV/4500・4.2kgm/3000',
+    assumed: ['126 の回転上限 4725 は取説の裏付けが無い（500 の5型式で「許容速度の回転÷公称回転」が 1.01〜1.10 だったことから 1.05 を採った）'],
+    revLimit: { rpm: 4725, src: '126 の資料に速度表が無い＝公称 24CV/4500 の 5% 増し' },
   },
 ];
 
@@ -252,6 +261,16 @@ const byId = (list, id) => list.find(x => x.id === id) || list[0];
 export const modelById = (id) => MODELS.find(m => m.id === id) || MODELS[2];
 
 // 型式＋6欄の選択 → simulate() に渡す spec。あわせて画面用の「実際に使った値」を返す。
+// ── 回転の上限（取説の「各ギアの最大許容速度」に相当する回転）─────────────────
+// ⭐2026-09-18 ユーザー指摘で判明した食い違いの正体＝模型は 5000rpm で変速し 6500rpm まで回していたが、
+//   取説は各ギアの最大許容速度（500F なら 23/40/65/95 km/h）を決めていて、それはどの型式でも
+//   4400〜4950rpm に当たる。実車で談合坂の 5% を「3速で回し切っても登れない」のはこの範囲で走るから。
+//   ⛔上限を上げてよいのはカムだけ（回るようにする部品はカム＝ボアアップや排気だけでは上限は動かない）。
+export function revCapRpm(built, res) {
+  if (built.picks.cam.id === 'stock') return built.model.revLimit.rpm;
+  const peak = res.reduce((m, p) => (p.powerCv > m.powerCv ? p : m), res[0]);   // 改造カム＝最高出力の 500rpm 上まで（資料が無いので仮定）
+  return Math.min(res[res.length - 1].rpm, Math.round((peak.rpm + 500) / 25) * 25);
+}
 export function buildSpec(modelId, choices) {
   const m = modelById(modelId);
   const c = { ...DEFAULT_CHOICES, ...(choices || {}) };

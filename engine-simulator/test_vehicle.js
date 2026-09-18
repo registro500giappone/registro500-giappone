@@ -1,14 +1,16 @@
 // 車両層の検品：取説の「満載での最大登坂勾配（1〜4速）」と「4速最高速」に対して、同じ型式のエンジン模型＋車両諸元がどれだけ合うか。node test_vehicle.js
 import { simulate } from './sim.js';
-import { buildSpec, MODELS } from './presets.js';
+import { buildSpec, MODELS, revCapRpm } from './presets.js';
 import { buildVehicle, VEHICLES } from './presets_vehicle.js';
-import { maxGradeInGear, topSpeed, steadySpeedInGear, speedKmh, redline } from './vehicle.js';
+import { maxGradeInGear, topSpeed, steadySpeedInGear, speedKmh, redline, capRes } from './vehicle.js';
 const RPM = [1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500];
 let fails = 0; const ok = (c, m) => { if (!c) { fails++; console.log('  ✗ ' + m); } };
+// 回転の上限（取説の「各ギアの最大許容速度」に相当する回転）まで切った曲線で検品する＝画面と同じ条件
+const capped = (id, choices = {}) => { const b = buildSpec(id, choices); const raw = simulate(b.spec, RPM); return capRes(raw, revCapRpm(b, raw)); };
 console.log('型式    | 登坂 1速 2速 3速 4速（模型 / 取説・満載）| 4速最高速（模型 / 取説・満載）');
 for (const id of Object.keys(VEHICLES)) {
   const v = VEHICLES[id]; if (!v.calib) continue;
-  const res = simulate(buildSpec(id, {}).spec, RPM);
+  const res = capped(id);
   const { vehicle, drive } = buildVehicle(id, { load: 'full' });
   const climbs = drive.gears.map(g => maxGradeInGear(res, vehicle, drive, g));
   const top = topSpeed(res, vehicle, drive);
@@ -21,7 +23,7 @@ for (const id of Object.keys(VEHICLES)) {
 }
 // 方向：650 化で 4 速の登坂能力が上がる／9/39 にすると 4 速の登坂は下がり巡航回転は下がる／135 タイヤで巡航回転が下がる
 {
-  const res0 = simulate(buildSpec('500F', {}).spec, RPM), res1 = simulate(buildSpec('500F', { disp: 'b77', cr: 'cr75', carb: 'w28imb' }).spec, RPM);
+  const res0 = capped('500F'), res1 = capped('500F', { disp: 'b77', cr: 'cr75', carb: 'w28imb' });
   const a = buildVehicle('500F', {}), b = buildVehicle('500F', { final: 'f939' }), c = buildVehicle('500F', { tire: 't135' });
   const g4 = (r, x) => maxGradeInGear(r, x.vehicle, x.drive, x.drive.gears[3]);
   ok(g4(res1, a) > g4(res0, a) + 1, '650 化で 4速の登坂が 1 ポイント以上増えない');
