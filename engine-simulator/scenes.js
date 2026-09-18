@@ -3,9 +3,12 @@
 export const SCENES = [
   { id: 'dangozaka', name: '中央道 談合坂の上り（下り線 上野原IC→談合坂SA）', short: '談合坂', region: '東', from: '上野原IC', to: '談合坂SA',
     entryKmh: 80, limitKmh: 80,
-    profile: [{ len_m: 1000, gradePct: 1.0 }, { len_m: 1800, gradePct: 5.0 }, { len_m: 2500, gradePct: 2.0 }],
-    facts: '区間 5.3km・標高差 +150m・最急 5.0% が 1.8km（鶴川大橋の先）・制限 80km/h。⚠️ 5% の上りは甲府方面（下り線）にある。東京方面（上り線）はほぼ平坦。',
-    src: 'NEXCO 中日本 事後評価資料（最急 5.0%・L=1.8km）・国土地理院 標高API（238→385m）・施設間距離 5.3km' },
+    // 2026-09-18 NEXCO 事後評価 p.5 の縦断図を読んで置き直し：上野原IC（50.3kp・238m）→鶴川大橋がサグの底（約 51.4kp・I=−0.3%→+5.0%）→
+    // 談合坂SA 下り（55.6kp・385〜394m）が登りの頂上。底から SA まで +150m を 4.2km＝5% が 1.8km（+90m）なら残り 2.4km は +60m（2.5%）。
+    // ⚠️縦断図は施設間を直線でつなぐ模式図＝5% の位置と長さは本文の数字（サグの I と L）から、残りは標高差から置いている。
+    profile: [{ len_m: 1100, gradePct: -0.3 }, { len_m: 1800, gradePct: 5.0 }, { len_m: 2400, gradePct: 2.5 }],
+    facts: '区間 5.3km・標高差 +150m・鶴川大橋（IC の 1.1km 先）が底で、そこから 5.0% が 1.8km、残り 2.4km も 2.5% で登り続けて談合坂SA が頂上・制限 80km/h。⚠️ 5% の上りは甲府方面（下り線）にある。東京方面（上り線）はほぼ平坦。',
+    src: 'NEXCO 中日本 事後評価資料 p.5 縦断図＋p.23（鶴川大橋サグ I=−0.3→+5.0%・L=1.8km）・国土地理院 標高API（238→385m）・SA 案内板 394m・施設間距離 5.3km' },
   { id: 'omega', name: '名阪国道 Ωカーブの上り（天理東IC→福住IC）', short: 'Ωカーブ', region: '西', from: '天理東IC', to: '福住IC',
     entryKmh: 60, limitKmh: 60,
     profile: [{ len_m: 2000, gradePct: 2.5 }, { len_m: 2000, gradePct: 6.0 }, { len_m: 2500, gradePct: 2.0 }, { len_m: 2500, gradePct: 4.0 }, { len_m: 2000, gradePct: 2.0 }],
