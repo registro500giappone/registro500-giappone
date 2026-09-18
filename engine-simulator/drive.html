@@ -400,13 +400,17 @@ function tellHill(L) {
     : r.exitKmh >= sc.entryKmh - 1.5 ? `、出口で入口の ${sc.entryKmh} km/h に戻る` : `、出口で ${r.exitKmh.toFixed(0)} km/h`;
   const seg = (r) => {
     const held = r.minKmh >= sc.entryKmh - 1.5;
-    if (held) return `${sc.entryKmh} km/h で入って、そのまま${r.minGear}速で登り切る` + exitText(r);
-    const shift = r.shifts.find(s => s.to < s.from);
+    const down = r.shifts.find(s => s.to < s.from);
+    const back = down ? r.shifts.find(s => s.x_m > down.x_m && s.to > s.from) : null;   // 落としたあと上に戻した
+    const km = (x) => x < 100 ? '入口で' : `${(x / 1000).toFixed(1)} km で`;
+    // ⚠️速度を保てても一瞬 3速に落ちることがある（650 が 5% で 81km/h のとき）＝minGear で「そのまま3速」と書くと表と食い違う
+    if (held) return `${sc.entryKmh} km/h で入って、` + (down ? `入口の速度を割らずに登り切る（${km(down.x_m)} ${down.to}速に落とし${back ? `、${km(back.x_m)} ${back.to}速に戻す` : ''}）` : `そのまま${r.gearAtExit}速で登り切る`) + exitText(r);
     const ev = [];
-    if (shift) ev.push({ x: shift.x_m, t: `${shift.x_m < 100 ? '入口で' : `${(shift.x_m / 1000).toFixed(1)} km で`} ${shift.to}速に落とし` });
+    if (down) ev.push({ x: down.x_m, t: `${km(down.x_m)} ${down.to}速に落とし` });
     ev.push({ x: r.minAt_m, t: `${(r.minAt_m / 1000).toFixed(1)} km 地点で ${r.minKmh.toFixed(0)} km/h まで落ち` });
+    if (back) ev.push({ x: back.x_m, t: `${km(back.x_m)} ${back.to}速に戻し` });
     ev.sort((a, b) => a.x - b.x);
-    return `${sc.entryKmh} km/h で入って、` + ev.map(e => e.t).join('、') + (shift ? '' : `（${r.minGear}速のまま）`) + exitText(r);
+    return `${sc.entryKmh} km/h で入って、` + ev.map(e => e.t).join('、') + (down ? '' : `（${r.minGear}速のまま）`) + exitText(r);
   };
   const p1 = document.createElement('p'); p1.innerHTML = `<span class="a">いま</span>：${seg(rA)}。`;
   const p2 = document.createElement('p'); p2.innerHTML = `<span class="b">変えた後</span>：${seg(rB)}。`;
@@ -656,7 +660,7 @@ function drawLimits(L) {
     `回転の上限＝いま ${L.capA} rpm／変えた後 ${L.capB} rpm。純正は取説の「各ギアの最大許容速度」に相当する回転までで走らせる（${L.A.model.revLimit.src}）。⛔上限が上がるのはカムを換えたときだけ＝ボアアップや排気だけでは回るようにならない（改造カムの上限は最高出力の 500rpm 上と仮定）。`,
     '走行抵抗の係数（空気抵抗 Cd 0.40・前面投影面積 1.7m²・転がり 0.018・伝達効率 0.87）は取説の「満載での最大登坂勾配」と最高速に合わせて 2026-09 に選んだ共通値。実車は 1〜2 割ずれる。',
     'エンジン側の誤差（±5%・改造の効きは控えめ）がそのまま乗る。エンジンの画面の「この道具の限界」も同じ。',
-    '坂の勾配の分布は、一次資料で確認できた最急勾配と区間の標高差に合わせた近似。縦断図そのものではない。舞台の絵は勾配を 2 倍に誇張している。',
+    '坂の勾配の分布は、一次資料で確認できた最急勾配・底と頂上の位置・区間の標高差に合わせた近似（縦断図は施設間を直線でつなぐ模式図で、勾配の分布までは読めない）。舞台の絵は勾配を 2 倍に誇張している。',
     '風・気温・標高（空気密度）・路面・タイヤの銘柄差は入れていない。エンジンの疲れ（圧縮抜け）も入れていない＝古い実車はこれより落ちる。',
   ];
   for (const s of items) { const li = document.createElement('li'); li.textContent = s; ul.append(li); }
