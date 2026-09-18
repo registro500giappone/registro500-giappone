@@ -50,11 +50,11 @@ select{font:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px s
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
 .chips button,.btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--deep);font:inherit;font-size:12px;padding:5px 10px;border-radius:999px;cursor:pointer}
 .chips button:hover,.btn:hover{border-color:var(--deep)}
-.packs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:0 0 10px}
-.packs button{appearance:none;text-align:left;border:1px solid var(--line);background:#fff;color:var(--deep);font:inherit;padding:8px 10px;border-radius:10px;cursor:pointer;display:flex;flex-direction:column;gap:3px}
+.packs{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;margin-top:4px}
+.packs button{appearance:none;flex:none;width:150px;text-align:left;border:1px solid var(--line);background:var(--card);color:var(--deep);font:inherit;padding:8px 10px;border-radius:12px;cursor:pointer;display:flex;flex-direction:column;gap:3px}
 .packs button:hover{border-color:var(--deep)}
-.packs button.on{border-color:#eb6834;box-shadow:inset 0 0 0 1px #eb6834}
-.packs button.dim{opacity:.6}
+.packs button.on{border:2px solid #eb6834;padding:7px 9px}
+.packs button.dim{opacity:.55} .packs button.dim.on{opacity:1}
 .packs b{font-size:14px}
 .packs small{font-size:11px;color:#5a5650;line-height:1.35}
 .packs .ev{font-size:10px;color:#8a857c}
@@ -76,7 +76,15 @@ select{font:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px s
 .tip b{color:var(--text-primary);font-size:13px}
 .tip .r{display:flex;justify-content:space-between;gap:10px;align-items:center}
 .tip .r i{display:inline-block;width:14px;border-top:2px solid;margin-right:6px}
-details{margin-top:8px;font-size:12px;color:var(--sub)} summary{cursor:pointer}
+details.inner{margin-top:8px;font-size:12px;color:var(--sub)} details.inner summary{cursor:pointer}
+.sec{border:1px solid var(--line);background:var(--card);border-radius:12px;margin-top:8px;padding:0 12px}
+.sec>summary{cursor:pointer;font-size:14px;color:var(--deep);padding:9px 0;list-style:none;display:flex;justify-content:space-between;align-items:center}
+.sec>summary::-webkit-details-marker{display:none}
+.sec>summary::after{content:'▸';color:var(--sub);font-size:13px}
+.sec[open]>summary::after{content:'▾'}
+.sec>summary small{color:var(--sub);font-weight:400;font-size:12px;margin-left:6px}
+.sec .body{padding:2px 0 12px;font-size:13px}
+label.row.model{margin:12px 0 0} label.row.model select{padding:9px 12px}
 table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:right} th:first-child,td:first-child{text-align:left}
 .story{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px;margin-top:10px}
 .story .zone{padding:8px 0;border-bottom:1px dashed var(--line)} .story .zone:last-child{border-bottom:0}
@@ -105,29 +113,15 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
 <div class="wrap">
   <p class="topbar"><a href="/">← トップへ戻る</a><span id="status" style="font-size:12px;color:var(--sub)"></span><a id="toDrive" href="drive.html" style="margin-left:auto">坂と加速で走らせる →</a></p>
   <h1>エンジン妄想シミュレーター</h1>
-  <p class="lead">空冷フィアット500・126のエンジンを、定番の改造部品を選ぶだけで「妄想」する道具です。<b>正確さを極める道具ではありません</b>。数字は「純正と比べてどれくらい変わりそうか」の目安で、絶対値の誤差は1〜2割あります（下の「この道具の限界」）。</p>
+  <p class="lead">空冷フィアット500・126のエンジンを、定番の改造を1つ選ぶだけで「妄想」する道具。<b>純正と比べてどれくらい変わりそうか</b>を見る（絶対値の誤差は1〜2割＝下の「この道具の限界」）。</p>
 
-  <label class="row">土台になる型式
+  <div class="packs" id="packs"></div>
+  <p class="packwhy" id="packWhy"></p>
+
+  <label class="row model">土台になる型式
     <select id="model"></select>
   </label>
-  <p class="note" id="modelNote"></p>
-  <p class="note">選択肢の「◎」＝登録されているお車で実際に使われている部品。「※」＝店に数値の記載が無く、同系の品から借りた仮の値で計算している部品。</p>
-
-  <div class="cols">
-    <section class="panel" id="panelA">
-      <h3><span class="key a"></span>いま</h3>
-      <div class="chips" id="startChips"></div>
-      <div class="slots" data-side="a"></div>
-    </section>
-    <section class="panel" id="panelB">
-      <h3><span class="key b"></span>変えてみる</h3>
-      <p class="note" style="margin:0 0 6px">王道パッケージ（店の一式キットとフォーラムで繰り返し出る組合せ。押すと下の6欄に入る。そこから個別に触ってよい）</p>
-      <div class="packs" id="packs"></div>
-      <p class="packwhy" id="packWhy"></p>
-      <div class="chips"><button type="button" id="copyAB">「いま」の内容をここへ写す</button><button type="button" id="resetB">純正に戻す</button></div>
-      <div class="slots" data-side="b"></div>
-    </section>
-  </div>
+  <p class="note" id="modelNote" style="margin-top:2px"></p>
 
   <div id="result" class="busy">
     <div class="hero">
@@ -143,25 +137,46 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
       <div class="title"><span>出力（CV）</span><span class="legend"><span><i class="key a"></i>いま</span><span><i class="key b"></i>変えた後</span></span></div>
       <canvas></canvas><div class="tip"></div>
     </div>
-    <details><summary>数値の表を見る</summary><div id="tableWrap"></div></details>
+    <details class="inner"><summary>数値の表を見る</summary><div id="tableWrap"></div></details>
 
-    <h2>力の出方はこう変わる</h2>
-    <div class="story" id="story"></div>
+    <details class="sec" id="dFine"><summary>細かく変える<small>排気量・圧縮比・カム・ヘッド・キャブ・マフラー</small></summary><div class="body">
+      <p class="note" style="margin:0 0 8px">選択肢の「◎」＝登録されているお車で実際に使われている部品。「※」＝店に数値の記載が無く、同系の品から借りた仮の値で計算している部品。</p>
+      <div class="cols">
+        <section class="panel" id="panelA">
+          <h3><span class="key a"></span>いま</h3>
+          <div class="chips" id="startChips"></div>
+          <div class="slots" data-side="a"></div>
+        </section>
+        <section class="panel" id="panelB">
+          <h3><span class="key b"></span>変えた後</h3>
+          <div class="chips"><button type="button" id="copyAB">「いま」の内容をここへ写す</button><button type="button" id="resetB">純正に戻す</button></div>
+          <div class="slots" data-side="b"></div>
+        </section>
+      </div>
+    </div></details>
 
-    <h2>足を引っ張っている所</h2>
-    <div class="bottle" id="bottle"></div>
+    <details class="sec" id="dStory"><summary>力の出方はこう変わる<small>回転域ごと</small></summary><div class="body">
+      <div class="story" id="story"></div>
+    </div></details>
 
-    <h2>気をつけること</h2>
-    <ul class="warns" id="warns"></ul>
+    <details class="sec" id="dBottle"><summary>足を引っ張っている所</summary><div class="body">
+      <div class="bottle" id="bottle"></div>
+    </div></details>
 
-    <h2>この妄想で使った部品</h2>
-    <ul class="parts" id="parts"></ul>
-    <p class="note">部品は Axel Gerstl／FD Ricambi／EuroItalia500（Julcar）／D'Angelo Motori／PBP の掲載品と、登録されているお車で使われている物を載せています。価格・在庫・適合は各店で確かめてください。</p>
+    <details class="sec" id="dWarns"><summary>気をつけること<small id="warnCount"></small></summary><div class="body">
+      <ul class="warns" id="warns"></ul>
+    </div></details>
+
+    <details class="sec" id="dParts"><summary>この妄想で使った部品</summary><div class="body">
+      <ul class="parts" id="parts"></ul>
+      <p class="note">部品は Axel Gerstl／FD Ricambi／EuroItalia500（Julcar）／D'Angelo Motori／PBP の掲載品と、登録されているお車で使われている物を載せています。価格・在庫・適合は各店で確かめてください。</p>
+    </div></details>
+
+    <details class="sec" id="dLimits"><summary>この道具の限界</summary><div class="body">
+      <ul class="limits" id="limits"></ul>
+      <p class="note">計算の中身＝0次元の充填・排出モデル（クランク角 0.25° 刻み・バルブとベンチュリの圧縮性流れ・吸排気の慣性・Wiebe 燃焼・摩擦と冷却ファンの損失）。純正4機種と Abarth 3機種の公表値で校正しています。</p>
+    </div></details>
   </div>
-
-  <h2>この道具の限界</h2>
-  <ul class="limits" id="limits"></ul>
-  <p class="note">計算の中身＝0次元の充填・排出モデル（クランク角 0.25° 刻み・バルブとベンチュリの圧縮性流れ・吸排気の慣性・Wiebe 燃焼・摩擦と冷却ファンの損失）。純正4機種と Abarth 3機種の公表値で校正しています。</p>
 </div>
 
 <script type="module">
@@ -178,6 +193,7 @@ const state = { model: '500F', a: { ...DEFAULT_CHOICES }, b: { ...DEFAULT_CHOICE
 // ───── URL ハッシュに状態を持つ（共有できるように） ─────
 function readHash() {
   const h = new URLSearchParams(location.hash.slice(1));
+  if (![...h.keys()].length) { state.b = { ...DEFAULT_CHOICES, ...PACKAGES.find(p => p.id === 'p650').choices }; return; }   // 素で開いたら「純正 vs まず650」を見せる（段4）
   if (h.get('m') && modelById(h.get('m')).id === h.get('m')) state.model = h.get('m');
   for (const side of ['a', 'b']) {
     const v = h.get(side); if (!v) continue;
@@ -268,7 +284,7 @@ function markPack() {
   let hit = null;
   for (const pk of PACKAGES) { const c = { ...DEFAULT_CHOICES, ...pk.choices }; if (Object.keys(cur).every(k => cur[k] === c[k])) hit = pk.id; }
   for (const b of $('#packs').querySelectorAll('button')) b.classList.toggle('on', b.dataset.id === hit);
-  if (!hit) $('#packWhy').textContent = '';
+  $('#packWhy').textContent = hit ? PACKAGES.find(p => p.id === hit).why : '';
 }
 $('#copyAB').addEventListener('click', () => { state.b = { ...state.a }; renderSlots('b'); markPack(); update(); });
 $('#resetB').addEventListener('click', () => { state.b = { ...DEFAULT_CHOICES }; renderSlots('b'); markPack(); update(); });
@@ -320,6 +336,7 @@ function render({ A, B, resA, resB }) {
   const wl = $('#warns'); wl.textContent = '';
   const ws = warnings(B, resB); if (!ws.length) ws.push({ level: 'info', text: 'この組合せに目立った注意点はありません。' });
   for (const w of ws) { const li = document.createElement('li'); li.className = w.level; li.textContent = w.text; wl.append(li); }
+  const nw = ws.filter(w => w.level !== 'info').length; $('#warnCount').textContent = nw ? `${nw} 件` : 'なし';
   // 部品
   const pl = $('#parts'); pl.textContent = '';
   for (const k of SLOT_ORDER) {
