@@ -119,7 +119,7 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
     <p class="res" id="res"></p>
     <p class="sub" id="resSub"></p>
 
-    <h3 class="driveHead">ベース車両<small>押すと開く・選ぶと畳まれる</small></h3>
+    <h3 class="driveHead" style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><span>ベース車両<small>押すと開く・選ぶと畳まれる</small></span><a href="#" id="resetAll" style="color:var(--sub);text-decoration:none;font-size:13px">最初から選び直す</a></h3>
     <details class="sec" name="sec" id="stepSeries"><summary>車種<small></small></summary><div class="body">
       <div class="chips" id="seriesChips"></div>
     </div></details>
@@ -272,6 +272,17 @@ function renderTypeChips() {
 }
 function onModelChanged() {
   renderSeriesChips(); renderTypeChips(); renderDrive(); renderEngines(); renderPacks(); renderBaseState(); update();
+}
+// 「最初から選び直す」＝共有URL・更新でハッシュが残った状態から素の状態（純正 vs 650 にボアアップが談合坂で走り出す）へ戻す（2026-09-19 追記）
+function resetAll() {
+  state.model = '500F'; state.a = { ...DEFAULT_CHOICES }; state.b = { ...DEFAULT_CHOICES, ...P_DEFAULT.choices };
+  state.d = { ...DEFAULT_DRIVE_CHOICES }; state.scene = 'dangozaka'; state.g = 4; state.l = 3000;
+  renderSeriesChips(); renderTypeChips(); renderDrive(); renderEngines(); renderPacks(); renderBaseState();
+  $('#gRange').value = state.g; $('#lRange').value = state.l;
+  $('#gOut').value = state.g + ' %'; $('#lOut').value = (state.l / 1000).toFixed(1) + ' km';
+  markScene();
+  update();   // writeHash() をここで一度書くが、直後に replaceState で消す＝素の状態は URL に何も残さない
+  history.replaceState(null, '', location.pathname);
 }
 // 「いま」の状態を1行で（改造済み6欄は持たないので要約のみ・§7-17）＝エンジンの画面へ「明細を設定 →」
 // ※純正判定は state（選んだ選択肢の id）で見る＝built.picks はキャブが「純正のまま」でも実物の id に解決されるため 'stock' にならない
@@ -799,7 +810,9 @@ function bindAccordion() {
 }
 
 // ───── 起動 ─────
-readHash(); renderSeriesChips(); renderTypeChips(); renderScenes(); renderDrive(); renderEngines(); renderPacks(); renderBaseState(); update(); bindAccordion();
+readHash(); renderSeriesChips(); renderTypeChips(); renderScenes(); renderDrive(); renderEngines(); renderPacks(); renderBaseState();
+$('#resetAll').addEventListener('click', (ev) => { ev.preventDefault(); resetAll(); });
+update(); bindAccordion();
 </script>
 </body>
 </html>

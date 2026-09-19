@@ -115,7 +115,7 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
   <h1>エンジン妄想シミュレーター</h1>
   <p class="lead">空冷フィアット500・126のエンジンを、定番の改造を1つ選ぶだけで「妄想」する道具。<b>純正と比べてどれくらい変わりそうか</b>を見る（絶対値の誤差は1〜2割＝下の「この道具の限界」）。</p>
 
-  <h2>ベース車両の選択</h2>
+  <h2 style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">ベース車両の選択<a href="#" id="resetAll" hidden style="color:var(--sub);text-decoration:none;font-size:13px">最初から選び直す</a></h2>
 
   <details class="sec" name="sec" id="stepSeries"><summary>ベース車両の選択</summary><div class="body">
     <div class="chips" id="seriesChips"></div>
@@ -223,6 +223,18 @@ function setStepSummary(sel, label, value) {
 function openStep(sel) {
   const d = $(sel); d.hidden = false; d.open = true;
   for (const other of document.querySelectorAll('details[name="sec"]')) if (other !== d && other.open) other.open = false;
+}
+// 「最初から選び直す」＝共有URL・更新でハッシュが残った状態から手順①だけの素の状態へ戻す（writeHash の仕組みは変えない＝2026-09-19 追記）
+function resetAll() {
+  state.model = '500F'; state.a = { ...DEFAULT_CHOICES }; state.b = { ...DEFAULT_CHOICES };
+  lastPkId = null; stateEditorOpen = false;
+  progress.series = false; progress.type = false; progress.state = false; progress.pack = false; progress.result = false;
+  for (const d of document.querySelectorAll('details[name="sec"]')) d.open = false;
+  $('#stepType').hidden = true; $('#stepState').hidden = true; $('#stepPack').hidden = true; $('#result').hidden = true;
+  renderSeriesChips(); renderTypeChips(); renderEngChips(); renderStateChips();
+  renderChips(); renderPacks(); renderSlots('a'); renderSlots('b');
+  update();   // writeHash() をここで一度書くが、直後に replaceState で消す＝素の状態は URL に何も残さない
+  history.replaceState(null, '', location.pathname);
 }
 
 // ───── URL ハッシュに状態を持つ（共有できるように） ─────
@@ -461,6 +473,7 @@ $('#stateDecide').addEventListener('click', () => { settleStep3(); });
 // ───── 計算と描画 ─────
 let timer = null, last = null;
 function update() {
+  $('#resetAll').hidden = $('#result').hidden;
   writeHash(); $('#result').classList.add('busy'); $('#status').textContent = '計算中…';
   clearTimeout(timer);
   timer = setTimeout(() => {
@@ -610,6 +623,7 @@ $('#stepType').hidden = !progress.type;
 $('#stepState').hidden = !progress.state;
 $('#stepPack').hidden = !progress.pack;
 $('#result').hidden = !progress.result;
+$('#resetAll').addEventListener('click', (ev) => { ev.preventDefault(); resetAll(); });
 update();
 bindAccordion();
 </script>
