@@ -87,13 +87,17 @@ select{font:inherit;font-size:14px;color:var(--ink);background:var(--card);borde
 .btn{border-radius:9px;font-size:13px;padding:7px 12px}
 .delta{font-weight:700} .delta.up{color:var(--up)} .delta.down{color:var(--stop)}
 
-/* ゼッケン帯（HANDOFF §8-1） */
-.banner{position:relative;margin:14px 0 0;padding:9px 14px;color:#fff;
-  background:repeating-linear-gradient(115deg,var(--red2) 0 16px,var(--red) 16px 32px);
-  font-family:'Oswald',system-ui;font-weight:500;font-size:15px;letter-spacing:.04em;
-  border-radius:12px 12px 0 0;box-shadow:inset 0 -2px 0 #0003}
-.banner b{font-weight:700}
-.banner .arrow{color:var(--gold);padding:0 4px}
+/* ゼッケン帯＝案A「対戦カード」（HANDOFF §8-9 ③・2026-09-20）＝縞は上辺7pxの飾りだけ、本文は red2 のベタ地に置く */
+.banner{position:relative;margin:14px 0 0;border-radius:12px 12px 0 0;overflow:hidden;background:var(--red2)}
+.banner .stripe{height:7px;background:repeating-linear-gradient(115deg,#0000 0 10px,#ffffff1f 10px 20px),var(--red)}
+.banner .row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:9px 14px 11px}
+.banner .lab{font-family:'Oswald',system-ui;font-size:10px;letter-spacing:.18em;color:#ffffff9c;margin-bottom:1px}
+.banner .nm{font-weight:700;font-size:16px;color:#fff;line-height:1.25}
+/* 説明は最大3行＝札の中身が長い（800 頂点）ときにスマホ幅で帯が伸び続けるのを止める（2026-09-20 実機確認） */
+.banner .sub{font-size:11px;color:#ffffffb0;margin-top:2px;line-height:1.35;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.banner .to{text-align:right}
+.banner .to .nm{color:var(--gold)}
+.banner .ar{font-size:20px;color:var(--gold);line-height:1}
 
 /* 舞台（濃色・1画面に1つだけ・HANDOFF §8-1） */
 .stage{background:
@@ -175,7 +179,14 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
   <p class="lead">空冷フィアット500・126のエンジンを、定番の改造を1つ選ぶだけで「妄想」する道具。<b>純正と比べてどれくらい変わりそうか</b>を見る（絶対値の誤差は1〜2割＝下の「この道具の限界」）。</p>
 
   <div id="result" class="busy" hidden>
-    <div class="banner" id="banner"><b id="bannerFrom"></b><span class="arrow">▶</span><span id="bannerTo"></span></div>
+    <div class="banner" id="banner">
+      <div class="stripe"></div>
+      <div class="row">
+        <div class="from"><div class="lab">いま</div><div class="nm" id="bannerFrom"></div><div class="sub" id="bannerFromSub"></div></div>
+        <div class="ar">▶</div>
+        <div class="to"><div class="lab" id="bannerToLab">変えた後</div><div class="nm" id="bannerTo"></div><div class="sub" id="bannerToSub"></div></div>
+      </div>
+    </div>
     <div class="stage">
       <div class="rows">
         <div class="numblock">
@@ -199,20 +210,8 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
     </div>
   </div>
 
-  <div class="packwrap" id="stepPack" hidden>
-    <p class="sechead">変えた後を選ぶ<small id="packSummary"></small></p>
-    <div class="packs" id="packs"></div>
-    <p class="packwhy" id="packWhy"></p>
-    <details class="inner" id="dFine"><summary>札を使わず細かく決める ▸</summary><div>
-      <p class="note" style="margin:8px 0 8px">選択肢の「◎」＝登録されているお車で実際に使われている部品。「※」＝店に数値の記載が無く、同系の品から借りた仮の値で計算している部品。</p>
-      <section class="panel" id="panelB">
-        <h3><span class="key b"></span>変えた後</h3>
-        <div class="chips"><button type="button" id="copyAB">「いま」の内容をここへ写す</button><button type="button" id="resetB">純正に戻す</button></div>
-        <div class="slots" data-side="b"></div>
-      </section>
-    </div></details>
-  </div>
-
+  <!-- 並び順（HANDOFF §8-9 ①）＝ h1＋説明 → 帯＋舞台（上）→ ベース車両3段 → 札 → CV注記・グラフ・詳細（#resultMore）。
+       自分の車を選び終える場所の直後に次の操作（札）が来るようにする＝スクロールで飛ばす小細工ではなく順序そのものを直す。 -->
   <h2 style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">ベース車両の選択<a href="#" id="resetAll" hidden style="color:var(--sub);text-decoration:none;font-size:13px">最初から選び直す</a></h2>
 
   <details class="sec" name="sec" id="stepSeries"><summary>ベース車両の選択</summary><div class="body">
@@ -237,6 +236,20 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
       <p style="margin:10px 0 0"><button type="button" class="btn" id="stateDecide">決定</button></p>
     </div>
   </div></details>
+
+  <div class="packwrap" id="stepPack" hidden>
+    <p class="sechead">変えた後を選ぶ<small id="packSummary"></small></p>
+    <div class="packs" id="packs"></div>
+    <p class="packwhy" id="packWhy"></p>
+    <details class="inner" id="dFine"><summary>札を使わず細かく決める ▸</summary><div>
+      <p class="note" style="margin:8px 0 8px">選択肢の「◎」＝登録されているお車で実際に使われている部品。「※」＝店に数値の記載が無く、同系の品から借りた仮の値で計算している部品。</p>
+      <section class="panel" id="panelB">
+        <h3><span class="key b"></span>変えた後</h3>
+        <div class="chips"><button type="button" id="copyAB">「いま」の内容をここへ写す</button><button type="button" id="resetB">純正に戻す</button></div>
+        <div class="slots" data-side="b"></div>
+      </section>
+    </div></details>
+  </div>
 
   <div id="resultMore" class="busy" hidden>
     <!-- 単位の断りは一度だけ（2026-09-19 ユーザー確定）＝出力は CV のまま出す。⛔ PS へ書き換えない・⛔ 各所に断りを増やさない -->
@@ -355,12 +368,24 @@ function isStockA() { return SLOT_ORDER.every(k => state.a[k] === 'stock') && !s
 // 「いま」「変えた後」の要約1行（例：650cc・28 IMB）＝state（選んだ id）で純正判定する（built.picks はキャブが解決されるため使えない）
 function engineSummaryFor(side) {
   const built = buildSpec(state.model, state[side]);
-  const parts = SLOT_ORDER.filter(k => state[side][k] !== 'stock').map(k => built.picks[k].label.replace(/（.*$/, ''));
+  // ⚠️ 排気量は頭の「◯◯cc」で既に言っている＝parts に入れると「650cc・650cc」と二重に出る（2026-09-20 修正）。
+  //    圧縮比は数字だけだと何の値か読めないので「圧縮比 9.0」と添える。
+  const parts = SLOT_ORDER.filter(k => k !== 'disp' && state[side][k] !== 'stock')
+    .map(k => (k === 'cr' ? '圧縮比 ' : '') + built.picks[k].label.replace(/（.*$/, ''));
   return `${Math.round(built.cc)}cc` + (parts.length ? '・' + parts.join('・') : '');
 }
 // ゼッケン帯（舞台の見出し）＝「いま」は車種＋タイプ、「変えた後」は④の要約と同じロジック（札名 or 手組みの要約）
 function bannerFromLabel() { const m = modelById(state.model); return `${m.series} ${m.type}`; }
 function bannerToLabel() { return lastPkId ? PACKAGES.find(p => p.id === lastPkId).name : engineSummaryFor('b'); }
+// 帯の左右の小さい説明（HANDOFF §8-9 ③）＝eng換装／純正／手組みの3通り。isStockA・engineSummaryFor と同じ判定を側を変えて使うだけ＝新しい計算はしない。
+function sideStateText(side) {
+  const stockSlots = SLOT_ORDER.every(k => state[side][k] === 'stock');
+  if (state[side].eng) {
+    const em = modelById(state[side].eng);
+    return `${em.series} ${em.type} に換装済み` + (stockSlots ? '' : '（さらに部品を変更）');
+  }
+  return stockSlots ? '純正のまま' : engineSummaryFor(side);
+}
 function updateStep1Summary() {
   if (!progress.series) { setStepSummary('#stepSeries summary', 'ベース車両の選択', ''); return; }
   setStepSummary('#stepSeries summary', '車種', modelById(state.model).series);
@@ -625,9 +650,15 @@ function drawRadar(el, before, after) {
 function render({ A, B, resA, resB }) {
   const st = tellStory(resA, resB, A, B);
   const wsA = warnings(A, resA), wsB = warnings(B, resB);
-  // 舞台（ゼッケン帯・カウントアップ・バー・ゼッケン円・五角形・実況＝HANDOFF §8-1〜§8-3）
+  // 舞台（ゼッケン帯・カウントアップ・バー・ゼッケン円・五角形・実況＝HANDOFF §8-1〜§8-3・帯の中身は §8-9 ③）
   $('#bannerFrom').textContent = bannerFromLabel();
+  $('#bannerFromSub').textContent = `${sideStateText('a')}・${st.A.peakCv.toFixed(1)} CV`;
+  const bannerPk = lastPkId ? PACKAGES.find(p => p.id === lastPkId) : null;
+  $('#bannerToLab').textContent = bannerPk ? `変えた後　No.${String(packagesFor(modelById(state.model)).findIndex(p => p.id === bannerPk.id) + 1).padStart(2, '0')}` : '変えた後';
   $('#bannerTo').textContent = bannerToLabel();
+  // ⚠️ 右に CV を添えない＝すぐ下の「最高出力 18.8 ▶ 38.5 CV」と同じ数字で、スマホ幅では説明が5行に伸びて帯が重くなる
+  //    （左の「純正のまま・18.8 CV」は出発点の断りとして残す＝2026-09-20 実機確認）。
+  $('#bannerToSub').textContent = bannerPk ? packageSub(bannerPk, modelById(state.model)) : sideStateText('b');
   $('#heroCvFrom').textContent = st.A.peakCv.toFixed(1);
   $('#heroNmFrom').textContent = st.A.peakNm.toFixed(1);
   countUp($('#heroCv'), st.B.peakCv, 1);

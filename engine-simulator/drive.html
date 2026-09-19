@@ -50,13 +50,17 @@ input[type=range]{padding:0;border:0;background:transparent}
 .chips button.on{border-color:var(--stage);background:var(--stage);color:var(--cream)}
 .free[hidden]{display:none}
 .free{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 10px} .free label{font-size:12px;color:var(--sub)} .free output{color:var(--ink);font-weight:700;margin-left:6px}
-/* ゼッケン帯（HANDOFF §8-1・場面チップの下・帯の中に「いま ▶ 変えた後」のエンジン名） */
-.banner{position:relative;margin:0 0 10px;padding:9px 14px;color:var(--cream);
-  background:repeating-linear-gradient(115deg,var(--red2) 0 16px,var(--red) 16px 32px);
-  font-family:'Oswald',system-ui;font-weight:500;font-size:14px;letter-spacing:.03em;
-  border-radius:10px;box-shadow:inset 0 -2px 0 #0003}
-.banner b{font-weight:700}
-.banner .arrow{color:var(--gold);padding:0 5px}
+/* ゼッケン帯＝案A「対戦カード」（HANDOFF §8-9 ③・2026-09-20・場面チップの下）＝縞は上辺だけの飾り、本文は red2 のベタ地 */
+.banner{position:relative;margin:0 0 10px;border-radius:10px;overflow:hidden;background:var(--red2)}
+.banner .stripe{height:6px;background:repeating-linear-gradient(115deg,#0000 0 10px,#ffffff1f 10px 20px),var(--red)}
+.banner .row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:8px 12px 9px}
+.banner .lab{font-family:'Oswald',system-ui;font-size:9px;letter-spacing:.16em;color:#ffffff9c;margin-bottom:1px}
+.banner .nm{font-weight:700;font-size:14px;color:#fff;line-height:1.25}
+/* 説明は最大3行＝札の中身が長いときにスマホ幅で帯が伸び続けるのを止める（2026-09-20 実機確認・index と同じ） */
+.banner .sub{font-size:10px;color:#ffffffb0;margin-top:2px;line-height:1.35;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.banner .to{text-align:right}
+.banner .to .nm{color:var(--gold)}
+.banner .ar{font-size:18px;color:var(--gold);line-height:1}
 /* 舞台＝濃緑（1画面に1つだけ）。走行エリア・結果の一文・数字ブロックをここで包む */
 .stageWrap{position:relative;background:linear-gradient(180deg,var(--stage) 0%,var(--stage2) 100%);border-radius:14px;padding:14px 12px 16px;margin:0 0 12px;overflow:hidden}
 .stageWrap::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 20% 0%, #24543d 0%, transparent 60%)}
@@ -155,7 +159,14 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
   </div>
 
   <div id="result" class="busy">
-    <div class="banner" id="banner"></div>
+    <div class="banner" id="banner">
+      <div class="stripe"></div>
+      <div class="row">
+        <div class="from"><div class="lab">いま</div><div class="nm" id="bannerFrom"></div><div class="sub" id="bannerFromSub"></div></div>
+        <div class="ar">▶</div>
+        <div class="to"><div class="lab" id="bannerToLab">変えた後</div><div class="nm" id="bannerTo"></div><div class="sub" id="bannerToSub"></div></div>
+      </div>
+    </div>
     <div class="stageWrap" id="stageWrap">
       <div class="stage" id="stage">
         <canvas id="stageCv"></canvas>
@@ -178,20 +189,14 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
       <p class="packWhy" id="packWhy"></p>
     </div>
 
-    <h3 class="driveHead" style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><span>ベース車両<small>押すと開く・選ぶと畳まれる</small></span><a href="#" id="resetAll" style="color:var(--sub);text-decoration:none;font-size:13px">最初から選び直す</a></h3>
-    <details class="sec" name="sec" id="stepSeries"><summary>車種<small></small></summary><div class="body">
-      <div class="chips" id="seriesChips"></div>
-    </div></details>
-    <details class="sec" name="sec" id="stepType"><summary>タイプ<small></small></summary><div class="body">
-      <div class="chips" id="typeChips"></div>
-      <p class="note" id="bisNote" hidden>BIS（703cc・水冷）は対象外。ボアアップ済みなら「改造済み → いまの明細を設定」で</p>
-      <p class="note" id="modelNote"></p>
-      <!-- 型式の注記に CV が出る＝この画面でも一度だけ断る（2026-09-19 ユーザー確定）。⛔ PS へ書き換えない -->
-      <p class="note"><b>CV</b> は出力の単位で、日本でふつうに言う <b>PS（馬力）</b>と同じ。</p>
-    </div></details>
-    <details class="sec" name="sec" id="stepState"><summary>いまの状態<small></small></summary><div class="body">
-      <div class="eng" id="engNow"></div>
-    </div></details>
+    <!-- ベース車両＝読み取り1行（HANDOFF §8-9 ④）＝車を選ぶ場所はエンジンの画面ひとつに集約＝ここは読むだけ。
+         共有URLで直接開いた人にも「何の車の話か」は要るが、選ばせる必要は無い。 -->
+    <p class="driveHead" style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+      <span>ベース車両　<b id="baseLineText"></b></span>
+      <span><a href="#" id="toEngineLine">エンジンの画面で変える →</a>　<a href="#" id="resetAll" style="color:var(--sub);text-decoration:none;font-size:13px">最初から選び直す</a></span>
+    </p>
+    <!-- 単位の断りは各画面1か所・1文だけ（2026-09-19 ユーザー確定）。⛔ PS へ書き換えない -->
+    <p class="note" id="unitNote"><b>CV</b> は出力の単位で、日本でふつうに言う <b>PS（馬力）</b>と同じ。</p>
 
     <details class="sec" name="sec" id="dFine"><summary>細かく変える<small>エンジンの中身を2台ぶん</small></summary><div class="body">
       <div class="cols">
@@ -289,79 +294,39 @@ function writeHash() {
   if (dAll) p.set('d', dAll);
   p.set('s', state.scene); if (state.scene === 'free') { p.set('g', state.g); p.set('l', state.l); }
   history.replaceState(null, '', '#' + p.toString());
-  // エンジン画面へ戻るリンクにも m/a/b を持たせる
+  // エンジン画面へ戻るリンクにも m/a/b を持たせる（トップバーの戻り道と、ベース車両行の「エンジンの画面で変える →」の両方）
   const q = new URLSearchParams(); q.set('m', state.model); if (ea) q.set('a', ea); if (eb) q.set('b', eb);
   $('#toEngine').href = './#' + q.toString();
+  $('#toEngineLine').href = $('#toEngine').href;
 }
 
-// ───── ベース車両＝車種 → タイプ → いまの状態 → 変えた後（index.html と同じ手順の行・§7-17）─────
-// 押すと開く・選ぶと要約1行に畳まれる（drive.html は結果を先に見せる段4を守るので、①〜④は最初から全部この畳んだ状態で並ぶ＝ウィザードはやらせない）
-function setStepSummary(sel, label, value) {
-  const s = $(sel); s.textContent = label;
-  if (value) { const small = document.createElement('small'); small.textContent = value; s.append(small); }
-}
-function updateStep1Summary() { setStepSummary('#stepSeries summary', '車種', modelById(state.model).series); }
-function updateStep2Summary() { setStepSummary('#stepType summary', 'タイプ', modelById(state.model).type); }
-function renderSeriesChips() {
-  const box = $('#seriesChips'); box.textContent = '';
-  const cur = modelById(state.model).series;
-  for (const s of ['500', '126']) {
-    const b = document.createElement('button'); b.type = 'button'; b.textContent = s; b.classList.toggle('on', s === cur);
-    b.addEventListener('click', () => {
-      if (s !== cur) { state.model = MODELS.find(m => m.series === s).id; onModelChanged(); }
-      $('#stepSeries').open = false;
-    });
-    box.append(b);
-  }
-  updateStep1Summary();
-}
-function renderTypeChips() {
-  const box = $('#typeChips'); box.textContent = '';
-  const cur = modelById(state.model);
-  for (const m of MODELS.filter(x => x.series === cur.series)) {
-    const b = document.createElement('button'); b.type = 'button'; b.textContent = m.type; b.classList.toggle('on', m.id === cur.id);
-    b.addEventListener('click', () => {
-      if (m.id !== state.model) { state.model = m.id; onModelChanged(); }
-      $('#stepType').open = false;
-    });
-    box.append(b);
-  }
-  $('#bisNote').hidden = cur.series !== '126';
-  updateStep2Summary();
-}
-function onModelChanged() {
-  renderSeriesChips(); renderTypeChips(); renderDrive(); renderEngines(); renderPacks(); renderBaseState(); update();
-}
+// ───── ベース車両＝読み取り1行（HANDOFF §8-9 ④）─────
+// 車種・タイプ・いまの状態を選ぶ場所はエンジンの画面ひとつに集約＝この画面には切替UIを置かない（onModelChanged 相当の処理は不要）。
 // 「最初から選び直す」＝共有URL・更新でハッシュが残った状態から素の状態（純正 vs 650 にボアアップが談合坂で走り出す）へ戻す（2026-09-19 追記）
 function resetAll() {
   state.model = '500F'; state.a = { ...DEFAULT_CHOICES }; state.b = { ...DEFAULT_CHOICES, ...P_DEFAULT.choices };
   state.d = { ...DEFAULT_DRIVE_CHOICES }; state.scene = 'dangozaka'; state.g = 4; state.l = 3000;
-  renderSeriesChips(); renderTypeChips(); renderDrive(); renderEngines(); renderPacks(); renderBaseState();
+  renderDrive(); renderEngines(); renderPacks(); renderBaseState();
   $('#gRange').value = state.g; $('#lRange').value = state.l;
   $('#gOut').value = state.g + ' %'; $('#lOut').value = (state.l / 1000).toFixed(1) + ' km';
   markScene();
   update();   // writeHash() をここで一度書くが、直後に replaceState で消す＝素の状態は URL に何も残さない
   history.replaceState(null, '', location.pathname);
 }
-// 「いま」の状態を1行で（改造済み6欄は持たないので要約のみ・§7-17）＝エンジンの画面へ「明細を設定 →」
+// 「いま」の状態を1行で（改造済み6欄は持たないので要約のみ・§7-17）
 // ※純正判定は state（選んだ選択肢の id）で見る＝built.picks はキャブが「純正のまま」でも実物の id に解決されるため 'stock' にならない
 function baseStateText(choices, built) {
   const stock = SLOT_ORDER.every(k => choices[k] === 'stock');
   if (built.eng) {
     return `${built.model.series} ${built.model.type} に換装済み` + (stock ? '' : '（さらに部品を変更）');
   }
-  return stock ? '純正のエンジン' : engineSummary(built);
+  return stock ? '純正のまま' : engineSummary(choices, built);
 }
+// ベース車両の読み取り1行を書く（HANDOFF §8-9 ④）＝「500 F・L・純正のまま」のように車種タイプ＋いまの状態を1文で。
 function renderBaseState() {
   const A = buildSpec(state.model, state.a);
-  const txt = baseStateText(state.a, A);
-  const el = $('#engNow'); el.textContent = '';
-  el.append(txt + '　');
-  const a = document.createElement('a'); a.textContent = '明細を設定 →'; a.href = '#';
-  a.addEventListener('click', (ev) => { ev.preventDefault(); location.href = $('#toEngine').href; });
-  el.append(a);
-  const m = modelById(state.model); $('#modelNote').textContent = m.note || '';
-  setStepSummary('#stepState summary', 'いまの状態', txt);
+  const m = modelById(state.model);
+  $('#baseLineText').textContent = `${m.series} ${m.type}・${baseStateText(state.a, A)}`;
 }
 function stockText(k, base) {
   const o = DRIVE_SLOTS[k].find(x => x.id === base[k]); return o ? `純正のまま（${o.label.replace(/（.*$/, '')}）` : '純正のまま';
@@ -381,9 +346,13 @@ function renderDrive() {
   }
 }
 
-function engineSummary(built) {
-  const parts = SLOT_ORDER.filter(k => built.picks[k].id !== 'stock').map(k => built.picks[k].label.replace(/（.*$/, ''));
-  return `${Math.round(built.cc)}cc・圧縮比 ${built.spec.engine.cr}` + (parts.length ? '・' + parts.join('・') : '・純正のまま');
+// ⚠️純正判定は choices（選んだ選択肢の id）で見る＝built.picks はキャブの「純正のまま」も実物の id に解決するため
+//   built.picks[k].id==='stock' は常に偽になる（HANDOFF §8「実施記録」＝2026-09-19 に見つけて2026-09-20 に修正）。
+function engineSummary(choices, built) {
+  // ⚠️ 排気量と圧縮比は頭の「◯◯cc・圧縮比 ◯」で既に言っている＝parts に入れると二重に出る（2026-09-20 修正）。
+  const parts = SLOT_ORDER.filter(k => k !== 'disp' && k !== 'cr' && choices[k] !== 'stock').map(k => built.picks[k].label.replace(/（.*$/, ''));
+  const stock = SLOT_ORDER.every(k => choices[k] === 'stock');
+  return `${Math.round(built.cc)}cc・圧縮比 ${built.spec.engine.cr}` + (parts.length ? '・' + parts.join('・') : stock ? '・純正のまま' : '');
 }
 // 舞台の札と結果の一文で使う短い名前＝パッケージに一致すればその名前、そうでなければ排気量（eng 換装も見る・§7-17）
 function packHit(side) {
@@ -400,10 +369,10 @@ function engineName(side, built) {
 }
 function renderEngines() {
   const A = buildSpec(state.model, state.a), B = buildSpec(state.model, state.b);
-  for (const [id, built] of [['#engA', A], ['#engB', B]]) {
+  for (const [id, choices, built] of [['#engA', state.a, A], ['#engB', state.b, B]]) {
     const el = $(id); el.textContent = '';
     const k = document.createElement('span'); k.className = 'k'; k.textContent = 'エンジン：';
-    el.append(k, engineSummary(built), ' ');
+    el.append(k, engineSummary(choices, built), ' ');
     const a = document.createElement('a'); a.textContent = '変える →'; a.href = '#'; a.addEventListener('click', (ev) => { ev.preventDefault(); location.href = $('#toEngine').href; });
     el.append(a);
   }
@@ -519,12 +488,19 @@ function render(L) {
   drawLimits(L);
   startAnim(L);
 }
-// ゼッケン帯＝「いま ▶ 変えた後」のエンジン名（HANDOFF §8-4 手順5）
+// ゼッケン帯＝案A「対戦カード」（HANDOFF §8-9 ③）＝「いま」と「変えた後」を左右に置き、状態＋CVを1行添える。
+// CV は既に計算済みの resA/resB から summarizeRes() で読むだけ＝新しく simulate() は呼ばない。
 function renderBanner(L) {
-  const el = $('#banner'); el.textContent = '';
-  const b = document.createElement('b'); b.textContent = L.nameA;
-  const arrow = document.createElement('span'); arrow.className = 'arrow'; arrow.textContent = '▶';
-  el.append(b, arrow, L.nameB);
+  const { A, B, resA, resB, nameA, nameB } = L;
+  const m = modelById(state.model);
+  const cvA = summarizeRes(resA).peakCv, cvB = summarizeRes(resB).peakCv;
+  $('#bannerFrom').textContent = nameA;
+  $('#bannerFromSub').textContent = `${baseStateText(state.a, A)}・${cvA.toFixed(1)} CV`;
+  const pk = packHit('b');
+  $('#bannerToLab').textContent = pk ? `変えた後　No.${String(packagesFor(m).findIndex(p => p.id === pk.id) + 1).padStart(2, '0')}` : '変えた後';
+  $('#bannerTo').textContent = nameB;
+  const subB = pk ? packageSub(pk, m) : baseStateText(state.b, B);
+  $('#bannerToSub').textContent = `${subB}・${cvB.toFixed(1)} CV`;
 }
 // 結果の一文の左に添えるゼッケン円（HANDOFF §8-4 手順5）＝秒数と早い／遅いだけ（新しい計算はしない）
 function updateBadge(numText, label) {
@@ -613,7 +589,14 @@ function stateAt(trace, t) {
 }
 
 // ───── 並走アニメ（上段＝坂全体の縮図で「いまどこか」・下段＝300m ぶんの窓で2台を追いかける） ─────
-const car = new Image(); car.src = 'img/car_side.png'; let carReady = false; car.onload = () => { carReady = true; if (last) drawStage(last, animT); };
+// 車の絵＝500 はオーナー写真の切り抜き／126 は当会126ロゴのイラストの切り抜き（2026-09-20 ユーザー指示）。
+// ⛔どちらも左向きのまま使う（反転しない）。⚠️縦横比が違うので、描く側は必ず naturalWidth/Height から高さを出す。
+const CAR_IMG = {};
+for (const [k, src] of [['500', 'img/car_side.png'], ['126', 'img/car126_side.png']]) {
+  const im = new Image(); im.src = src; im.onload = () => { if (last) drawStage(last, animT); }; CAR_IMG[k] = im;
+}
+// いま選んでいる車種の絵（ベース車両が 126 なら 126 の絵）。⚠️札や共有URLで車種が変わるたびに切り替わる。
+function carImg() { return CAR_IMG[modelById(state.model).series === '126' ? '126' : '500'] || CAR_IMG['500']; }
 let animT = 0, animReq = null, animStart = 0, animScale = 1;
 function startAnim(L) {
   cancelAnimationFrame(animReq);
@@ -703,6 +686,7 @@ function drawStage(L, t) {
   // ⚠️ 序盤は2台がほぼ重なるので、近いあいだだけ上下のずれを大きくする（点の頃の ±4px では車体の幅ぶん重なる）。
   let mapCarTop = Infinity;   // 「◯km 地点」の札をこの上に逃がすため、車体の一番上を覚えておく
   {
+    const car = carImg(), carReady = car.complete && car.naturalWidth > 0;
     const mcw = 29, mch = mcw * (car.naturalHeight || 252) / (car.naturalWidth || 530);
     const slopeAt = (x) => {   // 画面上の傾き＝縮図の線に沿わせる（標高と横幅の縮尺が違うので数値微分で出す）
       const d = Math.max(20, len * 0.02), x1 = Math.max(0, x - d), x2 = Math.min(len, x + d);
@@ -789,6 +773,7 @@ function drawStage(L, t) {
   //    ＝2026-09-19 ユーザー再指摘。⭐下限を【素の大きさの6割】に取り直す＝画面幅に比例するので実機でも効く。
   //    ⛔1乗に戻さない・⛔下限を px の固定値に戻さない。
   const carZoom = Math.pow(zoom, 0.55);
+  const car = carImg(), carReady = car.complete && car.naturalWidth > 0;
   const cwFull = Math.min(96, W * 0.17);
   const cw = Math.max(cwFull * 0.6, cwFull * carZoom), ch = cw * (car.naturalHeight || 252) / (car.naturalWidth || 530);
   const pos = [];
@@ -948,7 +933,7 @@ function bindAccordion() {
 }
 
 // ───── 起動 ─────
-readHash(); renderSeriesChips(); renderTypeChips(); renderScenes(); renderDrive(); renderEngines(); renderPacks(); renderBaseState();
+readHash(); renderScenes(); renderDrive(); renderEngines(); renderPacks(); renderBaseState();
 $('#resetAll').addEventListener('click', (ev) => { ev.preventDefault(); resetAll(); });
 update(); bindAccordion();
 </script>
