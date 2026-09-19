@@ -513,7 +513,9 @@ function drawStage(L, t) {
     const mcw = 26, mch = mcw * (car.naturalHeight || 252) / (car.naturalWidth || 530);
     const slopeAt = (x) => {   // 画面上の傾き＝縮図の線に沿わせる（標高と横幅の縮尺が違うので数値微分で出す）
       const d = Math.max(20, len * 0.02), x1 = Math.max(0, x - d), x2 = Math.min(len, x + d);
-      return Math.atan2(mY(elAt(x2)) - mY(elAt(x1)), mX(x2) - mX(x1));
+      // ⚠️ 進行方向は画面の左（x が増えると mX は減る）＝前後を素直に引くと dx が負になり、車が上下逆さまに描かれる。
+      //    後ろ側の点から前側の点へ向かう向きで角度を出す（2026-09-19 ユーザー指摘で修正）。
+      return Math.atan2(mY(elAt(x1)) - mY(elAt(x2)), mX(x1) - mX(x2));
     };
     const near = Math.abs(mX(xA) - mX(xB)) < mcw * 0.9;
     for (const [x, col, side] of [[xA, colA, -1], [xB, colB, 1]]) {
@@ -568,8 +570,11 @@ function drawStage(L, t) {
   g.fillStyle = '#b0a998'; g.font = `10px ${FONT}`; g.textAlign = 'left';
   g.fillText(`◀ 進行方向　この窓＝${Math.round(winM / 10) * 10} m ぶん` + (winM > BASE_WIN + 1 ? '（離れたので引いて映している）' : ''), 8, H - 6);
   // 車（同じ写真の2台。いま＝奥のレーン・変えた後＝手前のレーン。窓の後ろに外れたら右端に留める）
-  // ⭐車の大きさもカメラの引き具合に連動（下限 22px＝これ以上小さいと札の主が分からなくなる）。
-  const cw = Math.max(22, Math.min(96, W * 0.17 * zoom)), ch = cw * (car.naturalHeight || 252) / (car.naturalWidth || 530);
+  // ⭐車の大きさもカメラの引き具合に連動（下限 26px＝これ以上小さいと札の主が分からなくなる）。
+  // ⚠️ 縮尺どおり（zoom の1乗）だと引ききった終盤で車が潰れて見えなくなる＝2026-09-19 ユーザー指摘。
+  //    電柱と同じく指数を寝かせて縮み方を緩やかにした（0.55 乗）。⛔1乗に戻さない。
+  const carZoom = Math.pow(zoom, 0.55);
+  const cw = Math.max(26, Math.min(96, W * 0.17 * carZoom)), ch = cw * (car.naturalHeight || 252) / (car.naturalWidth || 530);
   const pos = [];
   for (const [x, s, col, lane, role, nm, side] of [[xA, sA, colA, laneA, 'いま', nameA, -1], [xB, sB, colB, laneB, '変えた後', nameB, 1]]) {
     let X = px(x), pinned = false;
