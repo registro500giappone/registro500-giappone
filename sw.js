@@ -111,6 +111,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // 開発中テーマのJS: NetworkFirst（StaleWhileRevalidate だと直した内容が1回遅れて出る）
+  // 実害が出た例＝engine-simulator（坂の名前が古いまま・直したはずの重なりが再発して見えた）。
+  // ⚠️ESM の import も destination は 'script' なので、下の分岐より先に置く必要がある。
+  if (url.pathname.startsWith('/engine-simulator/')) {
+    event.respondWith(networkFirst(req, RUNTIME_CACHE));
+    return;
+  }
+
   // CSS/JS(自サイト): StaleWhileRevalidate
   if (req.destination === 'style' || req.destination === 'script') {
     event.respondWith(staleWhileRevalidate(req, RUNTIME_CACHE));
