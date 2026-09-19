@@ -60,7 +60,19 @@ export const VEHICLES = {
              calib: null, src: '同上。車重 600kg は Haynes 126 補遺 Chapter 12（印刷 p.121「Kerb weight 1323 lbs (600 kg)」＝1977年8月以降）', assumed: ['総重量 920kg は Web の一般値'] },
 };
 
-export const DEFAULT_DRIVE_CHOICES = { gearbox: 'stock', final: 'stock', tire: 'stock', load: 'solo' };
+// ───────────── 5速化（既存の4速に5速を足すキット） ─────────────
+// ⭐ミッションの種類（1速の比が型式で違う）と直交するので、掛け算で選択肢を増やさないよう独立の欄にした。
+//   ⛔「5速ミッション」という別のギアボックスを作らない＝どの型式の 1〜4速にも足せるのが実物のキット。
+export const FIFTHS = [
+  { id: 'none', label: '4速のまま（純正）', ratio: null },
+  { id: 'g5_stradale', label: '5速化キット「ストラダーレ」（5速 0.743）', ratio: 26 / 35,
+    shops: ['FD Ricambi', '500ricambi', 'Axel Gerstl'],
+    hint: '1〜4速は純正のまま、5速だけを足すキット。4速 0.872 に対して 0.743＝同じ速度で回転が 15% 下がる。高速の巡航が楽になる代わりに、登りでは 5速が使えない。',
+    src: 'FD Ricambi VB1101「Gearbox Stradale 5 Speed Conversion Kit」（適合＝500 N/D/F/L/R・ジャルディニエラ・126・BIS・Bianchina）／歯数 35/26 は複数店の商品名に明記（AutoBella・nonsoloricambidepoca）',
+    assumed: ['歯数 35/26 から比を 26/35＝0.743 と算出（店は比の数値そのものを公表していない）'] },
+];
+
+export const DEFAULT_DRIVE_CHOICES = { gearbox: 'stock', final: 'stock', tire: 'stock', fifth: 'none', load: 'solo' };
 
 const byId = (list, id) => list.find(x => x.id === id) || list[0];
 
@@ -71,12 +83,14 @@ export function buildVehicle(modelId, choices) {
   const gb = byId(GEARBOXES, c.gearbox === 'stock' ? base.gearbox : c.gearbox);
   const fn = byId(FINALS, c.final === 'stock' ? base.final : c.final);
   const tr = byId(TIRES, c.tire === 'stock' ? base.tire : c.tire);
+  const f5 = byId(FIFTHS, c.fifth);
   const ld = byId(LOADS, c.load);
   const mass = ld.kg === null ? base.gvw_kg : base.mass_kg + ld.kg;
-  const assumed = [...(base.assumed || []), ...(tr.assumed || [])];
+  const assumed = [...(base.assumed || []), ...(tr.assumed || []), ...(f5.assumed || [])];
+  const gears = f5.ratio ? [...gb.gears, f5.ratio] : gb.gears;   // vehicle.js は gears.length を見るので 5速でもそのまま動く
   return {
     vehicle: { mass, cd: base.cd, area_m2: base.area_m2, crr: base.crr },
-    drive: { gears: gb.gears, final: fn.ratio, tire: tr.tire, eff: 0.87 },
-    picks: { gearbox: gb, final: fn, tire: tr, load: ld }, base, assumed,
+    drive: { gears, final: fn.ratio, tire: tr.tire, eff: 0.87 },
+    picks: { gearbox: gb, final: fn, tire: tr, fifth: f5, load: ld }, base, assumed,
   };
 }

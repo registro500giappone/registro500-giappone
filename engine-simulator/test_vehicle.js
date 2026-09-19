@@ -31,5 +31,14 @@ for (const id of Object.keys(VEHICLES)) {
   const rpm80 = (x) => 80 / speedKmh(1000, x.drive.gears[3], x.drive) * 1000;
   ok(rpm80(b) < rpm80(a) * 0.9 && rpm80(c) < rpm80(a), '9/39・135 タイヤで 80km/h の回転が下がらない');
   console.log(`80km/h 4速の回転：純正 ${rpm80(a).toFixed(0)}／9-39 ${rpm80(b).toFixed(0)}／135 ${rpm80(c).toFixed(0)} rpm`);
+  // 5速化（2026-09-19）＝1〜4速は変わらず、5速だけが足される。⛔4速の比が動いたら仕様違反。
+  const f5 = buildVehicle('500F', { fifth: 'g5_stradale' });
+  ok(f5.drive.gears.length === 5, '5速化で段数が 5 にならない');
+  ok(f5.drive.gears.slice(0, 4).every((g, i) => g === a.drive.gears[i]), '5速化キットで 1〜4速の比が変わってしまっている');
+  const r5 = 80 / speedKmh(1000, f5.drive.gears[4], f5.drive) * 1000;
+  ok(r5 < rpm80(a) * 0.87 && r5 > rpm80(a) * 0.82, '5速の 80km/h の回転が 4速の 15% 減（0.743/0.872）になっていない');
+  const topA = topSpeed(res0, a.vehicle, a.drive), top5 = topSpeed(res0, f5.vehicle, f5.drive);
+  ok(top5.kmh > topA.kmh && top5.gear === 5, '5速化で最高速が伸びて 5速で頭打ちにならない');
+  console.log(`5速化：80km/h で 5速 ${r5.toFixed(0)}rpm（4速 ${rpm80(a).toFixed(0)}）／最高速 ${topA.kmh.toFixed(0)}→${top5.kmh.toFixed(0)}km/h`);
 }
 console.log(fails ? `\n失敗 ${fails} 件` : '\nすべて通過'); process.exit(fails ? 1 : 0);
