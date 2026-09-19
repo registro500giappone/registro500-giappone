@@ -587,10 +587,12 @@ function drawStage(L, t) {
   } else if (!drag) { g.fillStyle = '#a05a2c'; g.fillText(`${sc.gradePct}%`, mX(len / 2), mapBot + 1); }
   g.beginPath(); for (const [i, p] of prof.entries()) i ? g.lineTo(mX(p.x), mY(p.e)) : g.moveTo(mX(p.x), mY(p.e)); g.strokeStyle = '#b9b1a2'; g.lineWidth = 2; g.stroke();
   g.font = `10px ${FONT}`; g.fillStyle = '#8d8574';
-  g.textAlign = 'left'; g.fillText('🏁 ' + sc.to, 6, mapBot + 12);
-  g.textAlign = 'right'; g.fillText(sc.from, W - 6, mapBot + 12);
+  // ⚠️ 端の地名は出発直後の車と同じ場所に来る＝車体の下を通すために線から離す（2026-09-19 ユーザー指摘）。
+  g.textAlign = 'left'; g.fillText('🏁 ' + sc.to, 6, mapBot + 16);
+  g.textAlign = 'right'; g.fillText(sc.from, W - 6, mapBot + 16);
   // 縮図の上を走る2台＝点ではなく小さな車体（2026-09-19 ユーザー指示）。坂の傾きに合わせて傾ける。
   // ⚠️ 序盤は2台がほぼ重なるので、近いあいだだけ上下のずれを大きくする（点の頃の ±4px では車体の幅ぶん重なる）。
+  let mapCarTop = Infinity;   // 「◯km 地点」の札をこの上に逃がすため、車体の一番上を覚えておく
   {
     const mcw = 26, mch = mcw * (car.naturalHeight || 252) / (car.naturalWidth || 530);
     const slopeAt = (x) => {   // 画面上の傾き＝縮図の線に沿わせる（標高と横幅の縮尺が違うので数値微分で出す）
@@ -600,8 +602,12 @@ function drawStage(L, t) {
       return Math.atan2(mY(elAt(x1)) - mY(elAt(x2)), mX(x1) - mX(x2));
     };
     const near = Math.abs(mX(xA) - mX(xB)) < mcw * 0.9;
+    // ⚠️ 重なりをほどく向きは【上だけ】。下へ逃がすと端の地名の行に car が刺さる（2026-09-19 ユーザー指摘）。
+    //    ⛔ ±で対称に散らす形に戻さない＝線の下には余白が無い。
     for (const [x, col, side] of [[xA, colA, -1], [xB, colB, 1]]) {
-      const X = mX(x), Y = mY(elAt(x)) + (near ? side * (mch * 0.55 + 2) : side * 3);
+      const Y = mY(elAt(x)) + (near ? (side < 0 ? -(mch * 1.05 + 3) : 3) : side * 3);
+      const X = mX(x);
+      mapCarTop = Math.min(mapCarTop, Y - mch);
       g.save(); g.translate(X, Y); g.rotate(slopeAt(x));
       if (carReady) g.drawImage(car, -mcw / 2, -mch, mcw, mch);
       else { g.fillStyle = col; g.fillRect(-mcw / 2, -mch, mcw, mch); }
@@ -610,10 +616,15 @@ function drawStage(L, t) {
     }
   }
   g.fillStyle = '#6b655a'; g.textAlign = 'center'; g.font = `10px ${FONT}`;
-  g.fillText(`${drag ? xL.toFixed(0) + ' m' : (xL / 1000).toFixed(1) + ' km'} 地点`, Math.max(40, Math.min(W - 40, mX(xL))), mY(elAt(xL)) - 14);
+  // ⚠️ 車体の上に必ず逃がす（線からの固定オフセットだと車に刺さる＝2026-09-19 ユーザー指摘）。
+  //    ⚠️ 0-400 は縮図が低く（mapH 44）上に逃がすと「もう一度」ボタンの下に潜る＝天井に当たったら左へ寄せる。
+  const posLabY = Math.max(mapTop + 14, Math.min(mY(elAt(xL)) - 14, mapCarTop - 7));
+  let posLabX = Math.max(40, Math.min(W - 40, mX(xL)));
+  if (posLabY <= mapTop + 14) posLabX = Math.min(posLabX, W - 110);   // ボタンの下を避ける
+  g.fillText(`${drag ? xL.toFixed(0) + ' m' : (xL / 1000).toFixed(1) + ' km'} 地点`, posLabX, posLabY);
 
   // ── 下段：追いかけ窓（窓の幅＝300m。0-400 は 150m）
-  const winTop = mapBot + 18, winH = H - winTop;
+  const winTop = mapBot + 22, winH = H - winTop;
   // ⭐カメラを引く（2026-09-19 ユーザー採用）＝車間が窓に収まらなくなったら窓の幅そのものを広げる。
   //   縮尺が変わるので車も電柱も破線も一緒に小さくなり、「離れていく」ことが大きさでも伝わる。
   //   ⛔窓を 300m 固定に戻さない（固定だと外れた車を右端に留めるしかなく、間隔そのままで数字だけ増えていた）。
@@ -652,11 +663,13 @@ function drawStage(L, t) {
   g.fillStyle = '#b0a998'; g.font = `10px ${FONT}`; g.textAlign = 'left';
   g.fillText(`◀ 進行方向　この窓＝${Math.round(winM / 10) * 10} m ぶん` + (winM > BASE_WIN + 1 ? '（離れたので引いて映している）' : ''), 8, H - 6);
   // 車（同じ写真の2台。いま＝奥のレーン・変えた後＝手前のレーン。窓の後ろに外れたら右端に留める）
-  // ⭐車の大きさもカメラの引き具合に連動（下限 26px＝これ以上小さいと札の主が分からなくなる）。
-  // ⚠️ 縮尺どおり（zoom の1乗）だと引ききった終盤で車が潰れて見えなくなる＝2026-09-19 ユーザー指摘。
-  //    電柱と同じく指数を寝かせて縮み方を緩やかにした（0.55 乗）。⛔1乗に戻さない。
+  // ⭐車の大きさもカメラの引き具合に連動。⚠️ 縮尺どおり（zoom の1乗）だと引ききった終盤で車が潰れて見えなくなる。
+  //    指数を寝かせた（0.55 乗）だけでは足りず、画面の狭い実機では下限 26px に張り付いて小さいままだった
+  //    ＝2026-09-19 ユーザー再指摘。⭐下限を【素の大きさの6割】に取り直す＝画面幅に比例するので実機でも効く。
+  //    ⛔1乗に戻さない・⛔下限を px の固定値に戻さない。
   const carZoom = Math.pow(zoom, 0.55);
-  const cw = Math.max(26, Math.min(96, W * 0.17 * carZoom)), ch = cw * (car.naturalHeight || 252) / (car.naturalWidth || 530);
+  const cwFull = Math.min(96, W * 0.17);
+  const cw = Math.max(cwFull * 0.6, cwFull * carZoom), ch = cw * (car.naturalHeight || 252) / (car.naturalWidth || 530);
   const pos = [];
   for (const [x, s, col, lane, role, nm, side] of [[xA, sA, colA, laneA, 'いま', nameA, -1], [xB, sB, colB, laneB, '変えた後', nameB, 1]]) {
     let X = px(x), pinned = false;
@@ -671,7 +684,9 @@ function drawStage(L, t) {
     const l2 = `${s.kmh.toFixed(0)} km/h・${s.gear}速・${Math.round(s.rpm / 10) * 10}rpm`;
     g.font = `bold 12px ${FONT}`; const w2 = g.measureText(l2).width; g.font = `10px ${FONT}`; const w1 = g.measureText(l1).width;
     const tw = Math.max(w1, w2) + 16, th = 32;
-    const tx = Math.max(4, Math.min(W - tw - 4, X - tw / 2)), ty = side < 0 ? y - ch - th - 4 : y + 6;
+    // ⚠️ 下の札は窓幅の注記（最下行）に被らせない＝被ると「いま何 m ぶんか」が読めなくなる（2026-09-19）。
+    const tx = Math.max(4, Math.min(W - tw - 4, X - tw / 2));
+    const ty = side < 0 ? Math.max(winTop + 20, y - ch - th - 4) : Math.min(y + 6, H - th - 20);
     g.fillStyle = col; g.beginPath(); g.roundRect(tx, ty, tw, th, 8); g.fill();
     g.fillStyle = '#fff'; g.textAlign = 'left'; g.globalAlpha = .9; g.fillText(l1, tx + 8, ty + 12); g.globalAlpha = 1;
     g.font = `bold 12px ${FONT}`; g.fillText(l2, tx + 8, ty + 26);
