@@ -21,13 +21,23 @@
 <meta property="og:image" content="https://www.registro500.com/og/site-ja.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/icon-192.png">
+<!-- 見た目の作り直し＝案B「レーシング・カタログ」（HANDOFF §8）。追加フォントはこの2つだけ＝Oswald（数字・見出し）／Noto Serif JP（舞台内の実況の一文）。ウェイトは増やさない。 -->
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Noto+Serif+JP:wght@600&display=swap" rel="stylesheet">
 <style>
 /* 共通CSSは読み込まない（マイ壁紙と同じ＝サイト全体の配色に手を触れない） */
 :root{
-  --bg:#fffdf8; --ink:#3a352c; --sub:#8d8574; --deep:#2c3a31; --line:#e6e0d4; --card:#fffefb; --accent:#7a6a53;
-  --surface-1:#fffdf8; --text-primary:#3a352c; --text-secondary:#8d8574; --grid:#ece7dc;
-  --series-a:#2a78d6; --series-b:#eb6834;      /* dataviz 検証済（light・#fffdf8）：CVD ΔE 24.7・通常 33.6・コントラスト 3:1 以上 */
-  --warn:#8a5a00; --warnbg:#fff4dc; --stop:#8f2a1f; --stopbg:#fdeae6; --info:#3f5a4a; --infobg:#eef2ec;
+  /* 案B「レーシング・カタログ」パレット（HANDOFF §8-2）。旧変数名はそのまま残し、値だけこちらへ寄せている＝参照箇所を洗い替えずに済むように。 */
+  --paper:#f2ece0; --card:#fbf7ee; --ink:#2b2a26; --sub:#7c7263; --line:#ddd3c0;
+  --stage:#173d2c; --stage2:#0d2a1e; --red:#b23b2b; --red2:#8f2a1f; --gold:#c8a457; --cream:#f6f0e2;
+  --bg:var(--paper); --deep:#2c3a31; --accent:var(--gold);
+  --surface-1:var(--card); --text-primary:var(--ink); --text-secondary:var(--sub); --grid:#e3dbca;
+  --series-a:#8fae9b; --series-b:#e8b04f;      /* いま＝淡い緑／変えた後＝金（HANDOFF §8-2・旧・青×橙は廃止） */
+  --up:#1f6e3a;
+  --warn:#8a5a00; --warnbg:#fff4dc; --warnborder:#e8d2a0;
+  --stop:var(--red2); --stopbg:#fdeae6; --stopborder:#e8b3aa;
+  --info:#3f5a4a; --infobg:#eef2ec; --infoborder:#cfdad2;
+  --tag-up-bg:#e3efe4; --tag-up-fg:#2b6440; --tag-dn-bg:#f7e3df;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;line-height:1.75;-webkit-text-size-adjust:100%}
@@ -35,12 +45,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple
 .topbar{margin:0 0 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .topbar a{color:var(--sub);text-decoration:none;font-size:13px}
 .topbar a:hover{color:var(--deep)}
-h1{font-size:21px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
-h2{font-size:15px;margin:26px 0 8px;color:var(--deep);border-left:4px solid var(--deep);padding-left:8px}
+h1{font-family:'Oswald',system-ui;font-weight:700;font-size:23px;margin:0 0 4px;color:var(--deep);letter-spacing:.03em}
+h2{font-family:'Oswald',system-ui;font-weight:500;font-size:15px;margin:26px 0 8px;color:var(--deep);border-left:4px solid var(--deep);padding-left:8px}
 .lead{margin:0 0 16px;font-size:13px;color:var(--sub)}
 .lead b{color:var(--ink)}
 label.row{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--sub);margin:0 0 8px}
-select{font:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
 @media (max-width:640px){.cols{grid-template-columns:1fr}}
 .panel{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px}
@@ -48,31 +58,78 @@ select{font:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px s
 .key{display:inline-block;width:18px;height:0;border-top:3px solid;border-radius:2px}
 .key.a{border-color:var(--series-a)} .key.b{border-color:var(--series-b)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
-.chips button,.btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--deep);font:inherit;font-size:12px;padding:5px 10px;border-radius:999px;cursor:pointer;text-decoration:none;display:inline-block}
+.chips button,.btn{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--deep);font:inherit;font-size:12px;padding:5px 10px;border-radius:999px;cursor:pointer;text-decoration:none;display:inline-block}
 .chips button:hover,.btn:hover{border-color:var(--deep)}
-.packs{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;margin-top:4px}
-.packs button{appearance:none;flex:none;width:150px;text-align:left;border:1px solid var(--line);background:var(--card);color:var(--deep);font:inherit;padding:8px 10px;border-radius:12px;cursor:pointer;display:flex;flex-direction:column;gap:3px}
-.packs button:hover{border-color:var(--deep)}
-.packs button.on{border:2px solid #eb6834;padding:7px 9px}
-.packs button.dim{opacity:.55} .packs button.dim.on{opacity:1}
-.packs b{font-size:14px}
-.packs small{font-size:11px;color:#5a5650;line-height:1.35}
-.packs .ev{font-size:10px;color:#8a857c}
-.packwhy{font-size:12px;color:#5a5650;margin:0 0 10px;min-height:1em}
+.packs{display:flex;gap:9px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;margin-top:4px}
+.pk{appearance:none;flex:none;width:158px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 10px 10px 13px;position:relative;overflow:hidden;font:inherit;cursor:pointer}
+.pk::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--line)}
+.pk:hover{border-color:var(--deep)}
+.pk .no{font-family:'Oswald',system-ui;font-size:11px;color:var(--sub);letter-spacing:.1em}
+.pk .nm{font-weight:700;font-size:14px;margin:1px 0 4px;color:var(--deep)}
+.pk .sub{font-size:11px;color:var(--sub);line-height:1.5;min-height:31px}
+.pk .tags{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.pk .tg{font-size:10px;border-radius:999px;padding:1px 6px;background:#efe7d6;color:#6a5f4d}
+.pk .tg.up{background:var(--tag-up-bg);color:var(--tag-up-fg)}
+.pk .tg.dn{background:var(--tag-dn-bg);color:var(--red2)}
+.pk.on{background:var(--red);border-color:var(--red2);color:#fff;box-shadow:0 3px 0 #0002}
+.pk.on::before{background:var(--gold)}
+.pk.on .no,.pk.on .sub,.pk.on .nm{color:#ffdfd4}
+.pk.on .tg{background:#ffffff26;color:#fff}
+.packwhy{font-size:12px;color:var(--sub);margin:0 0 10px;min-height:1em}
+/* 札の列＝舞台のすぐ下に常時表示（HANDOFF §8 修正指示・2026-09-19） */
+.packwrap{margin:16px 0 0}
+.sechead{font-family:'Oswald',system-ui;font-weight:500;font-size:15px;letter-spacing:.06em;margin:0 0 8px;
+  display:flex;align-items:center;gap:8px;color:var(--deep)}
+.sechead::before{content:"";width:16px;height:3px;background:var(--red)}
+.sechead small{font-weight:400;color:var(--sub);font-size:12px;letter-spacing:0}
 .btn{border-radius:9px;font-size:13px;padding:7px 12px}
-.hero{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
-.tile{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px}
-.tile .cap{font-size:11px;color:var(--sub)}
-.tile .val{font-size:22px;font-weight:700;color:var(--deep);line-height:1.2;margin-top:2px}
-.tile .val small{font-size:12px;font-weight:400;color:var(--sub)}
-.tile .sub{font-size:12px;color:var(--sub);margin-top:2px}
-.delta{font-weight:700} .delta.up{color:#1f6e3a} .delta.down{color:var(--stop)}
+.delta{font-weight:700} .delta.up{color:var(--up)} .delta.down{color:var(--stop)}
+
+/* ゼッケン帯（HANDOFF §8-1） */
+.banner{position:relative;margin:14px 0 0;padding:9px 14px;color:#fff;
+  background:repeating-linear-gradient(115deg,var(--red2) 0 16px,var(--red) 16px 32px);
+  font-family:'Oswald',system-ui;font-weight:500;font-size:15px;letter-spacing:.04em;
+  border-radius:12px 12px 0 0;box-shadow:inset 0 -2px 0 #0003}
+.banner b{font-weight:700}
+.banner .arrow{color:var(--gold);padding:0 4px}
+
+/* 舞台（濃色・1画面に1つだけ・HANDOFF §8-1） */
+.stage{background:
+   radial-gradient(120% 90% at 20% 0%, #24543d 0%, transparent 60%),
+   linear-gradient(180deg,var(--stage) 0%,var(--stage2) 100%);
+  color:var(--cream);padding:16px 14px 18px;position:relative;border-radius:0 0 12px 12px;overflow:hidden}
+.stage::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.14;
+  background-image:radial-gradient(#fff 0.5px,transparent 0.6px);background-size:3px 3px}
+.stage .rows{display:flex;gap:10px;align-items:flex-end;position:relative}
+.stage .numblock{flex:1}
+.stage .cap{font-size:11px;letter-spacing:.14em;color:#bcd6c4;text-transform:uppercase}
+.stage .big{font-family:'Oswald',system-ui;font-weight:700;line-height:1;display:flex;align-items:baseline;gap:6px;margin-top:2px}
+.stage .big .from{font-size:26px;color:#8fae9b}
+.stage .big .to{font-size:46px;color:#fff;text-shadow:0 2px 0 #0004}
+.stage .big .unit{font-size:13px;color:#bcd6c4;letter-spacing:.08em}
+.stage .tri{color:var(--gold);font-size:18px}
+.stage .bar{height:9px;border-radius:999px;background:#0b241a;margin-top:9px;position:relative;overflow:hidden;border:1px solid #ffffff1a}
+.stage .bar i{position:absolute;inset:0 auto 0 0;display:block;border-radius:999px;background:linear-gradient(90deg,#7b3a2a,var(--red) 55%,var(--gold));width:0;transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+.stage .badge{width:96px;height:96px;border-radius:50%;background:var(--red);border:3px solid var(--cream);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;
+  box-shadow:0 4px 0 #0004, inset 0 -6px 12px #0003;flex:none}
+.stage .badge .d{font-family:'Oswald',system-ui;font-weight:700;font-size:30px;line-height:1}
+.stage .badge .p{font-size:11px;letter-spacing:.08em;margin-top:1px;color:#ffe9c9}
+.stage .grid2{display:flex;gap:12px;margin-top:14px;align-items:center;position:relative}
+.stage .radar{flex:none}
+.stage .quote{font-family:'Noto Serif JP',serif;font-weight:600;font-size:14.5px;color:#fff;
+  border-left:3px solid var(--gold);padding:2px 0 2px 10px;line-height:1.7;margin:0}
+.stage .radarlegend{font-size:11px;color:#bcd6c4;margin-top:8px;display:flex;gap:12px}
+.stage .radarlegend i{display:inline-block;width:14px;height:0;border-top:2px solid #8fae9b;vertical-align:middle;margin-right:4px}
+.stage .radarlegend i.b{border-top:2px solid var(--gold)}
+.stage .cta{display:block;text-align:center;margin:14px 0 0;padding:11px;border:1px solid var(--gold);color:var(--cream);
+  border-radius:10px;font-weight:700;font-size:14px;text-decoration:none;background:#ffffff0d;letter-spacing:.02em}
 .chart{position:relative;border:1px solid var(--line);background:var(--surface-1);border-radius:12px;padding:10px 8px 6px;margin-top:12px}
 .chart .title{font-size:13px;color:var(--deep);margin:0 4px 4px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--text-secondary)}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .chart canvas{display:block;width:100%;height:230px;touch-action:pan-y}
-.tip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px;color:var(--text-secondary);box-shadow:0 4px 14px #00000014;display:none;min-width:120px;z-index:2}
+.tip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px;color:var(--text-secondary);box-shadow:0 4px 14px #00000014;display:none;min-width:120px;z-index:2}
 .tip b{color:var(--text-primary);font-size:13px}
 .tip .r{display:flex;justify-content:space-between;gap:10px;align-items:center}
 .tip .r i{display:inline-block;width:14px;border-top:2px solid;margin-right:6px}
@@ -90,14 +147,14 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
 .story .zone{padding:8px 0;border-bottom:1px dashed var(--line)} .story .zone:last-child{border-bottom:0}
 .story .zone .t{font-size:13px;font-weight:700;color:var(--deep)} .story .zone .v{font-size:12px;color:var(--sub);margin-left:6px;font-weight:400}
 .story .zone p{margin:2px 0 0;font-size:14px}
-.bottle{border:2px solid var(--deep);background:#eef2ec;border-radius:12px;padding:12px 14px;margin-top:10px;color:var(--deep)}
+.bottle{border:2px solid var(--deep);background:var(--infobg);border-radius:12px;padding:12px 14px;margin-top:10px;color:var(--deep)}
 .bottle b{font-size:15px}
 .bottle p{margin:4px 0 0;font-size:13px}
 .warns{list-style:none;padding:0;margin:8px 0 0;display:flex;flex-direction:column;gap:6px}
 .warns li{border-radius:10px;padding:8px 12px;font-size:13px;border:1px solid}
-.warns li.warn{background:var(--warnbg);border-color:#e8d2a0;color:var(--warn)}
-.warns li.stop{background:var(--stopbg);border-color:#e8b3aa;color:var(--stop)}
-.warns li.info{background:var(--infobg);border-color:#cfdad2;color:var(--info)}
+.warns li.warn{background:var(--warnbg);border-color:var(--warnborder);color:var(--warn)}
+.warns li.stop{background:var(--stopbg);border-color:var(--stopborder);color:var(--stop)}
+.warns li.info{background:var(--infobg);border-color:var(--infoborder);color:var(--info)}
 .parts{font-size:13px;margin:8px 0 0;padding:0;list-style:none}
 .parts li{padding:6px 0;border-bottom:1px dashed var(--line)}
 .parts .k{color:var(--sub);font-size:12px}
@@ -114,6 +171,45 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
   <p class="topbar"><a href="/">← トップへ戻る</a><span id="status" style="font-size:12px;color:var(--sub)"></span></p>
   <h1>エンジン妄想シミュレーター</h1>
   <p class="lead">空冷フィアット500・126のエンジンを、定番の改造を1つ選ぶだけで「妄想」する道具。<b>純正と比べてどれくらい変わりそうか</b>を見る（絶対値の誤差は1〜2割＝下の「この道具の限界」）。</p>
+
+  <div id="result" class="busy" hidden>
+    <div class="banner" id="banner"><b id="bannerFrom"></b><span class="arrow">▶</span><span id="bannerTo"></span></div>
+    <div class="stage">
+      <div class="rows">
+        <div class="numblock">
+          <div class="cap">最高出力</div>
+          <div class="big"><span class="from" id="heroCvFrom">—</span><span class="tri">▶</span><span class="to" id="heroCv">—</span><span class="unit">CV</span></div>
+          <div class="bar"><i id="barCv"></i></div>
+          <div class="cap" style="margin-top:12px">最大トルク</div>
+          <div class="big"><span class="from" id="heroNmFrom">—</span><span class="tri">▶</span><span class="to" id="heroNm" style="font-size:34px">—</span><span class="unit">Nm</span></div>
+          <div class="bar"><i id="barNm"></i></div>
+        </div>
+        <div class="badge"><span class="d" id="badgeD">—</span><span class="p">出力</span></div>
+      </div>
+      <div class="grid2">
+        <svg class="radar" id="radar" width="150" height="150" viewBox="0 0 200 200" aria-hidden="true"></svg>
+        <div>
+          <p class="quote" id="quote"></p>
+          <div class="radarlegend"><span><i></i>いま</span><span><i class="b"></i>変えた後</span></div>
+        </div>
+      </div>
+      <a class="cta" id="toDrive" href="drive.html">この2台を坂で走らせる →</a>
+    </div>
+  </div>
+
+  <div class="packwrap" id="stepPack" hidden>
+    <p class="sechead">変えた後を選ぶ<small id="packSummary"></small></p>
+    <div class="packs" id="packs"></div>
+    <p class="packwhy" id="packWhy"></p>
+    <details class="inner" id="dFine"><summary>札を使わず細かく決める ▸</summary><div>
+      <p class="note" style="margin:8px 0 8px">選択肢の「◎」＝登録されているお車で実際に使われている部品。「※」＝店に数値の記載が無く、同系の品から借りた仮の値で計算している部品。</p>
+      <section class="panel" id="panelB">
+        <h3><span class="key b"></span>変えた後</h3>
+        <div class="chips"><button type="button" id="copyAB">「いま」の内容をここへ写す</button><button type="button" id="resetB">純正に戻す</button></div>
+        <div class="slots" data-side="b"></div>
+      </section>
+    </div></details>
+  </div>
 
   <h2 style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">ベース車両の選択<a href="#" id="resetAll" hidden style="color:var(--sub);text-decoration:none;font-size:13px">最初から選び直す</a></h2>
 
@@ -140,27 +236,9 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
     </div>
   </div></details>
 
-  <details class="sec" name="sec" id="stepPack" hidden><summary>変えた後<small></small></summary><div class="body">
-    <div class="packs" id="packs"></div>
-    <p class="packwhy" id="packWhy"></p>
-    <details class="inner" id="dFine"><summary>札を使わず細かく決める ▸</summary><div>
-      <p class="note" style="margin:8px 0 8px">選択肢の「◎」＝登録されているお車で実際に使われている部品。「※」＝店に数値の記載が無く、同系の品から借りた仮の値で計算している部品。</p>
-      <section class="panel" id="panelB">
-        <h3><span class="key b"></span>変えた後</h3>
-        <div class="chips"><button type="button" id="copyAB">「いま」の内容をここへ写す</button><button type="button" id="resetB">純正に戻す</button></div>
-        <div class="slots" data-side="b"></div>
-      </section>
-    </div></details>
-  </div></details>
-
-  <div id="result" class="busy" hidden>
-    <div class="hero">
-      <div class="tile"><div class="cap">最高出力</div><div class="val" id="heroCv">…</div><div class="sub" id="heroCvSub"></div></div>
-      <div class="tile"><div class="cap">最大トルク</div><div class="val" id="heroNm">…</div><div class="sub" id="heroNmSub"></div></div>
-    </div>
+  <div id="resultMore" class="busy" hidden>
     <!-- 単位の断りは一度だけ（2026-09-19 ユーザー確定）＝出力は CV のまま出す。⛔ PS へ書き換えない・⛔ 各所に断りを増やさない -->
     <p class="note" id="unitNote"><b>CV</b> は出力の単位で、日本でふつうに言う <b>PS（馬力）</b>と同じ。</p>
-    <p style="margin:10px 0 0"><a id="toDrive" class="btn" href="drive.html">この2台を坂で走らせる →</a></p>
 
     <div class="chart" id="chartT">
       <div class="title"><span>トルク（Nm）</span><span class="legend"><span><i class="key a"></i>いま</span><span><i class="key b"></i>変えた後</span></span></div>
@@ -199,7 +277,7 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
 <script type="module">
 import { simulate } from './sim.js';
 import { MODELS, SLOTS, START_EXAMPLES, PACKAGES, DEFAULT_CHOICES, buildSpec, modelById, packagesFor, packageChoices, packageSub, packageMatches } from './presets.js';
-import { tellStory, findBottleneck, warnings, LIMITS } from './story.js';
+import { tellStory, findBottleneck, warnings, summarizeRes, LIMITS } from './story.js';
 
 const RPM = [1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500];
 const SLOT_LABELS = { disp: '排気量（シリンダー＋ピストン）', cr: '圧縮比', cam: 'カム', head: 'ヘッド（バルブ径・ポート）', carb: 'キャブ', exh: 'マフラー' };
@@ -222,6 +300,9 @@ function setStepSummary(sel, label, value) {
   const s = $(sel); s.textContent = label;
   if (value) { const small = document.createElement('small'); small.textContent = value; s.append(small); }
 }
+// #result（舞台）と #resultMore（注記・グラフ・詳細節）は常にペアで開閉する（DOMを分けたのは見た目の並び替えのため＝進行管理は変えない・2026-09-19 修正指示）
+function setResultHidden(v) { $('#result').hidden = v; $('#resultMore').hidden = v; }
+function setResultBusy(v) { $('#result').classList.toggle('busy', v); $('#resultMore').classList.toggle('busy', v); }
 // 展開は一度に1つ＝手順の行も既存の name="sec" グループに含める（closeSiblings は toggle を待たず即座に畳む）
 function openStep(sel) {
   const d = $(sel); d.hidden = false; d.open = true;
@@ -233,7 +314,7 @@ function resetAll() {
   lastPkId = null; stateEditorOpen = false;
   progress.series = false; progress.type = false; progress.state = false; progress.pack = false; progress.result = false;
   for (const d of document.querySelectorAll('details[name="sec"]')) d.open = false;
-  $('#stepType').hidden = true; $('#stepState').hidden = true; $('#stepPack').hidden = true; $('#result').hidden = true;
+  $('#stepType').hidden = true; $('#stepState').hidden = true; $('#stepPack').hidden = true; setResultHidden(true);
   renderSeriesChips(); renderTypeChips(); renderEngChips(); renderStateChips();
   renderChips(); renderPacks(); renderSlots('a'); renderSlots('b');
   update();   // writeHash() をここで一度書くが、直後に replaceState で消す＝素の状態は URL に何も残さない
@@ -275,15 +356,19 @@ function engineSummaryFor(side) {
   const parts = SLOT_ORDER.filter(k => state[side][k] !== 'stock').map(k => built.picks[k].label.replace(/（.*$/, ''));
   return `${Math.round(built.cc)}cc` + (parts.length ? '・' + parts.join('・') : '');
 }
+// ゼッケン帯（舞台の見出し）＝「いま」は車種＋タイプ、「変えた後」は④の要約と同じロジック（札名 or 手組みの要約）
+function bannerFromLabel() { const m = modelById(state.model); return `${m.series} ${m.type}`; }
+function bannerToLabel() { return lastPkId ? PACKAGES.find(p => p.id === lastPkId).name : engineSummaryFor('b'); }
 function updateStep1Summary() {
   if (!progress.series) { setStepSummary('#stepSeries summary', 'ベース車両の選択', ''); return; }
   setStepSummary('#stepSeries summary', '車種', modelById(state.model).series);
 }
 function updateStep2Summary() { setStepSummary('#stepType summary', 'タイプ', progress.type ? modelById(state.model).type : ''); }
 function updateStep3Summary() { setStepSummary('#stepState summary', 'いまの状態', progress.state ? (isStockA() ? '純正のまま' : `改造済み（${engineSummaryFor('a')}）`) : ''); }
+// 札の見出し「変えた後を選ぶ」の横に添える要約（#stepPack は常時表示の div になった＝summary は無い・2026-09-19 修正指示）
 function updateStep4Summary() {
   const label = lastPkId ? PACKAGES.find(p => p.id === lastPkId).name : ((SLOT_ORDER.some(k => state.b[k] !== 'stock') || state.b.eng) ? engineSummaryFor('b') : '');
-  setStepSummary('#stepPack summary', '変えた後', label);
+  $('#packSummary').textContent = label ? '・' + label : '';
 }
 function handleSeriesPick(s) {
   let invalidated = false;
@@ -369,7 +454,7 @@ function onModelChanged() {
       state.b = { ...DEFAULT_CHOICES, ...packageChoices(pkObj, m) };
     } else {
       state.b = { ...DEFAULT_CHOICES }; lastPkId = null;
-      progress.result = false; $('#result').hidden = true;
+      progress.result = false; setResultHidden(true);
       if (progress.pack) { openStep('#stepPack'); invalidated = true; }
     }
   }
@@ -440,19 +525,25 @@ function renderChips() {
 }
 function renderPacks() {
   const m = modelById(state.model); const box = $('#packs'); box.textContent = '';
-  for (const pk of packagesFor(m)) {
-    const b = document.createElement('button'); b.type = 'button'; b.dataset.id = pk.id;
+  // 効果バッジ「力 +◯%」「街で +◯%」＝純正比ではなく「いま」（state.a）比の実値。
+  // summarizeRes() は既存の1回の simulate() 結果から peakCv（力）と town（街＝1500-3000rpm平均トルク）を両方取り出す＝呼ぶ回数は増やさない。
+  const baseSum = summarizeRes(simulate(buildSpec(m.id, state.a).spec, RPM));
+  packagesFor(m).forEach((pk, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pk'; b.dataset.id = pk.id;
+    const sum = summarizeRes(simulate(buildSpec(m.id, { ...DEFAULT_CHOICES, ...packageChoices(pk, m) }).spec, RPM));
+    const dPeak = Math.round(100 * (sum.peakCv / baseSum.peakCv - 1));
+    const dTown = Math.round(100 * (sum.town / baseSum.town - 1));
     const ev = pk.evidence === null ? '参考（実例は未確認）' : `根拠 ${pk.evidence} 件`;
-    b.innerHTML = `<b>${pk.name}</b><small>${packageSub(pk, m)}</small><span class="ev">${ev}</span>`;
+    b.innerHTML = `<span class="no">No.${String(i + 1).padStart(2, '0')}</span><div class="nm">${pk.name}</div><div class="sub">${packageSub(pk, m)}</div><div class="tags"><span class="tg ${dPeak >= 0 ? 'up' : 'dn'}">力 ${dPeak >= 0 ? '+' : ''}${dPeak}%</span><span class="tg ${dTown >= 0 ? 'up' : 'dn'}">街で ${dTown >= 0 ? '+' : ''}${dTown}%</span><span class="tg">${ev}</span></div>`;
     b.addEventListener('click', () => {
       state.b = { ...DEFAULT_CHOICES, ...packageChoices(pk, m) }; renderSlots('b'); markPack();
-      // 札を押した時点で④は要約に畳み、ここで初めて結果を見せる（2026-09-19 修正指示＝ウィザード型）
-      $('#stepPack').open = false; progress.result = true; $('#result').hidden = false;
+      // 札を押した時点で、ここで初めて結果を見せる（2026-09-19 修正指示＝札は常時表示・ウィザードは③までに縮小）
+      progress.result = true; setResultHidden(false);
       update();
       gtag('event', 'engine_sim_package', { model: state.model, package: pk.id });
     });
     box.append(b);
-  }
+  });
   markPack();
 }
 // 6欄＋eng がどれかのパッケージと一致していればそのカードを点灯（手で崩したら消える）＝④の要約行もここで更新する
@@ -465,10 +556,10 @@ function markPack() {
   $('#packWhy').textContent = hit ? pks.find(p => p.id === hit).why : '';
   updateStep4Summary();
 }
-// 札を使わず細かく決める編集（panelB）で「変えた後」に変化が出たら、④を畳まずに結果だけ見せる（一度見せたら隠さない）
+// 札を使わず細かく決める編集（panelB）で「変えた後」に変化が出たら、結果だけ見せる（一度見せたら隠さない）
 function revealResultIfChanged() {
   if (progress.result) return;
-  if (SLOT_ORDER.some(k => state.b[k] !== 'stock') || state.b.eng) { progress.result = true; $('#result').hidden = false; }
+  if (SLOT_ORDER.some(k => state.b[k] !== 'stock') || state.b.eng) { progress.result = true; setResultHidden(false); }
 }
 $('#copyAB').addEventListener('click', () => { state.b = { ...state.a }; renderSlots('b'); markPack(); revealResultIfChanged(); update(); });
 $('#resetB').addEventListener('click', () => { state.b = { ...DEFAULT_CHOICES }; renderSlots('b'); markPack(); update(); });
@@ -478,24 +569,73 @@ $('#stateDecide').addEventListener('click', () => { settleStep3(); });
 let timer = null, last = null;
 function update() {
   $('#resetAll').hidden = $('#result').hidden;
-  writeHash(); $('#result').classList.add('busy'); $('#status').textContent = '計算中…';
+  writeHash(); setResultBusy(true); $('#status').textContent = '計算中…';
   clearTimeout(timer);
   timer = setTimeout(() => {
     const A = buildSpec(state.model, state.a), B = buildSpec(state.model, state.b);
     const resA = simulate(A.spec, RPM), resB = simulate(B.spec, RPM);
     last = { A, B, resA, resB };
-    render(last); $('#result').classList.remove('busy'); $('#status').textContent = '';
+    render(last); setResultBusy(false); $('#status').textContent = '';
     gtag('event', 'engine_sim_update', { model: state.model, b: Object.entries(state.b).filter(([, v]) => v !== 'stock').map(([k, v]) => `${k}:${v}`).join(',') || 'stock' });
   }, 30);
 }
 const fmtDelta = (b, a, d = 0) => { const p = 100 * (b / a - 1); const el = document.createElement('span'); el.className = 'delta ' + (p >= 0.5 ? 'up' : p <= -0.5 ? 'down' : ''); el.textContent = (p > 0 ? '+' : '') + p.toFixed(d) + '%'; return el; };
+// 押した瞬間の手応え＝カウントアップ（900ms・1-(1-k)^3）とバーが伸びる（HANDOFF §8-1）
+function countUp(el, to, dec) {
+  const t0 = performance.now(), d = 900;
+  function f(t) {
+    const k = Math.min(1, (t - t0) / d), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = (to * e).toFixed(dec);
+    if (k < 1) requestAnimationFrame(f);
+  }
+  requestAnimationFrame(f);
+}
+// #result が hidden から現れた直後は幅0のままだとトランジションが出ないので、rAF を1つ挟んでから幅を入れる
+function animateBar(el, pct) {
+  el.style.transition = 'none'; el.style.width = '0%';
+  requestAnimationFrame(() => { el.style.transition = ''; el.style.width = Math.max(0, pct) + '%'; });
+}
+// 五角形の5軸（HANDOFF §8-3）＝story.js の summarizeRes() が返す値と warnings() の件数だけで出す（新しい計算は足さない）
+function radarVals(sum, ws) {
+  const warnN = ws.filter(w => w.level === 'warn').length, stopN = ws.filter(w => w.level === 'stop').length;
+  const clamp = v => Math.min(1, Math.max(0.08, v));
+  return {
+    power: clamp(sum.peakCv / 45), torque: clamp(sum.peakNm / 78),
+    high: clamp(sum.high / 45), town: clamp(sum.town / 78),
+    guts: clamp(1 - 0.10 * warnN - 0.22 * stopN),
+  };
+}
+const RADAR_ORDER = ['power', 'torque', 'high', 'town', 'guts'];
+const RADAR_LABELS = ['力', 'トルク', '回りたがり', '扱いやすさ', '我慢'];
+function radarPt(i, val, R) { const ang = -Math.PI / 2 + i * (2 * Math.PI / 5); return [100 + R * val * Math.cos(ang), 100 + R * val * Math.sin(ang)]; }
+function radarPoly(vals, R) { return vals.map((v, i) => radarPt(i, v, R).map(n => n.toFixed(1)).join(',')).join(' '); }
+function drawRadar(el, before, after) {
+  const css = getComputedStyle(document.documentElement);
+  const red = css.getPropertyValue('--red').trim(), gold = css.getPropertyValue('--gold').trim();
+  const beforeVals = RADAR_ORDER.map(k => before[k]), afterVals = RADAR_ORDER.map(k => after[k]);
+  const spokes = RADAR_ORDER.map((_, i) => { const [x, y] = radarPt(i, 1, 70); return `<line x1="100" y1="100" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`; }).join('');
+  const labels = RADAR_ORDER.map((_, i) => { const [x, y] = radarPt(i, 1, 82); return `<text x="${x.toFixed(0)}" y="${y.toFixed(0)}">${RADAR_LABELS[i]}</text>`; }).join('');
+  el.innerHTML = `<g stroke="#ffffff22" fill="none"><polygon points="${radarPoly([1, 1, 1, 1, 1], 70)}"/><polygon points="${radarPoly([.5, .5, .5, .5, .5], 70)}"/>${spokes}</g>` +
+    `<polygon points="${radarPoly(beforeVals, 70)}" fill="none" stroke="#bcd6c4" stroke-width="2.5" stroke-dasharray="8 5"/>` +
+    `<polygon points="${radarPoly(afterVals, 70)}" fill="${red}88" stroke="${gold}" stroke-width="3"/>` +
+    `<g fill="#d6e5da" font-size="13" font-family="system-ui" text-anchor="middle">${labels}</g>`;
+}
 function render({ A, B, resA, resB }) {
   const st = tellStory(resA, resB, A, B);
-  // ヒーロー数値
-  const cv = $('#heroCv'); cv.textContent = ''; cv.append(`${st.B.peakCv.toFixed(1)} `, Object.assign(document.createElement('small'), { textContent: `CV @${st.B.peakCvRpm}` }), ' ', fmtDelta(st.B.peakCv, st.A.peakCv));
-  $('#heroCvSub').textContent = `いま ${st.A.peakCv.toFixed(1)} CV @${st.A.peakCvRpm}`;
-  const nm = $('#heroNm'); nm.textContent = ''; nm.append(`${st.B.peakNm.toFixed(1)} `, Object.assign(document.createElement('small'), { textContent: `Nm @${st.B.peakNmRpm}` }), ' ', fmtDelta(st.B.peakNm, st.A.peakNm));
-  $('#heroNmSub').textContent = `いま ${st.A.peakNm.toFixed(1)} Nm @${st.A.peakNmRpm}`;
+  const wsA = warnings(A, resA), wsB = warnings(B, resB);
+  // 舞台（ゼッケン帯・カウントアップ・バー・ゼッケン円・五角形・実況＝HANDOFF §8-1〜§8-3）
+  $('#bannerFrom').textContent = bannerFromLabel();
+  $('#bannerTo').textContent = bannerToLabel();
+  $('#heroCvFrom').textContent = st.A.peakCv.toFixed(1);
+  $('#heroNmFrom').textContent = st.A.peakNm.toFixed(1);
+  countUp($('#heroCv'), st.B.peakCv, 1);
+  countUp($('#heroNm'), st.B.peakNm, 1);
+  animateBar($('#barCv'), Math.min(100, 100 * st.B.peakCv / 45));
+  animateBar($('#barNm'), Math.min(100, 100 * st.B.peakNm / 78));
+  const outPct = Math.round(100 * (st.B.peakCv / st.A.peakCv - 1));
+  $('#badgeD').textContent = (outPct >= 0 ? '+' : '') + outPct + '%';
+  drawRadar($('#radar'), radarVals(st.A, wsA), radarVals(st.B, wsB));
+  $('#quote').textContent = st.zones[0].text;
   // チャート
   drawChart($('#chartT'), resA, resB, 'torque', 'Nm');
   drawChart($('#chartP'), resA, resB, 'powerCv', 'CV');
@@ -518,11 +658,11 @@ function render({ A, B, resA, resB }) {
   for (const m of bn.more) { const p = document.createElement('p'); p.textContent = m; bb.append(p); }
   const pm = document.createElement('p'); pm.style.color = 'var(--sub)'; pm.style.fontSize = '12px';
   pm.textContent = `目安：ピーク回転でのベンチュリ前後の圧力差 ${bn.dpVenturi.toFixed(1)} kPa／バルブ前後 ${bn.dpValve.toFixed(1)} kPa／排気背圧 ${bn.pExh.toFixed(2)} bar／充填効率 ${(100 * bn.ve).toFixed(0)}%`; bb.append(pm);
-  // 注意
+  // 注意（wsB は舞台の「我慢」軸と共通＝再計算しない）
   const wl = $('#warns'); wl.textContent = '';
-  const ws = warnings(B, resB); if (!ws.length) ws.push({ level: 'info', text: 'この組合せに目立った注意点はありません。' });
-  for (const w of ws) { const li = document.createElement('li'); li.className = w.level; li.textContent = w.text; wl.append(li); }
-  const nw = ws.filter(w => w.level !== 'info').length; $('#warnCount').textContent = nw ? `${nw} 件` : 'なし';
+  const wsShown = wsB.length ? wsB : [{ level: 'info', text: 'この組合せに目立った注意点はありません。' }];
+  for (const w of wsShown) { const li = document.createElement('li'); li.className = w.level; li.textContent = w.text; wl.append(li); }
+  const nw = wsB.filter(w => w.level !== 'info').length; $('#warnCount').textContent = nw ? `${nw} 件` : 'なし';
   // 部品
   const pl = $('#parts'); pl.textContent = '';
   for (const k of SLOT_ORDER) {
@@ -621,12 +761,22 @@ function bindAccordion() {
 // 素で開いたときは①（ベース車両の選択）以外は hidden＝ウィザードを1つずつ開かせる。
 // ハッシュ付きで開いたときは①〜④を全部「答え済み」として表示し、すべて畳んだまま結果まで見せる（2026-09-19 修正指示）。
 readHash();
+// ハッシュが空のとき＝素で開いた瞬間から舞台が動くデモを一度入れる（HANDOFF §8-4 の4）。
+// ウィザードの手順自体は変えない＝ハッシュ付きで開いたときと同じ「答え済み・畳んだまま」の見た目にして、舞台の下に置く。
+if (!hadHash) {
+  const demoM = modelById(state.model);
+  const demoPk = PACKAGES.find(p => p.id === 'p650' && packagesFor(demoM).includes(p)) || packagesFor(demoM)[0];
+  if (demoPk) {
+    state.b = { ...DEFAULT_CHOICES, ...packageChoices(demoPk, demoM) };
+    progress.series = progress.type = progress.state = progress.pack = progress.result = true;
+  }
+}
 renderSeriesChips(); renderTypeChips(); renderEngChips(); renderStateChips();
 renderChips(); renderPacks(); renderSlots('a'); renderSlots('b');
 $('#stepType').hidden = !progress.type;
 $('#stepState').hidden = !progress.state;
 $('#stepPack').hidden = !progress.pack;
-$('#result').hidden = !progress.result;
+setResultHidden(!progress.result);
 $('#resetAll').addEventListener('click', (ev) => { ev.preventDefault(); resetAll(); });
 update();
 bindAccordion();

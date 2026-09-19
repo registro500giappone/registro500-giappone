@@ -21,12 +21,18 @@
 <meta property="og:image" content="https://www.registro500.com/og/site-ja.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#fffdf8; --ink:#3a352c; --sub:#8d8574; --deep:#2c3a31; --line:#e6e0d4; --card:#fffefb; --accent:#7a6a53;
-  --surface-1:#fffdf8; --text-primary:#3a352c; --text-secondary:#8d8574; --grid:#ece7dc;
-  --series-a:#2a78d6; --series-b:#eb6834;
+  /* 案B「レーシング・カタログ」パレット（HANDOFF §8-2・両ファイル共通） */
+  --paper:#f2ece0; --card:#fbf7ee; --ink:#2b2a26; --sub:#7c7263; --line:#ddd3c0;
+  --stage:#173d2c; --stage2:#0d2a1e; --red:#b23b2b; --red2:#8f2a1f; --gold:#c8a457; --cream:#f6f0e2;
+  --series-a:#8fae9b; --series-b:#e8b04f;
+  --bg:var(--paper); --deep:#4a4437; --accent:#7a6a53;
+  --surface-1:var(--card); --text-primary:var(--ink); --text-secondary:var(--sub); --grid:#ece7dc;
   --warn:#8a5a00; --warnbg:#fff4dc; --stop:#8f2a1f; --stopbg:#fdeae6; --info:#3f5a4a; --infobg:#eef2ec;
+  --tag-up-bg:#e3efe4; --tag-up-fg:#2b6440; --tag-dn-bg:#f7e3df;   /* 札の効果バッジ色（index.html §8-2 と共通） */
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;line-height:1.75;-webkit-text-size-adjust:100%}
@@ -34,32 +40,67 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple
 .topbar{margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .topbar a{color:var(--sub);text-decoration:none;font-size:13px}
 .topbar a:hover{color:var(--deep)}
-h1{font-size:21px;margin:0 0 8px;color:var(--deep);letter-spacing:.04em}
+h1{font-family:'Oswald',system-ui;font-weight:700;font-size:23px;margin:0 0 8px;color:var(--deep);letter-spacing:.03em}
 label.row{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--sub);margin:0 0 8px}
-select,input[type=range]{font:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%}
+select,input[type=range]{font:inherit;font-size:14px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%}
 input[type=range]{padding:0;border:0;background:transparent}
 .chips{display:flex;gap:6px;margin:0 0 10px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
-.chips button,.btn{appearance:none;flex:none;border:1px solid var(--line);background:#fff;color:var(--deep);font:inherit;font-size:13px;padding:7px 12px;border-radius:999px;cursor:pointer}
+.chips button,.btn{appearance:none;flex:none;border:1px solid var(--line);background:var(--card);color:var(--deep);font:inherit;font-size:13px;padding:7px 12px;border-radius:999px;cursor:pointer}
 .chips button:hover,.btn:hover{border-color:var(--deep)}
-.chips button.on{border-color:var(--deep);background:var(--deep);color:#fff}
+.chips button.on{border-color:var(--stage);background:var(--stage);color:var(--cream)}
 .free[hidden]{display:none}
 .free{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 10px} .free label{font-size:12px;color:var(--sub)} .free output{color:var(--ink);font-weight:700;margin-left:6px}
-.stage{position:relative;border:1px solid var(--line);background:#fff;border-radius:14px;overflow:hidden}
+/* ゼッケン帯（HANDOFF §8-1・場面チップの下・帯の中に「いま ▶ 変えた後」のエンジン名） */
+.banner{position:relative;margin:0 0 10px;padding:9px 14px;color:var(--cream);
+  background:repeating-linear-gradient(115deg,var(--red2) 0 16px,var(--red) 16px 32px);
+  font-family:'Oswald',system-ui;font-weight:500;font-size:14px;letter-spacing:.03em;
+  border-radius:10px;box-shadow:inset 0 -2px 0 #0003}
+.banner b{font-weight:700}
+.banner .arrow{color:var(--gold);padding:0 5px}
+/* 舞台＝濃緑（1画面に1つだけ）。走行エリア・結果の一文・数字ブロックをここで包む */
+.stageWrap{position:relative;background:linear-gradient(180deg,var(--stage) 0%,var(--stage2) 100%);border-radius:14px;padding:14px 12px 16px;margin:0 0 12px;overflow:hidden}
+.stageWrap::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 20% 0%, #24543d 0%, transparent 60%)}
+.stageWrap::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.14;background-image:radial-gradient(#fff 0.5px,transparent 0.6px);background-size:3px 3px}
+.stageWrap>*{position:relative;z-index:1}
+.stage{position:relative;border-radius:10px;overflow:hidden}
 .stage canvas{display:block;width:100%;height:320px}
 .stage.flat canvas{height:270px}
-.stage .hud{position:absolute;left:10px;top:6px;font-size:12px;color:var(--sub);display:flex;gap:12px}
-.stage .hud b{color:var(--ink)}
+.stage .hud{position:absolute;left:10px;top:6px;font-size:12px;color:var(--series-a);display:flex;gap:12px}
+.stage .hud b{color:var(--cream)}
 .stage .ctl{position:absolute;right:8px;top:5px}
-.stage .ctl .btn{font-size:12px;padding:3px 10px}
-.res{margin:12px 0 2px;font-size:16px;font-weight:700;color:var(--deep);line-height:1.6} .res b{color:var(--series-b)}
-.sub{font-size:12px;color:var(--sub);margin:0 0 12px}
-.cards{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none}
-.cards button{appearance:none;flex:none;width:132px;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:8px 10px;font:inherit;font-size:11px;color:var(--sub);line-height:1.45;cursor:pointer}
-.cards button b{display:block;font-size:14px;color:var(--deep);margin-bottom:2px}
-.cards button.on{border:2px solid var(--series-b);padding:7px 9px}
-.cards button.dim{opacity:.55}
-.cards button.dim.on{opacity:1}
+.stage .ctl .btn{font-size:12px;padding:3px 10px;background:var(--cream);border-color:var(--gold);color:var(--ink)}
+.resRow{display:flex;gap:12px;align-items:center;margin-top:12px}
+.resRow .resText{flex:1;min-width:0}
+.badge{width:78px;height:78px;border-radius:50%;background:var(--red);border:3px solid var(--cream);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--cream);
+  box-shadow:0 4px 0 #0004, inset 0 -6px 12px #0003;flex:none}
+.badge .d{font-family:'Oswald',system-ui;font-weight:700;font-size:19px;line-height:1}
+.badge .p{font-size:10px;letter-spacing:.08em;margin-top:1px;color:#ffe9c9}
+.res{margin:0 0 2px;font-size:15px;font-weight:700;color:var(--cream);line-height:1.6} .res b{color:var(--gold)}
+.sub{font-size:12px;color:var(--series-a);margin:0}
+/* 札（HANDOFF §8「(1) drive.html の札を index.html と同じマークアップ・CSS に揃える」＝.pk 系は index.html からの移植） */
+.packs{display:flex;gap:9px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;margin-top:4px}
+.pk{appearance:none;flex:none;width:158px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 10px 10px 13px;position:relative;overflow:hidden;font:inherit;cursor:pointer}
+.pk::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--line)}
+.pk:hover{border-color:var(--deep)}
+.pk .no{font-family:'Oswald',system-ui;font-size:11px;color:var(--sub);letter-spacing:.1em}
+.pk .nm{font-weight:700;font-size:14px;margin:1px 0 4px;color:var(--deep)}
+.pk .sub{font-size:11px;color:var(--sub);line-height:1.5;min-height:31px}
+.pk .tags{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.pk .tg{font-size:10px;border-radius:999px;padding:1px 6px;background:#efe7d6;color:#6a5f4d}
+.pk .tg.up{background:var(--tag-up-bg);color:var(--tag-up-fg)}
+.pk .tg.dn{background:var(--tag-dn-bg);color:var(--red2)}
+.pk.on{background:var(--red);border-color:var(--red2);color:#fff;box-shadow:0 3px 0 #0002}
+.pk.on::before{background:var(--gold)}
+.pk.on .no,.pk.on .sub,.pk.on .nm{color:#ffdfd4}
+.pk.on .tg{background:#ffffff26;color:#fff}
 .packWhy{font-size:12px;color:var(--sub);margin:4px 0 0;min-height:1em}
+/* 札の列＝舞台のすぐ下に常時表示（HANDOFF §8 修正指示・2026-09-19） */
+.packwrap{margin:0 0 14px}
+.sechead{font-family:'Oswald',system-ui;font-weight:500;font-size:15px;letter-spacing:.06em;margin:0 0 8px;
+  display:flex;align-items:center;gap:8px;color:var(--deep)}
+.sechead::before{content:"";width:16px;height:3px;background:var(--red)}
+.sechead small{font-weight:400;color:var(--sub);font-size:12px;letter-spacing:0}
 .sec{border:1px solid var(--line);background:var(--card);border-radius:12px;margin-top:8px;padding:0 12px}
 .sec>summary{cursor:pointer;font-size:14px;color:var(--deep);padding:9px 0;list-style:none;display:flex;justify-content:space-between;align-items:center}
 .sec>summary::-webkit-details-marker{display:none}
@@ -71,26 +112,27 @@ label.row.model{margin:12px 0 0}
 label.row.model select{padding:9px 12px}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
 @media (max-width:640px){.cols{grid-template-columns:1fr}}
-.panel{border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px 14px}
+.panel{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px}
 .panel h3{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
-.driveHead{margin:14px 0 6px;font-size:14px;border-top:1px solid #e6e0d2;padding-top:12px}
-.driveHead small{font-weight:400;color:#8d8574;margin-left:8px;font-size:12px}
+.driveHead{margin:14px 0 6px;font-size:14px;border-top:1px solid var(--line);padding-top:12px}
+.driveHead small{font-weight:400;color:var(--sub);margin-left:8px;font-size:12px}
 .key{display:inline-block;width:18px;height:0;border-top:3px solid;border-radius:2px}
 .key.a{border-color:var(--series-a)} .key.b{border-color:var(--series-b)}
-.eng{font-size:12px;color:var(--ink);background:#faf7f0;border:1px dashed var(--line);border-radius:9px;padding:7px 10px;margin:0 0 10px;line-height:1.5}
+.eng{font-size:12px;color:var(--ink);background:var(--card);border:1px dashed var(--line);border-radius:9px;padding:7px 10px;margin:0 0 10px;line-height:1.5}
 .eng .k{color:var(--sub)} .eng a{color:var(--deep);font-size:12px;white-space:nowrap}
-.hero{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 10px}
+/* 数字ブロック（tile）＝舞台の中の半透明パネル（HANDOFF §8-4 手順5） */
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 0}
 @media (max-width:420px){.hero{grid-template-columns:1fr}}
-.tile{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px}
-.tile .cap{font-size:11px;color:var(--sub)} .tile .val{font-size:22px;font-weight:700;color:var(--deep);line-height:1.2;margin-top:2px} .tile .val small{font-size:12px;font-weight:400;color:var(--sub)} .tile .sub{font-size:12px;color:var(--sub);margin-top:2px}
-.delta{font-weight:700} .delta.up{color:#1f6e3a} .delta.down{color:var(--stop)}
+.tile{border:1px solid #ffffff26;background:#ffffff0d;border-radius:12px;padding:10px 12px}
+.tile .cap{font-size:11px;letter-spacing:.04em;color:var(--series-a)} .tile .val{font-family:'Oswald',system-ui;font-size:19px;font-weight:700;color:var(--cream);line-height:1.2;margin-top:2px} .tile .val small{font-size:12px;font-weight:400;color:var(--series-a)} .tile .sub{font-size:12px;color:var(--series-a);margin-top:2px}
+.delta{font-weight:700} .delta.up{color:#bfe3c9} .delta.down{color:#f3b3a8}
 .story p{margin:6px 0;font-size:14px} .story p:first-child{margin-top:0}
 .story .a{color:var(--series-a);font-weight:700} .story .b{color:var(--series-b);font-weight:700}
 .chart{position:relative;border:1px solid var(--line);background:var(--surface-1);border-radius:12px;padding:10px 8px 6px;margin-top:4px}
 .chart .title{font-size:13px;color:var(--deep);margin:0 4px 4px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--text-secondary)} .legend span{display:inline-flex;align-items:center;gap:6px}
 .chart canvas{display:block;width:100%;height:230px;touch-action:pan-y}
-.tip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px;color:var(--text-secondary);box-shadow:0 4px 14px #00000014;display:none;min-width:150px}
+.tip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px;color:var(--text-secondary);box-shadow:0 4px 14px #00000014;display:none;min-width:150px}
 .tip b{color:var(--text-primary);font-size:13px} .tip .r{display:flex;justify-content:space-between;gap:10px;align-items:center} .tip .r i{display:inline-block;width:14px;border-top:2px solid;margin-right:6px}
 details.inner{margin-top:8px;font-size:12px;color:var(--sub)} details.inner summary{cursor:pointer}
 table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:right} th:first-child,td:first-child{text-align:left}
@@ -111,13 +153,28 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
   </div>
 
   <div id="result" class="busy">
-    <div class="stage" id="stage">
-      <canvas id="stageCv"></canvas>
-      <div class="hud" id="hud"></div>
-      <div class="ctl"><button type="button" class="btn" id="replay">もう一度</button></div>
+    <div class="banner" id="banner"></div>
+    <div class="stageWrap" id="stageWrap">
+      <div class="stage" id="stage">
+        <canvas id="stageCv"></canvas>
+        <div class="hud" id="hud"></div>
+        <div class="ctl"><button type="button" class="btn" id="replay">もう一度</button></div>
+      </div>
+      <div class="resRow">
+        <div class="badge" id="resBadge"><span class="d" id="resBadgeNum"></span><span class="p" id="resBadgeLabel"></span></div>
+        <div class="resText">
+          <p class="res" id="res"></p>
+          <p class="sub" id="resSub"></p>
+        </div>
+      </div>
+      <div class="hero" id="hero"></div>
     </div>
-    <p class="res" id="res"></p>
-    <p class="sub" id="resSub"></p>
+
+    <div class="packwrap" id="stepPack">
+      <p class="sechead">変えた後を選ぶ<small id="packSummary"></small></p>
+      <div class="packs" id="packs"></div>
+      <p class="packWhy" id="packWhy"></p>
+    </div>
 
     <h3 class="driveHead" style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><span>ベース車両<small>押すと開く・選ぶと畳まれる</small></span><a href="#" id="resetAll" style="color:var(--sub);text-decoration:none;font-size:13px">最初から選び直す</a></h3>
     <details class="sec" name="sec" id="stepSeries"><summary>車種<small></small></summary><div class="body">
@@ -132,10 +189,6 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
     </div></details>
     <details class="sec" name="sec" id="stepState"><summary>いまの状態<small></small></summary><div class="body">
       <div class="eng" id="engNow"></div>
-    </div></details>
-    <details class="sec" name="sec" id="stepPack"><summary>変えた後<small></small></summary><div class="body">
-      <div class="cards" id="packs"></div>
-      <p class="packWhy" id="packWhy"></p>
     </div></details>
 
     <details class="sec" name="sec" id="dFine"><summary>細かく変える<small>エンジンの中身を2台ぶん</small></summary><div class="body">
@@ -155,7 +208,6 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
     </div></details>
 
     <details class="sec" name="sec" id="dStory"><summary>走りの中身<small>いちばん落ちた速度・ギア・所要時間</small></summary><div class="body">
-      <div class="hero" id="hero"></div>
       <div class="story" id="story"></div>
     </div></details>
 
@@ -184,6 +236,7 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
 <script type="module">
 import { simulate } from './sim.js';
 import { MODELS, SLOTS, PACKAGES, DEFAULT_CHOICES, buildSpec, modelById, revCapRpm, packagesFor, packageChoices, packageSub, packageMatches } from './presets.js';
+import { summarizeRes } from './story.js';
 import { GEARBOXES, FINALS, TIRES, FIFTHS, DEFAULT_DRIVE_CHOICES, buildVehicle } from './presets_vehicle.js';
 import { climbHill, accelerate, steadySpeed, topSpeed, gearTable, rpmAtSpeed, sceneLength, gradeAt, redline, capRes } from './vehicle.js';
 import { SCENES, sceneById } from './scenes.js';
@@ -337,9 +390,11 @@ function packHit(side) {
 }
 function engineName(side, built) {
   const pk = packHit(side); if (pk) return pk.name;
-  if (built.eng) return `${built.model.series} ${built.model.type}`;
-  const stock = SLOT_ORDER.every(k => built.picks[k].id === 'stock');
-  return `${Math.round(built.cc)}cc` + (stock ? ' 純正' : '');
+  // 純正判定は state（選んだ選択肢の id）で見る＝built.picks はキャブが「純正のまま」でも実物の id に解決されるため 'stock' にならない（baseStateText と同じ注意）
+  const stock = SLOT_ORDER.every(k => state[side][k] === 'stock');
+  // 型式名の書き方は index.html のゼッケン帯と揃える（「500cc 純正」ではなく「500 F・L」＝2026-09-19 修正指示）
+  if (built.eng || stock) return `${built.model.series} ${built.model.type}`;
+  return `${Math.round(built.cc)}cc`;
 }
 function renderEngines() {
   const A = buildSpec(state.model, state.a), B = buildSpec(state.model, state.b);
@@ -351,28 +406,35 @@ function renderEngines() {
     el.append(a);
   }
 }
-// 王道パッケージ（エンジンの画面と同じ札）＝「変えた後」を1タップで決める
+// 王道パッケージ（エンジンの画面と同じ札＝マークアップ・CSSとも index.html の .pk に揃える・HANDOFF §8「(1)」）＝「変えた後」を1タップで決める
 function renderPacks() {
   const m = modelById(state.model); const box = $('#packs'); box.textContent = '';
-  for (const pk of packagesFor(m)) {
-    const b = document.createElement('button'); b.type = 'button'; b.dataset.id = pk.id;
-    const nm = document.createElement('b'); nm.textContent = pk.name;
-    b.append(nm, packageSub(pk, m));
+  // 効果バッジ「力 +◯%」「街で +◯%」＝index.html と同じロジック。純正比ではなく「いま」（state.a）比の実値。
+  // summarizeRes() は既存の1回の simulate() 結果から peakCv（力）と town（街＝1500-3000rpm平均トルク）を両方取り出す＝呼ぶ回数は増やさない。
+  const baseSum = summarizeRes(simulate(buildSpec(m.id, state.a).spec, RPM));
+  packagesFor(m).forEach((pk, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pk'; b.dataset.id = pk.id;
+    const sum = summarizeRes(simulate(buildSpec(m.id, { ...DEFAULT_CHOICES, ...packageChoices(pk, m) }).spec, RPM));
+    const dPeak = Math.round(100 * (sum.peakCv / baseSum.peakCv - 1));
+    const dTown = Math.round(100 * (sum.town / baseSum.town - 1));
+    const ev = pk.evidence === null ? '参考（実例は未確認）' : `根拠 ${pk.evidence} 件`;
+    b.innerHTML = `<span class="no">No.${String(i + 1).padStart(2, '0')}</span><div class="nm">${pk.name}</div><div class="sub">${packageSub(pk, m)}</div><div class="tags"><span class="tg ${dPeak >= 0 ? 'up' : 'dn'}">力 ${dPeak >= 0 ? '+' : ''}${dPeak}%</span><span class="tg ${dTown >= 0 ? 'up' : 'dn'}">街で ${dTown >= 0 ? '+' : ''}${dTown}%</span><span class="tg">${ev}</span></div>`;
     b.addEventListener('click', () => {
       state.b = { ...DEFAULT_CHOICES, ...packageChoices(pk, m) }; renderEngines(); markPack(); update();
-      $('#stepPack').open = false;
       gtag('event', 'drive_sim_package', { model: state.model, package: pk.id });
     });
     box.append(b);
-  }
+  });
   markPack();
 }
+// 札の見出し「変えた後を選ぶ」の横に添える要約（#stepPack は常時表示の div になった＝summary は無い・2026-09-19 修正指示）
 function markPack() {
   const hit = packHit('b');
   for (const b of $('#packs').querySelectorAll('button')) b.classList.toggle('on', !!hit && b.dataset.id === hit.id);
   $('#packWhy').textContent = hit ? hit.why : '';
   const B = buildSpec(state.model, state.b);
-  setStepSummary('#stepPack summary', '変えた後', engineName('b', B));
+  const label = engineName('b', B);
+  $('#packSummary').textContent = label ? '・' + label : '';
 }
 
 // ───── 場面 ─────
@@ -432,6 +494,7 @@ function tile(cap, valText, sub, delta) {
 }
 function render(L) {
   const { sc, rA, rB } = L;
+  renderBanner(L);
   headline(L);
   const hero = $('#hero'); hero.textContent = '';
   const story = $('#story'); story.textContent = '';
@@ -454,6 +517,18 @@ function render(L) {
   drawLimits(L);
   startAnim(L);
 }
+// ゼッケン帯＝「いま ▶ 変えた後」のエンジン名（HANDOFF §8-4 手順5）
+function renderBanner(L) {
+  const el = $('#banner'); el.textContent = '';
+  const b = document.createElement('b'); b.textContent = L.nameA;
+  const arrow = document.createElement('span'); arrow.className = 'arrow'; arrow.textContent = '▶';
+  el.append(b, arrow, L.nameB);
+}
+// 結果の一文の左に添えるゼッケン円（HANDOFF §8-4 手順5）＝秒数と早い／遅いだけ（新しい計算はしない）
+function updateBadge(numText, label) {
+  $('#resBadgeNum').textContent = numText;
+  $('#resBadgeLabel').textContent = label;
+}
 // 結果の一文（舞台のすぐ下）＝何をどう比べたかを1行で
 function headline(L) {
   const { sc, rA, rB, nameA, nameB } = L;
@@ -461,16 +536,16 @@ function headline(L) {
   const B = (t) => { const b = document.createElement('b'); b.textContent = t; return b; };
   if (sc.kind === 'drag') {
     const dt = rA.time_s - rB.time_s, gap = Math.max(0, 400 - posAt(rA.trace, rB.time_s));
-    if (Math.abs(dt) < 0.15) el.append(`${nameB} にしても 0-400m は変わらない（${rA.time_s.toFixed(1)} 秒）。`);
-    else if (dt > 0) el.append(`${nameB} にすると 0-400m が `, B(`${dt.toFixed(1)} 秒`), ` 縮む（${rA.time_s.toFixed(1)} → ${rB.time_s.toFixed(1)} 秒）。ゴールのとき、いまは `, B(fmtM(gap)), ` 後ろ。`);
-    else el.append(`${nameB} にすると 0-400m が `, B(`${(-dt).toFixed(1)} 秒`), ` 遅くなる（${rA.time_s.toFixed(1)} → ${rB.time_s.toFixed(1)} 秒）。`);
+    if (Math.abs(dt) < 0.15) { el.append(`${nameB} にしても 0-400m は変わらない（${rA.time_s.toFixed(1)} 秒）。`); updateBadge('±0', '変わらず'); }
+    else if (dt > 0) { el.append(`${nameB} にすると 0-400m が `, B(`${dt.toFixed(1)} 秒`), ` 縮む（${rA.time_s.toFixed(1)} → ${rB.time_s.toFixed(1)} 秒）。ゴールのとき、いまは `, B(fmtM(gap)), ` 後ろ。`); updateBadge(`${dt.toFixed(1)}秒`, '早い'); }
+    else { el.append(`${nameB} にすると 0-400m が `, B(`${(-dt).toFixed(1)} 秒`), ` 遅くなる（${rA.time_s.toFixed(1)} → ${rB.time_s.toFixed(1)} 秒）。`); updateBadge(`${(-dt).toFixed(1)}秒`, '遅い'); }
   } else {
     const dt = roundSec(rA.time_s) - roundSec(rB.time_s);
     const lead = dt >= 0 ? rB : rA, other = lead === rB ? rA : rB;
     const gap = Math.max(0, lead.length_m - posAt(other.trace, lead.time_s));
-    if (dt === 0) el.append(`${nameB} にしても、この坂を登り切る時間は変わらない（${fmtTime(rA.time_s)}）。`);
-    else if (dt > 0) el.append(`${nameB} にすると `, B(`${dt} 秒早く`), ` 登り切る。そのとき、いま（${nameA}）は `, B(fmtM(gap)), ` 後ろ。`);
-    else el.append(`${nameB} にすると `, B(`${-dt} 秒遅く`), ` なる。いま（${nameA}）が登り切ったとき、`, B(fmtM(gap)), ` 後ろ。`);
+    if (dt === 0) { el.append(`${nameB} にしても、この坂を登り切る時間は変わらない（${fmtTime(rA.time_s)}）。`); updateBadge('±0秒', '変わらず'); }
+    else if (dt > 0) { el.append(`${nameB} にすると `, B(`${dt} 秒早く`), ` 登り切る。そのとき、いま（${nameA}）は `, B(fmtM(gap)), ` 後ろ。`); updateBadge(`${dt}秒`, '早い'); }
+    else { el.append(`${nameB} にすると `, B(`${-dt} 秒遅く`), ` なる。いま（${nameA}）が登り切ったとき、`, B(fmtM(gap)), ` 後ろ。`); updateBadge(`${-dt}秒`, '遅い'); }
   }
   // 駆動系は2台に共通＝純正から変えているときだけ「2台ともこの駆動系」と断る（2026-09-19）。
   const dPicks = buildVehicle(state.model, state.d).picks;
@@ -552,6 +627,34 @@ function startAnim(L) {
 }
 $('#replay').addEventListener('click', () => { if (last) startAnim(last); });
 const FONT = 'system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
+// #rrggbb + アルファ(0-1) → rgba() 文字列（:root の色を canvas の半透明塗りにも使い回すための小関数）
+function hexA(hex, a) {
+  const h = hex.replace('#', '').trim();
+  const n = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+  const r = parseInt(n.slice(0, 2), 16), g = parseInt(n.slice(2, 4), 16), b = parseInt(n.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+// canvas の色は全部ここに集約＝ :root の CSS 変数から読む（drawChart と同じ手本）。⛔JS に色リテラルを残さない（HANDOFF §8-2）。
+function stageColors() {
+  const css = getComputedStyle(document.documentElement);
+  const v = (name) => css.getPropertyValue(name).trim();
+  const cream = v('--cream'), gold = v('--gold'), sub = v('--sub'), ink = v('--ink'), line = v('--line'), card = v('--card'), paper = v('--paper'), a = v('--series-a'), b = v('--series-b');
+  return {
+    a, b,                        // いま／変えた後（車体・車線・線）
+    land: hexA(cream, .12),      // 標高の下地（濃緑の舞台の上）
+    hl: hexA(gold, .40),         // いちばん急な区間のハイライト（濃緑の上）
+    hlText: gold,                // 同・%ラベル（濃緑の上）
+    route: hexA(gold, .55),      // 標高の輪郭線（濃緑の上）
+    cap: a,                      // 地名・現在地の控えめな文字（濃緑の上）
+    capEm: cream,                // 「◯km地点」など強調ラベル（濃緑の上）
+    lineLight: line,             // 道の目印線・電柱（追いかけ窓＝明るい下地の上）
+    subLight: sub,               // 控えめな文字（明るい下地の上）
+    inkLight: ink,                // 強めの文字（明るい下地の上）
+    panelBg: card,                // 追いかけ窓の地
+    panelBg2: paper,              // 遠景の地
+    tagText: cream,               // 車の札の文字（色付きタグの上）
+  };
+}
 function drawStage(L, t) {
   const { sc, rA, rB, nameA, nameB } = L;
   const drag = sc.kind === 'drag';
@@ -560,7 +663,8 @@ function drawStage(L, t) {
   if (!W) return;
   cv.width = W * dpr; cv.height = H * dpr; const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, W, H);
-  const colA = '#2a78d6', colB = '#eb6834';
+  const STAGE = stageColors();
+  const colA = STAGE.a, colB = STAGE.b;
   const len = drag ? sc.distance_m : sceneLength(sc);
   const xA = Math.min(len, posAt(rA.trace, t)), xB = Math.min(len, posAt(rB.trace, t));
   const sA = stateAt(rA.trace, t) || { kmh: 0, gear: 1, rpm: 0 }, sB = stateAt(rB.trace, t) || { kmh: 0, gear: 1, rpm: 0 };
@@ -575,20 +679,20 @@ function drawStage(L, t) {
   const emax = Math.max(1, ...prof.map(p => p.e));
   const mY = (el) => mapBot - (el / emax) * (mapH - 22);
   const elAt = (x) => prof.reduce((m, p) => Math.abs(p.x - x) < Math.abs(m.x - x) ? p : m, prof[0]).e;
-  g.beginPath(); g.moveTo(mX(0), mapBot + 4); for (const p of prof) g.lineTo(mX(p.x), mY(p.e)); g.lineTo(mX(len), mapBot + 4); g.closePath(); g.fillStyle = '#e9e3d6'; g.fill();
+  g.beginPath(); g.moveTo(mX(0), mapBot + 4); for (const p of prof) g.lineTo(mX(p.x), mY(p.e)); g.lineTo(mX(len), mapBot + 4); g.closePath(); g.fillStyle = STAGE.land; g.fill();
   g.font = `bold 10px ${FONT}`; g.textAlign = 'center';
   if (sc.profile) {   // いちばん急な区間に色を付ける
     let acc = 0;
     for (const seg of sc.profile) {
       if (seg.gradePct === rA.maxGrade) {
-        g.beginPath(); g.moveTo(mX(acc), mapBot + 4); for (const p of prof) if (p.x >= acc && p.x <= acc + seg.len_m) g.lineTo(mX(p.x), mY(p.e)); g.lineTo(mX(acc + seg.len_m), mapBot + 4); g.closePath(); g.fillStyle = 'rgba(242,201,166,.75)'; g.fill();
-        g.fillStyle = '#a05a2c'; g.fillText(`${seg.gradePct}%`, mX(acc + seg.len_m / 2), mapBot + 1);
+        g.beginPath(); g.moveTo(mX(acc), mapBot + 4); for (const p of prof) if (p.x >= acc && p.x <= acc + seg.len_m) g.lineTo(mX(p.x), mY(p.e)); g.lineTo(mX(acc + seg.len_m), mapBot + 4); g.closePath(); g.fillStyle = STAGE.hl; g.fill();
+        g.fillStyle = STAGE.hlText; g.fillText(`${seg.gradePct}%`, mX(acc + seg.len_m / 2), mapBot + 1);
       }
       acc += seg.len_m;
     }
-  } else if (!drag) { g.fillStyle = '#a05a2c'; g.fillText(`${sc.gradePct}%`, mX(len / 2), mapBot + 1); }
-  g.beginPath(); for (const [i, p] of prof.entries()) i ? g.lineTo(mX(p.x), mY(p.e)) : g.moveTo(mX(p.x), mY(p.e)); g.strokeStyle = '#b9b1a2'; g.lineWidth = 2; g.stroke();
-  g.font = `10px ${FONT}`; g.fillStyle = '#8d8574';
+  } else if (!drag) { g.fillStyle = STAGE.hlText; g.fillText(`${sc.gradePct}%`, mX(len / 2), mapBot + 1); }
+  g.beginPath(); for (const [i, p] of prof.entries()) i ? g.lineTo(mX(p.x), mY(p.e)) : g.moveTo(mX(p.x), mY(p.e)); g.strokeStyle = STAGE.route; g.lineWidth = 2; g.stroke();
+  g.font = `10px ${FONT}`; g.fillStyle = STAGE.cap;
   // ⚠️ 端の地名は出発直後の車と同じ場所に来る＝車体の下を通すために線から離す（2026-09-19 ユーザー指摘）。
   g.textAlign = 'left'; g.fillText('🏁 ' + sc.to, 6, mapBot + 16);
   g.textAlign = 'right'; g.fillText(sc.from, W - 6, mapBot + 16);
@@ -617,7 +721,7 @@ function drawStage(L, t) {
       g.beginPath(); g.arc(X, Y, 2.5, 0, Math.PI * 2); g.fillStyle = col; g.fill();   // 足元の色＝どちらの車かの目印
     }
   }
-  g.fillStyle = '#6b655a'; g.textAlign = 'center'; g.font = `10px ${FONT}`;
+  g.fillStyle = STAGE.capEm; g.textAlign = 'center'; g.font = `10px ${FONT}`;
   // ⚠️ 車体の上に必ず逃がす（線からの固定オフセットだと車に刺さる＝2026-09-19 ユーザー指摘）。
   //    ⚠️ 0-400 は縮図が低く（mapH 44）上に逃がすと「もう一度」ボタンの下に潜る＝天井に当たったら左へ寄せる。
   const posLabY = Math.max(mapTop + 14, Math.min(mY(elAt(xL)) - 14, mapCarTop - 7));
@@ -644,25 +748,25 @@ function drawStage(L, t) {
   const gr = drag ? 0 : gradeAt(sc, xL) / 100;
   const tilt = gr * 2 * W;                            // 勾配は 2 倍に誇張。左（進行方向）が高い
   const yAt = (base, X) => base + (X - W / 2) / W * tilt;
-  g.fillStyle = '#fbfaf6'; g.fillRect(0, winTop, W, winH);
+  g.fillStyle = STAGE.panelBg; g.fillRect(0, winTop, W, winH);
   const yFar = winTop + winH * 0.30;
-  g.beginPath(); g.moveTo(0, yAt(yFar, 0)); g.lineTo(W, yAt(yFar, W)); g.lineTo(W, H); g.lineTo(0, H); g.closePath(); g.fillStyle = '#efe9dc'; g.fill();
+  g.beginPath(); g.moveTo(0, yAt(yFar, 0)); g.lineTo(W, yAt(yFar, W)); g.lineTo(W, H); g.lineTo(0, H); g.closePath(); g.fillStyle = STAGE.panelBg2; g.fill();
   const laneA = winTop + winH * 0.46, laneB = winTop + winH * 0.70, yMid = (laneA + laneB) / 2 + 2;
   for (const [y, col] of [[laneA + 3, colA], [laneB + 3, colB]]) { g.strokeStyle = col; g.globalAlpha = .3; g.lineWidth = 2; g.beginPath(); g.moveTo(0, yAt(y, 0)); g.lineTo(W, yAt(y, W)); g.stroke(); g.globalAlpha = 1; }
   // 流れる手がかり＝道路に固定した破線と電柱。⭐間隔はカメラの引き具合で粗くする＝画面に出る本数を一定に保ち、負荷を増やさない。
-  g.strokeStyle = '#b9b1a2'; g.lineWidth = 2;
+  g.strokeStyle = STAGE.lineLight; g.lineWidth = 2;
   for (let m = Math.floor(x0 / dashStep) * dashStep; m < x0 + winM + dashStep; m += dashStep) { const a = px(m), b = px(m + dashStep / 2); g.beginPath(); g.moveTo(a, yAt(yMid, a)); g.lineTo(b, yAt(yMid, b)); g.stroke(); }
   g.font = `10px ${FONT}`; g.textAlign = 'center';
   const poleH = Math.max(12, 26 * Math.sqrt(zoom));   // 電柱も引いたぶん低くする（√で効かせて潰れすぎないように）
   for (let m = Math.ceil(x0 / poleStep) * poleStep; m <= x0 + winM; m += poleStep) {
     if (m < 0 || m > len) continue; const X = px(m), y = yAt(yFar, X);
-    g.strokeStyle = '#cfc8b8'; g.lineWidth = 3; g.beginPath(); g.moveTo(X, y - poleH); g.lineTo(X, y); g.stroke();
-    if (m % (poleStep * 2) === 0 && m > 40 && m < len - 40) { g.fillStyle = '#b0a998'; g.fillText(m >= 1000 ? `${(m / 1000).toFixed(1)}km` : `${m}m`, X, y - poleH - 4); }
+    g.strokeStyle = STAGE.lineLight; g.lineWidth = 3; g.beginPath(); g.moveTo(X, y - poleH); g.lineTo(X, y); g.stroke();
+    if (m % (poleStep * 2) === 0 && m > 40 && m < len - 40) { g.fillStyle = STAGE.subLight; g.fillText(m >= 1000 ? `${(m / 1000).toFixed(1)}km` : `${m}m`, X, y - poleH - 4); }
   }
-  const mark = (m, label) => { const X = px(m); if (X < -10 || X > W + 10) return; g.strokeStyle = '#8d8574'; g.lineWidth = 2; g.setLineDash([6, 4]); g.beginPath(); g.moveTo(X, yAt(yFar, X) - 8); g.lineTo(X, H); g.stroke(); g.setLineDash([]); g.fillStyle = '#6b655a'; g.font = `bold 11px ${FONT}`; g.textAlign = 'center'; g.fillText(label, Math.max(30, Math.min(W - 30, X)), winTop + 12); };
+  const mark = (m, label) => { const X = px(m); if (X < -10 || X > W + 10) return; g.strokeStyle = STAGE.subLight; g.lineWidth = 2; g.setLineDash([6, 4]); g.beginPath(); g.moveTo(X, yAt(yFar, X) - 8); g.lineTo(X, H); g.stroke(); g.setLineDash([]); g.fillStyle = STAGE.inkLight; g.font = `bold 11px ${FONT}`; g.textAlign = 'center'; g.fillText(label, Math.max(30, Math.min(W - 30, X)), winTop + 12); };
   mark(0, sc.from); mark(len, '🏁 ' + sc.to);
   // 窓の幅は動く＝いま何 m ぶんを映しているかを必ず出す（縮尺が変わったことの手がかり）
-  g.fillStyle = '#b0a998'; g.font = `10px ${FONT}`; g.textAlign = 'left';
+  g.fillStyle = STAGE.subLight; g.font = `10px ${FONT}`; g.textAlign = 'left';
   g.fillText(`◀ 進行方向　この窓＝${Math.round(winM / 10) * 10} m ぶん` + (winM > BASE_WIN + 1 ? '（離れたので引いて映している）' : ''), 8, H - 6);
   // 車（同じ写真の2台。いま＝奥のレーン・変えた後＝手前のレーン。窓の後ろに外れたら右端に留める）
   // ⭐車の大きさもカメラの引き具合に連動。⚠️ 縮尺どおり（zoom の1乗）だと引ききった終盤で車が潰れて見えなくなる。
@@ -690,16 +794,16 @@ function drawStage(L, t) {
     const tx = Math.max(4, Math.min(W - tw - 4, X - tw / 2));
     const ty = side < 0 ? Math.max(winTop + 20, y - ch - th - 4) : Math.min(y + 6, H - th - 20);
     g.fillStyle = col; g.beginPath(); g.roundRect(tx, ty, tw, th, 8); g.fill();
-    g.fillStyle = '#fff'; g.textAlign = 'left'; g.globalAlpha = .9; g.fillText(l1, tx + 8, ty + 12); g.globalAlpha = 1;
+    g.fillStyle = STAGE.tagText; g.textAlign = 'left'; g.globalAlpha = .9; g.fillText(l1, tx + 8, ty + 12); g.globalAlpha = 1;
     g.font = `bold 12px ${FONT}`; g.fillText(l2, tx + 8, ty + 26);
   }
   // 車間のブラケット（カメラが引くので px 幅は一定ではない＝数字を必ず添える）
   const gap = gapNow;
   if (gap >= 4) {
     const X1 = Math.min(pos[0], pos[1]), X2 = Math.max(pos[0], pos[1]), yb = yAt(yMid, (X1 + X2) / 2) - 3;
-    g.strokeStyle = '#6b655a'; g.lineWidth = 1; g.beginPath(); g.moveTo(X1, yb); g.lineTo(X2, yb); g.moveTo(X1, yb - 5); g.lineTo(X1, yb + 5); g.moveTo(X2, yb - 5); g.lineTo(X2, yb + 5); g.stroke();
+    g.strokeStyle = STAGE.inkLight; g.lineWidth = 1; g.beginPath(); g.moveTo(X1, yb); g.lineTo(X2, yb); g.moveTo(X1, yb - 5); g.lineTo(X1, yb + 5); g.moveTo(X2, yb - 5); g.lineTo(X2, yb + 5); g.stroke();
     const lab = fmtM(gap); g.font = `bold 11px ${FONT}`; const lw = g.measureText(lab).width + 8; const lx = (X1 + X2) / 2;
-    g.fillStyle = '#fbfaf6'; g.fillRect(lx - lw / 2, yb - 16, lw, 14); g.fillStyle = '#6b655a'; g.textAlign = 'center'; g.fillText(lab, lx, yb - 5);
+    g.fillStyle = STAGE.panelBg; g.fillRect(lx - lw / 2, yb - 16, lw, 14); g.fillStyle = STAGE.inkLight; g.textAlign = 'center'; g.fillText(lab, lx, yb - 5);
   }
   // HUD
   const hud = $('#hud'); hud.textContent = '';
