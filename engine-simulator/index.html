@@ -48,7 +48,7 @@ select{font:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px s
 .key{display:inline-block;width:18px;height:0;border-top:3px solid;border-radius:2px}
 .key.a{border-color:var(--series-a)} .key.b{border-color:var(--series-b)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
-.chips button,.btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--deep);font:inherit;font-size:12px;padding:5px 10px;border-radius:999px;cursor:pointer}
+.chips button,.btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--deep);font:inherit;font-size:12px;padding:5px 10px;border-radius:999px;cursor:pointer;text-decoration:none;display:inline-block}
 .chips button:hover,.btn:hover{border-color:var(--deep)}
 .packs{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;margin-top:4px}
 .packs button{appearance:none;flex:none;width:150px;text-align:left;border:1px solid var(--line);background:var(--card);color:var(--deep);font:inherit;padding:8px 10px;border-radius:12px;cursor:pointer;display:flex;flex-direction:column;gap:3px}
@@ -111,36 +111,53 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
 </head>
 <body>
 <div class="wrap">
-  <p class="topbar"><a href="/">← トップへ戻る</a><span id="status" style="font-size:12px;color:var(--sub)"></span><a id="toDrive" href="drive.html" style="margin-left:auto">坂と加速で走らせる →</a></p>
+  <p class="topbar"><a href="/">← トップへ戻る</a><span id="status" style="font-size:12px;color:var(--sub)"></span></p>
   <h1>エンジン妄想シミュレーター</h1>
   <p class="lead">空冷フィアット500・126のエンジンを、定番の改造を1つ選ぶだけで「妄想」する道具。<b>純正と比べてどれくらい変わりそうか</b>を見る（絶対値の誤差は1〜2割＝下の「この道具の限界」）。</p>
 
   <h2>ベース車両の選択</h2>
-  <p class="note" style="margin:0 0 6px">車種</p>
-  <div class="chips" id="seriesChips"></div>
-  <p class="note" style="margin:0 0 6px">タイプ</p>
-  <div class="chips" id="typeChips"></div>
-  <p class="note" style="margin:0 0 6px">いまの状態</p>
-  <div class="chips" id="stateChips"></div>
-  <p class="note" id="modelNote" style="margin-top:2px"></p>
 
-  <details class="sec" name="sec" id="dNow"><summary>いまの明細<small>エンジン＋6欄</small></summary><div class="body">
-    <div class="chips" id="engChips"></div>
-    <section class="panel" id="panelA">
-      <h3><span class="key a"></span>いま</h3>
-      <div class="chips" id="startChips"></div>
-      <div class="slots" data-side="a"></div>
-    </section>
+  <details class="sec" name="sec" id="stepSeries"><summary>ベース車両の選択</summary><div class="body">
+    <div class="chips" id="seriesChips"></div>
   </div></details>
 
-  <div class="packs" id="packs"></div>
-  <p class="packwhy" id="packWhy"></p>
+  <details class="sec" name="sec" id="stepType" hidden><summary>タイプ<small></small></summary><div class="body">
+    <div class="chips" id="typeChips"></div>
+    <p class="note" id="modelNote"></p>
+  </div></details>
 
-  <div id="result" class="busy">
+  <details class="sec" name="sec" id="stepState" hidden><summary>いまの状態<small></small></summary><div class="body">
+    <div class="chips" id="stateChips"></div>
+    <div id="stateDetail" hidden>
+      <div class="chips" id="engChips"></div>
+      <section class="panel" id="panelA">
+        <h3><span class="key a"></span>いま</h3>
+        <div class="chips" id="startChips"></div>
+        <div class="slots" data-side="a"></div>
+      </section>
+      <p style="margin:10px 0 0"><button type="button" class="btn" id="stateDecide">決定</button></p>
+    </div>
+  </div></details>
+
+  <details class="sec" name="sec" id="stepPack" hidden><summary>変えた後<small></small></summary><div class="body">
+    <div class="packs" id="packs"></div>
+    <p class="packwhy" id="packWhy"></p>
+    <details class="inner" id="dFine"><summary>札を使わず細かく決める ▸</summary><div>
+      <p class="note" style="margin:8px 0 8px">選択肢の「◎」＝登録されているお車で実際に使われている部品。「※」＝店に数値の記載が無く、同系の品から借りた仮の値で計算している部品。</p>
+      <section class="panel" id="panelB">
+        <h3><span class="key b"></span>変えた後</h3>
+        <div class="chips"><button type="button" id="copyAB">「いま」の内容をここへ写す</button><button type="button" id="resetB">純正に戻す</button></div>
+        <div class="slots" data-side="b"></div>
+      </section>
+    </div></details>
+  </div></details>
+
+  <div id="result" class="busy" hidden>
     <div class="hero">
       <div class="tile"><div class="cap">最高出力</div><div class="val" id="heroCv">…</div><div class="sub" id="heroCvSub"></div></div>
       <div class="tile"><div class="cap">最大トルク</div><div class="val" id="heroNm">…</div><div class="sub" id="heroNmSub"></div></div>
     </div>
+    <p style="margin:10px 0 0"><a id="toDrive" class="btn" href="drive.html">この2台を坂で走らせる →</a></p>
 
     <div class="chart" id="chartT">
       <div class="title"><span>トルク（Nm）</span><span class="legend"><span><i class="key a"></i>いま</span><span><i class="key b"></i>変えた後</span></span></div>
@@ -151,15 +168,6 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
       <canvas></canvas><div class="tip"></div>
     </div>
     <details class="inner"><summary>数値の表を見る</summary><div id="tableWrap"></div></details>
-
-    <details class="sec" name="sec" id="dFine"><summary>変えた後を細かく変える<small>排気量・圧縮比・カム・ヘッド・キャブ・マフラー</small></summary><div class="body">
-      <p class="note" style="margin:0 0 8px">選択肢の「◎」＝登録されているお車で実際に使われている部品。「※」＝店に数値の記載が無く、同系の品から借りた仮の値で計算している部品。</p>
-      <section class="panel" id="panelB">
-        <h3><span class="key b"></span>変えた後</h3>
-        <div class="chips"><button type="button" id="copyAB">「いま」の内容をここへ写す</button><button type="button" id="resetB">純正に戻す</button></div>
-        <div class="slots" data-side="b"></div>
-      </section>
-    </div></details>
 
     <details class="sec" name="sec" id="dStory"><summary>力の出方はこう変わる<small>回転域ごと</small></summary><div class="body">
       <div class="story" id="story"></div>
@@ -201,11 +209,26 @@ const ENG_OPTIONS = [
 ];
 const $ = (s, r = document) => r.querySelector(s);
 const state = { model: '500F', a: { ...DEFAULT_CHOICES }, b: { ...DEFAULT_CHOICES } };
+// ウィザード型（2026-09-19 修正指示）＝①車種→②タイプ→③いまの状態→④変えた後 の順に1つずつ開く。
+// ハッシュ付きで開いたときは全部「答え済み」として畳んだまま結果まで見せる（ウィザードをやり直させない）。
+const hadHash = location.hash.length > 1;
+const progress = { series: hadHash, type: hadHash, state: hadHash, pack: hadHash, result: hadHash };
+let lastPkId = null;   // 「変えた後」がどの札と一致しているか（要約表示・車種変更時の札の生死判定に使う）
+let stateEditorOpen = false;   // ③で「改造済み」を押した直後だけ true（state.a がまだ純正のままでも明細を開いたままにする）
+function setStepSummary(sel, label, value) {
+  const s = $(sel); s.textContent = label;
+  if (value) { const small = document.createElement('small'); small.textContent = value; s.append(small); }
+}
+// 展開は一度に1つ＝手順の行も既存の name="sec" グループに含める（closeSiblings は toggle を待たず即座に畳む）
+function openStep(sel) {
+  const d = $(sel); d.hidden = false; d.open = true;
+  for (const other of document.querySelectorAll('details[name="sec"]')) if (other !== d && other.open) other.open = false;
+}
 
 // ───── URL ハッシュに状態を持つ（共有できるように） ─────
 function readHash() {
   const h = new URLSearchParams(location.hash.slice(1));
-  if (![...h.keys()].length) { state.b = { ...DEFAULT_CHOICES, ...PACKAGES.find(p => p.id === 'p650').choices }; return; }   // 素で開いたら「純正 vs まず650」を見せる（段4）
+  if (![...h.keys()].length) return;   // 素で開いたらウィザードから＝比較の初期値も入れない（2026-09-19 修正指示）
   if (h.get('m') && modelById(h.get('m')).id === h.get('m')) state.model = h.get('m');
   for (const side of ['a', 'b']) {
     const v = h.get(side); if (!v) continue;
@@ -229,37 +252,78 @@ function writeHash() {
   $('#toDrive').href = 'drive.html#' + p.toString();
 }
 
-// ───── ベース車両＝車種 → タイプ → いまの状態（§7-17） ─────
+// ───── ベース車両＝車種 → タイプ → いまの状態（§7-17・ウィザード型＝2026-09-19 修正指示） ─────
 function isStockA() { return SLOT_ORDER.every(k => state.a[k] === 'stock') && !state.a.eng; }
+// 「いま」「変えた後」の要約1行（例：650cc・28 IMB）＝state（選んだ id）で純正判定する（built.picks はキャブが解決されるため使えない）
+function engineSummaryFor(side) {
+  const built = buildSpec(state.model, state[side]);
+  const parts = SLOT_ORDER.filter(k => state[side][k] !== 'stock').map(k => built.picks[k].label.replace(/（.*$/, ''));
+  return `${Math.round(built.cc)}cc` + (parts.length ? '・' + parts.join('・') : '');
+}
+function updateStep1Summary() {
+  if (!progress.series) { setStepSummary('#stepSeries summary', 'ベース車両の選択', ''); return; }
+  setStepSummary('#stepSeries summary', '車種', modelById(state.model).series);
+}
+function updateStep2Summary() { setStepSummary('#stepType summary', 'タイプ', progress.type ? modelById(state.model).type : ''); }
+function updateStep3Summary() { setStepSummary('#stepState summary', 'いまの状態', progress.state ? (isStockA() ? '純正のまま' : `改造済み（${engineSummaryFor('a')}）`) : ''); }
+function updateStep4Summary() {
+  const label = lastPkId ? PACKAGES.find(p => p.id === lastPkId).name : ((SLOT_ORDER.some(k => state.b[k] !== 'stock') || state.b.eng) ? engineSummaryFor('b') : '');
+  setStepSummary('#stepPack summary', '変えた後', label);
+}
+function handleSeriesPick(s) {
+  let invalidated = false;
+  if (s !== modelById(state.model).series) { state.model = MODELS.find(m => m.series === s).id; invalidated = onModelChanged(); }
+  progress.series = true; renderSeriesChips();
+  if (!invalidated) openStep('#stepType');
+}
+function handleTypePick(m) {
+  let invalidated = false;
+  if (m.id !== state.model) { state.model = m.id; invalidated = onModelChanged(); }
+  progress.type = true; renderTypeChips();
+  if (!invalidated) openStep('#stepState');
+}
 function renderSeriesChips() {
   const box = $('#seriesChips'); box.textContent = '';
   const cur = modelById(state.model).series;
   for (const s of ['500', '126']) {
     const b = document.createElement('button'); b.type = 'button'; b.textContent = s; b.classList.toggle('on', s === cur);
-    b.addEventListener('click', () => { if (s === cur) return; state.model = MODELS.find(m => m.series === s).id; onModelChanged(); });
+    b.addEventListener('click', () => handleSeriesPick(s));
     box.append(b);
   }
+  updateStep1Summary();
 }
 function renderTypeChips() {
   const box = $('#typeChips'); box.textContent = '';
   const cur = modelById(state.model);
   for (const m of MODELS.filter(x => x.series === cur.series)) {
     const b = document.createElement('button'); b.type = 'button'; b.textContent = m.type; b.classList.toggle('on', m.id === cur.id);
-    b.addEventListener('click', () => { if (m.id === state.model) return; state.model = m.id; onModelChanged(); });
+    b.addEventListener('click', () => handleTypePick(m));
     box.append(b);
   }
+  updateStep2Summary();
+}
+// ③いまの状態が答えられたら④へ進む（純正のまま／改造済みの「決定」の共通の出口）
+function settleStep3() {
+  progress.state = true; progress.pack = true;
+  renderStateChips();
+  openStep('#stepPack');
+  renderPacks();
+  update();
 }
 function renderStateChips() {
   const box = $('#stateChips'); box.textContent = '';
   const stock = isStockA();
   const bStock = document.createElement('button'); bStock.type = 'button'; bStock.textContent = '純正のまま'; bStock.classList.toggle('on', stock);
   bStock.addEventListener('click', () => {
-    state.a = { ...DEFAULT_CHOICES }; $('#dNow').open = false;
-    renderStateChips(); renderEngChips(); renderSlots('a'); update();
+    state.a = { ...DEFAULT_CHOICES }; stateEditorOpen = false;
+    renderEngChips(); renderSlots('a');
+    settleStep3();
   });
-  const bMod = document.createElement('button'); bMod.type = 'button'; bMod.textContent = '改造済み → いまの明細を設定 ▸'; bMod.classList.toggle('on', !stock);
-  bMod.addEventListener('click', () => { $('#dNow').open = true; });
+  const bMod = document.createElement('button'); bMod.type = 'button'; bMod.textContent = '改造済み → 明細を設定 ▸'; bMod.classList.toggle('on', !stock);
+  bMod.addEventListener('click', () => { stateEditorOpen = true; renderStateChips(); });
   box.append(bStock, bMod);
+  $('#stateDetail').hidden = stock && !stateEditorOpen;
+  updateStep3Summary();
 }
 // 「エンジン」欄＝車種 500 のときだけ出す（126 は元からそのエンジンなので換装の概念が無い）
 function renderEngChips() {
@@ -277,9 +341,26 @@ function renderEngChips() {
     box.append(b);
   }
 }
+// 車種・タイプを変えたとき＝「変えた後」の札がこの型式でも出せるか確認する（§7-17 修正指示）。
+// 出せる札ならそのまま残す（choices は新しい型式向けに引き直す＝500F→500R で不要な eng 換装が付いたままにならないように）。
+// 出せない札（例：126 専用の札を選んでいて 500 系へ変えた）なら「変えた後」を空へ戻し④を開き直す。
 function onModelChanged() {
+  const m = modelById(state.model);
+  let invalidated = false;
+  if (lastPkId) {
+    const pkObj = PACKAGES.find(p => p.id === lastPkId);
+    if (packagesFor(m).some(pk => pk.id === lastPkId)) {
+      state.b = { ...DEFAULT_CHOICES, ...packageChoices(pkObj, m) };
+    } else {
+      state.b = { ...DEFAULT_CHOICES }; lastPkId = null;
+      progress.result = false; $('#result').hidden = true;
+      if (progress.pack) { openStep('#stepPack'); invalidated = true; }
+    }
+  }
   renderSeriesChips(); renderTypeChips(); renderEngChips(); renderStateChips();
-  renderChips(); renderPacks(); renderSlots('a'); renderSlots('b'); update();
+  renderChips(); renderSlots('a'); renderSlots('b'); renderPacks();
+  update();
+  return invalidated;
 }
 
 // ───── 選択肢の描画（6欄） ─────
@@ -310,7 +391,8 @@ function renderSlots(side) {
     sel.value = state[side][k];
     sel.addEventListener('change', () => {
       state[side][k] = sel.value; onDispChange(side, k);
-      if (side === 'b') markPack(); if (side === 'a') renderStateChips();
+      if (side === 'b') { markPack(); revealResultIfChanged(); }
+      if (side === 'a') renderStateChips();
       update();
     });
     lab.append(sel); box.append(lab);
@@ -347,24 +429,34 @@ function renderPacks() {
     const ev = pk.evidence === null ? '参考（実例は未確認）' : `根拠 ${pk.evidence} 件`;
     b.innerHTML = `<b>${pk.name}</b><small>${packageSub(pk, m)}</small><span class="ev">${ev}</span>`;
     b.addEventListener('click', () => {
-      state.b = { ...DEFAULT_CHOICES, ...packageChoices(pk, m) }; renderSlots('b'); markPack(); update();
-      $('#packWhy').textContent = pk.why;
+      state.b = { ...DEFAULT_CHOICES, ...packageChoices(pk, m) }; renderSlots('b'); markPack();
+      // 札を押した時点で④は要約に畳み、ここで初めて結果を見せる（2026-09-19 修正指示＝ウィザード型）
+      $('#stepPack').open = false; progress.result = true; $('#result').hidden = false;
+      update();
       gtag('event', 'engine_sim_package', { model: state.model, package: pk.id });
     });
     box.append(b);
   }
   markPack();
 }
-// 6欄＋eng がどれかのパッケージと一致していればそのカードを点灯（手で崩したら消える）
+// 6欄＋eng がどれかのパッケージと一致していればそのカードを点灯（手で崩したら消える）＝④の要約行もここで更新する
 function markPack() {
   const m = modelById(state.model); const pks = packagesFor(m);
   let hit = null;
   for (const pk of pks) { if (packageMatches(pk, m, state.b)) hit = pk.id; }
+  lastPkId = hit;
   for (const b of $('#packs').querySelectorAll('button')) b.classList.toggle('on', b.dataset.id === hit);
   $('#packWhy').textContent = hit ? pks.find(p => p.id === hit).why : '';
+  updateStep4Summary();
 }
-$('#copyAB').addEventListener('click', () => { state.b = { ...state.a }; renderSlots('b'); markPack(); update(); });
+// 札を使わず細かく決める編集（panelB）で「変えた後」に変化が出たら、④を畳まずに結果だけ見せる（一度見せたら隠さない）
+function revealResultIfChanged() {
+  if (progress.result) return;
+  if (SLOT_ORDER.some(k => state.b[k] !== 'stock') || state.b.eng) { progress.result = true; $('#result').hidden = false; }
+}
+$('#copyAB').addEventListener('click', () => { state.b = { ...state.a }; renderSlots('b'); markPack(); revealResultIfChanged(); update(); });
 $('#resetB').addEventListener('click', () => { state.b = { ...DEFAULT_CHOICES }; renderSlots('b'); markPack(); update(); });
+$('#stateDecide').addEventListener('click', () => { settleStep3(); });
 
 // ───── 計算と描画 ─────
 let timer = null, last = null;
@@ -508,9 +600,17 @@ function bindAccordion() {
   }
 }
 
-// ───── 起動（素で開いたときは全部の <details> が閉じた状態＝HTML 側で open を付けていない） ─────
-readHash(); renderSeriesChips(); renderTypeChips(); renderEngChips(); renderStateChips();
-renderChips(); renderPacks(); renderSlots('a'); renderSlots('b'); update();
+// ───── 起動 ─────
+// 素で開いたときは①（ベース車両の選択）以外は hidden＝ウィザードを1つずつ開かせる。
+// ハッシュ付きで開いたときは①〜④を全部「答え済み」として表示し、すべて畳んだまま結果まで見せる（2026-09-19 修正指示）。
+readHash();
+renderSeriesChips(); renderTypeChips(); renderEngChips(); renderStateChips();
+renderChips(); renderPacks(); renderSlots('a'); renderSlots('b');
+$('#stepType').hidden = !progress.type;
+$('#stepState').hidden = !progress.state;
+$('#stepPack').hidden = !progress.pack;
+$('#result').hidden = !progress.result;
+update();
 bindAccordion();
 </script>
 </body>

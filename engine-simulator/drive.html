@@ -119,17 +119,21 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
     <p class="res" id="res"></p>
     <p class="sub" id="resSub"></p>
 
-    <h3 class="driveHead">ベース車両</h3>
-    <p class="note" style="margin:0 0 6px">車種</p>
-    <div class="chips" id="seriesChips"></div>
-    <p class="note" style="margin:0 0 6px">タイプ</p>
-    <div class="chips" id="typeChips"></div>
-    <p class="note" style="margin:0 0 6px">いまの状態</p>
-    <div class="eng" id="engNow"></div>
-    <p class="note" id="modelNote" style="margin-top:2px"></p>
-
-    <div class="cards" id="packs"></div>
-    <p class="packWhy" id="packWhy"></p>
+    <h3 class="driveHead">ベース車両<small>押すと開く・選ぶと畳まれる</small></h3>
+    <details class="sec" name="sec" id="stepSeries"><summary>車種<small></small></summary><div class="body">
+      <div class="chips" id="seriesChips"></div>
+    </div></details>
+    <details class="sec" name="sec" id="stepType"><summary>タイプ<small></small></summary><div class="body">
+      <div class="chips" id="typeChips"></div>
+      <p class="note" id="modelNote"></p>
+    </div></details>
+    <details class="sec" name="sec" id="stepState"><summary>いまの状態<small></small></summary><div class="body">
+      <div class="eng" id="engNow"></div>
+    </div></details>
+    <details class="sec" name="sec" id="stepPack"><summary>変えた後<small></small></summary><div class="body">
+      <div class="cards" id="packs"></div>
+      <p class="packWhy" id="packWhy"></p>
+    </div></details>
 
     <details class="sec" name="sec" id="dFine"><summary>細かく変える<small>エンジンの中身を2台ぶん</small></summary><div class="body">
       <div class="cols">
@@ -232,24 +236,39 @@ function writeHash() {
   $('#toEngine').href = './#' + q.toString();
 }
 
-// ───── ベース車両＝車種 → タイプ（index.html と同じ・§7-17） ─────
+// ───── ベース車両＝車種 → タイプ → いまの状態 → 変えた後（index.html と同じ手順の行・§7-17）─────
+// 押すと開く・選ぶと要約1行に畳まれる（drive.html は結果を先に見せる段4を守るので、①〜④は最初から全部この畳んだ状態で並ぶ＝ウィザードはやらせない）
+function setStepSummary(sel, label, value) {
+  const s = $(sel); s.textContent = label;
+  if (value) { const small = document.createElement('small'); small.textContent = value; s.append(small); }
+}
+function updateStep1Summary() { setStepSummary('#stepSeries summary', '車種', modelById(state.model).series); }
+function updateStep2Summary() { setStepSummary('#stepType summary', 'タイプ', modelById(state.model).type); }
 function renderSeriesChips() {
   const box = $('#seriesChips'); box.textContent = '';
   const cur = modelById(state.model).series;
   for (const s of ['500', '126']) {
     const b = document.createElement('button'); b.type = 'button'; b.textContent = s; b.classList.toggle('on', s === cur);
-    b.addEventListener('click', () => { if (s === cur) return; state.model = MODELS.find(m => m.series === s).id; onModelChanged(); });
+    b.addEventListener('click', () => {
+      if (s !== cur) { state.model = MODELS.find(m => m.series === s).id; onModelChanged(); }
+      $('#stepSeries').open = false;
+    });
     box.append(b);
   }
+  updateStep1Summary();
 }
 function renderTypeChips() {
   const box = $('#typeChips'); box.textContent = '';
   const cur = modelById(state.model);
   for (const m of MODELS.filter(x => x.series === cur.series)) {
     const b = document.createElement('button'); b.type = 'button'; b.textContent = m.type; b.classList.toggle('on', m.id === cur.id);
-    b.addEventListener('click', () => { if (m.id === state.model) return; state.model = m.id; onModelChanged(); });
+    b.addEventListener('click', () => {
+      if (m.id !== state.model) { state.model = m.id; onModelChanged(); }
+      $('#stepType').open = false;
+    });
     box.append(b);
   }
+  updateStep2Summary();
 }
 function onModelChanged() {
   renderSeriesChips(); renderTypeChips(); renderDrive(); renderEngines(); renderPacks(); renderBaseState(); update();
@@ -265,12 +284,14 @@ function baseStateText(choices, built) {
 }
 function renderBaseState() {
   const A = buildSpec(state.model, state.a);
+  const txt = baseStateText(state.a, A);
   const el = $('#engNow'); el.textContent = '';
-  el.append(baseStateText(state.a, A) + '　');
+  el.append(txt + '　');
   const a = document.createElement('a'); a.textContent = '明細を設定 →'; a.href = '#';
   a.addEventListener('click', (ev) => { ev.preventDefault(); location.href = $('#toEngine').href; });
   el.append(a);
   const m = modelById(state.model); $('#modelNote').textContent = m.note || '';
+  setStepSummary('#stepState summary', 'いまの状態', txt);
 }
 function stockText(k, base) {
   const o = DRIVE_SLOTS[k].find(x => x.id === base[k]); return o ? `純正のまま（${o.label.replace(/（.*$/, '')}）` : '純正のまま';
@@ -324,6 +345,7 @@ function renderPacks() {
     b.append(nm, packageSub(pk, m));
     b.addEventListener('click', () => {
       state.b = { ...DEFAULT_CHOICES, ...packageChoices(pk, m) }; renderEngines(); markPack(); update();
+      $('#stepPack').open = false;
       gtag('event', 'drive_sim_package', { model: state.model, package: pk.id });
     });
     box.append(b);
@@ -334,6 +356,8 @@ function markPack() {
   const hit = packHit('b');
   for (const b of $('#packs').querySelectorAll('button')) b.classList.toggle('on', !!hit && b.dataset.id === hit.id);
   $('#packWhy').textContent = hit ? hit.why : '';
+  const B = buildSpec(state.model, state.b);
+  setStepSummary('#stepPack summary', '変えた後', engineName('b', B));
 }
 
 // ───── 場面 ─────
