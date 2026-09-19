@@ -119,13 +119,19 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
     <p class="res" id="res"></p>
     <p class="sub" id="resSub"></p>
 
+    <h3 class="driveHead">ベース車両</h3>
+    <p class="note" style="margin:0 0 6px">車種</p>
+    <div class="chips" id="seriesChips"></div>
+    <p class="note" style="margin:0 0 6px">タイプ</p>
+    <div class="chips" id="typeChips"></div>
+    <p class="note" style="margin:0 0 6px">いまの状態</p>
+    <div class="eng" id="engNow"></div>
+    <p class="note" id="modelNote" style="margin-top:2px"></p>
+
     <div class="cards" id="packs"></div>
     <p class="packWhy" id="packWhy"></p>
 
-    <label class="row model">土台になる型式<select id="model"></select></label>
-    <p class="note" id="modelNote" style="margin-top:2px"></p>
-
-    <details class="sec" id="dFine"><summary>細かく変える<small>エンジンの中身を2台ぶん</small></summary><div class="body">
+    <details class="sec" name="sec" id="dFine"><summary>細かく変える<small>エンジンの中身を2台ぶん</small></summary><div class="body">
       <div class="cols">
         <section class="panel">
           <h3><span class="key a"></span>いま</h3>
@@ -141,12 +147,12 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
       <p class="note">乗員は 1人（75kg）で固定。同じ車の2台を同時にスタートさせる。駆動系は2台とも同じ設定で走る。</p>
     </div></details>
 
-    <details class="sec" id="dStory"><summary>走りの中身<small>いちばん落ちた速度・ギア・所要時間</small></summary><div class="body">
+    <details class="sec" name="sec" id="dStory"><summary>走りの中身<small>いちばん落ちた速度・ギア・所要時間</small></summary><div class="body">
       <div class="hero" id="hero"></div>
       <div class="story" id="story"></div>
     </div></details>
 
-    <details class="sec" id="dChart"><summary>速度のグラフ</summary><div class="body">
+    <details class="sec" name="sec" id="dChart"><summary>速度のグラフ</summary><div class="body">
       <div class="chart" id="chartV">
         <div class="title"><span id="chartTitle">速度の変化（横軸＝距離）</span><span class="legend"><span><i class="key a"></i>いま</span><span><i class="key b"></i>変えた後</span></span></div>
         <canvas></canvas><div class="tip"></div>
@@ -154,13 +160,13 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
       <details class="inner"><summary>数値の表</summary><div id="tableV"></div></details>
     </div></details>
 
-    <details class="sec" id="dGear"><summary>ギアと回転</summary><div class="body">
+    <details class="sec" name="sec" id="dGear"><summary>ギアと回転</summary><div class="body">
       <div id="gearTable"></div>
       <p class="note">「80km/h の回転」の <b>—</b> は、そのギアでは回転が上限を超えてしまい 80km/h を出せないという意味。上限は純正なら取説の「各ギアの最大許容速度」に相当する回転（下の「この道具の限界」）。</p>
       <details class="inner"><summary>勾配ごとに維持できる速度（4速に限らず、いちばん速く登れるギアで）</summary><div id="gradeTable"></div></details>
     </div></details>
 
-    <details class="sec" id="dLimits"><summary>この道具の限界・出典</summary><div class="body">
+    <details class="sec" name="sec" id="dLimits"><summary>この道具の限界・出典</summary><div class="body">
       <ul class="limits" id="limits"></ul>
       <p class="note" id="assumed"></p>
     </div></details>
@@ -170,7 +176,7 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
 
 <script type="module">
 import { simulate } from './sim.js';
-import { MODELS, SLOTS, PACKAGES, DEFAULT_CHOICES, buildSpec, modelById, revCapRpm } from './presets.js';
+import { MODELS, SLOTS, PACKAGES, DEFAULT_CHOICES, buildSpec, modelById, revCapRpm, packagesFor, packageChoices, packageSub, packageMatches } from './presets.js';
 import { GEARBOXES, FINALS, TIRES, FIFTHS, DEFAULT_DRIVE_CHOICES, buildVehicle } from './presets_vehicle.js';
 import { climbHill, accelerate, steadySpeed, topSpeed, gearTable, rpmAtSpeed, sceneLength, gradeAt, redline, capRes } from './vehicle.js';
 import { SCENES, sceneById } from './scenes.js';
@@ -192,7 +198,11 @@ function readHash() {
   if (h.get('m') && modelById(h.get('m')).id === h.get('m')) state.model = h.get('m');
   for (const side of ['a', 'b']) {
     const v = h.get(side); if (!v) continue;
-    v.split(',').forEach(kv => { const [k, val] = kv.split(':'); if (SLOTS[k] && SLOTS[k].some(o => o.id === val)) state[side][k] = val; });
+    v.split(',').forEach(kv => {
+      const [k, val] = kv.split(':');
+      if (k === 'eng') { if (MODELS.some(m => m.id === val)) state[side].eng = val; return; }
+      if (SLOTS[k] && SLOTS[k].some(o => o.id === val)) state[side][k] = val;
+    });
   }
   // 駆動系＝共通の d。旧リンクの da（「いま」側）も読んで拾う＝共通設定として解釈する。
   for (const key of ['da', 'd']) {
@@ -203,12 +213,17 @@ function readHash() {
   if (h.get('g')) state.g = Math.min(8, Math.max(1, +h.get('g') || 4));
   if (h.get('l')) state.l = Math.min(12000, Math.max(500, +h.get('l') || 3000));
 }
+// SLOTS に無い eng キーもここでだけ書き出す（旧 URL #m=500F&b=disp:b77,cr:cr75 はそのまま読める＝eng が無いだけ・index.html と同じ・§7-17）
+function encSide(c) {
+  const parts = SLOT_ORDER.filter(k => c[k] !== 'stock').map(k => `${k}:${c[k]}`);
+  if (c.eng) parts.push(`eng:${c.eng}`);
+  return parts.join(',');
+}
 function writeHash() {
-  const enc = (c, order, def) => order.filter(k => c[k] !== def[k]).map(k => `${k}:${c[k]}`).join(',');
   const p = new URLSearchParams(); p.set('m', state.model);
-  const ea = enc(state.a, SLOT_ORDER, DEFAULT_CHOICES), eb = enc(state.b, SLOT_ORDER, DEFAULT_CHOICES);
+  const ea = encSide(state.a), eb = encSide(state.b);
   if (ea) p.set('a', ea); if (eb) p.set('b', eb);
-  const dAll = enc(state.d, DRIVE_ORDER, DEFAULT_DRIVE_CHOICES);
+  const dAll = DRIVE_ORDER.filter(k => state.d[k] !== DEFAULT_DRIVE_CHOICES[k]).map(k => `${k}:${state.d[k]}`).join(',');
   if (dAll) p.set('d', dAll);
   p.set('s', state.scene); if (state.scene === 'free') { p.set('g', state.g); p.set('l', state.l); }
   history.replaceState(null, '', '#' + p.toString());
@@ -217,12 +232,45 @@ function writeHash() {
   $('#toEngine').href = './#' + q.toString();
 }
 
-// ───── 選択肢 ─────
-function renderModel() {
-  const sel = $('#model'); sel.textContent = '';
-  for (const m of MODELS) { const o = document.createElement('option'); o.value = m.id; o.textContent = m.label; sel.append(o); }
-  sel.value = state.model;
-  sel.addEventListener('change', () => { state.model = sel.value; renderDrive(); renderEngines(); renderPacks(); update(); });
+// ───── ベース車両＝車種 → タイプ（index.html と同じ・§7-17） ─────
+function renderSeriesChips() {
+  const box = $('#seriesChips'); box.textContent = '';
+  const cur = modelById(state.model).series;
+  for (const s of ['500', '126']) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = s; b.classList.toggle('on', s === cur);
+    b.addEventListener('click', () => { if (s === cur) return; state.model = MODELS.find(m => m.series === s).id; onModelChanged(); });
+    box.append(b);
+  }
+}
+function renderTypeChips() {
+  const box = $('#typeChips'); box.textContent = '';
+  const cur = modelById(state.model);
+  for (const m of MODELS.filter(x => x.series === cur.series)) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = m.type; b.classList.toggle('on', m.id === cur.id);
+    b.addEventListener('click', () => { if (m.id === state.model) return; state.model = m.id; onModelChanged(); });
+    box.append(b);
+  }
+}
+function onModelChanged() {
+  renderSeriesChips(); renderTypeChips(); renderDrive(); renderEngines(); renderPacks(); renderBaseState(); update();
+}
+// 「いま」の状態を1行で（改造済み6欄は持たないので要約のみ・§7-17）＝エンジンの画面へ「明細を設定 →」
+// ※純正判定は state（選んだ選択肢の id）で見る＝built.picks はキャブが「純正のまま」でも実物の id に解決されるため 'stock' にならない
+function baseStateText(choices, built) {
+  const stock = SLOT_ORDER.every(k => choices[k] === 'stock');
+  if (built.eng) {
+    return `${built.model.series} ${built.model.type} に換装済み` + (stock ? '' : '（さらに部品を変更）');
+  }
+  return stock ? '純正のエンジン' : engineSummary(built);
+}
+function renderBaseState() {
+  const A = buildSpec(state.model, state.a);
+  const el = $('#engNow'); el.textContent = '';
+  el.append(baseStateText(state.a, A) + '　');
+  const a = document.createElement('a'); a.textContent = '明細を設定 →'; a.href = '#';
+  a.addEventListener('click', (ev) => { ev.preventDefault(); location.href = $('#toEngine').href; });
+  el.append(a);
+  const m = modelById(state.model); $('#modelNote').textContent = m.note || '';
 }
 function stockText(k, base) {
   const o = DRIVE_SLOTS[k].find(x => x.id === base[k]); return o ? `純正のまま（${o.label.replace(/（.*$/, '')}）` : '純正のまま';
@@ -246,13 +294,14 @@ function engineSummary(built) {
   const parts = SLOT_ORDER.filter(k => built.picks[k].id !== 'stock').map(k => built.picks[k].label.replace(/（.*$/, ''));
   return `${Math.round(built.cc)}cc・圧縮比 ${built.spec.engine.cr}` + (parts.length ? '・' + parts.join('・') : '・純正のまま');
 }
-// 舞台の札と結果の一文で使う短い名前＝パッケージに一致すればその名前、そうでなければ排気量
+// 舞台の札と結果の一文で使う短い名前＝パッケージに一致すればその名前、そうでなければ排気量（eng 換装も見る・§7-17）
 function packHit(side) {
-  const cur = { ...DEFAULT_CHOICES, ...state[side] };
-  return PACKAGES.find(pk => { const c = { ...DEFAULT_CHOICES, ...pk.choices }; return Object.keys(cur).every(k => cur[k] === c[k]); }) || null;
+  const m = modelById(state.model);
+  return packagesFor(m).find(pk => packageMatches(pk, m, state[side])) || null;
 }
 function engineName(side, built) {
   const pk = packHit(side); if (pk) return pk.name;
+  if (built.eng) return `${built.model.series} ${built.model.type}`;
   const stock = SLOT_ORDER.every(k => built.picks[k].id === 'stock');
   return `${Math.round(built.cc)}cc` + (stock ? ' 純正' : '');
 }
@@ -265,20 +314,16 @@ function renderEngines() {
     const a = document.createElement('a'); a.textContent = '変える →'; a.href = '#'; a.addEventListener('click', (ev) => { ev.preventDefault(); location.href = $('#toEngine').href; });
     el.append(a);
   }
-  const m = modelById(state.model); $('#modelNote').textContent = m.note || '';
 }
-// 王道パッケージ（エンジンの画面と同じ6枚）＝「変えた後」を1タップで決める
+// 王道パッケージ（エンジンの画面と同じ札）＝「変えた後」を1タップで決める
 function renderPacks() {
   const m = modelById(state.model); const box = $('#packs'); box.textContent = '';
-  for (const pk of PACKAGES) {
-    if (pk.families && !pk.families.includes(m.family)) continue;
+  for (const pk of packagesFor(m)) {
     const b = document.createElement('button'); b.type = 'button'; b.dataset.id = pk.id;
-    const dim = pk.needs126 && m.family === '500';
-    if (dim) b.className = 'dim';
     const nm = document.createElement('b'); nm.textContent = pk.name;
-    b.append(nm, pk.sub + (dim ? '（126 のケースが要る）' : ''));
+    b.append(nm, packageSub(pk, m));
     b.addEventListener('click', () => {
-      state.b = { ...DEFAULT_CHOICES, ...pk.choices }; renderEngines(); markPack(); update();
+      state.b = { ...DEFAULT_CHOICES, ...packageChoices(pk, m) }; renderEngines(); markPack(); update();
       gtag('event', 'drive_sim_package', { model: state.model, package: pk.id });
     });
     box.append(b);
@@ -717,8 +762,20 @@ function drawLimits(L) {
 }
 window.addEventListener('resize', () => { if (last) { if ($('#dChart').open) drawChart($('#chartV'), last); drawStage(last, animT); } });
 
+// 展開は一度に1つ（§7-17）＝ネイティブの name= に加えて JS の保険。閉じる toggle では何もしない（canvas は開いているときだけ描く）
+function bindAccordion() {
+  const groups = {};
+  for (const d of document.querySelectorAll('details[name]')) (groups[d.getAttribute('name')] ??= []).push(d);
+  for (const d of document.querySelectorAll('details[name]')) {
+    d.addEventListener('toggle', () => {
+      if (!d.open) return;
+      for (const other of groups[d.getAttribute('name')] || []) if (other !== d && other.open) other.open = false;
+    });
+  }
+}
+
 // ───── 起動 ─────
-readHash(); renderModel(); renderScenes(); renderDrive(); renderEngines(); renderPacks(); update();
+readHash(); renderSeriesChips(); renderTypeChips(); renderScenes(); renderDrive(); renderEngines(); renderPacks(); renderBaseState(); update(); bindAccordion();
 </script>
 </body>
 </html>

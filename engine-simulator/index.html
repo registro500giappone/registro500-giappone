@@ -115,13 +115,26 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
   <h1>エンジン妄想シミュレーター</h1>
   <p class="lead">空冷フィアット500・126のエンジンを、定番の改造を1つ選ぶだけで「妄想」する道具。<b>純正と比べてどれくらい変わりそうか</b>を見る（絶対値の誤差は1〜2割＝下の「この道具の限界」）。</p>
 
+  <h2>ベース車両の選択</h2>
+  <p class="note" style="margin:0 0 6px">車種</p>
+  <div class="chips" id="seriesChips"></div>
+  <p class="note" style="margin:0 0 6px">タイプ</p>
+  <div class="chips" id="typeChips"></div>
+  <p class="note" style="margin:0 0 6px">いまの状態</p>
+  <div class="chips" id="stateChips"></div>
+  <p class="note" id="modelNote" style="margin-top:2px"></p>
+
+  <details class="sec" name="sec" id="dNow"><summary>いまの明細<small>エンジン＋6欄</small></summary><div class="body">
+    <div class="chips" id="engChips"></div>
+    <section class="panel" id="panelA">
+      <h3><span class="key a"></span>いま</h3>
+      <div class="chips" id="startChips"></div>
+      <div class="slots" data-side="a"></div>
+    </section>
+  </div></details>
+
   <div class="packs" id="packs"></div>
   <p class="packwhy" id="packWhy"></p>
-
-  <label class="row model">土台になる型式
-    <select id="model"></select>
-  </label>
-  <p class="note" id="modelNote" style="margin-top:2px"></p>
 
   <div id="result" class="busy">
     <div class="hero">
@@ -139,40 +152,33 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
     </div>
     <details class="inner"><summary>数値の表を見る</summary><div id="tableWrap"></div></details>
 
-    <details class="sec" id="dFine"><summary>細かく変える<small>排気量・圧縮比・カム・ヘッド・キャブ・マフラー</small></summary><div class="body">
+    <details class="sec" name="sec" id="dFine"><summary>変えた後を細かく変える<small>排気量・圧縮比・カム・ヘッド・キャブ・マフラー</small></summary><div class="body">
       <p class="note" style="margin:0 0 8px">選択肢の「◎」＝登録されているお車で実際に使われている部品。「※」＝店に数値の記載が無く、同系の品から借りた仮の値で計算している部品。</p>
-      <div class="cols">
-        <section class="panel" id="panelA">
-          <h3><span class="key a"></span>いま</h3>
-          <div class="chips" id="startChips"></div>
-          <div class="slots" data-side="a"></div>
-        </section>
-        <section class="panel" id="panelB">
-          <h3><span class="key b"></span>変えた後</h3>
-          <div class="chips"><button type="button" id="copyAB">「いま」の内容をここへ写す</button><button type="button" id="resetB">純正に戻す</button></div>
-          <div class="slots" data-side="b"></div>
-        </section>
-      </div>
+      <section class="panel" id="panelB">
+        <h3><span class="key b"></span>変えた後</h3>
+        <div class="chips"><button type="button" id="copyAB">「いま」の内容をここへ写す</button><button type="button" id="resetB">純正に戻す</button></div>
+        <div class="slots" data-side="b"></div>
+      </section>
     </div></details>
 
-    <details class="sec" id="dStory"><summary>力の出方はこう変わる<small>回転域ごと</small></summary><div class="body">
+    <details class="sec" name="sec" id="dStory"><summary>力の出方はこう変わる<small>回転域ごと</small></summary><div class="body">
       <div class="story" id="story"></div>
     </div></details>
 
-    <details class="sec" id="dBottle"><summary>足を引っ張っている所</summary><div class="body">
+    <details class="sec" name="sec" id="dBottle"><summary>足を引っ張っている所</summary><div class="body">
       <div class="bottle" id="bottle"></div>
     </div></details>
 
-    <details class="sec" id="dWarns"><summary>気をつけること<small id="warnCount"></small></summary><div class="body">
+    <details class="sec" name="sec" id="dWarns"><summary>気をつけること<small id="warnCount"></small></summary><div class="body">
       <ul class="warns" id="warns"></ul>
     </div></details>
 
-    <details class="sec" id="dParts"><summary>この妄想で使った部品</summary><div class="body">
+    <details class="sec" name="sec" id="dParts"><summary>この妄想で使った部品</summary><div class="body">
       <ul class="parts" id="parts"></ul>
       <p class="note">部品は Axel Gerstl／FD Ricambi／EuroItalia500（Julcar）／D'Angelo Motori／PBP の掲載品と、登録されているお車で使われている物を載せています。価格・在庫・適合は各店で確かめてください。</p>
     </div></details>
 
-    <details class="sec" id="dLimits"><summary>この道具の限界</summary><div class="body">
+    <details class="sec" name="sec" id="dLimits"><summary>この道具の限界</summary><div class="body">
       <ul class="limits" id="limits"></ul>
       <p class="note">計算の中身＝0次元の充填・排出モデル（クランク角 0.25° 刻み・バルブとベンチュリの圧縮性流れ・吸排気の慣性・Wiebe 燃焼・摩擦と冷却ファンの損失）。純正4機種と Abarth 3機種の公表値で校正しています。</p>
     </div></details>
@@ -181,12 +187,18 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
 
 <script type="module">
 import { simulate } from './sim.js';
-import { MODELS, SLOTS, START_EXAMPLES, PACKAGES, DEFAULT_CHOICES, buildSpec, modelById } from './presets.js';
+import { MODELS, SLOTS, START_EXAMPLES, PACKAGES, DEFAULT_CHOICES, buildSpec, modelById, packagesFor, packageChoices, packageSub, packageMatches } from './presets.js';
 import { tellStory, findBottleneck, warnings, LIMITS } from './story.js';
 
 const RPM = [1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500];
 const SLOT_LABELS = { disp: '排気量（シリンダー＋ピストン）', cr: '圧縮比', cam: 'カム', head: 'ヘッド（バルブ径・ポート）', carb: 'キャブ', exh: 'マフラー' };
 const SLOT_ORDER = ['disp', 'cr', 'cam', 'head', 'carb', 'exh'];
+// エンジンの土台の差し替え（§7-17）。id: null＝純正のエンジン（choices.eng を持たない）。
+const ENG_OPTIONS = [
+  { id: null, label: '純正のエンジン' },
+  { id: '126A1', label: '126 後期（652）に換装済み' },
+  { id: '126A', label: '126 前期（594）に換装済み' },
+];
 const $ = (s, r = document) => r.querySelector(s);
 const state = { model: '500F', a: { ...DEFAULT_CHOICES }, b: { ...DEFAULT_CHOICES } };
 
@@ -197,18 +209,80 @@ function readHash() {
   if (h.get('m') && modelById(h.get('m')).id === h.get('m')) state.model = h.get('m');
   for (const side of ['a', 'b']) {
     const v = h.get(side); if (!v) continue;
-    v.split(',').forEach(kv => { const [k, val] = kv.split(':'); if (SLOTS[k] && SLOTS[k].some(o => o.id === val)) state[side][k] = val; });
+    v.split(',').forEach(kv => {
+      const [k, val] = kv.split(':');
+      if (k === 'eng') { if (MODELS.some(m => m.id === val)) state[side].eng = val; return; }
+      if (SLOTS[k] && SLOTS[k].some(o => o.id === val)) state[side][k] = val;
+    });
   }
 }
+// SLOTS に無い eng キーもここでだけ書き出す（旧 URL #m=500F&b=disp:b77,cr:cr75 はそのまま読める＝eng が無いだけ）
+function encSide(c) {
+  const parts = SLOT_ORDER.filter(k => c[k] !== 'stock').map(k => `${k}:${c[k]}`);
+  if (c.eng) parts.push(`eng:${c.eng}`);
+  return parts.join(',');
+}
 function writeHash() {
-  const enc = (c) => SLOT_ORDER.filter(k => c[k] !== 'stock').map(k => `${k}:${c[k]}`).join(',');
   const p = new URLSearchParams(); p.set('m', state.model);
-  if (enc(state.a)) p.set('a', enc(state.a)); if (enc(state.b)) p.set('b', enc(state.b));
+  if (encSide(state.a)) p.set('a', encSide(state.a)); if (encSide(state.b)) p.set('b', encSide(state.b));
   history.replaceState(null, '', '#' + p.toString());
   $('#toDrive').href = 'drive.html#' + p.toString();
 }
 
-// ───── 選択肢の描画 ─────
+// ───── ベース車両＝車種 → タイプ → いまの状態（§7-17） ─────
+function isStockA() { return SLOT_ORDER.every(k => state.a[k] === 'stock') && !state.a.eng; }
+function renderSeriesChips() {
+  const box = $('#seriesChips'); box.textContent = '';
+  const cur = modelById(state.model).series;
+  for (const s of ['500', '126']) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = s; b.classList.toggle('on', s === cur);
+    b.addEventListener('click', () => { if (s === cur) return; state.model = MODELS.find(m => m.series === s).id; onModelChanged(); });
+    box.append(b);
+  }
+}
+function renderTypeChips() {
+  const box = $('#typeChips'); box.textContent = '';
+  const cur = modelById(state.model);
+  for (const m of MODELS.filter(x => x.series === cur.series)) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = m.type; b.classList.toggle('on', m.id === cur.id);
+    b.addEventListener('click', () => { if (m.id === state.model) return; state.model = m.id; onModelChanged(); });
+    box.append(b);
+  }
+}
+function renderStateChips() {
+  const box = $('#stateChips'); box.textContent = '';
+  const stock = isStockA();
+  const bStock = document.createElement('button'); bStock.type = 'button'; bStock.textContent = '純正のまま'; bStock.classList.toggle('on', stock);
+  bStock.addEventListener('click', () => {
+    state.a = { ...DEFAULT_CHOICES }; $('#dNow').open = false;
+    renderStateChips(); renderEngChips(); renderSlots('a'); update();
+  });
+  const bMod = document.createElement('button'); bMod.type = 'button'; bMod.textContent = '改造済み → いまの明細を設定 ▸'; bMod.classList.toggle('on', !stock);
+  bMod.addEventListener('click', () => { $('#dNow').open = true; });
+  box.append(bStock, bMod);
+}
+// 「エンジン」欄＝車種 500 のときだけ出す（126 は元からそのエンジンなので換装の概念が無い）
+function renderEngChips() {
+  const box = $('#engChips'); box.textContent = '';
+  const bm = modelById(state.model);
+  box.hidden = bm.series !== '500';
+  if (box.hidden) return;
+  for (const o of ENG_OPTIONS) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = o.label;
+    b.classList.toggle('on', (state.a.eng || null) === o.id);
+    b.addEventListener('click', () => {
+      if (o.id) state.a.eng = o.id; else delete state.a.eng;
+      renderEngChips(); renderStateChips(); renderSlots('a'); update();
+    });
+    box.append(b);
+  }
+}
+function onModelChanged() {
+  renderSeriesChips(); renderTypeChips(); renderEngChips(); renderStateChips();
+  renderChips(); renderPacks(); renderSlots('a'); renderSlots('b'); update();
+}
+
+// ───── 選択肢の描画（6欄） ─────
 function stockText(slot, m) {
   const b = buildSpec(m.id, {});
   switch (slot) {
@@ -222,17 +296,23 @@ function stockText(slot, m) {
 }
 function renderSlots(side) {
   const box = $(`.slots[data-side="${side}"]`); box.textContent = '';
-  const m = modelById(state.model);
+  const baseM = modelById(state.model);
+  // 「いま」がエンジン換装済みなら、6欄の「純正のまま」はそのエンジン（engM）の純正値で見せる（§7-17）
+  const engM = state[side].eng ? modelById(state[side].eng) : baseM;
   for (const k of SLOT_ORDER) {
     const lab = document.createElement('label'); lab.className = 'row'; lab.append(SLOT_LABELS[k]);
     const sel = document.createElement('select'); sel.dataset.slot = k; sel.dataset.side = side;
     for (const o of SLOTS[k]) {
       const opt = document.createElement('option'); opt.value = o.id;
-      opt.textContent = o.id === 'stock' ? stockText(k, m) : o.label + (o.assumed ? ' ※' : '') + (o.registered ? '　◎' : '');
+      opt.textContent = o.id === 'stock' ? stockText(k, engM) : o.label + (o.assumed ? ' ※' : '') + (o.registered ? '　◎' : '');
       sel.append(opt);
     }
     sel.value = state[side][k];
-    sel.addEventListener('change', () => { state[side][k] = sel.value; onDispChange(side, k); if (side === 'b') markPack(); update(); });
+    sel.addEventListener('change', () => {
+      state[side][k] = sel.value; onDispChange(side, k);
+      if (side === 'b') markPack(); if (side === 'a') renderStateChips();
+      update();
+    });
     lab.append(sel); box.append(lab);
   }
 }
@@ -245,32 +325,29 @@ function onDispChange(side, k) {
   }
   if (d && !d.bore) { state[side].cr = 'stock'; const s = $(`select[data-side="${side}"][data-slot="cr"]`); if (s) s.value = 'stock'; }
 }
-function renderModel() {
-  const sel = $('#model'); sel.textContent = '';
-  for (const m of MODELS) { const o = document.createElement('option'); o.value = m.id; o.textContent = m.label; sel.append(o); }
-  sel.value = state.model;
-  sel.addEventListener('change', () => { state.model = sel.value; renderChips(); renderPacks(); renderSlots('a'); renderSlots('b'); update(); });
-}
+// よくある出発点（「いま」欄への一括入力）＝いま選んでいる eng（換装）は保ったまま6欄だけ入れ替える
 function renderChips() {
   const m = modelById(state.model); const box = $('#startChips'); box.textContent = '';
   for (const ex of START_EXAMPLES) {
-    if (ex.families && !ex.families.includes(m.family)) continue;
+    if (ex.families && !ex.families.includes(m.series)) continue;
     const b = document.createElement('button'); b.type = 'button'; b.textContent = ex.label;
-    b.addEventListener('click', () => { state.a = { ...DEFAULT_CHOICES, ...ex.choices }; renderSlots('a'); update(); });
+    b.addEventListener('click', () => {
+      const eng = state.a.eng;
+      state.a = { ...DEFAULT_CHOICES, ...ex.choices }; if (eng) state.a.eng = eng;
+      renderSlots('a'); renderStateChips(); update();
+    });
     box.append(b);
   }
   $('#modelNote').textContent = m.note + (m.assumed ? '　※' + m.assumed.join('／') : '');
 }
 function renderPacks() {
   const m = modelById(state.model); const box = $('#packs'); box.textContent = '';
-  for (const pk of PACKAGES) {
-    if (pk.families && !pk.families.includes(m.family)) continue;
+  for (const pk of packagesFor(m)) {
     const b = document.createElement('button'); b.type = 'button'; b.dataset.id = pk.id;
-    const dim = pk.needs126 && m.family === '500';
-    if (dim) b.className = 'dim';
-    b.innerHTML = `<b>${pk.name}</b><small>${pk.sub}</small><span class="ev">根拠 ${pk.evidence} 件${dim ? '・126 のケースが要る' : ''}</span>`;
+    const ev = pk.evidence === null ? '参考（実例は未確認）' : `根拠 ${pk.evidence} 件`;
+    b.innerHTML = `<b>${pk.name}</b><small>${packageSub(pk, m)}</small><span class="ev">${ev}</span>`;
     b.addEventListener('click', () => {
-      state.b = { ...DEFAULT_CHOICES, ...pk.choices }; renderSlots('b'); markPack(); update();
+      state.b = { ...DEFAULT_CHOICES, ...packageChoices(pk, m) }; renderSlots('b'); markPack(); update();
       $('#packWhy').textContent = pk.why;
       gtag('event', 'engine_sim_package', { model: state.model, package: pk.id });
     });
@@ -278,13 +355,13 @@ function renderPacks() {
   }
   markPack();
 }
-// 6欄がどれかのパッケージと一致していればそのカードを点灯（手で崩したら消える）
+// 6欄＋eng がどれかのパッケージと一致していればそのカードを点灯（手で崩したら消える）
 function markPack() {
-  const cur = { ...DEFAULT_CHOICES, ...state.b };
+  const m = modelById(state.model); const pks = packagesFor(m);
   let hit = null;
-  for (const pk of PACKAGES) { const c = { ...DEFAULT_CHOICES, ...pk.choices }; if (Object.keys(cur).every(k => cur[k] === c[k])) hit = pk.id; }
+  for (const pk of pks) { if (packageMatches(pk, m, state.b)) hit = pk.id; }
   for (const b of $('#packs').querySelectorAll('button')) b.classList.toggle('on', b.dataset.id === hit);
-  $('#packWhy').textContent = hit ? PACKAGES.find(p => p.id === hit).why : '';
+  $('#packWhy').textContent = hit ? pks.find(p => p.id === hit).why : '';
 }
 $('#copyAB').addEventListener('click', () => { state.b = { ...state.a }; renderSlots('b'); markPack(); update(); });
 $('#resetB').addEventListener('click', () => { state.b = { ...DEFAULT_CHOICES }; renderSlots('b'); markPack(); update(); });
@@ -419,8 +496,22 @@ window.addEventListener('resize', () => { if (last) { drawChartBase($('#chartT')
 // ───── 限界 ─────
 for (const t of LIMITS) { const li = document.createElement('li'); li.textContent = t; $('#limits').append(li); }
 
-// ───── 起動 ─────
-readHash(); renderModel(); renderChips(); renderPacks(); renderSlots('a'); renderSlots('b'); update();
+// ───── 展開は一度に1つ（name="sec" のアコーディオン。ネイティブ対応が無いブラウザ向けの JS 保険＝§7-17） ─────
+function bindAccordion() {
+  const groups = {};
+  for (const d of document.querySelectorAll('details[name]')) (groups[d.getAttribute('name')] ??= []).push(d);
+  for (const d of document.querySelectorAll('details[name]')) {
+    d.addEventListener('toggle', () => {
+      if (!d.open) return;
+      for (const other of groups[d.getAttribute('name')] || []) if (other !== d && other.open) other.open = false;
+    });
+  }
+}
+
+// ───── 起動（素で開いたときは全部の <details> が閉じた状態＝HTML 側で open を付けていない） ─────
+readHash(); renderSeriesChips(); renderTypeChips(); renderEngChips(); renderStateChips();
+renderChips(); renderPacks(); renderSlots('a'); renderSlots('b'); update();
+bindAccordion();
 </script>
 </body>
 </html>

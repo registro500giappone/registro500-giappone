@@ -9,9 +9,11 @@ const IGN_126 = [[1000, 10], [2300, 30], [3000, 38], [6000, 38]];
 const IGN_HI = [[1000, 12], [2000, 28], [3000, 36], [6000, 36]];   // 高圧縮（CR 9 以上）＝Abarth 校正で使った表
 
 // ───────────── 型式（出発点の土台） ─────────────
+// series＝画面の分類（車種チップ）。block＝ケース（Ø79.5 以上が入るか）。500R は series '500'・block '126'＝画面の
+// 「500」枠で選べつつ、126 系の大径キットがそのまま組める（2026-09-19 §7-17＝旧 family はこの2つを兼ねていて 500R で歪みが出ていた）。
 export const MODELS = [
   {
-    id: '500N', label: '500 N（479cc・13CV）', family: '500', block: '500',
+    id: '500N', label: '500 N（479cc・13CV）', series: '500', type: 'N', block: '500',
     engine: { bore: 66, stroke: 70, rod: 126, cr: 6.55, ncyl: 2 },
     cam: { ivo: 19, ivc: 50, evo: 50, evc: 19, liftIn: 8.4, liftEx: 8.4, checkLift: 0.275 },  // 取説 p.39：検査 0.375 − 運転 0.10
     valves: { dIn: 32, dEx: 28, stemIn: 8, stemEx: 8 },
@@ -21,7 +23,7 @@ export const MODELS = [
     revLimit: { rpm: 4400, src: 'N取説 印刷 p.45 の各ギア最高速 25/40/60/85 km/h から換算（4543/4591/4331/4130）' },
   },
   {
-    id: '500D', label: '500 D（499.5cc・17.5CV）', family: '500', block: '500',
+    id: '500D', label: '500 D（499.5cc・17.5CV）', series: '500', type: 'D', block: '500',
     engine: { bore: 67.4, stroke: 70, rod: 126, cr: 7.1, ncyl: 2 },
     cam: { ivo: 25, ivc: 51, evo: 64, evc: 12, liftIn: 8.4, liftEx: 8.4, checkLift: 0.24 },
     valves: { dIn: 32, dEx: 28, stemIn: 8, stemEx: 8 },
@@ -30,7 +32,7 @@ export const MODELS = [
     revLimit: { rpm: 4650, src: 'D取説 印刷 p.44 の 23/40/65/95 km/h から換算（4725/4591/4692/4616）' },
   },
   {
-    id: '500F', label: '500 F・L（499.5cc・18CV）', family: '500', block: '500',
+    id: '500F', label: '500 F・L（499.5cc・18CV）', series: '500', type: 'F・L', block: '500',
     engine: { bore: 67.4, stroke: 70, rod: 126, cr: 7.1, ncyl: 2 },
     cam: { ivo: 25, ivc: 51, evo: 64, evc: 12, liftIn: 8.4, liftEx: 8.4, checkLift: 0.24 },
     valves: { dIn: 32, dEx: 28, stemIn: 8, stemEx: 8 },
@@ -39,7 +41,7 @@ export const MODELS = [
     revLimit: { rpm: 4650, src: 'L取説 印刷 p.50 の 23/40/65/95 km/h から換算（4725/4591/4692/4616）' },
   },
   {
-    id: 'GIA', label: 'ジャルディニエラ（499.5cc・17.5CV）', family: '500', block: '500',
+    id: 'GIA', label: 'ジャルディニエラ（499.5cc・17.5CV）', series: '500', type: 'ジャルディニエラ', block: '500',
     engine: { bore: 67.4, stroke: 70, rod: 126, cr: 7.1, ncyl: 2 },
     cam: { ivo: 25, ivc: 51, evo: 64, evc: 12, liftIn: 8.4, liftEx: 8.4, checkLift: 0.24 },
     valves: { dIn: 32, dEx: 28, stemIn: 8, stemEx: 8 },
@@ -48,7 +50,7 @@ export const MODELS = [
     revLimit: { rpm: 4650, src: 'G取説 印刷 p.41 の 23/40/65/95 km/h から換算（横倒しでも変速比は同じ）' },
   },
   {
-    id: '500R', label: '500 R（594cc・18CV）', family: '126', block: '126',
+    id: '500R', label: '500 R（594cc・18CV）', series: '500', type: 'R', block: '126',
     engine: { bore: 73.5, stroke: 70, rod: 126, cr: 7.5, ncyl: 2 },
     cam: { ivo: 25, ivc: 51, evo: 64, evc: 12, liftIn: 8.4, liftEx: 8.4, checkLift: 0.24 },
     valves: { dIn: 32, dEx: 28, stemIn: 8, stemEx: 8 },
@@ -57,7 +59,7 @@ export const MODELS = [
     revLimit: { rpm: 4950, src: 'R取説 p.3 の 30/45/75/約100 km/h から換算（5150/4913/5150/4606）' },
   },
   {
-    id: '126A', label: '126 前期（594cc・23CV）', family: '126', block: '126',
+    id: '126A', label: '126 前期（594cc・23CV）', series: '126', type: '前期 594', block: '126',
     engine: { bore: 73.5, stroke: 70, rod: 126, cr: 7.5, ncyl: 2 },
     cam: { ivo: 26, ivc: 56, evo: 66, evc: 16, liftIn: 9.32, liftEx: 9.32, checkLift: 0.42 },
     valves: { dIn: 32, dEx: 28, stemIn: 8, stemEx: 8 },
@@ -67,7 +69,7 @@ export const MODELS = [
     revLimit: { rpm: 5050, src: '126 の資料に速度表が無い＝公称 23CV/4800 の 5% 増し' },
   },
   {
-    id: '126A1', label: '126 後期（652cc・24CV）', family: '126', block: '126',
+    id: '126A1', label: '126 後期（652cc・24CV）', series: '126', type: '後期 652', block: '126',
     engine: { bore: 77, stroke: 70, rod: 126, cr: 7.5, ncyl: 2 },
     cam: { ivo: 26, ivc: 57, evo: 66, evc: 17, liftIn: 9.32, liftEx: 9.32, checkLift: 0.42 },
     valves: { dIn: 33, dEx: 28, stemIn: 8, stemEx: 8 },
@@ -231,28 +233,36 @@ export const START_EXAMPLES = [
   { id: '126cam', label: 'カム 40/80＋スポーツマフラー', choices: { cam: 'c4080', exh: 'sport' }, families: ['126'] },
 ];
 
-// ───────────── 王道パッケージ（2026-09-18・根拠は ref/packages_research.md）─────────────
-// evidence＝その組合せが出た独立した店・スレの数。⚠️ CR はどのキットも固定しない（店の「q.c.」はピストン圧縮高さで圧縮比ではない）＝慣用値を置き画面で断る。
-// needs126＝500 のクランクケースは 652cc が上限。700 以上は 126 のケースが要る（500 系の型式では警告が出る）。
+// ───────────── 王道パッケージ（2026-09-18・根拠は ref/packages_research.md／2026-09-19 §7-17 で並び順と126入口を追加）─────────────
+// evidence＝その組合せが出た独立した店・スレの数。null＝根拠が無い参考枠（画面は「参考」と出す＝捏造しない）。
+//   ⚠️ CR はどのキットも固定しない（店の「q.c.」はピストン圧縮高さで圧縮比ではない）＝慣用値を置き画面で断る。
+// families＝出す車種（series）。only／except＝型式単位のさらなる絞り込み。
+// needs126・dim 表示は廃止（500R は series '500'・block '126' なので換装不要＝そのまま組める）。
 export const PACKAGES = [
-  { id: 'p650', name: 'まず 650', sub: 'Ø77＋28 IMB＋カム 35/75＋スポーツマフラー', evidence: 5,
+  { id: 'p126', name: '126 エンジンに換装', sub: '126 後期（652cc）のエンジンをそのまま載せる', evidence: 3,
+    why: '126 のエンジンをそのまま載せる形。英・日でいちばん多い実例。英フォーラム曰く「素の 650 はポート加工した 500 と大差ない＝4本柱を一緒に触って初めて差が出る」',
+    choices: { eng: '126A1' }, families: ['500'] },
+  { id: 'p650', name: '650 にボアアップ', sub: 'Ø77＋28 IMB＋カム 35/75＋スポーツマフラー', evidence: 5,
     why: '店3店とフォーラム2スレが一致する入門形。狙いは最高速ではなく登坂と巡航の余裕。圧縮比はキットで決まらないので 7.5 を置いた',
     choices: { disp: 'b77', cr: 'cr75', cam: 'c3575', carb: 'w28imb', exh: 'sport' }, families: ['500'] },
-  { id: 'p126', name: '素の 126（652）', sub: 'Ø77＋28 IMB・カムとヘッドは純正', evidence: 3,
-    why: '126 のエンジンをそのまま載せる形。英・日でいちばん多い実例。英フォーラム曰く「素の 650 はポート加工した 500 と大差ない＝4本柱を一緒に触って初めて差が出る」',
-    choices: { disp: 'b77', cr: 'cr75', carb: 'w28imb' }, families: ['500'] },
   { id: 'p650s', name: '650 スポーツ', sub: 'Ø77＋40/80＋ヘッド 36/31＋二連 30 DGF＋スポーツマフラー・CR 9', evidence: 4,
     why: 'フォーラムで「一段上」と言われる実組み。⚠️ 二連キャブはヘッドの通路と組で決める（モノ通路の 500 ヘッド＋30 DGF は始動・アイドルが決まらなかった報告あり）',
     choices: { disp: 'b77', cr: 'cr90', cam: 'c4080', head: 'h3631', carb: 'dgf30', exh: 'sport' }, families: ['500', '126'] },
   { id: 'p595ss', name: 'Abarth 595 SS 相当', sub: 'Ø73.5＋Abarth 40/80＋吸気弁 34 ポート加工＋Solex 34 PBIC＋Record・CR 9.5', evidence: 3,
     why: '史実の組合せ（公表 32CV）。段1で校正した値そのもの。実車は CR 9.9 だがここでは 9.5（10 でノッキングの警告が出る境目）',
-    choices: { disp: 'b735', cr: 'cr95', cam: 'a4080', head: 'h34', carb: 'pbic34', exh: 'sport' }, families: ['500', '126'] },
-  { id: 'p700', name: '700 DCOE', sub: 'Ø79.5＋40/80＋ヘッド 36/31＋Weber 40 DCOE＋スポーツ排気・CR 9', evidence: 2, needs126: true,
+    choices: { disp: 'b735', cr: 'cr95', cam: 'a4080', head: 'h34', carb: 'pbic34', exh: 'sport' }, families: ['500', '126'], except: ['126A1'] },  // 652→594 のボアダウンになる
+  { id: 'p700', name: '700 DCOE', sub: 'Ø79.5＋40/80＋ヘッド 36/31＋Weber 40 DCOE＋スポーツ排気・CR 9', evidence: 2,
     why: '店の「本気」段階。126 のクランクケースが前提（500 のケースは 652 が上限）。同じ「700」でも Ø79.5 と Ø80 が混在する',
     choices: { disp: 'b795', cr: 'cr90', cam: 'c4080', head: 'h3631', carb: 'dcoe40', exh: 'sport' }, families: ['500', '126'] },
-  { id: 'p800', name: '800 頂点', sub: 'Ø85＋40/80＋Lavazza 39/33＋Weber 45 DCOE＋スポーツ排気・CR 9.5', evidence: 1, needs126: true,
+  { id: 'p800', name: '800 頂点', sub: 'Ø85＋40/80＋Lavazza 39/33＋Weber 45 DCOE＋スポーツ排気・CR 9.5', evidence: 1,
     why: '完成キットは2店だけで、実際に組んだ報告は拾えなかった＝憧れ枠。ケースの Ø92 加工が要る',
     choices: { disp: 'b85', cr: 'cr95', cam: 'c4080', head: 'h3933', carb: 'dcoe45', exh: 'sport' }, families: ['500', '126'] },
+  { id: 'p652', name: '652 にボアアップ', sub: 'Ø77＋q.c.39（126 後期と同じ寸法）', evidence: 3,
+    why: '126 後期と同じ寸法まで上げる形。126 前期オーナーが後期相当に揃える入口',
+    choices: { disp: 'b77', cr: 'cr75' }, families: ['126'], only: ['126A'] },
+  { id: 'p126cam', name: 'まずカムとマフラー', sub: 'カム 35/75＋スポーツマフラー（ボアはそのまま）', evidence: null,
+    why: '652cc のボアはそのままに、カムとマフラーだけで足を延ばす形。この組合せそのものの実例は資料に見つかっていない＝参考として置いている',
+    choices: { cam: 'c3575', exh: 'sport' }, families: ['126'], only: ['126A1'] },
 ];
 
 export const DEFAULT_CHOICES = { disp: 'stock', cr: 'stock', cam: 'stock', head: 'stock', carb: 'stock', exh: 'stock' };
@@ -274,23 +284,53 @@ export function revCapRpm(built, res) {
   const peak = res.reduce((m, p) => (p.powerCv > m.powerCv ? p : m), res[0]);
   return Math.min(res[res.length - 1].rpm, Math.max(built.model.revLimit.rpm, Math.round((peak.rpm - 500) / 25) * 25));
 }
+// modelId＝ベース車両（車両側の型式・重さやギアの出所）。choices.eng が立っていれば、エンジンの土台（engine/cam/valves/
+// carb の既定・ignition・revLimit・block・assumed・note）はそちらの型式から採る＝「エンジンの土台だけ差し替える」本物の換装
+// （2026-09-19 §7-17）。built.model は常にエンジン側の型式＝revCapRpm や warnings() の block 判定はここを見ればよい。
+// 車両側（重さ・ギア）は buildVehicle(modelId) が別に持つ＝この関数は触らない。
 export function buildSpec(modelId, choices) {
-  const m = modelById(modelId);
+  const m = modelById(modelId);                       // ベース車両
   const c = { ...DEFAULT_CHOICES, ...(choices || {}) };
+  const engM = c.eng ? modelById(c.eng) : m;           // エンジン側の型式（土台の差し替え・省略時はベース車両のまま）
   const disp = byId(DISPLACEMENTS, c.disp), cr = byId(COMP_RATIOS, c.cr), cm = byId(CAMS, c.cam);
-  const hd = byId(HEADS, c.head), cb = byId(CARBS, c.carb === 'stock' ? m.carb : c.carb), ex = byId(EXHAUSTS, c.exh);
-  const engine = { ...m.engine };
+  const hd = byId(HEADS, c.head), cb = byId(CARBS, c.carb === 'stock' ? engM.carb : c.carb), ex = byId(EXHAUSTS, c.exh);
+  const engine = { ...engM.engine };
   if (disp.bore) engine.bore = disp.bore;
   if (cr.cr) engine.cr = cr.cr;
-  const camSpec = cm.cam ? { ...cm.cam } : { ...m.cam };
-  const valves = { ...m.valves, ...(hd.valves || {}) };
+  const camSpec = cm.cam ? { ...cm.cam } : { ...engM.cam };
+  const valves = { ...engM.valves, ...(hd.valves || {}) };
   const intake = { venturi: cb.venturi, barrels: cb.barrels || 1 };
   if (cb.pump) intake.mixMin = 0.8;
-  const spec = { engine, cam: camSpec, valves, intake, ignition: engine.cr >= 9 ? IGN_HI : m.ignition };
+  const spec = { engine, cam: camSpec, valves, intake, ignition: engine.cr >= 9 ? IGN_HI : engM.ignition };
   if (ex.exhaust) spec.exhaust = { ...ex.exhaust };
   if (hd.ported) spec.cal = { kValveIn: 1.0, kValveEx: 1.0, runnerXi: 0.7 };
   const cc = Math.PI / 4 * engine.bore ** 2 * engine.stroke * engine.ncyl / 1000;
-  const assumed = [...(m.assumed || []), ...(disp.assumed || []), ...(cm.assumed || []), ...(hd.assumed || []), ...(cb.assumed || [])];
-  const blockMismatch = !!(disp.bore && !disp.blocks.includes(m.block));
-  return { spec, model: m, picks: { disp, cr, cam: cm, head: hd, carb: cb, exh: ex }, cc, assumed, blockMismatch };
+  const assumed = [...(engM.assumed || []), ...(disp.assumed || []), ...(cm.assumed || []), ...(hd.assumed || []), ...(cb.assumed || [])];
+  const blockMismatch = !!(disp.bore && !disp.blocks.includes(engM.block));
+  return { spec, model: engM, vehicle: m, eng: c.eng || null, picks: { disp, cr, cam: cm, head: hd, carb: cb, exh: ex }, cc, assumed, blockMismatch };
+}
+
+// ───────────── 札（PACKAGES）を車種・型式に合わせて出し分ける／点灯判定 ─────────────
+// p700・p800 は「126 のクランクケースが前提」＝押した時点のベース車両のエンジン側 block が '500' なら eng:'126A1' を
+// 自動で足す（500R は series '500' だが block '126' なのでこの対象にならない＝そのまま組める。2026-09-19 §7-17）。
+const NEEDS_126_BLOCK = new Set(['p700', 'p800']);
+export function packagesFor(model) {
+  return PACKAGES.filter(pk => pk.families.includes(model.series)
+    && (!pk.only || pk.only.includes(model.id))
+    && (!pk.except || !pk.except.includes(model.id)));
+}
+export function packageChoices(pk, model) {
+  const eng = NEEDS_126_BLOCK.has(pk.id) && model.block === '500' ? '126A1' : undefined;
+  return eng ? { eng, ...pk.choices } : { ...pk.choices };
+}
+export function packageSub(pk, model) {
+  return (NEEDS_126_BLOCK.has(pk.id) && model.block === '500') ? '126 エンジンに換装して' + pk.sub : pk.sub;
+}
+// 現在の choices（state.a / state.b）がこの札と一致するか＝6欄に加えて eng も見る（2026-09-19 §7-17）。
+export function packageMatches(pk, model, choices) {
+  const want = packageChoices(pk, model);
+  const wantFull = { ...DEFAULT_CHOICES, ...want };
+  const curFull = { ...DEFAULT_CHOICES, ...choices };
+  const slotsOk = Object.keys(DEFAULT_CHOICES).every(k => curFull[k] === wantFull[k]);
+  return slotsOk && (want.eng || null) === ((choices && choices.eng) || null);
 }
