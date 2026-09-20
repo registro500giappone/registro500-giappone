@@ -44,7 +44,9 @@ const AERO = { cd: 0.40, area_m2: 1.70, crr: 0.018 };
 export const VEHICLES = {
   '500N':  { gearbox: 'n_early', final: 'f841', tire: 't125', mass_kg: 470, gvw_kg: 680, ...AERO,
              calib: { climb: [23, 14, 8, 4.5], vmax: 85, gearVmax: null, loose: true }, src: 'N 取説 印刷 p.45〜46（13CV 初期）',
-             assumed: ['500N のエンジン諸元は段1の校正外（カム・バルブは F から借用）＝登坂・最高速が取説より 1〜2 割楽観に出る'] },
+             // ⭐ 2026-09-20 再確認：カムの開閉角・圧縮比・キャブは N 取説 印刷 p.39 の実値と一致していた（借り物ではない）。
+             //    借用はバルブのヘッド径だけ＝整備書の図はステム径しか入れていない。最大トルクはどの本にも無い（取説・販売資料・整備書を確認済み）。
+             assumed: ['500N のエンジン諸元は段1の校正外（バルブのヘッド径だけ 500D から借用）＝登坂・最高速が取説より 1〜2 割楽観に出る'] },
   '500D':  { gearbox: 'dfl', final: 'f841', tire: 't125', mass_kg: 500, gvw_kg: 820, ...AERO,
              calib: { climb: [26, 13, 7, 3.5], vmax: 95, gearVmax: null }, src: 'D 取説 印刷 p.44・Caratteristiche p.3' },
   '500F':  { gearbox: 'dfl', final: 'f841', tire: 't125', mass_kg: 520, gvw_kg: 840, ...AERO,
@@ -54,10 +56,13 @@ export const VEHICLES = {
   '500R':  { gearbox: 'sync', final: 'f839', tire: 't125', mass_kg: 525, gvw_kg: 845, ...AERO,
              calib: { climb: [24.5, 14.5, 8.5, 4.5], vmax: 100, gearVmax: [30, 45, 75, 100] }, src: 'R 取説 p.3（525/845 は要再確認）' },
   // ⭐ 2026-09-18：車重は Haynes 126 整備書で裏が取れた（旧「Web の一般値」＝580/600 と同値だった）。総重量だけは依然どの本にも無い。
+  // ⛔ 2026-09-20 調査打ち切り＝手元の126資料は独 Reparaturhandbuch と英 Autobook の2冊だけで、どちらも重量・寸法の節が最初から無い
+  //    （修理書は手順・公差・締付トルクの本＝登録向けの数値は収録対象外）。もう一度この2冊を開き直さないこと。
+  // ⚠️ 総重量を使うのは積載「満載」を選んだときだけ＝坂の画面は乗員1人固定なので、この値のズレは坂の結果に効かない。
   '126A':  { gearbox: 'sync', final: 'f839', tire: 't135', mass_kg: 580, gvw_kg: 900, ...AERO,
-             calib: null, src: '変速比・ファイナル・タイヤは Autobook／Reparaturhandbuch。車重 580kg は Haynes 126（印刷 p.9「Kerb weight 1279 lb (580 kg)」）', assumed: ['総重量 900kg は Web の一般値（どの資料にも総重量の記載が無い）'] },
+             calib: null, src: '変速比・ファイナル・タイヤは Autobook／Reparaturhandbuch。車重 580kg は Haynes 126（印刷 p.9「Kerb weight 1279 lb (580 kg)」）', assumed: ['総重量 900kg は Web の一般値（手元の126資料2冊に重量の節が無いことを確認済み）。車重 580＋積載 320kg と辻褄は合う'] },
   '126A1': { gearbox: 'sync', final: 'f839', tire: 't135', mass_kg: 600, gvw_kg: 920, ...AERO,
-             calib: null, src: '同上。車重 600kg は Haynes 126 補遺 Chapter 12（印刷 p.121「Kerb weight 1323 lbs (600 kg)」＝1977年8月以降）', assumed: ['総重量 920kg は Web の一般値'] },
+             calib: null, src: '同上。車重 600kg は Haynes 126 補遺 Chapter 12（印刷 p.121「Kerb weight 1323 lbs (600 kg)」＝1977年8月以降）', assumed: ['総重量 920kg は Web の一般値（同上）。車重 600＋積載 320kg と辻褄は合う'] },
 };
 
 // ───────────── 5速化（既存の4速に5速を足すキット） ─────────────
