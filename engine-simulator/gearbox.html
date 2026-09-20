@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>駆動系妄想シミュレーター｜エンジン妄想シミュレーター｜REGISTRO 500 GIAPPONE</title>
+<!-- 仮称のまま実装（名前は後で差し替え）。導線なし・noindex。 -->
+<meta name="robots" content="noindex">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH');
+</script>
+<meta name="description" content="空冷フィアット500・126で、ミッションやタイヤを変えると何がどう変わるか。困りごと別に組合せを選んで、いまの車と並べて差を見るツール。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="駆動系妄想シミュレーター｜エンジン妄想シミュレーター">
+<meta property="og:description" content="ファイナル・5速化・3/4速ショート・タイヤを変えると何がどう変わるか。困りごと別に組合せを選んで比べる。">
+<meta property="og:image" content="https://www.registro500.com/og/site-ja.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* このシリーズ共通の配色 */
+  --paper:#f2ece0; --card:#fbf7ee; --ink:#2b2a26; --sub:#7c7263; --line:#ddd3c0;
+  --stage:#173d2c; --stage2:#0d2a1e; --red:#b23b2b; --red2:#8f2a1f; --gold:#c8a457; --cream:#f6f0e2;
+  --series-a:#8fae9b; --series-b:#e8b04f;
+  --bg:var(--paper); --deep:#4a4437; --accent:#7a6a53;
+  --surface-1:var(--card); --text-primary:var(--ink); --text-secondary:var(--sub); --grid:#ece7dc;
+  --warn:#8a5a00; --warnbg:#fff4dc; --stop:#8f2a1f; --stopbg:#fdeae6; --info:#3f5a4a; --infobg:#eef2ec;
+  --tag-up-bg:#e3efe4; --tag-up-fg:#2b6440; --tag-dn-bg:#f7e3df;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;line-height:1.75;-webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto;padding:16px 16px 72px}
+.topbar{margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.topbar a{color:var(--sub);text-decoration:none;font-size:13px}
+.topbar a:hover{color:var(--deep)}
+h1{font-family:'Oswald',system-ui;font-weight:700;font-size:23px;margin:0 0 4px;color:var(--deep);letter-spacing:.03em}
+h2{font-size:15px;margin:18px 0 6px;color:var(--deep)}
+p.lead{font-size:13px;color:var(--sub);margin:0 0 12px}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%}
+label.row{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--sub);margin:0 0 8px}
+.chips{display:flex;gap:6px;margin:0 0 10px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chips button,.btn{appearance:none;flex:none;border:1px solid var(--line);background:var(--card);color:var(--deep);font:inherit;font-size:13px;padding:7px 12px;border-radius:999px;cursor:pointer}
+.chips button:hover,.btn:hover{border-color:var(--deep)}
+.chips button.on{border-color:var(--stage);background:var(--stage);color:var(--cream)}
+/* ゼッケン帯＝対戦カード（drive.html §8-9 ③と同じ型） */
+.banner{position:relative;margin:0 0 10px;border-radius:10px;overflow:hidden;background:var(--red2)}
+.banner .stripe{height:6px;background:repeating-linear-gradient(115deg,#0000 0 10px,#ffffff1f 10px 20px),var(--red)}
+.banner .row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:8px 12px 9px}
+.banner .lab{font-family:'Oswald',system-ui;font-size:9px;letter-spacing:.16em;color:#ffffff9c;margin-bottom:1px}
+.banner .nm{font-weight:700;font-size:14px;color:#fff;line-height:1.25}
+.banner .sub{font-size:10px;color:#ffffffb0;margin-top:2px;line-height:1.35;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.banner .to{text-align:right}
+.banner .to .nm{color:var(--gold)}
+.banner .ar{font-size:18px;color:var(--gold);line-height:1}
+/* 舞台＝濃緑 */
+.stageWrap{position:relative;background:linear-gradient(180deg,var(--stage) 0%,var(--stage2) 100%);border-radius:14px;padding:14px 12px 16px;margin:0 0 12px;overflow:hidden}
+.stageWrap::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 20% 0%, #24543d 0%, transparent 60%)}
+.stageWrap::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.14;background-image:radial-gradient(#fff 0.5px,transparent 0.6px);background-size:3px 3px}
+.stageWrap>*{position:relative;z-index:1}
+.gaugeRow{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.gaugeRow .g{width:min(100%,280px);flex:none}
+.gaugeRow .g svg{width:100%;display:block}
+.rpmCol{flex:1;min-width:160px;display:flex;flex-direction:column;gap:6px}
+.rpmNums{font-family:'Oswald',system-ui;font-weight:700;font-size:24px;color:var(--cream);line-height:1.1}
+.rpmNums .ar{color:var(--gold);margin:0 8px;font-size:18px}
+.rpmSub{font-size:11px;color:var(--series-a)}
+.badge{width:72px;height:72px;flex:0 0 72px;border-radius:50%;background:var(--red);border:2px solid var(--cream);
+  display:inline-flex;flex-direction:column;align-items:center;justify-content:center;color:var(--cream);
+  padding:0 4px;box-shadow:0 3px 0 #0004}
+.badge .d{font-family:'Oswald',system-ui;font-weight:700;font-size:17px;line-height:1;white-space:nowrap;letter-spacing:-.02em}
+.badge .d.txt{font-size:13px}
+.badge .p{font-size:9px;letter-spacing:.06em;margin-top:1px;color:#ffe9c9}
+@media (max-width:480px){.gaugeRow{flex-direction:column;text-align:center}.rpmCol{align-items:center}}
+.sawWrap{margin-top:10px;border-radius:10px;overflow:hidden;background:#ffffff08}
+.sawWrap canvas{display:block;width:100%;height:170px}
+.res{margin:10px 0 2px;font-size:15px;font-weight:700;color:var(--cream);line-height:1.6} .res b{color:var(--gold)}
+.sub{font-size:12px;color:var(--series-a);margin:0}
+/* 札 */
+.packs{display:flex;gap:9px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;margin-top:4px}
+.pk{appearance:none;flex:none;width:168px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 10px 10px 13px;position:relative;overflow:hidden;font:inherit;cursor:pointer}
+@media (min-width:641px){.packs{flex-wrap:wrap;overflow-x:visible}.pk{flex:1 1 calc(33.333% - 6px);width:auto;min-width:168px}}
+.pk::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--line)}
+.pk:hover{border-color:var(--deep)}
+.pk .no{font-family:'Oswald',system-ui;font-size:11px;color:var(--sub);letter-spacing:.1em}
+.pk .nm{font-weight:700;font-size:14px;margin:1px 0 4px;color:var(--deep)}
+.pk .sub{font-size:11px;color:var(--sub);line-height:1.5;min-height:31px}
+.pk .tags{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.pk .tg{font-size:10px;border-radius:999px;padding:1px 6px;background:#efe7d6;color:#6a5f4d}
+.pk.on{background:var(--red);border-color:var(--red2);color:#fff;box-shadow:0 3px 0 #0002}
+.pk.on::before{background:var(--gold)}
+.pk.on .no,.pk.on .sub,.pk.on .nm{color:#ffdfd4}
+.pk.on .tg{background:#ffffff26;color:#fff}
+.packwrap{margin:0 0 6px}
+.sechead{font-family:'Oswald',system-ui;font-weight:500;font-size:15px;letter-spacing:.06em;margin:0 0 8px;
+  display:flex;align-items:center;gap:8px;color:var(--deep)}
+.sechead::before{content:"";width:16px;height:3px;background:var(--red)}
+.sechead small{font-weight:400;color:var(--sub);font-size:12px;letter-spacing:0}
+/* 札の裏面 */
+.packBack{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px;margin:4px 0 14px}
+.packBack h4{margin:10px 0 4px;font-size:12px;color:var(--sub);letter-spacing:.04em}
+.packBack h4:first-child{margin-top:0}
+.packBack p{margin:4px 0;font-size:13px}
+.packBack table{margin-top:2px}
+.packBack .tags{display:flex;gap:4px;margin:8px 0 0;flex-wrap:wrap}
+.packBack .tg{font-size:11px;border-radius:999px;padding:2px 8px;background:#efe7d6;color:#6a5f4d}
+.packBack .foot{font-size:12px;color:var(--ink);margin-top:4px}
+.packBack .warn{color:var(--warn);background:var(--warnbg);border-radius:8px;padding:6px 8px;font-size:12px;margin-top:6px}
+/* details（アコーディオン共通） */
+.sec{border:1px solid var(--line);background:var(--card);border-radius:12px;margin-top:8px;padding:0 12px}
+.sec>summary{cursor:pointer;font-size:14px;color:var(--deep);padding:9px 0;list-style:none;display:flex;justify-content:space-between;align-items:center}
+.sec>summary::-webkit-details-marker{display:none}
+.sec>summary::after{content:'▸';color:var(--sub);font-size:13px}
+.sec[open]>summary::after{content:'▾'}
+.sec>summary small{color:var(--sub);font-weight:400;font-size:12px;margin-left:6px}
+.sec .body{padding:2px 0 12px;font-size:13px}
+details.inner{margin-top:8px;font-size:12px;color:var(--sub)} details.inner summary{cursor:pointer}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+@media (max-width:640px){.cols{grid-template-columns:1fr}}
+.panel{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px}
+.panel h3{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+.key{display:inline-block;width:18px;height:0;border-top:3px solid;border-radius:2px}
+.key.a{border-color:var(--series-a)} .key.b{border-color:var(--series-b)}
+table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:right} th:first-child,td:first-child{text-align:left}
+.limits{font-size:13px;color:var(--ink);padding-left:1.2em;margin:6px 0 0} .limits li{margin:4px 0}
+.note{font-size:12px;color:var(--sub);margin:10px 0 0}
+/* 数直線（仕組み3行） */
+.numline{position:relative;height:64px;margin-top:14px}
+.numline .track{position:absolute;left:4px;right:4px;top:30px;height:2px;background:var(--line)}
+.numline .zero{position:absolute;top:22px;width:1px;height:16px;background:var(--sub)}
+.numline .dot{position:absolute;top:26px;width:8px;height:8px;border-radius:50%;background:var(--deep);transform:translate(-50%,-50%)}
+.numline .lab{position:absolute;font-size:10px;color:var(--sub);white-space:nowrap;transform:translateX(-50%)}
+.numline .lab.hi{top:0} .numline .lab.lo{top:40px}
+.numline .axis{display:flex;justify-content:space-between;font-size:10px;color:var(--sub);margin-top:4px}
+.busy{opacity:.55;transition:opacity .15s}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar"><a id="toEngine" href="./">← エンジンの画面へ</a><a href="/">トップへ戻る</a></div>
+  <h1>駆動系妄想シミュレーター</h1>
+  <p class="lead">ミッションやタイヤを変えると何がどう変わるか。困りごとを選んで、いまの車と並べて差を見ます。</p>
+
+  <div id="result" class="busy">
+    <div class="banner" id="banner">
+      <div class="stripe"></div>
+      <div class="row">
+        <div class="from"><div class="lab">いま</div><div class="nm" id="bannerFrom"></div><div class="sub" id="bannerFromSub"></div></div>
+        <div class="ar">▶</div>
+        <div class="to"><div class="lab">変えた後</div><div class="nm" id="bannerTo"></div><div class="sub" id="bannerToSub"></div></div>
+      </div>
+    </div>
+
+    <div class="stageWrap" id="stageWrap">
+      <div class="gaugeRow">
+        <div class="g"><svg id="tach" viewBox="0 0 200 200"></svg></div>
+        <div class="rpmCol">
+          <div class="rpmNums" id="rpmNums">— <span class="ar">▶</span> —</div>
+          <div class="badge" id="rpmBadge"><span class="d" id="rpmBadgeNum"></span></div>
+          <div class="rpmSub" id="rpmCond"></div>
+        </div>
+      </div>
+      <div class="sawWrap"><canvas id="sawCv"></canvas></div>
+      <p class="res" id="res"></p>
+      <p class="sub" id="resSub"></p>
+    </div>
+
+    <div class="packwrap">
+      <p class="sechead">困りごとを選ぶ</p>
+      <div class="chips" id="caseChips"></div>
+      <p class="sechead">変えた後を選ぶ<small id="packSummary"></small></p>
+      <div class="packs" id="packs"></div>
+      <div class="packBack" id="packBack" hidden></div>
+    </div>
+
+    <details class="sec" name="sec" id="dHow"><summary>仕組み3行</summary><div class="body">
+      <ol style="margin:0;padding-left:1.2em;font-size:13px">
+        <li>タイヤ1回転で進む距離＝外径×π（125R12 ≒1.59m）</li>
+        <li>エンジン1回転で進む距離＝それ÷（ギア比×ファイナル）</li>
+        <li>だから比が小さい（長い）＝同じ速度で回転が下がるが、タイヤを回す力も減る＝全部この裏返し</li>
+      </ol>
+      <p class="note">同じ速度で回転が何%変わるか（いまの構成に1つだけ重ねたとき・80km/h）</p>
+      <div class="numline" id="numline"></div>
+    </div></details>
+
+    <h2>ベース車両</h2>
+    <details class="sec" name="wiz" id="stepSeries"><summary>車種<small id="sumSeries"></small></summary><div class="body">
+      <div class="chips" id="seriesChips"></div>
+    </div></details>
+    <details class="sec" name="wiz" id="stepType"><summary>タイプ<small id="sumType"></small></summary><div class="body">
+      <div class="chips" id="typeChips"></div>
+    </div></details>
+    <details class="sec" name="wiz" id="stepEng"><summary>いまのエンジン<small id="sumEng"></small></summary><div class="body">
+      <div class="chips" id="engChips"></div>
+      <p class="note" id="engCustomNote" hidden></p>
+    </div></details>
+    <details class="sec" name="wiz" id="stepDrive"><summary>いまの駆動系<small id="sumDrive"></small></summary><div class="body">
+      <p class="note">この型式の純正の駆動系（自分の純正値を知る）</p>
+      <div id="stockTable"></div>
+      <details class="inner" id="daInner"><summary>既に変えてある ▸</summary><div id="daEditor" style="margin-top:8px"></div></details>
+    </div></details>
+
+    <details class="sec" name="sec" id="dFine"><summary>細かく変える<small>いま・変えた後の5項目</small></summary><div class="body">
+      <div class="cols">
+        <section class="panel"><h3><span class="key a"></span>いま</h3><div id="fineA"></div></section>
+        <section class="panel"><h3><span class="key b"></span>変えた後</h3><div id="fineB"></div></section>
+      </div>
+      <p class="note">乗員は 1人（75kg）で固定。</p>
+    </div></details>
+
+    <details class="sec" name="sec" id="dGear"><summary>ギアと回転</summary><div class="body">
+      <div class="cols">
+        <div><h3 style="font-size:13px;margin:0 0 4px"><span class="key a"></span>いま</h3><div id="gearA"></div></div>
+        <div><h3 style="font-size:13px;margin:0 0 4px"><span class="key b"></span>変えた後</h3><div id="gearB"></div></div>
+      </div>
+      <details class="inner"><summary>勾配ごとに維持できる速度</summary><div id="gradeTable2"></div></details>
+    </div></details>
+
+    <details class="sec" name="sec" id="dLimits"><summary>このツールの限界・出典</summary><div class="body">
+      <ul class="limits" id="limits2"></ul>
+      <p class="note" id="assumed2"></p>
+    </div></details>
+  </div>
+  <p class="note" id="status"></p>
+</div>
+
+<script type="module">
+import { simulate } from './sim.js';
+import { MODELS, SLOTS, DEFAULT_CHOICES, buildSpec, modelById, revCapRpm, packagesFor, packageChoices, packageMatches } from './presets.js';
+import {
+  GEARBOXES, GEARSETS, FINALS, TIRES, FIFTHS, VEHICLES, DEFAULT_DRIVE_CHOICES, buildVehicle, driveOptionsFor,
+} from './presets_vehicle.js';
+import { rpmAtSpeed, gearTable, topSpeed, steadySpeed, climbHill, accelerate, capRes } from './vehicle.js';
+import { sceneById } from './scenes.js';
+import { renderTach, setNeedles } from './gauge_a0.js';
+import { DRIVE_PACKS, packFits, packChoices } from './presets_drive_packs.js';
+
+const $ = (s, r = document) => r.querySelector(s);
+const RPM = [1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500];
+const ENG_SLOT_ORDER = ['disp', 'cr', 'cam', 'head', 'carb', 'exh'];
+const DRIVE_KEYS = ['gearbox', 'gearset', 'final', 'tire', 'fifth'];
+const DRIVE_LISTS = { gearbox: GEARBOXES, gearset: GEARSETS, final: FINALS, tire: TIRES, fifth: FIFTHS };
+const DRIVE_LABEL = { gearbox: 'ミッション（変速比）', gearset: '3/4速ショート・1速ロング', final: 'ファイナル（最終減速比）', tire: 'タイヤ', fifth: '5速化' };
+const TIRE_GRP_LABEL = { ten: '10インチ', same: '12インチ・回転そのまま', plus3: '12インチ・回転 +3%', thirteen: '13インチ' };
+const FIFTH_GRP_LABEL = { long: 'ロング', mid: 'ミドル', short: 'ショート' };
+const CASE_LABEL = { all: '全部', A: 'A 高速で回転が高い', B: 'B 坂で失速', C: 'C 発進の谷', D: 'D 650 以上にした', E: 'E ノンシンクロが辛い', F: 'F 見た目' };
+const CASE_ORDER = ['A', 'B', 'C', 'D', 'E', 'F'];
+const CIRCLED = ['①', '②', '③', '④', '⑤', '⑥'];
+
+const state = { model: '500F', a: { ...DEFAULT_CHOICES }, da: { ...DEFAULT_DRIVE_CHOICES }, db: { ...DEFAULT_DRIVE_CHOICES }, pack: null, case: 'all' };
+
+// ───── 小道具 ─────
+const strip = (s) => (s || '').replace(/（.*$/, '');
+function fieldLabel(key, id) {
+  const o = (DRIVE_LISTS[key] || []).find((x) => x.id === id);
+  return o ? strip(o.label) : id;
+}
+function baseOf(modelId) { return VEHICLES[modelId] || VEHICLES['500F']; }
+
+// ───── URL ハッシュ ─────
+function encDrive(c) { return DRIVE_KEYS.filter((k) => c[k] !== DEFAULT_DRIVE_CHOICES[k]).map((k) => `${k}:${c[k]}`).join(','); }
+function decDrive(v, out) {
+  v.split(',').forEach((kv) => {
+    const [k, val] = kv.split(':');
+    if (!DRIVE_KEYS.includes(k)) return;
+    if (val === 'stock' || val === 'none' || (DRIVE_LISTS[k] && DRIVE_LISTS[k].some((o) => o.id === val))) out[k] = val;
+  });
+}
+function encEngine(c) {
+  const parts = ENG_SLOT_ORDER.filter((k) => c[k] && c[k] !== 'stock').map((k) => `${k}:${c[k]}`);
+  if (c.eng) parts.push(`eng:${c.eng}`);
+  return parts.join(',');
+}
+function readHash() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (![...h.keys()].length) {
+    const dp = DRIVE_PACKS.find((p) => p.id === 'dp_f839');
+    state.db = packChoices(state.da, dp); state.pack = dp.id;
+    return;
+  }
+  if (h.get('m') && modelById(h.get('m')).id === h.get('m')) state.model = h.get('m');
+  const av = h.get('a') || h.get('b');
+  if (av) {
+    av.split(',').forEach((kv) => {
+      const [k, val] = kv.split(':');
+      if (k === 'eng') { if (MODELS.some((m) => m.id === val)) state.a.eng = val; return; }
+      if (SLOTS[k] && SLOTS[k].some((o) => o.id === val)) state.a[k] = val;
+    });
+  }
+  const dv = h.get('da'); if (dv) decDrive(dv, state.da);
+  const bv = h.get('db'); if (bv) decDrive(bv, state.db);
+  const pk = DRIVE_PACKS.find((p) => p.id === h.get('p'));
+  if (pk) {
+    state.pack = pk.id;
+    // db が無い（札だけの）URL は、札の中身を db に展開する＝札名と針が食い違わない
+    if (!bv && packFits(state.model, state.da, pk)) state.db = packChoices(state.da, pk);
+  }
+  if (h.get('c') && CASE_ORDER.includes(h.get('c'))) state.case = h.get('c');
+}
+function writeHash() {
+  const p = new URLSearchParams(); p.set('m', state.model);
+  const ea = encEngine(state.a); if (ea) p.set('a', ea);
+  const da = encDrive(state.da); if (da) p.set('da', da);
+  const db = encDrive(state.db); if (db) p.set('db', db);
+  if (state.pack) p.set('p', state.pack);
+  if (state.case !== 'all') p.set('c', state.case);
+  history.replaceState(null, '', '#' + p.toString());
+  const q = new URLSearchParams(); q.set('m', state.model); if (ea) q.set('a', ea);
+  $('#toEngine').href = './#' + q.toString();
+}
+
+// ───── 型式が変わったときに、いまの選択が壊れないよう絞り直す ─────
+function clampDrive(modelId, choices) {
+  const opts = driveOptionsFor(modelId, choices);
+  const out = { ...choices };
+  if (out.gearbox !== 'stock' && !GEARBOXES.some((g) => g.id === out.gearbox)) out.gearbox = 'stock';
+  if (out.gearset !== 'stock' && !opts.gearsets.some((g) => g.id === out.gearset)) out.gearset = 'stock';
+  if (out.final !== 'stock' && !opts.finals.some((f) => f.id === out.final)) out.final = 'stock';
+  if (out.fifth !== 'none' && !opts.fifths.some((f) => f.id === out.fifth)) out.fifth = 'none';
+  return out;
+}
+function findMatchingPack(modelId, da, db) {
+  return DRIVE_PACKS.find((p) => {
+    const merged = { ...DEFAULT_DRIVE_CHOICES, ...da, ...p.choices };
+    return DRIVE_KEYS.every((k) => merged[k] === db[k]);
+  }) || null;
+}
+function setModel(id) {
+  if (id === state.model) return;
+  state.model = id;
+  state.a = { ...DEFAULT_CHOICES };
+  state.da = clampDrive(id, state.da);
+  state.db = clampDrive(id, state.db);
+  if (state.pack) {
+    const pk = DRIVE_PACKS.find((p) => p.id === state.pack);
+    if (pk && packFits(id, state.da, pk)) state.db = packChoices(state.da, pk);
+    else state.pack = findMatchingPack(id, state.da, state.db)?.id || null;
+  }
+}
+
+// ───── ウィザード（index.html の openStep を踏襲） ─────
+function openStep(sel) {
+  const d = $(sel); d.open = true;
+  for (const other of document.querySelectorAll('details[name="wiz"]')) if (other !== d && other.open) other.open = false;
+}
+function bindAccordion() {
+  const groups = {};
+  for (const d of document.querySelectorAll('details[name]')) (groups[d.getAttribute('name')] ??= []).push(d);
+  for (const d of document.querySelectorAll('details[name]')) {
+    d.addEventListener('toggle', () => {
+      if (!d.open) return;
+      for (const other of groups[d.getAttribute('name')] || []) if (other !== d && other.open) other.open = false;
+    });
+  }
+}
+function renderSeriesChips() {
+  const box = $('#seriesChips'); box.textContent = '';
+  const cur = modelById(state.model).series;
+  for (const s of ['500', '126']) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = s; b.classList.toggle('on', s === cur);
+    b.addEventListener('click', () => {
+      if (s !== cur) { setModel(MODELS.find((m) => m.series === s).id); renderAllModelDependent(); }
+      openStep('#stepType'); update();
+    });
+    box.append(b);
+  }
+  $('#sumSeries').textContent = cur;
+}
+function renderTypeChips() {
+  const box = $('#typeChips'); box.textContent = '';
+  const cur = modelById(state.model);
+  for (const m of MODELS.filter((x) => x.series === cur.series)) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = m.type; b.classList.toggle('on', m.id === cur.id);
+    b.addEventListener('click', () => {
+      if (m.id !== state.model) { setModel(m.id); renderAllModelDependent(); }
+      openStep('#stepEng'); update();
+    });
+    box.append(b);
+  }
+  $('#sumType').textContent = cur.type;
+}
+function renderEngChips() {
+  const box = $('#engChips'); box.textContent = '';
+  const m = modelById(state.model);
+  const pks = packagesFor(m);
+  const isCustom = !!state.a.eng || ENG_SLOT_ORDER.some((k) => state.a[k] && state.a[k] !== 'stock');
+  const matched = pks.find((pk) => packageMatches(pk, m, state.a));
+  const mk = (label, on, fn) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.classList.toggle('on', on); b.addEventListener('click', fn); box.append(b); };
+  mk('純正のまま', !isCustom, () => { state.a = { ...DEFAULT_CHOICES }; openStep('#stepDrive'); update(); });
+  for (const pk of pks) mk(pk.name, !!matched && matched.id === pk.id, () => { state.a = { ...DEFAULT_CHOICES, ...packageChoices(pk, m) }; openStep('#stepDrive'); update(); });
+  const note = $('#engCustomNote');
+  note.hidden = !(isCustom && !matched);
+  if (isCustom && !matched) { const built = buildSpec(state.model, state.a); note.textContent = `エンジンの画面で組んだ構成（${Math.round(built.cc)}cc）`; }
+  $('#sumEng').textContent = matched ? matched.name : (isCustom ? 'エンジンの画面の構成' : '純正のまま');
+}
+function renderStockTable() {
+  const box = $('#stockTable'); box.textContent = '';
+  const stock = buildVehicle(state.model, {});
+  const t = document.createElement('table'); const tb = document.createElement('tbody');
+  stock.drive.gears.forEach((g, i) => { const tr = document.createElement('tr'); tr.innerHTML = `<td>${i + 1}速</td><td>${g.toFixed(3)}</td>`; tb.append(tr); });
+  const trF = document.createElement('tr'); trF.innerHTML = `<td>ファイナル</td><td>${strip(stock.picks.final.label)}</td>`; tb.append(trF);
+  const trT = document.createElement('tr'); trT.innerHTML = `<td>タイヤ</td><td>${strip(stock.picks.tire.label)}</td>`; tb.append(trT);
+  t.append(tb); box.append(t);
+}
+function appendGroups(sel, list, labelMap) {
+  const groups = {};
+  for (const o of list) { const gk = o.grp || '_'; (groups[gk] ??= []).push(o); }
+  if (groups['_']) for (const o of groups['_']) { const opt = document.createElement('option'); opt.value = o.id; opt.textContent = o.label + (o.assumed ? ' ※' : ''); sel.append(opt); }
+  for (const gk of Object.keys(groups)) {
+    if (gk === '_') continue;
+    const og = document.createElement('optgroup'); og.label = labelMap[gk] || gk;
+    for (const o of groups[gk]) { const opt = document.createElement('option'); opt.value = o.id; opt.textContent = o.label + (o.assumed ? ' ※' : ''); og.append(opt); }
+    sel.append(og);
+  }
+}
+function buildDriveSelect(key, side) {
+  const base = baseOf(state.model);
+  const opts = driveOptionsFor(state.model, state[side]);
+  const sel = document.createElement('select');
+  const addOpt = (id, label) => { const o = document.createElement('option'); o.value = id; o.textContent = label; sel.append(o); };
+  if (key === 'gearbox') { addOpt('stock', `純正のまま（${fieldLabel('gearbox', base.gearbox)}）`); for (const g of GEARBOXES) addOpt(g.id, g.label); }
+  else if (key === 'final') { addOpt('stock', `純正のまま（${fieldLabel('final', base.final)}）`); for (const f of opts.finals) addOpt(f.id, f.label + (f.assumed ? ' ※' : '')); }
+  else if (key === 'tire') { addOpt('stock', `純正のまま（${fieldLabel('tire', base.tire)}）`); appendGroups(sel, opts.tires, TIRE_GRP_LABEL); }
+  else if (key === 'gearset') { for (const g of opts.gearsets) addOpt(g.id, g.label + (g.assumed ? ' ※' : '')); }
+  else if (key === 'fifth') { appendGroups(sel, opts.fifths, FIFTH_GRP_LABEL); }
+  sel.value = state[side][key];
+  sel.addEventListener('change', () => {
+    state[side][key] = sel.value;
+    if (side === 'db') state.pack = findMatchingPack(state.model, state.da, state.db)?.id || null;
+    gtag('event', 'gearbox_sim_fine', { model: state.model, side, field: key });
+    update();
+  });
+  return sel;
+}
+function renderDriveEditor(container, side) {
+  container.textContent = '';
+  for (const k of DRIVE_KEYS) {
+    const lab = document.createElement('label'); lab.className = 'row'; lab.textContent = DRIVE_LABEL[k];
+    lab.append(buildDriveSelect(k, side));
+    container.append(lab);
+  }
+}
+function renderAllModelDependent() {
+  renderSeriesChips(); renderTypeChips(); renderEngChips(); renderStockTable();
+  renderDriveEditor($('#daEditor'), 'da');
+  renderFine();
+}
+function renderFine() {
+  renderDriveEditor($('#fineA'), 'da');
+  renderDriveEditor($('#fineB'), 'db');
+}
+
+// ───── 困りごとチップ・札 ─────
+function packsForCase() {
+  const fits = DRIVE_PACKS.filter((p) => packFits(state.model, state.da, p));
+  if (state.case === 'all') {
+    const withKey = fits.map((p) => {
+      let bestCase = null, bestRank = Infinity;
+      for (const c of CASE_ORDER) { if (p.cases[c] != null && (bestCase === null || CASE_ORDER.indexOf(c) < CASE_ORDER.indexOf(bestCase))) { bestCase = c; bestRank = p.cases[c]; } }
+      return { p, bestCase, bestRank };
+    }).filter((x) => x.bestCase);
+    withKey.sort((x, y) => CASE_ORDER.indexOf(x.bestCase) - CASE_ORDER.indexOf(y.bestCase) || x.bestRank - y.bestRank);
+    return withKey.map((x) => ({ pack: x.p, badge: x.bestCase + (CIRCLED[x.bestRank - 1] || x.bestRank) }));
+  }
+  return fits.filter((p) => p.cases[state.case] != null)
+    .sort((a, b) => a.cases[state.case] - b.cases[state.case])
+    .map((p) => ({ pack: p, badge: state.case + (CIRCLED[p.cases[state.case] - 1] || p.cases[state.case]) }));
+}
+function renderCaseChips() {
+  const box = $('#caseChips'); box.textContent = '';
+  for (const id of ['all', ...CASE_ORDER]) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = CASE_LABEL[id]; b.classList.toggle('on', state.case === id);
+    b.addEventListener('click', () => {
+      state.case = id; renderCaseChips(); renderPacks();
+      gtag('event', 'gearbox_sim_case', { model: state.model, case: id });
+      writeHash();
+    });
+    box.append(b);
+  }
+}
+function renderPacks() {
+  const box = $('#packs'); box.textContent = '';
+  for (const { pack, badge } of packsForCase()) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pk'; b.dataset.id = pack.id;
+    b.classList.toggle('on', state.pack === pack.id);
+    const tags = pack.tags.map((t) => `<span class="tg">${t}</span>`).join('');
+    b.innerHTML = `<span class="no">${badge}</span><div class="nm">${pack.name}</div><div class="sub">${pack.sub}</div><div class="tags">${tags}</div>`;
+    b.addEventListener('click', () => {
+      state.db = packChoices(state.da, pack); state.pack = pack.id;
+      gtag('event', 'gearbox_sim_package', { model: state.model, pack: pack.id });
+      update();
+    });
+    box.append(b);
+  }
+  const cur = state.pack && DRIVE_PACKS.find((p) => p.id === state.pack);
+  $('#packSummary').textContent = cur ? '・' + cur.name : '';
+}
+function markPack() {
+  for (const b of $('#packs').querySelectorAll('button')) b.classList.toggle('on', b.dataset.id === state.pack);
+  const cur = state.pack && DRIVE_PACKS.find((p) => p.id === state.pack);
+  $('#packSummary').textContent = cur ? '・' + cur.name : '';
+}
+
+// ───── 差分の文章・表 ─────
+const GEAR_NAME = ['1速', '2速', '3速', '4速', '5速'];
+function driveSummaryText(choices) {
+  const parts = DRIVE_KEYS.filter((k) => choices[k] !== DEFAULT_DRIVE_CHOICES[k]).map((k) => fieldLabel(k, choices[k]));
+  return parts.length ? parts.join('＋') : '純正の駆動系';
+}
+function driveDiffText(VA, VB) {
+  const parts = [];
+  const n = Math.max(VA.drive.gears.length, VB.drive.gears.length);
+  for (let i = 0; i < n; i++) {
+    const a = VA.drive.gears[i], b = VB.drive.gears[i];
+    if (a == null && b != null) parts.push(`${GEAR_NAME[i]} ${b.toFixed(3)} を追加`);
+    else if (a != null && b == null) parts.push(`${GEAR_NAME[i]} を外す`);
+    else if (Math.abs(a - b) > 0.0005) parts.push(`${GEAR_NAME[i]} ${a.toFixed(3)}→${b.toFixed(3)}`);
+  }
+  if (VA.picks.final.id !== VB.picks.final.id) parts.push(`ファイナル ${strip(VA.picks.final.label)}→${strip(VB.picks.final.label)}`);
+  if (VA.picks.tire.id !== VB.picks.tire.id) parts.push(`タイヤ ${strip(VA.picks.tire.label)}→${strip(VB.picks.tire.label)}`);
+  return parts.length ? parts.join('・') : '同じ設定';
+}
+function buildDriveTable(VA, VB) {
+  const t = document.createElement('table'); const tb = document.createElement('tbody');
+  const n = Math.max(VA.drive.gears.length, VB.drive.gears.length);
+  for (let i = 0; i < n; i++) {
+    const a = VA.drive.gears[i], b = VB.drive.gears[i];
+    const changed = a == null || b == null || Math.abs(a - b) > 0.0005;
+    const bTxt = b == null ? '—' : b.toFixed(3);
+    const cell = changed ? `<span style="color:var(--series-b)">▶ ${bTxt}</span>` : bTxt;
+    const tr = document.createElement('tr'); tr.innerHTML = `<td>${GEAR_NAME[i]}</td><td>${a == null ? '—' : a.toFixed(3)}</td><td>${cell}</td>`; tb.append(tr);
+  }
+  const finalChanged = VA.picks.final.id !== VB.picks.final.id;
+  const tireChanged = VA.picks.tire.id !== VB.picks.tire.id;
+  const trF = document.createElement('tr'); trF.innerHTML = `<td>ファイナル</td><td>${strip(VA.picks.final.label)}</td><td>${finalChanged ? `<span style="color:var(--series-b)">▶ ${strip(VB.picks.final.label)}</span>` : strip(VB.picks.final.label)}</td>`; tb.append(trF);
+  const trT = document.createElement('tr'); trT.innerHTML = `<td>タイヤ</td><td>${strip(VA.picks.tire.label)}</td><td>${tireChanged ? `<span style="color:var(--series-b)">▶ ${strip(VB.picks.tire.label)}</span>` : strip(VB.picks.tire.label)}</td>`; tb.append(trT);
+  t.append(tb); return t;
+}
+
+// ───── 舞台の数値（回転計・ノコギリ線・結果文・裏面で共有） ─────
+function stageNumbers(L) {
+  const { VA, VB, cap } = L;
+  const topA = VA.drive.gears.length - 1, topB = VB.drive.gears.length - 1;
+  const rpmA = rpmAtSpeed(80, VA.drive.gears[topA], VA.drive);
+  const rpmB = rpmAtSpeed(80, VB.drive.gears[topB], VB.drive);
+  return { topA, topB, rpmA, rpmB, okA: rpmA <= cap, okB: rpmB <= cap };
+}
+
+// ───── 描画：舞台 ─────
+let needleAnimReq = null, prevA = 0, prevB = undefined;
+function animateNeedles(svg, a, b) {
+  cancelAnimationFrame(needleAnimReq);
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced || prevA == null) { setNeedles(svg, { a, b }); prevA = a; prevB = b; return; }
+  const fromA = prevA, fromB = prevB == null ? a : prevB;
+  const toB = b == null ? fromB : b;
+  const t0 = performance.now(), dur = 600;
+  const step = (now) => {
+    const t = Math.min(1, (now - t0) / dur);
+    const e = 1 - Math.pow(1 - t, 3);
+    setNeedles(svg, { a: fromA + (a - fromA) * e, b: b == null ? undefined : fromB + (toB - fromB) * e });
+    if (t < 1) needleAnimReq = requestAnimationFrame(step);
+  };
+  needleAnimReq = requestAnimationFrame(step);
+  prevA = a; prevB = b;
+}
+function renderGauge(L, nums) {
+  const svg = $('#tach');
+  renderTach(svg, { rpm: 0, redFrom: L.cap, max: 6000 });
+  const css = getComputedStyle(document.documentElement);
+  if (nums.okA && nums.okB) {
+    const down = nums.rpmB < nums.rpmA;
+    svg.style.setProperty('--a0-fan', down ? 'var(--series-b)' : 'var(--red)');
+    animateNeedles(svg, nums.rpmA, nums.rpmB);
+  } else if (nums.okA) {
+    svg.style.setProperty('--a0-fan', 'var(--series-b)');
+    animateNeedles(svg, nums.rpmA, undefined);
+  } else {
+    animateNeedles(svg, 0, undefined);
+  }
+  const fmt = (v, ok) => (ok ? Math.round(v) : '—');
+  $('#rpmNums').innerHTML = `${fmt(nums.rpmA, nums.okA)} <span class="ar">▶</span> ${fmt(nums.rpmB, nums.okB)}<span style="font-size:14px"> rpm</span>`;
+  const badgeNum = $('#rpmBadgeNum');
+  if (!nums.okA || !nums.okB) { badgeNum.textContent = '—'; }
+  else {
+    const diff = (nums.rpmB / nums.rpmA - 1) * 100;
+    const small = Math.abs(diff) < 1.5;
+    badgeNum.textContent = small ? 'ほぼ同じ' : `${diff >= 0 ? '+' : ''}${Math.round(diff)}%`;
+    badgeNum.classList.toggle('txt', small);
+  }
+  $('#rpmCond').textContent = nums.topA === nums.topB ? `80 km/h・${nums.topA + 1}速` : `80 km/h・${nums.topA + 1}→${nums.topB + 1}速`;
+}
+function interpAt(trace, kmh) {
+  if (!trace.length) return 0;
+  for (let i = 1; i < trace.length; i++) if (trace[i].kmh >= kmh) { const a = trace[i - 1], b = trace[i]; const f = (kmh - a.kmh) / Math.max(b.kmh - a.kmh, 1e-6); return a.rpm + (b.rpm - a.rpm) * f; }
+  return trace[trace.length - 1].rpm;
+}
+function drawSaw(L) {
+  const cv = $('#sawCv'); const W = cv.clientWidth, H = cv.clientHeight, dpr = window.devicePixelRatio || 1;
+  if (!W) return;
+  cv.width = W * dpr; cv.height = H * dpr; const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+  const css = getComputedStyle(document.documentElement);
+  const colA = css.getPropertyValue('--series-a').trim(), colB = css.getPropertyValue('--series-b').trim(), cream = css.getPropertyValue('--cream').trim();
+  const padL = 34, padR = 8, padT = 8, padB = 18;
+  const X = (kmh) => padL + (kmh / 120) * (W - padL - padR);
+  const Y = (rpm) => padT + (1 - rpm / 6000) * (H - padT - padB);
+  g.strokeStyle = 'rgba(255,255,255,.14)'; g.fillStyle = cream; g.font = '9px system-ui'; g.lineWidth = 1;
+  for (let r = 0; r <= 6000; r += 1000) { g.beginPath(); g.moveTo(padL, Y(r)); g.lineTo(W - padR, Y(r)); g.stroke(); g.textAlign = 'right'; g.globalAlpha = .8; g.fillText(r, padL - 4, Y(r) + 3); g.globalAlpha = 1; }
+  g.textAlign = 'center'; g.globalAlpha = .8;
+  for (let k = 0; k <= 120; k += 20) g.fillText(k, X(k), H - 4);
+  g.globalAlpha = 1;
+  const traceA = accelerate(L.res, L.VA.vehicle, L.VA.drive, { distance_m: 4000, toKmh: 122 }).trace;
+  const traceB = accelerate(L.res, L.VB.vehicle, L.VB.drive, { distance_m: 4000, toKmh: 122 }).trace;
+  const line = (trace, col, lw, alpha) => { g.strokeStyle = col; g.lineWidth = lw; g.globalAlpha = alpha; g.lineJoin = 'round'; g.beginPath(); trace.forEach((p, i) => (i ? g.lineTo(X(p.kmh), Y(p.rpm)) : g.moveTo(X(p.kmh), Y(p.rpm)))); g.stroke(); g.globalAlpha = 1; };
+  line(traceB, colB, 4, .9); line(traceA, colA, 2.5, 1);
+  // ギア番号（いま＝Aのみ）
+  g.font = '9px system-ui'; g.textAlign = 'center';
+  for (let i = 1; i < traceA.length; i++) {
+    if (traceA[i].gear !== traceA[i - 1].gear) { const p = traceA[i - 1]; g.fillStyle = colA; g.fillText(String(p.gear), X(p.kmh), Y(p.rpm) - 6); }
+  }
+  if (traceA.length) { const p = traceA[traceA.length - 1]; g.fillStyle = colA; g.fillText(String(p.gear), X(p.kmh), Y(p.rpm) - 6); }
+  // 80km/h の縦線＋交点
+  const x80 = X(80);
+  g.strokeStyle = cream; g.globalAlpha = .7; g.setLineDash([4, 3]); g.lineWidth = 1; g.beginPath(); g.moveTo(x80, padT); g.lineTo(x80, H - padB); g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+  const rA = interpAt(traceA, 80), rB = interpAt(traceB, 80);
+  g.beginPath(); g.arc(x80, Y(rB), 4, 0, Math.PI * 2); g.fillStyle = colB; g.fill();
+  g.beginPath(); g.arc(x80, Y(rA), 4, 0, Math.PI * 2); g.fillStyle = colA; g.fill();
+  g.font = 'bold 11px system-ui'; g.textAlign = 'left';
+  g.fillStyle = colB; g.fillText(Math.round(rB), x80 + 7, Y(rB) + 4);
+  g.fillStyle = colA; g.fillText(Math.round(rA), x80 + 7, Y(rA) - 6);
+}
+function fmtKmh(x) { return x == null ? '—' : Math.round(x); }
+function renderResultText(L) {
+  const nums = stageNumbers(L);
+  const topA = topSpeed(L.res, L.VA.vehicle, L.VA.drive), topB = topSpeed(L.res, L.VB.vehicle, L.VB.drive);
+  const diff = (nums.okA && nums.okB) ? Math.round((nums.rpmB / nums.rpmA - 1) * 100) : null;
+  const rpmTxt = `${nums.okA ? Math.round(nums.rpmA) : '—'} → ${nums.okB ? Math.round(nums.rpmB) : '—'}`;
+  $('#res').innerHTML = `80km/h の回転が <b>${rpmTxt}rpm</b>${diff == null ? '' : `（${diff >= 0 ? '+' : ''}${diff}%）`}。最高速は ${fmtKmh(topA?.kmh)} → ${fmtKmh(topB?.kmh)}km/h。`;
+  const hillA = climbHill(L.res, L.VA.vehicle, L.VA.drive, sceneById('dangozaka')), hillB = climbHill(L.res, L.VB.vehicle, L.VB.drive, sceneById('dangozaka'));
+  const omgA = climbHill(L.res, L.VA.vehicle, L.VA.drive, sceneById('omega')), omgB = climbHill(L.res, L.VB.vehicle, L.VB.drive, sceneById('omega'));
+  $('#resSub').textContent = `談合坂（5%）の登り切り ${fmtKmh(hillA.exitKmh)} → ${fmtKmh(hillB.exitKmh)}km/h／名阪 Ω ${fmtKmh(omgA.exitKmh)} → ${fmtKmh(omgB.exitKmh)}km/h`;
+}
+function renderBanner(L) {
+  const m = modelById(state.model);
+  $('#bannerFrom').textContent = `${m.series} ${m.type}`;
+  $('#bannerFromSub').textContent = driveSummaryText(state.da);
+  const cur = state.pack && DRIVE_PACKS.find((p) => p.id === state.pack);
+  $('#bannerTo').textContent = cur ? cur.name : driveSummaryText(state.db);
+  $('#bannerToSub').textContent = driveDiffText(L.VA, L.VB);
+}
+
+// ───── 裏面 ─────
+function renderPackBack(L) {
+  const box = $('#packBack');
+  const pack = state.pack && DRIVE_PACKS.find((p) => p.id === state.pack);
+  box.hidden = false;
+  box.textContent = '';
+  const h1 = document.createElement('h4'); h1.textContent = '何から何へ'; box.append(h1);
+  box.append(buildDriveTable(L.VA, L.VB));
+  const nums = stageNumbers(L);
+  const topA = topSpeed(L.res, L.VA.vehicle, L.VA.drive), topB = topSpeed(L.res, L.VB.vehicle, L.VB.drive);
+  const diff = (nums.okA && nums.okB) ? Math.round((nums.rpmB / nums.rpmA - 1) * 100) : null;
+  const foot = document.createElement('p'); foot.className = 'foot';
+  foot.textContent = `80km/h の回転 ${nums.okA ? Math.round(nums.rpmA) : '—'} → ${nums.okB ? Math.round(nums.rpmB) : '—'}rpm${diff == null ? '' : `（${diff >= 0 ? '+' : ''}${diff}%）`}／最高速 ${fmtKmh(topA?.kmh)} → ${fmtKmh(topB?.kmh)}km/h`;
+  box.append(foot);
+  if (pack) { const pc = document.createElement('p'); pc.textContent = pack.back.change; box.append(pc); }
+  const ratio = document.createElement('p'); ratio.className = 'note'; ratio.style.margin = '4px 0 0';
+  ratio.textContent = '比が大きいほど短い＝力が出る・回転が上がる。';
+  box.append(ratio);
+  if (pack) {
+    const h2 = document.createElement('h4'); h2.textContent = '乗り味'; box.append(h2);
+    const p2 = document.createElement('p'); p2.textContent = pack.back.feel; box.append(p2);
+    const h3 = document.createElement('h4'); h3.textContent = '注意'; box.append(h3);
+    const p3 = document.createElement('p'); p3.textContent = pack.back.care; box.append(p3);
+    if (pack.choices.gearset) {
+      const gs = GEARSETS.find((g) => g.id === pack.choices.gearset);
+      if (gs && gs.needsFifth && state.db.fifth === 'none') {
+        const warn = document.createElement('p'); warn.className = 'warn'; warn.textContent = 'このキットは5速が前提（純正4速より 25% 短い）'; box.append(warn);
+      }
+    }
+    if (pack.tags.length) {
+      const tg = document.createElement('div'); tg.className = 'tags';
+      pack.tags.forEach((t) => { const s = document.createElement('span'); s.className = 'tg'; s.textContent = t; tg.append(s); });
+      box.append(tg);
+    }
+  }
+}
+
+// ───── 仕組み3行の数直線 ─────
+function systemLineData() {
+  const baseV = buildVehicle(state.model, state.da);
+  const top = baseV.drive.gears.length - 1;
+  const baseRpm = rpmAtSpeed(80, baseV.drive.gears[top], baseV.drive);
+  const opts = driveOptionsFor(state.model, state.da);
+  const out = [];
+  const addFor = (key, list) => {
+    for (const o of list) {
+      if (o.id === state.da[key]) continue;
+      const built = buildVehicle(state.model, { ...state.da, [key]: o.id });
+      const t = built.drive.gears.length - 1;
+      const rpm = rpmAtSpeed(80, built.drive.gears[t], built.drive);
+      const pct = (rpm / baseRpm - 1) * 100;
+      if (Math.abs(pct) < 0.05) continue;
+      out.push({ id: o.id, label: strip(o.label), pct });
+    }
+  };
+  addFor('tire', opts.tires); addFor('final', opts.finals); addFor('fifth', opts.fifths); addFor('gearset', opts.gearsets);
+  return out;
+}
+function renderNumline() {
+  const box = $('#numline'); box.textContent = '';
+  const data = systemLineData();
+  const lo = -20, hi = 10;
+  const pos = (v) => `${((Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * 100}%`;
+  const track = document.createElement('div'); track.className = 'track'; box.append(track);
+  const zero = document.createElement('div'); zero.className = 'zero'; zero.style.left = pos(0); box.append(zero);
+  data.sort((a, b) => a.pct - b.pct).forEach((d, i) => {
+    const dot = document.createElement('div'); dot.className = 'dot'; dot.style.left = pos(d.pct);
+    dot.style.background = d.pct < 0 ? 'var(--series-b)' : 'var(--red)';
+    box.append(dot);
+    const lab = document.createElement('div'); lab.className = 'lab ' + (i % 2 ? 'lo' : 'hi'); lab.style.left = pos(d.pct);
+    lab.textContent = `${d.label} ${d.pct >= 0 ? '+' : ''}${d.pct.toFixed(1)}`;
+    box.append(lab);
+  });
+  const axis = document.createElement('div'); axis.className = 'axis';
+  axis.innerHTML = `<span>${lo}%</span><span>0%</span><span>+${hi}%</span>`;
+  axis.style.position = 'absolute'; axis.style.left = '0'; axis.style.right = '0'; axis.style.top = '48px';
+  box.append(axis);
+}
+
+// ───── ギアと回転 ─────
+function drawGearTable(box, res, drive, cap) {
+  box.textContent = '';
+  const t = document.createElement('table'); t.innerHTML = '<thead><tr><th>ギア</th><th>km/h／1000rpm</th><th>80km/h の回転</th></tr></thead>';
+  const tb = document.createElement('tbody');
+  gearTable(res, drive).forEach((ga, i) => {
+    const rpm = rpmAtSpeed(80, drive.gears[i], drive);
+    const cell = rpm > cap ? '—' : `${Math.round(rpm / 10) * 10}`;
+    const tr = document.createElement('tr'); tr.innerHTML = `<td>${ga.gear}速（${Number(ga.ratio.toFixed(3))}）</td><td>${ga.kmhAt1000.toFixed(1)}</td><td>${cell}</td>`; tb.append(tr);
+  });
+  const top = topSpeed(res, drive.vehicle || {}, drive);
+  t.append(tb); box.append(t);
+}
+function renderGearTables(L) {
+  drawGearTable($('#gearA'), L.res, L.VA.drive, L.cap);
+  drawGearTable($('#gearB'), L.res, L.VB.drive, L.cap);
+  const box = $('#gradeTable2'); box.textContent = '';
+  const t = document.createElement('table'); t.innerHTML = '<thead><tr><th>勾配</th><th>いま</th><th>変えた後</th></tr></thead>';
+  const tb = document.createElement('tbody');
+  for (const gr of [0, 5, 10]) {
+    const sa = steadySpeed(L.res, L.VA.vehicle, L.VA.drive, gr).best, sb = steadySpeed(L.res, L.VB.vehicle, L.VB.drive, gr).best;
+    const f = (s) => (s ? `${s.kmh.toFixed(0)} km/h（${s.gear}速）` : '登れない');
+    const tr = document.createElement('tr'); tr.innerHTML = `<td>${gr}%</td><td>${f(sa)}</td><td>${f(sb)}</td>`; tb.append(tr);
+  }
+  t.append(tb); box.append(t);
+}
+function renderLimits(L) {
+  const ul = $('#limits2'); ul.textContent = '';
+  const items = [
+    '理論値＝常に全開で、法定速度は勘案しない。80km/h から加速・登坂を計算する。乗員は 1人（75kg）固定。',
+    `回転の上限＝${L.cap} rpm（取説の「各ギアの最大許容速度」に相当する回転。改造カムなら「回し続けられる回転」）。`,
+    '走行抵抗の係数（空気抵抗 Cd 0.40・前面投影面積 1.7m²・転がり 0.018・伝達効率 0.87）・タイヤの転がり半径は外径の 0.97 倍という共通の仮定。',
+    '駆動系（ミッション・ファイナル・タイヤ・5速化）だけを変える道具＝エンジンは「いま」「変えた後」とも同じ。',
+    '乗り味の談は個人の環境（型式・整備状態・道）によって差がある。',
+  ];
+  for (const s of items) { const li = document.createElement('li'); li.textContent = s; ul.append(li); }
+  const as = [...new Set([...(L.VA.assumed || []), ...(L.VB.assumed || []), ...(L.built.assumed || [])])];
+  $('#assumed2').textContent = as.length ? '※ 仮定で計算している所：' + as.join('／') : '';
+}
+
+// ───── 起動・更新 ─────
+let last = null, timer = null;
+function update() {
+  writeHash();
+  $('#result').classList.add('busy'); $('#status').textContent = '計算中…';
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    const built = buildSpec(state.model, state.a);
+    const raw = simulate(built.spec, RPM);
+    const cap = revCapRpm(built, raw);
+    const res = capRes(raw, cap);
+    const VA = buildVehicle(state.model, state.da);
+    const VB = buildVehicle(state.model, state.db);
+    last = { built, res, cap, VA, VB };
+    const nums = stageNumbers(last);
+    renderBanner(last);
+    renderGauge(last, nums);
+    drawSaw(last);
+    renderResultText(last);
+    renderPacks(); markPack();
+    renderPackBack(last);
+    renderNumline();
+    renderFine();
+    renderDriveEditor($('#daEditor'), 'da');
+    renderGearTables(last);
+    renderLimits(last);
+    $('#result').classList.remove('busy'); $('#status').textContent = '';
+  }, 30);
+}
+window.addEventListener('resize', () => { if (last) drawSaw(last); });
+
+readHash();
+renderAllModelDependent();
+renderCaseChips();
+bindAccordion();
+update();
+</script>
+</body>
+</html>

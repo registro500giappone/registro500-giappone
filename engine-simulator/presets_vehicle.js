@@ -12,20 +12,67 @@ export const GEARBOXES = [
     src: 'R 取説・126 Autobook・126 Reparaturhandbuch', hint: '650cc 化で「126 のミッションごと載せる」のがこれ' },
 ];
 
+// ───────────── 変速機の一部ギアだけを差し替えるキット（3/4速ショート・1速ロング等） ─────────────
+// over は箱 id ごとに { 段: 比 } を持つ（比は歯数から算出。src に元の歯数の出典を書く）。boxes に無い箱には効かない＝driveOptionsFor がここで絞る。
+export const GEARSETS = [
+  { id: 'stock', label: '純正のまま', boxes: ['n_early', 'dfl', 'sync'], over: {} },
+  { id: 'nanni_34', label: 'NANNI 3/4 ショート', boxes: ['n_early', 'dfl', 'sync'],
+    over: {
+      n_early: { 3: 26 / 19, 4: 21 / 22 },
+      dfl: { 3: 26 / 19, 4: 21 / 22 },
+      sync: { 3: 26 / 19, 4: 34 / 36 },
+    },
+    hint: '3・4速だけ短くして段間の谷を詰める。単体で成立（4速 0.955）。最高速は落ちる',
+    src: 'NANNI Art.0109/0110/0112/0113（gearsets 調査 §1-A）' },
+  { id: 'bacci_34', label: 'Bacci 3/4 ショート（5速前提）', boxes: ['sync'],
+    over: { sync: { 3: 27 / 19, 4: 24 / 22 } },
+    needsFifth: true,
+    hint: '4速が純正より 25% 短い＝5速 0.88（25/22）を足して初めて純正4速相当。FD・D\'Angelo・500automotor・Monteferri が同歯数',
+    src: 'gearsets 調査 §1-B・§6',
+    assumed: ['ノンシンクロ箱に入るかは裏が取れず（Monteferri は両方に同歯数）＝S のみに出す'] },
+  { id: 'first_long', label: '1速ロング（126 の 12/39）', boxes: ['n_early', 'dfl'],
+    over: { n_early: { 1: 39 / 12 }, dfl: { 1: 39 / 12 } },
+    hint: '1→2 の谷が縮む・発進は重くなる。体感談が少ない',
+    src: 'Bacci RCE02／FD VB1119「close ratio 1速」＝126 純正と同歯数（gearsets 調査 §1-B・§1-C）' },
+];
+
 // ───────────── 最終減速（コッピア・コニカ） ─────────────
 export const FINALS = [
   { id: 'f841', label: '8/41（5.125・500 N/D/F/L 純正）', ratio: 41 / 8, shops: ['500ricambi', 'Passione 500', 'Axel Gerstl'] },
-  { id: 'f839', label: '8/39（4.875・500 R/126 純正）', ratio: 39 / 8, shops: ['500ricambi', 'Axel Gerstl'], hint: '650cc 化の定番。595 SS ではオプション' },
+  { id: 'f839', label: '8/39（4.875・500 R/126 純正）', ratio: 39 / 8, shops: ['500ricambi', 'Axel Gerstl'],
+    hint: '650cc 化の定番。595 SS ではオプション。500F 以降のケースに無加工で載る。499cc だと 3→4 の谷を感じる談' },
   { id: 'f939', label: '9/39（4.333・126 BIS 純正／巡航向け）', ratio: 39 / 9, shops: ['Axel Gerstl', 'Tecnotrasmissioni'],
-    hint: '60mph≒4000rpm。ただし「登坂で 4 速が苦しい」「素の 650 では恩恵が薄く戻した人あり」（英フォーラム）' },
+    excludeModels: ['500D'],
+    hint: '650 チューンの巡航向け。店は 23PS 以上向けと線を引く。実装者談＝1速がうるさい・20% 坂はシフトダウン・低回転で冷却が落ちる' },
 ];
 
 // ───────────── タイヤ（外径は規格からの算出） ─────────────
 // 旧いバイアス「125-12」は偏平率表記が無い＝125/80 相当（外径 ≈505mm）として扱う（assumed）。
 export const TIRES = [
-  { id: 't125', label: '125 R12（500 純正・外径 ≈505mm）', tire: { w: 125, ar: 0.80, rim: 12 }, assumed: ['バイアス 125-12 の外径は 125/80R12 と同じと仮定'] },
-  { id: 't135', label: '135/80 R12（126 純正・≈521mm）', tire: { w: 135, ar: 0.80, rim: 12 }, hint: '500 の 3.5J ホイールに無加工で入る。外径 +3%＝ファイナルを 3% ロングにしたのと同じ' },
-  { id: 't145', label: '145/70 R12（幅広・≈508mm）', tire: { w: 145, ar: 0.70, rim: 12 }, hint: '外径は 125 とほぼ同じ＝回転数は変わらず幅だけ広がる' },
+  { id: 't125', label: '125 R12（500 純正・外径 ≈505mm）', tire: { w: 125, ar: 0.80, rim: 12 }, grp: 'same',
+    assumed: ['バイアス 125-12 の外径は 125/80R12 と同じと仮定'] },
+  { id: 't135', label: '135/80 R12（126 純正・≈521mm・+3.2%）', tire: { w: 135, ar: 0.80, rim: 12 }, grp: 'plus3',
+    hint: '3.5J に入る明言なし・フルロックで擦る談あり・車高 +8mm。同じ速度で回転 3%ほど低い' },
+  { id: 't145', label: '145/70 R12（幅広・≈508mm・+0.6%）', tire: { w: 145, ar: 0.70, rim: 12 }, grp: 'same',
+    hint: '外径は 125 とほぼ同じ＝回転数は変わらず幅だけ広がる' },
+  { id: 't145_80_10', label: '145/80 R10（10インチ・≈486mm・−3.8%）', tire: { w: 145, ar: 0.80, rim: 10 }, grp: 'ten',
+    hint: '4×190 のまま履ける新品は D\'Angelo 10×5J のみ。車高 −10mm・メーターが高く読む・ドラムなら干渉なし。同じ速度で回転 4%ほど高い',
+    src: 'final_tire 調査 §7-2・10inch 調査 §6' },
+  { id: 't165_60_12', label: '165/60 R12（≈503mm・−0.4%）', tire: { w: 165, ar: 0.60, rim: 12 }, grp: 'same',
+    hint: '外径は 125 とほぼ変わらない＝同じ速度で回転もほぼ変わらない。実例1件（リム幅不明）',
+    src: 'final_tire 調査 §7-2' },
+  { id: 't155_70_12', label: '155/70 R12（≈522mm・+3.4%）', tire: { w: 155, ar: 0.70, rim: 12 }, grp: 'plus3',
+    hint: '135 とほぼ同じ外径＝同じ速度で回転 3%ほど低い。適合の明言は無く否定的言及のみ',
+    src: 'final_tire 調査 §7-2' },
+  { id: 't165_55_13', label: '165/55 R13（≈512mm・+1.4%）', tire: { w: 165, ar: 0.55, rim: 13 }, grp: 'thirteen',
+    hint: '13インチへの入口。同じ速度で回転 1%強高い。実例1件（652cc）',
+    src: 'final_tire 調査 §7-2' },
+  { id: 't155_65_13', label: '155/65 R13（≈532mm・+5.3%）', tire: { w: 155, ar: 0.65, rim: 13 }, grp: 'thirteen',
+    hint: 'BIS 界隈の定番。同じ速度で回転 5%ほど低い・干渉なし',
+    src: 'final_tire 調査 §7-2' },
+  { id: 't135_80_13', label: '135/80 R13（≈546mm・+8.2%）', tire: { w: 135, ar: 0.80, rim: 13 }, grp: 'thirteen',
+    hint: '126 BIS 純正の13インチ（4.5J×13）。同じ速度で回転 8%ほど低い',
+    src: 'final_tire 調査 §7-2' },
 ];
 
 // ───────────── 乗員・荷物 ─────────────
@@ -70,32 +117,80 @@ export const VEHICLES = {
 //   ⛔「5速ミッション」という別のギアボックスを作らない＝どの型式の 1〜4速にも足せるのが実物のキット。
 export const FIFTHS = [
   { id: 'none', label: '4速のまま（純正）', ratio: null },
-  { id: 'g5_stradale', label: '5速化キット「ストラダーレ」（5速 0.743）', ratio: 26 / 35,
+  { id: 'g5_stradale', label: '5速化キット「ストラダーレ」（5速 0.743）', ratio: 26 / 35, grp: 'long',
     shops: ['FD Ricambi', '500ricambi', 'Axel Gerstl'],
-    hint: '1〜4速は純正のまま、5速だけを足すキット。4速 0.872 に対して 0.743＝同じ速度で回転が 15% 下がる。高速の巡航が楽になる代わりに、登りでは 5速が使えない。',
+    hint: '1〜4速は純正のまま、5速だけを足すキット。4速 0.872 に対して 0.743＝同じ速度で回転が 15% 下がる。高速の巡航が楽になる代わりに、登りでは 5速が使えない。巡航専用・1〜4速はそのまま',
     src: 'FD Ricambi VB1101「Gearbox Stradale 5 Speed Conversion Kit」（適合＝500 N/D/F/L/R・ジャルディニエラ・126・BIS・Bianchina）／歯数 35/26 は複数店の商品名に明記（AutoBella・nonsoloricambidepoca）',
     assumed: ['歯数 35/26 から比を 26/35＝0.743 と算出（店は比の数値そのものを公表していない）'] },
+  { id: 'g5_2719', label: '5速化キット 27/19（0.704・長距離向け）', ratio: 19 / 27, grp: 'long',
+    hint: '巡航専用・1〜4速はそのまま。35hp 以上・平坦路向け',
+    src: 'Bacci（gearsets 調査 §6）', assumed: ['歯数から算出'] },
+  { id: 'g5_3626', label: '5速化キット 36/26（0.722・長距離向け）', ratio: 26 / 36, grp: 'long',
+    hint: '巡航専用・1〜4速はそのまま',
+    src: 'Monteferri（gearsets 調査 §6）', assumed: ['歯数から算出'] },
+  { id: 'g5_4231', label: '5速化キット 42/31（0.738・長距離向け）', ratio: 31 / 42, grp: 'long',
+    hint: '巡航専用・1〜4速はそのまま',
+    src: 'NANNI（gearsets 調査 §6）', assumed: ['歯数から算出'] },
+  { id: 'g5_2520', label: '5速化キット 25/20（0.800）', ratio: 20 / 25, grp: 'mid',
+    hint: '4速と少しだけ差',
+    src: '500automotor（gearsets 調査 §6）', assumed: ['歯数から算出'] },
+  { id: 'g5_4033', label: '5速化キット 40/33（0.825・NANNI「+300rpm」）', ratio: 33 / 40, grp: 'mid',
+    hint: '4速と少しだけ差',
+    src: 'NANNI（gearsets 調査 §6）', assumed: ['歯数から算出'] },
+  { id: 'g5_2521', label: '5速化キット 25/21（0.840）', ratio: 21 / 25, grp: 'mid',
+    hint: '4速と少しだけ差',
+    src: '500automotor（gearsets 調査 §6）', assumed: ['歯数から算出'] },
+  { id: 'g5_2421', label: '5速化キット 24/21（0.875＝純正4速と同じ）', ratio: 21 / 24, grp: 'short',
+    hint: 'クロス化の続き＝4速を短くした人向け',
+    src: '500automotor（gearsets 調査 §6）', assumed: ['歯数から算出'] },
+  { id: 'g5_2522', label: '5速化キット 25/22（0.880・FD 完成箱の標準）', ratio: 22 / 25, grp: 'short',
+    hint: 'クロス化の続き＝4速を短くした人向け。Bacci 3/4 と組む',
+    src: 'FD Ricambi 3209／3920（gearsets 調査 §1-C）', assumed: ['歯数から算出'] },
+  { id: 'g5_2422', label: '5速化キット 24/22（0.917）', ratio: 22 / 24, grp: 'short',
+    hint: 'クロス化の続き＝4速を短くした人向け',
+    src: '500automotor（gearsets 調査 §6）', assumed: ['歯数から算出'] },
 ];
 
-export const DEFAULT_DRIVE_CHOICES = { gearbox: 'stock', final: 'stock', tire: 'stock', fifth: 'none', load: 'solo' };
+export const DEFAULT_DRIVE_CHOICES = { gearbox: 'stock', gearset: 'stock', final: 'stock', tire: 'stock', fifth: 'none', load: 'solo' };
 
 const byId = (list, id) => list.find(x => x.id === id) || list[0];
+
+// 選ばれている箱 id（'stock' なら型式の純正箱）。driveOptionsFor と buildVehicle の両方で使う。
+const resolveBoxId = (base, gearboxChoice) => (gearboxChoice === 'stock' ? base.gearbox : gearboxChoice);
 
 // 型式と選択から vehicle.js に渡す { vehicle, drive } を組む。'stock' は型式の純正値。
 export function buildVehicle(modelId, choices) {
   const base = VEHICLES[modelId] || VEHICLES['500F'];
   const c = { ...DEFAULT_DRIVE_CHOICES, ...(choices || {}) };
-  const gb = byId(GEARBOXES, c.gearbox === 'stock' ? base.gearbox : c.gearbox);
+  const gb = byId(GEARBOXES, resolveBoxId(base, c.gearbox));
+  const gs = byId(GEARSETS, c.gearset);
   const fn = byId(FINALS, c.final === 'stock' ? base.final : c.final);
   const tr = byId(TIRES, c.tire === 'stock' ? base.tire : c.tire);
   const f5 = byId(FIFTHS, c.fifth);
   const ld = byId(LOADS, c.load);
   const mass = ld.kg === null ? base.gvw_kg : base.mass_kg + ld.kg;
-  const assumed = [...(base.assumed || []), ...(tr.assumed || []), ...(f5.assumed || [])];
-  const gears = f5.ratio ? [...gb.gears, f5.ratio] : gb.gears;   // vehicle.js は gears.length を見るので 5速でもそのまま動く
+  const assumed = [...(base.assumed || []), ...(gs.assumed || []), ...(tr.assumed || []), ...(f5.assumed || [])];
+  const boxGears = [...gb.gears];   // コピーしてから上書き＝GEARBOXES の元配列を汚さない
+  const over = (gs.over && gs.over[gb.id]) || {};
+  Object.keys(over).forEach((step) => { boxGears[Number(step) - 1] = over[step]; });
+  const gears = f5.ratio ? [...boxGears, f5.ratio] : boxGears;   // vehicle.js は gears.length を見るので 5速でもそのまま動く
   return {
     vehicle: { mass, cd: base.cd, area_m2: base.area_m2, crr: base.crr },
     drive: { gears, final: fn.ratio, tire: tr.tire, eff: 0.87 },
-    picks: { gearbox: gb, final: fn, tire: tr, fifth: f5, load: ld }, base, assumed,
+    picks: { gearbox: gb, gearset: gs, final: fn, tire: tr, fifth: f5, load: ld }, base, assumed,
+  };
+}
+
+// 画面が使う適合済み一覧＝{ gearsets, fifths, finals, tires }。gearsets は選ばれている箱の boxes に含まれるものだけ／
+// finals は excludeModels に型式が無いものだけ／fifths・tires は全部（grp 付きのまま返す）。
+export function driveOptionsFor(modelId, choices) {
+  const base = VEHICLES[modelId] || VEHICLES['500F'];
+  const c = { ...DEFAULT_DRIVE_CHOICES, ...(choices || {}) };
+  const boxId = resolveBoxId(base, c.gearbox);
+  return {
+    gearsets: GEARSETS.filter((gs) => gs.boxes.includes(boxId)),
+    fifths: FIFTHS,
+    finals: FINALS.filter((fn) => !(fn.excludeModels || []).includes(modelId)),
+    tires: TIRES,
   };
 }
