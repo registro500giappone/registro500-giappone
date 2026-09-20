@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>駆動系妄想シミュレーター｜エンジン妄想シミュレーター｜REGISTRO 500 GIAPPONE</title>
-<!-- 仮称のまま実装（名前は後で差し替え）。導線なし・noindex。 -->
 <meta name="robots" content="noindex">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
@@ -14,10 +13,10 @@
   gtag('js', new Date());
   gtag('config', 'G-27SHHC4JYH');
 </script>
-<meta name="description" content="空冷フィアット500・126で、ミッションやタイヤを変えると何がどう変わるか。困りごと別に組合せを選んで、いまの車と並べて差を見るツール。">
+<meta name="description" content="空冷フィアット500・126で、ミッションやタイヤを変えると何がどう変わるかを、いまの車と並べて見るツール。改造を勧めるものではありません。">
 <meta property="og:type" content="website">
 <meta property="og:title" content="駆動系妄想シミュレーター｜エンジン妄想シミュレーター">
-<meta property="og:description" content="ファイナル・5速化・3/4速ショート・タイヤを変えると何がどう変わるか。困りごと別に組合せを選んで比べる。">
+<meta property="og:description" content="ファイナル・5速化・3/4速ショート・タイヤを変えると何がどう変わるか。場面ごとに比べられる。">
 <meta property="og:image" content="https://www.registro500.com/og/site-ja.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/icon-192.png">
@@ -130,14 +129,17 @@ details.inner{margin-top:8px;font-size:12px;color:var(--sub)} details.inner summ
 table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:right} th:first-child,td:first-child{text-align:left}
 .limits{font-size:13px;color:var(--ink);padding-left:1.2em;margin:6px 0 0} .limits li{margin:4px 0}
 .note{font-size:12px;color:var(--sub);margin:10px 0 0}
-/* 数直線（仕組み3行） */
-.numline{position:relative;height:64px;margin-top:14px}
-.numline .track{position:absolute;left:4px;right:4px;top:30px;height:2px;background:var(--line)}
-.numline .zero{position:absolute;top:22px;width:1px;height:16px;background:var(--sub)}
-.numline .dot{position:absolute;top:26px;width:8px;height:8px;border-radius:50%;background:var(--deep);transform:translate(-50%,-50%)}
-.numline .lab{position:absolute;font-size:10px;color:var(--sub);white-space:nowrap;transform:translateX(-50%)}
-.numline .lab.hi{top:0} .numline .lab.lo{top:40px}
-.numline .axis{display:flex;justify-content:space-between;font-size:10px;color:var(--sub);margin-top:4px}
+/* 数直線（仕組み3行）＝札（DRIVE_PACKS）を種類ごと（タイヤ／ファイナル／5速／ギアセット・箱）の横棒一覧で並べる */
+.numline{margin-top:10px}
+.numline .nl-grouptitle{font-size:11px;font-weight:600;color:var(--sub);margin:10px 0 3px}
+.numline .nl-grouptitle:first-child{margin-top:0}
+.numline .nl-row{display:flex;align-items:center;gap:6px;margin:5px 0}
+.numline .nl-name{width:96px;flex:none;font-size:11px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.numline .nl-barwrap{flex:1;position:relative;height:10px}
+.numline .nl-zeroline{position:absolute;top:-2px;bottom:-2px;width:1px;background:var(--line)}
+.numline .nl-bar{position:absolute;top:0;height:10px;border-radius:5px}
+.numline .nl-val{position:absolute;top:-1px;font-size:11px;color:var(--sub);white-space:nowrap}
+.numline .nl-ticks{flex:1;display:flex;justify-content:space-between;font-size:10px;color:var(--sub)}
 .busy{opacity:.55;transition:opacity .15s}
 </style>
 </head>
@@ -145,7 +147,7 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
 <div class="wrap">
   <div class="topbar"><a id="toEngine" href="./">← エンジンの画面へ</a><a href="/">トップへ戻る</a></div>
   <h1>駆動系妄想シミュレーター</h1>
-  <p class="lead">ミッションやタイヤを変えると何がどう変わるか。困りごとを選んで、いまの車と並べて差を見ます。</p>
+  <p class="lead">変えると何がどう変わるかを、いまの車と並べて見るツール。改造を勧めるものではありません。</p>
 
   <div id="result" class="busy">
     <div class="banner" id="banner">
@@ -172,7 +174,7 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
     </div>
 
     <div class="packwrap">
-      <p class="sechead">困りごとを選ぶ</p>
+      <p class="sechead">場面で見る</p>
       <div class="chips" id="caseChips"></div>
       <p class="sechead">変えた後を選ぶ<small id="packSummary"></small></p>
       <div class="packs" id="packs"></div>
@@ -249,9 +251,8 @@ const DRIVE_LISTS = { gearbox: GEARBOXES, gearset: GEARSETS, final: FINALS, tire
 const DRIVE_LABEL = { gearbox: 'ミッション（変速比）', gearset: '3/4速ショート・1速ロング', final: 'ファイナル（最終減速比）', tire: 'タイヤ', fifth: '5速化' };
 const TIRE_GRP_LABEL = { ten: '10インチ', same: '12インチ・回転そのまま', plus3: '12インチ・回転 +3%', thirteen: '13インチ' };
 const FIFTH_GRP_LABEL = { long: 'ロング', mid: 'ミドル', short: 'ショート' };
-const CASE_LABEL = { all: '全部', A: 'A 高速で回転が高い', B: 'B 坂で失速', C: 'C 発進の谷', D: 'D 650 以上にした', E: 'E ノンシンクロが辛い', F: 'F 見た目' };
-const CASE_ORDER = ['A', 'B', 'C', 'D', 'E', 'F'];
-const CIRCLED = ['①', '②', '③', '④', '⑤', '⑥'];
+const CASE_LABEL = { all: '全部', cruise: '高速巡航', hill: '登り坂', launch: '発進〜2速', bigger: '排気量を上げた後', sync: 'シンクロの有無', look: 'タイヤの見た目' };
+const CASE_ORDER = ['cruise', 'hill', 'launch', 'bigger', 'sync', 'look'];
 
 const state = { model: '500F', a: { ...DEFAULT_CHOICES }, da: { ...DEFAULT_DRIVE_CHOICES }, db: { ...DEFAULT_DRIVE_CHOICES }, pack: null, case: 'all' };
 
@@ -459,18 +460,8 @@ function renderFine() {
 // ───── 困りごとチップ・札 ─────
 function packsForCase() {
   const fits = DRIVE_PACKS.filter((p) => packFits(state.model, state.da, p));
-  if (state.case === 'all') {
-    const withKey = fits.map((p) => {
-      let bestCase = null, bestRank = Infinity;
-      for (const c of CASE_ORDER) { if (p.cases[c] != null && (bestCase === null || CASE_ORDER.indexOf(c) < CASE_ORDER.indexOf(bestCase))) { bestCase = c; bestRank = p.cases[c]; } }
-      return { p, bestCase, bestRank };
-    }).filter((x) => x.bestCase);
-    withKey.sort((x, y) => CASE_ORDER.indexOf(x.bestCase) - CASE_ORDER.indexOf(y.bestCase) || x.bestRank - y.bestRank);
-    return withKey.map((x) => ({ pack: x.p, badge: x.bestCase + (CIRCLED[x.bestRank - 1] || x.bestRank) }));
-  }
-  return fits.filter((p) => p.cases[state.case] != null)
-    .sort((a, b) => a.cases[state.case] - b.cases[state.case])
-    .map((p) => ({ pack: p, badge: state.case + (CIRCLED[p.cases[state.case] - 1] || p.cases[state.case]) }));
+  if (state.case === 'all') return fits;
+  return fits.filter((p) => p.cases.includes(state.case));
 }
 function renderCaseChips() {
   const box = $('#caseChips'); box.textContent = '';
@@ -486,11 +477,11 @@ function renderCaseChips() {
 }
 function renderPacks() {
   const box = $('#packs'); box.textContent = '';
-  for (const { pack, badge } of packsForCase()) {
+  for (const pack of packsForCase()) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'pk'; b.dataset.id = pack.id;
     b.classList.toggle('on', state.pack === pack.id);
     const tags = pack.tags.map((t) => `<span class="tg">${t}</span>`).join('');
-    b.innerHTML = `<span class="no">${badge}</span><div class="nm">${pack.name}</div><div class="sub">${pack.sub}</div><div class="tags">${tags}</div>`;
+    b.innerHTML = `<div class="nm">${pack.name}</div><div class="sub">${pack.sub}</div><div class="tags">${tags}</div>`;
     b.addEventListener('click', () => {
       state.db = packChoices(state.da, pack); state.pack = pack.id;
       gtag('event', 'gearbox_sim_package', { model: state.model, pack: pack.id });
@@ -693,46 +684,85 @@ function renderPackBack(L) {
   }
 }
 
-// ───── 仕組み3行の数直線 ─────
+// ───── 仕組み3行の数直線＝札（DRIVE_PACKS）12枚だけを同じ物差しに並べる（タイヤ／ファイナル／5速／ギアセット・箱の4段） ─────
+const NUMLINE_ROWS = [
+  { key: 'tire', label: 'タイヤ' },
+  { key: 'final', label: 'ファイナル' },
+  { key: 'fifth', label: '5速' },
+  { key: 'gearset', label: 'ギアセット・箱' },
+];
+const PACK_ROW = {
+  dp_f839: 'final', dp_f939: 'final',
+  dp_fifth_long: 'fifth',
+  dp_t135: 'tire', dp_t10: 'tire', dp_t155_65_13: 'tire', dp_t145: 'tire',
+  dp_nanni34: 'gearset', dp_bacci34: 'gearset', dp_box841: 'gearset', dp_box: 'gearset', dp_first_long: 'gearset',
+};
+const PACK_SHORT = {
+  dp_f839: '8/39', dp_f939: '9/39',
+  dp_fifth_long: '5速 0.743',
+  dp_t135: '135/80R12', dp_t10: '145/80R10', dp_t155_65_13: '155/65R13', dp_t145: '145/70R12',
+  dp_nanni34: '3/4 NANNI', dp_bacci34: '3/4 Bacci', dp_box841: '126箱+8/41', dp_box: '126箱', dp_first_long: '1速ロング',
+};
 function systemLineData() {
   const baseV = buildVehicle(state.model, state.da);
   const top = baseV.drive.gears.length - 1;
   const baseRpm = rpmAtSpeed(80, baseV.drive.gears[top], baseV.drive);
-  const opts = driveOptionsFor(state.model, state.da);
   const out = [];
-  const addFor = (key, list) => {
-    for (const o of list) {
-      if (o.id === state.da[key]) continue;
-      const built = buildVehicle(state.model, { ...state.da, [key]: o.id });
-      const t = built.drive.gears.length - 1;
-      const rpm = rpmAtSpeed(80, built.drive.gears[t], built.drive);
-      const pct = (rpm / baseRpm - 1) * 100;
-      if (Math.abs(pct) < 0.05) continue;
-      out.push({ id: o.id, label: strip(o.label), pct });
-    }
-  };
-  addFor('tire', opts.tires); addFor('final', opts.finals); addFor('fifth', opts.fifths); addFor('gearset', opts.gearsets);
+  for (const pack of DRIVE_PACKS) {
+    if (!packFits(state.model, state.da, pack)) continue;
+    const built = buildVehicle(state.model, packChoices(state.da, pack));
+    const t = built.drive.gears.length - 1;
+    const rpm = rpmAtSpeed(80, built.drive.gears[t], built.drive);
+    const pct = (rpm / baseRpm - 1) * 100;
+    out.push({ key: PACK_ROW[pack.id] || 'gearset', id: pack.id, label: PACK_SHORT[pack.id] || pack.name, pct });
+  }
   return out;
 }
+// 横棒の一覧＝1札1行。中央 0% の縦線を基準に、負は左・正は右へ伸びる棒。種類ごとに小見出しでまとめ、種類内は値の昇順。
 function renderNumline() {
   const box = $('#numline'); box.textContent = '';
   const data = systemLineData();
-  const lo = -20, hi = 10;
-  const pos = (v) => `${((Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * 100}%`;
-  const track = document.createElement('div'); track.className = 'track'; box.append(track);
-  const zero = document.createElement('div'); zero.className = 'zero'; zero.style.left = pos(0); box.append(zero);
-  data.sort((a, b) => a.pct - b.pct).forEach((d, i) => {
-    const dot = document.createElement('div'); dot.className = 'dot'; dot.style.left = pos(d.pct);
-    dot.style.background = d.pct < 0 ? 'var(--series-b)' : 'var(--red)';
-    box.append(dot);
-    const lab = document.createElement('div'); lab.className = 'lab ' + (i % 2 ? 'lo' : 'hi'); lab.style.left = pos(d.pct);
-    lab.textContent = `${d.label} ${d.pct >= 0 ? '+' : ''}${d.pct.toFixed(1)}`;
-    box.append(lab);
-  });
-  const axis = document.createElement('div'); axis.className = 'axis';
-  axis.innerHTML = `<span>${lo}%</span><span>0%</span><span>+${hi}%</span>`;
-  axis.style.position = 'absolute'; axis.style.left = '0'; axis.style.right = '0'; axis.style.top = '48px';
-  box.append(axis);
+  // 右端は +10% の目盛より少し余らせる＝正の棒の先に付く数字が枠からはみ出ないように
+  const lo = -20, hi = 10, hiPad = 16;
+  const frac = (v) => (Math.max(lo, Math.min(hiPad, v)) - lo) / (hiPad - lo);
+  const zeroFrac = frac(0);
+
+  const scaleRow = document.createElement('div'); scaleRow.className = 'nl-row';
+  const scaleSpacer = document.createElement('div'); scaleSpacer.className = 'nl-name'; scaleSpacer.setAttribute('aria-hidden', 'true');
+  const ticks = document.createElement('div'); ticks.className = 'nl-ticks';
+  ticks.style.flex = 'none'; ticks.style.width = (frac(hi) * 100) + '%';
+  ticks.innerHTML = `<span>${lo}%</span><span>-10%</span><span>0%</span><span>+${hi}%</span>`;
+  const ticksWrap = document.createElement('div'); ticksWrap.className = 'nl-barwrap'; ticksWrap.style.height = 'auto';
+  ticksWrap.append(ticks);
+  scaleRow.append(scaleSpacer, ticksWrap);
+  box.append(scaleRow);
+
+  for (const row of NUMLINE_ROWS) {
+    const pts = data.filter((d) => d.key === row.key).sort((a, b) => a.pct - b.pct);
+    if (!pts.length) continue;
+    const title = document.createElement('div'); title.className = 'nl-grouptitle'; title.textContent = row.label;
+    box.append(title);
+    for (const p of pts) {
+      const line = document.createElement('div'); line.className = 'nl-row';
+      const name = document.createElement('div'); name.className = 'nl-name'; name.textContent = p.label;
+      const wrap = document.createElement('div'); wrap.className = 'nl-barwrap';
+      const zeroline = document.createElement('div'); zeroline.className = 'nl-zeroline'; zeroline.style.left = (zeroFrac * 100) + '%';
+      wrap.append(zeroline);
+      const f = frac(p.pct), neg = p.pct < 0;
+      const bar = document.createElement('div'); bar.className = 'nl-bar';
+      bar.style.left = (Math.min(f, zeroFrac) * 100) + '%';
+      bar.style.width = (Math.abs(f - zeroFrac) * 100) + '%';
+      bar.style.background = neg ? 'var(--series-b)' : 'var(--red)';
+      wrap.append(bar);
+      const val = document.createElement('div'); val.className = 'nl-val';
+      val.textContent = `${p.pct >= 0 ? '+' : ''}${p.pct.toFixed(1)}%`;
+      if (neg) { val.style.right = ((1 - f) * 100) + '%'; val.style.transform = 'translateX(-4px)'; val.style.textAlign = 'right'; }
+      else { val.style.left = (f * 100) + '%'; val.style.transform = 'translateX(4px)'; }
+      wrap.append(val);
+      line.append(name, wrap);
+      box.append(line);
+    }
+  }
 }
 
 // ───── ギアと回転 ─────

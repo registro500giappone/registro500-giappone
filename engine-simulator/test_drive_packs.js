@@ -80,10 +80,19 @@ console.log('⑦ 80km/h・最上段の回転（rpmAtSpeed・rollingRadius_m の 
   ok(near(fifth, 3300, 20), `dp_fifth_long ${fifth.toFixed(0)} vs 3300±20`);
 }
 
+console.log('⑨ 全札が6場面のどれかに属する');
+{
+  const SCENES = ['cruise', 'hill', 'launch', 'bigger', 'sync', 'look'];
+  for (const p of DRIVE_PACKS) {
+    ok(Array.isArray(p.cases) && p.cases.length > 0, `${p.id}.cases が空でない配列`);
+    ok((p.cases || []).every((c) => SCENES.includes(c)), `${p.id}.cases が6場面のみ`);
+  }
+}
+
 console.log('⑧ ファイル3つに固有名・ローカルパスが無い');
 {
   // 禁止語の一覧はここだけに書く＝この行自体は検品対象から除く（行番号で自分を除外）。
-  const words = ['u' + 'cm', 'veg' + 'lia', 'bor' + 'letti', 'v' + '17', 'registro500' + '-notes', 'C:' + '\\\\' + 'Users', 'HAND' + 'OFF', 'ユーザー' + '指示'];
+  const words = ['u' + 'cm', 'veg' + 'lia', 'bor' + 'letti', 'v' + '17', 'registro500' + '-notes', 'C:' + '\\\\' + 'Users', 'HAND' + 'OFF', 'ユーザー' + '指示', '定' + '番', 'おす' + 'すめ', '貧' + '者', 'す' + 'べき'];
   const banned = new RegExp(words.join('|'), 'i');
   const files = ['presets_drive_packs.js', 'test_drive_packs.js', 'gearbox.html'];
   for (const f of files) {
