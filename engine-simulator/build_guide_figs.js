@@ -151,7 +151,7 @@ function buildSawSvg({ width = 340, height = 190, series, legend = true }) {
 // （既存の段がそのまま使われる変更）／'topline' ＝最上段ギアの直線（新しい最上段ギアを足す変更＝5速化）。
 const SECTIONS = [
   {
-    id: 's2', vehicleId: '500F',
+    id: 's2', vehicleId: '500F', pack: 'dp_f839',
     now: { choices: null, mode: 'trace', gearLabels: true, showNumber: true },
     changed: { choices: { final: 'f839' }, mode: 'trace', showNumber: true, width: 4, alpha: .9 },
     sub: { choices: { final: 'f939' }, mode: 'trace', showNumber: true, width: 1.5, alpha: .55 },
@@ -163,7 +163,7 @@ const SECTIONS = [
     },
   },
   {
-    id: 's3', vehicleId: '500F',
+    id: 's3', vehicleId: '500F', pack: 'dp_fifth_long',
     now: { choices: null, mode: 'trace', gearLabels: true, showNumber: true },
     changed: { choices: { fifth: 'g5_stradale' }, mode: 'topline', showNumber: true, width: 3, alpha: .9 },
     figcaption: '500F・エンジン純正・1人乗車。1〜4速は純正のまま（金の線も同じノコギリ）、5速化キット「ストラダーレ」（0.743）を足して5速に入れて巡航した場合が金の線の右側。',
@@ -174,7 +174,7 @@ const SECTIONS = [
     },
   },
   {
-    id: 's4', vehicleId: '500F',
+    id: 's4', vehicleId: '500F', pack: 'dp_nanni34',
     now: { choices: null, mode: 'trace', gearLabels: true, showNumber: true },
     changed: { choices: { gearset: 'nanni_34' }, mode: 'trace', showNumber: true, width: 4, alpha: .9 },
     figcaption: '500F・エンジン純正・1人乗車。3速・4速だけをNANNI 3/4ショート（ノンシンクロ箱）に変えたとき。',
@@ -184,7 +184,7 @@ const SECTIONS = [
     },
   },
   {
-    id: 's5', vehicleId: '500F',
+    id: 's5', vehicleId: '500F', pack: 'dp_first_long',
     now: { choices: null, mode: 'trace', gearLabels: true, showNumber: true },
     changed: { choices: { gearset: 'first_long' }, mode: 'trace', showNumber: true, width: 4, alpha: .9 },
     figcaption: '500F・エンジン純正・1人乗車。1速だけを126純正と同じ12/39に変えたとき（2〜4速・ファイナルは純正のまま）。',
@@ -195,7 +195,7 @@ const SECTIONS = [
     },
   },
   {
-    id: 's6', vehicleId: '500F',
+    id: 's6', vehicleId: '500F', pack: 'dp_box',
     now: { choices: null, mode: 'trace', gearLabels: true, showNumber: true },
     changed: { choices: { gearbox: 'sync', final: 'f839' }, mode: 'trace', showNumber: true, width: 4, alpha: .9 },
     figcaption: '500F・エンジン純正・1人乗車。ミッションを126（シンクロ）へ丸ごと換装し、ファイナルも8/41→8/39に変わったとき。',
@@ -205,7 +205,7 @@ const SECTIONS = [
     },
   },
   {
-    id: 's7', vehicleId: '500F',
+    id: 's7', vehicleId: '500F', pack: 'dp_t10',
     now: { choices: null, mode: 'trace', gearLabels: true, showNumber: true },
     changed: { choices: { tire: 't145_80_10' }, mode: 'trace', showNumber: true, width: 4, alpha: .9 },
     figcaption: '500F・エンジン純正・1人乗車。タイヤを純正125R12から10インチ（145/80R10）に変えたとき。',
@@ -215,7 +215,7 @@ const SECTIONS = [
     },
   },
   {
-    id: 's8', vehicleId: '500F',
+    id: 's8', vehicleId: '500F', pack: 'dp_bacci34', da: 'gearbox:sync,final:f839',
     now: { choices: { gearbox: 'sync', final: 'f839' }, mode: 'trace', gearLabels: true, showNumber: true },
     changed: { choices: { gearbox: 'sync', gearset: 'bacci_34', fifth: 'g5_2522', final: 'f839' }, mode: 'topline', showNumber: true, width: 3, alpha: .9 },
     figcaption: '500F・エンジン純正・1人乗車。いま＝126箱＋8/39（6節の状態、金の線も1〜4速は同じノコギリ）。そこへBacci 3/4ショート＋5速0.88を足して5速に入れて巡航した場合が金の線の右側。',
@@ -263,11 +263,22 @@ function buildCardHtml(cfg, nums) {
     const pctTxt = pct >= 0 ? `+${pct}%` : `−${Math.abs(pct)}%`;
     rpmLine = `${rpmNow}rpm → ${rpmChanged}rpm（${pctTxt}）${cfg.card.change2rpmNote || ''}`;
   }
-  return `<div class="card3">
+  const card3 = `<div class="card3">
     <div><b>何が変わる</b>${cfg.card.change}</div>
     <div><b>80km/hの回転</b>${rpmLine}</div>
     <div><b>体感</b>${cfg.card.feel}</div>
   </div>`;
+  return card3 + '\n  ' + buildTryitHtml(cfg);
+}
+
+// 「自分の車で試す」＝カードの直下に1本。cfg.pack が駆動系妄想シミュレーターの札 id・cfg.da があれば
+// 「いま」の駆動系を先に立ててから（節8＝126箱＋8/39）札を重ねる。
+function buildTryitHtml(cfg) {
+  if (!cfg.pack) return '';
+  const q = new URLSearchParams();
+  if (cfg.da) q.set('da', cfg.da);
+  q.set('p', cfg.pack);
+  return `<p class="note tryit"><a href="./gearbox#${q.toString()}">自分の車で試す（駆動系妄想シミュレーター）</a></p>`;
 }
 
 // ───────────────────────── 節0：仕組みの連鎖図（自作線画・数字は計算核から） ─────────────────────────
@@ -386,6 +397,10 @@ function stripAndInsertAfter(html, anchor, block) {
         else { depth--; i = nextClose + 6; }
       }
       consumed += i;
+      // card3 の直後に「自分の車で試す」の1行があれば、それも剥がす対象に含める（中に入れ子タグは無いので非貪欲で足りる）。
+      const afterCard = afterFig.slice(i);
+      const tryitM = afterCard.match(/^\s*<p class="note tryit">[\s\S]*?<\/p>/);
+      if (tryitM) consumed += tryitM[0].length;
     }
   }
   return html.slice(0, start) + '\n  ' + block + html.slice(start + consumed);
@@ -414,9 +429,15 @@ figcaption{margin:6px 2px 2px;font-size:11.5px;color:var(--sub);text-align:cente
 .card3 b{display:block;color:var(--deep);font-size:11px;font-weight:700;margin-bottom:3px}
 `;
 
+const TRYIT_CSS = `.note.tryit{background:none;border-left:none;padding:0;margin:2px 0 18px;font-size:12.5px}
+.note.tryit a{color:var(--deep);font-weight:600;text-decoration:none;border-bottom:1px solid var(--gold)}
+.note.tryit a:hover{color:var(--red)}
+`;
+
 function ensureCss(html) {
-  if (html.includes('.card3{')) return html;
-  return html.replace('</style>', CARD3_CSS + '</style>');
+  if (!html.includes('.card3{')) html = html.replace('</style>', CARD3_CSS + '</style>');
+  if (!html.includes('.note.tryit{')) html = html.replace('</style>', TRYIT_CSS + '</style>');
+  return html;
 }
 
 function main() {

@@ -129,6 +129,8 @@ details.inner{margin-top:8px;font-size:12px;color:var(--sub)} details.inner summ
 table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:right} th:first-child,td:first-child{text-align:left}
 .limits{font-size:13px;color:var(--ink);padding-left:1.2em;margin:6px 0 0} .limits li{margin:4px 0}
 .note{font-size:12px;color:var(--sub);margin:10px 0 0}
+.packBack .note a{color:var(--deep);font-weight:600;text-decoration:none;border-bottom:1px solid var(--gold)}
+.packBack .note a:hover{color:var(--red)}
 /* 数直線（仕組み3行）＝札（DRIVE_PACKS）を種類ごと（タイヤ／ファイナル／5速／ギアセット・箱）の横棒一覧で並べる */
 .numline{margin-top:10px}
 .numline .nl-grouptitle{font-size:11px;font-weight:600;color:var(--sub);margin:10px 0 3px}
@@ -176,6 +178,8 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
     <div class="packwrap">
       <p class="sechead">場面で見る</p>
       <div class="chips" id="caseChips"></div>
+      <p class="sechead">巡航速度</p>
+      <div class="chips" id="speedChips"></div>
       <p class="sechead">変えた後を選ぶ<small id="packSummary"></small></p>
       <div class="packs" id="packs"></div>
       <div class="packBack" id="packBack" hidden></div>
@@ -187,7 +191,7 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
         <li>エンジン1回転で進む距離＝それ÷（ギア比×ファイナル）</li>
         <li>だから比が小さい（長い）＝同じ速度で回転が下がるが、タイヤを回す力も減る＝全部この裏返し</li>
       </ol>
-      <p class="note">同じ速度で回転が何%変わるか（いまの構成に1つだけ重ねたとき・80km/h）</p>
+      <p class="note" id="numlineNote">同じ速度で回転が何%変わるか（いまの構成に1つだけ重ねたとき・80km/h）</p>
       <div class="numline" id="numline"></div>
     </div></details>
 
@@ -253,8 +257,10 @@ const TIRE_GRP_LABEL = { ten: '10インチ', same: '12インチ・回転その�
 const FIFTH_GRP_LABEL = { long: 'ロング', mid: 'ミドル', short: 'ショート' };
 const CASE_LABEL = { all: '全部', cruise: '高速巡航', hill: '登り坂', launch: '発進〜2速', bigger: '排気量を上げた後', sync: 'シンクロの有無', look: 'タイヤの見た目' };
 const CASE_ORDER = ['cruise', 'hill', 'launch', 'bigger', 'sync', 'look'];
+const SPEED_OPTIONS = [60, 80, 100];
+const DEFAULT_SPEED = 80;
 
-const state = { model: '500F', a: { ...DEFAULT_CHOICES }, da: { ...DEFAULT_DRIVE_CHOICES }, db: { ...DEFAULT_DRIVE_CHOICES }, pack: null, case: 'all' };
+const state = { model: '500F', a: { ...DEFAULT_CHOICES }, da: { ...DEFAULT_DRIVE_CHOICES }, db: { ...DEFAULT_DRIVE_CHOICES }, pack: null, case: 'all', speed: DEFAULT_SPEED };
 
 // ───── 小道具 ─────
 const strip = (s) => (s || '').replace(/（.*$/, '');
@@ -303,6 +309,7 @@ function readHash() {
     if (!bv && packFits(state.model, state.da, pk)) state.db = packChoices(state.da, pk);
   }
   if (h.get('c') && CASE_ORDER.includes(h.get('c'))) state.case = h.get('c');
+  const vv = Number(h.get('v')); if (SPEED_OPTIONS.includes(vv)) state.speed = vv;
 }
 function writeHash() {
   const p = new URLSearchParams(); p.set('m', state.model);
@@ -311,6 +318,7 @@ function writeHash() {
   const db = encDrive(state.db); if (db) p.set('db', db);
   if (state.pack) p.set('p', state.pack);
   if (state.case !== 'all') p.set('c', state.case);
+  if (state.speed !== DEFAULT_SPEED) p.set('v', state.speed);
   history.replaceState(null, '', '#' + p.toString());
   const q = new URLSearchParams(); q.set('m', state.model); if (ea) q.set('a', ea);
   $('#toEngine').href = './#' + q.toString();
@@ -475,6 +483,19 @@ function renderCaseChips() {
     box.append(b);
   }
 }
+function renderSpeedChips() {
+  const box = $('#speedChips'); box.textContent = '';
+  for (const v of SPEED_OPTIONS) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = `${v}km/h`; b.classList.toggle('on', state.speed === v);
+    b.addEventListener('click', () => {
+      if (state.speed === v) return;
+      state.speed = v; renderSpeedChips();
+      gtag('event', 'gearbox_sim_speed', { model: state.model, speed: v });
+      update();
+    });
+    box.append(b);
+  }
+}
 function renderPacks() {
   const box = $('#packs'); box.textContent = '';
   for (const pack of packsForCase()) {
@@ -538,8 +559,8 @@ function buildDriveTable(VA, VB) {
 function stageNumbers(L) {
   const { VA, VB, cap } = L;
   const topA = VA.drive.gears.length - 1, topB = VB.drive.gears.length - 1;
-  const rpmA = rpmAtSpeed(80, VA.drive.gears[topA], VA.drive);
-  const rpmB = rpmAtSpeed(80, VB.drive.gears[topB], VB.drive);
+  const rpmA = rpmAtSpeed(state.speed, VA.drive.gears[topA], VA.drive);
+  const rpmB = rpmAtSpeed(state.speed, VB.drive.gears[topB], VB.drive);
   return { topA, topB, rpmA, rpmB, okA: rpmA <= cap, okB: rpmB <= cap };
 }
 
@@ -585,7 +606,7 @@ function renderGauge(L, nums) {
     badgeNum.textContent = small ? 'ほぼ同じ' : `${diff >= 0 ? '+' : ''}${Math.round(diff)}%`;
     badgeNum.classList.toggle('txt', small);
   }
-  $('#rpmCond').textContent = nums.topA === nums.topB ? `80 km/h・${nums.topA + 1}速` : `80 km/h・${nums.topA + 1}→${nums.topB + 1}速`;
+  $('#rpmCond').textContent = nums.topA === nums.topB ? `${state.speed} km/h・${nums.topA + 1}速` : `${state.speed} km/h・${nums.topA + 1}→${nums.topB + 1}速`;
 }
 function interpAt(trace, kmh) {
   if (!trace.length) return 0;
@@ -617,10 +638,10 @@ function drawSaw(L) {
     if (traceA[i].gear !== traceA[i - 1].gear) { const p = traceA[i - 1]; g.fillStyle = colA; g.fillText(String(p.gear), X(p.kmh), Y(p.rpm) - 6); }
   }
   if (traceA.length) { const p = traceA[traceA.length - 1]; g.fillStyle = colA; g.fillText(String(p.gear), X(p.kmh), Y(p.rpm) - 6); }
-  // 80km/h の縦線＋交点
-  const x80 = X(80);
+  // 巡航速度の縦線＋交点
+  const x80 = X(state.speed);
   g.strokeStyle = cream; g.globalAlpha = .7; g.setLineDash([4, 3]); g.lineWidth = 1; g.beginPath(); g.moveTo(x80, padT); g.lineTo(x80, H - padB); g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
-  const rA = interpAt(traceA, 80), rB = interpAt(traceB, 80);
+  const rA = interpAt(traceA, state.speed), rB = interpAt(traceB, state.speed);
   g.beginPath(); g.arc(x80, Y(rB), 4, 0, Math.PI * 2); g.fillStyle = colB; g.fill();
   g.beginPath(); g.arc(x80, Y(rA), 4, 0, Math.PI * 2); g.fillStyle = colA; g.fill();
   g.font = 'bold 11px system-ui'; g.textAlign = 'left';
@@ -633,7 +654,7 @@ function renderResultText(L) {
   const topA = topSpeed(L.res, L.VA.vehicle, L.VA.drive), topB = topSpeed(L.res, L.VB.vehicle, L.VB.drive);
   const diff = (nums.okA && nums.okB) ? Math.round((nums.rpmB / nums.rpmA - 1) * 100) : null;
   const rpmTxt = `${nums.okA ? Math.round(nums.rpmA) : '—'} → ${nums.okB ? Math.round(nums.rpmB) : '—'}`;
-  $('#res').innerHTML = `80km/h の回転が <b>${rpmTxt}rpm</b>${diff == null ? '' : `（${diff >= 0 ? '+' : ''}${diff}%）`}。最高速は ${fmtKmh(topA?.kmh)} → ${fmtKmh(topB?.kmh)}km/h。`;
+  $('#res').innerHTML = `${state.speed}km/h の回転が <b>${rpmTxt}rpm</b>${diff == null ? '' : `（${diff >= 0 ? '+' : ''}${diff}%）`}。最高速は ${fmtKmh(topA?.kmh)} → ${fmtKmh(topB?.kmh)}km/h。`;
   const hillA = climbHill(L.res, L.VA.vehicle, L.VA.drive, sceneById('dangozaka')), hillB = climbHill(L.res, L.VB.vehicle, L.VB.drive, sceneById('dangozaka'));
   const omgA = climbHill(L.res, L.VA.vehicle, L.VA.drive, sceneById('omega')), omgB = climbHill(L.res, L.VB.vehicle, L.VB.drive, sceneById('omega'));
   $('#resSub').textContent = `談合坂（5%）の登り切り ${fmtKmh(hillA.exitKmh)} → ${fmtKmh(hillB.exitKmh)}km/h／名阪 Ω ${fmtKmh(omgA.exitKmh)} → ${fmtKmh(omgB.exitKmh)}km/h`;
@@ -659,7 +680,7 @@ function renderPackBack(L) {
   const topA = topSpeed(L.res, L.VA.vehicle, L.VA.drive), topB = topSpeed(L.res, L.VB.vehicle, L.VB.drive);
   const diff = (nums.okA && nums.okB) ? Math.round((nums.rpmB / nums.rpmA - 1) * 100) : null;
   const foot = document.createElement('p'); foot.className = 'foot';
-  foot.textContent = `80km/h の回転 ${nums.okA ? Math.round(nums.rpmA) : '—'} → ${nums.okB ? Math.round(nums.rpmB) : '—'}rpm${diff == null ? '' : `（${diff >= 0 ? '+' : ''}${diff}%）`}／最高速 ${fmtKmh(topA?.kmh)} → ${fmtKmh(topB?.kmh)}km/h`;
+  foot.textContent = `${state.speed}km/h の回転 ${nums.okA ? Math.round(nums.rpmA) : '—'} → ${nums.okB ? Math.round(nums.rpmB) : '—'}rpm${diff == null ? '' : `（${diff >= 0 ? '+' : ''}${diff}%）`}／最高速 ${fmtKmh(topA?.kmh)} → ${fmtKmh(topB?.kmh)}km/h`;
   box.append(foot);
   if (pack) { const pc = document.createElement('p'); pc.textContent = pack.back.change; box.append(pc); }
   const ratio = document.createElement('p'); ratio.className = 'note'; ratio.style.margin = '4px 0 0';
@@ -680,6 +701,11 @@ function renderPackBack(L) {
       const tg = document.createElement('div'); tg.className = 'tags';
       pack.tags.forEach((t) => { const s = document.createElement('span'); s.className = 'tg'; s.textContent = t; tg.append(s); });
       box.append(tg);
+    }
+    if (pack.guide) {
+      const gp = document.createElement('p'); gp.className = 'note';
+      gp.innerHTML = `<a href="./drive-guide#${pack.guide}">くわしく読む（駆動系ケース別ガイド）</a>`;
+      box.append(gp);
     }
   }
 }
@@ -720,6 +746,7 @@ function systemLineData() {
 }
 // 横棒の一覧＝1札1行。中央 0% の縦線を基準に、負は左・正は右へ伸びる棒。種類ごとに小見出しでまとめ、種類内は値の昇順。
 function renderNumline() {
+  $('#numlineNote').textContent = `同じ速度で回転が何%変わるか（いまの構成に1つだけ重ねたとき・${state.speed}km/h）`;
   const box = $('#numline'); box.textContent = '';
   const data = systemLineData();
   // 右端は +10% の目盛より少し余らせる＝正の棒の先に付く数字が枠からはみ出ないように
@@ -768,10 +795,10 @@ function renderNumline() {
 // ───── ギアと回転 ─────
 function drawGearTable(box, res, drive, cap) {
   box.textContent = '';
-  const t = document.createElement('table'); t.innerHTML = '<thead><tr><th>ギア</th><th>km/h／1000rpm</th><th>80km/h の回転</th></tr></thead>';
+  const t = document.createElement('table'); t.innerHTML = `<thead><tr><th>ギア</th><th>km/h／1000rpm</th><th>${state.speed}km/h の回転</th></tr></thead>`;
   const tb = document.createElement('tbody');
   gearTable(res, drive).forEach((ga, i) => {
-    const rpm = rpmAtSpeed(80, drive.gears[i], drive);
+    const rpm = rpmAtSpeed(state.speed, drive.gears[i], drive);
     const cell = rpm > cap ? '—' : `${Math.round(rpm / 10) * 10}`;
     const tr = document.createElement('tr'); tr.innerHTML = `<td>${ga.gear}速（${Number(ga.ratio.toFixed(3))}）</td><td>${ga.kmhAt1000.toFixed(1)}</td><td>${cell}</td>`; tb.append(tr);
   });
@@ -839,6 +866,7 @@ window.addEventListener('resize', () => { if (last) drawSaw(last); });
 readHash();
 renderAllModelDependent();
 renderCaseChips();
+renderSpeedChips();
 bindAccordion();
 update();
 </script>

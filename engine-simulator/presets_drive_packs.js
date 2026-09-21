@@ -11,6 +11,7 @@ export const DRIVE_PACKS = [
   {
     id: 'dp_f839', name: 'ファイナル 8/39', sub: '126純正と同じ比（8/39＝4.875）に変える＝500純正は8/41＝5.125',
     cases: ['cruise', 'sync'],
+    guide: 's2',
     choices: { final: 'f839' },
     tags: [],
     back: {
@@ -23,6 +24,7 @@ export const DRIVE_PACKS = [
   {
     id: 'dp_fifth_long', name: '5速化（ロング 0.743）', sub: '1〜4速はそのまま・5速だけを追加する',
     cases: ['cruise'],
+    guide: 's3',
     choices: { fifth: 'g5_stradale' },
     tags: ['要加工', '故障報告あり'],
     back: {
@@ -35,6 +37,7 @@ export const DRIVE_PACKS = [
   {
     id: 'dp_f939', name: 'ファイナル 9/39', sub: '8/39よりさらに長い比（4.333）・500Dのケースには入らない',
     cases: ['cruise', 'bigger'],
+    guide: 's2',
     choices: { final: 'f939' },
     tags: ['500D 不可'],
     back: {
@@ -47,6 +50,7 @@ export const DRIVE_PACKS = [
   {
     id: 'dp_t135', name: 'タイヤ 135/80R12', sub: '外径が125R12より3.2%大きい・126純正サイズ',
     cases: ['cruise', 'look'],
+    guide: 's7',
     choices: { tire: 't135' },
     tags: [],
     back: {
@@ -59,6 +63,7 @@ export const DRIVE_PACKS = [
   {
     id: 'dp_nanni34', name: '3/4 ショート（NANNI）', sub: '3・4速だけを短くし、段間の谷を詰める',
     cases: ['hill'],
+    guide: 's4',
     choices: { gearset: 'nanni_34' },
     tags: [],
     back: {
@@ -71,6 +76,7 @@ export const DRIVE_PACKS = [
   {
     id: 'dp_bacci34', name: '3/4 ショート＋5速 0.88（Bacci 系）', sub: '4速を大きく短縮し、5速を足して初めてトップ相当になる',
     cases: ['hill'],
+    guide: 's4',
     choices: { gearset: 'bacci_34', fifth: 'g5_2522' },
     tags: ['要加工'],
     back: {
@@ -83,6 +89,7 @@ export const DRIVE_PACKS = [
   {
     id: 'dp_box841', name: '126 ミッション＋8/41 ピニオン', sub: 'シンクロ化しつつ最終減速比だけ純正に残す',
     cases: ['hill'],
+    guide: 's6',
     choices: { gearbox: 'sync', final: 'f841' },
     only: ['n_early', 'dfl'],
     tags: ['要加工'],
@@ -96,6 +103,7 @@ export const DRIVE_PACKS = [
   {
     id: 'dp_first_long', name: '1速ロング 12/39', sub: '126と同じ歯数の1速に置き換える',
     cases: ['launch'],
+    guide: 's5',
     choices: { gearset: 'first_long' },
     tags: [],
     back: {
@@ -108,6 +116,7 @@ export const DRIVE_PACKS = [
   {
     id: 'dp_box', name: '126 ミッションに換装（シンクロ化）', sub: '126箱をそのまま載せ、全段がシンクロになる',
     cases: ['sync', 'bigger'],
+    guide: 's6',
     choices: { gearbox: 'sync', final: 'f839' },
     only: ['n_early', 'dfl'],
     tags: ['要加工'],
@@ -121,6 +130,7 @@ export const DRIVE_PACKS = [
   {
     id: 'dp_t10', name: '10インチ 145/80R10', sub: '外径が小さくなり回転が上がる・車高も下がる',
     cases: ['look'],
+    guide: 's7',
     choices: { tire: 't145_80_10' },
     tags: [],
     back: {
@@ -133,6 +143,7 @@ export const DRIVE_PACKS = [
   {
     id: 'dp_t155_65_13', name: '13インチ 155/65R13', sub: '外径が5.3%大きい・5Jホイールが前提',
     cases: ['look'],
+    guide: 's7',
     choices: { tire: 't155_65_13' },
     tags: [],
     back: {
@@ -145,6 +156,7 @@ export const DRIVE_PACKS = [
   {
     id: 'dp_t145', name: '幅広 145/70R12（回転は変わらず）', sub: '外径はほぼ純正と同じ・幅だけ広がる',
     cases: ['look'],
+    guide: 's7',
     choices: { tire: 't145' },
     tags: [],
     back: {
