@@ -680,7 +680,14 @@ function renderResultText(L) {
   const topA = topSpeed(L.res, L.VA.vehicle, L.VA.drive), topB = topSpeed(L.res, L.VB.vehicle, L.VB.drive);
   const diff = (nums.okA && nums.okB) ? Math.round((nums.rpmB / nums.rpmA - 1) * 100) : null;
   const rpmTxt = `${nums.okA ? Math.round(nums.rpmA) : '—'} → ${nums.okB ? Math.round(nums.rpmB) : '—'}`;
-  $('#res').innerHTML = `${state.speed}km/h の回転が <b>${rpmTxt}rpm</b>${diff == null ? '' : `（${diff >= 0 ? '+' : ''}${diff}%）`}。最高速は ${fmtKmh(topA?.kmh)} → ${fmtKmh(topB?.kmh)}km/h。`;
+  // 最高速は「その速度で釣り合う回転」まで書く＝何速の何回転で頭打ちかが分からないと速度だけでは読めない
+  // （topSpeed() は {kmh, rpm, gear} を返す。gear は「その速度を出せた最も高いギア」）
+  const topTxt = topA && topB
+    ? (topA.gear === topB.gear
+      ? `（${topA.gear}速 ${Math.round(topA.rpm)} → ${Math.round(topB.rpm)}rpm）`
+      : `（${topA.gear}速 ${Math.round(topA.rpm)}rpm → ${topB.gear}速 ${Math.round(topB.rpm)}rpm）`)
+    : '';
+  $('#res').innerHTML = `${state.speed}km/h の回転が <b>${rpmTxt}rpm</b>${diff == null ? '' : `（${diff >= 0 ? '+' : ''}${diff}%）`}。最高速は ${fmtKmh(topA?.kmh)} → ${fmtKmh(topB?.kmh)}km/h${topTxt}。`;
   const hillA = climbHill(L.res, L.VA.vehicle, L.VA.drive, sceneById('dangozaka')), hillB = climbHill(L.res, L.VB.vehicle, L.VB.drive, sceneById('dangozaka'));
   const omgA = climbHill(L.res, L.VA.vehicle, L.VA.drive, sceneById('omega')), omgB = climbHill(L.res, L.VB.vehicle, L.VB.drive, sceneById('omega'));
   $('#resSub').textContent = `談合坂（5%）の登り切り ${fmtKmh(hillA.exitKmh)} → ${fmtKmh(hillB.exitKmh)}km/h／名阪 Ω ${fmtKmh(omgA.exitKmh)} → ${fmtKmh(omgB.exitKmh)}km/h`;
