@@ -64,20 +64,23 @@ label.row{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--
 .stageWrap::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 20% 0%, #24543d 0%, transparent 60%)}
 .stageWrap::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.14;background-image:radial-gradient(#fff 0.5px,transparent 0.6px);background-size:3px 3px}
 .stageWrap>*{position:relative;z-index:1}
-.gaugeRow{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
-.gaugeRow .g{width:min(100%,280px);flex:none}
+/* 主役は下の物差し＝盤は「変えた後はどのへんの回転か」を示す添え物なので小さく、数字と横に並べる */
+.gaugeRow{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.gaugeRow .g{width:min(40%,170px);flex:none}
 .gaugeRow .g svg{width:100%;display:block}
 .rpmCol{flex:1;min-width:160px;display:flex;flex-direction:column;gap:6px}
 .rpmNums{font-family:'Oswald',system-ui;font-weight:700;font-size:24px;color:var(--cream);line-height:1.1}
 .rpmNums .ar{color:var(--gold);margin:0 8px;font-size:18px}
+.rpmNums .to{color:var(--gold)}
 .rpmSub{font-size:11px;color:var(--series-a)}
+.gcap{font-size:10.5px;color:#9fb3a6;text-align:center;margin-top:2px;letter-spacing:.04em}
 .badge{width:72px;height:72px;flex:0 0 72px;border-radius:50%;background:var(--red);border:2px solid var(--cream);
   display:inline-flex;flex-direction:column;align-items:center;justify-content:center;color:var(--cream);
   padding:0 4px;box-shadow:0 3px 0 #0004}
 .badge .d{font-family:'Oswald',system-ui;font-weight:700;font-size:17px;line-height:1;white-space:nowrap;letter-spacing:-.02em}
 .badge .d.txt{font-size:13px}
 .badge .p{font-size:9px;letter-spacing:.06em;margin-top:1px;color:#ffe9c9}
-@media (max-width:480px){.gaugeRow{flex-direction:column;text-align:center}.rpmCol{align-items:center}}
+@media (max-width:480px){.rpmNums{font-size:21px}.badge{width:62px;height:62px;flex:0 0 62px}.badge .d{font-size:15px}}
 .sawWrap{margin-top:10px;border-radius:10px;overflow:hidden;background:#ffffff08}
 .sawWrap canvas{display:block;width:100%;height:170px}
 .res{margin:10px 0 2px;font-size:15px;font-weight:700;color:var(--cream);line-height:1.6} .res b{color:var(--gold)}
@@ -132,17 +135,45 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
 .note{font-size:12px;color:var(--sub);margin:10px 0 0}
 .packBack .note a{color:var(--deep);font-weight:600;text-decoration:none;border-bottom:1px solid var(--gold)}
 .packBack .note a:hover{color:var(--red)}
-/* 数直線（仕組み3行）＝札（DRIVE_PACKS）を種類ごと（タイヤ／ファイナル／5速／ギアセット・箱）の横棒一覧で並べる */
-.numline{margin-top:10px}
-.numline .nl-grouptitle{font-size:11px;font-weight:600;color:var(--sub);margin:10px 0 3px}
-.numline .nl-grouptitle:first-child{margin-top:0}
-.numline .nl-row{display:flex;align-items:center;gap:6px;margin:5px 0}
-.numline .nl-name{width:96px;flex:none;font-size:11px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.numline .nl-barwrap{flex:1;position:relative;height:10px}
-.numline .nl-zeroline{position:absolute;top:-2px;bottom:-2px;width:1px;background:var(--line)}
-.numline .nl-bar{position:absolute;top:0;height:10px;border-radius:5px}
-.numline .nl-val{position:absolute;top:-1px;font-size:11px;color:var(--sub);white-space:nowrap}
-.numline .nl-ticks{flex:1;display:flex;justify-content:space-between;font-size:10px;color:var(--sub)}
+/* 舞台の物差し＝札（DRIVE_PACKS）を全部ひとつの軸に並べる。中心＝いまの車・先の●＝変えた後・帯＝動いた量。
+   軸は 0% を真ん中に置いた左右対称（中心線と●の位置がズレないよう、CSS では 50% を書かず JS の pos() だけで決める） */
+.scale{margin-top:12px}
+.scale .scNote{font-size:11px;color:#9fb3a6;margin:0 0 8px;line-height:1.6}
+.scale .sc-grp{font-size:11px;color:#7f9a8c;margin:9px 0 3px;letter-spacing:.06em}
+.scale .sc-grp.first{margin-top:0}
+.scale .tr{display:grid;grid-template-columns:118px 1fr 44px;align-items:center;gap:7px;margin-bottom:3px}
+.scale .nm{font-size:11px;color:#cfe0d5;text-align:right;line-height:1.3}
+.scale .bar{position:relative;height:16px}
+.scale .zero{position:absolute;top:-1px;bottom:-1px;width:1px;background:rgba(246,240,226,.35)}
+.scale .seg{position:absolute;top:6px;height:5px;border-radius:3px;background:rgba(246,240,226,.22)}
+.scale .pa{position:absolute;top:5px;width:7px;height:7px;border-radius:50%;background:var(--series-a);transform:translateX(-50%);z-index:2}
+.scale .pb{position:absolute;top:3.5px;width:10px;height:10px;border-radius:50%;background:rgba(246,240,226,.22);transform:translateX(-50%);z-index:2}
+.scale .none{position:absolute;top:1px;font-size:10px;color:#7f9a8c;white-space:nowrap}
+.scale .num{font-family:'Oswald',system-ui;font-size:11.5px;color:#8fa79a;text-align:right}
+.scale .num.nochg{color:#6d8578;font-size:10px}
+.scale .tr.on .nm{color:var(--cream);font-weight:700}
+.scale .tr.on .seg{background:var(--series-b);top:5px;height:7px}
+.scale .tr.on .pb{background:var(--series-b);width:13px;height:13px;top:2px;box-shadow:0 2px 5px rgba(0,0,0,.45)}
+.scale .tr.on .pa{width:9px;height:9px;top:4px}
+.scale .tr.on .num{color:var(--gold);font-size:14px;font-weight:700}
+.scale .tr.total .nm{font-size:12.5px;font-weight:700}
+.scale .tr.total .num{font-size:16px}
+.scale .bar.big{height:28px}
+.scale .bar.big .seg{top:10px;height:9px;border-radius:5px}
+.scale .bar.big .pa{top:9px;width:11px;height:11px}
+.scale .bar.big .pb{top:6px;width:17px;height:17px}
+.scale .totcap{font-size:11.5px;color:#cfe0d5;text-align:right;padding-right:48px;margin-top:1px;font-family:'Oswald',system-ui}
+.scale .totcap b{color:var(--gold);font-size:14px}
+.scale .sep{border:0;border-top:1px solid rgba(246,240,226,.15);margin:8px 0}
+.scale .ends{display:flex;justify-content:space-between;font-size:10px;color:#7f9a8c;margin-top:5px;padding-left:125px;padding-right:51px}
+.scale .foot{font-size:11px;color:#9fb3a6;margin-top:8px;line-height:1.7}
+.scale .foot b{color:var(--cream)}
+@media (max-width:480px){
+  .scale .tr{grid-template-columns:90px 1fr 40px;gap:5px}
+  .scale .nm{font-size:10px}
+  .scale .ends{padding-left:95px;padding-right:45px}
+  .scale .totcap{padding-right:44px}
+}
 .busy{opacity:.55;transition:opacity .15s}
 </style>
 </head>
@@ -164,13 +195,14 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
 
     <div class="stageWrap" id="stageWrap">
       <div class="gaugeRow">
-        <div class="g"><svg id="tach" viewBox="0 0 200 200"></svg></div>
+        <div class="g"><svg id="tach" viewBox="0 0 200 200"></svg><div class="gcap">盤の針＝変えた後</div></div>
         <div class="rpmCol">
           <div class="rpmNums" id="rpmNums">— <span class="ar">▶</span> —</div>
           <div class="badge" id="rpmBadge"><span class="d" id="rpmBadgeNum"></span></div>
           <div class="rpmSub" id="rpmCond"></div>
         </div>
       </div>
+      <div class="scale" id="scale"></div>
       <div class="sawWrap"><canvas id="sawCv"></canvas></div>
       <p class="res" id="res"></p>
       <p class="sub" id="resSub"></p>
@@ -192,8 +224,6 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
         <li>エンジン1回転で進む距離＝それ÷（ギア比×ファイナル）</li>
         <li>だから比が小さい（長い）＝同じ速度で回転が下がるが、タイヤを回す力も減る＝全部この裏返し</li>
       </ol>
-      <p class="note" id="numlineNote">同じ速度で回転が何%変わるか（いまの構成に1つだけ重ねたとき・80km/h）</p>
-      <div class="numline" id="numline"></div>
     </div></details>
 
     <h2>ベース車両</h2>
@@ -583,22 +613,15 @@ function animateNeedles(svg, a, b) {
   needleAnimReq = requestAnimationFrame(step);
   prevA = a; prevB = b;
 }
+// 盤は「変えた後」だけを指す（針1本・金）。どれだけ動いたかは下の物差しが担うので、
+// ここに針を2本立てたり扇を描いたりしない（小さい盤では −15% でも 27°＝重なって見え、物差しと矛盾した印象になる）。
 function renderGauge(L, nums) {
   const svg = $('#tach');
   renderTach(svg, { rpm: 0, redFrom: L.cap, max: 6000 });
-  const css = getComputedStyle(document.documentElement);
-  if (nums.okA && nums.okB) {
-    const down = nums.rpmB < nums.rpmA;
-    svg.style.setProperty('--a0-fan', down ? 'var(--series-b)' : 'var(--red)');
-    animateNeedles(svg, nums.rpmA, nums.rpmB);
-  } else if (nums.okA) {
-    svg.style.setProperty('--a0-fan', 'var(--series-b)');
-    animateNeedles(svg, nums.rpmA, undefined);
-  } else {
-    animateNeedles(svg, 0, undefined);
-  }
+  svg.style.setProperty('--a0-needle-a', 'var(--series-b)');
+  animateNeedles(svg, nums.okB ? nums.rpmB : 0, undefined);
   const fmt = (v, ok) => (ok ? Math.round(v) : '—');
-  $('#rpmNums').innerHTML = `${fmt(nums.rpmA, nums.okA)} <span class="ar">▶</span> ${fmt(nums.rpmB, nums.okB)}<span style="font-size:14px"> rpm</span>`;
+  $('#rpmNums').innerHTML = `${fmt(nums.rpmA, nums.okA)} <span class="ar">▶</span> <span class="to">${fmt(nums.rpmB, nums.okB)}</span><span style="font-size:14px"> rpm</span>`;
   const badgeNum = $('#rpmBadgeNum');
   if (!nums.okA || !nums.okB) { badgeNum.textContent = '—'; }
   else {
@@ -713,86 +736,102 @@ function renderPackBack(L) {
   }
 }
 
-// ───── 仕組み3行の数直線＝札（DRIVE_PACKS）12枚だけを同じ物差しに並べる（タイヤ／ファイナル／5速／ギアセット・箱の4段） ─────
-const NUMLINE_ROWS = [
-  { key: 'tire', label: 'タイヤ' },
-  { key: 'final', label: 'ファイナル' },
-  { key: 'fifth', label: '5速' },
-  { key: 'gearset', label: 'ギアセット・箱' },
+// ───── 舞台の物差し＝札（DRIVE_PACKS）12枚を同じ軸に並べる ─────
+// 中心＝いまの車（●小）・先の●＝変えた後・間の帯＝動いた量。選んだ札の行が光り、
+// 2つ以上変えているときは最上段に「合わせた結果」を太い1本で出す。
+// 並びは「何をどう変えるか」の種類順＝ファイナル／5速／3・4速／1速／箱ごと／タイヤ。
+const SCALE_GROUPS = [
+  { label: 'ファイナル（全段が一斉に変わる）', ids: ['dp_f839', 'dp_f939'] },
+  { label: '5速を足す（最上段だけ）', ids: ['dp_fifth_long'] },
+  { label: '3・4速を短くする', ids: ['dp_nanni34', 'dp_bacci34'] },
+  { label: '1速を長くする', ids: ['dp_first_long'] },
+  { label: 'ミッションごと換える', ids: ['dp_box', 'dp_box841'] },
+  { label: 'タイヤを変える', ids: ['dp_t155_65_13', 'dp_t135', 'dp_t145', 'dp_t10'] },
 ];
-const PACK_ROW = {
-  dp_f839: 'final', dp_f939: 'final',
-  dp_fifth_long: 'fifth',
-  dp_t135: 'tire', dp_t10: 'tire', dp_t155_65_13: 'tire', dp_t145: 'tire',
-  dp_nanni34: 'gearset', dp_bacci34: 'gearset', dp_box841: 'gearset', dp_box: 'gearset', dp_first_long: 'gearset',
-};
+// 行名＝グループ見出しで分かることは繰り返さない短い名前
 const PACK_SHORT = {
   dp_f839: '8/39', dp_f939: '9/39',
-  dp_fifth_long: '5速 0.743',
-  dp_t135: '135/80R12', dp_t10: '145/80R10', dp_t155_65_13: '155/65R13', dp_t145: '145/70R12',
-  dp_nanni34: '3/4 NANNI', dp_bacci34: '3/4 Bacci', dp_box841: '126箱+8/41', dp_box: '126箱', dp_first_long: '1速ロング',
+  dp_fifth_long: 'ロング 0.743',
+  dp_t155_65_13: '13インチ 155/65R13', dp_t135: '135/80R12', dp_t145: '幅広 145/70R12', dp_t10: '10インチ 145/80R10',
+  dp_nanni34: 'NANNI', dp_bacci34: 'Bacci（＋5速）', dp_box: '126 ミッション', dp_box841: '126 ミッション＋8/41',
+  dp_first_long: '12/39（126と同じ）',
 };
+// 札ごとに「いまの車に1つだけ重ねたら、同じ速度で回転が何%変わるか」を出す。
+// on＝その札の変更が「変えた後」（state.db）にそのまま入っている＝複数選んでいても札ごとに判定できる。
 function systemLineData() {
   const baseV = buildVehicle(state.model, state.da);
   const top = baseV.drive.gears.length - 1;
-  const baseRpm = rpmAtSpeed(80, baseV.drive.gears[top], baseV.drive);
+  const baseRpm = rpmAtSpeed(state.speed, baseV.drive.gears[top], baseV.drive);
+  const cur = (k) => (state.da[k] === undefined ? DEFAULT_DRIVE_CHOICES[k] : state.da[k]);
   const out = [];
   for (const pack of DRIVE_PACKS) {
     if (!packFits(state.model, state.da, pack)) continue;
     const built = buildVehicle(state.model, packChoices(state.da, pack));
     const t = built.drive.gears.length - 1;
-    const rpm = rpmAtSpeed(80, built.drive.gears[t], built.drive);
-    const pct = (rpm / baseRpm - 1) * 100;
-    out.push({ key: PACK_ROW[pack.id] || 'gearset', id: pack.id, label: PACK_SHORT[pack.id] || pack.name, pct });
+    const rpm = rpmAtSpeed(state.speed, built.drive.gears[t], built.drive);
+    const keys = Object.keys(pack.choices);
+    const on = keys.length > 0
+      && keys.every((k) => state.db[k] === pack.choices[k])
+      && keys.some((k) => pack.choices[k] !== cur(k));
+    out.push({ id: pack.id, label: PACK_SHORT[pack.id] || pack.name, pct: (rpm / baseRpm - 1) * 100, on, keys });
   }
   return out;
 }
-// 横棒の一覧＝1札1行。中央 0% の縦線を基準に、負は左・正は右へ伸びる棒。種類ごとに小見出しでまとめ、種類内は値の昇順。
-function renderNumline() {
-  $('#numlineNote').textContent = `同じ速度で回転が何%変わるか（いまの構成に1つだけ重ねたとき・${state.speed}km/h）`;
-  const box = $('#numline'); box.textContent = '';
+// 物差し＝1札1行のダンベル。軸は 0% を真ん中に置いた左右対称（±M%）で、
+// 中心の●＝いまの車・先の●＝その札にしたときの回転・間の帯＝動いた量。
+// ⚠️中心線も●も同じ pos() で位置を決める＝CSS に 50% を書かない（書くと軸が非対称になった瞬間ズレる）。
+function renderScale(nums) {
+  const box = $('#scale'); box.textContent = '';
   const data = systemLineData();
-  // 右端は +10% の目盛より少し余らせる＝正の棒の先に付く数字が枠からはみ出ないように
-  const lo = -20, hi = 10, hiPad = 16;
-  const frac = (v) => (Math.max(lo, Math.min(hiPad, v)) - lo) / (hiPad - lo);
-  const zeroFrac = frac(0);
+  if (!data.length) return;
 
-  const scaleRow = document.createElement('div'); scaleRow.className = 'nl-row';
-  const scaleSpacer = document.createElement('div'); scaleSpacer.className = 'nl-name'; scaleSpacer.setAttribute('aria-hidden', 'true');
-  const ticks = document.createElement('div'); ticks.className = 'nl-ticks';
-  ticks.style.flex = 'none'; ticks.style.width = (frac(hi) * 100) + '%';
-  ticks.innerHTML = `<span>${lo}%</span><span>-10%</span><span>0%</span><span>+${hi}%</span>`;
-  const ticksWrap = document.createElement('div'); ticksWrap.className = 'nl-barwrap'; ticksWrap.style.height = 'auto';
-  ticksWrap.append(ticks);
-  scaleRow.append(scaleSpacer, ticksWrap);
-  box.append(scaleRow);
+  // 2つ以上変えている（または札で説明がつかない組み合わせ）のときだけ「合わせた結果」を出す
+  const onRows = data.filter((d) => d.on);
+  const diffKeys = DRIVE_KEYS.filter((k) => state.db[k] !== (state.da[k] === undefined ? DEFAULT_DRIVE_CHOICES[k] : state.da[k]));
+  const totalPct = nums && nums.okA && nums.okB ? (nums.rpmB / nums.rpmA - 1) * 100 : null;
+  const singleCovers = onRows.length === 1 && onRows[0].keys.length === diffKeys.length;
+  const showTotal = diffKeys.length > 0 && !singleCovers && totalPct != null;
 
-  for (const row of NUMLINE_ROWS) {
-    const pts = data.filter((d) => d.key === row.key).sort((a, b) => a.pct - b.pct);
-    if (!pts.length) continue;
-    const title = document.createElement('div'); title.className = 'nl-grouptitle'; title.textContent = row.label;
-    box.append(title);
-    for (const p of pts) {
-      const line = document.createElement('div'); line.className = 'nl-row';
-      const name = document.createElement('div'); name.className = 'nl-name'; name.textContent = p.label;
-      const wrap = document.createElement('div'); wrap.className = 'nl-barwrap';
-      const zeroline = document.createElement('div'); zeroline.className = 'nl-zeroline'; zeroline.style.left = (zeroFrac * 100) + '%';
-      wrap.append(zeroline);
-      const f = frac(p.pct), neg = p.pct < 0;
-      const bar = document.createElement('div'); bar.className = 'nl-bar';
-      bar.style.left = (Math.min(f, zeroFrac) * 100) + '%';
-      bar.style.width = (Math.abs(f - zeroFrac) * 100) + '%';
-      bar.style.background = neg ? 'var(--series-b)' : 'var(--red)';
-      wrap.append(bar);
-      const val = document.createElement('div'); val.className = 'nl-val';
-      val.textContent = `${p.pct >= 0 ? '+' : ''}${p.pct.toFixed(1)}%`;
-      if (neg) { val.style.right = ((1 - f) * 100) + '%'; val.style.transform = 'translateX(-4px)'; val.style.textAlign = 'right'; }
-      else { val.style.left = (f * 100) + '%'; val.style.transform = 'translateX(4px)'; }
-      wrap.append(val);
-      line.append(name, wrap);
-      box.append(line);
+  const vals = data.map((d) => Math.abs(d.pct));
+  if (showTotal) vals.push(Math.abs(totalPct));
+  const M = Math.max(16, Math.ceil(Math.max(...vals)));
+  const pos = (p) => (p + M) / (2 * M) * 100;
+  const ZERO = pos(0);
+
+  // 1%刻みで出す物差しなので、丸めて 0 になる差は「変わらない」と扱う（-0% と書かない）
+  const flat = (p) => Math.abs(p) < 0.5;
+  const bar = (p, big) => {
+    const w = Math.abs(p) / (2 * M) * 100;
+    const left = p < 0 ? ZERO - w : ZERO;
+    const tip = flat(p)
+      ? `<div class="none" style="left:calc(${ZERO}% + 8px)">変わらない</div>`
+      : `<div class="pb" style="left:${pos(p)}%"></div>`;
+    return `<div class="bar${big ? ' big' : ''}"><div class="zero" style="left:${ZERO}%"></div>`
+      + `<div class="seg" style="left:${left}%;width:${w}%"></div>`
+      + `<div class="pa" style="left:${ZERO}%"></div>${tip}</div>`;
+  };
+  const fmtPct = (p) => (flat(p) ? '±0' : `${p > 0 ? '+' : ''}${p.toFixed(0)}%`);
+
+  let h = `<p class="scNote">同じ速度で回転が何%変わるか（${state.speed}km/h・最上段のギア）</p>`;
+  if (showTotal) {
+    h += `<div class="tr on total"><div class="nm">合わせた結果</div>${bar(totalPct, true)}`
+      + `<div class="num">${fmtPct(totalPct)}</div></div>`
+      + `<div class="totcap">${Math.round(nums.rpmA)} ▶ <b>${Math.round(nums.rpmB)}</b> rpm</div>`
+      + `<hr class="sep"><div class="sc-grp first">その内訳＝1つずつ変えたら</div>`;
+  }
+  let first = !showTotal;
+  for (const g of SCALE_GROUPS) {
+    const rows = g.ids.map((id) => data.find((d) => d.id === id)).filter(Boolean);
+    if (!rows.length) continue;
+    h += `<div class="sc-grp${first ? ' first' : ''}">${g.label}</div>`; first = false;
+    for (const r of rows) {
+      h += `<div class="tr${r.on ? ' on' : ''}"><div class="nm">${r.label}</div>${bar(r.pct, false)}`
+        + `<div class="num${flat(r.pct) ? ' nochg' : ''}">${fmtPct(r.pct)}</div></div>`;
     }
   }
+  h += `<div class="ends"><span>◀ 回転が下がる</span><span>上がる ▶</span></div>`
+    + `<div class="foot">中心の●＝<b>いまの車</b>。先の●＝変えた後。並びは<b>変更の種類</b>順。</div>`;
+  box.innerHTML = h;
 }
 
 // ───── ギアと回転 ─────
@@ -852,11 +891,11 @@ function update() {
     const nums = stageNumbers(last);
     renderBanner(last);
     renderGauge(last, nums);
+    renderScale(nums);
     drawSaw(last);
     renderResultText(last);
     renderPacks(); markPack();
     renderPackBack(last);
-    renderNumline();
     renderFine();
     renderDriveEditor($('#daEditor'), 'da');
     renderGearTables(last);
