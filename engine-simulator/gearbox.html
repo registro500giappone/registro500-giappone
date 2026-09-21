@@ -561,7 +561,7 @@ function stageNumbers(L) {
   const topA = VA.drive.gears.length - 1, topB = VB.drive.gears.length - 1;
   const rpmA = rpmAtSpeed(state.speed, VA.drive.gears[topA], VA.drive);
   const rpmB = rpmAtSpeed(state.speed, VB.drive.gears[topB], VB.drive);
-  return { topA, topB, rpmA, rpmB, okA: rpmA <= cap, okB: rpmB <= cap };
+  return { topA, topB, rpmA, rpmB, cap, okA: rpmA <= cap, okB: rpmB <= cap };
 }
 
 // ───── 描画：舞台 ─────
@@ -606,7 +606,9 @@ function renderGauge(L, nums) {
     badgeNum.textContent = small ? 'ほぼ同じ' : `${diff >= 0 ? '+' : ''}${Math.round(diff)}%`;
     badgeNum.classList.toggle('txt', small);
   }
-  $('#rpmCond').textContent = nums.topA === nums.topB ? `${state.speed} km/h・${nums.topA + 1}速` : `${state.speed} km/h・${nums.topA + 1}→${nums.topB + 1}速`;
+  const cond = nums.topA === nums.topB ? `${state.speed} km/h・${nums.topA + 1}速` : `${state.speed} km/h・${nums.topA + 1}→${nums.topB + 1}速`;
+  const over = !nums.okA && !nums.okB ? 'どちらの構成でも' : !nums.okA ? 'いまの構成では' : !nums.okB ? '変えた後の構成では' : '';
+  $('#rpmCond').textContent = over ? `${cond}｜${state.speed}km/h は${over}上限回転（取扱説明書の最大許容速度から換算・${Math.round(nums.cap)}rpm）を超えます` : cond;
 }
 function interpAt(trace, kmh) {
   if (!trace.length) return 0;
