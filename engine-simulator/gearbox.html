@@ -680,17 +680,22 @@ function renderResultText(L) {
   const topA = topSpeed(L.res, L.VA.vehicle, L.VA.drive), topB = topSpeed(L.res, L.VB.vehicle, L.VB.drive);
   const diff = (nums.okA && nums.okB) ? Math.round((nums.rpmB / nums.rpmA - 1) * 100) : null;
   const rpmTxt = `${nums.okA ? Math.round(nums.rpmA) : '—'} → ${nums.okB ? Math.round(nums.rpmB) : '—'}`;
-  // 最高速は「その速度で釣り合う回転」まで書く＝何速の何回転で頭打ちかが分からないと速度だけでは読めない
-  // （topSpeed() は {kmh, rpm, gear} を返す。gear は「その速度を出せた最も高いギア」）
-  const topTxt = topA && topB
-    ? (topA.gear === topB.gear
-      ? `（${topA.gear}速 ${Math.round(topA.rpm)} → ${Math.round(topB.rpm)}rpm）`
-      : `（${topA.gear}速 ${Math.round(topA.rpm)}rpm → ${topB.gear}速 ${Math.round(topB.rpm)}rpm）`)
-    : '';
-  $('#res').innerHTML = `${state.speed}km/h の回転が <b>${rpmTxt}rpm</b>${diff == null ? '' : `（${diff >= 0 ? '+' : ''}${diff}%）`}。最高速は ${fmtKmh(topA?.kmh)} → ${fmtKmh(topB?.kmh)}km/h${topTxt}。`;
+  // 速度だけでは「なぜそこで頭打ちか」が読めないので、その速度で釣り合っている【何速の何回転】を必ず添える
+  // （上限 4650rpm のすぐ手前＝回転で頭打ち／上限に余裕があるまま止まる＝空気抵抗や坂で頭打ち、の区別が付く）
+  // 2台で同じギアなら「4速 4640 → 4010rpm」と1回、違えば「4速 4640rpm → 5速 4035rpm」と両方書く。
+  const gearRpm = (a, b) => {
+    if (!a || !b || a.rpm == null || b.rpm == null) return '';
+    return a.gear === b.gear
+      ? `（${a.gear}速 ${Math.round(a.rpm)} → ${Math.round(b.rpm)}rpm）`
+      : `（${a.gear}速 ${Math.round(a.rpm)}rpm → ${b.gear}速 ${Math.round(b.rpm)}rpm）`;
+  };
+  $('#res').innerHTML = `${state.speed}km/h の回転が <b>${rpmTxt}rpm</b>${diff == null ? '' : `（${diff >= 0 ? '+' : ''}${diff}%）`}。最高速は ${fmtKmh(topA?.kmh)} → ${fmtKmh(topB?.kmh)}km/h${gearRpm(topA, topB)}。`;
   const hillA = climbHill(L.res, L.VA.vehicle, L.VA.drive, sceneById('dangozaka')), hillB = climbHill(L.res, L.VB.vehicle, L.VB.drive, sceneById('dangozaka'));
   const omgA = climbHill(L.res, L.VA.vehicle, L.VA.drive, sceneById('omega')), omgB = climbHill(L.res, L.VB.vehicle, L.VB.drive, sceneById('omega'));
-  $('#resSub').textContent = `談合坂（5%）の登り切り ${fmtKmh(hillA.exitKmh)} → ${fmtKmh(hillB.exitKmh)}km/h／名阪 Ω ${fmtKmh(omgA.exitKmh)} → ${fmtKmh(omgB.exitKmh)}km/h`;
+  // 坂は climbHill の出口の値（gearAtExit・rpmAtExit）＝「登り切った瞬間に何速で何回転だったか」
+  const exit = (h) => ({ gear: h.gearAtExit, rpm: h.rpmAtExit });
+  $('#resSub').textContent = `談合坂（5%）の登り切り ${fmtKmh(hillA.exitKmh)} → ${fmtKmh(hillB.exitKmh)}km/h${gearRpm(exit(hillA), exit(hillB))}`
+    + `／名阪 Ω ${fmtKmh(omgA.exitKmh)} → ${fmtKmh(omgB.exitKmh)}km/h${gearRpm(exit(omgA), exit(omgB))}`;
 }
 function renderBanner(L) {
   const m = modelById(state.model);
