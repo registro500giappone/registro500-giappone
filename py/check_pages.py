@@ -38,7 +38,9 @@ IGNORE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "check_pa
 # 走査するディレクトリ（リポジトリ直下からの相対）。"" はリポジトリ直下。
 # event/ など生成物のディレクトリは対象外＝雛形を直せば全ページに反映されるので、
 # 雛形（event-pages.py 側）を見るのが筋であってページを1枚ずつ数える意味がない。
-SCAN_DIRS = ["", "126", "en", "it"]
+# engine-simulator/ は生成物ではなく手で書いた画面なので入れる（2026-09-21 追加）。
+# noindex のあるページは自動で見送られるため、公開の日に robots 行を外した時点で検査が効きはじめる。
+SCAN_DIRS = ["", "126", "en", "it", "engine-simulator"]
 
 MEASUREMENT_ID = "G-27SHHC4JYH"  # 正本＝reference_ga4_property。他のIDが混ざっていたら誤り
 
