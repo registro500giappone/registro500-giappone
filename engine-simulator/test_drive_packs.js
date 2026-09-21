@@ -89,12 +89,12 @@ console.log('⑨ 全札が6場面のどれかに属する');
   }
 }
 
-console.log('⑩ 全札に guide（駆動系ケース別ガイドの節 id）がある');
+console.log('⑩ 全札に guide（駆動系のしくみ帳の節 id）がある');
 {
   const guideHtml = readFileSync(new URL('drive-guide.html', import.meta.url), 'utf8');
   for (const p of DRIVE_PACKS) {
     ok(/^s[2-8]$/.test(p.guide || ''), `${p.id}.guide = ${p.guide}`);
-    ok(p.guide && guideHtml.includes(`<h2 id="${p.guide}">`), `${p.id}.guide=${p.guide} の見出しがガイドに実在する`);
+    ok(p.guide && guideHtml.includes(`<h2 id="${p.guide}">`), `${p.id}.guide=${p.guide} の見出しがしくみ帳に実在する`);
   }
 }
 

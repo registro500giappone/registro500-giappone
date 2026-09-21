@@ -1,4 +1,4 @@
-// 駆動系ケース別ガイド（drive-guide.html）の図の生成器。gearbox.html の update()／drawSaw と同じ計算・同じ見た目の
+// 駆動系のしくみ帳（drive-guide.html）の図の生成器。gearbox.html の update()／drawSaw と同じ計算・同じ見た目の
 // 静止 SVG 文字列を作り、drive-guide.html の <figure id="fig-sN"> の中身へ差し込む。ページに JS は足さない＝ビルド時にこの
 // スクリプトの出力を書き込むだけ（`node build_guide_figs.js` で実行・再実行しても同じ出力＝冪等）。
 // HANDOFF §9-14 の確定：①節2〜8＝いま／変えた後のノコギリ線7枚 ②節0＝連鎖図 ③節3＝片持ち構造の模式断面。
