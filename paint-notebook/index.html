@@ -181,7 +181,8 @@ const U = {
   uSide:{value:0}, uSideCol:{value:new THREE.Color()}, uSideY:{value:1.2}, uSideW:{value:0.1},
 };
 function paintMaterial(isRoof){
-  const m = new THREE.MeshPhysicalMaterial({clearcoat:1, clearcoatRoughness:0.06});
+  // 両面描画＝窓越しに見える外板の裏側（室内側）もボディ色にする（実車も室内の鉄板はボディ同色）
+  const m = new THREE.MeshPhysicalMaterial({clearcoat:1, clearcoatRoughness:0.06, side:THREE.DoubleSide});
   m.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, U, {uRoof:{value:isRoof?1:0}});
     sh.vertexShader = sh.vertexShader
@@ -209,8 +210,10 @@ if(uStripe>0.5 && uStripe<1.5) stp=band(abs(vWPos.x-uSO),uSW*0.5);
 if(uStripe>1.5) stp=band(abs(ax-(uSG*0.5+uSW*0.5)),uSW*0.5);
 stp*=1.0-smoothstep(0.6,0.8,abs(wn.x));
 stp*=1.0-isCanvas;
+float ff=gl_FrontFacing?1.0:0.0; // 室内側（裏面）には模様を描かない
+stp*=ff;
 float sdl=0.0;
-if(uSide>0.5) sdl=band(abs(vWPos.y-uSideY),uSideW*0.5)*smoothstep(0.45,0.65,abs(wn.x))*(1.0-isCanvas);
+if(uSide>0.5) sdl=band(abs(vWPos.y-uSideY),uSideW*0.5)*smoothstep(0.45,0.65,abs(wn.x))*(1.0-isCanvas)*ff;
 diffuseColor.rgb=mix(diffuseColor.rgb,uCanvasCol,isCanvas);
 diffuseColor.rgb=mix(diffuseColor.rgb,uStripeCol,stp);
 diffuseColor.rgb=mix(diffuseColor.rgb,uSideCol,sdl);`)
