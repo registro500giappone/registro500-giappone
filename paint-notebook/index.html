@@ -196,10 +196,11 @@ float band(float d,float hw){ float a=fwidth(d)*1.2+1e-4; return 1.0-smoothstep(
       .replace('#include <color_fragment>',`#include <color_fragment>
 vec3 wn=normalize(vWNrm);
 float isCanvas=0.0;
-// 幌＝上面図の実測（先端から1180〜1850mm・幅930mm）を 2.6027単位/m で換算
+// 幌＝上面図（wiring-simulator/ref/blueprint_4views_hi.png）の画素実測＝先端から1111〜1799mm・幅934mm。
+// 前端＝フロントガラス上端(z1.22)の直後・後端＝後席の窓の前端(z-0.62)で、モデルの目印とも一致
 if(uCanvas>0.5 && wn.y>0.5 && vWPos.y>2.9){
-  vec2 q=vec2(abs(vWPos.x), abs(vWPos.z-0.097));
-  vec2 d=q-vec2(1.21-0.08, 0.872-0.08);
+  vec2 q=vec2(abs(vWPos.x), abs(vWPos.z-0.27));
+  vec2 d=q-vec2(1.21-0.08, 0.89-0.08);
   float sd=length(max(d,0.0))+min(max(d.x,d.y),0.0)-0.08;
   isCanvas=1.0-smoothstep(-0.01,0.01,sd);
 }
