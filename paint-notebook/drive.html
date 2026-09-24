@@ -28,9 +28,9 @@ html,body{margin:0;height:100%;background:var(--paper);color:var(--ink);font-fam
 .wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px 16px 24px}
 #frame{position:relative;height:min(78vh,calc((100vw - 32px)*16/9));aspect-ratio:9/16;overflow:hidden;border-radius:12px;background:#0b0a09}
 #frame canvas{display:block;width:100%;height:100%}
-#title{position:absolute;left:0;right:0;top:40%;text-align:center;opacity:0;pointer-events:none;color:#3a352c}
-#title b{display:block;font-size:min(7.2vh,40px);letter-spacing:.12em;font-weight:700}
-#title span{display:block;margin-top:.6em;font-size:min(1.9vh,11px);letter-spacing:.3em;color:#7c7263}
+#title{position:absolute;left:0;right:0;top:36%;text-align:center;opacity:0;pointer-events:none;color:#3a352c}
+#title img{display:block;width:72%;margin:0 auto}
+#title span{display:block;margin-top:1.2em;font-size:min(2.2vh,13px);letter-spacing:.18em;color:#7c7263}
 .bar{display:flex;gap:8px;align-items:center;width:min(100%,420px)}
 .bar button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:5px 14px;cursor:pointer}
 .bar input{flex:1}
@@ -39,15 +39,14 @@ html,body{margin:0;height:100%;background:var(--paper);color:var(--ink);font-fam
 /* 収録用（?rec=1）＝1080×1920 の等倍で描き、周りの飾りを消す */
 body.rec .wrap{padding:0;gap:0}
 body.rec #frame{height:1920px;width:1080px;border-radius:0}
-body.rec #title b{font-size:96px}
-body.rec #title span{font-size:26px}
+body.rec #title span{font-size:34px}
 body.rec .bar{display:none}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div id="frame"><div class="loading" id="loading">3Dモデルを読み込み中…</div>
-    <div id="title"><b>お絵描き手帳</b><span>REGISTRO 500 GIAPPONE</span></div>
+    <div id="title"><img src="/logo_vertical.png" alt="Registro500 Giappone"><span>registro500.com</span></div>
   </div>
   <div class="bar"><button id="play">一時停止</button><input type="range" id="seek" min="0" max="15" step="0.01" value="0"><span id="tt">0.0</span></div>
 </div>
@@ -94,15 +93,15 @@ mirror.rotation.x = -Math.PI/2; mirror.position.set(0,-0.002,FLOOR_Z); scene.add
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t);};
 const lerp=(a,b,t)=>a+(b-a)*t;
-const T_GO=5.6, RAMP=6.0, VMAX=28;             // 発進の時刻・加速にかける秒・最高速（単位/秒≒39km/h）
+const T_GO=5.0, RAMP=6.0, VMAX=28;             // 発進の時刻・加速にかける秒・最高速（単位/秒≒39km/h）
 const vel=t=>{ const x=clamp((t-T_GO)/RAMP,0,1); return VMAX*(1-(1-x)*(1-x)); };
 const acc=t=>{ const x=(t-T_GO)/RAMP; return (x>0&&x<1) ? VMAX*2*(1-x)/RAMP : 0; };
 const ZT=[0]; const DT=1/1000;                  // 位置＝速さを積んだ表
 for(let i=1;i<=(DUR+1)/DT;i++) ZT[i]=ZT[i-1]+vel(i*DT)*DT;
 const posZ=t=>{ const k=clamp(t/DT,0,ZT.length-1), i=Math.floor(k); return ZT[i]+(ZT[Math.min(i+1,ZT.length-1)]-ZT[i])*(k-i); };
-const light=t=> sstep(0.9,2.3,t)*(1-sstep(14.5,15,t));                 // スタジオの照明
+const light=t=> sstep(0.9,2.1,t)*(1-sstep(14.5,15,t));                 // スタジオの照明
 const head=t=> t<0.35?0 : t<0.42?1 : t<0.5?0.15 : sstep(0.5,0.6,t);    // 前照灯＝点く瞬間に一度だけまたたく
-const title=t=> sstep(13.7,14.3,t)*(1-sstep(14.55,14.95,t));
+const title=t=> sstep(13.6,14.1,t)*(1-sstep(14.55,14.95,t));
 
 let car, spots=[], PASS_Z=0;
 const tmp=new THREE.Vector3();
@@ -121,24 +120,34 @@ function setT(t){
   const L=light(t), H=head(t);
   scene.environmentIntensity = 0.03+0.97*L;
   scene.background.copy(DARK).lerp(BG,L); scene.fog.color.copy(scene.background);
-  car.setHeadlights(H); spots.forEach(s=>s.intensity=H*260);
+  car.setHeadlights(H); spots.forEach(s=>s.intensity=H*260*(1-0.85*L)); // 明るいスタジオでは光だまりを控える
   document.getElementById('title').style.opacity = title(t);
 
   const c=car.root.position;
   let pos, look, fov=45;
-  if(t<5){           // A：暗がりの正面 → 照明が入り、斜め前へ回り込む
-    const k=sstep(2,5,t);
+  cam.up.set(0,1,0);
+  if(t<4.5){         // A：暗がりの正面 → 照明が入り、斜め前へ回り込む
+    const k=sstep(2,4.5,t);
     pos=orbit(new THREE.Vector3(0,1.3,0.3), lerp(-4+t*1.5,40,k), lerp(3,9,k), lerp(15.5,17.5,k));
     look=new THREE.Vector3(0,lerp(1.5,1.35,k),0.3);
-  }else if(t<7){     // B：前輪に寄る＝タイヤが回り始める
+  }else if(t<6.3){   // B：前輪に寄る＝タイヤが回り始める
     const w=car.wheels.find(w=>w.front&&w.left)||car.wheels[0];
     const wc=w.pivot.getWorldPosition(tmp).clone();
-    const lag=0.35*sstep(T_GO,7,t);
+    const lag=0.35*sstep(T_GO,6.3,t);
     pos=new THREE.Vector3(wc.x+5.4, 0.85, wc.z+3.3-lag); look=new THREE.Vector3(wc.x, wc.y+0.35, wc.z-0.4-lag); fov=40;
-  }else if(t<11){    // C：横に並んで追いかける
-    const k=sstep(7,11,t);
-    pos=orbit(new THREE.Vector3(c.x,1.2,c.z+0.4), lerp(62,108,k), lerp(7,5,k), 14.5);
-    look=new THREE.Vector3(c.x,1.15,c.z+0.4);
+  }else if(t<8.6){   // C：横に並んで追いかける（前後の端まで全景を収める）
+    const k=sstep(6.3,8.6,t);
+    pos=orbit(new THREE.Vector3(c.x,1.2,c.z+0.2), lerp(72,98,k), lerp(7,5,k), 20);
+    look=new THREE.Vector3(c.x,1.3,c.z+0.2);
+  }else if(t<10.2){  // E：真上から＝ストライプと幌の上面を見せる（画面がゆっくり回る）
+    const k=sstep(8.6,10.2,t);
+    pos=new THREE.Vector3(c.x+0.5, 18, c.z+lerp(-3,1.2,k));
+    look=new THREE.Vector3(c.x, 0, c.z+0.3);
+    const r=lerp(-0.35,0.2,k); cam.up.set(Math.sin(r),0,Math.cos(r));
+  }else if(t<11.6){  // F：後ろから追う＝後ろ姿を右後ろから左後ろへ
+    const k=sstep(10.2,11.6,t);
+    pos=orbit(new THREE.Vector3(c.x,1.2,c.z), lerp(205,160,k), lerp(9,5,k), 17);
+    look=new THREE.Vector3(c.x,1.25,c.z);
   }else{             // D：先回りして正面から迎え、脇をすれ違わせて見送る
     pos=new THREE.Vector3(-4.8, 0.95, PASS_Z);
     look=new THREE.Vector3(c.x, 1.2, c.z+0.3); fov=40;
@@ -168,7 +177,7 @@ car.heads.forEach(p=>{
   s.position.copy(p); s.target.position.set(p.x, 0, p.z+9);
   car.root.add(s); car.root.add(s.target); spots.push(s);
 });
-PASS_Z = posZ(12.35);
+PASS_Z = posZ(12.75);
 document.getElementById('loading').remove();
 
 window.__drive = {setT, ready:true, dur:DUR, wheels:car.wheels.length, heads:car.heads.length};
