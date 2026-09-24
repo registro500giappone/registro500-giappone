@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>お絵描き手帳（試作）｜REGISTRO 500 GIAPPONE</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://www.registro500.com/paint-notebook/">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH');
+</script>
+<meta name="description" content="空冷フィアット500の3Dモデルに色やストライプを塗って、360度から眺めるお絵描き手帳。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="お絵描き手帳">
+<meta property="og:description" content="空冷フィアット500に色とストライプを塗って、360度から眺める。">
+<meta property="og:image" content="https://www.registro500.com/og/site-ja.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon-192.png">
+<style>
+:root{
+  --paper:#f2ece0; --card:#fbf7ee; --ink:#2b2a26; --sub:#7c7263; --line:#ddd3c0;
+  --deep:#4a4437; --accent:#b23b2b; --chip:#fff;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--paper:#1d1b18;--card:#27241f;--ink:#ece6da;--sub:#a99f8e;--line:#3b362e;--deep:#e3d9c6;--chip:#322e27}
+}
+:root[data-theme="dark"]{--paper:#1d1b18;--card:#27241f;--ink:#ece6da;--sub:#a99f8e;--line:#3b362e;--deep:#e3d9c6;--chip:#322e27}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;line-height:1.7;-webkit-text-size-adjust:100%}
+.wrap{max-width:960px;margin:0 auto;padding:12px 16px 64px}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.topbar a{color:var(--sub);text-decoration:none;font-size:13px}
+h1{font-size:21px;margin:0;color:var(--deep);letter-spacing:.04em}
+p.lead{font-size:13px;color:var(--sub);margin:2px 0 10px}
+.layout{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:860px){.layout{grid-template-columns:1.35fr 1fr;align-items:start}.stagebox{position:sticky;top:10px}}
+.stage{position:relative;width:100%;aspect-ratio:4/3;border-radius:14px;overflow:hidden;background:#e9e4d8;border:1px solid var(--line);touch-action:none}
+.stage canvas{display:block;width:100%;height:100%}
+.loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#7c7263;font-size:14px}
+.viewbar{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+button,.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}
+button[aria-pressed="true"]{background:var(--deep);color:var(--paper);border-color:var(--deep)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px 14px}
+details{border-bottom:1px solid var(--line)}
+details:last-child{border-bottom:0}
+summary{cursor:pointer;padding:10px 0;font-weight:600;color:var(--deep);list-style:none;display:flex;justify-content:space-between}
+summary::after{content:"＋";color:var(--sub)}
+details[open] summary::after{content:"－"}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 10px}
+.row>label.cap{width:100%;font-size:12px;color:var(--sub)}
+.sw{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);padding:0;cursor:pointer}
+.sw[aria-pressed="true"]{outline:2px solid var(--deep);outline-offset:2px}
+input[type=color]{width:38px;height:32px;border:1px solid var(--line);border-radius:8px;background:none;padding:1px;cursor:pointer}
+input[type=range]{flex:1;min-width:140px}
+input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--line);border-radius:8px;background:var(--chip);color:var(--ink)}
+.note{font-size:12px;color:var(--sub)}
+.credit{margin-top:18px;font-size:11px;color:var(--sub)}
+.credit a{color:var(--sub)}
+#shot{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:10;padding:16px}
+#shot img{max-width:100%;max-height:78vh;border-radius:10px}
+#shot p{color:#fff;font-size:13px;margin:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar"><a href="/">← REGISTRO 500 GIAPPONE</a><span class="note">試作</span></div>
+  <h1>お絵描き手帳</h1>
+  <p class="lead">500 L に好きな色と模様を塗って、指でぐるりと回して眺めてください。</p>
+
+  <div class="layout">
+    <div class="stagebox">
+      <div class="stage" id="stage"><div class="loading" id="loading">3Dモデルを読み込み中…</div></div>
+      <div class="viewbar">
+        <button data-view="f34">斜め前</button>
+        <button data-view="side">横</button>
+        <button data-view="rear34">斜め後ろ</button>
+        <button data-view="top">上</button>
+        <button id="spin" aria-pressed="false">自動で回す</button>
+        <button id="save" class="primary">画像にする</button>
+        <button id="share">URLをコピー</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <details open>
+        <summary>ボディの色</summary>
+        <div class="row" id="bodySw"></div>
+        <div class="row"><label class="cap">自由に選ぶ</label><input type="color" id="bodyCol"></div>
+        <div class="row" id="finish">
+          <label class="cap">塗装の質感</label>
+          <button data-fin="solid">ソリッド</button><button data-fin="metal">メタリック</button><button data-fin="matte">つや消し</button>
+        </div>
+      </details>
+      <details>
+        <summary>屋根と幌</summary>
+        <div class="row"><label class="cap">屋根の色（ツートン）</label>
+          <button id="tt" aria-pressed="false">屋根だけ別の色にする</button><input type="color" id="roofCol"></div>
+        <div class="row"><label class="cap">幌</label>
+          <button id="cv" aria-pressed="true">幌を付ける</button><span id="canvasSw" style="display:contents"></span></div>
+      </details>
+      <details>
+        <summary>ストライプ</summary>
+        <div class="row" id="stripe"><label class="cap">センターストライプ（ボンネット→屋根→エンジンフード）</label>
+          <button data-st="0">なし</button><button data-st="1">1本</button><button data-st="2">2本</button><input type="color" id="stCol"></div>
+        <div class="row"><label class="cap">太さ</label><input type="range" id="stW" min="0.16" max="1.2" step="0.01"></div>
+        <div class="row"><label class="cap">1本のときの位置（左 ← 中央 → 右）</label><input type="range" id="stO" min="-1.1" max="1.1" step="0.01"><button id="stOc">中央に戻す</button></div>
+        <div class="row"><label class="cap">2本の間隔</label><input type="range" id="stG" min="0.03" max="0.5" step="0.01"></div>
+        <div class="row"><label class="cap">サイドライン（側面）</label>
+          <button id="sd" aria-pressed="false">引く</button><input type="color" id="sdCol"></div>
+        <div class="row"><label class="cap">線の高さ</label><input type="range" id="sdY" min="0.6" max="2.2" step="0.01"></div>
+        <div class="row"><label class="cap">線の太さ</label><input type="range" id="sdW" min="0.03" max="0.4" step="0.01"></div>
+      </details>
+      <details>
+        <summary>ゼッケン</summary>
+        <div class="row"><label class="cap">ドアに丸いゼッケンを貼る（空欄で外す）</label>
+          <input type="text" id="num" maxlength="3" inputmode="numeric" placeholder="例 22"></div>
+      </details>
+      <details>
+        <summary>ホイールとバンパー</summary>
+        <div class="row" id="rim"><label class="cap">ホイール</label>
+          <button data-rim="silver">銀</button><button data-rim="body">ボディ同色</button><button data-rim="white">白</button><button data-rim="black">黒</button></div>
+        <div class="row" id="bmp"><label class="cap">バンパー</label>
+          <button data-bmp="chrome">メッキ</button><button data-bmp="body">ボディ同色</button><button data-bmp="black">黒</button></div>
+      </details>
+      <p class="note" style="margin:10px 0">色や模様はURLに残ります。「URLをコピー」で同じ仕上がりを人に見せられます。</p>
+    </div>
+  </div>
+
+  <p class="credit">3Dモデル：<a href="https://sketchfab.com/3d-models/fiat-500-1970-model-213cd126fcd744809fb7996eb88366f5" rel="noopener" target="_blank">"Fiat 500 - 1970 Model"</a> by <a href="https://sketchfab.com/parsafarvadian" rel="noopener" target="_blank">Parsa Farvadian</a>, <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener" target="_blank">CC BY 4.0</a>（データを軽くし、塗装と模様の表示を加えています）</p>
+</div>
+
+<div id="shot"><img alt="仕上がりの画像"><p>画像を長押しで保存できます（パソコンは右クリック）</p><button id="shotClose">閉じる</button></div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {DecalGeometry} from 'three/addons/geometries/DecalGeometry.js';
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
+
+const BODY_SWATCHES = ['#b8261f','#f1ede2','#9fc6d6','#e8c23a','#2f6b45','#1f2e57','#1a1a1a','#d9c7a3','#e98a3a','#8c8f93'];
+const CANVAS_SWATCHES = ['#1c1c1c','#d6c8a8','#7a2020','#2a3448'];
+const DEF = {bc:'#b8261f',fin:'solid',tt:0,rc:'#f1ede2',cv:1,cc:'#1c1c1c',st:0,sc:'#f1ede2',sw:0.44,sg:0.12,so:0,sd:0,sdc:'#f1ede2',sdy:1.25,sdw:0.1,nb:'',rim:'silver',bmp:'chrome'};
+const S = {...DEF};
+try{ const h=new URLSearchParams(location.hash.slice(1)); for(const k in DEF){ if(h.has(k)){ const v=h.get(k); S[k]= typeof DEF[k]==='number' ? (+v||0) : v; } } }catch(e){}
+
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.toneMapping = THREE.NeutralToneMapping;
+stage.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xe9e4d8);
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(),0.04).texture;
+const cam = new THREE.PerspectiveCamera(30,4/3,0.1,200);
+const controls = new OrbitControls(cam, renderer.domElement);
+controls.target.set(0,1.45,0.15);
+controls.enableDamping = true; controls.minDistance = 9; controls.maxDistance = 32;
+controls.maxPolarAngle = Math.PI*0.49; controls.enablePan = false; controls.autoRotateSpeed = 1.6;
+
+// 車の真下の影（重い影計算の代わりに、ぼかした楕円を敷く）
+{
+  const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d');
+  const gr=g.createRadialGradient(128,128,10,128,128,128); gr.addColorStop(0,'rgba(0,0,0,.55)'); gr.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=gr; g.fillRect(0,0,256,256);
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(4.6,9.4), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthWrite:false}));
+  m.rotation.x=-Math.PI/2; m.position.set(0,0.005,0.15); scene.add(m);
+}
+
+const U = {
+  uCanvas:{value:1}, uCanvasCol:{value:new THREE.Color()},
+  uStripe:{value:0}, uStripeCol:{value:new THREE.Color()}, uSW:{value:0.2}, uSG:{value:0.1}, uSO:{value:0},
+  uSide:{value:0}, uSideCol:{value:new THREE.Color()}, uSideY:{value:1.2}, uSideW:{value:0.1},
+};
+function paintMaterial(isRoof){
+  const m = new THREE.MeshPhysicalMaterial({clearcoat:1, clearcoatRoughness:0.06});
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, U, {uRoof:{value:isRoof?1:0}});
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>','#include <common>\nvarying vec3 vWPos; varying vec3 vWNrm;')
+      .replace('#include <begin_vertex>','#include <begin_vertex>\nvWPos=(modelMatrix*vec4(transformed,1.0)).xyz; vWNrm=normalize(mat3(modelMatrix)*objectNormal);');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>',`#include <common>
+varying vec3 vWPos; varying vec3 vWNrm;
+uniform float uRoof,uCanvas,uStripe,uSW,uSG,uSO,uSide,uSideY,uSideW;
+uniform vec3 uCanvasCol,uStripeCol,uSideCol;
+float band(float d,float hw){ float a=fwidth(d)*1.2+1e-4; return 1.0-smoothstep(hw-a,hw+a,d); }`)
+      .replace('#include <color_fragment>',`#include <color_fragment>
+vec3 wn=normalize(vWNrm);
+float isCanvas=0.0;
+// 幌＝上面図の実測（先端から1180〜1850mm・幅930mm）を 2.6027単位/m で換算
+if(uCanvas>0.5 && wn.y>0.5 && vWPos.y>2.9){
+  vec2 q=vec2(abs(vWPos.x), abs(vWPos.z-0.097));
+  vec2 d=q-vec2(1.21-0.08, 0.872-0.08);
+  float sd=length(max(d,0.0))+min(max(d.x,d.y),0.0)-0.08;
+  isCanvas=1.0-smoothstep(-0.01,0.01,sd);
+}
+float stp=0.0; float ax=abs(vWPos.x);
+if(uStripe>0.5 && uStripe<1.5) stp=band(abs(vWPos.x-uSO),uSW*0.5);
+if(uStripe>1.5) stp=band(abs(ax-(uSG*0.5+uSW*0.5)),uSW*0.5);
+stp*=1.0-smoothstep(0.6,0.8,abs(wn.x));
+stp*=1.0-isCanvas;
+float sdl=0.0;
+if(uSide>0.5) sdl=band(abs(vWPos.y-uSideY),uSideW*0.5)*smoothstep(0.45,0.65,abs(wn.x))*(1.0-isCanvas);
+diffuseColor.rgb=mix(diffuseColor.rgb,uCanvasCol,isCanvas);
+diffuseColor.rgb=mix(diffuseColor.rgb,uStripeCol,stp);
+diffuseColor.rgb=mix(diffuseColor.rgb,uSideCol,sdl);`)
+      .replace('#include <metalnessmap_fragment>',`#include <metalnessmap_fragment>
+roughnessFactor=mix(roughnessFactor,0.92,isCanvas); metalnessFactor=mix(metalnessFactor,0.0,isCanvas);`)
+      .replace('#include <lights_physical_fragment>',`#include <lights_physical_fragment>
+#ifdef USE_CLEARCOAT
+material.clearcoat*=1.0-isCanvas;
+#endif`);
+  };
+  m.customProgramCacheKey = () => 'paint500';
+  return m;
+}
+const bodyMat = paintMaterial(false), roofMat = paintMaterial(true);
+const rimMat = new THREE.MeshPhysicalMaterial({metalness:0.8,roughness:0.25});
+const bumperMat = new THREE.MeshPhysicalMaterial({metalness:1,roughness:0.12});
+const decalMat = new THREE.MeshPhysicalMaterial({transparent:true,depthTest:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,clearcoat:1,clearcoatRoughness:0.06,roughness:0.4});
+
+let doorsMesh=null, decals=[];
+const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+loader.load('fiat500.glb', g => {
+  g.scene.traverse(o => {
+    if(!o.isMesh) return;
+    const mn = o.material.name, pn = (o.parent && o.parent.name) || '';
+    if(mn==='Body_Color'){ o.material = /^Roof/.test(o.name)||/^Roof/.test(pn) ? roofMat : bodyMat; }
+    else if(mn==='Rims') o.material = rimMat;
+    else if(mn==='Chrome' && /Front_Bumper|Rear_Bumper/.test(o.name) && !/Screws/.test(o.name)) o.material = bumperMat;
+    else if(mn==='License_Plate_Blue') o.material = o.material.clone(), o.material.color.set(0xf2f2f2);
+    if(/^Doors/.test(o.name)) doorsMesh = o;
+  });
+  scene.add(g.scene);
+  scene.updateMatrixWorld(true);
+  document.getElementById('loading').remove();
+  apply(); setView('f34');
+}, undefined, () => { document.getElementById('loading').textContent='3Dモデルを読み込めませんでした。'; });
+
+function numberTexture(txt){
+  const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d');
+  g.fillStyle='#fff'; g.beginPath(); g.arc(128,128,120,0,Math.PI*2); g.fill();
+  g.fillStyle='#111'; g.font='700 '+(txt.length>2?110:140)+'px "Helvetica Neue",Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+  g.fillText(txt,128,138);
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return t;
+}
+function buildDecals(){
+  decals.forEach(d=>{scene.remove(d); d.geometry.dispose();}); decals=[];
+  if(!doorsMesh || !S.nb) return;
+  if(decalMat.map) decalMat.map.dispose();
+  decalMat.map = numberTexture(S.nb); decalMat.needsUpdate = true;
+  const box=new THREE.Box3().setFromObject(doorsMesh), c=box.getCenter(new THREE.Vector3());
+  const ray=new THREE.Raycaster();
+  for(const sgn of [1,-1]){
+    // 側面図の実測＝ドアの鉄板部分（窓の下端〜ドアの下端）の中央＝地上約600mm
+    ray.set(new THREE.Vector3(sgn*6, 1.57, c.z), new THREE.Vector3(-sgn,0,0));
+    const hit=ray.intersectObject(doorsMesh,false)[0]; if(!hit) continue;
+    const n=new THREE.Vector3(sgn,0,0);
+    const ori=new THREE.Euler(0, sgn*Math.PI/2, 0);
+    const geo=new DecalGeometry(doorsMesh, hit.point, ori, new THREE.Vector3(0.95,0.95,0.8));
+    const m=new THREE.Mesh(geo, decalMat); decals.push(m); scene.add(m);
+  }
+}
+
+function setFinish(m){
+  if(S.fin==='metal'){ m.metalness=0.55; m.roughness=0.32; m.clearcoat=1; }
+  else if(S.fin==='matte'){ m.metalness=0; m.roughness=0.75; m.clearcoat=0; }
+  else { m.metalness=0; m.roughness=0.28; m.clearcoat=1; }
+  m.needsUpdate=true;
+}
+function apply(){
+  bodyMat.color.set(S.bc); roofMat.color.set(S.tt?S.rc:S.bc);
+  setFinish(bodyMat); setFinish(roofMat);
+  U.uCanvas.value=S.cv; U.uCanvasCol.value.set(S.cc);
+  U.uStripe.value=S.st; U.uStripeCol.value.set(S.sc); U.uSW.value=S.sw; U.uSG.value=S.sg; U.uSO.value=-S.so; // 車の右＝-x（前が+z・上が+y）
+  U.uSide.value=S.sd; U.uSideCol.value.set(S.sdc); U.uSideY.value=S.sdy; U.uSideW.value=S.sdw;
+  if(S.rim==='body'){ rimMat.color.set(S.bc); rimMat.metalness=0; rimMat.roughness=0.3; }
+  else if(S.rim==='white'){ rimMat.color.set('#eeeeea'); rimMat.metalness=0; rimMat.roughness=0.3; }
+  else if(S.rim==='black'){ rimMat.color.set('#1b1b1b'); rimMat.metalness=0; rimMat.roughness=0.4; }
+  else { rimMat.color.set('#d8d8d8'); rimMat.metalness=0.85; rimMat.roughness=0.22; }
+  if(S.bmp==='body'){ bumperMat.color.set(S.bc); bumperMat.metalness=0; bumperMat.roughness=0.3; }
+  else if(S.bmp==='black'){ bumperMat.color.set('#1b1b1b'); bumperMat.metalness=0; bumperMat.roughness=0.5; }
+  else { bumperMat.color.set('#e6e6e6'); bumperMat.metalness=1; bumperMat.roughness=0.1; }
+  if(decalMat.userData.nb!==S.nb){ decalMat.userData.nb=S.nb; buildDecals(); }
+  syncUI(); writeHash();
+}
+function writeHash(){
+  const h=new URLSearchParams();
+  for(const k in DEF){ if(S[k]!==DEF[k]) h.set(k,S[k]); }
+  history.replaceState(null,'','#'+h.toString());
+}
+
+// ---- UI ----
+const $=id=>document.getElementById(id);
+function swatches(el,list,key){ list.forEach(c=>{ const b=document.createElement('button'); b.className='sw'; b.style.background=c; b.dataset.c=c; b.setAttribute('aria-label',c); b.onclick=()=>{S[key]=c; apply();}; el.appendChild(b); }); }
+swatches($('bodySw'),BODY_SWATCHES,'bc'); swatches($('canvasSw'),CANVAS_SWATCHES,'cc');
+const bindColor=(id,key)=>$(id).addEventListener('input',e=>{S[key]=e.target.value; apply();});
+bindColor('bodyCol','bc'); bindColor('roofCol','rc'); bindColor('stCol','sc'); bindColor('sdCol','sdc');
+const bindRange=(id,key)=>$(id).addEventListener('input',e=>{S[key]=+e.target.value; apply();});
+bindRange('stW','sw'); bindRange('stG','sg'); bindRange('stO','so');
+$('stOc').onclick=()=>{S.so=0; apply();}; bindRange('sdY','sdy'); bindRange('sdW','sdw');
+const toggle=(id,key)=>$(id).onclick=()=>{S[key]=S[key]?0:1; apply();};
+toggle('tt','tt'); toggle('cv','cv'); toggle('sd','sd');
+document.querySelectorAll('[data-fin]').forEach(b=>b.onclick=()=>{S.fin=b.dataset.fin; apply();});
+document.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{S.st=+b.dataset.st; apply();});
+document.querySelectorAll('[data-rim]').forEach(b=>b.onclick=()=>{S.rim=b.dataset.rim; apply();});
+document.querySelectorAll('[data-bmp]').forEach(b=>b.onclick=()=>{S.bmp=b.dataset.bmp; apply();});
+$('num').addEventListener('input',e=>{S.nb=e.target.value.replace(/[^0-9A-Za-z]/g,'').slice(0,3); apply();});
+function syncUI(){
+  document.querySelectorAll('#bodySw .sw').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===S.bc));
+  document.querySelectorAll('#canvasSw .sw').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===S.cc));
+  $('bodyCol').value=S.bc; $('roofCol').value=S.rc; $('stCol').value=S.sc; $('sdCol').value=S.sdc;
+  $('stW').value=S.sw; $('stG').value=S.sg; $('stO').value=S.so; $('sdY').value=S.sdy; $('sdW').value=S.sdw;
+  $('tt').setAttribute('aria-pressed',!!S.tt); $('cv').setAttribute('aria-pressed',!!S.cv); $('sd').setAttribute('aria-pressed',!!S.sd);
+  document.querySelectorAll('[data-fin]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.fin===S.fin));
+  document.querySelectorAll('[data-st]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.st===S.st));
+  document.querySelectorAll('[data-rim]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.rim===S.rim));
+  document.querySelectorAll('[data-bmp]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.bmp===S.bmp));
+  if(document.activeElement!==$('num')) $('num').value=S.nb;
+}
+
+const VIEWS={f34:[35,14,14.5],side:[90,4,15],rear34:[215,16,14.5],top:[20,70,17]};
+function setView(k){
+  const [az,el,d]=VIEWS[k], a=az*Math.PI/180, e=el*Math.PI/180, t=controls.target;
+  cam.position.set(t.x+d*Math.cos(e)*Math.sin(a), t.y+d*Math.sin(e), t.z+d*Math.cos(e)*Math.cos(a));
+  controls.update();
+}
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.dataset.view));
+$('spin').onclick=()=>{controls.autoRotate=!controls.autoRotate; $('spin').setAttribute('aria-pressed',controls.autoRotate);};
+$('save').onclick=()=>{ renderer.render(scene,cam); const img=$('shot').querySelector('img'); img.src=renderer.domElement.toDataURL('image/png'); $('shot').style.display='flex'; };
+$('shotClose').onclick=()=>{$('shot').style.display='none';};
+$('share').onclick=async()=>{ try{ await navigator.clipboard.writeText(location.href); $('share').textContent='コピーしました'; }catch(e){ $('share').textContent='コピーできませんでした'; } setTimeout(()=>$('share').textContent='URLをコピー',1800); };
+
+function resize(){ const w=stage.clientWidth, h=stage.clientHeight; renderer.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix(); }
+new ResizeObserver(resize).observe(stage); resize();
+renderer.setAnimationLoop(()=>{ controls.update(); renderer.render(scene,cam); });
+window.__paint={S,apply,setView};
+</script>
+</body>
+</html>
