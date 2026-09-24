@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>走る500（試作）｜REGISTRO 500 GIAPPONE</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://www.registro500.com/paint-notebook/drive">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH');
+</script>
+<meta name="description" content="お絵描き手帳で塗った空冷フィアット500が走り出す15秒の動画。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="走る500">
+<meta property="og:description" content="お絵描き手帳で塗った500が走り出す15秒。">
+<meta property="og:image" content="https://www.registro500.com/og/site-ja.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon-192.png">
+<style>
+:root{--paper:#1d1b18;--ink:#ece6da;--sub:#a99f8e;--line:#3b362e;--chip:#322e27}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif}
+.wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px 16px 24px}
+#frame{position:relative;height:min(78vh,calc((100vw - 32px)*16/9));aspect-ratio:9/16;overflow:hidden;border-radius:12px;background:#0b0a09}
+#frame canvas{display:block;width:100%;height:100%}
+#title{position:absolute;left:0;right:0;top:40%;text-align:center;opacity:0;pointer-events:none;color:#3a352c}
+#title b{display:block;font-size:min(7.2vh,40px);letter-spacing:.12em;font-weight:700}
+#title span{display:block;margin-top:.6em;font-size:min(1.9vh,11px);letter-spacing:.3em;color:#7c7263}
+.bar{display:flex;gap:8px;align-items:center;width:min(100%,420px)}
+.bar button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:5px 14px;cursor:pointer}
+.bar input{flex:1}
+.bar span{font-size:12px;color:var(--sub);width:3.2em;text-align:right}
+.loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#a99f8e;font-size:14px}
+/* 収録用（?rec=1）＝1080×1920 の等倍で描き、周りの飾りを消す */
+body.rec .wrap{padding:0;gap:0}
+body.rec #frame{height:1920px;width:1080px;border-radius:0}
+body.rec #title b{font-size:96px}
+body.rec #title span{font-size:26px}
+body.rec .bar{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="frame"><div class="loading" id="loading">3Dモデルを読み込み中…</div>
+    <div id="title"><b>お絵描き手帳</b><span>REGISTRO 500 GIAPPONE</span></div>
+  </div>
+  <div class="bar"><button id="play">一時停止</button><input type="range" id="seek" min="0" max="15" step="0.01" value="0"><span id="tt">0.0</span></div>
+</div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {Reflector} from 'three/addons/objects/Reflector.js';
+import {readHash, loadCar} from './car.js?v=1';
+
+const REC = new URLSearchParams(location.search).has('rec');
+if(REC) document.body.classList.add('rec');
+const DUR = 15;
+const S = readHash();
+const frame = document.getElementById('frame');
+
+const renderer = new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(REC ? 1 : Math.min(devicePixelRatio,2));
+renderer.toneMapping = THREE.NeutralToneMapping;
+frame.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(),0.04).texture;
+const cam = new THREE.PerspectiveCamera(45,9/16,0.1,400);
+
+// ---- 舞台＝継ぎ目のない撮影スタジオ（床は霧で背景へ溶ける＝壁との境目が見えない） ----
+const BG = new THREE.Color('#e7e0d1'), DARK = new THREE.Color('#0b0a09');
+scene.background = BG.clone();
+scene.fog = new THREE.Fog(BG.clone(), 30, 110);
+const FLOOR_LEN = 900, FLOOR_Z = 380;
+const mirror = new Reflector(new THREE.PlaneGeometry(240, FLOOR_LEN), {clipBias:0.003, textureWidth:1024, textureHeight:1024, color:0x8a8a8a});
+mirror.rotation.x = -Math.PI/2; mirror.position.set(0,-0.002,FLOOR_Z); scene.add(mirror);
+{
+  // 床の目地＝進行方向に直角の細い線を等間隔に（速さを見せる唯一の手がかり）
+  const c=document.createElement('canvas'); c.width=64; c.height=512; const g=c.getContext('2d');
+  g.fillStyle='#ffffff'; g.fillRect(0,0,64,512); g.fillStyle='#d3cdc2'; g.fillRect(0,0,64,6);
+  const tex=new THREE.CanvasTexture(c); tex.colorSpace=THREE.SRGBColorSpace;
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(1, FLOOR_LEN/4); tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
+  var floorMat=new THREE.MeshStandardMaterial({color:'#efe8da',map:tex,roughness:0.9,metalness:0,transparent:true,opacity:0.93});
+  const f=new THREE.Mesh(new THREE.PlaneGeometry(240,FLOOR_LEN),floorMat);
+  f.rotation.x=-Math.PI/2; f.position.set(0,0,FLOOR_Z); scene.add(f);
+}
+
+// ---- 時間の流れ（t 秒を渡すと、その瞬間の絵が1つに決まる＝収録で1コマずつ撮れる） ----
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t);};
+const lerp=(a,b,t)=>a+(b-a)*t;
+const T_GO=5.6, RAMP=6.0, VMAX=28;             // 発進の時刻・加速にかける秒・最高速（単位/秒≒39km/h）
+const vel=t=>{ const x=clamp((t-T_GO)/RAMP,0,1); return VMAX*(1-(1-x)*(1-x)); };
+const acc=t=>{ const x=(t-T_GO)/RAMP; return (x>0&&x<1) ? VMAX*2*(1-x)/RAMP : 0; };
+const ZT=[0]; const DT=1/1000;                  // 位置＝速さを積んだ表
+for(let i=1;i<=(DUR+1)/DT;i++) ZT[i]=ZT[i-1]+vel(i*DT)*DT;
+const posZ=t=>{ const k=clamp(t/DT,0,ZT.length-1), i=Math.floor(k); return ZT[i]+(ZT[Math.min(i+1,ZT.length-1)]-ZT[i])*(k-i); };
+const light=t=> sstep(0.9,2.3,t)*(1-sstep(14.5,15,t));                 // スタジオの照明
+const head=t=> t<0.35?0 : t<0.42?1 : t<0.5?0.15 : sstep(0.5,0.6,t);    // 前照灯＝点く瞬間に一度だけまたたく
+const title=t=> sstep(13.7,14.3,t)*(1-sstep(14.55,14.95,t));
+
+let car, spots=[], PASS_Z=0;
+const tmp=new THREE.Vector3();
+function orbit(target, azDeg, elDeg, d){
+  const a=azDeg*Math.PI/180, e=elDeg*Math.PI/180;
+  return new THREE.Vector3(target.x+d*Math.cos(e)*Math.sin(a), target.y+d*Math.sin(e), target.z+d*Math.cos(e)*Math.cos(a));
+}
+function setT(t){
+  const z=posZ(t), v=vel(t);
+  // 車＝前へ進む・発進で後ろが沈む・路面の細かい揺れ
+  car.root.position.set(0, 0.006*(Math.sin(t*43)+0.6*Math.sin(t*71+1))*clamp(v/8,0,1), z);
+  car.root.rotation.x = -0.0016*acc(t)*sstep(T_GO,T_GO+0.25,t);
+  car.wheels.forEach(w=>{ w.pivot.rotation.x = z/w.radius; });
+  car.update();
+
+  const L=light(t), H=head(t);
+  scene.environmentIntensity = 0.03+0.97*L;
+  scene.background.copy(DARK).lerp(BG,L); scene.fog.color.copy(scene.background);
+  car.setHeadlights(H); spots.forEach(s=>s.intensity=H*260);
+  document.getElementById('title').style.opacity = title(t);
+
+  const c=car.root.position;
+  let pos, look, fov=45;
+  if(t<5){           // A：暗がりの正面 → 照明が入り、斜め前へ回り込む
+    const k=sstep(2,5,t);
+    pos=orbit(new THREE.Vector3(0,1.3,0.3), lerp(-4+t*1.5,40,k), lerp(3,9,k), lerp(15.5,17.5,k));
+    look=new THREE.Vector3(0,lerp(1.5,1.35,k),0.3);
+  }else if(t<7){     // B：前輪に寄る＝タイヤが回り始める
+    const w=car.wheels.find(w=>w.front&&w.left)||car.wheels[0];
+    const wc=w.pivot.getWorldPosition(tmp).clone();
+    const lag=0.35*sstep(T_GO,7,t);
+    pos=new THREE.Vector3(wc.x+5.4, 0.85, wc.z+3.3-lag); look=new THREE.Vector3(wc.x, wc.y+0.35, wc.z-0.4-lag); fov=40;
+  }else if(t<11){    // C：横に並んで追いかける
+    const k=sstep(7,11,t);
+    pos=orbit(new THREE.Vector3(c.x,1.2,c.z+0.4), lerp(62,108,k), lerp(7,5,k), 14.5);
+    look=new THREE.Vector3(c.x,1.15,c.z+0.4);
+  }else{             // D：先回りして正面から迎え、脇をすれ違わせて見送る
+    pos=new THREE.Vector3(-4.8, 0.95, PASS_Z);
+    look=new THREE.Vector3(c.x, 1.2, c.z+0.3); fov=40;
+  }
+  cam.position.copy(pos); cam.fov=fov; cam.updateProjectionMatrix(); cam.lookAt(look);
+  renderer.render(scene,cam);
+}
+
+function resize(){
+  const w=frame.clientWidth, h=frame.clientHeight;
+  renderer.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(frame); resize();
+
+car = await loadCar('fiat500.glb');
+scene.add(car.root); car.apply(S);
+{ // 車の真下の影（車に付いて動く）
+  const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d');
+  const gr=g.createRadialGradient(128,128,10,128,128,128); gr.addColorStop(0,'rgba(0,0,0,.6)'); gr.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=gr; g.fillRect(0,0,256,256);
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(4.4,9.2), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthWrite:false}));
+  m.rotation.x=-Math.PI/2; m.position.set(0,0.006,0.15); car.root.add(m);
+}
+// 前照灯の光だまり（暗がりで床を照らす）
+car.heads.forEach(p=>{
+  const s=new THREE.SpotLight(0xfff0d0,0,0,0.42,0.7,2);
+  s.position.copy(p); s.target.position.set(p.x, 0, p.z+9);
+  car.root.add(s); car.root.add(s.target); spots.push(s);
+});
+PASS_Z = posZ(12.35);
+document.getElementById('loading').remove();
+
+window.__drive = {setT, ready:true, dur:DUR, wheels:car.wheels.length, heads:car.heads.length};
+if(!REC){
+  let t0=performance.now(), playing=true, cur=0;
+  const seek=document.getElementById('seek'), tt=document.getElementById('tt'), play=document.getElementById('play');
+  play.onclick=()=>{ playing=!playing; play.textContent=playing?'一時停止':'再生'; t0=performance.now()-cur*1000; };
+  seek.oninput=()=>{ cur=+seek.value; t0=performance.now()-cur*1000; if(!playing) setT(cur); };
+  renderer.setAnimationLoop(()=>{
+    if(!playing) return;
+    cur=((performance.now()-t0)/1000)%DUR; seek.value=cur; tt.textContent=cur.toFixed(1); setT(cur);
+  });
+}else setT(0);
+</script>
+</body>
+</html>
