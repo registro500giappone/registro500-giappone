@@ -226,6 +226,8 @@ material.clearcoat*=1.0-isCanvas;
 }
 const bodyMat = paintMaterial(false), roofMat = paintMaterial(true);
 const rimMat = new THREE.MeshPhysicalMaterial({metalness:0.8,roughness:0.25});
+// 元データのガラスは濃いグレー・不透明度84%で暗い＝薄い色で透かし、映り込みだけ残す
+const glassMat = new THREE.MeshPhysicalMaterial({color:0xe4ecef,transparent:true,opacity:0.32,roughness:0.02,metalness:0,depthWrite:false,envMapIntensity:2.2,clearcoat:1,clearcoatRoughness:0.02});
 const bumperMat = new THREE.MeshPhysicalMaterial({metalness:1,roughness:0.12});
 const decalMat = new THREE.MeshPhysicalMaterial({transparent:true,depthTest:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,clearcoat:1,clearcoatRoughness:0.06,roughness:0.4});
 
@@ -236,6 +238,7 @@ loader.load('fiat500.glb', g => {
     if(!o.isMesh) return;
     const mn = o.material.name, pn = (o.parent && o.parent.name) || '';
     if(mn==='Body_Color'){ o.material = /^Roof/.test(o.name)||/^Roof/.test(pn) ? roofMat : bodyMat; }
+    else if(mn==='Glass') o.material = glassMat;
     else if(mn==='Rims') o.material = rimMat;
     else if(mn==='Chrome' && /Front_Bumper|Rear_Bumper/.test(o.name) && !/Screws/.test(o.name)) o.material = bumperMat;
     else if(mn==='License_Plate_Blue') o.material = o.material.clone(), o.material.color.set(0xf2f2f2);
