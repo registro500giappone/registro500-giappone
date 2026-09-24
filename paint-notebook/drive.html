@@ -120,7 +120,10 @@ function setT(t){
   car.root.rotation.x = -0.0016*acc(t)*sstep(T_GO,T_GO+0.25,t);
   car.wheels.forEach(w=>{ w.pivot.rotation.x = z/w.radius; });
   car.update();
-  shadow.position.set(car.root.position.x, 0.02, car.root.position.z+0.15); // 影は車体の傾き・揺れに付いていかない
+  // 影＝止まっている間は床の上に安定して出す。走り出したら路面の揺れと一緒に床面を上下させ、
+  // ところどころ床に隠れて明滅させる（走行感の演出＝第3版で偶然出ていた明滅を意図して再現）
+  shadow.position.set(car.root.position.x, v>0.3 ? 0.006+car.root.position.y : 0.02, car.root.position.z+0.15);
+  shadow.rotation.x = -Math.PI/2 + (v>0.3 ? car.root.rotation.x : 0); // 車体の傾きも伝える＝影の一部が床に潜る
 
   const L=light(t), H=head(t);
   scene.environmentIntensity = 0.03+0.97*L;
