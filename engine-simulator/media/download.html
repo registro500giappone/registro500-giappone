@@ -59,7 +59,33 @@
       border-radius: 10px;
       background: #000;
       display: block;
+      margin: 0 auto 14px;
+    }
+    button {
+      display: block;
+      width: 100%;
+      max-width: 280px;
       margin: 0 auto;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 16px;
+      font-family: inherit;
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    button:disabled {
+      opacity: 0.6;
+    }
+    .status {
+      font-size: 12px;
+      color: #999;
+      margin-top: 8px;
+      min-height: 16px;
     }
   </style>
 </head>
@@ -67,18 +93,52 @@
   <div class="container">
     <h1>🎬 SNS用動画</h1>
     <div class="instructions">
-      動画を<strong>長押し</strong>して「ビデオを保存」を選ぶと、カメラロール（写真）に保存されます。
+      「共有して保存」を押すと共有シートが開きます。<strong>「ビデオを保存」</strong>を選ぶとカメラロールに保存されます。
     </div>
 
     <div class="video-item">
       <div class="video-title">エンジン編リール</div>
       <video controls playsinline preload="metadata" src="reel-engine-9x16.mp4"></video>
+      <button onclick="shareVideo('reel-engine-9x16.mp4', this)">共有して保存</button>
+      <div class="status" id="status-0"></div>
     </div>
 
     <div class="video-item">
       <div class="video-title">駆動系編リール</div>
       <video controls playsinline preload="metadata" src="reel-gearbox-9x16.mp4"></video>
+      <button onclick="shareVideo('reel-gearbox-9x16.mp4', this)">共有して保存</button>
+      <div class="status" id="status-1"></div>
     </div>
   </div>
+
+  <script>
+    let statusIndex = 0;
+    async function shareVideo(url, btn) {
+      const statusEl = btn.nextElementSibling;
+      btn.disabled = true;
+      statusEl.textContent = '読み込み中...';
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const filename = url.split('/').pop();
+        const file = new File([blob], filename, { type: 'video/mp4' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file] });
+          statusEl.textContent = '';
+        } else {
+          statusEl.textContent = 'この端末は共有に未対応です。動画を長押しして保存してください。';
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          statusEl.textContent = 'エラー: ' + err.message;
+        } else {
+          statusEl.textContent = '';
+        }
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
 </body>
 </html>
