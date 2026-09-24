@@ -3,6 +3,7 @@ name: site-checker
 description: Playwrightブラウザ自動操作でサイト表示確認・スクリーンショット取得専門エージェント。本番サイト・126サイト・パーツページの表示確認に使用。
 model: haiku
 memory: project
+omitClaudeMd: true
 tools:
   - mcp__playwright__browser_navigate
   - mcp__playwright__browser_snapshot
