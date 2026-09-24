@@ -122,6 +122,11 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
           <input type="text" id="num" maxlength="3" inputmode="numeric" placeholder="例 22"></div>
       </details>
       <details>
+        <summary>シート</summary>
+        <div class="row" id="seatSw"></div>
+        <div class="row"><label class="cap">自由に選ぶ</label><input type="color" id="seatCol"></div>
+      </details>
+      <details>
         <summary>ホイールとバンパー</summary>
         <div class="row" id="rim"><label class="cap">ホイール</label>
           <button data-rim="silver">銀</button><button data-rim="body">ボディ同色</button><button data-rim="white">白</button><button data-rim="black">黒</button></div>
@@ -148,7 +153,8 @@ import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 
 const BODY_SWATCHES = ['#b8261f','#f1ede2','#9fc6d6','#e8c23a','#2f6b45','#1f2e57','#1a1a1a','#d9c7a3','#e98a3a','#8c8f93'];
 const CANVAS_SWATCHES = ['#1c1c1c','#d6c8a8','#7a2020','#2a3448'];
-const DEF = {bc:'#b8261f',fin:'solid',tt:0,rc:'#f1ede2',cv:1,cc:'#1c1c1c',st:0,sc:'#f1ede2',sw:0.44,sg:0.12,so:0,sd:0,sdc:'#f1ede2',sdy:1.25,sdw:0.1,nb:'',rim:'silver',bmp:'chrome'};
+const SEAT_SWATCHES = ['#2b2624','#8a2a22','#d8c7a4','#6b4a33','#26324f','#e9e3d6'];
+const DEF = {bc:'#b8261f',fin:'solid',tt:0,rc:'#f1ede2',cv:1,cc:'#1c1c1c',st:0,sc:'#f1ede2',sw:0.44,sg:0.12,so:0,sd:0,sdc:'#f1ede2',sdy:1.25,sdw:0.1,nb:'',rim:'silver',bmp:'chrome',seat:'#2b2624'};
 const S = {...DEF};
 try{ const h=new URLSearchParams(location.hash.slice(1)); for(const k in DEF){ if(h.has(k)){ const v=h.get(k); S[k]= typeof DEF[k]==='number' ? (+v||0) : v; } } }catch(e){}
 
@@ -229,6 +235,7 @@ material.clearcoat*=1.0-isCanvas;
 }
 const bodyMat = paintMaterial(false), roofMat = paintMaterial(true);
 const rimMat = new THREE.MeshPhysicalMaterial({metalness:0.8,roughness:0.25});
+const seatMat = new THREE.MeshPhysicalMaterial({roughness:0.55,metalness:0,clearcoat:0.3,clearcoatRoughness:0.4});
 // 元データのガラスは濃いグレー・不透明度84%で暗い＝薄い色で透かし、映り込みだけ残す
 const glassMat = new THREE.MeshPhysicalMaterial({color:0xe4ecef,transparent:true,opacity:0.32,roughness:0.02,metalness:0,depthWrite:false,envMapIntensity:2.2,clearcoat:1,clearcoatRoughness:0.02});
 const bumperMat = new THREE.MeshPhysicalMaterial({metalness:1,roughness:0.12});
@@ -242,6 +249,7 @@ loader.load('fiat500.glb', g => {
     const mn = o.material.name, pn = (o.parent && o.parent.name) || '';
     if(mn==='Body_Color'){ o.material = /^Roof/.test(o.name)||/^Roof/.test(pn) ? roofMat : bodyMat; }
     else if(mn==='Glass') o.material = glassMat;
+    else if(mn==='Interior_Black_Seat') o.material = seatMat;
     else if(mn==='Rims') o.material = rimMat;
     else if(mn==='Chrome' && /Front_Bumper|Rear_Bumper/.test(o.name) && !/Screws/.test(o.name)) o.material = bumperMat;
     else if(mn==='License_Plate_Blue') o.material = o.material.clone(), o.material.color.set(0xf2f2f2);
@@ -290,6 +298,7 @@ function apply(){
   U.uCanvas.value=S.cv; U.uCanvasCol.value.set(S.cc);
   U.uStripe.value=S.st; U.uStripeCol.value.set(S.sc); U.uSW.value=S.sw; U.uSG.value=S.sg; U.uSO.value=-S.so; // 車の右＝-x（前が+z・上が+y）
   U.uSide.value=S.sd; U.uSideCol.value.set(S.sdc); U.uSideY.value=S.sdy; U.uSideW.value=S.sdw;
+  seatMat.color.set(S.seat);
   if(S.rim==='body'){ rimMat.color.set(S.bc); rimMat.metalness=0; rimMat.roughness=0.3; }
   else if(S.rim==='white'){ rimMat.color.set('#eeeeea'); rimMat.metalness=0; rimMat.roughness=0.3; }
   else if(S.rim==='black'){ rimMat.color.set('#1b1b1b'); rimMat.metalness=0; rimMat.roughness=0.4; }
@@ -309,9 +318,9 @@ function writeHash(){
 // ---- UI ----
 const $=id=>document.getElementById(id);
 function swatches(el,list,key){ list.forEach(c=>{ const b=document.createElement('button'); b.className='sw'; b.style.background=c; b.dataset.c=c; b.setAttribute('aria-label',c); b.onclick=()=>{S[key]=c; apply();}; el.appendChild(b); }); }
-swatches($('bodySw'),BODY_SWATCHES,'bc'); swatches($('canvasSw'),CANVAS_SWATCHES,'cc');
+swatches($('bodySw'),BODY_SWATCHES,'bc'); swatches($('canvasSw'),CANVAS_SWATCHES,'cc'); swatches($('seatSw'),SEAT_SWATCHES,'seat');
 const bindColor=(id,key)=>$(id).addEventListener('input',e=>{S[key]=e.target.value; apply();});
-bindColor('bodyCol','bc'); bindColor('roofCol','rc'); bindColor('stCol','sc'); bindColor('sdCol','sdc');
+bindColor('bodyCol','bc'); bindColor('roofCol','rc'); bindColor('stCol','sc'); bindColor('sdCol','sdc'); bindColor('seatCol','seat');
 const bindRange=(id,key)=>$(id).addEventListener('input',e=>{S[key]=+e.target.value; apply();});
 bindRange('stW','sw'); bindRange('stG','sg'); bindRange('stO','so');
 $('stOc').onclick=()=>{S.so=0; apply();}; bindRange('sdY','sdy'); bindRange('sdW','sdw');
@@ -325,6 +334,7 @@ $('num').addEventListener('input',e=>{S.nb=e.target.value.replace(/[^0-9A-Za-z]/
 function syncUI(){
   document.querySelectorAll('#bodySw .sw').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===S.bc));
   document.querySelectorAll('#canvasSw .sw').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===S.cc));
+  document.querySelectorAll('#seatSw .sw').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===S.seat)); $('seatCol').value=S.seat;
   $('bodyCol').value=S.bc; $('roofCol').value=S.rc; $('stCol').value=S.sc; $('sdCol').value=S.sdc;
   $('stW').value=S.sw; $('stG').value=S.sg; $('stO').value=S.so; $('sdY').value=S.sdy; $('sdW').value=S.sdw;
   $('tt').setAttribute('aria-pressed',!!S.tt); $('cv').setAttribute('aria-pressed',!!S.cv); $('sd').setAttribute('aria-pressed',!!S.sd);
