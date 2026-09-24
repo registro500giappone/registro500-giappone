@@ -151,7 +151,9 @@ export async function loadCar(url){
     }
   }
 
+  let curS = null;
   function apply(S){
+    curS = S;
     bodyMat.color.set(S.bc); roofMat.color.set(S.tt?S.rc:S.bc);
     setFinish(bodyMat,S.fin); setFinish(roofMat,S.fin);
     U.uCanvas.value=S.cv; U.uCanvasCol.value.set(S.cc);
@@ -169,7 +171,14 @@ export async function loadCar(url){
   }
   // 車を動かしたら描画の前に呼ぶ（模様を車に貼り付けたままにする）
   function update(){ root.updateMatrixWorld(true); U.uCarInv.value.copy(root.matrixWorld).invert(); }
+  // ボディ色だけを差し替える（動画の塗り替え演出用＝apply より軽い。屋根・ホイール・バンパーが「ボディ同色」ならそれも）
+  function setBody(col){
+    bodyMat.color.set(col);
+    if(curS && !curS.tt) roofMat.color.set(col);
+    if(curS && curS.rim==='body') rimMat.color.set(col);
+    if(curS && curS.bmp==='body') bumperMat.color.set(col);
+  }
   function setHeadlights(k){ headMats.forEach(m=>{ m.emissive.set(0xfff1d6); m.emissiveIntensity=k*6; }); }
 
-  return {root, apply, update, wheels, heads, setHeadlights, doorsMesh};
+  return {root, apply, update, setBody, wheels, heads, setHeadlights, doorsMesh};
 }

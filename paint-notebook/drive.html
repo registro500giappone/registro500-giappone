@@ -30,7 +30,10 @@ html,body{margin:0;height:100%;background:var(--paper);color:var(--ink);font-fam
 #frame canvas{display:block;width:100%;height:100%}
 /* 締めの一枚＝車が消えたあと無地のクリームの上にロゴだけを置く（色と透明度は時刻から決める） */
 #title{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;background:transparent}
-#title .logo{margin-top:-12%;text-align:center;width:70%}
+#title .logo{margin-top:-4%;text-align:center;width:84%}
+#title .copy{display:block;margin:0 0 9%;font-size:min(3.6vh,21px);font-weight:700;letter-spacing:.06em;color:#3a352c;opacity:0}
+body.rec #title .copy{font-size:66px}
+#acc{position:absolute;inset:0;width:100%;height:100%}
 #title img{display:block}
 /* ロゴを車の絵と文字に分けた（元の logo_vertical.png の配置を再現＝車は幅908/1200・左端147/1200） */
 #title .lcar{width:75.67%;margin-left:12.25%;transform-origin:14% 96%;will-change:transform}
@@ -51,7 +54,7 @@ body.rec .bar{display:none}
 <body>
 <div class="wrap">
   <div id="frame"><div class="loading" id="loading">3Dモデルを読み込み中…</div>
-    <div id="title"><div class="logo"><img class="lcar" src="logo-car.png" alt=""><img class="ltxt" src="logo-text.png" alt="Registro500 Giappone"><span>registro500.com</span></div></div>
+    <div id="title"><div class="logo"><p class="copy">あなた色の500を走らせよう</p><img class="lcar" src="logo-car.png" alt=""><img class="ltxt" src="logo-text.png" alt="Registro500 Giappone"><span>registro500.com</span></div></div>
   </div>
   <div class="bar"><button id="play">一時停止</button><input type="range" id="seek" min="0" max="15" step="0.01" value="0"><span id="tt">0.0</span></div>
 </div>
@@ -60,11 +63,11 @@ body.rec .bar{display:none}
 import * as THREE from 'three';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {Reflector} from 'three/addons/objects/Reflector.js';
-import {readHash, loadCar} from './car.js?v=1';
+import {readHash, loadCar} from './car.js?v=2';
 
 const REC = new URLSearchParams(location.search).has('rec');
 if(REC) document.body.classList.add('rec');
-const DUR = 15;
+const DUR = 15, FPS = 30;
 const S = readHash();
 const frame = document.getElementById('frame');
 
@@ -85,14 +88,15 @@ const FLOOR_LEN = 900, FLOOR_Z = 380;
 const FLOOR_C = new THREE.Color('#efe8da');
 const mirror = new Reflector(new THREE.PlaneGeometry(240, FLOOR_LEN), {clipBias:0.003, textureWidth:1024, textureHeight:1024, color:0x8a8a8a});
 mirror.rotation.x = -Math.PI/2; mirror.position.set(0,-0.002,FLOOR_Z); scene.add(mirror);
+let floorMat;
 {
-  // 床の目地＝進行方向に直角の細い線を等間隔に（速さを見せる唯一の手がかり）
+  // 床の目地＝進行方向に直角の線を等間隔に（速さを見せる手がかり＝細すぎると傷に見えるので太く・濃く・細かく）
   const c=document.createElement('canvas'); c.width=64; c.height=512; const g=c.getContext('2d');
-  g.fillStyle='#ffffff'; g.fillRect(0,0,64,512); g.fillStyle='#d3cdc2'; g.fillRect(0,0,64,6);
+  g.fillStyle='#ffffff'; g.fillRect(0,0,64,512); g.fillStyle='#c9bea9'; g.fillRect(0,0,64,16);
   const tex=new THREE.CanvasTexture(c); tex.colorSpace=THREE.SRGBColorSpace;
-  tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(1, FLOOR_LEN/4); tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
-  // つや（specular）は0＝逆光が床で光らない。床の映り込みは下の鏡（Reflector）が担う
-  var floorMat=new THREE.MeshPhysicalMaterial({color:FLOOR_C.clone(),map:tex,roughness:0.9,metalness:0,specularIntensity:0,transparent:true,opacity:0.93});
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(1, FLOOR_LEN/2.5); tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
+  // つや（specular）は0＝逆光が床で光らない。床の映り込みは下の鏡（Reflector）が担う（くっきりしすぎないよう薄めに透かす）
+  floorMat=new THREE.MeshPhysicalMaterial({color:FLOOR_C.clone(),map:tex,roughness:0.9,metalness:0,specularIntensity:0,transparent:true,opacity:0.955});
   const f=new THREE.Mesh(new THREE.PlaneGeometry(240,FLOOR_LEN),floorMat);
   f.rotation.x=-Math.PI/2; f.position.set(0,0,FLOOR_Z); f.renderOrder=1; scene.add(f);
 }
@@ -101,41 +105,65 @@ mirror.rotation.x = -Math.PI/2; mirror.position.set(0,-0.002,FLOOR_Z); scene.add
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t);};
 const lerp=(a,b,t)=>a+(b-a)*t;
-const T_GO=5.0, RAMP=6.0, VMAX=28;             // 発進の時刻・加速にかける秒・最高速（単位/秒≒39km/h）
+const T_GO=4.6, RAMP=6.0, VMAX=28;             // 発進の時刻・加速にかける秒・最高速（単位/秒≒39km/h）
 const vel=t=>{ const x=clamp((t-T_GO)/RAMP,0,1); return VMAX*(1-(1-x)*(1-x)); };
 const acc=t=>{ const x=(t-T_GO)/RAMP; return (x>0&&x<1) ? VMAX*2*(1-x)/RAMP : 0; };
 const ZT=[0]; const DT=1/1000;                  // 位置＝速さを積んだ表
 for(let i=1;i<=(DUR+1)/DT;i++) ZT[i]=ZT[i-1]+vel(i*DT)*DT;
 const posZ=t=>{ const k=clamp(t/DT,0,ZT.length-1), i=Math.floor(k); return ZT[i]+(ZT[Math.min(i+1,ZT.length-1)]-ZT[i])*(k-i); };
-const light=t=> sstep(1.5,2.5,t);                  // スタジオの照明
-const head=t=> t<1.1?0 : t<1.17?1 : t<1.25?0.15 : sstep(1.25,1.35,t);  // 前照灯＝点く瞬間に一度だけまたたく
+const light=t=> sstep(1.3,2.1,t);                                         // スタジオの照明
+const head=t=> t<1.0?0 : t<1.07?1 : t<1.15?0.15 : sstep(1.15,1.25,t);    // 前照灯＝点く瞬間に一度だけまたたく
+// 場面の切り替わり（被写体ぶれを場面をまたいで混ぜないために使う）
+const CUTS=[4.2,5.8,8.0,10.0,11.3];
+
+// 塗り替え＝色見本を次々に見せて、最後にこの車の色で決まる（白っぽい車なら途中の白を抜く＝変化が見えないため）
+const PALETTE=['#b8261f','#9fc6d6','#e8c23a','#f1ede2','#1f2e57'];
+const cdist=(a,b)=>{ const x=new THREE.Color(a), y=new THREE.Color(b); return Math.abs(x.r-y.r)+Math.abs(x.g-y.g)+Math.abs(x.b-y.b); };
+const lum=c=>{ const x=new THREE.Color(c); return 0.2126*x.r+0.7152*x.g+0.0722*x.b; };
+let SEQ = PALETTE.filter(c=>cdist(c,S.bc)>0.25);
+if(lum(S.bc)>0.6) SEQ = SEQ.filter(c=>lum(c)<=0.6 || c==='#e8c23a');
+SEQ = SEQ.slice(0,4).concat([S.bc]);
+const SEQ_T=[0,2.35,2.8,3.25,3.7].slice(5-SEQ.length); // それぞれの色になる時刻（最初の色は暗がりから）
+SEQ_T[0]=0;
+const bodyCol=new THREE.Color(), cA=new THREE.Color(), cB=new THREE.Color();
+function bodyAt(t){
+  let i=0; while(i+1<SEQ_T.length && t>=SEQ_T[i+1]) i++;
+  if(i===0) return bodyCol.set(SEQ[0]);
+  const f=sstep(SEQ_T[i], SEQ_T[i]+0.09, t);           // 0.09秒で切り替える（ぱっと変わって見える速さ）
+  return bodyCol.copy(cA.set(SEQ[i-1])).lerp(cB.set(SEQ[i]), f);
+}
+
 // ロゴの一枚＝最初と最後が同じ絵（繰り返し再生の継ぎ目が出ない）。
-// 始まり：静止したロゴ → 溶けて暗がりの車の輪郭へ。終わり：無地に文字 → 車の絵が右から走り込んで急ブレーキ
-const card=t=> t<7 ? 1-sstep(0.5,1.0,t) : sstep(13.3,13.6,t);
-const ltxt=t=> t<7 ? 1-sstep(0.45,0.9,t) : sstep(13.45,13.75,t);
-const T_IN=13.7, T_STOP=14.2;                       // 車の絵が入り始める／止まる時刻
+// 始まり：ロゴの車が左へ走り去り、文字が溶けて暗がりへ。終わり：無地に文字 → 車の絵が右から走り込んで急ブレーキ → 一言
+const card=t=> t<7 ? 1-sstep(0.55,1.0,t) : sstep(13.3,13.55,t);
+const ltxt=t=> t<7 ? 1-sstep(0.4,0.85,t) : sstep(13.4,13.7,t);
+const copy=t=> t<7 ? 1-sstep(0.2,0.5,t) : sstep(14.2,14.55,t);
+const T_IN=13.6, T_STOP=14.1;                       // 車の絵が入り始める／止まる時刻
 function logoCar(t){
-  if(t<7) return {o:1-sstep(0.45,0.9,t), x:0, a:0};
+  if(t<7){                                          // 走り去る＝加速して左へ・発進で鼻先が上がる
+    const k=sstep(0.08,0.75,t);
+    return {o:1, x:-175*k*k, a:2.4*sstep(0.08,0.25,t)*(1-sstep(0.5,0.75,t)), org:'86% 96%'};
+  }
   const k=clamp((t-T_IN)/(T_STOP-T_IN),0,1);
   const x=150*Math.pow(1-k,3);                       // 速く入って最後に一気に減速（急ブレーキ）
-  const a= t<T_STOP ? -3.2*sstep(T_STOP-0.22,T_STOP,t)   // ブレーキで前のめり（後ろが浮く）
-                    : -3.2*Math.exp(-(t-T_STOP)*7)*Math.cos((t-T_STOP)*20); // 止まって揺り戻す
-  return {o:t<T_IN?0:1, x, a};
+  const a= t<T_STOP ? -3.6*sstep(T_STOP-0.22,T_STOP,t)   // ブレーキで前のめり（後ろが浮く）
+                    : -3.6*Math.exp(-(t-T_STOP)*7)*Math.cos((t-T_STOP)*20); // 止まって揺り戻す
+  return {o:t<T_IN?0:1, x, a, org:'14% 96%'};
 }
 
 let car, spots=[], PASS_Z=0, WHEEL0, shadow;
-const titleEl=document.getElementById('title'), lcarEl=titleEl.querySelector('.lcar'), ltxtEl=titleEl.querySelector('.ltxt'), urlEl=titleEl.querySelector('span');
-const tmp=new THREE.Vector3();
+const titleEl=document.getElementById('title'), lcarEl=titleEl.querySelector('.lcar'), ltxtEl=titleEl.querySelector('.ltxt'), urlEl=titleEl.querySelector('span'), copyEl=titleEl.querySelector('.copy');
 function orbit(target, azDeg, elDeg, d){
   const a=azDeg*Math.PI/180, e=elDeg*Math.PI/180;
   return new THREE.Vector3(target.x+d*Math.cos(e)*Math.sin(a), target.y+d*Math.sin(e), target.z+d*Math.cos(e)*Math.cos(a));
 }
-function setT(t){
+function draw(t){
   const z=posZ(t), v=vel(t);
   // 車＝前へ進む・発進で後ろが沈む・路面の細かい揺れ
   car.root.position.set(0, 0.006*(Math.sin(t*43)+0.6*Math.sin(t*71+1))*clamp(v/8,0,1), z);
   car.root.rotation.x = -0.0016*acc(t)*sstep(T_GO,T_GO+0.25,t);
   car.wheels.forEach(w=>{ w.pivot.rotation.x = z/w.radius; });
+  car.setBody(bodyAt(t));
   car.update();
   // 影＝止まっている間は床の上に安定して出す。走り出したら路面の揺れと一緒に床面を上下させ、
   // ところどころ床に隠れて明滅させる（走行感の演出＝第3版で偶然出ていた明滅を意図して再現）
@@ -146,43 +174,61 @@ function setT(t){
   scene.environmentIntensity = 0.03+0.97*L;
   scene.background.copy(DARK).lerp(BG,L); scene.fog.color.copy(scene.background);
   car.setHeadlights(H); spots.forEach(s=>s.intensity=H*260*(1-0.85*L)); // 明るいスタジオでは光だまりを控える
-  { const bg=BG.clone(), k=card(t);
-    const c8=bg.getRGB({},THREE.SRGBColorSpace); // three の色はリニア値＝画面の色(sRGB)へ戻してから使う
-    titleEl.style.background=`rgba(${c8.r*255|0},${c8.g*255|0},${c8.b*255|0},${k})`;
-    const o=ltxt(t); ltxtEl.style.opacity=o; urlEl.style.opacity=o;
-    const lc=logoCar(t); lcarEl.style.opacity=lc.o; lcarEl.style.transform=`translateX(${lc.x}%) rotate(${lc.a}deg)`; }
   rim.intensity = 2.6*(1-L); // 暗がりで車の輪郭だけを浮かべる逆光
-  floorMat.color.copy(FLOOR_C).multiplyScalar(0.12+0.88*L); // 暗いあいだは床も落とす（逆光で床が光らないように）
+  floorMat.color.copy(FLOOR_C).multiplyScalar(0.12+0.88*L); // 暗いあいだは床も落とす
 
   const c=car.root.position;
   let pos, look, fov=45;
   cam.up.set(0,1,0);
-  if(t<4.5){         // A：暗がりの正面 → 照明が入り、斜め前へ回り込む
-    const k=sstep(2.6,4.5,t);
-    pos=orbit(new THREE.Vector3(0,1.3,0.3), lerp(-4+t*1.5,40,k), lerp(3,9,k), lerp(15.5,17.5,k));
+  if(t<4.2){         // A：暗がりの正面 → 照明が入り、斜め前へ回り込みながら塗り替わる
+    const k=sstep(1.8,4.2,t);
+    pos=orbit(new THREE.Vector3(0,1.3,0.3), lerp(-4+t*1.5,40,k), lerp(3,8,k), lerp(15.5,16.5,k));
     look=new THREE.Vector3(0,lerp(1.5,1.35,k),0.3);
-  }else if(t<6.3){   // B：前輪に寄る＝タイヤが回り始める
-    // カメラは止まった位置の前輪に据え置く＝車体がフレームを横切って出ていく
+  }else if(t<5.8){   // B：前輪＝カメラは止まった位置に据え置き、車体がフレームを横切って出ていく
     const wc=WHEEL0;
     pos=new THREE.Vector3(wc.x+5.4, 0.85, wc.z+3.3); look=new THREE.Vector3(wc.x, wc.y+0.35, wc.z-0.4); fov=40;
-  }else if(t<8.6){   // C：横に並んで追いかける（前後の端まで全景を収める）
-    const k=sstep(6.3,8.6,t);
-    pos=orbit(new THREE.Vector3(c.x,1.2,c.z+0.2), lerp(72,98,k), lerp(7,5,k), 20);
-    look=new THREE.Vector3(c.x,1.3,c.z+0.2);
-  }else if(t<10.2){  // E：真上から＝画面を斜めに横切る（カメラは車の速さの4割だけ付いていく）
-    const zm=posZ(9.4), zc=zm+0.4*(c.z-zm);
-    pos=new THREE.Vector3(0, 21, zc+0.01); look=new THREE.Vector3(0, 0, zc);
+  }else if(t<8.0){   // C：横に並んで追いかける（カメラを下げ、車を画面の中ほどへ）
+    const k=sstep(5.8,8.0,t);
+    pos=orbit(new THREE.Vector3(c.x,1.0,c.z+0.2), lerp(74,96,k), lerp(3,2,k), 19.5);
+    look=new THREE.Vector3(c.x,1.9,c.z+0.2);
+  }else if(t<10.0){  // E：真上から＝2秒かけて画面を斜めに横切る（カメラは車の速さの7割で付いていく）
+    const zm=posZ(9.0), zc=zm+0.72*(c.z-zm);
+    pos=new THREE.Vector3(0, 20, zc+0.01); look=new THREE.Vector3(0, 0, zc);
     const r=0.62; cam.up.set(Math.sin(r),0,Math.cos(r));
-  }else if(t<11.6){  // F：後ろから追う＝後ろ姿を右後ろから左後ろへ
-    const k=sstep(10.2,11.6,t);
+  }else if(t<11.3){  // F：後ろから追う＝後ろ姿を右後ろから左後ろへ
+    const k=sstep(10.0,11.3,t);
     pos=orbit(new THREE.Vector3(c.x,1.2,c.z), lerp(205,160,k), lerp(9,5,k), 17);
-    look=new THREE.Vector3(c.x,1.25,c.z);
+    look=new THREE.Vector3(c.x,1.6,c.z);
   }else{             // D：先回りして正面から迎え、脇をすれ違わせて見送る
     pos=new THREE.Vector3(-4.8, 0.95, PASS_Z);
     look=new THREE.Vector3(c.x, 1.2, c.z+0.3); fov=40;
   }
   cam.position.copy(pos); cam.fov=fov; cam.updateProjectionMatrix(); cam.lookAt(look);
   renderer.render(scene,cam);
+}
+function overlay(t){
+  const k=card(t), c8=BG.getRGB({},THREE.SRGBColorSpace); // three の色はリニア値＝画面の色(sRGB)へ戻してから使う
+  titleEl.style.background=`rgba(${c8.r*255|0},${c8.g*255|0},${c8.b*255|0},${k})`;
+  const o=ltxt(t); ltxtEl.style.opacity=o; urlEl.style.opacity=o; copyEl.style.opacity=copy(t);
+  const lc=logoCar(t); lcarEl.style.opacity=lc.o; lcarEl.style.transformOrigin=lc.org;
+  lcarEl.style.transform=`translateX(${lc.x}%) rotate(${lc.a}deg)`;
+}
+
+// 収録では1コマを「シャッターが開いている1/60秒」の数瞬に分けて描き、重ねる＝本物の被写体ぶれ
+const SUB=6, SHUTTER=0.5/FPS;
+let accCv=null, accCtx=null;
+function setT(t){
+  if(!REC){ draw(t); overlay(t); return; }
+  if(!accCv){
+    accCv=document.createElement('canvas'); accCv.id='acc'; accCv.width=renderer.domElement.width; accCv.height=renderer.domElement.height;
+    renderer.domElement.after(accCv); accCtx=accCv.getContext('2d');
+  }
+  let t0=t-SHUTTER; for(const c of CUTS) if(t0<c && c<=t) t0=c;   // 場面をまたがない
+  for(let i=0;i<SUB;i++){
+    draw(lerp(t0,t,(i+1)/SUB));
+    accCtx.globalAlpha=1/(i+1); accCtx.drawImage(renderer.domElement,0,0);
+  }
+  overlay(t);
 }
 
 function resize(){
@@ -193,7 +239,7 @@ new ResizeObserver(resize).observe(frame); resize();
 
 car = await loadCar('fiat500.glb');
 scene.add(car.root); car.apply(S);
-{ // 車の真下の影（車に付いて動く）
+{ // 車の真下の影
   const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d');
   const gr=g.createRadialGradient(128,128,10,128,128,128); gr.addColorStop(0,'rgba(0,0,0,.6)'); gr.addColorStop(1,'rgba(0,0,0,0)');
   g.fillStyle=gr; g.fillRect(0,0,256,256);
@@ -206,12 +252,12 @@ car.heads.forEach(p=>{
   s.position.copy(p); s.target.position.set(p.x, 0, p.z+9);
   car.root.add(s); car.root.add(s.target); spots.push(s);
 });
-PASS_Z = posZ(12.3);
+PASS_Z = posZ(12.2);
 car.update(); WHEEL0 = (car.wheels.find(w=>w.front&&w.left)||car.wheels[0]).pivot.getWorldPosition(new THREE.Vector3());
 document.getElementById('loading').remove();
 
 await Promise.all([lcarEl.decode(),ltxtEl.decode()]).catch(()=>{}); // 収録の最初のコマまでにロゴを読み終えておく
-window.__drive = {setT, ready:true, dur:DUR, wheels:car.wheels.length, heads:car.heads.length};
+window.__drive = {setT, ready:true, dur:DUR, seq:SEQ, seqT:SEQ_T};
 if(!REC){
   let t0=performance.now(), playing=true, cur=0;
   const seek=document.getElementById('seek'), tt=document.getElementById('tt'), play=document.getElementById('play');
