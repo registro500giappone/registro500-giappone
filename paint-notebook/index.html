@@ -207,7 +207,7 @@ float isCanvas=0.0;
 // 前端＝フロントガラス上端(z1.22)の直後・後端＝後席の窓の前端(z-0.62)で、モデルの目印とも一致
 if(uCanvas>0.5 && wn.y>0.5 && vWPos.y>2.9){
   vec2 q=vec2(abs(vWPos.x), abs(vWPos.z-0.27));
-  vec2 d=q-vec2(1.21-0.08, 0.89-0.08);
+  vec2 d=q-vec2(0.98-0.08, 0.89-0.08);
   float sd=length(max(d,0.0))+min(max(d.x,d.y),0.0)-0.08;
   isCanvas=1.0-smoothstep(-0.01,0.01,sd);
 }
@@ -277,7 +277,7 @@ function buildDecals(){
   const ray=new THREE.Raycaster();
   for(const sgn of [1,-1]){
     // 側面図の実測＝ドアの鉄板部分（窓の下端〜ドアの下端）の中央＝地上約600mm
-    ray.set(new THREE.Vector3(sgn*6, 1.57, c.z), new THREE.Vector3(-sgn,0,0));
+    ray.set(new THREE.Vector3(sgn*6, 1.30, c.z), new THREE.Vector3(-sgn,0,0));
     const hit=ray.intersectObject(doorsMesh,false)[0]; if(!hit) continue;
     const n=new THREE.Vector3(sgn,0,0);
     const ori=new THREE.Euler(0, sgn*Math.PI/2, 0);
