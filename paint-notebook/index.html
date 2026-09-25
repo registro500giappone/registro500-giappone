@@ -46,6 +46,9 @@ p.lead{font-size:13px;color:var(--sub);margin:2px 0 10px}
 button,.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}
 button[aria-pressed="true"]{background:var(--deep);color:var(--paper);border-color:var(--deep)}
 button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+/* 仕上がりを持ち出すボタン＝視点を動かす丸いボタンとは段と形を分ける */
+.actbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+button.act{border-radius:10px;padding:10px 12px;font-size:14px;font-weight:600}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px 14px}
 details{border-bottom:1px solid var(--line)}
 details:last-child{border-bottom:0}
@@ -82,8 +85,10 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
         <button data-view="rear34">斜め後ろ</button>
         <button data-view="top">上</button>
         <button id="spin" aria-pressed="false">自動で回す</button>
-        <button id="save" class="primary">画像にする</button>
-        <button id="share">URLをコピー</button>
+      </div>
+      <div class="actbar">
+        <button id="save" class="act primary">画像にする</button>
+        <button id="share" class="act">URLをコピー</button>
       </div>
     </div>
 
@@ -91,11 +96,16 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
       <details open>
         <summary>ボディの色</summary>
         <div class="row" id="bodySw"></div>
-        <div class="row"><label class="cap">自由に選ぶ</label><input type="color" id="bodyCol"></div>
+        <div class="row"><label class="cap">色を自由に選ぶ</label><input type="color" id="bodyCol"></div>
         <div class="row" id="finish">
           <label class="cap">塗装の質感</label>
           <button data-fin="solid">ソリッド</button><button data-fin="metal">メタリック</button><button data-fin="matte">つや消し</button>
         </div>
+      </details>
+      <details>
+        <summary>エンブレム</summary>
+        <div class="row" id="em"><label class="cap">型式</label>
+          <button data-em="df">D・F（ヒゲ）</button><button data-em="">L</button><button data-em="r">R</button></div>
       </details>
       <details>
         <summary>屋根と幌</summary>
@@ -103,6 +113,18 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
           <button id="tt" aria-pressed="false">屋根だけ別の色にする</button><input type="color" id="roofCol"></div>
         <div class="row"><label class="cap">幌</label>
           <button id="cv" aria-pressed="true">幌を付ける</button><span id="canvasSw" style="display:contents"></span><input type="color" id="canvasCol"></div>
+      </details>
+      <details>
+        <summary>シート</summary>
+        <div class="row" id="seatSw"></div>
+        <div class="row"><label class="cap">色を自由に選ぶ</label><input type="color" id="seatCol"></div>
+      </details>
+      <details>
+        <summary>ホイールとバンパー</summary>
+        <div class="row" id="rim"><label class="cap">ホイール</label>
+          <button data-rim="silver">銀</button><button data-rim="body">ボディ同色</button><button data-rim="white">白</button><button data-rim="black">黒</button><input type="color" id="rimCol" value="#d8d8d8"></div>
+        <div class="row" id="bmp"><label class="cap">バンパー</label>
+          <button data-bmp="chrome">メッキ</button><button data-bmp="body">ボディ同色</button><button data-bmp="black">黒</button><input type="color" id="bmpCol" value="#e6e6e6"></div>
       </details>
       <details>
         <summary>ストライプ</summary>
@@ -122,23 +144,6 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
         <summary>ゼッケン</summary>
         <div class="row"><label class="cap">ドアに丸いゼッケンを貼る（空欄で外す）</label>
           <input type="text" id="num" maxlength="3" inputmode="numeric" placeholder="例 22"></div>
-      </details>
-      <details>
-        <summary>シート</summary>
-        <div class="row" id="seatSw"></div>
-        <div class="row"><label class="cap">自由に選ぶ</label><input type="color" id="seatCol"></div>
-      </details>
-      <details>
-        <summary>ホイールとバンパー</summary>
-        <div class="row" id="rim"><label class="cap">ホイール</label>
-          <button data-rim="silver">銀</button><button data-rim="body">ボディ同色</button><button data-rim="white">白</button><button data-rim="black">黒</button><input type="color" id="rimCol" value="#d8d8d8"></div>
-        <div class="row" id="bmp"><label class="cap">バンパー</label>
-          <button data-bmp="chrome">メッキ</button><button data-bmp="body">ボディ同色</button><button data-bmp="black">黒</button><input type="color" id="bmpCol" value="#e6e6e6"></div>
-      </details>
-      <details>
-        <summary>エンブレム</summary>
-        <div class="row" id="em"><label class="cap">型式</label>
-          <button data-em="df">D・F（ヒゲ）</button><button data-em="">L</button><button data-em="r">R</button></div>
       </details>
       <p class="note" style="margin:10px 0">色や模様はURLに残ります。「URLをコピー」で同じ仕上がりを人に見せられます。</p>
     </div>
