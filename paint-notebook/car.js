@@ -80,7 +80,7 @@ function numberTexture(txt){
 // ナンバープレート＝1951〜76年のイタリアの型（黒地に白字）。後ろ＝2段 275×200mm・前＝1段 262×57mm
 // 番号は架空（上段 県名＋紋章＋頭の桁／下段 末尾4桁、前は番号が先で県名が後）
 const PLATE_FONT = '"Barlow Condensed","Arial Narrow",sans-serif';
-async function loadPlateFont(){
+export async function loadPlateFont(){
   const wait = (p,ms) => Promise.race([p, new Promise(r=>setTimeout(r,ms))]);
   let l=document.querySelector('link[data-plate-font]');
   if(!l){
@@ -89,7 +89,7 @@ async function loadPlateFont(){
     // 字形の定義（CSS）が届く前に fonts.load を呼ぶと、何も待たずに終わる
     const css=new Promise(r=>{ l.onload=l.onerror=r; }); document.head.appendChild(l); await wait(css,3000);
   }
-  try{ await wait(document.fonts.load('500 100px "Barlow Condensed"','ROMA0'),3000); }catch(e){}
+  try{ await wait(document.fonts.load('500 100px "Barlow Condensed"','Roma0'),3000); }catch(e){}
 }
 // 共和国の紋章（丸に星）を簡略に
 function plateEmblem(g,x,y,r){
@@ -97,7 +97,7 @@ function plateEmblem(g,x,y,r){
   g.beginPath(); for(let i=0;i<10;i++){ const a=-Math.PI/2+i*Math.PI/5, rr=i%2?r*0.3:r*0.72; g.lineTo(x+rr*Math.cos(a),y+rr*Math.sin(a)); }
   g.closePath(); g.fillStyle='#eee'; g.fill(); g.restore();
 }
-function plateTexture(kind){
+export function plateTexture(kind){
   const c=document.createElement('canvas'), g=c.getContext('2d');
   const W=1024, H = kind==='rear' ? Math.round(W*200/275) : Math.round(W*57/262);
   c.width=W; c.height=H;
@@ -106,25 +106,36 @@ function plateTexture(kind){
   g.strokeStyle='#3a3a3a'; g.lineWidth=H*(kind==='rear'?0.02:0.05); const m=g.lineWidth*1.5; g.strokeRect(m,m,W-2*m,H-2*m);
   g.fillStyle='#eee'; g.textBaseline='middle';
   if(kind==='rear'){
-    const px=W/275; // 1mm あたりの画素
-    g.font='500 '+Math.round(70*px)+'px '+PLATE_FONT;
-    const L=24*px, R=W-24*px, a=g.measureText('ROMA').width, b=g.measureText('00').width;
-    g.textAlign='left'; g.fillText('ROMA',L,H*0.31);
-    g.textAlign='right'; g.fillText('00',R,H*0.31);
-    plateEmblem(g,(L+a+R-b)/2,H*0.30,11*px); // 紋章は県名と番号のちょうど間
-    g.font='500 '+Math.round(88*px)+'px '+PLATE_FONT; g.textAlign='center';
-    g.fillText('110F',W/2,H*0.72);
+    // 実物（Cosenza・Roma の写真）＝上下の段とも字の高さは板の約4割・左右の端が揃う。
+    // 下段の4文字は端から端まで均等に配り、上段は県名を左端・番号を右端に置く（入りきらなければ横だけ詰める）
+    const px=W/275, L=16*px, R=W-16*px, capH=H*0.38;
+    g.textBaseline='alphabetic'; g.textAlign='left'; // 字の高さは基線から測る（middle のままだと半分に出る）
+    g.font='500 100px '+PLATE_FONT; const k=capH/g.measureText('0').actualBoundingBoxAscent;
+    g.font='500 '+Math.round(100*k)+'px '+PLATE_FONT;
+    const base1=H*0.07+capH, base2=H*0.93;
+    const spread=(s,x0,x1,y)=>{ // 1字ずつ、最初の字の左端と最後の字の右端を x0・x1 に合わせて等間隔に置く
+      // 実物の下段は字が幅広で字間は字幅の3割ほど＝細長い書体は横に広げて埋める（広げすぎない上限 1.5 倍）
+      const n=s.length, ws0=[...s].map(ch=>g.measureText(ch).width), sum0=ws0.reduce((p,q)=>p+q,0);
+      const sx=Math.min(1.5,(x1-x0)/(sum0+(n-1)*0.3*sum0/n)), ws=ws0.map(w=>w*sx), gp=(x1-x0-sum0*sx)/(n-1);
+      let x=x0; [...s].forEach((ch,i)=>{ g.save(); g.translate(x,y); g.scale(sx,1); g.fillText(ch,0,0); g.restore(); x+=ws[i]+gp; });
+    };
+    spread('110F',L,R,base2);
+    const er=10*px, a=g.measureText('Roma').width, b=g.measureText('00').width, room=R-L-2*er-10*px;
+    const sx=Math.min(1,room/(a+b));
+    g.save(); g.translate(L,base1); g.scale(sx,1); g.fillText('Roma',0,0); g.restore();
+    g.save(); g.translate(R,base1); g.scale(sx,1); g.textAlign='right'; g.fillText('00',0,0); g.restore();
+    plateEmblem(g,(L+a*sx+R-b*sx)/2,H*0.07+er*1.3,er); // 紋章は小さく、上段の上寄り・県名と番号の間
   }else{
     const px=W/262;
     // 番号・紋章・県名の並び全体を測って中央へ（縁から 14mm は空ける）
     let fs=46*px; const er=8*px, gap=6*px;
-    const total=()=>{ g.font='500 '+Math.round(fs)+'px '+PLATE_FONT; return [g.measureText('00110F').width, g.measureText('ROMA').width]; };
+    const total=()=>{ g.font='500 '+Math.round(fs)+'px '+PLATE_FONT; return [g.measureText('00110F').width, g.measureText('Roma').width]; };
     let [a,b]=total(); const room=W-28*px;
     if(a+b+2*(er+gap)>room){ fs*=room/(a+b+2*(er+gap)); [a,b]=total(); }
     const x0=(W-(a+b+2*(er+gap)))/2;
     g.textAlign='left'; g.fillText('00110F',x0,H*0.54);
     plateEmblem(g,x0+a+gap+er,H*0.5,er);
-    g.fillText('ROMA',x0+a+2*(gap+er),H*0.54);
+    g.fillText('Roma',x0+a+2*(gap+er),H*0.54);
   }
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t;
 }
