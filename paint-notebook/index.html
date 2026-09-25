@@ -134,6 +134,8 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
           <button data-rim="silver">銀</button><button data-rim="body">ボディ同色</button><button data-rim="white">白</button><button data-rim="black">黒</button><input type="color" id="rimCol" value="#d8d8d8"></div>
         <div class="row" id="bmp"><label class="cap">バンパー</label>
           <button data-bmp="chrome">メッキ</button><button data-bmp="body">ボディ同色</button><button data-bmp="black">黒</button><input type="color" id="bmpCol" value="#e6e6e6"></div>
+        <div class="row" id="em"><label class="cap">前のエンブレム</label>
+          <button data-em="df">D・F（ヒゲ）</button><button data-em="">L</button><button data-em="r">R</button></div>
       </details>
       <p class="note" style="margin:10px 0">色や模様はURLに残ります。「URLをコピー」で同じ仕上がりを人に見せられます。</p>
     </div>
@@ -149,7 +151,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
-import {DEF, readHash, loadCar} from './car.js?v=25';
+import {DEF, readHash, loadCar} from './car.js?v=30';
 
 const BODY_SWATCHES = ['#b8261f','#f1ede2','#9fc6d6','#e8c23a','#2f6b45','#1f2e57','#1a1a1a','#d9c7a3','#e98a3a','#8c8f93'];
 const CANVAS_SWATCHES = ['#1c1c1c','#d6c8a8','#7a2020','#2a3448'];
@@ -214,6 +216,7 @@ document.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{S.st=+b.dataset
 document.querySelectorAll('[data-sdt]').forEach(b=>b.onclick=()=>{ const t=b.dataset.sdt; S.sdt=t; if(t){ S.sd=1; S.sdw=t==='fa'?0.22:0.16; S.sdy=1.15; } apply(); });
 document.querySelectorAll('[data-rim]').forEach(b=>b.onclick=()=>{S.rim=b.dataset.rim; apply();});
 document.querySelectorAll('[data-bmp]').forEach(b=>b.onclick=()=>{S.bmp=b.dataset.bmp; apply();});
+document.querySelectorAll('[data-em]').forEach(b=>b.onclick=()=>{S.em=b.dataset.em; apply();});
 $('num').addEventListener('input',e=>{S.nb=e.target.value.replace(/[^0-9A-Za-z]/g,'').slice(0,3); apply();});
 function syncUI(){
   document.querySelectorAll('#bodySw .sw').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===S.bc));
@@ -227,6 +230,7 @@ function syncUI(){
   document.querySelectorAll('[data-sdt]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.sdt===S.sdt));
   document.querySelectorAll('[data-rim]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.rim===S.rim));
   document.querySelectorAll('[data-bmp]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.bmp===S.bmp));
+  document.querySelectorAll('[data-em]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.em===S.em));
   // 候補の名前（銀・メッキなど）のときはパレットを触らない＝最後に選んだ色を残す
   $('canvasCol').value=S.cc; if(S.rim[0]==='#') $('rimCol').value=S.rim; if(S.bmp[0]==='#') $('bmpCol').value=S.bmp;
   if(document.activeElement!==$('num')) $('num').value=S.nb;
@@ -247,7 +251,7 @@ $('share').onclick=async()=>{ try{ await navigator.clipboard.writeText(location.
 function resize(){ const w=stage.clientWidth, h=stage.clientHeight; renderer.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix(); }
 new ResizeObserver(resize).observe(stage); resize();
 renderer.setAnimationLoop(()=>{ controls.update(); renderer.render(scene,cam); });
-window.__paint={S,apply,setView};
+window.__paint={S,apply,setView,cam,controls};
 </script>
 </body>
 </html>
