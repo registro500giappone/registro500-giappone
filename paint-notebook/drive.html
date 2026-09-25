@@ -162,13 +162,13 @@ if(TAKE) for(let i=MID.length-1;i>0;i--){ const j=Math.floor(R()*(i+1)); [MID[i]
 const SLOTS=[[5.8,8.0],[8.0,10.0],[10.0,11.3]];
 const sweep=(a,b,k,rev)=> rev ? lerp(b,a,k) : lerp(a,b,k);
 
-// 塗り替え＝色見本を次々に見せて、最後にこの車の色で決まる（白っぽい車なら途中の白を抜く＝変化が見えないため）
+// 塗り替え＝暗がりから最初に現れるのはこの車の色（ユーザー確定）→ 色見本を次々に見せて → この車の色に戻って決まる（白っぽい車なら途中の白を抜く＝変化が見えないため）
 const PALETTE=['#b8261f','#9fc6d6','#e8c23a','#f1ede2','#1f2e57'];
 const cdist=(a,b)=>{ const x=new THREE.Color(a), y=new THREE.Color(b); return Math.abs(x.r-y.r)+Math.abs(x.g-y.g)+Math.abs(x.b-y.b); };
 const lum=c=>{ const x=new THREE.Color(c); return 0.2126*x.r+0.7152*x.g+0.0722*x.b; };
 let SEQ = PALETTE.filter(c=>cdist(c,S.bc)>0.25);
 if(lum(S.bc)>0.6) SEQ = SEQ.filter(c=>lum(c)<=0.6 || c==='#e8c23a');
-SEQ = SEQ.slice(0,4).concat([S.bc]);
+SEQ = [S.bc].concat(SEQ.slice(0,3), [S.bc]);
 const SEQ_T=[0,2.35,2.8,3.25,3.7].slice(5-SEQ.length); // それぞれの色になる時刻（最初の色は暗がりから）
 SEQ_T[0]=0;
 const bodyCol=new THREE.Color(), cA=new THREE.Color(), cB=new THREE.Color();
