@@ -261,9 +261,16 @@ export async function loadCar(url){
   }
 
   let decals = [], lastNb = null, sideTxt = {kind:null};
-  function buildDecals(nb){
+  function buildDecals(nb, S){
     decals.forEach(d=>{root.remove(d); d.geometry.dispose();}); decals=[];
     if(!doorsMesh || !nb) return;
+    // 高さ1.30に大きさ0.95（丸の直径≒0.89）。アバルトの帯を引いているときは帯の上の空きへ移す
+    // （下端＝帯の上端＋少しの余白・上端は窓の下 y2.10 まで。入らなければ小さくする）
+    let cy=1.30, size=0.95;
+    if(S.sd && ['595','695','fa'].includes(S.sdt)){
+      const top=S.sdy+S.sdw*(S.sdt==='fa'?0.5:0.76)+0.05;
+      size=Math.min(0.95,(2.10-top)/0.94); cy=top+size*0.47;
+    }
     if(decalMat.map) decalMat.map.dispose();
     decalMat.map = numberTexture(nb); decalMat.needsUpdate = true;
     root.updateMatrixWorld(true);
@@ -271,13 +278,12 @@ export async function loadCar(url){
     const box=new THREE.Box3().setFromObject(doorsMesh), c=box.getCenter(new THREE.Vector3()).applyMatrix4(inv);
     const ray=new THREE.Raycaster();
     for(const sgn of [1,-1]){
-      // ドアの平らな面（高さ0.9〜1.7・1.8に折れ目）の中に収める
-      const o=new THREE.Vector3(sgn*6, 1.30, c.z).applyMatrix4(root.matrixWorld);
+      const o=new THREE.Vector3(sgn*6, cy, c.z).applyMatrix4(root.matrixWorld);
       const dir=new THREE.Vector3(-sgn,0,0).transformDirection(root.matrixWorld);
       ray.set(o,dir);
       const hit=ray.intersectObject(doorsMesh,false)[0]; if(!hit) continue;
       const q=new THREE.Quaternion().setFromRotationMatrix(root.matrixWorld).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, sgn*Math.PI/2, 0)));
-      const geo=new DecalGeometry(doorsMesh, hit.point, new THREE.Euler().setFromQuaternion(q), new THREE.Vector3(0.95,0.95,0.8));
+      const geo=new DecalGeometry(doorsMesh, hit.point, new THREE.Euler().setFromQuaternion(q), new THREE.Vector3(size,size,0.8));
       geo.applyMatrix4(inv);
       const m=new THREE.Mesh(geo, decalMat); decals.push(m); root.add(m);
     }
@@ -309,7 +315,9 @@ export async function loadCar(url){
     else if(S.bmp==='black'){ bumperMat.color.set('#1b1b1b'); bumperMat.metalness=0; bumperMat.roughness=0.5; }
     else if(S.bmp[0]==='#'){ bumperMat.color.set(S.bmp); bumperMat.metalness=0; bumperMat.roughness=0.3; }
     else { bumperMat.color.set('#e6e6e6'); bumperMat.metalness=1; bumperMat.roughness=0.1; }
-    if(lastNb!==S.nb){ lastNb=S.nb; buildDecals(S.nb); }
+    // ゼッケンの位置は帯の高さ・太さでも変わる＝それらが動いたときも貼り直す
+    const nbKey=[S.nb,S.sd,S.sdt,S.sdy,S.sdw].join('|');
+    if(lastNb!==nbKey){ lastNb=nbKey; buildDecals(S.nb,S); }
   }
   // 車を動かしたら描画の前に呼ぶ（模様を車に貼り付けたままにする）
   function update(){ root.updateMatrixWorld(true); U.uCarInv.value.copy(root.matrixWorld).invert(); }
