@@ -265,9 +265,11 @@ export async function loadCar(url){
     if(S.rim==='body'){ rimMat.color.set(S.bc); rimMat.metalness=0; rimMat.roughness=0.3; }
     else if(S.rim==='white'){ rimMat.color.set('#eeeeea'); rimMat.metalness=0; rimMat.roughness=0.3; }
     else if(S.rim==='black'){ rimMat.color.set('#1b1b1b'); rimMat.metalness=0; rimMat.roughness=0.4; }
+    else if(S.rim[0]==='#'){ rimMat.color.set(S.rim); rimMat.metalness=0; rimMat.roughness=0.3; } // パレットで選んだ色
     else { rimMat.color.set('#d8d8d8'); rimMat.metalness=0.85; rimMat.roughness=0.22; }
     if(S.bmp==='body'){ bumperMat.color.set(S.bc); bumperMat.metalness=0; bumperMat.roughness=0.3; }
     else if(S.bmp==='black'){ bumperMat.color.set('#1b1b1b'); bumperMat.metalness=0; bumperMat.roughness=0.5; }
+    else if(S.bmp[0]==='#'){ bumperMat.color.set(S.bmp); bumperMat.metalness=0; bumperMat.roughness=0.3; }
     else { bumperMat.color.set('#e6e6e6'); bumperMat.metalness=1; bumperMat.roughness=0.1; }
     if(lastNb!==S.nb){ lastNb=S.nb; buildDecals(S.nb); }
   }

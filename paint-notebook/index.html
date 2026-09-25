@@ -102,7 +102,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
         <div class="row"><label class="cap">屋根の色（ツートン）</label>
           <button id="tt" aria-pressed="false">屋根だけ別の色にする</button><input type="color" id="roofCol"></div>
         <div class="row"><label class="cap">幌</label>
-          <button id="cv" aria-pressed="true">幌を付ける</button><span id="canvasSw" style="display:contents"></span></div>
+          <button id="cv" aria-pressed="true">幌を付ける</button><span id="canvasSw" style="display:contents"></span><input type="color" id="canvasCol"></div>
       </details>
       <details>
         <summary>ストライプ</summary>
@@ -129,9 +129,9 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
       <details>
         <summary>ホイールとバンパー</summary>
         <div class="row" id="rim"><label class="cap">ホイール</label>
-          <button data-rim="silver">銀</button><button data-rim="body">ボディ同色</button><button data-rim="white">白</button><button data-rim="black">黒</button></div>
+          <button data-rim="silver">銀</button><button data-rim="body">ボディ同色</button><button data-rim="white">白</button><button data-rim="black">黒</button><input type="color" id="rimCol" value="#d8d8d8"></div>
         <div class="row" id="bmp"><label class="cap">バンパー</label>
-          <button data-bmp="chrome">メッキ</button><button data-bmp="body">ボディ同色</button><button data-bmp="black">黒</button></div>
+          <button data-bmp="chrome">メッキ</button><button data-bmp="body">ボディ同色</button><button data-bmp="black">黒</button><input type="color" id="bmpCol" value="#e6e6e6"></div>
       </details>
       <p class="note" style="margin:10px 0">色や模様はURLに残ります。「URLをコピー」で同じ仕上がりを人に見せられます。</p>
     </div>
@@ -147,7 +147,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
-import {DEF, readHash, loadCar} from './car.js?v=19';
+import {DEF, readHash, loadCar} from './car.js?v=20';
 
 const BODY_SWATCHES = ['#b8261f','#f1ede2','#9fc6d6','#e8c23a','#2f6b45','#1f2e57','#1a1a1a','#d9c7a3','#e98a3a','#8c8f93'];
 const CANVAS_SWATCHES = ['#1c1c1c','#d6c8a8','#7a2020','#2a3448'];
@@ -200,6 +200,7 @@ function swatches(el,list,key){ list.forEach(c=>{ const b=document.createElement
 swatches($('bodySw'),BODY_SWATCHES,'bc'); swatches($('canvasSw'),CANVAS_SWATCHES,'cc'); swatches($('seatSw'),SEAT_SWATCHES,'seat');
 const bindColor=(id,key)=>$(id).addEventListener('input',e=>{S[key]=e.target.value; apply();});
 bindColor('bodyCol','bc'); bindColor('roofCol','rc'); bindColor('stCol','sc'); bindColor('sdCol','sdc'); bindColor('seatCol','seat');
+bindColor('canvasCol','cc'); bindColor('rimCol','rim'); bindColor('bmpCol','bmp');
 const bindRange=(id,key)=>$(id).addEventListener('input',e=>{S[key]=+e.target.value; apply();});
 bindRange('stW','sw'); bindRange('stG','sg'); bindRange('stO','so');
 $('stOc').onclick=()=>{S.so=0; apply();}; bindRange('sdY','sdy'); bindRange('sdW','sdw');
@@ -221,6 +222,8 @@ function syncUI(){
   document.querySelectorAll('[data-st]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.st===S.st));
   document.querySelectorAll('[data-rim]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.rim===S.rim));
   document.querySelectorAll('[data-bmp]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.bmp===S.bmp));
+  // 候補の名前（銀・メッキなど）のときはパレットを触らない＝最後に選んだ色を残す
+  $('canvasCol').value=S.cc; if(S.rim[0]==='#') $('rimCol').value=S.rim; if(S.bmp[0]==='#') $('bmpCol').value=S.bmp;
   if(document.activeElement!==$('num')) $('num').value=S.nb;
 }
 
