@@ -116,6 +116,27 @@ const head=t=> t<1.0?0 : t<1.07?1 : t<1.15?0.15 : sstep(1.15,1.25,t);    // 前�
 // 場面の切り替わり（被写体ぶれを場面をまたいで混ぜないために使う）
 const CUTS=[4.2,5.8,8.0,10.0,11.3];
 
+// 撮り方のばらつき＝?take=番号 で、同じ番号なら同じ絵・違う番号なら違う撮り方（0＝決まった撮り方）。
+// 変えるのはカメラだけ＝左右どちら側から撮るか・回り込む向き・高さと距離・中盤3場面（横並び/真上/後ろ姿）の順番。
+// ⛔画面の左右反転はしない（ナンバーや帯の文字が鏡文字になる）＝「反転」はカメラを車の反対側へ回して作る
+const TAKE = +(new URLSearchParams(location.search).get('take')) || 0;
+const R = (s=>()=>{ s=s+0x6D2B79F5|0; let x=Math.imul(s^s>>>15,1|s); x=x+Math.imul(x^x>>>7,61|x)^x; return ((x^x>>>14)>>>0)/4294967296; })(TAKE*7919+1);
+const side=()=> TAKE && R()<0.5 ? -1 : 1;      // -1＝車の反対側から撮る
+const turn=()=> TAKE && R()<0.5;               // true＝回り込む向きを逆に
+const jit=a=> TAKE ? (R()*2-1)*a : 0;          // 高さ・距離の小さなぶれ
+const V={
+  A:{m:side(), rev:turn(), el:jit(3), d:jit(1.2)},
+  B:{m:side()},
+  C:{m:side(), rev:turn(), el:jit(1.5), d:jit(2)},
+  E:{m:side()},
+  F:{m:side(), rev:turn(), el:jit(3), d:jit(2)},
+  D:{m:side()},
+};
+const MID=['C','E','F'];                        // 中盤の3場面を 5.8〜8.0／8.0〜10.0／10.0〜11.3 の枠へ入れる順番
+if(TAKE) for(let i=MID.length-1;i>0;i--){ const j=Math.floor(R()*(i+1)); [MID[i],MID[j]]=[MID[j],MID[i]]; }
+const SLOTS=[[5.8,8.0],[8.0,10.0],[10.0,11.3]];
+const sweep=(a,b,k,rev)=> rev ? lerp(b,a,k) : lerp(a,b,k);
+
 // 塗り替え＝色見本を次々に見せて、最後にこの車の色で決まる（白っぽい車なら途中の白を抜く＝変化が見えないため）
 const PALETTE=['#b8261f','#9fc6d6','#e8c23a','#f1ede2','#1f2e57'];
 const cdist=(a,b)=>{ const x=new THREE.Color(a), y=new THREE.Color(b); return Math.abs(x.r-y.r)+Math.abs(x.g-y.g)+Math.abs(x.b-y.b); };
@@ -151,7 +172,7 @@ function logoCar(t){
   return {o:t<T_IN?0:1, x, a, org:'14% 96%'};
 }
 
-let car, spots=[], PASS_Z=0, WHEEL0, shadow;
+let car, spots=[], PASS_Z=0, WHEEL0, WHEEL0R, shadow;
 const titleEl=document.getElementById('title'), lcarEl=titleEl.querySelector('.lcar'), ltxtEl=titleEl.querySelector('.ltxt'), urlEl=titleEl.querySelector('span'), copyEl=titleEl.querySelector('.copy');
 function orbit(target, azDeg, elDeg, d){
   const a=azDeg*Math.PI/180, e=elDeg*Math.PI/180;
@@ -180,27 +201,30 @@ function draw(t){
   const c=car.root.position;
   let pos, look, fov=45;
   cam.up.set(0,1,0);
-  if(t<4.2){         // A：暗がりの正面 → 照明が入り、斜め前へ回り込みながら塗り替わる
-    const k=sstep(1.8,4.2,t);
-    pos=orbit(new THREE.Vector3(0,1.3,0.3), lerp(-4+t*1.5,40,k), lerp(3,8,k), lerp(15.5,16.5,k));
+  // 方位（az）に m を掛ける＝車の中心線（x=0）で鏡に映した位置＝反対側から撮る
+  const si=SLOTS.findIndex(s=>t>=s[0] && t<s[1]), shot = t<4.2?'A' : t<5.8?'B' : si>=0?MID[si] : 'D';
+  const [s0,s1] = si>=0 ? SLOTS[si] : [0,0], sv=V[shot], m=sv.m;
+  if(shot==='A'){         // A：暗がりの正面 → 照明が入り、斜め前へ回り込みながら塗り替わる
+    const k=sstep(1.8,4.2,t), a0=-4+t*1.5, az=sv.rev ? lerp(-a0,-40,k) : lerp(a0,40,k);
+    pos=orbit(new THREE.Vector3(0,1.3,0.3), m*az, lerp(3,8+sv.el,k), lerp(15.5,16.5+sv.d,k));
     look=new THREE.Vector3(0,lerp(1.5,1.35,k),0.3);
-  }else if(t<5.8){   // B：前輪＝カメラは止まった位置に据え置き、車体がフレームを横切って出ていく
-    const wc=WHEEL0;
-    pos=new THREE.Vector3(wc.x+5.4, 0.85, wc.z+3.3); look=new THREE.Vector3(wc.x, wc.y+0.35, wc.z-0.4); fov=40;
-  }else if(t<8.0){   // C：横に並んで追いかける（カメラを下げ、車を画面の中ほどへ）
-    const k=sstep(5.8,8.0,t);
-    pos=orbit(new THREE.Vector3(c.x,1.0,c.z+0.2), lerp(74,96,k), lerp(3,2,k), 19.5);
+  }else if(shot==='B'){   // B：前輪＝カメラは止まった位置に据え置き、車体がフレームを横切って出ていく
+    const wc=m>0?WHEEL0:WHEEL0R;
+    pos=new THREE.Vector3(wc.x+m*5.4, 0.85, wc.z+3.3); look=new THREE.Vector3(wc.x, wc.y+0.35, wc.z-0.4); fov=40;
+  }else if(shot==='C'){   // C：横に並んで追いかける（カメラを下げ、車を画面の中ほどへ）
+    const k=sstep(s0,s1,t);
+    pos=orbit(new THREE.Vector3(c.x,1.0,c.z+0.2), m*sweep(74,96,k,sv.rev), Math.max(1,lerp(3,2,k)+sv.el), 19.5+sv.d);
     look=new THREE.Vector3(c.x,1.9,c.z+0.2);
-  }else if(t<10.0){  // E：真上から＝2秒かけて画面を斜めに横切る（カメラは車の速さの7割で付いていく）
-    const zm=posZ(9.0), zc=zm+0.72*(c.z-zm);
+  }else if(shot==='E'){   // E：真上から＝画面を斜めに横切る（カメラは車の速さの7割で付いていく）
+    const zm=posZ((s0+s1)/2), zc=zm+0.72*(c.z-zm);
     pos=new THREE.Vector3(0, 20, zc+0.01); look=new THREE.Vector3(0, 0, zc);
-    const r=0.62; cam.up.set(Math.sin(r),0,Math.cos(r));
-  }else if(t<11.3){  // F：後ろから追う＝後ろ姿を右後ろから左後ろへ
-    const k=sstep(10.0,11.3,t);
-    pos=orbit(new THREE.Vector3(c.x,1.2,c.z), lerp(205,160,k), lerp(9,5,k), 17);
+    const r=0.62*m; cam.up.set(Math.sin(r),0,Math.cos(r));
+  }else if(shot==='F'){   // F：後ろから追う＝後ろ姿を右後ろから左後ろへ
+    const k=sstep(s0,s1,t);
+    pos=orbit(new THREE.Vector3(c.x,1.2,c.z), m*sweep(205,160,k,sv.rev), Math.max(3,lerp(9,5,k)+sv.el), 17+sv.d);
     look=new THREE.Vector3(c.x,1.6,c.z);
-  }else{             // D：先回りして正面から迎え、脇をすれ違わせて見送る
-    pos=new THREE.Vector3(-4.8, 0.95, PASS_Z);
+  }else{                  // D：先回りして正面から迎え、脇をすれ違わせて見送る
+    pos=new THREE.Vector3(-4.8*m, 0.95, PASS_Z);
     look=new THREE.Vector3(c.x, 1.2, c.z+0.3); fov=40;
   }
   cam.position.copy(pos); cam.fov=fov; cam.updateProjectionMatrix(); cam.lookAt(look);
@@ -254,6 +278,7 @@ car.heads.forEach(p=>{
 });
 PASS_Z = posZ(12.2);
 car.update(); WHEEL0 = (car.wheels.find(w=>w.front&&w.left)||car.wheels[0]).pivot.getWorldPosition(new THREE.Vector3());
+WHEEL0R = (car.wheels.find(w=>w.front&&!w.left)||car.wheels[0]).pivot.getWorldPosition(new THREE.Vector3());
 document.getElementById('loading').remove();
 
 await Promise.all([lcarEl.decode(),ltxtEl.decode()]).catch(()=>{}); // 収録の最初のコマまでにロゴを読み終えておく
