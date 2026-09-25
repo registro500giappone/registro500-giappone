@@ -5,7 +5,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {DecalGeometry} from 'three/addons/geometries/DecalGeometry.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 
-export const DEF = {bc:'#b8261f',fin:'solid',tt:0,rc:'#f1ede2',cv:1,cc:'#1c1c1c',st:0,sc:'#f1ede2',sw:0.44,sg:0.12,so:0,sd:0,sdc:'#f1ede2',sdy:1.25,sdw:0.1,nb:'',rim:'silver',bmp:'chrome',seat:'#2b2624'};
+export const DEF = {bc:'#b8261f',fin:'solid',tt:0,rc:'#f1ede2',cv:1,cc:'#1c1c1c',st:0,sc:'#f1ede2',sw:0.44,sg:0.12,so:0,sd:0,sdc:'#f1ede2',sdy:1.25,sdw:0.1,sdt:'',nb:'',rim:'silver',bmp:'chrome',seat:'#2b2624'};
 
 export function readHash(){
   const S = {...DEF};
@@ -19,6 +19,8 @@ const U = {
   uCanvas:{value:1}, uCanvasCol:{value:new THREE.Color()},
   uStripe:{value:0}, uStripeCol:{value:new THREE.Color()}, uSW:{value:0.2}, uSG:{value:0.1}, uSO:{value:0},
   uSide:{value:0}, uSideCol:{value:new THREE.Color()}, uSideY:{value:1.2}, uSideW:{value:0.1},
+  // アバルトの帯＝形（0 ただの線／1 太帯＋細線2本／2 太帯1本）・帯の前端と後端の z・文字の枠の前端と後端の z・文字（白抜き＝アルファだけ使う）
+  uSideT:{value:0}, uSideZ:{value:new THREE.Vector2(1.80,-1.30)}, uTxtZ:{value:new THREE.Vector2()}, uTxt:{value:null},
 };
 function paintMaterial(isRoof){
   // 両面描画＝窓越しに見える外板の裏側（室内側）もボディ色にする（実車も室内の鉄板はボディ同色）
@@ -33,6 +35,7 @@ function paintMaterial(isRoof){
 varying vec3 vWPos; varying vec3 vWNrm;
 uniform float uRoof,uCanvas,uStripe,uSW,uSG,uSO,uSide,uSideY,uSideW;
 uniform vec3 uCanvasCol,uStripeCol,uSideCol;
+uniform float uSideT; uniform vec2 uSideZ,uTxtZ; uniform sampler2D uTxt;
 float band(float d,float hw){ float a=fwidth(d)*1.2+1e-4; return 1.0-smoothstep(hw-a,hw+a,d); }`)
       .replace('#include <color_fragment>',`#include <color_fragment>
 vec3 wn=normalize(vWNrm);
@@ -52,11 +55,23 @@ stp*=1.0-smoothstep(0.6,0.8,abs(wn.x));
 stp*=1.0-isCanvas;
 float ff=gl_FrontFacing?1.0:0.0; // 室内側（裏面）には模様を描かない
 stp*=ff;
-float sdl=0.0;
-if(uSide>0.5) sdl=band(abs(vWPos.y-uSideY),uSideW*0.5)*smoothstep(0.45,0.65,abs(wn.x))*(1.0-isCanvas)*ff;
+float sdl=0.0, sdt=0.0;
+if(uSide>0.5){
+  float dy=vWPos.y-uSideY;
+  sdl=band(abs(dy),uSideW*0.5);
+  if(uSideT>0.5){
+    // アバルトの帯＝前輪の後ろから後輪の手前まで（1＝上下に細い線を添える）
+    if(uSideT<1.5){ float t=uSideW*0.13, g=uSideW*0.13; sdl=max(sdl,band(abs(abs(dy)-(uSideW*0.5+g+t*0.5)),t*0.5)); }
+    sdl*=band(abs(vWPos.z-(uSideZ.x+uSideZ.y)*0.5),(uSideZ.x-uSideZ.y)*0.5);
+    // 文字は外から見て左から右へ読める向き（車の左側＝前が左・右側＝後ろが左）
+    float L=uTxtZ.x-uTxtZ.y, u=vWPos.x>0.0?(uTxtZ.x-vWPos.z)/L:(vWPos.z-uTxtZ.y)/L, v=0.5+dy/uSideW;
+    if(u>0.0 && u<1.0 && v>0.0 && v<1.0) sdt=texture2D(uTxt,vec2(u,v)).a;
+  }
+  sdl*=smoothstep(0.45,0.65,abs(wn.x))*(1.0-isCanvas)*ff;
+}
 diffuseColor.rgb=mix(diffuseColor.rgb,uCanvasCol,isCanvas);
 diffuseColor.rgb=mix(diffuseColor.rgb,uStripeCol,stp);
-diffuseColor.rgb=mix(diffuseColor.rgb,uSideCol,sdl);`)
+diffuseColor.rgb=mix(diffuseColor.rgb,uSideCol,sdl*(1.0-sdt)); // 文字は切り抜き＝下の塗装が見える`)
       .replace('#include <metalnessmap_fragment>',`#include <metalnessmap_fragment>
 roughnessFactor=mix(roughnessFactor,0.92,isCanvas); metalnessFactor=mix(metalnessFactor,0.0,isCanvas);`)
       .replace('#include <lights_physical_fragment>',`#include <lights_physical_fragment>
@@ -89,11 +104,26 @@ export async function loadPlateFont(){
   let l=document.querySelector('link[data-plate-font]');
   if(!l){
     l=document.createElement('link'); l.rel='stylesheet'; l.dataset.plateFont='1';
-    l.href='https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500&family=Archivo+Black&display=block';
+    l.href='https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500&family=Archivo+Black&family=Michroma&display=block';
     // 字形の定義（CSS）が届く前に fonts.load を呼ぶと、何も待たずに終わる
     const css=new Promise(r=>{ l.onload=l.onerror=r; }); document.head.appendChild(l); await wait(css,3000);
   }
-  try{ await wait(Promise.all([document.fonts.load('500 100px "Barlow Condensed"','Roma0'), document.fonts.load('100px "Archivo Black"','0123456789')]),3000); }catch(e){}
+  try{ await wait(Promise.all([document.fonts.load('500 100px "Barlow Condensed"','Roma0'), document.fonts.load('100px "Archivo Black"','0123456789'), document.fonts.load('100px "Michroma"','FIAT ABARTH 5961')]),3000); }catch(e){}
+}
+// アバルトの帯の文字＝幅の広い書体で「FIAT ABARTH」・数字は輪郭だけ（当時のデカールの見た目）。
+// 高さ＝帯の太さ。返す aspect＝横÷縦（帯の太さに掛けると文字の枠の長さになる）
+const SIDE_FONT = '"Michroma","Arial Black",sans-serif';
+function sideText(kind){
+  const H=256, capH=H*0.54, c=document.createElement('canvas'), g=c.getContext('2d');
+  const word='FIAT ABARTH', num=kind==='fa'?'':kind, gap=capH*0.9, pad=capH*0.3;
+  g.font='100px '+SIDE_FONT; const k=capH/g.measureText('F').actualBoundingBoxAscent, fs=100*k;
+  g.font=fs+'px '+SIDE_FONT; g.letterSpacing='0px';
+  const w1=g.measureText(word).width, w2=num?g.measureText(num).width:0;
+  c.width=Math.ceil(pad*2+w1+(num?gap+w2:0)); c.height=H;
+  g.font=fs+'px '+SIDE_FONT; g.textBaseline='alphabetic'; const base=H/2+capH/2;
+  g.fillStyle='#fff'; g.fillText(word,pad,base);
+  if(num){ g.strokeStyle='#fff'; g.lineWidth=capH*0.09; g.strokeText(num,pad+w1+gap,base); }
+  const t=new THREE.CanvasTexture(c); t.anisotropy=8; return {tex:t, aspect:c.width/H};
 }
 // 共和国の紋章（丸に星）を簡略に
 function plateEmblem(g,x,y,r){
@@ -230,7 +260,7 @@ export async function loadCar(url){
     front.position.set(0, 1.208, 3.857+d/2+0.003); root.add(front);
   }
 
-  let decals = [], lastNb = null;
+  let decals = [], lastNb = null, sideTxt = {kind:null};
   function buildDecals(nb){
     decals.forEach(d=>{root.remove(d); d.geometry.dispose();}); decals=[];
     if(!doorsMesh || !nb) return;
@@ -261,6 +291,14 @@ export async function loadCar(url){
     U.uCanvas.value=S.cv; U.uCanvasCol.value.set(S.cc);
     U.uStripe.value=S.st; U.uStripeCol.value.set(S.sc); U.uSW.value=S.sw; U.uSG.value=S.sg; U.uSO.value=-S.so; // 車の右＝-x
     U.uSide.value=S.sd; U.uSideCol.value.set(S.sdc); U.uSideY.value=S.sdy; U.uSideW.value=S.sdw;
+    const sdt=['595','695','fa'].includes(S.sdt)?S.sdt:'';
+    U.uSideT.value = !sdt?0 : sdt==='fa'?2 : 1;
+    if(sdt){
+      if(sideTxt.kind!==sdt){ if(sideTxt.tex) sideTxt.tex.dispose(); sideTxt={kind:sdt,...sideText(sdt)}; U.uTxt.value=sideTxt.tex; }
+      // 文字の枠＝595/695 はドアの前寄り、FIAT ABARTH だけの帯は後ろの端（当時の貼り方）
+      const len=S.sdw*sideTxt.aspect, zF=U.uSideZ.value.x, zR=U.uSideZ.value.y, m=0.1;
+      if(sdt==='fa') U.uTxtZ.value.set(zR+m+len, zR+m); else U.uTxtZ.value.set(zF-m, zF-m-len);
+    }
     seatMat.color.set(S.seat);
     if(S.rim==='body'){ rimMat.color.set(S.bc); rimMat.metalness=0; rimMat.roughness=0.3; }
     else if(S.rim==='white'){ rimMat.color.set('#eeeeea'); rimMat.metalness=0; rimMat.roughness=0.3; }
