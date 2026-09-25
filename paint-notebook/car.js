@@ -5,7 +5,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {DecalGeometry} from 'three/addons/geometries/DecalGeometry.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 
-export const DEF = {bc:'#f1ede2',fin:'solid',tt:0,rc:'#f1ede2',cv:1,cc:'#1c1c1c',st:0,sc:'#f1ede2',sw:0.44,sg:0.12,so:0,sd:0,sdc:'#f1ede2',sdy:1.25,sdw:0.1,sdt:'',nb:'',rim:'silver',bmp:'chrome',seat:'#8a2a22'};
+export const DEF = {bc:'#f1ede2',fin:'solid',tt:0,rc:'#f1ede2',cv:1,cc:'#1c1c1c',st:0,sc:'#b8261f',sw:0.44,sg:0.12,so:0,sd:0,sdc:'#b8261f',sdy:1.25,sdw:0.1,sdt:'',nb:'',rim:'silver',bmp:'chrome',seat:'#8a2a22'};
 
 export function readHash(){
   const S = {...DEF};
