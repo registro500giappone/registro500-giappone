@@ -71,10 +71,64 @@ material.clearcoat*=1.0-isCanvas;
 function numberTexture(txt){
   const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d');
   g.fillStyle='#fff'; g.beginPath(); g.arc(128,128,120,0,Math.PI*2); g.fill();
+  // 細い縁取り（白い車でも丸の縁が見えるように）
+  g.strokeStyle='#1a1a1a'; g.lineWidth=5; g.beginPath(); g.arc(128,128,117,0,Math.PI*2); g.stroke();
   g.fillStyle='#111'; g.font='700 '+(txt.length>2?110:140)+'px "Helvetica Neue",Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle';
   g.fillText(txt,128,138);
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return t;
 }
+// ナンバープレート＝1951〜76年のイタリアの型（黒地に白字）。後ろ＝2段 275×200mm・前＝1段 262×57mm
+// 番号は架空（上段 県名＋紋章＋頭の桁／下段 末尾4桁、前は番号が先で県名が後）
+const PLATE_FONT = '"Barlow Condensed","Arial Narrow",sans-serif';
+async function loadPlateFont(){
+  const wait = (p,ms) => Promise.race([p, new Promise(r=>setTimeout(r,ms))]);
+  let l=document.querySelector('link[data-plate-font]');
+  if(!l){
+    l=document.createElement('link'); l.rel='stylesheet'; l.dataset.plateFont='1';
+    l.href='https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500&display=block';
+    // 字形の定義（CSS）が届く前に fonts.load を呼ぶと、何も待たずに終わる
+    const css=new Promise(r=>{ l.onload=l.onerror=r; }); document.head.appendChild(l); await wait(css,3000);
+  }
+  try{ await wait(document.fonts.load('500 100px "Barlow Condensed"','ROMA0'),3000); }catch(e){}
+}
+// 共和国の紋章（丸に星）を簡略に
+function plateEmblem(g,x,y,r){
+  g.save(); g.strokeStyle='#eee'; g.lineWidth=r*0.14; g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.stroke();
+  g.beginPath(); for(let i=0;i<10;i++){ const a=-Math.PI/2+i*Math.PI/5, rr=i%2?r*0.3:r*0.72; g.lineTo(x+rr*Math.cos(a),y+rr*Math.sin(a)); }
+  g.closePath(); g.fillStyle='#eee'; g.fill(); g.restore();
+}
+function plateTexture(kind){
+  const c=document.createElement('canvas'), g=c.getContext('2d');
+  const W=1024, H = kind==='rear' ? Math.round(W*200/275) : Math.round(W*57/262);
+  c.width=W; c.height=H;
+  g.fillStyle='#0d0d0d'; g.fillRect(0,0,W,H);
+  // 打ち出しの縁（黒い板の縁が光を拾う程度）
+  g.strokeStyle='#3a3a3a'; g.lineWidth=H*(kind==='rear'?0.02:0.05); const m=g.lineWidth*1.5; g.strokeRect(m,m,W-2*m,H-2*m);
+  g.fillStyle='#eee'; g.textBaseline='middle';
+  if(kind==='rear'){
+    const px=W/275; // 1mm あたりの画素
+    g.font='500 '+Math.round(70*px)+'px '+PLATE_FONT;
+    const L=24*px, R=W-24*px, a=g.measureText('ROMA').width, b=g.measureText('00').width;
+    g.textAlign='left'; g.fillText('ROMA',L,H*0.31);
+    g.textAlign='right'; g.fillText('00',R,H*0.31);
+    plateEmblem(g,(L+a+R-b)/2,H*0.30,11*px); // 紋章は県名と番号のちょうど間
+    g.font='500 '+Math.round(88*px)+'px '+PLATE_FONT; g.textAlign='center';
+    g.fillText('110F',W/2,H*0.72);
+  }else{
+    const px=W/262;
+    // 番号・紋章・県名の並び全体を測って中央へ（縁から 14mm は空ける）
+    let fs=46*px; const er=8*px, gap=6*px;
+    const total=()=>{ g.font='500 '+Math.round(fs)+'px '+PLATE_FONT; return [g.measureText('00110F').width, g.measureText('ROMA').width]; };
+    let [a,b]=total(); const room=W-28*px;
+    if(a+b+2*(er+gap)>room){ fs*=room/(a+b+2*(er+gap)); [a,b]=total(); }
+    const x0=(W-(a+b+2*(er+gap)))/2;
+    g.textAlign='left'; g.fillText('00110F',x0,H*0.54);
+    plateEmblem(g,x0+a+gap+er,H*0.5,er);
+    g.fillText('ROMA',x0+a+2*(gap+er),H*0.54);
+  }
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t;
+}
+
 function setFinish(m,fin){
   if(fin==='metal'){ m.metalness=0.55; m.roughness=0.32; m.clearcoat=1; }
   else if(fin==='matte'){ m.metalness=0; m.roughness=0.75; m.clearcoat=0; }
@@ -95,7 +149,8 @@ export async function loadCar(url){
   const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
   const g = await loader.loadAsync(url);
   const root = new THREE.Group(); root.add(g.scene);
-  let doorsMesh = null; const wheelParts = {};
+  let doorsMesh = null; const rearPlates = [], wheelParts = {};
+  const fontReady = loadPlateFont();
   g.scene.traverse(o => {
     if(!o.isMesh) return;
     const mn = o.material.name, pn = (o.parent && o.parent.name) || '';
@@ -104,7 +159,8 @@ export async function loadCar(url){
     else if(mn==='Interior_Black_Seat') o.material = seatMat;
     else if(mn==='Rims') o.material = rimMat;
     else if(mn==='Chrome' && /Front_Bumper|Rear_Bumper/.test(o.name) && !/Screws/.test(o.name)) o.material = bumperMat;
-    else if(mn==='License_Plate_Blue') o.material = o.material.clone(), o.material.color.set(0xf2f2f2);
+    // 板は上半分が「青い帯」の部品・下が白い部品の2つ＝両方を黒い板にして、その上に文字を貼る
+    else if(mn==='License_Plate' || mn==='License_Plate_Blue'){ o.material = o.material.clone(); o.material.color.set(0x0d0d0d); rearPlates.push(o); }
     else if(mn==='Headlight_Glass'){ o.material = o.material.clone(); headMats.push(o.material); }
     if(/^Doors/.test(o.name)) doorsMesh = o;
     const w = (o.name+' '+pn).match(/\b(FL|FR|BL|BR)-(Tire|Rim)/);
@@ -127,6 +183,42 @@ export async function loadCar(url){
   g.scene.traverse(o=>{ if(o.isMesh && o.material && headMats.includes(o.material)){
     const b=new THREE.Box3().setFromObject(o), c=b.getCenter(new THREE.Vector3()), r=(b.max.y-b.min.y)/2;
     heads.push(new THREE.Vector3(b.max.x-r, c.y, c.z), new THREE.Vector3(b.min.x+r, c.y, c.z)); } });
+
+  // ナンバープレート
+  await fontReady;
+  const plateMat = kind => new THREE.MeshPhysicalMaterial({map:plateTexture(kind),roughness:0.45,metalness:0,clearcoat:0.4,clearcoatRoughness:0.3});
+  if(rearPlates.length){
+    // 板はエンジンフードに沿って曲がっている＝面に沿うデカールで貼る
+    const inv=root.matrixWorld.clone().invert();
+    const box=new THREE.Box3(); rearPlates.forEach(p=>box.expandByObject(p)); const c=box.getCenter(new THREE.Vector3());
+    // 外向き法線は板の上下で y 0.3〜0.5 と変わる＝中ほどを使い、外れたら角度を振って当て直す
+    let n, hit; const ray=new THREE.Raycaster();
+    for(const ny of [0.414,0.38,0.45,0.35]){
+      n=new THREE.Vector3(0,ny,-Math.sqrt(1-ny*ny)); ray.set(c.clone().addScaledVector(n,2),n.clone().negate());
+      hit=ray.intersectObjects(rearPlates,false)[0]; if(hit) break;
+    }
+    if(hit){
+      const x=new THREE.Vector3(-1,0,0), y=new THREE.Vector3().crossVectors(n,x);
+      // 板の頂点を x・y 方向へ投影して、実際の広がりと中心を測る（外接箱の角は曲面で外へはみ出すため使わない）
+      let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9; const v=new THREE.Vector3();
+      for(const p of rearPlates){ const a=p.geometry.attributes.position;
+        for(let i=0;i<a.count;i++){ v.fromBufferAttribute(a,i).applyMatrix4(p.matrixWorld).sub(hit.point);
+          const px=v.dot(x), py=v.dot(y); x0=Math.min(x0,px); x1=Math.max(x1,px); y0=Math.min(y0,py); y1=Math.max(y1,py); } }
+      const pos=hit.point.clone().addScaledVector(x,(x0+x1)/2).addScaledVector(y,(y0+y1)/2);
+      const rot=new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x,y,n));
+      const m=plateMat('rear'); m.polygonOffset=true; m.polygonOffsetFactor=-4; m.depthWrite=false;
+      for(const p of rearPlates){
+        const geo=new DecalGeometry(p, pos, rot, new THREE.Vector3(x1-x0, y1-y0, 0.5));
+        geo.applyMatrix4(inv); root.add(new THREE.Mesh(geo, m));
+      }
+    }
+  }
+  {
+    // 前＝バンパーの下、エプロンの前に横長の板（262×57mm＝車の縮尺で 0.68×0.148）
+    const w=0.68, h=0.148, d=0.012, black=new THREE.MeshPhysicalMaterial({color:0x0d0d0d,roughness:0.5});
+    const front=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), [black,black,black,black,plateMat('front'),black]);
+    front.position.set(0, 0.755, 3.86); root.add(front);
+  }
 
   let decals = [], lastNb = null;
   function buildDecals(nb){
