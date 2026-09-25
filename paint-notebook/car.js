@@ -73,23 +73,27 @@ function numberTexture(txt){
   g.fillStyle='#fff'; g.beginPath(); g.arc(128,128,120,0,Math.PI*2); g.fill();
   // 細い縁取り（白い車でも丸の縁が見えるように）
   g.strokeStyle='#1a1a1a'; g.lineWidth=5; g.beginPath(); g.arc(128,128,117,0,Math.PI*2); g.stroke();
-  g.fillStyle='#111'; g.font='700 '+(txt.length>2?110:140)+'px "Helvetica Neue",Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle';
-  g.fillText(txt,128,138);
+  // 書体は読み込んで使う（端末まかせにすると iPhone と Windows で字が変わる）。太い字の3桁は丸に収まるよう横だけ縮める
+  g.fillStyle='#111'; g.font=(txt.length>2?110:140)+'px '+ZEKKEN_FONT; g.textAlign='center'; g.textBaseline='alphabetic';
+  const m=g.measureText(txt), s=Math.min(1,190/m.width);
+  g.save(); g.translate(128,128+(m.actualBoundingBoxAscent-m.actualBoundingBoxDescent)/2); g.scale(s,1); g.fillText(txt,0,0); g.restore();
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return t;
 }
 // ナンバープレート＝1951〜76年のイタリアの型（黒地に白字）。後ろ＝2段 275×200mm・前＝1段 262×57mm
 // 番号は架空（上段 県名＋紋章＋頭の桁／下段 末尾4桁、前は番号が先で県名が後）
 const PLATE_FONT = '"Barlow Condensed","Arial Narrow",sans-serif';
+const ZEKKEN_FONT = '"Archivo Black","Arial Black",sans-serif';
+// ナンバーとゼッケンの書体をまとめて読み込む
 export async function loadPlateFont(){
   const wait = (p,ms) => Promise.race([p, new Promise(r=>setTimeout(r,ms))]);
   let l=document.querySelector('link[data-plate-font]');
   if(!l){
     l=document.createElement('link'); l.rel='stylesheet'; l.dataset.plateFont='1';
-    l.href='https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500&display=block';
+    l.href='https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500&family=Archivo+Black&display=block';
     // 字形の定義（CSS）が届く前に fonts.load を呼ぶと、何も待たずに終わる
     const css=new Promise(r=>{ l.onload=l.onerror=r; }); document.head.appendChild(l); await wait(css,3000);
   }
-  try{ await wait(document.fonts.load('500 100px "Barlow Condensed"','Roma0'),3000); }catch(e){}
+  try{ await wait(Promise.all([document.fonts.load('500 100px "Barlow Condensed"','Roma0'), document.fonts.load('100px "Archivo Black"','0123456789')]),3000); }catch(e){}
 }
 // 共和国の紋章（丸に星）を簡略に
 function plateEmblem(g,x,y,r){
