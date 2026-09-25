@@ -120,11 +120,12 @@ export function plateTexture(kind){
       let x=x0; [...s].forEach((ch,i)=>{ g.save(); g.translate(x,y); g.scale(sx,1); g.fillText(ch,0,0); g.restore(); x+=ws[i]+gp; });
     };
     spread('110F',L,R,base2);
-    const er=10*px, a=g.measureText('Roma').width, b=g.measureText('00').width, room=R-L-2*er-10*px;
-    const sx=Math.min(1,room/(a+b));
+    // 紋章は板の中央＝県名は中央の左、番号は中央の右に、紋章の分の隙間を残して収める
+    const er=10*px, a=g.measureText('Roma').width, b=g.measureText('00').width, half=W/2-er-5*px-L;
+    const sx=Math.min(1,half/a,half/b);
     g.save(); g.translate(L,base1); g.scale(sx,1); g.fillText('Roma',0,0); g.restore();
     g.save(); g.translate(R,base1); g.scale(sx,1); g.textAlign='right'; g.fillText('00',0,0); g.restore();
-    plateEmblem(g,(L+a*sx+R-b*sx)/2,H*0.07+er*1.3,er); // 紋章は小さく、上段の上寄り・県名と番号の間
+    plateEmblem(g,W/2,H*0.07+er*1.3,er); // 紋章は小さく、上段の上寄り・板の左右の中央（ユーザー確定）
   }else{
     const px=W/262;
     // 番号・紋章・県名の並び全体を測って中央へ（縁から 14mm は空ける）
@@ -225,10 +226,11 @@ export async function loadCar(url){
     }
   }
   {
-    // 前＝バンパーの下、エプロンの前に横長の板（262×57mm＝車の縮尺で 0.68×0.148）
+    // 前＝バンパーの上・エンブレムの下（バンパー上端 y1.039〜エンブレム下端 y1.377 の中ほど）に横長の板
+    // 262×57mm＝車の縮尺で 0.68×0.148。この高さの車体の面はほぼ垂直で平ら（中央 z3.857・端 z3.84）
     const w=0.68, h=0.148, d=0.012, black=new THREE.MeshPhysicalMaterial({color:0x0d0d0d,roughness:0.5});
     const front=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), [black,black,black,black,plateMat('front'),black]);
-    front.position.set(0, 0.755, 3.86); root.add(front);
+    front.position.set(0, 1.208, 3.857+d/2+0.003); root.add(front);
   }
 
   let decals = [], lastNb = null;
