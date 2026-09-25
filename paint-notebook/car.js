@@ -113,18 +113,20 @@ export function plateTexture(kind){
     g.font='500 100px '+PLATE_FONT; const k=capH/g.measureText('0').actualBoundingBoxAscent;
     g.font='500 '+Math.round(100*k)+'px '+PLATE_FONT;
     const base1=H*0.07+capH, base2=H*0.93;
-    const spread=(s,x0,x1,y)=>{ // 1字ずつ、最初の字の左端と最後の字の右端を x0・x1 に合わせて等間隔に置く
-      // 実物の下段は字が幅広で字間は字幅の3割ほど＝細長い書体は横に広げて埋める（広げすぎない上限 1.5 倍）
+    const spread=(s,x0,x1,y,fix)=>{ // 1字ずつ、最初の字の左端と最後の字の右端を x0・x1 に合わせて等間隔に置く
+      // 実物の下段は字が幅広で字間は字幅の3割ほど＝細長い書体は横に広げて埋める（広げすぎない上限 1.5 倍）。fix＝横の倍率を固定
       const n=s.length, ws0=[...s].map(ch=>g.measureText(ch).width), sum0=ws0.reduce((p,q)=>p+q,0);
-      const sx=Math.min(1.5,(x1-x0)/(sum0+(n-1)*0.3*sum0/n)), ws=ws0.map(w=>w*sx), gp=(x1-x0-sum0*sx)/(n-1);
+      const sx=fix||Math.min(1.5,(x1-x0)/(sum0+(n-1)*0.3*sum0/n)), ws=ws0.map(w=>w*sx), gp=(x1-x0-sum0*sx)/(n-1);
       let x=x0; [...s].forEach((ch,i)=>{ g.save(); g.translate(x,y); g.scale(sx,1); g.fillText(ch,0,0); g.restore(); x+=ws[i]+gp; });
     };
     spread('110F',L,R,base2);
-    // 紋章は板の中央＝県名は中央の左、番号は中央の右に、紋章の分の隙間を残して収める
-    const er=10*px, a=g.measureText('Roma').width, b=g.measureText('00').width, half=W/2-er-5*px-L;
-    const sx=Math.min(1,half/a,half/b);
-    g.save(); g.translate(L,base1); g.scale(sx,1); g.fillText('Roma',0,0); g.restore();
-    g.save(); g.translate(R,base1); g.scale(sx,1); g.textAlign='right'; g.fillText('00',0,0); g.restore();
+    // 上段＝「Roma・紋章・0・0」の4つを左端から右端まで同じ間隔 G で並べ、紋章をちょうど板の中央に置く（ユーザー確定）。
+    // 間隔 G を先に決め、左半分に収まるよう県名の横倍率を、右半分を埋めるよう番号の横倍率を別々に決める
+    const er=10*px, a=g.measureText('Roma').width, d=g.measureText('0').width;
+    let G=8*px; const sR=Math.min(1,(W/2-er-G-L)/a); G=W/2-er-L-a*sR;
+    const sD=Math.min(1.5,(R-W/2-er-2*G)/(2*d));
+    g.save(); g.translate(L,base1); g.scale(sR,1); g.fillText('Roma',0,0); g.restore();
+    spread('00',W/2+er+G,R,base1,sD);
     plateEmblem(g,W/2,H*0.07+er*1.3,er); // 紋章は小さく、上段の上寄り・板の左右の中央（ユーザー確定）
   }else{
     const px=W/262;
