@@ -126,9 +126,9 @@ export function plateTexture(kind){
     row([{t:'1'},{t:'1'},{t:'0'},{t:'F'}],L,R,base2,capH,gap);
     plateEmblem(g,W/2,H*0.06+capH*0.22,7*px);
   }else{
-    // 「00110F ⊛ ROMA」＝番号が先・県名が後（全部大文字・県名は少し小ぶり）。端から端まで埋める
+    // 「00110F ⊛ ROMA」＝番号が先・県名が後（全部大文字・番号と県名は天地をそろえる＝ユーザー確定）。端から端まで埋める
     const px=W/262, L=10*px, R=W-10*px, capH=H*0.60, er=5*px;
-    const pos=row([{t:'00110F'},{w:2*er},{t:'ROMA',h:0.85}],L,R,H*0.2+capH,capH,H*0.06);
+    const pos=row([{t:'00110F'},{w:2*er},{t:'ROMA'}],L,R,H*0.2+capH,capH,H*0.06);
     plateEmblem(g,pos[1]+er,H*0.5,er);
   }
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t;
