@@ -47,7 +47,7 @@ button,.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:
 button[aria-pressed="true"]{background:var(--deep);color:var(--paper);border-color:var(--deep)}
 button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 /* 仕上がりを持ち出すボタン＝視点を動かす丸いボタンとは段と形を分ける */
-.actbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.actbar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
 button.act{border-radius:10px;padding:10px 12px;font-size:14px;font-weight:600}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px 14px}
 details{border-bottom:1px solid var(--line)}
@@ -89,6 +89,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
       <div class="actbar">
         <button id="save" class="act primary">画像にする</button>
         <button id="share" class="act">URLをコピー</button>
+        <button id="drive" class="act">動画にする</button>
       </div>
     </div>
 
@@ -254,6 +255,8 @@ document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.data
 $('spin').onclick=()=>{controls.autoRotate=!controls.autoRotate; $('spin').setAttribute('aria-pressed',controls.autoRotate);};
 $('save').onclick=()=>{ renderer.render(scene,cam); const img=$('shot').querySelector('img'); img.src=renderer.domElement.toDataURL('image/png'); $('shot').style.display='flex'; };
 $('shotClose').onclick=()=>{$('shot').style.display='none';};
+// 動画は「走る500」の画面で作る＝いまの仕上がり（URLの # 以降）をそのまま渡す
+$('drive').onclick=()=>{ location.href='drive.html'+location.hash; };
 $('share').onclick=async()=>{ try{ await navigator.clipboard.writeText(location.href); $('share').textContent='コピーしました'; }catch(e){ $('share').textContent='コピーできませんでした'; } setTimeout(()=>$('share').textContent='URLをコピー',1800); };
 
 function resize(){ const w=stage.clientWidth, h=stage.clientHeight; renderer.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix(); }

@@ -49,6 +49,19 @@ body.rec #title span{font-size:62px}
 body.rec .wrap{padding:0;gap:0}
 body.rec #frame{height:1920px;width:1080px;border-radius:0}
 body.rec .bar{display:none}
+body.rec .acts{display:none}
+/* 書き出し＝仕上がりを持ち出すボタンは再生の段と分ける（お絵描き手帳と同じ作法） */
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:min(100%,420px)}
+.acts button,.acts a{font:inherit;font-size:14px;font-weight:600;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:10px;padding:10px 12px;cursor:pointer;text-align:center;text-decoration:none}
+.acts .primary{grid-column:1/-1;background:#b23b2b;border-color:#b23b2b;color:#fff}
+#mk{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:10;padding:16px;text-align:center}
+#mk.on{display:flex}
+#mk p{margin:0;font-size:14px;line-height:1.7}
+#mk .meter{width:min(80vw,320px);height:8px;border-radius:4px;background:#3b362e;overflow:hidden}
+#mk .meter i{display:block;height:100%;width:0;background:#e3d9c6}
+#mk video{max-height:52vh;max-width:100%;border-radius:10px;display:none}
+#mk button{font:inherit;font-size:14px;font-weight:600;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:10px;padding:10px 18px;cursor:pointer;min-width:200px}
+#mk button.primary{background:#b23b2b;border-color:#b23b2b;color:#fff}
 </style>
 </head>
 <body>
@@ -57,6 +70,18 @@ body.rec .bar{display:none}
     <div id="title"><div class="logo"><p class="copy">あなた色の500を走らせよう</p><img class="lcar" src="logo-car.png" alt=""><img class="ltxt" src="logo-text.png" alt="Registro500 Giappone"><span>registro500.com</span></div></div>
   </div>
   <div class="bar"><button id="play">一時停止</button><input type="range" id="seek" min="0" max="15" step="0.01" value="0"><span id="tt">0.0</span></div>
+  <div class="acts">
+    <button id="make" class="primary">動画に書き出す（15秒・縦長）</button>
+    <button id="retake">撮り方を変える</button>
+    <a id="back" href="./">← 塗る画面へ</a>
+  </div>
+</div>
+<div id="mk" role="dialog" aria-live="polite">
+  <p id="mkMsg">動画を作っています…</p>
+  <div class="meter"><i id="mkBar"></i></div>
+  <video id="mkVid" playsinline muted loop></video>
+  <button id="mkSave" class="primary" hidden>保存・共有</button>
+  <button id="mkClose">やめる</button>
 </div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
 <script type="module">
@@ -240,22 +265,63 @@ function overlay(t){
 
 // 収録では1コマを「シャッターが開いている1/60秒」の数瞬に分けて描き、重ねる＝本物の被写体ぶれ
 const SUB=6, SHUTTER=0.5/FPS;
-let accCv=null, accCtx=null;
+let accCv=null, accCtx=null, making=false;
+// 1コマ＝数瞬ぶんを描いて ctx へ重ねる（収録 ?rec=1 と「動画に書き出す」で共用）
+function blurFrame(t, ctx){
+  let t0=t-SHUTTER; for(const c of CUTS) if(t0<c && c<=t) t0=c;   // 場面をまたがない
+  for(let i=0;i<SUB;i++){
+    draw(lerp(t0,t,(i+1)/SUB));
+    ctx.globalAlpha=1/(i+1); ctx.drawImage(renderer.domElement,0,0,ctx.canvas.width,ctx.canvas.height);
+  }
+  ctx.globalAlpha=1;
+}
 function setT(t){
   if(!REC){ draw(t); overlay(t); return; }
   if(!accCv){
     accCv=document.createElement('canvas'); accCv.id='acc'; accCv.width=renderer.domElement.width; accCv.height=renderer.domElement.height;
     renderer.domElement.after(accCv); accCtx=accCv.getContext('2d');
   }
-  let t0=t-SHUTTER; for(const c of CUTS) if(t0<c && c<=t) t0=c;   // 場面をまたがない
-  for(let i=0;i<SUB;i++){
-    draw(lerp(t0,t,(i+1)/SUB));
-    accCtx.globalAlpha=1/(i+1); accCtx.drawImage(renderer.domElement,0,0);
-  }
+  blurFrame(t, accCtx);
   overlay(t);
 }
 
+// 書き出しでは #title（HTML で重ねているロゴの一枚）を同じ配置で絵へ描き込む。
+// 位置は収録モード（1080×1920）で実測した値＝record_drive.py の動画と同じ絵になる
+const OUT_W=1080, OUT_H=1920;
+const LAY={copy:{y:531,size:66,ls:3.96,col:'#3a352c',wt:700}, url:{y:1366,size:62,ls:4.96,col:'#3f3a31',wt:600},
+  lcar:{x:197.52,y:647.77,w:686.47,h:321.30}, ltxt:{x:86.40,y:975.88,w:907.20,h:285.01}};
+const UI_FONT=getComputedStyle(document.body).fontFamily;
+function paintOverlay(ctx,t){
+  const k=card(t);
+  if(k>0){ ctx.globalAlpha=k; ctx.fillStyle='#'+BG.getHexString(); ctx.fillRect(0,0,OUT_W,OUT_H); }
+  const txt=(str,L,o)=>{ if(o<=0) return;
+    ctx.globalAlpha=o; ctx.fillStyle=L.col; ctx.font=`${L.wt} ${L.size}px ${UI_FONT}`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    if('letterSpacing' in ctx) ctx.letterSpacing=L.ls+'px';
+    ctx.fillText(str,OUT_W/2,L.y); if('letterSpacing' in ctx) ctx.letterSpacing='0px'; };
+  txt(copyEl.textContent,LAY.copy,copy(t));
+  const lc=logoCar(t);
+  if(lc.o>0){ // CSS の transform（translateX → rotate、原点は transform-origin）と同じ順で動かす
+    const [ox,oy]=lc.org.split(' ').map(v=>parseFloat(v)/100), L=LAY.lcar;
+    ctx.save(); ctx.globalAlpha=lc.o; ctx.translate(L.x+ox*L.w+lc.x/100*L.w, L.y+oy*L.h); ctx.rotate(lc.a*Math.PI/180);
+    ctx.drawImage(lcarEl,-ox*L.w,-oy*L.h,L.w,L.h); ctx.restore();
+  }
+  const o=ltxt(t);
+  if(o>0){ const L=LAY.ltxt; ctx.globalAlpha=o; ctx.drawImage(ltxtEl,L.x,L.y,L.w,L.h); }
+  txt(urlEl.textContent,LAY.url,o);
+  ctx.globalAlpha=1;
+}
+// 端末が作れる H.264 の設定を探す（無ければ null＝書き出せない）
+async function pickCodec(){
+  if(!('VideoEncoder' in window) || !('VideoFrame' in window)) return null;
+  for(const codec of ['avc1.640028','avc1.4d0028','avc1.42e028','avc1.640033']){
+    const cfg={codec, width:OUT_W, height:OUT_H, bitrate:12_000_000, framerate:FPS, avc:{format:'avc'}};
+    try{ if((await VideoEncoder.isConfigSupported(cfg)).supported) return cfg; }catch(e){}
+  }
+  return null;
+}
+
 function resize(){
+  if(making) return; // 書き出し中は 1080×1920 のまま
   const w=frame.clientWidth, h=frame.clientHeight;
   renderer.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix();
 }
@@ -292,6 +358,61 @@ if(!REC){
     if(!playing) return;
     cur=((performance.now()-t0)/1000)%DUR; seek.value=cur; tt.textContent=cur.toFixed(1); setT(cur);
   });
+
+  // ---- 動画に書き出す＝1コマずつ描いて MP4 にする（端末が遅くても絵は同じ・時間がかかるだけ） ----
+  const $=id=>document.getElementById(id);
+  const mk=$('mk'), msg=$('mkMsg'), meter=mk.querySelector('.meter'), barEl=$('mkBar'), vid=$('mkVid'), saveBtn=$('mkSave'), closeBtn=$('mkClose');
+  let cancel=false, outFile=null;
+  $('back').href='./'+location.hash;
+  $('retake').onclick=()=>{ location.href='drive.html?take='+(1+Math.floor(Math.random()*9999))+location.hash; };
+  const closeMk=()=>{ mk.classList.remove('on'); vid.pause(); if(vid.src){ URL.revokeObjectURL(vid.src); vid.removeAttribute('src'); } };
+  closeBtn.onclick=()=>{ if(making) cancel=true; else closeMk(); };
+  // iPhone の Safari は <a download> が効かない＝共有シートから「ビデオを保存」。共有は押された流れの中で直に呼ぶ
+  saveBtn.onclick=()=>{
+    if(!outFile) return;
+    if(navigator.canShare && navigator.canShare({files:[outFile]})){ navigator.share({files:[outFile]}).catch(()=>{}); return; }
+    const a=document.createElement('a'); a.href=URL.createObjectURL(outFile); a.download=outFile.name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  };
+  $('make').onclick=async()=>{
+    if(making) return;
+    mk.classList.add('on'); vid.style.display='none'; saveBtn.hidden=true; meter.style.display=''; barEl.style.width='0';
+    msg.textContent='動画を作っています…（1分ほどかかります）'; closeBtn.textContent='やめる';
+    const cfg=await pickCodec();
+    if(!cfg){ msg.textContent='このブラウザでは動画を作れません。新しい Chrome か Safari でお試しください。'; meter.style.display='none'; closeBtn.textContent='閉じる'; return; }
+    making=true; cancel=false; outFile=null;
+    const wasPlaying=playing; playing=false;
+    let err=null, muxer, enc;
+    const acc=document.createElement('canvas'); acc.width=OUT_W; acc.height=OUT_H; const actx=acc.getContext('2d');
+    const out=document.createElement('canvas'); out.width=OUT_W; out.height=OUT_H; const octx=out.getContext('2d');
+    const started=performance.now(), N=DUR*FPS;
+    try{
+      const {Muxer, ArrayBufferTarget}=await import('https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.mjs');
+      muxer=new Muxer({target:new ArrayBufferTarget(), video:{codec:'avc', width:OUT_W, height:OUT_H, frameRate:FPS}, fastStart:'in-memory'});
+      enc=new VideoEncoder({output:(c,m)=>muxer.addVideoChunk(c,m), error:e=>{ err=e; }});
+      enc.configure(cfg);
+      renderer.setPixelRatio(1); renderer.setSize(OUT_W,OUT_H,false); cam.aspect=OUT_W/OUT_H; cam.updateProjectionMatrix();
+      for(let n=0;n<N && !cancel && !err;n++){
+        const t=n/FPS;
+        blurFrame(t,actx); octx.drawImage(acc,0,0); paintOverlay(octx,t); overlay(t);
+        const f=new VideoFrame(out,{timestamp:Math.round(n*1e6/FPS), duration:Math.round(1e6/FPS)});
+        enc.encode(f,{keyFrame:n%(FPS*2)===0}); f.close();
+        while(enc.encodeQueueSize>3) await new Promise(r=>setTimeout(r,5));
+        barEl.style.width=((n+1)/N*100).toFixed(1)+'%';
+        await new Promise(r=>setTimeout(r,0)); // 進み具合を画面に出す
+      }
+      if(!cancel && !err){ await enc.flush(); muxer.finalize(); }
+    }catch(e){ err=e; }
+    try{ if(enc && enc.state!=='closed') enc.close(); }catch(e){}
+    making=false; renderer.setPixelRatio(Math.min(devicePixelRatio,2)); resize();
+    playing=wasPlaying; t0=performance.now()-cur*1000; setT(cur);
+    if(cancel){ closeMk(); return; }
+    meter.style.display='none'; closeBtn.textContent='閉じる';
+    if(err){ msg.textContent='動画を作れませんでした（'+(err.message||err)+'）'; return; }
+    outFile=new File([muxer.target.buffer],'registro500-drive-'+Date.now()+'.mp4',{type:'video/mp4'});
+    vid.src=URL.createObjectURL(outFile); vid.style.display='block'; vid.play().catch(()=>{});
+    saveBtn.hidden=false;
+    msg.textContent='できました（'+Math.round((performance.now()-started)/1000)+'秒）。「保存・共有」から端末に保存できます。';
+  };
 }else setT(0);
 </script>
 </body>
