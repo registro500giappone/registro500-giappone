@@ -150,15 +150,24 @@ const side=()=> TAKE && R()<0.5 ? -1 : 1;      // -1＝車の反対側から撮�
 const turn=()=> TAKE && R()<0.5;               // true＝回り込む向きを逆に
 const jit=a=> TAKE ? (R()*2-1)*a : 0;          // 高さ・距離の小さなぶれ
 const V={
-  A:{m:side(), rev:turn(), el:jit(3), d:jit(1.2)},
+  A:{m:side(), rev:turn(), el:jit(3), d:jit(1.2), op:TAKE ? Math.floor(R()*4) : 0}, // op＝始まりの型（下の A を見る）
   B:{m:side()},
   C:{m:side(), rev:turn(), el:jit(1.5), d:jit(2)},
   E:{m:side()},
   F:{m:side(), rev:turn(), el:jit(3), d:jit(2)},
   D:{m:side()},
+  G:{m:side()},
+  H:{m:side(), rev:turn(), el:jit(1.5), d:jit(2)},
+  I:{m:side(), rev:turn(), el:jit(6), d:jit(3)},
 };
-const MID=['C','E','F'];                        // 中盤の3場面を 5.8〜8.0／8.0〜10.0／10.0〜11.3 の枠へ入れる順番
-if(TAKE) for(let i=MID.length-1;i>0;i--){ const j=Math.floor(R()*(i+1)); [MID[i],MID[j]]=[MID[j],MID[i]]; }
+// 中盤の3場面を 5.8〜8.0／8.0〜10.0／10.0〜11.3 の枠へ入れる順番。take があれば6場面の候補から3つを選んで並べる
+// （C横並び／E真上／F後ろ姿／G寄りのディテール／H斜め前から迎えて並走／I高い位置から大きく回る）
+let MID=['C','E','F'];
+if(TAKE){
+  MID=['C','E','F','G','H','I'];
+  for(let i=MID.length-1;i>0;i--){ const j=Math.floor(R()*(i+1)); [MID[i],MID[j]]=[MID[j],MID[i]]; }
+  MID=MID.slice(0,3);
+}
 const SLOTS=[[5.8,8.0],[8.0,10.0],[10.0,11.3]];
 const sweep=(a,b,k,rev)=> rev ? lerp(b,a,k) : lerp(a,b,k);
 
@@ -229,10 +238,22 @@ function draw(t){
   // 方位（az）に m を掛ける＝車の中心線（x=0）で鏡に映した位置＝反対側から撮る
   const si=SLOTS.findIndex(s=>t>=s[0] && t<s[1]), shot = t<4.2?'A' : t<5.8?'B' : si>=0?MID[si] : 'D';
   const [s0,s1] = si>=0 ? SLOTS[si] : [0,0], sv=V[shot], m=sv.m;
-  if(shot==='A'){         // A：暗がりの正面 → 照明が入り、斜め前へ回り込みながら塗り替わる
-    const k=sstep(1.8,4.2,t), a0=-4+t*1.5, az=sv.rev ? lerp(-a0,-40,k) : lerp(a0,40,k);
-    pos=orbit(new THREE.Vector3(0,1.3,0.3), m*az, lerp(3,8+sv.el,k), lerp(15.5,16.5+sv.d,k));
-    look=new THREE.Vector3(0,lerp(1.5,1.35,k),0.3);
+  if(shot==='A'){         // A：暗がり → 照明が入り、斜め前へ回り込みながら塗り替わる。始まりは4つの型（どれも前照灯のまたたきが見える位置から）
+    const k=sstep(1.8,4.2,t);
+    if(sv.op===1){        // 1：前照灯の寄りから引いて全景へ
+      const q=sstep(1.2,4.2,t), tg=new THREE.Vector3(m*lerp(0.95,0,q), lerp(1.7,1.35,q), lerp(3.4,0.3,q));
+      pos=orbit(tg, m*lerp(12,40,q), lerp(3,8+sv.el,q), lerp(4.2,16.5+sv.d,q*q*(3-2*q))); look=tg;
+    }else if(sv.op===2){  // 2：高いところから降りてくる
+      pos=orbit(new THREE.Vector3(0,1.3,0.3), m*lerp(8,40,k), lerp(58,8+sv.el,k), lerp(21,16.5+sv.d,k));
+      look=new THREE.Vector3(0,1.35,0.3);
+    }else if(sv.op===3){  // 3：地面すれすれの斜め横から、前へ回り込みつつ持ち上がる
+      pos=orbit(new THREE.Vector3(0,1.3,0.3), m*lerp(50,36,k), lerp(0.6,8+sv.el,k), lerp(15,16.5+sv.d,k));
+      look=new THREE.Vector3(0,lerp(1.1,1.35,k),lerp(1.1,0.3,k));
+    }else{                // 0：正面から斜め前へ（従来）
+      const a0=-4+t*1.5, az=sv.rev ? lerp(-a0,-40,k) : lerp(a0,40,k);
+      pos=orbit(new THREE.Vector3(0,1.3,0.3), m*az, lerp(3,8+sv.el,k), lerp(15.5,16.5+sv.d,k));
+      look=new THREE.Vector3(0,lerp(1.5,1.35,k),0.3);
+    }
   }else if(shot==='B'){   // B：前輪＝カメラは止まった位置に据え置き、車体がフレームを横切って出ていく
     const wc=m>0?WHEEL0:WHEEL0R;
     pos=new THREE.Vector3(wc.x+m*5.4, 0.85, wc.z+3.3); look=new THREE.Vector3(wc.x, wc.y+0.35, wc.z-0.4); fov=40;
@@ -248,7 +269,19 @@ function draw(t){
     const k=sstep(s0,s1,t);
     pos=orbit(new THREE.Vector3(c.x,1.2,c.z), m*sweep(205,160,k,sv.rev), Math.max(3,lerp(9,5,k)+sv.el), 17+sv.d);
     look=new THREE.Vector3(c.x,1.6,c.z);
-  }else{                  // D：先回りして正面から迎え、脇をすれ違わせて見送る
+  }else if(shot==='G'){   // G：寄りのディテール＝車に付いて走りながら、鼻先（エンブレム・前のナンバー）からドア（ゼッケン・帯）へ流す
+    const k=sstep(s0,s1,t);
+    const tg=new THREE.Vector3(c.x+m*lerp(0.2,1.0,k), lerp(1.45,1.5,k), c.z+lerp(3.4,0.4,k));
+    pos=orbit(tg, m*lerp(28,82,k), 7, lerp(5.2,6.4,k)); look=tg; fov=34;
+  }else if(shot==='H'){   // H：斜め前から迎えて並走＝車の少し前を同じ速さで後ずさり、顔を見せ続ける（望遠で圧縮）
+    const k=sstep(s0,s1,t);
+    pos=orbit(new THREE.Vector3(c.x,1.2,c.z+0.5), m*sweep(24,48,k,sv.rev), Math.max(1.5,lerp(4,3,k)+sv.el), 25+sv.d);
+    look=new THREE.Vector3(c.x,1.45,c.z+0.5); fov=28;
+  }else if(shot==='I'){   // I：高い位置から大きく回る＝走る車の周りを上から半周
+    const k=sstep(s0,s1,t);
+    pos=orbit(new THREE.Vector3(c.x,0.8,c.z), m*sweep(130,30,k,sv.rev), 34+sv.el, 24+sv.d);
+    look=new THREE.Vector3(c.x,1.0,c.z+0.3);
+  }else{                 // D：先回りして正面から迎え、脇をすれ違わせて見送る
     pos=new THREE.Vector3(-4.8*m, 0.95, PASS_Z);
     look=new THREE.Vector3(c.x, 1.2, c.z+0.3); fov=40;
   }
