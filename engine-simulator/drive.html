@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>坂道で比較シミュレーター｜REGISTRO 500 GIAPPONE</title>
-<!-- ⛔導線なし・noindex のまま（坂道はエンジン編から来る従画面＝検索には出さない方針＝HANDOFF §10） -->
+<!-- ⛔導線なし・noindex のまま（坂道はエンジン編から来る従画面＝検索には出さない方針） -->
 <meta name="robots" content="noindex">
 <link rel="canonical" href="https://www.registro500.com/engine-simulator/drive">
 <!-- Google tag (gtag.js) -->
@@ -26,14 +26,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  /* 案B「レーシング・カタログ」パレット（HANDOFF §8-2・両ファイル共通） */
+  /* 案B「レーシング・カタログ」パレット（両ファイル共通） */
   --paper:#f2ece0; --card:#fbf7ee; --ink:#2b2a26; --sub:#7c7263; --line:#ddd3c0;
   --stage:#173d2c; --stage2:#0d2a1e; --red:#b23b2b; --red2:#8f2a1f; --gold:#c8a457; --cream:#f6f0e2;
   --series-a:#8fae9b; --series-b:#e8b04f;
   --bg:var(--paper); --deep:#4a4437; --accent:#7a6a53;
   --surface-1:var(--card); --text-primary:var(--ink); --text-secondary:var(--sub); --grid:#ece7dc;
   --warn:#8a5a00; --warnbg:#fff4dc; --stop:#8f2a1f; --stopbg:#fdeae6; --info:#3f5a4a; --infobg:#eef2ec;
-  --tag-up-bg:#e3efe4; --tag-up-fg:#2b6440; --tag-dn-bg:#f7e3df;   /* 札の効果バッジ色（index.html §8-2 と共通） */
+  --tag-up-bg:#e3efe4; --tag-up-fg:#2b6440; --tag-dn-bg:#f7e3df;   /* 札の効果バッジ色（index.html と共通） */
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;line-height:1.75;-webkit-text-size-adjust:100%}
@@ -51,7 +51,7 @@ input[type=range]{padding:0;border:0;background:transparent}
 .chips button.on{border-color:var(--stage);background:var(--stage);color:var(--cream)}
 .free[hidden]{display:none}
 .free{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 10px} .free label{font-size:12px;color:var(--sub)} .free output{color:var(--ink);font-weight:700;margin-left:6px}
-/* ゼッケン帯＝案A「対戦カード」（HANDOFF §8-9 ③・2026-09-20・場面チップの下）＝縞は上辺だけの飾り、本文は red2 のベタ地 */
+/* ゼッケン帯＝案A「対戦カード」（2026-09-20・場面チップの下）＝縞は上辺だけの飾り、本文は red2 のベタ地 */
 .banner{position:relative;margin:0 0 10px;border-radius:10px;overflow:hidden;background:var(--red2)}
 .banner .stripe{height:6px;background:repeating-linear-gradient(115deg,#0000 0 10px,#ffffff1f 10px 20px),var(--red)}
 .banner .row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:8px 12px 9px}
@@ -83,7 +83,7 @@ input[type=range]{padding:0;border:0;background:transparent}
 .badge .p{font-size:10px;letter-spacing:.08em;margin-top:1px;color:#ffe9c9}
 .res{margin:0 0 2px;font-size:15px;font-weight:700;color:var(--cream);line-height:1.6} .res b{color:var(--gold)}
 .sub{font-size:12px;color:var(--series-a);margin:0}
-/* 札（HANDOFF §8「(1) drive.html の札を index.html と同じマークアップ・CSS に揃える」＝.pk 系は index.html からの移植） */
+/* 札（index.html と同じマークアップ・CSS に揃える＝.pk 系は index.html からの移植） */
 .packs{display:flex;gap:9px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;margin-top:4px}
 .pk{appearance:none;flex:none;width:158px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 10px 10px 13px;position:relative;overflow:hidden;font:inherit;cursor:pointer}
 /* 広い画面では横スクロールをやめて折り返す＝PCはスクロールバーが出ずホイールも横に効かないため No.06 に届かなくなる（2026-09-19 実機指摘） */
@@ -102,7 +102,7 @@ input[type=range]{padding:0;border:0;background:transparent}
 .pk.on .no,.pk.on .sub,.pk.on .nm{color:#ffdfd4}
 .pk.on .tg{background:#ffffff26;color:#fff}
 .packWhy{font-size:12px;color:var(--sub);margin:4px 0 0;min-height:1em}
-/* 札の列＝舞台のすぐ下に常時表示（HANDOFF §8 修正指示・2026-09-19） */
+/* 札の列＝舞台のすぐ下に常時表示（2026-09-19） */
 .packwrap{margin:0 0 14px}
 .sechead{font-family:'Oswald',system-ui;font-weight:500;font-size:15px;letter-spacing:.06em;margin:0 0 8px;
   display:flex;align-items:center;gap:8px;color:var(--deep)}
@@ -127,7 +127,7 @@ label.row.model select{padding:9px 12px}
 .key.a{border-color:var(--series-a)} .key.b{border-color:var(--series-b)}
 .eng{font-size:12px;color:var(--ink);background:var(--card);border:1px dashed var(--line);border-radius:9px;padding:7px 10px;margin:0 0 10px;line-height:1.5}
 .eng .k{color:var(--sub)} .eng a{color:var(--deep);font-size:12px;white-space:nowrap}
-/* 数字ブロック（tile）＝舞台の中の半透明パネル（HANDOFF §8-4 手順5） */
+/* 数字ブロック（tile）＝舞台の中の半透明パネル */
 .hero{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 0}
 @media (max-width:420px){.hero{grid-template-columns:1fr}}
 .tile{border:1px solid #ffffff26;background:#ffffff0d;border-radius:12px;padding:10px 12px}
@@ -190,7 +190,7 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
       <p class="packWhy" id="packWhy"></p>
     </div>
 
-    <!-- ベース車両＝読み取り1行（HANDOFF §8-9 ④）＝車を選ぶ場所はエンジンの画面ひとつに集約＝ここは読むだけ。
+    <!-- ベース車両＝読み取り1行＝車を選ぶ場所はエンジンの画面ひとつに集約＝ここは読むだけ。
          共有URLで直接開いた人にも「何の車の話か」は要るが、選ばせる必要は無い。 -->
     <p class="driveHead" style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
       <span>ベース車両　<b id="baseLineText"></b></span>
@@ -281,7 +281,7 @@ function readHash() {
   if (h.get('g')) state.g = Math.min(8, Math.max(1, +h.get('g') || 4));
   if (h.get('l')) state.l = Math.min(12000, Math.max(500, +h.get('l') || 3000));
 }
-// SLOTS に無い eng キーもここでだけ書き出す（旧 URL #m=500F&b=disp:b77,cr:cr75 はそのまま読める＝eng が無いだけ・index.html と同じ・§7-17）
+// SLOTS に無い eng キーもここでだけ書き出す（旧 URL #m=500F&b=disp:b77,cr:cr75 はそのまま読める＝eng が無いだけ・index.html と同じ）
 function encSide(c) {
   const parts = SLOT_ORDER.filter(k => c[k] !== 'stock').map(k => `${k}:${c[k]}`);
   if (c.eng) parts.push(`eng:${c.eng}`);
@@ -301,7 +301,7 @@ function writeHash() {
   $('#toEngineLine').href = $('#toEngine').href;
 }
 
-// ───── ベース車両＝読み取り1行（HANDOFF §8-9 ④）─────
+// ───── ベース車両＝読み取り1行─────
 // 車種・タイプ・いまの状態を選ぶ場所はエンジンの画面ひとつに集約＝この画面には切替UIを置かない（onModelChanged 相当の処理は不要）。
 // 「最初から選び直す」＝共有URL・更新でハッシュが残った状態から素の状態（純正 vs 650 にボアアップが談合坂で走り出す）へ戻す（2026-09-19 追記）
 function resetAll() {
@@ -314,7 +314,7 @@ function resetAll() {
   update();   // writeHash() をここで一度書くが、直後に replaceState で消す＝素の状態は URL に何も残さない
   history.replaceState(null, '', location.pathname);
 }
-// 「いま」の状態を1行で（改造済み6欄は持たないので要約のみ・§7-17）
+// 「いま」の状態を1行で（改造済み6欄は持たないので要約のみ）
 // ※純正判定は state（選んだ選択肢の id）で見る＝built.picks はキャブが「純正のまま」でも実物の id に解決されるため 'stock' にならない
 function baseStateText(choices, built) {
   const stock = SLOT_ORDER.every(k => choices[k] === 'stock');
@@ -323,7 +323,7 @@ function baseStateText(choices, built) {
   }
   return stock ? '純正のまま' : engineSummary(choices, built);
 }
-// ベース車両の読み取り1行を書く（HANDOFF §8-9 ④）＝「500 F・L・純正のまま」のように車種タイプ＋いまの状態を1文で。
+// ベース車両の読み取り1行を書く＝「500 F・L・純正のまま」のように車種タイプ＋いまの状態を1文で。
 function renderBaseState() {
   const A = buildSpec(state.model, state.a);
   const m = modelById(state.model);
@@ -348,14 +348,14 @@ function renderDrive() {
 }
 
 // ⚠️純正判定は choices（選んだ選択肢の id）で見る＝built.picks はキャブの「純正のまま」も実物の id に解決するため
-//   built.picks[k].id==='stock' は常に偽になる（HANDOFF §8「実施記録」＝2026-09-19 に見つけて2026-09-20 に修正）。
+//   built.picks[k].id==='stock' は常に偽になる（2026-09-19 に見つけて2026-09-20 に修正）。
 function engineSummary(choices, built) {
   // ⚠️ 排気量と圧縮比は頭の「◯◯cc・圧縮比 ◯」で既に言っている＝parts に入れると二重に出る（2026-09-20 修正）。
   const parts = SLOT_ORDER.filter(k => k !== 'disp' && k !== 'cr' && choices[k] !== 'stock').map(k => built.picks[k].label.replace(/（.*$/, ''));
   const stock = SLOT_ORDER.every(k => choices[k] === 'stock');
   return `${Math.round(built.cc)}cc・圧縮比 ${built.spec.engine.cr}` + (parts.length ? '・' + parts.join('・') : stock ? '・純正のまま' : '');
 }
-// 舞台の札と結果の一文で使う短い名前＝パッケージに一致すればその名前、そうでなければ排気量（eng 換装も見る・§7-17）
+// 舞台の札と結果の一文で使う短い名前＝パッケージに一致すればその名前、そうでなければ排気量（eng 換装も見る）
 function packHit(side) {
   const m = modelById(state.model);
   return packagesFor(m).find(pk => packageMatches(pk, m, state[side])) || null;
@@ -378,7 +378,7 @@ function renderEngines() {
     el.append(a);
   }
 }
-// 王道パッケージ（エンジンの画面と同じ札＝マークアップ・CSSとも index.html の .pk に揃える・HANDOFF §8「(1)」）＝「変えた後」を1タップで決める
+// 王道パッケージ（エンジンの画面と同じ札＝マークアップ・CSSとも index.html の .pk に揃える）＝「変えた後」を1タップで決める
 function renderPacks() {
   const m = modelById(state.model); const box = $('#packs'); box.textContent = '';
   // 効果バッジ「力 +◯%」「街で +◯%」＝index.html と同じロジック。純正比ではなく「いま」（state.a）比の実値。
@@ -489,7 +489,7 @@ function render(L) {
   drawLimits(L);
   startAnim(L);
 }
-// ゼッケン帯＝案A「対戦カード」（HANDOFF §8-9 ③）＝「いま」と「変えた後」を左右に置き、状態＋CVを1行添える。
+// ゼッケン帯＝案A「対戦カード」＝「いま」と「変えた後」を左右に置き、状態＋CVを1行添える。
 // CV は既に計算済みの resA/resB から summarizeRes() で読むだけ＝新しく simulate() は呼ばない。
 function renderBanner(L) {
   const { A, B, resA, resB, nameA, nameB } = L;
@@ -503,7 +503,7 @@ function renderBanner(L) {
   const subB = pk ? packageSub(pk, m) : baseStateText(state.b, B);
   $('#bannerToSub').textContent = `${subB}・${cvB.toFixed(1)} CV`;
 }
-// 結果の一文の左に添えるゼッケン円（HANDOFF §8-4 手順5）＝秒数と早い／遅いだけ（新しい計算はしない）
+// 結果の一文の左に添えるゼッケン円＝秒数と早い／遅いだけ（新しい計算はしない）
 function updateBadge(numText, label) {
   $('#resBadgeNum').textContent = numText;
   $('#resBadgeLabel').textContent = label;
@@ -620,7 +620,7 @@ function hexA(hex, a) {
   const r = parseInt(n.slice(0, 2), 16), g = parseInt(n.slice(2, 4), 16), b = parseInt(n.slice(4, 6), 16);
   return `rgba(${r},${g},${b},${a})`;
 }
-// canvas の色は全部ここに集約＝ :root の CSS 変数から読む（drawChart と同じ手本）。⛔JS に色リテラルを残さない（HANDOFF §8-2）。
+// canvas の色は全部ここに集約＝ :root の CSS 変数から読む（drawChart と同じ手本）。⛔JS に色リテラルを残さない。
 function stageColors() {
   const css = getComputedStyle(document.documentElement);
   const v = (name) => css.getPropertyValue(name).trim();
@@ -921,7 +921,7 @@ function drawLimits(L) {
 }
 window.addEventListener('resize', () => { if (last) { if ($('#dChart').open) drawChart($('#chartV'), last); drawStage(last, animT); } });
 
-// 展開は一度に1つ（§7-17）＝ネイティブの name= に加えて JS の保険。閉じる toggle では何もしない（canvas は開いているときだけ描く）
+// 展開は一度に1つ＝ネイティブの name= に加えて JS の保険。閉じる toggle では何もしない（canvas は開いているときだけ描く）
 function bindAccordion() {
   const groups = {};
   for (const d of document.querySelectorAll('details[name]')) (groups[d.getAttribute('name')] ??= []).push(d);

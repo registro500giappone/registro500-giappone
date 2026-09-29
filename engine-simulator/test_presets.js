@@ -57,7 +57,7 @@ console.log(`1. 単独選択 ${n} 通り：${fails ? '失敗あり' : 'すべて
 for (const ex of START_EXAMPLES) for (const m of MODELS) { if (ex.families && !ex.families.includes(m.series)) continue; ok(finite(simulate(buildSpec(m.id, ex.choices).spec, RPM)), `出発点の例 ${ex.id} × ${m.id}`); }
 console.log('4. 出発点の例：' + (fails ? '要確認' : 'OK'));
 
-// 5. 王道パッケージ：車種ごとの出し分け・エンジン換装（eng）・自動換装・型式単位の除外を検品（2026-09-19 §7-17）
+// 5. 王道パッケージ：車種ごとの出し分け・エンジン換装（eng）・自動換装・型式単位の除外を検品（2026-09-19）
 {
   // 選択肢 id が実在し、その車種の全型式で有限値を返す（choices.eng も modelById が解決できること）
   for (const pk of PACKAGES) {

@@ -1,7 +1,7 @@
 // エンジン妄想シミュレーター プリセット（段2・2026-09-17）
 // 出典＝ref/stock_specs.md（純正）・ref/catalog_draft.md（定番品・5店掲載）・engines_abarth.js（Abarth）
 // ⭐ カムは店ごとに表記が違うので IVO/IVC/EVO/EVC の4角＋バルブリフト（カム山×ロッカー比 1.5）＋checkLift に正規化して持つ。
-//    checkLift＝カタログ角を測ったクリアランス − 運転クリアランス（HANDOFF §5）。店が基準を書かない品は 0.5（camFromCatalog の既定）。
+//    checkLift＝カタログ角を測ったクリアランス − 運転クリアランス。店が基準を書かない品は 0.5（camFromCatalog の既定）。
 // ⚠️ 店に数値の記載が無い項目を補ったところは assumed に列挙する（画面で「※」を付けて断る）。値は捏造せず、同系の既知品から借りる。
 
 const IGN_500 = [[1000, 10], [2000, 27], [3000, 38], [6000, 38]];
@@ -10,7 +10,7 @@ const IGN_HI = [[1000, 12], [2000, 28], [3000, 36], [6000, 36]];   // 高圧縮�
 
 // ───────────── 型式（出発点の土台） ─────────────
 // series＝画面の分類（車種チップ）。block＝ケース（Ø79.5 以上が入るか）。500R は series '500'・block '126'＝画面の
-// 「500」枠で選べつつ、126 系の大径キットがそのまま組める（2026-09-19 §7-17＝旧 family はこの2つを兼ねていて 500R で歪みが出ていた）。
+// 「500」枠で選べつつ、126 系の大径キットがそのまま組める（2026-09-19＝旧 family はこの2つを兼ねていて 500R で歪みが出ていた）。
 export const MODELS = [
   {
     id: '500N', label: '500 N（479cc・13CV）', series: '500', type: 'N', block: '500',
@@ -153,7 +153,7 @@ export const CAMS = [
     shops: ["D'Angelo Motori「Albero a camme 944/104° 66/94 94/66」"], assumed: ['測定基準は店に記載なし＝同店の他品（gioco 0,25）と同じと仮定'] },
   // Abarth 純正カム＝角は運転クリアランス 0.20 で測った値（checkLift 0.05）。同じ「40/80」でも店のカタログ角（checkLift 0.5）より作用角が長い＝別物として持つ。
   { id: 'a4080', label: 'Abarth 595 純正 40/80-80/40（運転隙で測定）', cam: cam(40, 80, 80, 40, 7.13, 0.05),
-    shops: ['Axel Gerstl「Abarth 595 camshaft」（復刻）'], hint: '§5 Abarth 校正で当てた値。店の 40/80 とは測り方が違うので同じ数字でも長い' },
+    shops: ['Axel Gerstl「Abarth 595 camshaft」（復刻）'], hint: 'Abarth の公表出力に合わせて決めた値。店の 40/80 とは測り方が違うので同じ数字でも長い' },
   { id: 'a4585', label: 'Abarth 695 純正 45/80-85/40（運転隙で測定）', cam: cam(45, 80, 85, 40, 7.13, 0.05),
     shops: ['fiat500sport「Abarth 695 用」'], hint: '695 SS の角。「695 相当」のカムは店ごとに 45/75・40/80 と割れる' },
 ];
@@ -238,7 +238,7 @@ export const START_EXAMPLES = [
   { id: '126cam', label: 'カム 40/80＋スポーツマフラー', choices: { cam: 'c4080', exh: 'sport' }, families: ['126'] },
 ];
 
-// ───────────── 王道パッケージ（2026-09-18・根拠は ref/packages_research.md／2026-09-19 §7-17 で並び順と126入口を追加）─────────────
+// ───────────── 王道パッケージ（2026-09-18・根拠は ref/packages_research.md／2026-09-19 に並び順と126入口を追加）─────────────
 // evidence＝その組合せが出た独立した店・スレの数。null＝根拠が無い参考枠（画面は「参考」と出す＝捏造しない）。
 //   ⚠️ CR はどのキットも固定しない（店の「q.c.」はピストン圧縮高さで圧縮比ではない）＝慣用値を置き画面で断る。
 // families＝出す車種（series）。only／except＝型式単位のさらなる絞り込み。
@@ -291,7 +291,7 @@ export function revCapRpm(built, res) {
 }
 // modelId＝ベース車両（車両側の型式・重さやギアの出所）。choices.eng が立っていれば、エンジンの土台（engine/cam/valves/
 // carb の既定・ignition・revLimit・block・assumed・note）はそちらの型式から採る＝「エンジンの土台だけ差し替える」本物の換装
-// （2026-09-19 §7-17）。built.model は常にエンジン側の型式＝revCapRpm や warnings() の block 判定はここを見ればよい。
+// （2026-09-19）。built.model は常にエンジン側の型式＝revCapRpm や warnings() の block 判定はここを見ればよい。
 // 車両側（重さ・ギア）は buildVehicle(modelId) が別に持つ＝この関数は触らない。
 export function buildSpec(modelId, choices) {
   const m = modelById(modelId);                       // ベース車両
@@ -317,7 +317,7 @@ export function buildSpec(modelId, choices) {
 
 // ───────────── 札（PACKAGES）を車種・型式に合わせて出し分ける／点灯判定 ─────────────
 // p700・p800 は「126 のクランクケースが前提」＝押した時点のベース車両のエンジン側 block が '500' なら eng:'126A1' を
-// 自動で足す（500R は series '500' だが block '126' なのでこの対象にならない＝そのまま組める。2026-09-19 §7-17）。
+// 自動で足す（500R は series '500' だが block '126' なのでこの対象にならない＝そのまま組める。2026-09-19）。
 const NEEDS_126_BLOCK = new Set(['p700', 'p800']);
 export function packagesFor(model) {
   return PACKAGES.filter(pk => pk.families.includes(model.series)
@@ -331,7 +331,7 @@ export function packageChoices(pk, model) {
 export function packageSub(pk, model) {
   return (NEEDS_126_BLOCK.has(pk.id) && model.block === '500') ? '126 エンジンに換装して' + pk.sub : pk.sub;
 }
-// 現在の choices（state.a / state.b）がこの札と一致するか＝6欄に加えて eng も見る（2026-09-19 §7-17）。
+// 現在の choices（state.a / state.b）がこの札と一致するか＝6欄に加えて eng も見る（2026-09-19）。
 export function packageMatches(pk, model, choices) {
   const want = packageChoices(pk, model);
   const wantFull = { ...DEFAULT_CHOICES, ...want };

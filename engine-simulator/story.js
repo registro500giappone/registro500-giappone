@@ -1,6 +1,6 @@
 // 差分の物語・ボトルネックの名指し・副作用の注意（段2・2026-09-17）
 // 純粋関数。simulate() の結果2本（いま／変えた後）と buildSpec() の戻り値から文章を組み立てる。
-// しきい値は diag_presets.js のレンジから決めた（HANDOFF §6 に表）。⭐数字は「差」と「目安」として書き、絶対値の断定はしない。
+// しきい値は diag_presets.js のレンジから決めた。⭐数字は「差」と「目安」として書き、絶対値の断定はしない。
 
 const at = (res, rpm) => res.find(r => r.rpm === rpm) || res[0];
 const avg = (res, lo, hi, key) => { const xs = res.filter(r => r.rpm >= lo && r.rpm <= hi).map(r => r[key]); return xs.reduce((a, b) => a + b, 0) / Math.max(xs.length, 1); };
@@ -94,7 +94,7 @@ export function tellStory(resA, resB, builtA, builtB) {
   return { A, B, zones, head };
 }
 
-// 副作用・組合せの注意（計算しない事柄は閾値で警告する＝HANDOFF §2）
+// 副作用・組合せの注意（計算しない事柄は閾値で警告する）
 export function warnings(built, res) {
   const s = built.spec, w = [];
   const cc = built.cc;
@@ -115,7 +115,7 @@ export function warnings(built, res) {
   return w;
 }
 
-// 画面に出す「この道具の限界」（HANDOFF §5 の限界①〜⑦を読者向けに）
+// 画面に出す「この道具の限界」（限界①〜⑦を読者向けに）
 export const LIMITS = [
   '純正4機種の再現は ±5%。スポーツカム側（Abarth 3機種）はファン込みで −1〜−12%、ファン無しで +16〜−1%＝公表値はその間。改造の効き目は実車の公表差より控えめに出る。',
   '吸気管の共鳴は入っていない（慣性だけ）。長いランナーやファンネルで出る「共鳴の山」は再現できない。',
