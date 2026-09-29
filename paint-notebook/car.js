@@ -5,7 +5,11 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {DecalGeometry} from 'three/addons/geometries/DecalGeometry.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 
-export const DEF = {bc:'#f1ede2',fin:'solid',tt:0,rc:'#f1ede2',cv:1,cc:'#1c1c1c',st:0,sc:'#b8261f',sw:0.44,sg:0.12,so:0,sd:0,sdc:'#b8261f',sdy:1.25,sdw:0.1,sdt:'',nb:'',rim:'silver',bmp:'chrome',seat:'#8a2a22',em:'df'};
+export const DEF = {bc:'#f1ede2',fin:'solid',tt:0,rc:'#f1ede2',cv:1,cc:'#1c1c1c',st:0,sc:'#b8261f',sw:0.44,sg:0.12,so:0,sd:0,sdc:'#b8261f',sdy:1.25,sdw:0.1,sdt:'',nb:'',rim:'silver',bmp:'chrome',seat:'#8a2a22',em:'df',pt:'',pc:'#1a1a1a',ps:0.35,tx:'',tp:'hood',tc:'#1a1a1a'};
+// 模様の型ごとの「大きさ」の既定（チェッカー＝升目の一辺・水玉＝玉の間隔・塗り分け＝境目の高さ）
+export const PAT_SIZE = {chk:[0.35,0.15,0.8], dot:[0.45,0.2,1.0], low:[1.2,0.5,2.2]};
+// 文字は英数字と一部の記号だけ（書体に字形がある字＝端末で字が変わらない）
+export const cleanText = s => String(s||'').replace(/[^A-Za-z0-9 .,'&!?#\-]/g,'').slice(0,14);
 
 export function readHash(){
   const S = {...DEF};
@@ -21,6 +25,8 @@ const U = {
   uSide:{value:0}, uSideCol:{value:new THREE.Color()}, uSideY:{value:1.2}, uSideW:{value:0.1},
   // アバルトの帯＝形（0 ただの線／1 太帯＋細線2本／2 太帯1本）・帯の前端と後端の z・文字の枠の前端と後端の z・文字（白抜き＝アルファだけ使う）
   uSideT:{value:0}, uSideZ:{value:new THREE.Vector2(1.80,-1.30)}, uTxtZ:{value:new THREE.Vector2()}, uTxt:{value:null},
+  // 模様＝0 なし／1 屋根のチェッカー／2 水玉／3 腰下の塗り分け。uPatS は型ごとの大きさ（PAT_SIZE）
+  uPat:{value:0}, uPatCol:{value:new THREE.Color()}, uPatS:{value:0.35},
 };
 function paintMaterial(isRoof){
   // 両面描画＝窓越しに見える外板の裏側（室内側）もボディ色にする（実車も室内の鉄板はボディ同色）
@@ -36,6 +42,7 @@ varying vec3 vWPos; varying vec3 vWNrm;
 uniform float uRoof,uCanvas,uStripe,uSW,uSG,uSO,uSide,uSideY,uSideW;
 uniform vec3 uCanvasCol,uStripeCol,uSideCol;
 uniform float uSideT; uniform vec2 uSideZ,uTxtZ; uniform sampler2D uTxt;
+uniform float uPat,uPatS; uniform vec3 uPatCol;
 float band(float d,float hw){ float a=fwidth(d)*1.2+1e-4; return 1.0-smoothstep(hw-a,hw+a,d); }`)
       .replace('#include <color_fragment>',`#include <color_fragment>
 vec3 wn=normalize(vWNrm);
@@ -48,12 +55,28 @@ if(uCanvas>0.5 && wn.y>0.5 && vWPos.y>2.9){
   float sd=length(max(d,0.0))+min(max(d.x,d.y),0.0)-0.08;
   isCanvas=1.0-smoothstep(-0.01,0.01,sd);
 }
+float ff=gl_FrontFacing?1.0:0.0; // 室内側（裏面）には模様を描かない
+float pat=0.0;
+if(uPat>0.5 && uPat<1.5 && uRoof>0.5){
+  // 屋根の上面だけに升目（車の中心線と幌の中心 z0.27 を升目の角にそろえる）
+  float cx=sin(3.14159*vWPos.x/uPatS), cz=sin(3.14159*(vWPos.z-0.27)/uPatS), k=cx*cz, a=fwidth(k)+1e-4;
+  pat=smoothstep(-a,a,k)*smoothstep(0.8,0.92,wn.y);
+}
+if(uPat>1.5 && uPat<2.5){
+  // 水玉＝面の向きに近い平面へ投影して並べる（1段おきに半分ずらす）
+  vec3 an=abs(wn); vec2 p=(an.x>an.y&&an.x>an.z)?vWPos.zy:(an.y>an.z?vWPos.xz:vWPos.xy);
+  vec2 c=p/uPatS; c.x+=0.5*mod(floor(c.y),2.0);
+  float d=length(fract(c)-0.5)*uPatS, r=uPatS*0.3, a=fwidth(d)+1e-4;
+  pat=1.0-smoothstep(r-a,r+a,d);
+}
+if(uPat>2.5){ float a=fwidth(vWPos.y)+1e-4; pat=1.0-smoothstep(uPatS-a,uPatS+a,vWPos.y); }
+pat*=(1.0-isCanvas)*ff;
+diffuseColor.rgb=mix(diffuseColor.rgb,uPatCol,pat);
 float stp=0.0; float ax=abs(vWPos.x);
 if(uStripe>0.5 && uStripe<1.5) stp=band(abs(vWPos.x-uSO),uSW*0.5);
 if(uStripe>1.5) stp=band(abs(ax-(uSG*0.5+uSW*0.5)),uSW*0.5);
 stp*=1.0-smoothstep(0.6,0.8,abs(wn.x));
 stp*=1.0-isCanvas;
-float ff=gl_FrontFacing?1.0:0.0; // 室内側（裏面）には模様を描かない
 stp*=ff;
 float sdl=0.0, sdt=0.0;
 if(uSide>0.5){
@@ -93,6 +116,13 @@ function numberTexture(txt){
   const m=g.measureText(txt), s=Math.min(1,190/m.width);
   g.save(); g.translate(128,128+(m.actualBoundingBoxAscent-m.actualBoundingBoxDescent)/2); g.scale(s,1); g.fillText(txt,0,0); g.restore();
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return t;
+}
+// 好きな文字＝ゼッケンと同じ書体・透明の地に1行。返す aspect＝横÷縦
+function freeText(txt,col){
+  const H=256, c=document.createElement('canvas'), g=c.getContext('2d'), fs=190, pad=24;
+  g.font=fs+'px '+ZEKKEN_FONT; c.width=Math.ceil(g.measureText(txt).width+pad*2); c.height=H;
+  g.font=fs+'px '+ZEKKEN_FONT; g.fillStyle=col; g.textBaseline='middle'; g.fillText(txt,pad,H*0.54);
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return {tex:t, aspect:c.width/H};
 }
 // ナンバープレート＝1951〜76年のイタリアの型（黒地に白字）。後ろ＝2段 275×200mm・前＝1段 262×57mm
 // 番号は架空（上段 県名＋紋章＋頭の桁／下段 末尾4桁、前は番号が先で県名が後）
@@ -298,7 +328,7 @@ export async function loadCar(url){
   const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
   const g = await loader.loadAsync(url);
   const root = new THREE.Group(); root.add(g.scene);
-  let doorsMesh = null; const rearPlates = [], wheelParts = {}, frontLogo = [];
+  let doorsMesh = null, hoodMesh = null, chassisMesh = null; const rearPlates = [], wheelParts = {}, frontLogo = [];
   const fontReady = loadPlateFont();
   g.scene.traverse(o => {
     if(!o.isMesh) return;
@@ -312,6 +342,8 @@ export async function loadCar(url){
     else if(mn==='License_Plate' || mn==='License_Plate_Blue'){ o.material = o.material.clone(); o.material.color.set(0x0d0d0d); rearPlates.push(o); }
     else if(mn==='Headlight_Glass'){ o.material = o.material.clone(); headMats.push(o.material); }
     if(/^Doors/.test(o.name)) doorsMesh = o;
+    if(/^Hood_Body/.test(o.name)) hoodMesh = o;
+    if(/^Main_Chassis_Body/.test(o.name)) chassisMesh = o;
     if(/^Front_Logo/.test(o.name)) frontLogo.push(o);
     const w = (o.name+' '+pn).match(/\b(FL|FR|BL|BR)-(Tire|Rim)/);
     if(w) (wheelParts[w[1]] ||= []).push(o);
@@ -416,6 +448,32 @@ export async function loadCar(url){
     }
   }
 
+  // 好きな文字＝ボンネット（前に立って読める向き）か、ドアの後ろの側面（左右とも外から読める向き）
+  const textMat = new THREE.MeshPhysicalMaterial({transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,clearcoat:1,clearcoatRoughness:0.06,roughness:0.4});
+  let textMeshes = [], lastTx = null;
+  function buildText(tx, tp, tc){
+    textMeshes.forEach(m=>{root.remove(m); m.geometry.dispose();}); textMeshes=[];
+    if(textMat.map){ textMat.map.dispose(); textMat.map=null; }
+    const target = tp==='side' ? chassisMesh : hoodMesh;
+    if(!tx || !target) return;
+    const T=freeText(tx,tc); textMat.map=T.tex; textMat.needsUpdate=true;
+    root.updateMatrixWorld(true);
+    const mw=root.matrixWorld, inv=mw.clone().invert(), rw=new THREE.Matrix4().extractRotation(mw), ray=new THREE.Raycaster();
+    // 置き場所ごと＝[光を当てる始点, 向き, 文字の右向き, 貼れる最大の幅と高さ]（車の座標。ボンネット z2.2〜3.5・側面の平らな所 z-0.6〜-1.5）
+    const spots = tp==='side'
+      ? [1,-1].map(s=>[new THREE.Vector3(s*6,1.55,-1.05), new THREE.Vector3(-s,0,0), new THREE.Vector3(0,0,-s), 0.95, 0.3])
+      : [[new THREE.Vector3(0,10,2.85), new THREE.Vector3(0,-1,0), new THREE.Vector3(1,0,0), 1.3, 0.32]];
+    for(const [o,dir,xr,maxW,maxH] of spots){
+      ray.set(o.clone().applyMatrix4(mw), dir.clone().transformDirection(mw));
+      const hit=ray.intersectObject(target,false)[0]; if(!hit) continue;
+      const n=dir.clone().negate(), x=xr.clone().addScaledVector(n,-xr.dot(n)).normalize(), y=new THREE.Vector3().crossVectors(n,x);
+      const rot=new THREE.Euler().setFromRotationMatrix(rw.clone().multiply(new THREE.Matrix4().makeBasis(x,y,n)));
+      const h=Math.min(maxH,maxW/T.aspect);
+      const geo=new DecalGeometry(target, hit.point, rot, new THREE.Vector3(h*T.aspect,h,0.4));
+      geo.applyMatrix4(inv); const m=new THREE.Mesh(geo,textMat); textMeshes.push(m); root.add(m);
+    }
+  }
+
   let curS = null;
   function apply(S){
     curS = S;
@@ -432,6 +490,11 @@ export async function loadCar(url){
       const len=S.sdw*sideTxt.aspect, zF=U.uSideZ.value.x, zR=U.uSideZ.value.y, m=0.1;
       if(sdt==='fa') U.uTxtZ.value.set(zR+m+len, zR+m); else U.uTxtZ.value.set(zF-m, zF-m-len);
     }
+    const pt=['chk','dot','low'].indexOf(S.pt)+1;
+    U.uPat.value=pt; U.uPatCol.value.set(S.pc);
+    if(pt){ const [,lo,hi]=PAT_SIZE[S.pt]; U.uPatS.value=Math.min(hi,Math.max(lo,S.ps)); }
+    const tx=cleanText(S.tx), tp=S.tp==='side'?'side':'hood', txKey=[tx,tp,S.tc].join('|');
+    if(lastTx!==txKey){ lastTx=txKey; buildText(tx,tp,S.tc); }
     seatMat.color.set(S.seat);
     if(S.rim==='body'){ rimMat.color.set(S.bc); rimMat.metalness=0; rimMat.roughness=0.3; }
     else if(S.rim==='white'){ rimMat.color.set('#eeeeea'); rimMat.metalness=0; rimMat.roughness=0.3; }
