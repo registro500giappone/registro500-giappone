@@ -93,7 +93,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
     <div class="panel">
       <details open>
         <summary>ボディの色</summary>
-        <div class="row" id="bodySw"></div>
+        <div class="row" id="bodySw"><label class="cap">当時の色（<span id="colName">Bianco 233</span>）</label></div>
         <div class="row"><label class="cap">色を自由に選ぶ</label><input type="color" id="bodyCol"></div>
         <div class="row" id="finish">
           <label class="cap">塗装の質感</label>
@@ -179,7 +179,16 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {DEF, PAT_SIZE, PROVINCES, cleanText, cleanPlate, readHash, loadCar} from './car.js?v=34';
 
-const BODY_SWATCHES = ['#b8261f','#f1ede2','#9fc6d6','#e8c23a','#2f6b45','#1f2e57','#1a1a1a','#d9c7a3','#e98a3a','#8c8f93'];
+// 当時の純正色＝FIAT の色名と色番号・年はイタリアの色表（500 Club Italia ほか）。オランダの色表（Fiat van der Laan）とも名前・番号が一致
+// 色味（hex）は見た目の近似。並びは登場順
+const BODY_COLORS = [
+  ['#c8372d','Rosso Corallo 135','1957〜60'], ['#ede3c8','Avorio 235','1957〜59'], ['#c9cbc6','Grigio Chiaro 672','1957〜60'],
+  ['#a9c4a0','Verde Chiaro 372','1957〜60'], ['#1f2a44','Blu Scuro 456','1957〜75'], ['#f0e8d2','Avorio Chiaro 214','1959〜63'],
+  ['#b0201f','Rosso Medio 115','1960〜71'], ['#cdb68e','Beige Sabbia 583','1963〜68'], ['#9cc6cf','Azzurro Acquamarina 433','1964〜68'],
+  ['#f1ede2','Bianco 233','1964〜75'], ['#e0701e','Arancio 294','1964〜71'], ['#d23a2a','Rosso Corallo 102','1968〜72'],
+  ['#e8c43a','Giallo Positano 208','1968〜72'], ['#4a3226','Marrone Testa di Moro 793','1970〜71'], ['#a8281f','Rosso Corallo Scuro 165','1971〜75'],
+  ['#e0a21c','Giallo Tahiti 276','1971〜73'], ['#8fb3d1','Azzurro Chiaro 415','1971〜74'], ['#2a8c8c','Turchese Farfalla 463','1974〜75'],
+];
 const CANVAS_SWATCHES = ['#1c1c1c','#d6c8a8','#7a2020','#2a3448'];
 const SEAT_SWATCHES = ['#2b2624','#8a2a22','#d8c7a4','#6b4a33','#26324f','#e9e3d6'];
 const S = readHash();
@@ -227,7 +236,7 @@ function writeHash(){
 // ---- UI ----
 const $=id=>document.getElementById(id);
 function swatches(el,list,key){ list.forEach(c=>{ const b=document.createElement('button'); b.className='sw'; b.style.background=c; b.dataset.c=c; b.setAttribute('aria-label',c); b.onclick=()=>{S[key]=c; apply();}; el.appendChild(b); }); }
-swatches($('bodySw'),BODY_SWATCHES,'bc'); swatches($('canvasSw'),CANVAS_SWATCHES,'cc'); swatches($('seatSw'),SEAT_SWATCHES,'seat');
+BODY_COLORS.forEach(([c,name,yr])=>{ const b=document.createElement('button'); b.className='sw'; b.style.background=c; b.dataset.c=c; b.title=name+'（'+yr+'）'; b.setAttribute('aria-label',b.title); b.onclick=()=>{S.bc=c; apply();}; $('bodySw').appendChild(b); }); swatches($('canvasSw'),CANVAS_SWATCHES,'cc'); swatches($('seatSw'),SEAT_SWATCHES,'seat');
 const bindColor=(id,key)=>$(id).addEventListener('input',e=>{S[key]=e.target.value; apply();});
 bindColor('bodyCol','bc'); bindColor('roofCol','rc'); bindColor('stCol','sc'); bindColor('sdCol','sdc'); bindColor('seatCol','seat');
 bindColor('canvasCol','cc'); bindColor('rimCol','rim'); bindColor('bmpCol','bmp');
@@ -255,6 +264,7 @@ $('tx').addEventListener('input',e=>{S.tx=cleanText(e.target.value); apply();});
 document.querySelectorAll('[data-tp]').forEach(b=>b.onclick=()=>{S.tp=b.dataset.tp; apply();});
 function syncUI(){
   document.querySelectorAll('#bodySw .sw').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===S.bc));
+  { const c=BODY_COLORS.find(c=>c[0]===S.bc); $('colName').textContent = c ? c[1]+'・'+c[2] : '自由に選んだ色'; }
   document.querySelectorAll('#canvasSw .sw').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===S.cc));
   document.querySelectorAll('#seatSw .sw').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===S.seat)); $('seatCol').value=S.seat;
   $('bodyCol').value=S.bc; $('roofCol').value=S.rc; $('stCol').value=S.sc; $('sdCol').value=S.sdc;
