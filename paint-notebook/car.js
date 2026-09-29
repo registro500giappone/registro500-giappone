@@ -5,10 +5,15 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {DecalGeometry} from 'three/addons/geometries/DecalGeometry.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 
-export const DEF = {bc:'#f1ede2',fin:'solid',tt:0,rc:'#f1ede2',cv:1,cc:'#1c1c1c',st:0,sc:'#b8261f',sw:0.44,sg:0.12,so:0,sd:0,sdc:'#b8261f',sdy:1.25,sdw:0.1,sdt:'',nb:'',rim:'silver',bmp:'chrome',seat:'#8a2a22',em:'df',pt:'',pc:'#1a1a1a',ps:0.35,tx:'',tp:'hood',tc:'#1a1a1a'};
+export const DEF = {bc:'#f1ede2',fin:'solid',tt:0,rc:'#f1ede2',cv:1,cc:'#1c1c1c',st:0,sc:'#b8261f',sw:0.44,sg:0.12,so:0,sd:0,sdc:'#b8261f',sdy:1.25,sdw:0.1,sdt:'',nb:'',rim:'silver',bmp:'chrome',seat:'#8a2a22',em:'df',pt:'',pc:'#1a1a1a',ps:0.35,tx:'',tp:'hood',tc:'#1a1a1a',ts:1,pv:'RM',pn:'00',pl:'110F'};
 // 模様の型ごとの「大きさ」の既定（チェッカー＝升目の一辺・水玉＝玉の間隔・塗り分け＝境目の高さ）
 export const PAT_SIZE = {chk:[0.35,0.15,0.8], dot:[0.45,0.2,1.0], low:[1.2,0.5,2.2]};
 // 文字は英数字と一部の記号だけ（書体に字形がある字＝端末で字が変わらない）
+// ナンバーの県＝1951〜76年のイタリアの県の略称（Roma だけは「ROMA」と綴る型）。綴り順
+export const PROVINCES = [['AG','Agrigento'],['AL','Alessandria'],['AN','Ancona'],['AO','Aosta'],['AP','Ascoli Piceno'],['AQ','L\'Aquila'],['AR','Arezzo'],['AT','Asti'],['AV','Avellino'],['BA','Bari'],['BG','Bergamo'],['BL','Belluno'],['BN','Benevento'],['BO','Bologna'],['BR','Brindisi'],['BS','Brescia'],['BZ','Bolzano'],['CA','Cagliari'],['CB','Campobasso'],['CE','Caserta'],['CH','Chieti'],['CL','Caltanissetta'],['CN','Cuneo'],['CO','Como'],['CR','Cremona'],['CS','Cosenza'],['CT','Catania'],['CZ','Catanzaro'],['EN','Enna'],['FE','Ferrara'],['FG','Foggia'],['FI','Firenze'],['FO','Forl\u00ec'],['FR','Frosinone'],['GE','Genova'],['GO','Gorizia'],['GR','Grosseto'],['IM','Imperia'],['IS','Isernia'],['LE','Lecce'],['LI','Livorno'],['LT','Latina'],['LU','Lucca'],['MC','Macerata'],['ME','Messina'],['MI','Milano'],['MN','Mantova'],['MO','Modena'],['MS','Massa-Carrara'],['MT','Matera'],['NA','Napoli'],['NO','Novara'],['NU','Nuoro'],['OR','Oristano'],['PA','Palermo'],['PC','Piacenza'],['PD','Padova'],['PE','Pescara'],['PG','Perugia'],['PI','Pisa'],['PN','Pordenone'],['PR','Parma'],['PS','Pesaro e Urbino'],['PT','Pistoia'],['PV','Pavia'],['PZ','Potenza'],['RA','Ravenna'],['RC','Reggio Calabria'],['RE','Reggio Emilia'],['RG','Ragusa'],['RI','Rieti'],['RM','Roma'],['RO','Rovigo'],['SA','Salerno'],['SI','Siena'],['SO','Sondrio'],['SP','La Spezia'],['SR','Siracusa'],['SS','Sassari'],['SV','Savona'],['TA','Taranto'],['TE','Teramo'],['TN','Trento'],['TO','Torino'],['TP','Trapani'],['TR','Terni'],['TS','Trieste'],['TV','Treviso'],['UD','Udine'],['VA','Varese'],['VC','Vercelli'],['VE','Venezia'],['VI','Vicenza'],['VR','Verona'],['VT','Viterbo']];
+// 上段の2桁・下段の4桁＝英数字だけ（大文字）。足りない桁は頭を 0 で埋める
+export const cleanPlate = (s,n) => String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,n);
+const plateParts = S => ({ v:PROVINCES.some(p=>p[0]===S.pv)?S.pv:'RM', n:cleanPlate(S.pn,2).padStart(2,'0'), l:cleanPlate(S.pl,4).padStart(4,'0') });
 export const cleanText = s => String(s||'').replace(/[^A-Za-z0-9 .,'&!?#\-]/g,'').slice(0,14);
 
 export function readHash(){
@@ -271,7 +276,7 @@ function plateEmblem(g,x,y,r){
   g.beginPath(); for(let i=0;i<10;i++){ const a=-Math.PI/2+i*Math.PI/5, rr=i%2?r*0.3:r*0.72; g.lineTo(x+rr*Math.cos(a),y+rr*Math.sin(a)); }
   g.closePath(); g.fillStyle='#eee'; g.fill(); g.restore();
 }
-export function plateTexture(kind){
+export function plateTexture(kind, P={v:'RM',n:'00',l:'110F'}){
   const c=document.createElement('canvas'), g=c.getContext('2d');
   const W=1024, H = kind==='rear' ? Math.round(W*200/275) : Math.round(W*57/262);
   c.width=W; c.height=H;
@@ -296,13 +301,19 @@ export function plateTexture(kind){
     // 下段「1 1 0 F」。上下の段とも字の高さは板の約4割、左右の端をそろえる
     const px=W/275, L=14*px, R=W-14*px, capH=H*0.40, gap=H*0.025;
     const base1=H*0.06+capH, base2=H*0.95;
-    row([{t:'R'},{t:'O',h:0.55},{t:'M',h:0.55},{t:'A',h:0.55},{t:'0'},{t:'0'}],L,R,base1,capH,gap);
-    row([{t:'1'},{t:'1'},{t:'0'},{t:'F'}],L,R,base2,capH,gap);
-    plateEmblem(g,W/2,H*0.06+capH*0.22,7*px);
+    if(P.v==='RM'){
+      row([{t:'R'},{t:'O',h:0.55},{t:'M',h:0.55},{t:'A',h:0.55},{t:P.n[0]},{t:P.n[1]}],L,R,base1,capH,gap);
+      plateEmblem(g,W/2,H*0.06+capH*0.22,7*px);
+    }else{
+      // Roma 以外＝県の2文字略称（同じ大きさ）＋紋章＋2桁。紋章は略称と桁のあいだの空き
+      const er=9*px, pos=row([{t:P.v[0]},{t:P.v[1]},{w:2*er},{t:P.n[0]},{t:P.n[1]}],L,R,base1,capH,gap);
+      plateEmblem(g,pos[2]+er,H*0.06+capH*0.5,er);
+    }
+    row([...P.l].map(t=>({t})),L,R,base2,capH,gap);
   }else{
     // 「00110F ⊛ ROMA」＝番号が先・県名が後（全部大文字・番号と県名は天地をそろえる＝ユーザー確定）。端から端まで埋める
     const px=W/262, L=10*px, R=W-10*px, capH=H*0.60, er=5*px;
-    const pos=row([{t:'00110F'},{w:2*er},{t:'ROMA'}],L,R,H*0.2+capH,capH,H*0.06);
+    const pos=row([{t:P.n+P.l},{w:2*er},{t:P.v==='RM'?'ROMA':P.v}],L,R,H*0.2+capH,capH,H*0.06);
     plateEmblem(g,pos[1]+er,H*0.5,er);
   }
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t;
@@ -368,7 +379,8 @@ export async function loadCar(url){
 
   // ナンバープレート
   await fontReady;
-  const plateMat = kind => new THREE.MeshPhysicalMaterial({map:plateTexture(kind),roughness:0.45,metalness:0,clearcoat:0.4,clearcoatRoughness:0.3});
+  let rearM = null, frontM = null;
+  const plateMat = kind => new THREE.MeshPhysicalMaterial({map:plateTexture(kind,plateParts(DEF)),roughness:0.45,metalness:0,clearcoat:0.4,clearcoatRoughness:0.3});
   if(rearPlates.length){
     // 板はエンジンフードに沿って曲がっている＝面に沿うデカールで貼る
     const inv=root.matrixWorld.clone().invert();
@@ -388,7 +400,7 @@ export async function loadCar(url){
           const px=v.dot(x), py=v.dot(y); x0=Math.min(x0,px); x1=Math.max(x1,px); y0=Math.min(y0,py); y1=Math.max(y1,py); } }
       const pos=hit.point.clone().addScaledVector(x,(x0+x1)/2).addScaledVector(y,(y0+y1)/2);
       const rot=new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x,y,n));
-      const m=plateMat('rear'); m.polygonOffset=true; m.polygonOffsetFactor=-4; m.depthWrite=false;
+      const m=rearM=plateMat('rear'); m.polygonOffset=true; m.polygonOffsetFactor=-4; m.depthWrite=false;
       for(const p of rearPlates){
         const geo=new DecalGeometry(p, pos, rot, new THREE.Vector3(x1-x0, y1-y0, 0.5));
         geo.applyMatrix4(inv); root.add(new THREE.Mesh(geo, m));
@@ -399,10 +411,12 @@ export async function loadCar(url){
     // 前＝バンパーの上・エンブレムの下（バンパー上端 y1.039〜エンブレム下端 y1.377 の中ほど）に横長の板
     // 262×57mm＝車の縮尺で 0.68×0.148。この高さの車体の面はほぼ垂直で平ら（中央 z3.857・端 z3.84）
     const w=0.68, h=0.148, d=0.012, black=new THREE.MeshPhysicalMaterial({color:0x0d0d0d,roughness:0.5});
-    const front=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), [black,black,black,black,plateMat('front'),black]);
+    frontM=plateMat('front');
+    const front=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), [black,black,black,black,frontM,black]);
     front.position.set(0, 1.208, 3.857+d/2+0.003); root.add(front);
   }
 
+  let lastPl = (P=>[P.v,P.n,P.l].join('|'))(plateParts(DEF));
   let decals = [], lastNb = null, sideTxt = {kind:null};
   // フロントのエンブレム＝元のエンブレムの中心（y1.475）へ前から当てて、当たった面に沿って貼る
   let emMesh = null, lastEm = '';
@@ -451,16 +465,21 @@ export async function loadCar(url){
   // 好きな文字＝ボンネット（前に立って読める向き）か、ドアの後ろの側面（左右とも外から読める向き）
   const textMat = new THREE.MeshPhysicalMaterial({transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,clearcoat:1,clearcoatRoughness:0.06,roughness:0.4});
   let textMeshes = [], lastTx = null;
-  function buildText(tx, tp, tc){
+  function buildText(tx, tp, tc, ts){
     textMeshes.forEach(m=>{root.remove(m); m.geometry.dispose();}); textMeshes=[];
     if(textMat.map){ textMat.map.dispose(); textMat.map=null; }
-    const target = tp==='side' ? chassisMesh : hoodMesh;
+    const target = tp==='side' ? chassisMesh : tp==='door' ? doorsMesh : hoodMesh;
     if(!tx || !target) return;
     const T=freeText(tx,tc); textMat.map=T.tex; textMat.needsUpdate=true;
     root.updateMatrixWorld(true);
     const mw=root.matrixWorld, inv=mw.clone().invert(), rw=new THREE.Matrix4().extractRotation(mw), ray=new THREE.Raycaster();
     // 置き場所ごと＝[光を当てる始点, 向き, 文字の右向き, 貼れる最大の幅と高さ]（車の座標。ボンネット z2.2〜3.5・側面の平らな所 z-0.6〜-1.5）
-    const spots = tp==='side'
+    // ドア＝ゼッケンと同じ位置（ドアの中心 z）に、下寄りの高さで貼る。幅はドアの幅の内側
+    let doorW=0.9, doorZ=0;
+    if(tp==='door'){ const b=new THREE.Box3().setFromObject(doorsMesh), c=b.getCenter(new THREE.Vector3()).applyMatrix4(inv); doorZ=c.z; doorW=Math.max(0.5,(b.max.z-b.min.z)*0.8); }
+    const spots = tp==='door'
+      ? [1,-1].map(s=>[new THREE.Vector3(s*6,1.12,doorZ), new THREE.Vector3(-s,0,0), new THREE.Vector3(0,0,-s), doorW, 0.3])
+      : tp==='side'
       ? [1,-1].map(s=>[new THREE.Vector3(s*6,1.55,-1.05), new THREE.Vector3(-s,0,0), new THREE.Vector3(0,0,-s), 0.95, 0.3])
       : [[new THREE.Vector3(0,10,2.85), new THREE.Vector3(0,-1,0), new THREE.Vector3(1,0,0), 1.3, 0.32]];
     for(const [o,dir,xr,maxW,maxH] of spots){
@@ -468,7 +487,7 @@ export async function loadCar(url){
       const hit=ray.intersectObject(target,false)[0]; if(!hit) continue;
       const n=dir.clone().negate(), x=xr.clone().addScaledVector(n,-xr.dot(n)).normalize(), y=new THREE.Vector3().crossVectors(n,x);
       const rot=new THREE.Euler().setFromRotationMatrix(rw.clone().multiply(new THREE.Matrix4().makeBasis(x,y,n)));
-      const h=Math.min(maxH,maxW/T.aspect);
+      const k=Math.min(1.6,Math.max(0.3,ts||1)), h=Math.min(maxH*k,maxW*k/T.aspect);
       const geo=new DecalGeometry(target, hit.point, rot, new THREE.Vector3(h*T.aspect,h,0.4));
       geo.applyMatrix4(inv); const m=new THREE.Mesh(geo,textMat); textMeshes.push(m); root.add(m);
     }
@@ -493,8 +512,8 @@ export async function loadCar(url){
     const pt=['chk','dot','low'].indexOf(S.pt)+1;
     U.uPat.value=pt; U.uPatCol.value.set(S.pc);
     if(pt){ const [,lo,hi]=PAT_SIZE[S.pt]; U.uPatS.value=Math.min(hi,Math.max(lo,S.ps)); }
-    const tx=cleanText(S.tx), tp=S.tp==='side'?'side':'hood', txKey=[tx,tp,S.tc].join('|');
-    if(lastTx!==txKey){ lastTx=txKey; buildText(tx,tp,S.tc); }
+    const tx=cleanText(S.tx), tp=['side','door'].includes(S.tp)?S.tp:'hood', ts=Math.min(1.6,Math.max(0.3,S.ts||1)), txKey=[tx,tp,S.tc,ts].join('|');
+    if(lastTx!==txKey){ lastTx=txKey; buildText(tx,tp,S.tc,ts); }
     seatMat.color.set(S.seat);
     if(S.rim==='body'){ rimMat.color.set(S.bc); rimMat.metalness=0; rimMat.roughness=0.3; }
     else if(S.rim==='white'){ rimMat.color.set('#eeeeea'); rimMat.metalness=0; rimMat.roughness=0.3; }
@@ -508,6 +527,9 @@ export async function loadCar(url){
     // ゼッケンの位置は帯の高さ・太さでも変わる＝それらが動いたときも貼り直す
     const em=['df','r'].includes(S.em)?S.em:'';
     if(em!==lastEm){ lastEm=em; buildEmblem(em); }
+    // ナンバー＝県・上段2桁・下段4桁が変わったときだけ描き直す（前後とも同じ指定）
+    const P=plateParts(S), plKey=[P.v,P.n,P.l].join('|');
+    if(plKey!==lastPl){ lastPl=plKey; for(const [m,k] of [[rearM,'rear'],[frontM,'front']]){ if(!m) continue; if(m.map) m.map.dispose(); m.map=plateTexture(k,P); m.needsUpdate=true; } }
     const nbKey=[S.nb,S.sd,S.sdt,S.sdy,S.sdw].join('|');
     if(lastNb!==nbKey){ lastNb=nbKey; buildDecals(S.nb,S); }
   }

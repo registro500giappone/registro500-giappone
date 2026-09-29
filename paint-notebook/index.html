@@ -149,13 +149,23 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
         <div class="row"><label class="cap" id="patSCap">大きさ</label><input type="range" id="patS" step="0.01"></div>
       </details>
       <details>
+        <summary>ナンバー</summary>
+        <div class="row"><label class="cap">左上＝県（前のナンバーも同じ）</label>
+          <select id="plV"></select></div>
+        <div class="row"><label class="cap">右上の2桁（英数字）</label>
+          <input type="text" id="plN" maxlength="2" autocapitalize="characters" placeholder="例 00"></div>
+        <div class="row"><label class="cap">下段の4桁（英数字）</label>
+          <input type="text" id="plL" maxlength="4" autocapitalize="characters" placeholder="例 110F"></div>
+      </details>
+      <details>
         <summary>ゼッケンと文字</summary>
         <div class="row"><label class="cap">ドアに丸いゼッケンを貼る（空欄で外す）</label>
           <input type="text" id="num" maxlength="3" inputmode="numeric" placeholder="例 22"></div>
         <div class="row"><label class="cap">好きな文字を入れる（英数字14文字まで・空欄で外す）</label>
           <input type="text" id="tx" maxlength="14" autocapitalize="characters" placeholder="例 ROMA 1965"><input type="color" id="txCol"></div>
         <div class="row" id="txPos"><label class="cap">文字の場所</label>
-          <button data-tp="hood">ボンネット</button><button data-tp="side">ドアの後ろ（左右）</button></div>
+          <button data-tp="hood">ボンネット</button><button data-tp="door">ドア（左右）</button><button data-tp="side">ドアの後ろ（左右）</button></div>
+        <div class="row"><label class="cap">文字の大きさ</label><input type="range" id="txS" min="0.3" max="1.6" step="0.05"></div>
       </details>
       <p class="note" style="margin:10px 0">色や模様はURLに残ります。「URLをコピー」で同じ仕上がりを人に見せられます。</p>
     </div>
@@ -171,7 +181,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
-import {DEF, PAT_SIZE, cleanText, readHash, loadCar} from './car.js?v=32';
+import {DEF, PAT_SIZE, PROVINCES, cleanText, cleanPlate, readHash, loadCar} from './car.js?v=34';
 
 const BODY_SWATCHES = ['#b8261f','#f1ede2','#9fc6d6','#e8c23a','#2f6b45','#1f2e57','#1a1a1a','#d9c7a3','#e98a3a','#8c8f93'];
 const CANVAS_SWATCHES = ['#1c1c1c','#d6c8a8','#7a2020','#2a3448'];
@@ -240,7 +250,11 @@ document.querySelectorAll('[data-em]').forEach(b=>b.onclick=()=>{S.em=b.dataset.
 $('num').addEventListener('input',e=>{S.nb=e.target.value.replace(/[^0-9A-Za-z]/g,'').slice(0,3); apply();});
 // 模様の型を選んだら大きさをその型の既定へ戻す（チェッカーは屋根いっぱいに見えるよう幌を外す）
 document.querySelectorAll('[data-pt]').forEach(b=>b.onclick=()=>{ const t=b.dataset.pt; S.pt=t; if(t){ S.ps=PAT_SIZE[t][0]; if(t==='chk') S.cv=0; } apply(); });
-bindColor('patCol','pc'); bindRange('patS','ps'); bindColor('txCol','tc');
+bindColor('patCol','pc'); bindRange('patS','ps'); bindColor('txCol','tc'); bindRange('txS','ts');
+$('plV').innerHTML=PROVINCES.map(([c,n])=>`<option value="${c}">${n}（${c==='RM'?'ROMA':c}）</option>`).join('');
+$('plV').addEventListener('change',e=>{S.pv=e.target.value; apply();});
+$('plN').addEventListener('input',e=>{S.pn=cleanPlate(e.target.value,2); apply();});
+$('plL').addEventListener('input',e=>{S.pl=cleanPlate(e.target.value,4); apply();});
 $('tx').addEventListener('input',e=>{S.tx=cleanText(e.target.value); apply();});
 document.querySelectorAll('[data-tp]').forEach(b=>b.onclick=()=>{S.tp=b.dataset.tp; apply();});
 function syncUI(){
@@ -261,11 +275,12 @@ function syncUI(){
   if(document.activeElement!==$('num')) $('num').value=S.nb;
   document.querySelectorAll('[data-pt]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.pt===S.pt));
   document.querySelectorAll('[data-tp]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tp===S.tp));
-  $('patCol').value=S.pc; $('txCol').value=S.tc;
+  $('patCol').value=S.pc; $('txCol').value=S.tc; $('txS').value=S.ts;
   const ps=PAT_SIZE[S.pt]; $('patS').disabled=!ps;
   if(ps){ $('patS').min=ps[1]; $('patS').max=ps[2]; $('patS').value=S.ps; }
   $('patSCap').textContent = S.pt==='low' ? '塗り分けの高さ' : '大きさ';
   if(document.activeElement!==$('tx')) $('tx').value=S.tx;
+  $('plV').value=S.pv; if(document.activeElement!==$('plN')) $('plN').value=S.pn; if(document.activeElement!==$('plL')) $('plL').value=S.pl;
 }
 
 const VIEWS={f34:[35,14,14.5],side:[90,4,15],rear34:[215,16,14.5],top:[20,70,17]};
