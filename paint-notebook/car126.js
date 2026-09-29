@@ -11,7 +11,7 @@ export {PROVINCES, cleanPlate, cleanText};
 
 const K = 2.6027;
 // 既定＝1972〜76年のイタリア製初期型（白 233・閉じた屋根・外ミラー無し・1976年6月までの登録のナンバー）
-export const DEF = {bc:'#eceae2',fin:'solid',tt:0,rc:'#1a1a1a',sr:0,mr:0,st:0,sc:'#b8261f',sw:0.44,sg:0.12,so:0,sd:0,sdc:'#b8261f',sdy:1.25,sdw:0.1,nb:'',rim:'silver',pt:'',pc:'#1a1a1a',ps:0.35,tx:'',tp:'hood',tc:'#1a1a1a',ts:1,pe:'51',pv:'RM',pn:'M1',pl:'2672'};
+export const DEF = {bc:'#eceae2',fin:'solid',tt:0,rc:'#1a1a1a',sr:0,cc:'#1c1c1c',mr:0,st:0,sc:'#b8261f',sw:0.44,sg:0.12,so:0,sd:0,sdc:'#b8261f',sdy:1.25,sdw:0.1,nb:'',rim:'silver',pt:'',pc:'#1a1a1a',ps:0.35,tx:'',tp:'hood',tc:'#1a1a1a',ts:1,pe:'51',pv:'RM',pn:'M1',pl:'2672'};
 // 当時の色＝FIAT の色番号と名前（初期型の資料＋1976年の Personal の6色）。色味は写真からの近似（色見本の実測ではない）
 export const COLORS = [['#eceae2','Bianco 233'],['#e6dcc0','Avorio Antico 234'],['#d9c9a3','Beige Chiaro 532'],['#e3c45a','Giallo Tufo 246'],['#d2461e','Rosso Arancio 171'],['#b3261e','Rosso Corallo Scuro 165'],['#5e7a2e','Verde Muschio 329'],['#8db255','Verde Chiaro 358'],['#3fa6a0','Turchese Farfalla 463'],['#3f7fb8','Blu Adriatico 408'],['#1f2f55','Blu Scuro 456']];
 export const PAT_SIZE = {chk:[0.35,0.15,0.8], dot:[0.45,0.2,1.0], low:[1.2,0.5,2.2]};
@@ -304,7 +304,11 @@ export async function loadCar(url){
     else if(mn==='Fiat_126P_Metal'){ if(!metalMat){ metalMat=o.material.clone(); } o.material = metalMat; }
     else if(mn==='Fiat_126P_License_plate'){ o.material = new THREE.MeshPhysicalMaterial({color:0x0d0d0d,roughness:0.5}); plateMesh = o; }
     // 灯火の反射板は元のモデルでは点灯している（発光10）＝消しておく。前照灯だけ動画で点ける
-    else if(/^Fiat_126P_Reflector_/.test(mn)){ o.material = o.material.clone(); o.material.emissiveIntensity = 0; if(mn==='Fiat_126P_Reflector_Headlight'){ o.material.emissive.set(0xfff1d6); headMats.push(o.material); } }
+    else if(/^Fiat_126P_Reflector_/.test(mn)){ o.material = o.material.clone(); o.material.emissiveIntensity = 0; if(mn==='Fiat_126P_Reflector_Headlight'){ o.material.emissive.set(0xfff1d6); headMats.push(o.material);
+      // 元の反射鏡は金属1・粗い地図つき＝暗い景色を映して黒く見える＝磨いたメッキに
+      const m=o.material; m.map=null; m.metalnessMap=null; m.roughnessMap=null; m.metalness=1; m.roughness=0.06; m.color.set(0xffffff); m.envMapIntensity=3; m.emissiveIntensity=0.05; m.needsUpdate=true; } }
+    // 前照灯のガラス＝透過（transmission）はスマホで暗く濁る＝ふつうの半透明の澄んだガラスに
+    else if(mn==='Fiat_126P_Headlight_Glass'){ const m=o.material.clone(); m.transmission=0; m.transparent=true; m.opacity=0.18; m.roughness=0.02; m.clearcoat=1; m.clearcoatRoughness=0; m.envMapIntensity=2.5; m.depthWrite=false; o.material=m; }
     else if(mn==='Fiat_126P_Fiat_Front_Emblem'){ frontLogo.push(o); }
     else if(mn==='Fiat_126P_Mirror'){ mirrors.push(o); }
     // 前の小灯は初期型では白いレンズ（車幅灯とウインカーを兼ねる・1976年から橙）＝前の2つだけ白く、側面の方向指示器は橙のまま
@@ -424,7 +428,7 @@ export async function loadCar(url){
     root.updateMatrixWorld(true);
     const mw=root.matrixWorld, inv=mw.clone().invert(), rw=new THREE.Matrix4().extractRotation(mw), ray=new THREE.Raycaster();
     const spots = tp==='door'
-      ? [1,-1].map(s=>[new THREE.Vector3(s*6,1.15,DOOR.z), new THREE.Vector3(-s,0,0), new THREE.Vector3(0,0,-s), DOOR.w*0.8, 0.3])
+      ? [1,-1].map(s=>[new THREE.Vector3(s*6,0.92,DOOR.z), new THREE.Vector3(-s,0,0), new THREE.Vector3(0,0,-s), DOOR.w*0.8, 0.3])
       : tp==='side'
       ? [1,-1].map(s=>[new THREE.Vector3(s*6,1.6,-1.2), new THREE.Vector3(-s,0,0), new THREE.Vector3(0,0,-s), 0.95, 0.3])
       : [[new THREE.Vector3(0,10,2.75), new THREE.Vector3(0,-1,0), new THREE.Vector3(1,0,0), 1.4, 0.34]];
@@ -444,7 +448,7 @@ export async function loadCar(url){
   function apply(S){
     curS=S;
     bodyMat.color.set(S.bc); U.uBody.value.set(S.bc); setFinish(bodyMat,S.fin);
-    U.uTT.value=S.tt; U.uRoofCol.value.set(S.rc); U.uSR.value=S.sr;
+    U.uTT.value=S.tt; U.uRoofCol.value.set(S.rc); U.uSR.value=S.sr; U.uSRCol.value.set(S.cc||'#1c1c1c');
     U.uStripe.value=S.st; U.uStripeCol.value.set(S.sc); U.uSW.value=S.sw; U.uSG.value=S.sg; U.uSO.value=-S.so;
     U.uSide.value=S.sd; U.uSideCol.value.set(S.sdc); U.uSideY.value=S.sdy; U.uSideW.value=S.sdw;
     const pt=['chk','dot','low'].indexOf(S.pt)+1;
@@ -470,6 +474,6 @@ export async function loadCar(url){
     bodyMat.color.set(col); U.uBody.value.set(col);
     if(curS && curS.rim==='body' && rimMat) rimMat.color.set(col);
   }
-  function setHeadlights(k){ headMats.forEach(m=>{ m.emissive.set(0xfff1d6); m.emissiveIntensity=k*6; }); }
+  function setHeadlights(k){ headMats.forEach(m=>{ m.emissive.set(0xfff1d6); m.emissiveIntensity=Math.max(0.05,k*6); }); }
   return {root, apply, update, setBody, wheels, heads, setHeadlights, bodyMesh};
 }

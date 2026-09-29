@@ -105,7 +105,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
         <div class="row"><label class="cap">屋根の色（ツートン）</label>
           <button id="tt" aria-pressed="false">屋根だけ別の色にする</button><input type="color" id="roofCol"></div>
         <div class="row"><label class="cap">開閉屋根（当時の注文装備・黒い帆布）</label>
-          <button id="sr" aria-pressed="false">帆布の開閉屋根を付ける</button></div>
+          <button id="sr" aria-pressed="false">帆布の開閉屋根を付ける</button><span id="canvasSw" style="display:contents"></span><input type="color" id="canvasCol"></div>
         <div class="row"><label class="cap">外ミラー（初期型は付いていない）</label>
           <button id="mr" aria-pressed="false">ドアミラーを付ける</button></div>
       </details>
@@ -168,7 +168,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
-import {DEF, PAT_SIZE, PROVINCES, COLORS, cleanText, cleanPlate, readHash, loadCar} from './car126.js?v=8';
+import {DEF, PAT_SIZE, PROVINCES, COLORS, cleanText, cleanPlate, readHash, loadCar} from './car126.js?v=12';
 
 const S = readHash();
 
@@ -219,6 +219,9 @@ COLORS.forEach(([c,name])=>{ const b=document.createElement('button'); b.classNa
 const bindColor=(id,key)=>$(id).addEventListener('input',e=>{S[key]=e.target.value; apply();});
 bindColor('bodyCol','bc'); bindColor('roofCol','rc'); bindColor('stCol','sc'); bindColor('sdCol','sdc');
 bindColor('rimCol','rim');
+// 帆布の色＝500 の幌と同じ見本（当時に合わせるのはボディ色だけ）
+['#1c1c1c','#d6c8a8','#7a2020','#2a3448'].forEach(c=>{ const b=document.createElement('button'); b.className='sw'; b.style.background=c; b.dataset.c=c; b.setAttribute('aria-label',c); b.onclick=()=>{S.cc=c; if(!S.sr) S.sr=1; apply();}; $('canvasSw').appendChild(b); });
+bindColor('canvasCol','cc');
 const bindRange=(id,key)=>$(id).addEventListener('input',e=>{S[key]=+e.target.value; apply();});
 bindRange('stW','sw'); bindRange('stG','sg'); bindRange('stO','so');
 $('stOc').onclick=()=>{S.so=0; apply();}; bindRange('sdY','sdy'); bindRange('sdW','sdw');
@@ -241,6 +244,7 @@ $('tx').addEventListener('input',e=>{S.tx=cleanText(e.target.value); apply();});
 document.querySelectorAll('[data-tp]').forEach(b=>b.onclick=()=>{S.tp=b.dataset.tp; apply();});
 function syncUI(){
   document.querySelectorAll('#bodySw .sw').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===S.bc));
+  document.querySelectorAll('#canvasSw .sw').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===S.cc)); $('canvasCol').value=S.cc;
   $('bodyCol').value=S.bc; $('roofCol').value=S.rc; $('stCol').value=S.sc; $('sdCol').value=S.sdc;
   $('stW').value=S.sw; $('stG').value=S.sg; $('stO').value=S.so; $('sdY').value=S.sdy; $('sdW').value=S.sdw;
   $('tt').setAttribute('aria-pressed',!!S.tt); $('sr').setAttribute('aria-pressed',!!S.sr); $('sd').setAttribute('aria-pressed',!!S.sd);
