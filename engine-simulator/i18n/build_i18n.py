@@ -67,7 +67,7 @@ def stage1(html, lang, page, meta):
     html = setmeta(html, 'name', 'description', m['description'])
     html = setmeta(html, 'property', 'og:title', m['og_title'])
     html = setmeta(html, 'property', 'og:description', m['og_description'])
-    html = setmeta(html, 'property', 'og:image', f'{SITE}/og/{meta["_og_image"][lang]}')
+    html = setmeta(html, 'property', 'og:image', f'{SITE}/og/{m.get("og_image") or meta["_og_image"][lang]}')
     html = html.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n'
                         f'<script src="/engine-simulator/i18n/{lang}.js"></script>\n'
                         '<script src="/engine-simulator/i18n/tr.js"></script>', 1)
