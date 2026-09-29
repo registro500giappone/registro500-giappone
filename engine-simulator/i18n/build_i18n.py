@@ -38,6 +38,15 @@ def page_url(lang, page):
     return f'{SITE}/{lang}/engine-simulator/' + ('' if page == 'index' else page)
 
 
+def hreflang_links(page):
+    """Same block as the Japanese original carries (x-default = English, as on /en/torque)."""
+    ja = f'{SITE}/engine-simulator/' + ('' if page == 'index' else page)
+    return '\n'.join([f'<link rel="alternate" hreflang="ja" href="{ja}">',
+                      f'<link rel="alternate" hreflang="en" href="{page_url("en", page)}">',
+                      f'<link rel="alternate" hreflang="it" href="{page_url("it", page)}">',
+                      f'<link rel="alternate" hreflang="x-default" href="{page_url("en", page)}">'])
+
+
 def strip_js_comments(code):
     code = re.sub(r'/\*[\s\S]*?\*/', lambda m: '' if JP.search(m.group(0)) else m.group(0), code)
     out = []
@@ -60,7 +69,13 @@ def stage1(html, lang, page, meta):
     html = html.replace('<html lang="ja">', f'<html lang="{lang}">', 1)
     html = re.sub(r'<title>[\s\S]*?</title>', f'<title>{m["title"]}</title>', html, count=1)
     html = re.sub(r'<meta name="robots"[^>]*>\n?', '', html)
-    html = re.sub(r'<link rel="canonical"[^>]*>', f'<meta name="robots" content="noindex">\n<link rel="canonical" href="{page_url(lang, page)}">', html, count=1)
+    html = re.sub(r'<link rel="alternate" hreflang="[^"]*"[^>]*>\n?', '', html)
+    # pages opened to search ("indexable" in meta.json) get the ja/en/it alternates instead of noindex
+    if meta[page].get('indexable'):
+        head = f'<link rel="canonical" href="{page_url(lang, page)}">\n' + hreflang_links(page)
+    else:
+        head = f'<meta name="robots" content="noindex">\n<link rel="canonical" href="{page_url(lang, page)}">'
+    html = re.sub(r'<link rel="canonical"[^>]*>', head, html, count=1)
 
     def setmeta(h, attr, key, val):
         return re.sub(rf'<meta {attr}="{re.escape(key)}" content="[^"]*">', f'<meta {attr}="{key}" content="{val}">', h, count=1)
