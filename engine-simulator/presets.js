@@ -109,7 +109,7 @@ export const DISPLACEMENTS = [
     crHint: 9.0 },
   { id: 'b85', label: '794cc（Ø85.0）', bore: 85.0, nominal: 800, blocks: ['126'],
     shops: ["D'Angelo Motori「800cc Ø85」", 'FD Ricambi「Piston Kit Ø85（ピストンのみ）」'],
-    crHint: 9.0, hint: 'この道具の上限（HANDOFF §2）。シリンダー壁が薄く、冷却も余裕が無い' },
+    crHint: 9.0, hint: 'この道具の上限。シリンダー壁が薄く、冷却も余裕が無い' },
 ];
 
 // ───────────── 欄2：圧縮比 ─────────────
