@@ -299,7 +299,7 @@ export async function loadCar(url){
     // 塗装＝元の材質の陰（AO）だけ引き継ぐ＝継ぎ目・ドアの隙間の影が残る
     else if(mn==='Fiat_126P_Car_paint'){ if(o.material.aoMap){ bodyMat.aoMap=o.material.aoMap; bodyMat.aoMapIntensity=1; } o.material = bodyMat; bodyMesh = o; }
     else if(mn==='Fiat_126P_Windows') o.material = glassMat;
-    else if(mn==='Fiat_126P_Rim'){ if(!rimMat){ rimMat=o.material.clone(); } o.material = rimMat; }
+    else if(mn==='Fiat_126P_Rim'){ if(!rimMat){ rimMat=o.material.clone(); rimMat.userData.maps={map:rimMat.map, metalnessMap:rimMat.metalnessMap, roughnessMap:rimMat.roughnessMap}; } o.material = rimMat; }
     else if(mn==='Fiat_126P_Plastic'){ if(!plasticMat) plasticMat=plasticMaterial(o.material); o.material=plasticMat; }
     else if(mn==='Fiat_126P_Metal'){ if(!metalMat){ metalMat=o.material.clone(); } o.material = metalMat; }
     else if(mn==='Fiat_126P_License_plate'){ o.material = new THREE.MeshPhysicalMaterial({color:0x0d0d0d,roughness:0.5}); plateMesh = o; }
@@ -457,11 +457,15 @@ export async function loadCar(url){
     const tx=cleanText(S.tx), tp=['side','door'].includes(S.tp)?S.tp:'hood', ts=Math.min(1.6,Math.max(0.3,S.ts||1)), txKey=[tx,tp,S.tc,ts].join('|');
     if(lastTx!==txKey){ lastTx=txKey; buildText(tx,tp,S.tc,ts); }
     if(rimMat){
+      // 元のホイールは灰色の地図と金属・粗さの地図つき＝塗るときは外す（掛け算で色が沈む）。銀は元に戻す
+      const painted=S.rim!=='silver', M0=rimMat.userData.maps;
+      rimMat.map=painted?null:M0.map; rimMat.metalnessMap=painted?null:M0.metalnessMap; rimMat.roughnessMap=painted?null:M0.roughnessMap;
       if(S.rim==='body'){ rimMat.color.set(S.bc); rimMat.metalness=0; rimMat.roughness=0.3; }
       else if(S.rim==='white'){ rimMat.color.set('#eeeeea'); rimMat.metalness=0; rimMat.roughness=0.3; }
       else if(S.rim==='black'){ rimMat.color.set('#1b1b1b'); rimMat.metalness=0; rimMat.roughness=0.4; }
       else if(S.rim[0]==='#'){ rimMat.color.set(S.rim); rimMat.metalness=0; rimMat.roughness=0.3; }
       else { rimMat.color.set('#ffffff'); rimMat.metalness=1; rimMat.roughness=1; }
+      rimMat.needsUpdate=true;
     }
     mirrors.forEach(o=>o.visible=!!S.mr);
     const P=plateParts(S), plKey=[P.e,P.v,P.n,P.l].join('|');
