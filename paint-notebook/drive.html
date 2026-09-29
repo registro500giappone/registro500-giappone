@@ -38,6 +38,7 @@ body.rec #title .copy{font-size:66px}
 /* ロゴを車の絵と文字に分けた（元の logo_vertical.png の配置を再現＝車は幅908/1200・左端147/1200） */
 #title .lcar{width:75.67%;margin-left:12.25%;transform-origin:14% 96%;will-change:transform}
 #title .ltxt{width:100%;margin-top:.75%}
+body.c126 #title .lcar{width:79%;margin-left:10.5%}
 #title span{display:block;margin-top:.9em;font-size:min(3.4vh,20px);letter-spacing:.08em;font-weight:600;color:#3f3a31}
 body.rec #title span{font-size:62px}
 .bar{display:flex;gap:8px;align-items:center;width:min(100%,420px)}
@@ -88,7 +89,17 @@ body.rec .acts{display:none}
 import * as THREE from 'three';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {Reflector} from 'three/addons/objects/Reflector.js';
-import {readHash, loadCar} from './car.js?v=34';
+// ?car=126 で 126 を走らせる（126 のお絵描き手帳の「動画にする」から来る）。無ければ 500
+const CAR126 = new URLSearchParams(location.search).get('car')==='126';
+const {readHash, loadCar} = await import(CAR126 ? './car126.js?v=8' : './car.js?v=34');
+const DIR = CAR126 ? -1 : 1; // ロゴの車の向き＝500 は左向き・126 は右向き（絵は反転しない＝動きのほうを左右逆にする）
+if(CAR126){
+  document.title='走る126｜REGISTRO 500 GIAPPONE';
+  const T=document.getElementById('title');
+  T.querySelector('.copy').textContent='あなた色の126を走らせよう';
+  T.querySelector('.lcar').src='logo-car126.png'; T.querySelector('.ltxt').src='logo-text126.png'; T.querySelector('.ltxt').alt='Registro126 Giappone';
+  document.body.classList.add('c126');
+}
 
 const REC = new URLSearchParams(location.search).has('rec');
 if(REC) document.body.classList.add('rec');
@@ -198,15 +209,15 @@ const ltxt=t=> t<7 ? 1-sstep(0.4,0.85,t) : sstep(13.4,13.7,t);
 const copy=t=> t<7 ? 1-sstep(0.2,0.5,t) : sstep(14.2,14.55,t);
 const T_IN=13.6, T_STOP=14.1;                       // 車の絵が入り始める／止まる時刻
 function logoCar(t){
-  if(t<7){                                          // 走り去る＝加速して左へ・発進で鼻先が上がる
+  if(t<7){                                          // 走り去る＝加速して左へ・発進で鼻先が上がる（126 は右へ）
     const k=sstep(0.08,0.75,t);
-    return {o:1, x:-175*k*k, a:2.4*sstep(0.08,0.25,t)*(1-sstep(0.5,0.75,t)), org:'86% 96%'};
+    return {o:1, x:-175*k*k*DIR, a:2.4*sstep(0.08,0.25,t)*(1-sstep(0.5,0.75,t))*DIR, org:CAR126?'20% 97%':'86% 96%'};
   }
   const k=clamp((t-T_IN)/(T_STOP-T_IN),0,1);
   const x=150*Math.pow(1-k,3);                       // 速く入って最後に一気に減速（急ブレーキ）
   const a= t<T_STOP ? -3.6*sstep(T_STOP-0.22,T_STOP,t)   // ブレーキで前のめり（後ろが浮く）
                     : -3.6*Math.exp(-(t-T_STOP)*7)*Math.cos((t-T_STOP)*20); // 止まって揺り戻す
-  return {o:t<T_IN?0:1, x, a, org:'14% 96%'};
+  return {o:t<T_IN?0:1, x:x*DIR, a:a*DIR, org:CAR126?'83% 97%':'14% 96%'};
 }
 
 let car, spots=[], PASS_Z=0, WHEEL0, WHEEL0R, shadow;
@@ -326,6 +337,9 @@ function setT(t){
 const OUT_W=1080, OUT_H=1920;
 const LAY={copy:{y:531,size:66,ls:3.96,col:'#3a352c',wt:700}, url:{y:1366,size:62,ls:4.96,col:'#3f3a31',wt:600},
   lcar:{x:197.52,y:647.77,w:686.47,h:321.30}, ltxt:{x:86.40,y:975.88,w:907.20,h:285.01}};
+// 126 のロゴ（logo_vertical126.png を車 10.5〜89.5%・境目 53.76% で切った2枚）＝車と文字が 500 より背が高い。
+// 縦は中央ぞろえ＝増えた高さ Δ の半分だけ全体が上がる（車 716.7×345.5・文字 907.2×296.2・Δ＝35.4）
+if(CAR126) Object.assign(LAY,{copy:{...LAY.copy,y:513.3}, url:{...LAY.url,y:1383.7}, lcar:{x:181.66,y:630.07,w:716.69,h:345.50}, ltxt:{x:86.40,y:982.38,w:907.20,h:296.18}});
 const UI_FONT=getComputedStyle(document.body).fontFamily;
 function paintOverlay(ctx,t){
   const k=card(t);
@@ -363,7 +377,7 @@ function resize(){
 }
 new ResizeObserver(resize).observe(frame); resize();
 
-car = await loadCar('fiat500.glb');
+car = await loadCar(CAR126 ? 'fiat126.glb' : 'fiat500.glb');
 scene.add(car.root); car.apply(S);
 { // 車の真下の影
   const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d');
@@ -399,8 +413,8 @@ if(!REC){
   const $=id=>document.getElementById(id);
   const mk=$('mk'), msg=$('mkMsg'), meter=mk.querySelector('.meter'), barEl=$('mkBar'), vid=$('mkVid'), saveBtn=$('mkSave'), closeBtn=$('mkClose');
   let cancel=false, outFile=null;
-  $('back').href='./'+location.hash;
-  $('retake').onclick=()=>{ location.href='drive.html?take='+(1+Math.floor(Math.random()*9999))+location.hash; };
+  $('back').href=(CAR126?'./126.html':'./')+location.hash;
+  $('retake').onclick=()=>{ location.href='drive.html?'+(CAR126?'car=126&':'')+'take='+(1+Math.floor(Math.random()*9999))+location.hash; };
   const closeMk=()=>{ mk.classList.remove('on'); vid.pause(); if(vid.src){ URL.revokeObjectURL(vid.src); vid.removeAttribute('src'); } };
   closeBtn.onclick=()=>{ if(making) cancel=true; else closeMk(); };
   // iPhone の Safari は <a download> が効かない＝共有シートから「ビデオを保存」。共有は押された流れの中で直に呼ぶ
