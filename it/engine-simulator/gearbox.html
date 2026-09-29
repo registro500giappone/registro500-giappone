@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="it"><head>
+<meta charset="utf-8">
+<script src="/engine-simulator/i18n/it.js"></script>
+<script src="/engine-simulator/i18n/tr.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Simulatore della Trasmissione dei Sogni per FIAT 500 e 126 | Registro500 Giappone</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://www.registro500.com/it/engine-simulator/gearbox">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH');
+</script>
+<meta name="description" content="Tieni il motore e cambia cambio, coppia conica, pneumatici o aggiungi la 5ª marcia a una FIAT 500 o 126 raffreddata ad aria: guarda cosa cambia in giri di crociera, velocità massima, salite e accelerazione.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Simulatore della Trasmissione dei Sogni">
+<meta property="og:description" content="Cambia cambio, coppia conica e pneumatici di una FIAT 500 o 126 raffreddata ad aria e guarda come cambiano giri, velocità massima e salite.">
+<meta property="og:image" content="https://www.registro500.com/og/portal-it.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+  
+  --paper:#f2ece0; --card:#fbf7ee; --ink:#2b2a26; --sub:#7c7263; --line:#ddd3c0;
+  --stage:#173d2c; --stage2:#0d2a1e; --red:#b23b2b; --red2:#8f2a1f; --gold:#c8a457; --cream:#f6f0e2;
+  --series-a:#8fae9b; --series-b:#e8b04f;
+  --bg:var(--paper); --deep:#4a4437; --accent:#7a6a53;
+  --surface-1:var(--card); --text-primary:var(--ink); --text-secondary:var(--sub); --grid:#ece7dc;
+  --warn:#8a5a00; --warnbg:#fff4dc; --stop:#8f2a1f; --stopbg:#fdeae6; --info:#3f5a4a; --infobg:#eef2ec;
+  --tag-up-bg:#e3efe4; --tag-up-fg:#2b6440; --tag-dn-bg:#f7e3df;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;line-height:1.75;-webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto;padding:16px 16px 72px}
+.topbar{margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.topbar a{color:var(--sub);text-decoration:none;font-size:13px}
+.topbar a:hover{color:var(--deep)}
+h1{font-family:'Oswald',system-ui;font-weight:700;font-size:23px;margin:0 0 4px;color:var(--deep);letter-spacing:.03em}
+h2{font-size:15px;margin:18px 0 6px;color:var(--deep)}
+p.lead{font-size:13px;color:var(--sub);margin:0 0 12px}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%}
+label.row{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--sub);margin:0 0 8px}
+.chips{display:flex;gap:6px;margin:0 0 10px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chips button,.btn{appearance:none;flex:none;border:1px solid var(--line);background:var(--card);color:var(--deep);font:inherit;font-size:13px;padding:7px 12px;border-radius:999px;cursor:pointer}
+.chips button:hover,.btn:hover{border-color:var(--deep)}
+.chips button.on{border-color:var(--stage);background:var(--stage);color:var(--cream)}
+
+.banner{position:relative;margin:0 0 10px;border-radius:10px;overflow:hidden;background:var(--red2)}
+.banner .stripe{height:6px;background:repeating-linear-gradient(115deg,#0000 0 10px,#ffffff1f 10px 20px),var(--red)}
+.banner .row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:8px 12px 9px}
+.banner .lab{font-family:'Oswald',system-ui;font-size:9px;letter-spacing:.16em;color:#ffffff9c;margin-bottom:1px}
+.banner .nm{font-weight:700;font-size:14px;color:#fff;line-height:1.25}
+.banner .sub{font-size:10px;color:#ffffffb0;margin-top:2px;line-height:1.35;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.banner .to{text-align:right}
+.banner .to .nm{color:var(--gold)}
+.banner .ar{font-size:18px;color:var(--gold);line-height:1}
+
+.stageWrap{position:relative;background:linear-gradient(180deg,var(--stage) 0%,var(--stage2) 100%);border-radius:14px;padding:14px 12px 16px;margin:0 0 12px;overflow:hidden}
+.stageWrap::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 20% 0%, #24543d 0%, transparent 60%)}
+.stageWrap::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.14;background-image:radial-gradient(#fff 0.5px,transparent 0.6px);background-size:3px 3px}
+.stageWrap>*{position:relative;z-index:1}
+
+.gaugeRow{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.gaugeRow .g{width:min(40%,170px);flex:none}
+.gaugeRow .g svg{width:100%;display:block}
+.rpmCol{flex:1;min-width:160px;display:flex;flex-direction:column;gap:6px}
+.rpmNums{font-family:'Oswald',system-ui;font-weight:700;font-size:24px;color:var(--cream);line-height:1.1}
+.rpmNums .ar{color:var(--gold);margin:0 8px;font-size:18px}
+.rpmNums .to{color:var(--gold)}
+.rpmSub{font-size:11px;color:var(--series-a)}
+.gcap{font-size:10.5px;color:#9fb3a6;text-align:center;margin-top:2px;letter-spacing:.04em}
+.badge{width:72px;height:72px;flex:0 0 72px;border-radius:50%;background:var(--red);border:2px solid var(--cream);
+  display:inline-flex;flex-direction:column;align-items:center;justify-content:center;color:var(--cream);
+  padding:0 4px;box-shadow:0 3px 0 #0004}
+.badge .d{font-family:'Oswald',system-ui;font-weight:700;font-size:17px;line-height:1;white-space:nowrap;letter-spacing:-.02em}
+.badge .d.txt{font-size:13px}
+.badge .p{font-size:9px;letter-spacing:.06em;margin-top:1px;color:#ffe9c9}
+@media (max-width:480px){.rpmNums{font-size:21px}.badge{width:62px;height:62px;flex:0 0 62px}.badge .d{font-size:15px}}
+.sawWrap{margin-top:10px;border-radius:10px;overflow:hidden;background:#ffffff08}
+.sawWrap canvas{display:block;width:100%;height:170px}
+.res{margin:10px 0 2px;font-size:15px;font-weight:700;color:var(--cream);line-height:1.6} .res b{color:var(--gold)}
+.sub{font-size:12px;color:var(--series-a);margin:0}
+
+.packs{display:flex;gap:9px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;margin-top:4px}
+.pk{appearance:none;flex:none;width:168px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 10px 10px 13px;position:relative;overflow:hidden;font:inherit;cursor:pointer}
+@media (min-width:641px){.packs{flex-wrap:wrap;overflow-x:visible}.pk{flex:1 1 calc(33.333% - 6px);width:auto;min-width:168px}}
+.pk::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--line)}
+.pk:hover{border-color:var(--deep)}
+.pk .no{font-family:'Oswald',system-ui;font-size:11px;color:var(--sub);letter-spacing:.1em}
+.pk .nm{font-weight:700;font-size:14px;margin:1px 0 4px;color:var(--deep)}
+.pk .sub{font-size:11px;color:var(--sub);line-height:1.5;min-height:31px}
+.pk .tags{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.pk .tg{font-size:10px;border-radius:999px;padding:1px 6px;background:#efe7d6;color:#6a5f4d}
+.pk.on{background:var(--red);border-color:var(--red2);color:#fff;box-shadow:0 3px 0 #0002}
+.pk.on::before{background:var(--gold)}
+.pk.on .no,.pk.on .sub,.pk.on .nm{color:#ffdfd4}
+.pk.on .tg{background:#ffffff26;color:#fff}
+.packwrap{margin:0 0 6px}
+.sechead{font-family:'Oswald',system-ui;font-weight:500;font-size:15px;letter-spacing:.06em;margin:0 0 8px;
+  display:flex;align-items:center;gap:8px;color:var(--deep)}
+.sechead::before{content:"";width:16px;height:3px;background:var(--red)}
+.sechead small{font-weight:400;color:var(--sub);font-size:12px;letter-spacing:0}
+
+.packBack{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px;margin:4px 0 14px}
+.packBack h4{margin:10px 0 4px;font-size:12px;color:var(--sub);letter-spacing:.04em}
+.packBack h4:first-child{margin-top:0}
+.packBack p{margin:4px 0;font-size:13px}
+.packBack table{margin-top:2px}
+.packBack .tags{display:flex;gap:4px;margin:8px 0 0;flex-wrap:wrap}
+.packBack .tg{font-size:11px;border-radius:999px;padding:2px 8px;background:#efe7d6;color:#6a5f4d}
+.packBack .foot{font-size:12px;color:var(--ink);margin-top:4px}
+.packBack .warn{color:var(--warn);background:var(--warnbg);border-radius:8px;padding:6px 8px;font-size:12px;margin-top:6px}
+
+.sec{border:1px solid var(--line);background:var(--card);border-radius:12px;margin-top:8px;padding:0 12px}
+.sec>summary{cursor:pointer;font-size:14px;color:var(--deep);padding:9px 0;list-style:none;display:flex;justify-content:space-between;align-items:center}
+.sec>summary::-webkit-details-marker{display:none}
+.sec>summary::after{content:'▸';color:var(--sub);font-size:13px}
+.sec[open]>summary::after{content:'▾'}
+.sec>summary small{color:var(--sub);font-weight:400;font-size:12px;margin-left:6px}
+.sec .body{padding:2px 0 12px;font-size:13px}
+details.inner{margin-top:8px;font-size:12px;color:var(--sub)} details.inner summary{cursor:pointer}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+@media (max-width:640px){.cols{grid-template-columns:1fr}}
+.panel{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px}
+.panel h3{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+.key{display:inline-block;width:18px;height:0;border-top:3px solid;border-radius:2px}
+.key.a{border-color:var(--series-a)} .key.b{border-color:var(--series-b)}
+table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:right} th:first-child,td:first-child{text-align:left}
+.limits{font-size:13px;color:var(--ink);padding-left:1.2em;margin:6px 0 0} .limits li{margin:4px 0}
+.note{font-size:12px;color:var(--sub);margin:10px 0 0}
+.packBack .note a{color:var(--deep);font-weight:600;text-decoration:none;border-bottom:1px solid var(--gold)}
+.packBack .note a:hover{color:var(--red)}
+
+.scale{margin-top:12px}
+.scale .scNote{font-size:11px;color:#9fb3a6;margin:0 0 8px;line-height:1.6}
+.scale .sc-grp{font-size:11px;color:#7f9a8c;margin:9px 0 3px;letter-spacing:.06em}
+.scale .sc-grp.first{margin-top:0}
+.scale .tr{display:grid;grid-template-columns:118px 1fr 44px;align-items:center;gap:7px;margin-bottom:3px}
+.scale .nm{font-size:11px;color:#cfe0d5;text-align:right;line-height:1.3}
+.scale .bar{position:relative;height:16px}
+.scale .zero{position:absolute;top:-1px;bottom:-1px;width:1px;background:rgba(246,240,226,.35)}
+.scale .seg{position:absolute;top:6px;height:5px;border-radius:3px;background:rgba(246,240,226,.22)}
+.scale .pa{position:absolute;top:5px;width:7px;height:7px;border-radius:50%;background:var(--series-a);transform:translateX(-50%);z-index:2}
+.scale .pb{position:absolute;top:3.5px;width:10px;height:10px;border-radius:50%;background:rgba(246,240,226,.22);transform:translateX(-50%);z-index:2}
+.scale .none{position:absolute;top:1px;font-size:10px;color:#7f9a8c;white-space:nowrap}
+.scale .num{font-family:'Oswald',system-ui;font-size:11.5px;color:#8fa79a;text-align:right}
+.scale .num.nochg{color:#6d8578;font-size:10px}
+.scale .tr.on .nm{color:var(--cream);font-weight:700}
+.scale .tr.on .seg{background:var(--series-b);top:5px;height:7px}
+.scale .tr.on .pb{background:var(--series-b);width:13px;height:13px;top:2px;box-shadow:0 2px 5px rgba(0,0,0,.45)}
+.scale .tr.on .pa{width:9px;height:9px;top:4px}
+.scale .tr.on .num{color:var(--gold);font-size:14px;font-weight:700}
+.scale .tr.total .nm{font-size:12.5px;font-weight:700}
+.scale .tr.total .num{font-size:16px}
+.scale .bar.big{height:28px}
+.scale .bar.big .seg{top:10px;height:9px;border-radius:5px}
+.scale .bar.big .pa{top:9px;width:11px;height:11px}
+.scale .bar.big .pb{top:6px;width:17px;height:17px}
+.scale .totcap{font-size:11.5px;color:#cfe0d5;text-align:right;padding-right:48px;margin-top:1px;font-family:'Oswald',system-ui}
+.scale .totcap b{color:var(--gold);font-size:14px}
+.scale .sep{border:0;border-top:1px solid rgba(246,240,226,.15);margin:8px 0}
+.scale .ends{display:flex;justify-content:space-between;font-size:10px;color:#7f9a8c;margin-top:5px;padding-left:125px;padding-right:51px}
+.scale .foot{font-size:11px;color:#9fb3a6;margin-top:8px;line-height:1.7}
+.scale .foot b{color:var(--cream)}
+@media (max-width:480px){
+  .scale .tr{grid-template-columns:90px 1fr 40px;gap:5px}
+  .scale .nm{font-size:10px}
+  .scale .ends{padding-left:95px;padding-right:45px}
+  .scale .totcap{padding-right:44px}
+}
+.busy{opacity:.55;transition:opacity .15s}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar"><a id="toEngine" href="./">← Alla schermata del motore</a><a href="/it/">Torna alla home</a></div>
+  <h1>Simulatore della Trasmissione dei Sogni</h1>
+  <p class="lead">Uno strumento per vedere cosa cambia e come, messo a confronto con la tua auto attuale. Non consiglia alcuna modifica.</p>
+
+  <div id="result" class="busy">
+    <div class="banner" id="banner">
+      <div class="stripe"></div>
+      <div class="row">
+        <div class="from"><div class="lab">Ora</div><div class="nm" id="bannerFrom"></div><div class="sub" id="bannerFromSub"></div></div>
+        <div class="ar">▶</div>
+        <div class="to"><div class="lab">Modificata</div><div class="nm" id="bannerTo"></div><div class="sub" id="bannerToSub"></div></div>
+      </div>
+    </div>
+
+    <div class="stageWrap" id="stageWrap">
+      <div class="gaugeRow">
+        <div class="g"><svg id="tach" viewBox="0 0 200 200"></svg><div class="gcap">Lancetta del quadrante = modificata</div></div>
+        <div class="rpmCol">
+          <div class="rpmNums" id="rpmNums">— <span class="ar">▶</span> —</div>
+          <div class="badge" id="rpmBadge"><span class="d" id="rpmBadgeNum"></span></div>
+          <div class="rpmSub" id="rpmCond"></div>
+        </div>
+      </div>
+      <div class="scale" id="scale"></div>
+      <div class="sawWrap"><canvas id="sawCv"></canvas></div>
+      <p class="res" id="res"></p>
+      <p class="sub" id="resSub"></p>
+    </div>
+
+    <div class="packwrap">
+      <p class="sechead">Vedi per scenario</p>
+      <div class="chips" id="caseChips"></div>
+      <p class="sechead">Velocità di crociera</p>
+      <div class="chips" id="speedChips"></div>
+      <p class="sechead">Scegli l'elaborazione modificata<small id="packSummary"></small></p>
+      <div class="packs" id="packs"></div>
+      <div class="packBack" id="packBack" hidden=""></div>
+    </div>
+
+    <details class="sec" name="sec" id="dHow"><summary>Come funziona, in 3 righe</summary><div class="body">
+      <ol style="margin:0;padding-left:1.2em;font-size:13px">
+        <li>Distanza percorsa per ogni giro della ruota = diametro esterno × π (125R12 ≈1.59m)</li>
+        <li>Distanza percorsa per ogni giro del motore = quella ÷ (rapporto × rapporto al ponte)</li>
+        <li>Quindi un rapporto più piccolo (più lungo) significa meno giri alla stessa velocità, ma anche meno forza nel far girare le ruote: è esattamente il contrario di quanto sopra.</li>
+      </ol>
+    </div></details>
+
+    <h2>Vettura di base</h2>
+    <details class="sec" name="wiz" id="stepSeries"><summary>Modello<small id="sumSeries"></small></summary><div class="body">
+      <div class="chips" id="seriesChips"></div>
+    </div></details>
+    <details class="sec" name="wiz" id="stepType"><summary>Tipo<small id="sumType"></small></summary><div class="body">
+      <div class="chips" id="typeChips"></div>
+    </div></details>
+    <details class="sec" name="wiz" id="stepEng"><summary>Motore attuale<small id="sumEng"></small></summary><div class="body">
+      <div class="chips" id="engChips"></div>
+      <p class="note" id="engCustomNote" hidden=""></p>
+    </div></details>
+    <details class="sec" name="wiz" id="stepDrive"><summary>Trasmissione attuale<small id="sumDrive"></small></summary><div class="body">
+      <p class="note">Trasmissione di serie di questo modello (per conoscere i tuoi valori di serie)</p>
+      <div id="stockTable"></div>
+      <details class="inner" id="daInner"><summary>Già modificata ▸</summary><div id="daEditor" style="margin-top:8px"></div></details>
+    </div></details>
+
+    <details class="sec" name="sec" id="dFine"><summary>Modifica nel dettaglio<small>5 voci, ora e modificata</small></summary><div class="body">
+      <div class="cols">
+        <section class="panel"><h3><span class="key a"></span>Ora</h3><div id="fineA"></div></section>
+        <section class="panel"><h3><span class="key b"></span>Modificata</h3><div id="fineB"></div></section>
+      </div>
+      <p class="note">Occupante fissato a 1 persona (75 kg).</p>
+    </div></details>
+
+    <details class="sec" name="sec" id="dGear"><summary>Marce e giri</summary><div class="body">
+      <div class="cols">
+        <div><h3 style="font-size:13px;margin:0 0 4px"><span class="key a"></span>Ora</h3><div id="gearA"></div></div>
+        <div><h3 style="font-size:13px;margin:0 0 4px"><span class="key b"></span>Modificata</h3><div id="gearB"></div></div>
+      </div>
+      <details class="inner"><summary>Velocità sostenibile per ogni pendenza</summary><div id="gradeTable2"></div></details>
+    </div></details>
+
+    <details class="sec" name="sec" id="dLimits"><summary>Limiti di questo strumento · fonti</summary><div class="body">
+      <ul class="limits" id="limits2"></ul>
+      <p class="note" id="assumed2"></p>
+    </div></details>
+  </div>
+  <p class="note" id="status"></p>
+</div>
+
+<script type="module">
+import { simulate } from '/engine-simulator/sim.js';
+import { MODELS, SLOTS, DEFAULT_CHOICES, buildSpec, modelById, revCapRpm, packagesFor, packageChoices, packageMatches } from '/engine-simulator/presets.js';
+import {
+  GEARBOXES, GEARSETS, FINALS, TIRES, FIFTHS, VEHICLES, DEFAULT_DRIVE_CHOICES, buildVehicle, driveOptionsFor,
+} from '/engine-simulator/presets_vehicle.js';
+import { rpmAtSpeed, gearTable, topSpeed, steadySpeed, climbHill, accelerate, capRes } from '/engine-simulator/vehicle.js';
+import { sceneById } from '/engine-simulator/scenes.js';
+import { renderTach, setNeedles } from '/engine-simulator/gauge_a0.js';
+import { DRIVE_PACKS, packFits, packChoices } from '/engine-simulator/presets_drive_packs.js';
+
+const $ = (s, r = document) => r.querySelector(s);
+const RPM = [1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500];
+const ENG_SLOT_ORDER = ['disp', 'cr', 'cam', 'head', 'carb', 'exh'];
+const DRIVE_KEYS = ['gearbox', 'gearset', 'final', 'tire', 'fifth'];
+const DRIVE_LISTS = { gearbox: GEARBOXES, gearset: GEARSETS, final: FINALS, tire: TIRES, fifth: FIFTHS };
+const DRIVE_LABEL = { gearbox: 'ミッション（変速比）', gearset: '3/4速ショート・1速ロング', final: 'ファイナル（最終減速比）', tire: 'タイヤ', fifth: '5速化' };
+const TIRE_GRP_LABEL = { ten: '10インチ', same: '12インチ・回転そのまま', plus3: '12インチ・回転 +3%', thirteen: '13インチ' };
+const FIFTH_GRP_LABEL = { long: 'ロング', mid: 'ミドル', short: 'ショート' };
+const CASE_LABEL = { all: '全部', cruise: '高速巡航', hill: '登り坂', launch: '発進〜2速', bigger: '排気量を上げた後', sync: 'シンクロの有無', look: 'タイヤの見た目' };
+const CASE_ORDER = ['cruise', 'hill', 'launch', 'bigger', 'sync', 'look'];
+const SPEED_OPTIONS = [60, 80, 100];
+const DEFAULT_SPEED = 80;
+
+const state = { model: '500F', a: { ...DEFAULT_CHOICES }, da: { ...DEFAULT_DRIVE_CHOICES }, db: { ...DEFAULT_DRIVE_CHOICES }, pack: null, case: 'all', speed: DEFAULT_SPEED };
+
+const strip = (s) => (s || '').replace(/（.*$/, '');
+function fieldLabel(key, id) {
+  const o = (DRIVE_LISTS[key] || []).find((x) => x.id === id);
+  return o ? strip(o.label) : id;
+}
+function baseOf(modelId) { return VEHICLES[modelId] || VEHICLES['500F']; }
+
+function encDrive(c) { return DRIVE_KEYS.filter((k) => c[k] !== DEFAULT_DRIVE_CHOICES[k]).map((k) => `${k}:${c[k]}`).join(','); }
+function decDrive(v, out) {
+  v.split(',').forEach((kv) => {
+    const [k, val] = kv.split(':');
+    if (!DRIVE_KEYS.includes(k)) return;
+    if (val === 'stock' || val === 'none' || (DRIVE_LISTS[k] && DRIVE_LISTS[k].some((o) => o.id === val))) out[k] = val;
+  });
+}
+function encEngine(c) {
+  const parts = ENG_SLOT_ORDER.filter((k) => c[k] && c[k] !== 'stock').map((k) => `${k}:${c[k]}`);
+  if (c.eng) parts.push(`eng:${c.eng}`);
+  return parts.join(',');
+}
+function readHash() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (![...h.keys()].length) {
+    const dp = DRIVE_PACKS.find((p) => p.id === 'dp_f839');
+    state.db = packChoices(state.da, dp); state.pack = dp.id;
+    return;
+  }
+  if (h.get('m') && modelById(h.get('m')).id === h.get('m')) state.model = h.get('m');
+  const av = h.get('a') || h.get('b');
+  if (av) {
+    av.split(',').forEach((kv) => {
+      const [k, val] = kv.split(':');
+      if (k === 'eng') { if (MODELS.some((m) => m.id === val)) state.a.eng = val; return; }
+      if (SLOTS[k] && SLOTS[k].some((o) => o.id === val)) state.a[k] = val;
+    });
+  }
+  const dv = h.get('da'); if (dv) decDrive(dv, state.da);
+  const bv = h.get('db'); if (bv) decDrive(bv, state.db);
+  const pk = DRIVE_PACKS.find((p) => p.id === h.get('p'));
+  if (pk) {
+    state.pack = pk.id;
+    if (!bv && packFits(state.model, state.da, pk)) state.db = packChoices(state.da, pk);
+  }
+  if (h.get('c') && CASE_ORDER.includes(h.get('c'))) state.case = h.get('c');
+  const vv = Number(h.get('v')); if (SPEED_OPTIONS.includes(vv)) state.speed = vv;
+}
+function writeHash() {
+  const p = new URLSearchParams(); p.set('m', state.model);
+  const ea = encEngine(state.a); if (ea) p.set('a', ea);
+  const da = encDrive(state.da); if (da) p.set('da', da);
+  const db = encDrive(state.db); if (db) p.set('db', db);
+  if (state.pack) p.set('p', state.pack);
+  if (state.case !== 'all') p.set('c', state.case);
+  if (state.speed !== DEFAULT_SPEED) p.set('v', state.speed);
+  history.replaceState(null, '', '#' + p.toString());
+  const q = new URLSearchParams(); q.set('m', state.model); if (ea) q.set('a', ea);
+  $('#toEngine').href = './#' + q.toString();
+}
+
+function clampDrive(modelId, choices) {
+  const opts = driveOptionsFor(modelId, choices);
+  const out = { ...choices };
+  if (out.gearbox !== 'stock' && !GEARBOXES.some((g) => g.id === out.gearbox)) out.gearbox = 'stock';
+  if (out.gearset !== 'stock' && !opts.gearsets.some((g) => g.id === out.gearset)) out.gearset = 'stock';
+  if (out.final !== 'stock' && !opts.finals.some((f) => f.id === out.final)) out.final = 'stock';
+  if (out.fifth !== 'none' && !opts.fifths.some((f) => f.id === out.fifth)) out.fifth = 'none';
+  return out;
+}
+function findMatchingPack(modelId, da, db) {
+  return DRIVE_PACKS.find((p) => {
+    const merged = { ...DEFAULT_DRIVE_CHOICES, ...da, ...p.choices };
+    return DRIVE_KEYS.every((k) => merged[k] === db[k]);
+  }) || null;
+}
+function setModel(id) {
+  if (id === state.model) return;
+  state.model = id;
+  state.a = { ...DEFAULT_CHOICES };
+  state.da = clampDrive(id, state.da);
+  state.db = clampDrive(id, state.db);
+  if (state.pack) {
+    const pk = DRIVE_PACKS.find((p) => p.id === state.pack);
+    if (pk && packFits(id, state.da, pk)) state.db = packChoices(state.da, pk);
+    else state.pack = findMatchingPack(id, state.da, state.db)?.id || null;
+  }
+}
+
+function openStep(sel) {
+  const d = $(sel); d.open = true;
+  for (const other of document.querySelectorAll('details[name="wiz"]')) if (other !== d && other.open) other.open = false;
+}
+function bindAccordion() {
+  const groups = {};
+  for (const d of document.querySelectorAll('details[name]')) (groups[d.getAttribute('name')] ??= []).push(d);
+  for (const d of document.querySelectorAll('details[name]')) {
+    d.addEventListener('toggle', () => {
+      if (!d.open) return;
+      for (const other of groups[d.getAttribute('name')] || []) if (other !== d && other.open) other.open = false;
+    });
+  }
+}
+function renderSeriesChips() {
+  const box = $('#seriesChips'); box.textContent = '';
+  const cur = modelById(state.model).series;
+  for (const s of ['500', '126']) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = s; b.classList.toggle('on', s === cur);
+    b.addEventListener('click', () => {
+      if (s !== cur) { setModel(MODELS.find((m) => m.series === s).id); renderAllModelDependent(); }
+      openStep('#stepType'); update();
+    });
+    box.append(b);
+  }
+  $('#sumSeries').textContent = cur;
+}
+function renderTypeChips() {
+  const box = $('#typeChips'); box.textContent = '';
+  const cur = modelById(state.model);
+  for (const m of MODELS.filter((x) => x.series === cur.series)) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = m.type; b.classList.toggle('on', m.id === cur.id);
+    b.addEventListener('click', () => {
+      if (m.id !== state.model) { setModel(m.id); renderAllModelDependent(); }
+      openStep('#stepEng'); update();
+    });
+    box.append(b);
+  }
+  $('#sumType').textContent = cur.type;
+}
+function renderEngChips() {
+  const box = $('#engChips'); box.textContent = '';
+  const m = modelById(state.model);
+  const pks = packagesFor(m);
+  const isCustom = !!state.a.eng || ENG_SLOT_ORDER.some((k) => state.a[k] && state.a[k] !== 'stock');
+  const matched = pks.find((pk) => packageMatches(pk, m, state.a));
+  const mk = (label, on, fn) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.classList.toggle('on', on); b.addEventListener('click', fn); box.append(b); };
+  mk('純正のまま', !isCustom, () => { state.a = { ...DEFAULT_CHOICES }; openStep('#stepDrive'); update(); });
+  for (const pk of pks) mk(pk.name, !!matched && matched.id === pk.id, () => { state.a = { ...DEFAULT_CHOICES, ...packageChoices(pk, m) }; openStep('#stepDrive'); update(); });
+  const note = $('#engCustomNote');
+  note.hidden = !(isCustom && !matched);
+  if (isCustom && !matched) { const built = buildSpec(state.model, state.a); note.textContent = `エンジンの画面で組んだ構成（${Math.round(built.cc)}cc）`; }
+  $('#sumEng').textContent = matched ? matched.name : (isCustom ? 'エンジンの画面の構成' : '純正のまま');
+}
+function renderStockTable() {
+  const box = $('#stockTable'); box.textContent = '';
+  const stock = buildVehicle(state.model, {});
+  const t = document.createElement('table'); const tb = document.createElement('tbody');
+  stock.drive.gears.forEach((g, i) => { const tr = document.createElement('tr'); tr.innerHTML = `<td>${i + 1}速</td><td>${g.toFixed(3)}</td>`; tb.append(tr); });
+  const trF = document.createElement('tr'); trF.innerHTML = `<td>ファイナル</td><td>${strip(stock.picks.final.label)}</td>`; tb.append(trF);
+  const trT = document.createElement('tr'); trT.innerHTML = `<td>タイヤ</td><td>${strip(stock.picks.tire.label)}</td>`; tb.append(trT);
+  t.append(tb); box.append(t);
+}
+function appendGroups(sel, list, labelMap) {
+  const groups = {};
+  for (const o of list) { const gk = o.grp || '_'; (groups[gk] ??= []).push(o); }
+  if (groups['_']) for (const o of groups['_']) { const opt = document.createElement('option'); opt.value = o.id; opt.textContent = o.label + (o.assumed ? ' ※' : ''); sel.append(opt); }
+  for (const gk of Object.keys(groups)) {
+    if (gk === '_') continue;
+    const og = document.createElement('optgroup'); og.label = labelMap[gk] || gk;
+    for (const o of groups[gk]) { const opt = document.createElement('option'); opt.value = o.id; opt.textContent = o.label + (o.assumed ? ' ※' : ''); og.append(opt); }
+    sel.append(og);
+  }
+}
+function buildDriveSelect(key, side) {
+  const base = baseOf(state.model);
+  const opts = driveOptionsFor(state.model, state[side]);
+  const sel = document.createElement('select');
+  const addOpt = (id, label) => { const o = document.createElement('option'); o.value = id; o.textContent = label; sel.append(o); };
+  if (key === 'gearbox') { addOpt('stock', `純正のまま（${fieldLabel('gearbox', base.gearbox)}）`); for (const g of GEARBOXES) addOpt(g.id, g.label); }
+  else if (key === 'final') { addOpt('stock', `純正のまま（${fieldLabel('final', base.final)}）`); for (const f of opts.finals) addOpt(f.id, f.label + (f.assumed ? ' ※' : '')); }
+  else if (key === 'tire') { addOpt('stock', `純正のまま（${fieldLabel('tire', base.tire)}）`); appendGroups(sel, opts.tires, TIRE_GRP_LABEL); }
+  else if (key === 'gearset') { for (const g of opts.gearsets) addOpt(g.id, g.label + (g.assumed ? ' ※' : '')); }
+  else if (key === 'fifth') { appendGroups(sel, opts.fifths, FIFTH_GRP_LABEL); }
+  sel.value = state[side][key];
+  sel.addEventListener('change', () => {
+    state[side][key] = sel.value;
+    if (side === 'db') state.pack = findMatchingPack(state.model, state.da, state.db)?.id || null;
+    gtag('event', 'gearbox_sim_fine', { model: state.model, side, field: key });
+    update();
+  });
+  return sel;
+}
+function renderDriveEditor(container, side) {
+  container.textContent = '';
+  for (const k of DRIVE_KEYS) {
+    const lab = document.createElement('label'); lab.className = 'row'; lab.textContent = DRIVE_LABEL[k];
+    lab.append(buildDriveSelect(k, side));
+    container.append(lab);
+  }
+}
+function renderAllModelDependent() {
+  renderSeriesChips(); renderTypeChips(); renderEngChips(); renderStockTable();
+  renderDriveEditor($('#daEditor'), 'da');
+  renderFine();
+}
+function renderFine() {
+  renderDriveEditor($('#fineA'), 'da');
+  renderDriveEditor($('#fineB'), 'db');
+}
+
+function packsForCase() {
+  const fits = DRIVE_PACKS.filter((p) => packFits(state.model, state.da, p));
+  if (state.case === 'all') return fits;
+  return fits.filter((p) => p.cases.includes(state.case));
+}
+function renderCaseChips() {
+  const box = $('#caseChips'); box.textContent = '';
+  for (const id of ['all', ...CASE_ORDER]) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = CASE_LABEL[id]; b.classList.toggle('on', state.case === id);
+    b.addEventListener('click', () => {
+      state.case = id; renderCaseChips(); renderPacks();
+      gtag('event', 'gearbox_sim_case', { model: state.model, case: id });
+      writeHash();
+    });
+    box.append(b);
+  }
+}
+function renderSpeedChips() {
+  const box = $('#speedChips'); box.textContent = '';
+  for (const v of SPEED_OPTIONS) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = `${v}km/h`; b.classList.toggle('on', state.speed === v);
+    b.addEventListener('click', () => {
+      if (state.speed === v) return;
+      state.speed = v; renderSpeedChips();
+      gtag('event', 'gearbox_sim_speed', { model: state.model, speed: v });
+      update();
+    });
+    box.append(b);
+  }
+}
+function renderPacks() {
+  const box = $('#packs'); box.textContent = '';
+  for (const pack of packsForCase()) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pk'; b.dataset.id = pack.id;
+    b.classList.toggle('on', state.pack === pack.id);
+    const tags = pack.tags.map((t) => `<span class="tg">${t}</span>`).join('');
+    b.innerHTML = `<div class="nm">${pack.name}</div><div class="sub">${pack.sub}</div><div class="tags">${tags}</div>`;
+    b.addEventListener('click', () => {
+      state.db = packChoices(state.da, pack); state.pack = pack.id;
+      gtag('event', 'gearbox_sim_package', { model: state.model, pack: pack.id });
+      update();
+    });
+    box.append(b);
+  }
+  const cur = state.pack && DRIVE_PACKS.find((p) => p.id === state.pack);
+  $('#packSummary').textContent = cur ? '・' + cur.name : '';
+}
+function markPack() {
+  for (const b of $('#packs').querySelectorAll('button')) b.classList.toggle('on', b.dataset.id === state.pack);
+  const cur = state.pack && DRIVE_PACKS.find((p) => p.id === state.pack);
+  $('#packSummary').textContent = cur ? '・' + cur.name : '';
+}
+
+const GEAR_NAME = ['1速', '2速', '3速', '4速', '5速'];
+function driveSummaryText(choices) {
+  const parts = DRIVE_KEYS.filter((k) => choices[k] !== DEFAULT_DRIVE_CHOICES[k]).map((k) => fieldLabel(k, choices[k]));
+  return parts.length ? parts.join('＋') : '純正の駆動系';
+}
+function driveDiffText(VA, VB) {
+  const parts = [];
+  const n = Math.max(VA.drive.gears.length, VB.drive.gears.length);
+  for (let i = 0; i < n; i++) {
+    const a = VA.drive.gears[i], b = VB.drive.gears[i];
+    if (a == null && b != null) parts.push(`${GEAR_NAME[i]} ${b.toFixed(3)} を追加`);
+    else if (a != null && b == null) parts.push(`${GEAR_NAME[i]} を外す`);
+    else if (Math.abs(a - b) > 0.0005) parts.push(`${GEAR_NAME[i]} ${a.toFixed(3)}→${b.toFixed(3)}`);
+  }
+  if (VA.picks.final.id !== VB.picks.final.id) parts.push(`ファイナル ${strip(VA.picks.final.label)}→${strip(VB.picks.final.label)}`);
+  if (VA.picks.tire.id !== VB.picks.tire.id) parts.push(`タイヤ ${strip(VA.picks.tire.label)}→${strip(VB.picks.tire.label)}`);
+  return parts.length ? parts.join('・') : '同じ設定';
+}
+function buildDriveTable(VA, VB) {
+  const t = document.createElement('table'); const tb = document.createElement('tbody');
+  const n = Math.max(VA.drive.gears.length, VB.drive.gears.length);
+  for (let i = 0; i < n; i++) {
+    const a = VA.drive.gears[i], b = VB.drive.gears[i];
+    const changed = a == null || b == null || Math.abs(a - b) > 0.0005;
+    const bTxt = b == null ? '—' : b.toFixed(3);
+    const cell = changed ? `<span style="color:var(--series-b)">▶ ${bTxt}</span>` : bTxt;
+    const tr = document.createElement('tr'); tr.innerHTML = `<td>${GEAR_NAME[i]}</td><td>${a == null ? '—' : a.toFixed(3)}</td><td>${cell}</td>`; tb.append(tr);
+  }
+  const finalChanged = VA.picks.final.id !== VB.picks.final.id;
+  const tireChanged = VA.picks.tire.id !== VB.picks.tire.id;
+  const trF = document.createElement('tr'); trF.innerHTML = `<td>ファイナル</td><td>${strip(VA.picks.final.label)}</td><td>${finalChanged ? `<span style="color:var(--series-b)">▶ ${strip(VB.picks.final.label)}</span>` : strip(VB.picks.final.label)}</td>`; tb.append(trF);
+  const trT = document.createElement('tr'); trT.innerHTML = `<td>タイヤ</td><td>${strip(VA.picks.tire.label)}</td><td>${tireChanged ? `<span style="color:var(--series-b)">▶ ${strip(VB.picks.tire.label)}</span>` : strip(VB.picks.tire.label)}</td>`; tb.append(trT);
+  t.append(tb); return t;
+}
+
+function stageNumbers(L) {
+  const { VA, VB, cap } = L;
+  const topA = VA.drive.gears.length - 1, topB = VB.drive.gears.length - 1;
+  const rpmA = rpmAtSpeed(state.speed, VA.drive.gears[topA], VA.drive);
+  const rpmB = rpmAtSpeed(state.speed, VB.drive.gears[topB], VB.drive);
+  return { topA, topB, rpmA, rpmB, cap, okA: rpmA <= cap, okB: rpmB <= cap };
+}
+
+let needleAnimReq = null, prevA = 0, prevB = undefined;
+function animateNeedles(svg, a, b) {
+  cancelAnimationFrame(needleAnimReq);
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced || prevA == null) { setNeedles(svg, { a, b }); prevA = a; prevB = b; return; }
+  const fromA = prevA, fromB = prevB == null ? a : prevB;
+  const toB = b == null ? fromB : b;
+  const t0 = performance.now(), dur = 600;
+  const step = (now) => {
+    const t = Math.min(1, (now - t0) / dur);
+    const e = 1 - Math.pow(1 - t, 3);
+    setNeedles(svg, { a: fromA + (a - fromA) * e, b: b == null ? undefined : fromB + (toB - fromB) * e });
+    if (t < 1) needleAnimReq = requestAnimationFrame(step);
+  };
+  needleAnimReq = requestAnimationFrame(step);
+  prevA = a; prevB = b;
+}
+function renderGauge(L, nums) {
+  const svg = $('#tach');
+  renderTach(svg, { rpm: 0, redFrom: L.cap, max: 6000 });
+  svg.style.setProperty('--a0-needle-a', 'var(--series-b)');
+  animateNeedles(svg, nums.okB ? nums.rpmB : 0, undefined);
+  const fmt = (v, ok) => (ok ? Math.round(v) : '—');
+  $('#rpmNums').innerHTML = `${fmt(nums.rpmA, nums.okA)} <span class="ar">▶</span> <span class="to">${fmt(nums.rpmB, nums.okB)}</span><span style="font-size:14px"> rpm</span>`;
+  const badgeNum = $('#rpmBadgeNum');
+  if (!nums.okA || !nums.okB) { badgeNum.textContent = '—'; }
+  else {
+    const diff = (nums.rpmB / nums.rpmA - 1) * 100;
+    const small = Math.abs(diff) < 1.5;
+    badgeNum.textContent = small ? 'ほぼ同じ' : `${diff >= 0 ? '+' : ''}${Math.round(diff)}%`;
+    badgeNum.classList.toggle('txt', small);
+  }
+  const cond = nums.topA === nums.topB ? `${state.speed} km/h・${nums.topA + 1}速` : `${state.speed} km/h・${nums.topA + 1}→${nums.topB + 1}速`;
+  const over = !nums.okA && !nums.okB ? 'どちらの構成でも' : !nums.okA ? 'いまの構成では' : !nums.okB ? '変えた後の構成では' : '';
+  $('#rpmCond').textContent = over ? `${cond}｜${state.speed}km/h は${over}上限回転（取扱説明書の最大許容速度から換算・${Math.round(nums.cap)}rpm）を超えます` : cond;
+}
+function interpAt(trace, kmh) {
+  if (!trace.length) return 0;
+  for (let i = 1; i < trace.length; i++) if (trace[i].kmh >= kmh) { const a = trace[i - 1], b = trace[i]; const f = (kmh - a.kmh) / Math.max(b.kmh - a.kmh, 1e-6); return a.rpm + (b.rpm - a.rpm) * f; }
+  return trace[trace.length - 1].rpm;
+}
+function drawSaw(L) {
+  const cv = $('#sawCv'); const W = cv.clientWidth, H = cv.clientHeight, dpr = window.devicePixelRatio || 1;
+  if (!W) return;
+  cv.width = W * dpr; cv.height = H * dpr; const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+  const css = getComputedStyle(document.documentElement);
+  const colA = css.getPropertyValue('--series-a').trim(), colB = css.getPropertyValue('--series-b').trim(), cream = css.getPropertyValue('--cream').trim();
+  const padL = 34, padR = 8, padT = 8, padB = 18;
+  const X = (kmh) => padL + (kmh / 120) * (W - padL - padR);
+  const Y = (rpm) => padT + (1 - rpm / 6000) * (H - padT - padB);
+  g.strokeStyle = 'rgba(255,255,255,.14)'; g.fillStyle = cream; g.font = '9px system-ui'; g.lineWidth = 1;
+  for (let r = 0; r <= 6000; r += 1000) { g.beginPath(); g.moveTo(padL, Y(r)); g.lineTo(W - padR, Y(r)); g.stroke(); g.textAlign = 'right'; g.globalAlpha = .8; g.fillText(r, padL - 4, Y(r) + 3); g.globalAlpha = 1; }
+  g.textAlign = 'center'; g.globalAlpha = .8;
+  for (let k = 0; k <= 120; k += 20) g.fillText(k, X(k), H - 4);
+  g.globalAlpha = 1;
+  const traceA = accelerate(L.res, L.VA.vehicle, L.VA.drive, { distance_m: 4000, toKmh: 122 }).trace;
+  const traceB = accelerate(L.res, L.VB.vehicle, L.VB.drive, { distance_m: 4000, toKmh: 122 }).trace;
+  const line = (trace, col, lw, alpha) => { g.strokeStyle = col; g.lineWidth = lw; g.globalAlpha = alpha; g.lineJoin = 'round'; g.beginPath(); trace.forEach((p, i) => (i ? g.lineTo(X(p.kmh), Y(p.rpm)) : g.moveTo(X(p.kmh), Y(p.rpm)))); g.stroke(); g.globalAlpha = 1; };
+  line(traceB, colB, 4, .9); line(traceA, colA, 2.5, 1);
+  g.font = '9px system-ui'; g.textAlign = 'center';
+  for (let i = 1; i < traceA.length; i++) {
+    if (traceA[i].gear !== traceA[i - 1].gear) { const p = traceA[i - 1]; g.fillStyle = colA; g.fillText(String(p.gear), X(p.kmh), Y(p.rpm) - 6); }
+  }
+  if (traceA.length) { const p = traceA[traceA.length - 1]; g.fillStyle = colA; g.fillText(String(p.gear), X(p.kmh), Y(p.rpm) - 6); }
+  const x80 = X(state.speed);
+  g.strokeStyle = cream; g.globalAlpha = .7; g.setLineDash([4, 3]); g.lineWidth = 1; g.beginPath(); g.moveTo(x80, padT); g.lineTo(x80, H - padB); g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+  const rA = interpAt(traceA, state.speed), rB = interpAt(traceB, state.speed);
+  g.beginPath(); g.arc(x80, Y(rB), 4, 0, Math.PI * 2); g.fillStyle = colB; g.fill();
+  g.beginPath(); g.arc(x80, Y(rA), 4, 0, Math.PI * 2); g.fillStyle = colA; g.fill();
+  g.font = 'bold 11px system-ui'; g.textAlign = 'left';
+  g.fillStyle = colB; g.fillText(Math.round(rB), x80 + 7, Y(rB) + 4);
+  g.fillStyle = colA; g.fillText(Math.round(rA), x80 + 7, Y(rA) - 6);
+}
+function fmtKmh(x) { return x == null ? '—' : Math.round(x); }
+function renderResultText(L) {
+  const nums = stageNumbers(L);
+  const topA = topSpeed(L.res, L.VA.vehicle, L.VA.drive), topB = topSpeed(L.res, L.VB.vehicle, L.VB.drive);
+  const diff = (nums.okA && nums.okB) ? Math.round((nums.rpmB / nums.rpmA - 1) * 100) : null;
+  const rpmTxt = `${nums.okA ? Math.round(nums.rpmA) : '—'} → ${nums.okB ? Math.round(nums.rpmB) : '—'}`;
+  const gearRpm = (a, b) => {
+    if (!a || !b || a.rpm == null || b.rpm == null) return '';
+    return a.gear === b.gear
+      ? `（${a.gear}速 ${Math.round(a.rpm)} → ${Math.round(b.rpm)}rpm）`
+      : `（${a.gear}速 ${Math.round(a.rpm)}rpm → ${b.gear}速 ${Math.round(b.rpm)}rpm）`;
+  };
+  $('#res').innerHTML = `${state.speed}km/h の回転が <b>${rpmTxt}rpm</b>${diff == null ? '' : `（${diff >= 0 ? '+' : ''}${diff}%）`}。最高速は ${fmtKmh(topA?.kmh)} → ${fmtKmh(topB?.kmh)}km/h${gearRpm(topA, topB)}。`;
+  const hillA = climbHill(L.res, L.VA.vehicle, L.VA.drive, sceneById('dangozaka')), hillB = climbHill(L.res, L.VB.vehicle, L.VB.drive, sceneById('dangozaka'));
+  const omgA = climbHill(L.res, L.VA.vehicle, L.VA.drive, sceneById('omega')), omgB = climbHill(L.res, L.VB.vehicle, L.VB.drive, sceneById('omega'));
+  const exit = (h) => ({ gear: h.gearAtExit, rpm: h.rpmAtExit });
+  $('#resSub').textContent = `談合坂（5%）の登り切り ${fmtKmh(hillA.exitKmh)} → ${fmtKmh(hillB.exitKmh)}km/h${gearRpm(exit(hillA), exit(hillB))}`
+    + `／名阪 Ω ${fmtKmh(omgA.exitKmh)} → ${fmtKmh(omgB.exitKmh)}km/h${gearRpm(exit(omgA), exit(omgB))}`;
+}
+function renderBanner(L) {
+  const m = modelById(state.model);
+  $('#bannerFrom').textContent = `${m.series} ${m.type}`;
+  $('#bannerFromSub').textContent = driveSummaryText(state.da);
+  const cur = state.pack && DRIVE_PACKS.find((p) => p.id === state.pack);
+  $('#bannerTo').textContent = cur ? cur.name : driveSummaryText(state.db);
+  $('#bannerToSub').textContent = driveDiffText(L.VA, L.VB);
+}
+
+function renderPackBack(L) {
+  const box = $('#packBack');
+  const pack = state.pack && DRIVE_PACKS.find((p) => p.id === state.pack);
+  box.hidden = false;
+  box.textContent = '';
+  const h1 = document.createElement('h4'); h1.textContent = '何から何へ'; box.append(h1);
+  box.append(buildDriveTable(L.VA, L.VB));
+  const nums = stageNumbers(L);
+  const topA = topSpeed(L.res, L.VA.vehicle, L.VA.drive), topB = topSpeed(L.res, L.VB.vehicle, L.VB.drive);
+  const diff = (nums.okA && nums.okB) ? Math.round((nums.rpmB / nums.rpmA - 1) * 100) : null;
+  const foot = document.createElement('p'); foot.className = 'foot';
+  foot.textContent = `${state.speed}km/h の回転 ${nums.okA ? Math.round(nums.rpmA) : '—'} → ${nums.okB ? Math.round(nums.rpmB) : '—'}rpm${diff == null ? '' : `（${diff >= 0 ? '+' : ''}${diff}%）`}／最高速 ${fmtKmh(topA?.kmh)} → ${fmtKmh(topB?.kmh)}km/h`;
+  box.append(foot);
+  if (pack) { const pc = document.createElement('p'); pc.textContent = pack.back.change; box.append(pc); }
+  const ratio = document.createElement('p'); ratio.className = 'note'; ratio.style.margin = '4px 0 0';
+  ratio.textContent = '比が大きいほど短い＝力が出る・回転が上がる。';
+  box.append(ratio);
+  if (pack) {
+    const h2 = document.createElement('h4'); h2.textContent = '乗り味'; box.append(h2);
+    const p2 = document.createElement('p'); p2.textContent = pack.back.feel; box.append(p2);
+    const h3 = document.createElement('h4'); h3.textContent = '注意'; box.append(h3);
+    const p3 = document.createElement('p'); p3.textContent = pack.back.care; box.append(p3);
+    if (pack.choices.gearset) {
+      const gs = GEARSETS.find((g) => g.id === pack.choices.gearset);
+      if (gs && gs.needsFifth && state.db.fifth === 'none') {
+        const warn = document.createElement('p'); warn.className = 'warn'; warn.textContent = 'このキットは5速が前提（純正4速より 25% 短い）'; box.append(warn);
+      }
+    }
+    if (pack.tags.length) {
+      const tg = document.createElement('div'); tg.className = 'tags';
+      pack.tags.forEach((t) => { const s = document.createElement('span'); s.className = 'tg'; s.textContent = t; tg.append(s); });
+      box.append(tg);
+    }
+    if (pack.guide) {
+      const gp = document.createElement('p'); gp.className = 'note';
+      gp.innerHTML = `<a href="./drive-guide#${pack.guide}">くわしく読む（駆動系のしくみ帳）</a>`;
+      box.append(gp);
+    }
+  }
+}
+
+const SCALE_GROUPS = [
+  { label: 'ファイナル（全段が一斉に変わる）', ids: ['dp_f839', 'dp_f939'] },
+  { label: '5速を足す（最上段だけ）', ids: ['dp_fifth_long'] },
+  { label: '3・4速を短くする', ids: ['dp_nanni34', 'dp_bacci34'] },
+  { label: '1速を長くする', ids: ['dp_first_long'] },
+  { label: 'ミッションごと換える', ids: ['dp_box', 'dp_box841'] },
+  { label: 'タイヤを変える', ids: ['dp_t155_65_13', 'dp_t135', 'dp_t145', 'dp_t10'] },
+];
+const PACK_SHORT = {
+  dp_f839: '8/39', dp_f939: '9/39',
+  dp_fifth_long: 'ロング 0.743',
+  dp_t155_65_13: '13インチ 155/65R13', dp_t135: '135/80R12', dp_t145: '幅広 145/70R12', dp_t10: '10インチ 145/80R10',
+  dp_nanni34: 'NANNI', dp_bacci34: 'Bacci（＋5速）', dp_box: '126 ミッション', dp_box841: '126 ミッション＋8/41',
+  dp_first_long: '12/39（126と同じ）',
+};
+function systemLineData() {
+  const baseV = buildVehicle(state.model, state.da);
+  const top = baseV.drive.gears.length - 1;
+  const baseRpm = rpmAtSpeed(state.speed, baseV.drive.gears[top], baseV.drive);
+  const cur = (k) => (state.da[k] === undefined ? DEFAULT_DRIVE_CHOICES[k] : state.da[k]);
+  const out = [];
+  for (const pack of DRIVE_PACKS) {
+    if (!packFits(state.model, state.da, pack)) continue;
+    const built = buildVehicle(state.model, packChoices(state.da, pack));
+    const t = built.drive.gears.length - 1;
+    const rpm = rpmAtSpeed(state.speed, built.drive.gears[t], built.drive);
+    const keys = Object.keys(pack.choices);
+    const on = keys.length > 0
+      && keys.every((k) => state.db[k] === pack.choices[k])
+      && keys.some((k) => pack.choices[k] !== cur(k));
+    out.push({ id: pack.id, label: PACK_SHORT[pack.id] || pack.name, pct: (rpm / baseRpm - 1) * 100, on, keys });
+  }
+  return out;
+}
+function renderScale(nums) {
+  const box = $('#scale'); box.textContent = '';
+  const data = systemLineData();
+  if (!data.length) return;
+
+  const onRows = data.filter((d) => d.on);
+  const diffKeys = DRIVE_KEYS.filter((k) => state.db[k] !== (state.da[k] === undefined ? DEFAULT_DRIVE_CHOICES[k] : state.da[k]));
+  const totalPct = nums && nums.okA && nums.okB ? (nums.rpmB / nums.rpmA - 1) * 100 : null;
+  const singleCovers = onRows.length === 1 && onRows[0].keys.length === diffKeys.length;
+  const showTotal = diffKeys.length > 0 && !singleCovers && totalPct != null;
+
+  const vals = data.map((d) => Math.abs(d.pct));
+  if (showTotal) vals.push(Math.abs(totalPct));
+  const M = Math.max(16, Math.ceil(Math.max(...vals)));
+  const pos = (p) => (p + M) / (2 * M) * 100;
+  const ZERO = pos(0);
+
+  const flat = (p) => Math.abs(p) < 0.5;
+  const bar = (p, big) => {
+    const w = Math.abs(p) / (2 * M) * 100;
+    const left = p < 0 ? ZERO - w : ZERO;
+    const tip = flat(p)
+      ? `<div class="none" style="left:calc(${ZERO}% + 8px)">変わらない</div>`
+      : `<div class="pb" style="left:${pos(p)}%"></div>`;
+    return `<div class="bar${big ? ' big' : ''}"><div class="zero" style="left:${ZERO}%"></div>`
+      + `<div class="seg" style="left:${left}%;width:${w}%"></div>`
+      + `<div class="pa" style="left:${ZERO}%"></div>${tip}</div>`;
+  };
+  const fmtPct = (p) => (flat(p) ? '±0' : `${p > 0 ? '+' : ''}${p.toFixed(0)}%`);
+
+  let h = `<p class="scNote">同じ速度で回転が何%変わるか（${state.speed}km/h・最上段のギア）</p>`;
+  if (showTotal) {
+    h += `<div class="tr on total"><div class="nm">合わせた結果</div>${bar(totalPct, true)}`
+      + `<div class="num">${fmtPct(totalPct)}</div></div>`
+      + `<div class="totcap">${Math.round(nums.rpmA)} ▶ <b>${Math.round(nums.rpmB)}</b> rpm</div>`
+      + `<hr class="sep"><div class="sc-grp first">その内訳＝1つずつ変えたら</div>`;
+  }
+  let first = !showTotal;
+  for (const g of SCALE_GROUPS) {
+    const rows = g.ids.map((id) => data.find((d) => d.id === id)).filter(Boolean);
+    if (!rows.length) continue;
+    h += `<div class="sc-grp${first ? ' first' : ''}">${g.label}</div>`; first = false;
+    for (const r of rows) {
+      h += `<div class="tr${r.on ? ' on' : ''}"><div class="nm">${r.label}</div>${bar(r.pct, false)}`
+        + `<div class="num${flat(r.pct) ? ' nochg' : ''}">${fmtPct(r.pct)}</div></div>`;
+    }
+  }
+  h += `<div class="ends"><span>◀ 回転が下がる</span><span>上がる ▶</span></div>`
+    + `<div class="foot">中心の●＝<b>いまの車</b>。先の●＝変えた後。並びは<b>変更の種類</b>順。</div>`;
+  box.innerHTML = h;
+}
+
+function drawGearTable(box, res, drive, cap) {
+  box.textContent = '';
+  const t = document.createElement('table'); t.innerHTML = `<thead><tr><th>ギア</th><th>km/h／1000rpm</th><th>${state.speed}km/h の回転</th></tr></thead>`;
+  const tb = document.createElement('tbody');
+  gearTable(res, drive).forEach((ga, i) => {
+    const rpm = rpmAtSpeed(state.speed, drive.gears[i], drive);
+    const cell = rpm > cap ? '—' : `${Math.round(rpm / 10) * 10}`;
+    const tr = document.createElement('tr'); tr.innerHTML = `<td>${ga.gear}速（${Number(ga.ratio.toFixed(3))}）</td><td>${ga.kmhAt1000.toFixed(1)}</td><td>${cell}</td>`; tb.append(tr);
+  });
+  const top = topSpeed(res, drive.vehicle || {}, drive);
+  t.append(tb); box.append(t);
+}
+function renderGearTables(L) {
+  drawGearTable($('#gearA'), L.res, L.VA.drive, L.cap);
+  drawGearTable($('#gearB'), L.res, L.VB.drive, L.cap);
+  const box = $('#gradeTable2'); box.textContent = '';
+  const t = document.createElement('table'); t.innerHTML = '<thead><tr><th>勾配</th><th>いま</th><th>変えた後</th></tr></thead>';
+  const tb = document.createElement('tbody');
+  for (const gr of [0, 5, 10]) {
+    const sa = steadySpeed(L.res, L.VA.vehicle, L.VA.drive, gr).best, sb = steadySpeed(L.res, L.VB.vehicle, L.VB.drive, gr).best;
+    const f = (s) => (s ? `${s.kmh.toFixed(0)} km/h（${s.gear}速）` : '登れない');
+    const tr = document.createElement('tr'); tr.innerHTML = `<td>${gr}%</td><td>${f(sa)}</td><td>${f(sb)}</td>`; tb.append(tr);
+  }
+  t.append(tb); box.append(t);
+}
+function renderLimits(L) {
+  const ul = $('#limits2'); ul.textContent = '';
+  const items = [
+    '理論値＝常に全開で、法定速度は勘案しない。80km/h から加速・登坂を計算する。乗員は 1人（75kg）固定。',
+    `回転の上限＝${L.cap} rpm（取説の「各ギアの最大許容速度」に相当する回転。改造カムなら「回し続けられる回転」）。`,
+    '走行抵抗の係数（空気抵抗 Cd 0.40・前面投影面積 1.7m²・転がり 0.018・伝達効率 0.87）・タイヤの転がり半径は外径の 0.97 倍という共通の仮定。',
+    '駆動系（ミッション・ファイナル・タイヤ・5速化）だけを変える道具＝エンジンは「いま」「変えた後」とも同じ。',
+    '乗り味の談は個人の環境（型式・整備状態・道）によって差がある。',
+  ];
+  for (const s of items) { const li = document.createElement('li'); li.textContent = s; ul.append(li); }
+  const as = [...new Set([...(L.VA.assumed || []), ...(L.VB.assumed || []), ...(L.built.assumed || [])])];
+  $('#assumed2').textContent = as.length ? '※ 仮定で計算している所：' + as.join('／') : '';
+}
+
+let last = null, timer = null;
+function update() {
+  writeHash();
+  $('#result').classList.add('busy'); $('#status').textContent = '計算中…';
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    const built = buildSpec(state.model, state.a);
+    const raw = simulate(built.spec, RPM);
+    const cap = revCapRpm(built, raw);
+    const res = capRes(raw, cap);
+    const VA = buildVehicle(state.model, state.da);
+    const VB = buildVehicle(state.model, state.db);
+    last = { built, res, cap, VA, VB };
+    const nums = stageNumbers(last);
+    renderBanner(last);
+    renderGauge(last, nums);
+    renderScale(nums);
+    drawSaw(last);
+    renderResultText(last);
+    renderPacks(); markPack();
+    renderPackBack(last);
+    renderFine();
+    renderDriveEditor($('#daEditor'), 'da');
+    renderGearTables(last);
+    renderLimits(last);
+    $('#result').classList.remove('busy'); $('#status').textContent = '';
+  }, 30);
+}
+window.addEventListener('resize', () => { if (last) drawSaw(last); });
+
+readHash();
+renderAllModelDependent();
+renderCaseChips();
+renderSpeedChips();
+bindAccordion();
+update();
+</script>
+
+
+</body></html>
