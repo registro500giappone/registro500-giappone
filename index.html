@@ -1079,12 +1079,20 @@ async function fetchCars() {
 
     async function loadLatestPostForBand() {
       try {
-        const [expRes, epiRes] = await Promise.all([
+        const [expRes, recRes, epiRes] = await Promise.all([
           // 公開されている手帳の経験談のみ。RLS側でも is_public で絞られるが、条件は明示しておく。
           supabaseClient
             .from('equipment_experiences')
             .select('body, created_at, equipment_records!inner(vehicle_id, is_public)')
             .eq('equipment_records.is_public', true)
+            .order('created_at', { ascending: false })
+            .limit(1),
+          // 手帳を新しく作っただけ（経験談なし）でも「動き」として出す。朝ダイジェストの新着車載手帳と同じ条件。
+          supabaseClient
+            .from('equipment_records')
+            .select('vehicle_id, created_at')
+            .eq('is_public', true)
+            .not('vehicle_id', 'is', null)
             .order('created_at', { ascending: false })
             .limit(1),
           supabaseClient
@@ -1098,7 +1106,11 @@ async function fetchCars() {
         const found = [];
         const exp = (!expRes.error && expRes.data && expRes.data[0]) || null;
         if (exp && exp.equipment_records && exp.body) {
-          found.push({ icon: '🧰', at: new Date(exp.created_at), docId: exp.equipment_records.vehicle_id, body: exp.body });
+          found.push({ icon: '🧰', at: new Date(exp.created_at), docId: exp.equipment_records.vehicle_id, body: exp.body, hash: '#equipment-notebook' });
+        }
+        const rec = (!recRes.error && recRes.data && recRes.data[0]) || null;
+        if (rec && rec.vehicle_id) {
+          found.push({ icon: '🧰', at: new Date(rec.created_at), docId: rec.vehicle_id, action: '車載手帳を作成', hash: '#equipment-notebook' });
         }
         const epi = (!epiRes.error && epiRes.data && epiRes.data[0]) || null;
         if (epi && epi.title) {
@@ -1140,9 +1152,11 @@ async function fetchCars() {
           const days = Math.ceil((Date.now() - bandPost.at.getTime()) / (1000 * 60 * 60 * 24));
           if (days <= 30) {
             const p = toJstParts(bandPost.at);
+            const who = `${bandPost.icon} ${p.mo + 1}/${p.d} ${esc(bandPost.name || 'オーナー')}さん`;
             line = {
               docId: bandPost.docId,
-              html: `${bandPost.icon} ${p.mo + 1}/${p.d} ${esc(bandPost.name || 'オーナー')}さん「${esc(trimForBand(bandPost.body))}」`
+              hash: bandPost.hash || '',
+              html: bandPost.action ? `${who}が${esc(bandPost.action)}` : `${who}「${esc(trimForBand(bandPost.body))}」`
             };
           }
         }
@@ -1169,7 +1183,7 @@ async function fetchCars() {
         if (!line) { el.style.display = 'none'; return; }
 
         el.innerHTML = `<span class="top-band-line-text">${line.html}</span>`;
-        el.href = `/detail?doc=${encodeURIComponent(line.docId)}`;
+        el.href = `/detail?doc=${encodeURIComponent(line.docId)}${line.hash || ''}`;
         el.style.display = 'flex';
         document.getElementById('topBand').style.display = 'block';
       } catch (e) { /* 静かに失敗（トップ表示をブロックしない） */ }
