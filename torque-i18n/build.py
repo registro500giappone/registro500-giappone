@@ -50,8 +50,10 @@ def must_replace(html, old, new, where):
 
 
 def dict_version(lang):
-    """辞書ファイルの内容ハッシュ。辞書を直せば勝手に変わる＝版を手で上げなくてよい。"""
-    return hashlib.md5((ROOT / lang / f'torque-data-{lang}.json').read_bytes()).hexdigest()[:8]
+    """辞書ファイルの内容ハッシュ。辞書を直せば勝手に変わる＝版を手で上げなくてよい。
+    改行は LF に揃えてから数える（Windows の作業コピーと CI とで同じ値になるように）。"""
+    raw = (ROOT / lang / f'torque-data-{lang}.json').read_bytes().replace(b'\r\n', b'\n')
+    return hashlib.md5(raw).hexdigest()[:8]
 
 
 def mechanical(html, lang):
