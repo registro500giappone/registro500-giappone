@@ -311,7 +311,7 @@ def render(ev, slug, start, end) -> str:
 <meta property="og:title" content="{e(name)}">
 <meta property="og:description" content="{e(summary)}">
 <meta property="og:url" content="{url}">
-<meta property="og:image" content="{SITE_BASE}/logo_horizontal.png">
+<meta property="og:image" content="{SITE_BASE}/og/site-ja.png">
 <meta property="og:site_name" content="Registro500 Giappone">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="/style.css">
