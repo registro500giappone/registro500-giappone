@@ -309,11 +309,15 @@ export async function loadCar(url){
       const m=o.material; m.map=null; m.metalnessMap=null; m.roughnessMap=null; m.metalness=1; m.roughness=0.06; m.color.set(0xffffff); m.envMapIntensity=3; m.emissiveIntensity=0.05; m.needsUpdate=true; } }
     // 前照灯のガラス＝透過（transmission）はスマホで暗く濁る＝ふつうの半透明の澄んだガラスに
     else if(mn==='Fiat_126P_Headlight_Glass'){ const m=o.material.clone(); m.transmission=0; m.transparent=true; m.opacity=0.18; m.roughness=0.02; m.clearcoat=1; m.clearcoatRoughness=0; m.envMapIntensity=2.5; m.depthWrite=false; o.material=m; }
+    // 尾灯のレンズ（上が橙のウインカー・下が赤の尾灯と制動灯＝初期型から同じ配置）が暗く見えた＝元は半透明扱いで奥行きを書かず、
+    // 後ろの反射板（暗い金属）が上から描かれていた。不透明な色つき樹脂にして奥行きを書く
+    else if(mn==='Fiat_126P_Brake_Lights'){ const m=o.material.clone(); m.transmission=0; m.transparent=false; m.opacity=1; m.depthWrite=true; m.roughness=0.12; m.clearcoat=1; m.clearcoatRoughness=0; m.emissive.set(0xffffff); m.emissiveMap=m.map; m.emissiveIntensity=0.15; o.material=m; }
     else if(mn==='Fiat_126P_Fiat_Front_Emblem'){ frontLogo.push(o); }
     else if(mn==='Fiat_126P_Mirror'){ mirrors.push(o); }
     // 前の小灯は初期型では白いレンズ（車幅灯とウインカーを兼ねる・1976年から橙）＝前の2つだけ白く、側面の方向指示器は橙のまま
     else if(mn==='Fiat_126P_Turnsignal_Glass'){
       o.material=o.material.clone(); o.material.color.set(0xffffff); o.material.vertexColors=true;
+      o.material.transmission=0; o.material.transparent=false; o.material.opacity=1; o.material.depthWrite=true; o.material.roughness=0.12; o.material.clearcoatRoughness=0;
       const a=o.geometry.attributes.position, col=new Float32Array(a.count*3), v=new THREE.Vector3();
       for(let i=0;i<a.count;i++){ v.fromBufferAttribute(a,i).applyMatrix4(o.matrixWorld); const front=v.z>3.2; col.set(front?[0.95,0.95,0.93]:[1,0.244,0.019],i*3); }
       o.geometry=o.geometry.clone(); o.geometry.setAttribute('color',new THREE.BufferAttribute(col,3)); }
