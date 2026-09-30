@@ -32,7 +32,7 @@ A. 定点巡回: 既存 events の url 列 ＋ event_discovery_log の url 列�
 B. 一般検索: キーワード×地域×時期 の組み合わせで、FIAT専門に絞らず
    広く旧車・イタリア車・オフ会系のイベント告知を探す。
 
-環境変数は py/.env から読む（send_report.py と同じ手書きパーサを踏襲）。
+環境変数は py/.env から読む（py/common.py の cfg）。
 使い方:
   python py/find_events.py                 # 本番実行（メール送信＋台帳記録）
   python py/find_events.py --dry-run        # メール送信・台帳記録をせず標準出力へ
@@ -59,21 +59,11 @@ try:
 except Exception:
     pass
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ENV_PATH = os.path.join(BASE, "py", ".env")
+from common import BASE, cfg, require, sb_select, sb_upsert, brevo_send
 
-# --- 環境変数の読み込み（send_report.py 1〜27行目と同じ手書きパーサを踏襲） ---
-env = {}
-for line in open(ENV_PATH, encoding="utf-8"):
-    line = line.strip()
-    if "=" in line and not line.startswith("#"):
-        k, v = line.split("=", 1)
-        env[k] = v
-
-SUPA_URL = env["SUPABASE_URL"].rstrip("/")
-SUPA_KEY = env.get("SUPABASE_SERVICE_KEY") or env["SUPABASE_KEY"]
-GEMINI_API_KEY = env["GEMINI_API_KEY"]
-BREVO_KEY = env["BREVO_API_KEY"]
+# --- 設定は py/common.py が py/.env（無ければ環境変数）から読む ---
+require("SUPABASE_URL", "GEMINI_API_KEY", "BREVO_API_KEY")
+GEMINI_API_KEY = cfg("GEMINI_API_KEY")
 
 SENDER_EMAIL = "news@registro500.com"
 SENDER_NAME = "Registro500 Giappone"
@@ -129,32 +119,15 @@ HOST_DATE_PROXIMITY_DAYS = 3
 
 
 def sb_get(table, select="*", extra=""):
-    """Supabase REST(PostgREST) へのGET。send_report.py の sb() と同じ形。"""
-    url = f"{SUPA_URL}/rest/v1/{table}?select={select}"
-    if extra:
-        url += "&" + extra
-    req = urllib.request.Request(url, headers={
-        "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY})
-    return json.load(urllib.request.urlopen(req, timeout=40))
+    """Supabase REST へのGET（common.sb_select の薄い別名・従来どおりページングなし）。"""
+    return sb_select(table, select, extra=extra, paged=False)
 
 
 def sb_insert_ignore_dup(table, rows, conflict_col):
     """UNIQUE制約に衝突したら無視する挿入（台帳への書き込み専用）。"""
     if not rows:
         return
-    url = f"{SUPA_URL}/rest/v1/{table}?on_conflict={conflict_col}"
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(rows).encode("utf-8"),
-        headers={
-            "apikey": SUPA_KEY,
-            "Authorization": "Bearer " + SUPA_KEY,
-            "Content-Type": "application/json",
-            "Prefer": "resolution=ignore-duplicates,return=minimal",
-        },
-        method="POST",
-    )
-    urllib.request.urlopen(req, timeout=40)
+    sb_upsert(table, rows, on_conflict=conflict_col, ignore_dup=True)
 
 
 # --- URL・イベント名の正規化（既知イベントとの突合・台帳の重複排除に使う） ---
@@ -1007,17 +980,7 @@ def main():
         "textContent": body_text,
         "htmlContent": body_html,
     }
-    req = urllib.request.Request(
-        "https://api.brevo.com/v3/smtp/email",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"api-key": BREVO_KEY, "Content-Type": "application/json", "Accept": "application/json"},
-        method="POST")
-    try:
-        resp = json.load(urllib.request.urlopen(req, timeout=40))
-        print("OK 送信完了:", resp.get("messageId"))
-    except urllib.error.HTTPError as e:
-        print("送信失敗:", e.code, e.read().decode())
-        raise
+    print("OK 送信完了:", brevo_send(payload))
 
     # メール送信が成功したあとに台帳へ記録する（送信失敗時に記録だけ進んで
     # 候補が埋もれるのを避けるため）。UNIQUE(url_key)への衝突は無視する。

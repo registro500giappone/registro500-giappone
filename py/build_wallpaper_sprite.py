@@ -25,9 +25,12 @@ from concurrent.futures import ThreadPoolExecutor
 import requests
 from PIL import Image, ImageOps
 
-SUPABASE_URL = "https://ttlttclfovuzafvghvaq.supabase.co"
-# 公開キー＝全訪問者に配られている値。RLS が効くので匿名で見えるものしか返らない。
-SUPABASE_KEY = "sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt"
+from common import require, sb_select, supa_key
+
+# ⚠️ あえて公開キー（SUPABASE_KEY）で読む＝RLS が効いて匿名の訪問者に見える車だけが対象になる。
+# service_role に切り替えてはいけない（非公開の車がスプライトに混ざる）。
+require("SUPABASE_URL", "SUPABASE_KEY")
+PUBLIC_KEY = supa_key(service=False)
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(BASE, ".."))
@@ -165,19 +168,13 @@ def color_order(items):
 # ---------------------------------------------------------------- 取得と署名
 def fetch_cars():
     """スプライトに入れる車。⛔ sns_share_optout の車は入れない（掟）"""
-    r = requests.get(
-        f"{SUPABASE_URL}/rest/v1/cars",
-        params={
-            "select": "document_id,photo_main,body_color,updated_at",
-            "photo_main": "not.is.null",
-            "or": "(sns_share_optout.is.null,sns_share_optout.is.false)",
-            "limit": "1000",
-        },
-        headers={"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"},
-        timeout=30,
+    rows = sb_select(
+        "cars", "document_id,photo_main,body_color,updated_at",
+        filters={"photo_main": "not.is.null",
+                 "or": "(sns_share_optout.is.null,sns_share_optout.is.false)"},
+        key=PUBLIC_KEY,
     )
-    r.raise_for_status()
-    rows = [x for x in r.json() if x.get("photo_main")]
+    rows = [x for x in rows if x.get("photo_main")]
 
     def keyf(x):                        # 登録順＝document_id の数値部分
         d = str(x.get("document_id") or "")
