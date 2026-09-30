@@ -976,10 +976,13 @@
       try {
         // 応答を必ず見る。旧実装は fetch の結果を確認せず常に成功扱いにしていたため、
         // 送信先が見つからない等で実際には届いていなくても「送信しました！」と出ていた。
+        // 送信者はサーバー側でトークンから確かめる（本文の senderEmail は使われない）
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) throw new Error("ログインの有効期限が切れています。ログインし直してください。");
         const res = await fetch('/api/inquiry', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ targetDocId: currentCar.document_id, senderName: name, senderEmail: currentUser.email, message: msg })
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
+          body: JSON.stringify({ targetDocId: currentCar.document_id, senderName: name, message: msg })
         });
         const result = await res.json().catch(() => ({}));
         if (!res.ok || !result.success) throw new Error(result.error || "送信に失敗しました。時間をおいてお試しください。");

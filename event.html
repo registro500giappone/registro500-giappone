@@ -577,7 +577,9 @@
         .eq('owner_user_id', user.id);
 
       if(cars && cars.length > 0) myCarId = cars[0].document_id;
-      else myCarId = "ADMIN";
+      // 車を持たないログインユーザー全員を管理者扱いにしない（編集・削除ボタンが出てしまう。
+      // DB 側は RLS で拒否されるが、押せるボタンを見せない）
+      else myCarId = (user.email && user.email.toLowerCase() === ADMIN_EMAIL) ? "ADMIN" : null;
       renderEvents();
     } catch(e) {}
   }
@@ -686,8 +688,8 @@
   // 一覧に置く必要が無く、置くと要約が読みにくくなる。編集・削除は一覧からしか行えないので残す。
   function adminRowHtml(ev, slim) {
     const isOwner = currentUser && (ev.OwnerID === myCarId || myCarId === 'ADMIN');
-    const edit = `<button class="btn-edit" onclick="openEdit('${ev.EventID}')">✏️ 編集</button><button class="btn-delete" onclick="deleteEvent('${ev.EventID}')">🗑️ 削除</button>`;
-    const share = `<button class="btn-share" onclick="shareEvent('${ev.EventID}')">🔗 シェア</button>`;
+    const edit = `<button class="btn-edit" onclick="openEdit('${esc(ev.EventID)}')">✏️ 編集</button><button class="btn-delete" onclick="deleteEvent('${esc(ev.EventID)}')">🗑️ 削除</button>`;
+    const share = `<button class="btn-share" onclick="shareEvent('${esc(ev.EventID)}')">🔗 シェア</button>`;
     if (slim) return isOwner ? `<div class="ev-admin-row">${edit}</div>` : '';
     if (isOwner) return `<div class="ev-admin-row">${edit}${share}</div>`;
     return `<div class="ev-admin-row">${share}</div>`; // 管理者でなくてもシェアは出す
@@ -740,7 +742,7 @@
     
     let namesHtml = participants.length === 0 ? "参加表明オーナーはまだいません" : participants.map(p => {
         if(p.OwnerID === 'ADMIN') return `<span>${esc(p.HandleName)}</span>`;
-        return `<a href="/detail?doc=${p.OwnerID}" target="_blank" class="participant-link">${esc(p.HandleName)}</a>`;
+        return `<a href="/detail?doc=${encodeURIComponent(p.OwnerID)}" target="_blank" class="participant-link">${esc(p.HandleName)}</a>`;
     }).join('');
 
     const { dateDisplay } = buildDateDisplay(ev, dateObj);
@@ -754,9 +756,9 @@
       <div class="ev-info-row"><span class="ev-label">開催場所</span><div class="ev-info-val">${esc(ev.Location)}</div></div>
       ${ev.Fee ? `<div class="ev-info-row"><span class="ev-label">費用</span><div class="ev-info-val">${esc(ev.Fee)}</div></div>` : ''}
       <div class="ev-desc">${linkify(ev.Description)}</div>
-      ${ev.URL ? `<div class="ev-url-row">🔗 参照URL: <a href="${ev.URL}" target="_blank">${esc(ev.URL)}</a></div>` : ''}
-      ${isPast ? '' : `<div class="participation-area"><button class="btn-join ${isJoined ? 'joined' : ''}" onclick="toggleJoin('${ev.EventID}')">${isJoined ? '✅ 参加予定です' : '✋ 参加予定'}</button><div class="participants-list">${namesHtml}</div></div>`}
-      <div class="ev-footer">${ev.OwnerID === 'ADMIN' ? `<span class="owner-badge">👤 ${esc(ev.OwnerName)}</span>` : `<a href="/detail?doc=${ev.OwnerID}" class="owner-badge" target="_blank">👤 ${esc(ev.OwnerName)}</a>`}</div>
+      ${safeUrl(ev.URL) ? `<div class="ev-url-row">🔗 参照URL: <a href="${esc(safeUrl(ev.URL))}" target="_blank" rel="noopener nofollow">${esc(ev.URL)}</a></div>` : ''}
+      ${isPast ? '' : `<div class="participation-area"><button class="btn-join ${isJoined ? 'joined' : ''}" onclick="toggleJoin('${esc(ev.EventID)}')">${isJoined ? '✅ 参加予定です' : '✋ 参加予定'}</button><div class="participants-list">${namesHtml}</div></div>`}
+      <div class="ev-footer">${ev.OwnerID === 'ADMIN' ? `<span class="owner-badge">👤 ${esc(ev.OwnerName)}</span>` : `<a href="/detail?doc=${encodeURIComponent(ev.OwnerID)}" class="owner-badge" target="_blank">👤 ${esc(ev.OwnerName)}</a>`}</div>
     `;
     return div;
   }
@@ -1028,6 +1030,11 @@ window.submitEvent = async () => {
   function esc(s) {
     if(!s) return '';
     return s.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+
+  // href に入れてよいのは http(s) だけ（投稿画面は type="url" しか見ておらず javascript: が通る）
+  function safeUrl(u) {
+    return (u && /^https?:\/\//i.test(String(u).trim())) ? String(u).trim() : '';
   }
 
   function linkify(s) {

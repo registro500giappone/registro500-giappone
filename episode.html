@@ -473,7 +473,9 @@
       }
 
       // 外部記事（元記事）リンク + canonical
-      if (ep.source_url) {
+      // http(s) 以外の source_url（javascript: 等）はリンクにしない。投稿画面の検査だけでは
+      // REST 直叩きを防げないので、表示側でも見る
+      if (ep.source_url && /^https?:\/\//i.test(ep.source_url)) {
         const box = document.getElementById('epSourceBox');
         const link = document.getElementById('epSourceLink');
         link.href = ep.source_url;

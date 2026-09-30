@@ -73,7 +73,9 @@
       const placeholders = [];
       let placeholder = 0;
 
-      const textWithPlaceholders = text.replace(aTagPattern, function(match) {
+      // 残すのは http(s) の <a> だけ。javascript: 等はそのまま残さず、下の esc で文字として表示する
+      const textWithPlaceholders = text.replace(aTagPattern, function(match, href) {
+        if (!/^https?:\/\//i.test(href)) return match;
         placeholders.push(match);
         return `__LINK_PLACEHOLDER_${placeholder++}__`;
       });
