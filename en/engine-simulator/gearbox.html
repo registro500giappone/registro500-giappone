@@ -335,6 +335,10 @@ function readHash() {
     state.pack = pk.id;
     if (!bv && packFits(state.model, state.da, pk)) state.db = packChoices(state.da, pk);
   }
+  if (!bv && !pk) {
+    const dp = DRIVE_PACKS.find((p) => p.id === 'dp_f839');
+    if (packFits(state.model, state.da, dp)) { state.db = packChoices(state.da, dp); state.pack = dp.id; }
+  }
   if (h.get('c') && CASE_ORDER.includes(h.get('c'))) state.case = h.get('c');
   const vv = Number(h.get('v')); if (SPEED_OPTIONS.includes(vv)) state.speed = vv;
 }

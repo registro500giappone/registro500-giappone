@@ -133,6 +133,7 @@ select{font:inherit;font-size:14px;color:var(--ink);background:var(--card);borde
 .stage .radarlegend i.b{border-top:2px solid var(--gold)}
 .stage .cta{display:block;text-align:center;margin:14px 0 0;padding:11px;border:1px solid var(--gold);color:var(--cream);
   border-radius:10px;font-weight:700;font-size:14px;text-decoration:none;background:#ffffff0d;letter-spacing:.02em}
+.stage .cta2{display:block;text-align:center;margin:10px 0 0;color:#bcd6c4;font-size:12.5px;text-decoration:underline;text-underline-offset:3px}
 .chart{position:relative;border:1px solid var(--line);background:var(--surface-1);border-radius:12px;padding:10px 8px 6px;margin-top:12px}
 .chart .title{font-size:13px;color:var(--deep);margin:0 4px 4px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--text-secondary)}
@@ -210,6 +211,7 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{b
         </div>
       </div>
       <a class="cta" id="toDrive" href="drive.html">この2台を坂で走らせる →</a>
+      <a class="cta2" id="toGearbox" href="./gearbox">ミッション・タイヤを変えるなら（駆動系妄想シミュレーター）→</a>
     </div>
   </div>
 
@@ -364,6 +366,9 @@ function writeHash() {
   if (encSide(state.a)) p.set('a', encSide(state.a)); if (encSide(state.b)) p.set('b', encSide(state.b));
   history.replaceState(null, '', '#' + p.toString());
   $('#toDrive').href = 'drive.html#' + p.toString();
+  // 駆動系編へは「いま」の側（m と a）だけ渡す＝エンジンを固定して駆動系を変える画面なので、変えた後（b）は持ち込まない
+  const g = new URLSearchParams(); g.set('m', state.model); if (encSide(state.a)) g.set('a', encSide(state.a));
+  $('#toGearbox').href = './gearbox#' + g.toString();
 }
 
 // ───── ベース車両＝車種 → タイプ → いまの状態（ウィザード型＝2026-09-19） ─────

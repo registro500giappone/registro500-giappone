@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>駆動系妄想シミュレーター｜REGISTRO 500 GIAPPONE</title>
-<meta name="robots" content="noindex">
 <link rel="canonical" href="https://www.registro500.com/engine-simulator/gearbox">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
@@ -18,7 +17,7 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="駆動系妄想シミュレーター">
 <meta property="og:description" content="ファイナル・5速化・3/4速ショート・タイヤを変えると何がどう変わるか。場面ごとに比べられる。">
-<meta property="og:image" content="https://www.registro500.com/og/site-ja.png">
+<meta property="og:image" content="https://www.registro500.com/og/engine-gearbox-ja.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -338,6 +337,11 @@ function readHash() {
     state.pack = pk.id;
     // db が無い（札だけの）URL は、札の中身を db に展開する＝札名と針が食い違わない
     if (!bv && packFits(state.model, state.da, pk)) state.db = packChoices(state.da, pk);
+  }
+  // エンジン編から車だけ持って来た URL（m・a だけ）も、ハッシュ無しと同じカードで始める＝「ほぼ同じ」の空の比較から入らない
+  if (!bv && !pk) {
+    const dp = DRIVE_PACKS.find((p) => p.id === 'dp_f839');
+    if (packFits(state.model, state.da, dp)) { state.db = packChoices(state.da, dp); state.pack = dp.id; }
   }
   if (h.get('c') && CASE_ORDER.includes(h.get('c'))) state.case = h.get('c');
   const vv = Number(h.get('v')); if (SPEED_OPTIONS.includes(vv)) state.speed = vv;
