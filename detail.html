@@ -129,6 +129,13 @@
     .rg-episode-timeline-item { border-bottom: 1px solid var(--rg-border); padding: 0.75rem 0; }
     .rg-episode-timeline-item:last-child { border-bottom: none; }
     .rg-episode-date { font-size: 0.8rem; color: var(--rg-muted); margin-bottom: 0.2rem; }
+    .paint-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+    .paint-item { border: 1px solid var(--rg-border); border-radius: 8px; overflow: hidden; background: #fff; }
+    .paint-item img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; background: #e8e1d3; }
+    .paint-item .pc { font-size: 0.82rem; padding: 4px 8px 0; word-break: break-word; }
+    .paint-item .pd { font-size: 0.72rem; color: var(--rg-muted); padding: 2px 8px 6px; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+    .paint-item .pdel { font: inherit; font-size: 0.72rem; border: 1px solid var(--rg-border); background: none; color: #b23b2b; border-radius: 999px; padding: 1px 8px; cursor: pointer; }
+    .paint-item .pdel.sure { background: #b23b2b; color: #fff; border-color: #b23b2b; }
     .rg-episodes-more { display: block; text-align: center; padding: 0.75rem; font-size: 0.9rem; color: var(--rg-accent); text-decoration: none; margin-top: 0.25rem; }
     /* 「この1台の歩み」の自動行（登録・更新・イベント参加・車載手帳・売却）。
        ストーリー行（rg-episode-timeline-item）と余白感を揃える。 */
@@ -365,6 +372,11 @@
             <div id="equipmentMaestro" class="eq-maestro-band" style="display:none;"></div>
             <a id="equipmentBackLink" class="eq-back-link" href="/equipment" style="display:none;">← みんなの車載手帳へ戻る</a>
             <div id="equipmentContent"></div>
+          </section>
+          <section class="rg-card" id="paintSection" style="display:none;">
+            <h2 class="rg-section-title">この車のお絵描き</h2>
+            <div id="paintGrid" class="paint-grid"></div>
+            <a class="rg-episodes-more" href="/paint-notebook/gallery">みんなのお絵描き手帳を見る →</a>
           </section>
           <section class="rg-card"><h2 class="rg-section-title">共有・連絡</h2>
             <div class="rg-action-row"><button class="rg-btn rg-btn-dark" onclick="showQRCode()">QR表示</button><a id="shareX" class="rg-btn rg-btn-black" target="_blank">Xでシェア</a><a id="shareLINE" class="rg-btn" style="background:#06C755;color:#fff;" target="_blank">LINEで送る</a></div>
@@ -1322,7 +1334,44 @@
       </a>`;
     }
 
-    fetchDetail();
+    // ─── この車のお絵描き（みんなのお絵描き手帳のうち、この車のオーナーの投稿） ───
+    // 公開するときに true にする（それまでは欄を出さない）
+    const PAINT_GALLERY_ON = false;
+    async function loadPaint() {
+      if (!PAINT_GALLERY_ON || !currentCar) return;
+      const { data, error } = await supabaseClient.rpc('paint_posts_list', { p_car_type: null, p_car_doc: currentCar.document_id, p_limit: 24, p_before: null });
+      if (error || !data || !data.length) return;
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const isOwner = !!(session && currentCar.owner_user_id && currentCar.owner_user_id === session.user.id);
+      const grid = document.getElementById('paintGrid');
+      grid.innerHTML = '';
+      data.forEach(p => {
+        const note = (p.car_type === '126' ? '/paint-notebook/126' : '/paint-notebook/') + '#' + p.design;
+        const d = new Date(p.created_at);
+        const el = document.createElement('div'); el.className = 'paint-item';
+        el.innerHTML = `<a href="${esc(note)}"><img loading="lazy" alt="お絵描き" src="${esc(SUPABASE_URL + '/storage/v1/object/public/paint-thumbs/' + p.thumb_path)}"></a>
+          ${p.comment ? `<div class="pc">${esc(p.comment)}</div>` : ''}
+          <div class="pd"><span>${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}</span></div>`;
+        if (isOwner) {
+          // 削除は2度押し（確認のダイアログは出さない）
+          const b = document.createElement('button'); b.type = 'button'; b.className = 'pdel'; b.textContent = '削除';
+          b.onclick = async () => {
+            if (!b.classList.contains('sure')) { b.classList.add('sure'); b.textContent = '本当に削除'; setTimeout(() => { b.classList.remove('sure'); b.textContent = '削除'; }, 4000); return; }
+            b.disabled = true;
+            const { data: path, error: e2 } = await supabaseClient.rpc('paint_post_delete', { p_id: p.id, p_delete_key: null });
+            if (e2) { b.disabled = false; b.classList.remove('sure'); b.textContent = '削除できませんでした'; return; }
+            if (path) await supabaseClient.storage.from('paint-thumbs').remove([path]);
+            el.remove();
+            if (!grid.children.length) document.getElementById('paintSection').style.display = 'none';
+          };
+          el.querySelector('.pd').appendChild(b);
+        }
+        grid.appendChild(el);
+      });
+      document.getElementById('paintSection').style.display = 'block';
+    }
+
+    fetchDetail().then(loadPaint);
   </script>
 <footer style="margin-top:48px;padding:20px 16px;border-top:1px solid #e5e7eb;text-align:center;">
   <a href="/goods" style="font-size:0.82rem;color:#6b7280;text-decoration:none;">📦 メンテナンスおすすめグッズ</a>

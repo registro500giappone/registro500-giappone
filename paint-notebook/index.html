@@ -45,6 +45,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 /* 仕上がりを持ち出すボタン＝視点を動かす丸いボタンとは段と形を分ける */
 .actbar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
 button.act{border-radius:10px;padding:10px 12px;font-size:14px;font-weight:600}
+.actbar .post{grid-column:1/-1}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px 14px}
 details{border-bottom:1px solid var(--line)}
 details:last-child{border-bottom:0}
@@ -87,6 +88,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
         <button id="save" class="act primary">画像にする</button>
         <button id="share" class="act">URLをコピー</button>
         <button id="drive" class="act">動画にする</button>
+        <button id="post" class="act post">みんなのお絵描き手帳に投稿</button>
       </div>
     </div>
 
@@ -178,6 +180,7 @@ import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {DEF, PAT_SIZE, PROVINCES, cleanText, cleanPlate, readHash, loadCar} from './car.js?v=34';
+import {mountPost} from './post.js?v=1';
 
 // 当時の純正色＝FIAT の色名と色番号・年はイタリアの色表（500 Club Italia ほか）。オランダの色表（Fiat van der Laan）とも名前・番号が一致
 // 色味（hex）は見た目の近似。並びは登場順
@@ -300,6 +303,8 @@ $('spin').onclick=()=>{controls.autoRotate=!controls.autoRotate; $('spin').setAt
 $('save').onclick=()=>{ renderer.render(scene,cam); const img=$('shot').querySelector('img'); img.src=renderer.domElement.toDataURL('image/png'); $('shot').style.display='flex'; };
 $('shotClose').onclick=()=>{$('shot').style.display='none';};
 // 動画は「走る500」の画面で作る＝いまの仕上がり（URLの # 以降）をそのまま渡す
+// 投稿＝いまの画面を縮小画像にして、設計図（# 以降）と一緒に送る
+$('post').onclick=mountPost({carType:'500', snap:()=>{ renderer.render(scene,cam); return renderer.domElement; }});
 $('drive').onclick=()=>{ location.href='drive.html'+location.hash; };
 $('share').onclick=async()=>{ try{ await navigator.clipboard.writeText(location.href); $('share').textContent='コピーしました'; }catch(e){ $('share').textContent='コピーできませんでした'; } setTimeout(()=>$('share').textContent='URLをコピー',1800); };
 
