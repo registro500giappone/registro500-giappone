@@ -11,7 +11,7 @@ export {PROVINCES, cleanPlate, cleanText};
 
 const K = 2.6027;
 // 既定＝1972〜76年のイタリア製初期型（白 233・閉じた屋根・外ミラー無し・1976年6月までの登録のナンバー）
-export const DEF = {bc:'#eceae2',fin:'solid',tt:0,rc:'#1a1a1a',sr:0,cc:'#1c1c1c',mr:0,st:0,sc:'#b8261f',sw:0.44,sg:0.12,so:0,sd:0,sdc:'#b8261f',sdy:1.25,sdw:0.1,nb:'',rim:'silver',pt:'',pc:'#1a1a1a',ps:0.35,tx:'',tp:'hood',tc:'#1a1a1a',ts:1,pe:'51',pv:'RM',pn:'M1',pl:'2672'};
+export const DEF = {bc:'#eceae2',fin:'solid',tt:0,rc:'#1a1a1a',sr:0,cc:'#1c1c1c',seat:'#8a2a22',mr:0,st:0,sc:'#b8261f',sw:0.44,sg:0.12,so:0,sd:0,sdc:'#b8261f',sdy:1.25,sdw:0.1,nb:'',rim:'silver',pt:'',pc:'#1a1a1a',ps:0.35,tx:'',tp:'hood',tc:'#1a1a1a',ts:1,pe:'51',pv:'RM',pn:'M1',pl:'2672'};
 // 当時の色＝FIAT の色番号と名前（初期型の資料＋1976年の Personal の6色）。色味は写真からの近似（色見本の実測ではない）
 export const COLORS = [['#eceae2','Bianco 233'],['#e6dcc0','Avorio Antico 234'],['#d9c9a3','Beige Chiaro 532'],['#e3c45a','Giallo Tufo 246'],['#d2461e','Rosso Arancio 171'],['#b3261e','Rosso Corallo Scuro 165'],['#5e7a2e','Verde Muschio 329'],['#8db255','Verde Chiaro 358'],['#3fa6a0','Turchese Farfalla 463'],['#3f7fb8','Blu Adriatico 408'],['#1f2f55','Blu Scuro 456']];
 export const PAT_SIZE = {chk:[0.35,0.15,0.8], dot:[0.45,0.2,1.0], low:[1.2,0.5,2.2]};
@@ -279,11 +279,12 @@ export async function loadCar(url){
   const glassMat = new THREE.MeshPhysicalMaterial({color:0xe4ecef,transparent:true,opacity:0.32,roughness:0.02,metalness:0,depthWrite:false,envMapIntensity:2.2,clearcoat:1,clearcoatRoughness:0.02});
   const decalMat = new THREE.MeshPhysicalMaterial({transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,clearcoat:1,clearcoatRoughness:0.06,roughness:0.4});
   let rimMat = null, metalMat = null, plasticMat = null; const headMats = [];
+  const seatMat = new THREE.MeshPhysicalMaterial({roughness:0.55,metalness:0,clearcoat:0.3,clearcoatRoughness:0.4});
 
   const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
   const g = await loader.loadAsync(url);
   const root = new THREE.Group(); g.scene.scale.setScalar(K); root.add(g.scene);
-  let bodyMesh = null, plateMesh = null; const frontLogo = [], rearLogo = [], mirrors = [], mirrorHosts = [], wheelNodes = {};
+  let bodyMesh = null, plateMesh = null; const frontLogo = [], rearLogo = [], mirrors = [], mirrorHosts = [], seatHosts = [], wheelNodes = {};
   const fontReady = loadPlateFont();
   // 前輪は元のモデルでは右へ切ってある＝後輪と同じ向きに戻す（まっすぐ走らせるため）
   const wq = {};
@@ -323,6 +324,7 @@ export async function loadCar(url){
       o.geometry=o.geometry.clone(); o.geometry.setAttribute('color',new THREE.BufferAttribute(col,3)); }
     else if(mn==='Fiat_126P_Rear_Emblem'){ rearLogo.push(o); }
     if(mn==='Fiat_126P_Metal'||mn==='Fiat_126P_Plastic') mirrorHosts.push(o);
+    if(mn==='Fiat_126P_Shadow') seatHosts.push(o);
   });
   // ドアミラーの鏡以外（メッキの殻と樹脂の腕）はメッキ・樹脂の部品に混ざっている＝車体の外へ張り出した三角形だけ切り出して別部品にする
   // （初期型はミラー無しが標準＝1976年に義務化。付け外しを切り替えられるように）
@@ -335,6 +337,20 @@ export async function loadCar(url){
     const g2=new THREE.BufferGeometry(); for(const k in gm.attributes) g2.setAttribute(k,gm.attributes[k]); g2.setIndex(take);
     const g1=gm.clone(); g1.setIndex(keep); o.geometry=g1;
     const m=new THREE.Mesh(g2,o.material); m.position.copy(o.position); m.quaternion.copy(o.quaternion); m.scale.copy(o.scale); o.parent.add(m); mirrors.push(m);
+  });
+  // 室内は黒い簡略形の一体部品（座席・ダッシュボード・床・床下）＝前席2脚と後席の三角形だけ切り出して色を付けられるように
+  seatHosts.forEach(o => {
+    const gm=o.geometry, pos=gm.attributes.position, idx=gm.index?gm.index.array:[...Array(pos.count).keys()], v=new THREE.Vector3(), c=new THREE.Vector3();
+    const keep=[], take=[];
+    for(let t=0;t<idx.length;t+=3){
+      c.set(0,0,0); for(let k=0;k<3;k++){ v.fromBufferAttribute(pos,idx[t+k]).applyMatrix4(o.matrixWorld); c.add(v); } c.multiplyScalar(1/3);
+      const seat=c.y>1.88 && c.y<2.72 && Math.abs(c.x)<1.36 && c.z>-3.1 && c.z<0.75;
+      (seat?take:keep).push(idx[t],idx[t+1],idx[t+2]);
+    }
+    if(!take.length) return;
+    const g2=new THREE.BufferGeometry(); for(const k in gm.attributes) g2.setAttribute(k,gm.attributes[k]); g2.setIndex(take);
+    const g1=gm.clone(); g1.setIndex(keep); o.geometry=g1;
+    const m=new THREE.Mesh(g2,seatMat); m.position.copy(o.position); m.quaternion.copy(o.quaternion); m.scale.copy(o.scale); o.parent.add(m);
   });
   root.updateMatrixWorld(true);
 
@@ -452,7 +468,7 @@ export async function loadCar(url){
   function apply(S){
     curS=S;
     bodyMat.color.set(S.bc); U.uBody.value.set(S.bc); setFinish(bodyMat,S.fin);
-    U.uTT.value=S.tt; U.uRoofCol.value.set(S.rc); U.uSR.value=S.sr; U.uSRCol.value.set(S.cc||'#1c1c1c');
+    U.uTT.value=S.tt; U.uRoofCol.value.set(S.rc); U.uSR.value=S.sr; U.uSRCol.value.set(S.cc||'#1c1c1c'); seatMat.color.set(S.seat||'#8a2a22');
     U.uStripe.value=S.st; U.uStripeCol.value.set(S.sc); U.uSW.value=S.sw; U.uSG.value=S.sg; U.uSO.value=-S.so;
     U.uSide.value=S.sd; U.uSideCol.value.set(S.sdc); U.uSideY.value=S.sdy; U.uSideW.value=S.sdw;
     const pt=['chk','dot','low'].indexOf(S.pt)+1;

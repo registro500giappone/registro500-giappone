@@ -110,6 +110,11 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
           <button id="mr" aria-pressed="false">ドアミラーを付ける</button></div>
       </details>
       <details>
+        <summary>シート</summary>
+        <div class="row" id="seatSw"></div>
+        <div class="row"><label class="cap">色を自由に選ぶ</label><input type="color" id="seatCol"></div>
+      </details>
+      <details>
         <summary>ホイール</summary>
         <div class="row" id="rim"><label class="cap">ホイール（純正は銀塗りの鉄ホイール）</label>
           <button data-rim="silver">銀</button><button data-rim="body">ボディ同色</button><button data-rim="white">白</button><button data-rim="black">黒</button><input type="color" id="rimCol" value="#d8d8d8"></div>
@@ -168,7 +173,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
-import {DEF, PAT_SIZE, PROVINCES, COLORS, cleanText, cleanPlate, readHash, loadCar} from './car126.js?v=16';
+import {DEF, PAT_SIZE, PROVINCES, COLORS, cleanText, cleanPlate, readHash, loadCar} from './car126.js?v=17';
 
 const S = readHash();
 
@@ -222,6 +227,8 @@ bindColor('rimCol','rim');
 // 帆布の色＝500 の幌と同じ見本（当時に合わせるのはボディ色だけ）
 ['#1c1c1c','#d6c8a8','#7a2020','#2a3448'].forEach(c=>{ const b=document.createElement('button'); b.className='sw'; b.style.background=c; b.dataset.c=c; b.setAttribute('aria-label',c); b.onclick=()=>{S.cc=c; if(!S.sr) S.sr=1; apply();}; $('canvasSw').appendChild(b); });
 bindColor('canvasCol','cc');
+['#2b2624','#8a2a22','#d8c7a4','#6b4a33','#26324f','#e9e3d6'].forEach(c=>{ const b=document.createElement('button'); b.className='sw'; b.style.background=c; b.dataset.c=c; b.setAttribute('aria-label',c); b.onclick=()=>{S.seat=c; apply();}; $('seatSw').appendChild(b); });
+bindColor('seatCol','seat');
 const bindRange=(id,key)=>$(id).addEventListener('input',e=>{S[key]=+e.target.value; apply();});
 bindRange('stW','sw'); bindRange('stG','sg'); bindRange('stO','so');
 $('stOc').onclick=()=>{S.so=0; apply();}; bindRange('sdY','sdy'); bindRange('sdW','sdw');
@@ -245,6 +252,7 @@ document.querySelectorAll('[data-tp]').forEach(b=>b.onclick=()=>{S.tp=b.dataset.
 function syncUI(){
   document.querySelectorAll('#bodySw .sw').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===S.bc));
   document.querySelectorAll('#canvasSw .sw').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===S.cc)); $('canvasCol').value=S.cc;
+  document.querySelectorAll('#seatSw .sw').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===S.seat)); $('seatCol').value=S.seat;
   $('bodyCol').value=S.bc; $('roofCol').value=S.rc; $('stCol').value=S.sc; $('sdCol').value=S.sdc;
   $('stW').value=S.sw; $('stG').value=S.sg; $('stO').value=S.so; $('sdY').value=S.sdy; $('sdW').value=S.sdw;
   $('tt').setAttribute('aria-pressed',!!S.tt); $('sr').setAttribute('aria-pressed',!!S.sr); $('sd').setAttribute('aria-pressed',!!S.sd);
