@@ -21,6 +21,20 @@ export function sb(){
     return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   })();
 }
+// Google ログインから戻ると # がトークンに置き換わる＝描いた車（# の設計図）が消える。
+// 出る前に # を預け、戻ったら手帳が readHash() する前（＝この import の時点）に書き戻す。トークンは後で setSession する
+const RESUME = 'paintPostResume';
+let backAuth = null;
+try{
+  const back = sessionStorage.getItem(RESUME);
+  if(back !== null){
+    sessionStorage.removeItem(RESUME);
+    const h = new URLSearchParams(location.hash.slice(1));
+    backAuth = h.has('access_token') ? { access_token: h.get('access_token'), refresh_token: h.get('refresh_token') } : { error: true };
+    history.replaceState(null, '', location.pathname + location.search + back);
+  }
+}catch(e){}
+
 export function thumbUrl(path){ return SUPABASE_URL + '/storage/v1/object/public/' + BUCKET + '/' + path; }
 
 // ビジターの削除用の鍵＝投稿した端末にだけ残す（消えても管理者は消せる）
@@ -57,10 +71,33 @@ const CSS = `
 #postDlg .rule{font-size:12px;color:var(--sub);margin:10px 0;line-height:1.6}
 #postDlg .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
 #postDlg .msg{font-size:13px;margin-top:8px;min-height:1em}
+#postDlg [hidden]{display:none!important}
+#postLogin{border-bottom:1px solid var(--line);margin-bottom:6px;padding-bottom:8px}
+#postLogin .rule{margin:0 0 6px}
+#postLogin input{width:100%;font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--chip);color:var(--ink);margin-top:6px}
+#postLogin .err{font-size:12px;color:#c0392b;margin:4px 0 0;min-height:1em}
+#postLogin .wide{width:100%;margin-top:6px}
+#postToast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:13px;z-index:12;max-width:90vw;box-shadow:0 4px 16px rgba(0,0,0,.3)}
 `;
 const HTML = `<div class="box" role="dialog" aria-modal="true" aria-labelledby="postTitle">
   <h2 id="postTitle">みんなのお絵描き手帳に投稿</h2>
   <img id="postImg" alt="投稿する画像">
+  <div id="postLogin" hidden>
+    <p class="rule" id="postLoginNote">登録オーナーの方は、ログインすると自分の車に紐づけて投稿できます。</p>
+    <div class="btns" id="postLoginOpen"><button id="postLoginBtn">ログイン</button></div>
+    <div id="postLogin1" hidden>
+      <input type="email" id="postMail" inputmode="email" autocomplete="email" placeholder="登録したメールアドレス">
+      <p class="err" id="postErr1"></p>
+      <div class="btns"><button id="postOtpSend" class="primary">コードを送る</button></div>
+      <button id="postGoogle" class="wide">Googleでログイン</button>
+    </div>
+    <div id="postLogin2" hidden>
+      <p class="rule">メールに届いた6桁のコードを入れてください。</p>
+      <input type="text" id="postCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6桁のコード">
+      <p class="err" id="postErr2"></p>
+      <div class="btns"><button id="postResend">再送</button><button id="postVerify" class="primary">ログイン</button></div>
+    </div>
+  </div>
   <div id="postCarRow" hidden><label for="postCar">投稿する車</label><select id="postCar"></select></div>
   <div id="postNameRow"><label for="postName">お名前（任意・20字まで・空欄なら「ゲスト」）</label><input type="text" id="postName" maxlength="20" autocomplete="nickname"></div>
   <label for="postCmt">ひとこと（任意）<span class="cnt" id="postCnt">0/40</span></label><input type="text" id="postCmt" maxlength="40">
@@ -94,22 +131,89 @@ export function mountPost({ carType, snap }){
     $('postCmt').value = ''; $('postCnt').textContent = '0/40';
     blob = await toThumb(snap()); url = URL.createObjectURL(blob); $('postImg').src = url;
     dlg.style.display = 'flex';
-    // ログイン中のオーナー＝同じ型式の自分の車を選べる（無ければゲストとして投稿）
-    $('postCarRow').hidden = true; $('postNameRow').hidden = false;
+    await refreshOwner();
+  }
+
+  // ログイン中のオーナー＝同じ型式の自分の車を選べる（無ければゲストとして投稿）。未ログインならログイン欄を出す
+  async function refreshOwner(){
+    $('postCarRow').hidden = true; $('postNameRow').hidden = false; $('postLogin').hidden = true;
     try{
       const c = await sb(); const { data: { session } } = await c.auth.getSession();
-      if(session){
-        const { data: cars } = await c.from('cars').select('document_id,handle_name,model_display_c')
-          .eq('owner_user_id', session.user.id).eq('car_type', carType).order('document_id');
-        if(cars && cars.length){
-          $('postCar').innerHTML = '';
-          cars.forEach(r => { const o = document.createElement('option'); o.value = r.document_id;
-            o.textContent = (r.handle_name || 'オーナー') + '（' + (r.model_display_c || 'FIAT ' + carType) + '）'; $('postCar').appendChild(o); });
-          const g = document.createElement('option'); g.value = ''; g.textContent = 'ゲストとして投稿（車に紐づけない）'; $('postCar').appendChild(g);
-          $('postCarRow').hidden = false; $('postNameRow').hidden = true;
-        }
+      if(!session){
+        $('postLoginNote').textContent = '登録オーナーの方は、ログインすると自分の車に紐づけて投稿できます。';
+        $('postLoginOpen').hidden = false; $('postLogin1').hidden = true; $('postLogin2').hidden = true;
+        $('postErr1').textContent = ''; $('postErr2').textContent = '';
+        $('postLogin').hidden = false;
+        return;
+      }
+      // 他ページと同じく、メールが一致する未紐づけの車をここで自分のアカウントへ紐づける
+      await Promise.resolve(c.rpc('link_owner_car')).catch(() => null);
+      const { data: cars } = await c.from('cars').select('document_id,handle_name,model_display_c')
+        .eq('owner_user_id', session.user.id).eq('car_type', carType).order('document_id');
+      if(cars && cars.length){
+        $('postCar').innerHTML = '';
+        cars.forEach(r => { const o = document.createElement('option'); o.value = r.document_id;
+          o.textContent = (r.handle_name || 'オーナー') + '（' + (r.model_display_c || 'FIAT ' + carType) + '）'; $('postCar').appendChild(o); });
+        const g = document.createElement('option'); g.value = ''; g.textContent = 'ゲストとして投稿（車に紐づけない）'; $('postCar').appendChild(g);
+        $('postCarRow').hidden = false; $('postNameRow').hidden = true;
+      }else{
+        $('postLoginNote').textContent = 'ログイン中ですが、このアカウントに FIAT ' + carType + ' の登録が見つからないため、ゲストとして投稿します。';
+        $('postLoginOpen').hidden = true; $('postLogin1').hidden = true; $('postLogin2').hidden = true;
+        $('postLogin').hidden = false;
       }
     }catch(e){ /* 読めなくてもゲストとして投稿できる */ }
+  }
+
+  // ログイン（メールのコード／Google）＝壁紙・イベントページと同じ Supabase Auth
+  let otpMail = '';
+  $('postLoginBtn').onclick = () => {
+    $('postLoginOpen').hidden = true; $('postLogin1').hidden = false;
+    try{ const m = localStorage.getItem('r500_login_email'); if(m && !$('postMail').value) $('postMail').value = m; }catch(e){}
+  };
+  $('postOtpSend').onclick = async () => {
+    const m = $('postMail').value.trim();
+    if(!/.+@.+\..+/.test(m)){ $('postErr1').textContent = 'メールアドレスをご確認ください。'; return; }
+    $('postErr1').textContent = ''; $('postOtpSend').disabled = true;
+    try{
+      const { error } = await (await sb()).auth.signInWithOtp({ email: m });
+      if(error){ $('postErr1').textContent = '送信できませんでした：' + error.message; return; }
+      otpMail = m; try{ localStorage.setItem('r500_login_email', m); }catch(e){}
+      $('postLogin1').hidden = true; $('postLogin2').hidden = false; $('postCode').focus();
+    }catch(e){ $('postErr1').textContent = '通信に失敗しました。'; }
+    finally{ $('postOtpSend').disabled = false; }
+  };
+  $('postResend').onclick = async () => {
+    try{ const { error } = await (await sb()).auth.signInWithOtp({ email: otpMail });
+      $('postErr2').textContent = error ? '再送に失敗しました。' : 'コードを送り直しました。'; }
+    catch(e){ $('postErr2').textContent = '通信に失敗しました。'; }
+  };
+  $('postVerify').onclick = async () => {
+    const code = $('postCode').value.trim();
+    if(!/^\d{6}$/.test(code)){ $('postErr2').textContent = '6桁の数字を入れてください。'; return; }
+    $('postVerify').disabled = true;
+    try{
+      const { error } = await (await sb()).auth.verifyOtp({ email: otpMail, token: code, type: 'email' });
+      if(error){ $('postErr2').textContent = 'コードが違うようです。'; return; }
+      $('postCode').value = ''; await refreshOwner();
+    }catch(e){ $('postErr2').textContent = '通信に失敗しました。'; }
+    finally{ $('postVerify').disabled = false; }
+  };
+  $('postGoogle').onclick = async () => {
+    try{
+      sessionStorage.setItem(RESUME, location.hash);
+      const { error } = await (await sb()).auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname + location.search } });
+      if(error){ sessionStorage.removeItem(RESUME); $('postErr1').textContent = 'Google ログインを開始できませんでした：' + error.message; }
+    }catch(e){ try{ sessionStorage.removeItem(RESUME); }catch(_){} $('postErr1').textContent = '通信に失敗しました。'; }
+  };
+
+  // Google から戻ったとき＝トークンを渡してログインを済ませ、もう一度「投稿」を押してもらう
+  // （自動で開かないのは、車の読み込みが終わる前に写すと空の画像になるため）
+  if(backAuth){
+    const toast = t => { const d = document.createElement('div'); d.id = 'postToast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 6000); };
+    if(backAuth.access_token){
+      sb().then(c => c.auth.setSession(backAuth)).then(({ error }) => toast(error ? 'ログインできませんでした。もう一度お試しください。' : 'ログインしました。もう一度「投稿」を押してください。'))
+        .catch(() => toast('ログインできませんでした。もう一度お試しください。'));
+    }else toast('ログインできませんでした。もう一度お試しください。');
   }
 
   async function send(){
