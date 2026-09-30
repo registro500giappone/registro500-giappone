@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-09-30 15:54 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-09-30 20:13 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -148,6 +148,23 @@ alter table public.categories add constraint categories_pkey PRIMARY KEY (id);
 alter table public.categories add constraint categories_slug_key UNIQUE (slug);
 alter table public.categories add constraint categories_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE RESTRICT;
 alter table public.categories enable row level security;
+
+create table public.csp_reports (
+  id bigint generated always as identity not null,
+  page text not null,
+  directive text not null,
+  blocked text not null,
+  source_file text,
+  line_no integer,
+  sample_ua text,
+  hits integer not null default 1,
+  first_seen timestamp with time zone not null default now(),
+  last_seen timestamp with time zone not null default now()
+);
+alter table public.csp_reports add constraint csp_reports_pkey PRIMARY KEY (id);
+alter table public.csp_reports add constraint csp_reports_page_directive_blocked_key UNIQUE (page, directive, blocked);
+alter table public.csp_reports enable row level security;
+comment on table public.csp_reports is 'CSP Report-Only の違反を（page, directive, blocked）で束ねて数える。書き込みは /api/csp-report（service_role）だけ。';
 
 create table public.daily_logins (
   login_date date not null,
@@ -836,6 +853,23 @@ begin
 
   return new;
 end;
+$function$
+;
+-- acl: postgres=X/postgres service_role=X/postgres
+
+CREATE OR REPLACE FUNCTION public.csp_report_log(p_page text, p_directive text, p_blocked text, p_source text, p_line integer, p_ua text)
+ RETURNS void
+ LANGUAGE sql
+ SET search_path TO 'public'
+AS $function$
+  insert into public.csp_reports (page, directive, blocked, source_file, line_no, sample_ua)
+  values (left(p_page, 300), left(p_directive, 60), left(coalesce(p_blocked, ''), 300), left(p_source, 300), p_line, left(p_ua, 200))
+  on conflict (page, directive, blocked) do update
+    set hits        = csp_reports.hits + 1,
+        last_seen   = now(),
+        source_file = coalesce(excluded.source_file, csp_reports.source_file),
+        line_no     = coalesce(excluded.line_no, csp_reports.line_no),
+        sample_ua   = coalesce(excluded.sample_ua, csp_reports.sample_ua);
 $function$
 ;
 -- acl: postgres=X/postgres service_role=X/postgres
