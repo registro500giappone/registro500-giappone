@@ -1156,6 +1156,7 @@ async function fetchCars() {
             line = {
               docId: bandPost.docId,
               hash: bandPost.hash || '',
+              fresh: days <= 7,  // お知らせ行と同じ7日以内は赤丸
               html: bandPost.action ? `${who}が${esc(bandPost.action)}` : `${who}「${esc(trimForBand(bandPost.body))}」`
             };
           }
@@ -1175,14 +1176,16 @@ async function fetchCars() {
           if (edited) {
             const p = toJstParts(new Date(edited.updatedAt));
             const name = edited.HandleName || edited.Model_DisplayC || 'オーナー';
-            line = { docId: edited.DocumentID, html: `🔧 ${p.mo + 1}/${p.d} ${esc(name)}さんが愛車の記録を更新` };
+            const editedDays = Math.ceil((Date.now() - new Date(edited.updatedAt)) / DAY);
+            line = { docId: edited.DocumentID, fresh: editedDays <= 7, html: `🔧 ${p.mo + 1}/${p.d} ${esc(name)}さんが愛車の記録を更新` };
           }
         }
 
         const el = document.getElementById('topBandActivity');
         if (!line) { el.style.display = 'none'; return; }
 
-        el.innerHTML = `<span class="top-band-line-text">${line.html}</span>`;
+        el.innerHTML = `<span class="top-band-line-text">${line.html}</span>`
+                     + `<span class="top-band-line-suffix">${line.fresh ? '<span class="news-badge"></span>' : ''}</span>`;
         el.href = `/detail?doc=${encodeURIComponent(line.docId)}${line.hash || ''}`;
         el.style.display = 'flex';
         document.getElementById('topBand').style.display = 'block';
