@@ -99,7 +99,7 @@ def run_script(script_name, description, timeout=1800):
     try:
         # Pythonスクリプトを実行
         result = subprocess.run(
-            [sys.executable, script_name],
+            [sys.executable, *script_name.split()],
             cwd=os.path.dirname(os.path.abspath(__file__)),
             timeout=timeout,
             capture_output=True,  # 並列実行のため出力をキャプチャ
@@ -164,10 +164,11 @@ def main():
         ("dangelo_recon.py", "D'Angelo Motori"),
         ("euroitalia500_recon.py", "EuroItalia500"),
         ("passione_recon.py", "Passione 500"),
-        ("autobella_crawler.py", "AutoBella Parts"),
-        ("ricambio_crawler.py", "Ricambio"),
-        ("mrfiat_crawler.py", "Mr Fiat"),
-        ("500line_crawler.py", "500Line")
+        # Shopify 系4店は1本に統合（2026-09-30）。引数で店を選ぶ
+        ("shopify_crawler.py autobella", "AutoBella Parts"),
+        ("shopify_crawler.py ricambio", "Ricambio"),
+        ("shopify_crawler.py mrfiat", "Mr Fiat"),
+        ("shopify_crawler.py 500line", "500Line")
     ]
 
     log(f"\n9ショップを並列で実行します...\n")
@@ -192,7 +193,7 @@ def main():
 
         start_times[shop_name] = time.time()
         proc = subprocess.Popen(
-            [sys.executable, script],
+            [sys.executable, *script.split()],  # "shopify_crawler.py autobella" のように引数付きも通す
             cwd=script_dir,
             stdout=log_handle,
             stderr=log_handle

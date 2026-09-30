@@ -63,7 +63,8 @@ def check_run_all_crawlers():
     with open(run_all_path, encoding="utf-8") as f:
         src = f.read()
     # ("xxx.py", "Shop Name") 形式のタプルを抽出
-    scripts = re.findall(r'\(\s*"([A-Za-z0-9_]+\.py)"\s*,', src)
+    # "shopify_crawler.py autobella" のように引数付きの記載も通す（存在確認はスクリプト名だけ）
+    scripts = re.findall(r'\(\s*"([A-Za-z0-9_]+\.py)(?: [A-Za-z0-9_-]+)*"\s*,', src)
     if not scripts:
         print("NG: crawlers リストを検出できませんでした")
         return False
