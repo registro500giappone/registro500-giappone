@@ -28,6 +28,7 @@
   --deep:#e3d9c6; --accent:#b23b2b; --chip:#322e27; color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;line-height:1.7;-webkit-text-size-adjust:100%}
 .wrap{max-width:960px;margin:0 auto;padding:12px 16px 64px}
 .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
@@ -52,6 +53,9 @@ button[aria-pressed="true"]{background:var(--deep);color:var(--paper);border-col
 .tag{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:6px;padding:0 6px;margin-right:6px;color:var(--sub)}
 .empty,.status{font-size:13px;color:var(--sub);text-align:center;padding:24px 0}
 #more{display:block;margin:16px auto 0}
+.start{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 14px;font-size:13px;color:var(--sub)}
+.start a,.status a{font-size:13px;color:var(--paper);background:var(--deep);text-decoration:none;border-radius:999px;padding:5px 14px}
+.status .start{justify-content:center;margin:10px 0 0}
 .credit{margin-top:18px;font-size:11px;color:var(--sub)}
 .credit a{color:var(--sub)}
 </style>
@@ -62,6 +66,7 @@ button[aria-pressed="true"]{background:var(--deep);color:var(--paper);border-col
   <h1>FIAT500/126みんなのお絵描き手帳</h1>
   <p class="lead">お絵描き手帳で描かれた、自分色の500と126。気に入った1台を開くと、ぐるりと回して眺めたり、その色から自分の1台を作ったりできます。</p>
   <p class="rule">投稿は誰でも見られます。不適切な内容は管理者が削除します。</p>
+  <div class="start">自分も描いてみる<a href="/paint-notebook/">500を描く</a><a href="/paint-notebook/126">126を描く</a></div>
   <div class="tabs" role="group" aria-label="型式で絞る">
     <button data-t="" aria-pressed="true">すべて</button>
     <button data-t="500" aria-pressed="false">500</button>
@@ -86,6 +91,9 @@ const driveUrl = p => '/paint-notebook/drive' + (p.car_type === '126' ? '?car=12
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ymd = t => { const d = new Date(t); return d.getFullYear() + '.' + (d.getMonth() + 1) + '.' + d.getDate(); };
 
+// 0件のとき＝最初の1台を描いてもらう入口を出す
+function showEmpty(){ $('status').hidden = false; $('status').innerHTML = 'まだ投稿がありません。最初の1台を描いてみませんか？<span class="start"><a href="/paint-notebook/">500を描く</a><a href="/paint-notebook/126">126を描く</a></span>'; }
+
 function canDelete(p){ return admin || (p.car_doc && myCars.has(p.car_doc)) || !!myKeys()[p.id]; }
 
 function card(p){
@@ -94,14 +102,14 @@ function card(p){
   el.innerHTML = `<a href="${esc(noteUrl(p))}"><img loading="lazy" alt="${esc(p.name)}さんの${p.car_type}" src="${esc(thumbUrl(p.thumb_path))}"></a>
     <div class="body">${p.comment ? `<div class="cmt">${esc(p.comment)}</div>` : ''}
       <div class="who"><span class="tag">${p.car_type}</span>${who}・${ymd(p.created_at)}</div>
-      <div class="acts"><a href="${esc(noteUrl(p))}">開く</a><a href="${esc(driveUrl(p))}">走らせる</a></div></div>`;
+      <div class="acts"><a href="${esc(noteUrl(p))}">この色から描く</a><a href="${esc(driveUrl(p))}">走らせる</a></div></div>`;
   if(canDelete(p)){
     // 削除は2度押し（確認のダイアログは出さない）
     const b = document.createElement('button'); b.className = 'del'; b.textContent = '削除';
     b.onclick = async () => {
       if(!b.classList.contains('sure')){ b.classList.add('sure'); b.textContent = '本当に削除'; setTimeout(() => { b.classList.remove('sure'); b.textContent = '削除'; }, 4000); return; }
       b.disabled = true; b.textContent = '削除中…';
-      try{ await deletePost(p.id); el.remove(); if(!$('grid').children.length) $('status').textContent = 'まだ投稿がありません。'; }
+      try{ await deletePost(p.id); el.remove(); if(!$('grid').children.length) showEmpty(); }
       catch(e){ b.disabled = false; b.classList.remove('sure'); b.textContent = '削除できませんでした'; }
     };
     el.querySelector('.acts').appendChild(b);
@@ -118,7 +126,7 @@ async function load(reset){
   data.forEach(p => $('grid').appendChild(card(p)));
   if(data.length) last = data[data.length - 1].id;
   $('status').hidden = !!$('grid').children.length;
-  if(!$('grid').children.length) $('status').textContent = 'まだ投稿がありません。';
+  if(!$('grid').children.length) showEmpty();
   $('more').hidden = data.length < PAGE;
 }
 
