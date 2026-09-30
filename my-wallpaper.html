@@ -141,6 +141,10 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
         <button class="btn ghost" id="lgClose" style="flex:0 0 auto">閉じる</button>
         <button class="btn" id="lgSend">コードを送る</button>
       </div>
+      <p class="lead2" style="margin:14px 0 6px">または</p>
+      <div class="acts">
+        <button class="btn ghost" id="lgGoogle" style="width:100%">Googleでログイン</button>
+      </div>
     </div>
     <div id="lgStep2" class="hide">
       <input id="lgCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6桁のコード">
@@ -378,6 +382,15 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
         $('lgStep1').classList.add('hide'); $('lgStep2').classList.remove('hide');
       })
       .catch(function () { $('lgSend').disabled = false; $('lgErr').textContent = '通信に失敗しました。'; });
+  };
+  /* Google ログイン（トップや車両編集と同じ Supabase Auth の Google）。
+     Google へ飛んでこのページに戻ってくると、checkOwner() の getSession() が拾う。 */
+  $('lgGoogle').onclick = function () {
+    supa().then(function (c) {
+      return c.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+    }).then(function (r) {
+      if (r && r.error) $('lgErr').textContent = 'Google ログインを開始できませんでした：' + r.error.message;
+    }).catch(function () { $('lgErr').textContent = '通信に失敗しました。'; });
   };
   $('lgResend').onclick = function () {
     supa().then(function (c) { return c.auth.signInWithOtp({ email: otpMail }); })
