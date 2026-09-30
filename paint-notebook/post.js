@@ -66,8 +66,9 @@ const CSS = `
 #postDlg h2{font-size:16px;margin:0 0 8px;color:var(--deep)}
 #postDlg img{width:100%;border-radius:10px;display:block;margin-bottom:10px;background:#cfc4ae}
 #postDlg label{display:block;font-size:12px;color:var(--sub);margin:8px 0 4px}
-#postDlg input[type=text],#postDlg select{width:100%;font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--chip);color:var(--ink)}
+#postDlg input[type=text],#postDlg select,#postDlg textarea{width:100%;font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--chip);color:var(--ink)}
 #postDlg .cnt{float:right}
+#postDlg textarea{resize:none;line-height:1.5;display:block}
 #postDlg .rule{font-size:12px;color:var(--sub);margin:10px 0;line-height:1.6}
 #postDlg .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
 #postDlg .msg{font-size:13px;margin-top:8px;min-height:1em}
@@ -100,7 +101,7 @@ const HTML = `<div class="box" role="dialog" aria-modal="true" aria-labelledby="
   </div>
   <div id="postCarRow" hidden><label for="postCar">投稿する車</label><select id="postCar"></select></div>
   <div id="postNameRow"><label for="postName">お名前（任意・20字まで・空欄なら「ゲスト」）</label><input type="text" id="postName" maxlength="20" autocomplete="nickname"></div>
-  <label for="postCmt">ひとこと（任意）<span class="cnt" id="postCnt">0/40</span></label><input type="text" id="postCmt" maxlength="40">
+  <label for="postCmt">ひとこと（任意）<span class="cnt" id="postCnt">0/40</span></label><textarea id="postCmt" maxlength="40" rows="2" enterkeyhint="done"></textarea>
   <p class="rule">投稿は誰でも見られる一覧に載ります。不適切な内容は管理者が削除します。</p>
   <div class="btns"><button id="postCancel">やめる</button><button id="postSend" class="primary">投稿する</button></div>
   <p class="msg" id="postMsg" role="status"></p>
@@ -122,13 +123,16 @@ export function mountPost({ carType, snap }){
   const close = () => { dlg.style.display = 'none'; if(url){ URL.revokeObjectURL(url); url = null; } };
   $('postCancel').onclick = close;
   dlg.addEventListener('click', e => { if(e.target === dlg && !busy) close(); });
-  $('postCmt').oninput = () => { $('postCnt').textContent = [...$('postCmt').value].length + '/40'; };
+  // ひとことは1行の文＝折り返して全文を見せるが、改行は入れさせない
+  $('postCmt').oninput = () => { const v = $('postCmt').value.replace(/[\r\n]+/g, ' '); if(v !== $('postCmt').value) $('postCmt').value = v; $('postCnt').textContent = [...v].length + '/40';
+    $('postCmt').style.height = 'auto'; $('postCmt').style.height = $('postCmt').scrollHeight + 2 + 'px'; };
+  $('postCmt').onkeydown = e => { if(e.key === 'Enter' && !e.isComposing){ e.preventDefault(); $('postCmt').blur(); } };
   $('postCar').onchange = () => { $('postNameRow').hidden = $('postCar').value !== ''; };
 
   async function open(){
     done = false; busy = false;
     $('postMsg').textContent = ''; $('postSend').disabled = false; $('postSend').textContent = '投稿する'; $('postCancel').hidden = false;
-    $('postCmt').value = ''; $('postCnt').textContent = '0/40';
+    $('postCmt').value = ''; $('postCnt').textContent = '0/40'; $('postCmt').style.height = '';
     blob = await toThumb(snap()); url = URL.createObjectURL(blob); $('postImg').src = url;
     dlg.style.display = 'flex';
     await refreshOwner();
@@ -152,8 +156,10 @@ export function mountPost({ carType, snap }){
         .eq('owner_user_id', session.user.id).eq('car_type', carType).order('document_id');
       if(cars && cars.length){
         $('postCar').innerHTML = '';
-        cars.forEach(r => { const o = document.createElement('option'); o.value = r.document_id;
-          o.textContent = (r.handle_name || 'オーナー') + '（' + (r.model_display_c || 'FIAT ' + carType) + '）'; $('postCar').appendChild(o); });
+        // 一覧に出るのはハンドルネームだけ＝選ぶ欄もそれに揃える（同じ名前の車が2台あるときだけ車種を添えて見分ける）
+        const dup = n => cars.filter(r => (r.handle_name || 'オーナー') === n).length > 1;
+        cars.forEach(r => { const o = document.createElement('option'); o.value = r.document_id; const n = r.handle_name || 'オーナー';
+          o.textContent = dup(n) ? n + '（' + (r.model_display_c || 'FIAT ' + carType) + '）' : n; $('postCar').appendChild(o); });
         const g = document.createElement('option'); g.value = ''; g.textContent = 'ゲストとして投稿（車に紐づけない）'; $('postCar').appendChild(g);
         $('postCarRow').hidden = false; $('postNameRow').hidden = true;
       }else{
