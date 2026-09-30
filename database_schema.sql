@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-09-30 21:14 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-09-30 22:58 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -580,7 +580,7 @@ create table public.parts_snapshots (
 alter table public.parts_snapshots add constraint parts_snapshots_pkey PRIMARY KEY (id);
 alter table public.parts_snapshots add constraint parts_snapshots_snapshot_date_part_id_key UNIQUE (snapshot_date, part_id);
 alter table public.parts_snapshots enable row level security;
-comment on table public.parts_snapshots is '内部分析用: parts の価格・在庫を日次で全件記録する時系列スナップショット。RLS有効・公開ポリシーなし（service_roleのみ書込/読取）。';
+comment on table public.parts_snapshots is '内部分析用: parts の価格・在庫の変化点だけを記録する時系列（2026-09-30 から）。初出・在庫変化・価格が前回記録から2%以上動いた日にだけ行がある。行が無い日＝直前の行と同じ（±2%未満の為替の揺れを含む）。2026-09-29 以前は完全一致の日だけ間引いた。RLS有効・公開ポリシーなし（service_roleのみ）。';
 
 create table public.recommendations (
   video_id uuid not null,
@@ -1488,9 +1488,20 @@ AS $function$
 declare
   inserted_count integer;
 begin
+  with last as (
+    select distinct on (part_id) part_id, price_euro, stock_status
+      from public.parts_snapshots
+     order by part_id, snapshot_date desc
+  )
   insert into public.parts_snapshots (snapshot_date, part_id, shop_name, price_euro, stock_status)
-  select current_date, id, shop_name, price_euro, stock_status
-  from public.parts
+  select current_date, p.id, p.shop_name, p.price_euro, p.stock_status
+    from public.parts p
+    left join last l on l.part_id = p.id
+   where l.part_id is null
+      or p.stock_status is distinct from l.stock_status
+      or (p.price_euro is distinct from l.price_euro
+          and (p.price_euro is null or l.price_euro is null or l.price_euro = 0
+               or abs(p.price_euro - l.price_euro) / abs(l.price_euro) >= 0.02))
   on conflict (snapshot_date, part_id) do nothing;
 
   get diagnostics inserted_count = row_count;
