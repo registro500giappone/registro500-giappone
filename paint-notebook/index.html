@@ -161,7 +161,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
       <details data-cam="side">
         <summary>ゼッケンと文字</summary>
         <div class="row"><label class="cap">ドアに丸いゼッケンを貼る（空欄で外す）</label>
-          <input type="text" id="num" maxlength="3" inputmode="numeric" placeholder="例 22"></div>
+          <input type="text" id="num" maxlength="3" inputmode="numeric" placeholder="例 33"></div>
         <div class="row"><label class="cap">好きな文字を入れる（英数字14文字まで・空欄で外す）</label>
           <input type="text" id="tx" maxlength="14" autocapitalize="characters" placeholder="例 ROMA 1965"><input type="color" id="txCol"></div>
         <div class="row" id="txPos"><label class="cap">文字の場所</label>
@@ -198,6 +198,8 @@ const BODY_COLORS = [
 const CANVAS_SWATCHES = ['#1c1c1c','#d6c8a8','#7a2020','#2a3448'];
 const SEAT_SWATCHES = ['#2b2624','#8a2a22','#d8c7a4','#6b4a33','#26324f','#e9e3d6'];
 const S = readHash();
+// ナンバーは空にしない＝空のまま保存された古いURLや消したままの欄は Roma 00 110F に戻す
+if(!S.pn) S.pn=DEF.pn; if(!S.pl) S.pl=DEF.pl;
 
 const stage = document.getElementById('stage');
 const renderer = new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
@@ -266,6 +268,8 @@ $('plV').innerHTML=PROVINCES.map(([c,n])=>`<option value="${c}">${n}（${c==='RM
 $('plV').addEventListener('change',e=>{S.pv=e.target.value; apply();});
 $('plN').addEventListener('input',e=>{S.pn=cleanPlate(e.target.value,2); apply();});
 $('plL').addEventListener('input',e=>{S.pl=cleanPlate(e.target.value,4); apply();});
+$('plN').addEventListener('blur',()=>{ if(!S.pn){ S.pn=DEF.pn; apply(); } });
+$('plL').addEventListener('blur',()=>{ if(!S.pl){ S.pl=DEF.pl; apply(); } });
 $('tx').addEventListener('input',e=>{S.tx=cleanText(e.target.value); apply();});
 document.querySelectorAll('[data-tp]').forEach(b=>b.onclick=()=>{S.tp=b.dataset.tp; apply();});
 function syncUI(){
