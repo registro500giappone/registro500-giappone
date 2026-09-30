@@ -72,6 +72,7 @@ const CSS = `
 #postDlg .rule{font-size:12px;color:var(--sub);margin:10px 0;line-height:1.6}
 #postDlg .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
 #postDlg .msg{font-size:13px;margin-top:8px;min-height:1em}
+#postDlg .golist{display:inline-block;margin-top:6px;color:var(--deep);font-weight:600}
 #postDlg [hidden]{display:none!important}
 #postLogin{border-bottom:1px solid var(--line);margin-bottom:6px;padding-bottom:8px}
 #postLogin .rule{margin:0 0 6px}
@@ -242,6 +243,8 @@ export function mountPost({ carType, snap }){
       if(key) saveKey(id, key);
       done = true;
       $('postMsg').textContent = carDoc ? '投稿しました。' : '投稿しました。この端末からなら、あとで削除できます。';
+      const go = document.createElement('a'); go.href = '/paint-notebook/gallery'; go.textContent = 'みんなのお絵描き手帳を見る →'; go.className = 'golist';
+      $('postMsg').append(document.createElement('br'), go);
       $('postSend').textContent = '閉じる'; $('postSend').disabled = false; $('postCancel').hidden = true;
       if(window.gtag) gtag('event', 'paint_post', { car_type: carType, owner: carDoc ? 1 : 0 });
     }catch(e){
