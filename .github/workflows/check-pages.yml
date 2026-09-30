@@ -15,6 +15,9 @@ on:
       - '**.html'
       - 'py/check_pages.py'
       - 'py/check_pages_ignore.json'
+      - 'torque-i18n/**'
+      - 'torque-data.json'
+      - '*/torque-data-*.json'
       - '.github/workflows/check-pages.yml'
   workflow_dispatch:
 
@@ -40,3 +43,8 @@ jobs:
 
       - name: 公開HTMLを検品する
         run: python py/check_pages.py
+
+      # トルク早見帳の英伊版は torque.html から生成する（torque-i18n/build.py）。
+      # 生成物が手で直されていないか・辞書の版・訳し漏れの日本語を数える。
+      - name: トルク早見帳の英伊版が日本語版と揃っているか
+        run: python torque-i18n/build.py --check

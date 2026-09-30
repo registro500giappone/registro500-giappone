@@ -1556,13 +1556,93 @@
   // 新しいSWは更新バナーをタップするまで有効にならないので、SW側の修正だけでは間に合わない。
   // クエリを変えるとキャッシュのキーが変わるので、SWの世代に関係なく取り直せる。
   var DATA_VERSION = '2026-08-15a';
-  fetch('torque-data.json?v=' + DATA_VERSION)
-    .then(function (r) {
+  // 外国語版の辞書（en/torque-data-en.json など）。日本語版は null＝辞書なしで同じコードが走る。
+  // en/ it/ のページは torque-i18n/build.py がこのファイルから生成し、次の2行を辞書名と
+  // 辞書の内容ハッシュに書き換える。手で触らない。
+  var I18N_DICT = null;
+  var I18N_VERSION = null;
+
+  // ============================================================
+  // 外国語の文言をデータに被せる（辞書オーバーレイ）
+  // ------------------------------------------------------------
+  // 数値・単位・適合・出典は torque-data.json のまま使い、この関数は文字列しか触らない。
+  // ＝外国語ページで数字が日本語版とズレることが構造的に起きない。
+  // 辞書が取れなかったときは日本語のまま出す（値は正しいので、白紙にするより良い）。
+  // ============================================================
+  function applyI18n(data, dict) {
+    if (!dict) return;
+    if (dict.for_version && dict.for_version !== data.version) {
+      console.warn('[torque] i18n dictionary is for ' + dict.for_version
+                 + ' but the data is ' + data.version + '. Untranslated text may show through.');
+    }
+    if (dict.target) data.target = dict.target;
+
+    function overlay(list, table, keys) {
+      (list || []).forEach(function (row) {
+        var t = table && table[row.id];
+        if (!t) return;
+        keys.forEach(function (k) { if (t[k] !== undefined) row[k] = t[k]; });
+      });
+    }
+    overlay(data.sources, dict.sources, ['label', 'note']);
+    overlay(data.areas, dict.areas, ['label', 'short']);
+    overlay(data.chassis, dict.chassis, ['label']);
+    overlay(data.engines, dict.engines, ['label', 'cc', 'note', 'form_labels']);
+
+    if (dict.generic && data.generic) {
+      if (dict.generic.grades) {
+        (data.generic.grades || []).forEach(function (g) {
+          if (dict.generic.grades[g.id]) g.label = dict.generic.grades[g.id];
+        });
+      }
+      if (dict.generic.cautions) data.generic.cautions = dict.generic.cautions;
+    }
+
+    // 出典の参照位置（「本 p74」「本文（リアハブ）」など）。表に無いものはそのまま通す。
+    var refs = dict.refs || {};
+    function ref(v) { return (v && refs[v]) ? refs[v] : v; }
+
+    var items = dict.items || {};
+    (data.items || []).forEach(function (it) {
+      it.source_id = ref(it.source_id);
+      (it.cross || []).forEach(function (x) { x.ref = ref(x.ref); });
+      (it.sequences || []).forEach(function (q) { q.ref = ref(q.ref); });
+      var t = items[it.id];
+      if (!t) return;
+      if (t.name) it.name = t.name;
+      // 別名は外国語を先に、日本語の別名も残す＝日本語で打っても引ける
+      if (t.aliases) it.aliases = t.aliases.concat(it.aliases || []);
+      if (t.notes) it.notes = t.notes;
+      if (t.procedure) it.procedure = t.procedure;
+      if (t.no_spec_note) it.no_spec_note = t.no_spec_note;
+      if (t.cross_notes && it.cross) {
+        Object.keys(t.cross_notes).forEach(function (k) {
+          if (it.cross[k]) it.cross[k].note = t.cross_notes[k];
+        });
+      }
+      if (t.seq_labels && it.sequences) {
+        t.seq_labels.forEach(function (label, i) {
+          if (it.sequences[i]) it.sequences[i].label = label;
+        });
+      }
+    });
+  }
+
+  Promise.all([
+    fetch('torque-data.json?v=' + DATA_VERSION).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
-    })
-    .then(function (json) {
-      DATA = json;
+    }),
+    // 辞書は落ちても致命傷にしない。取れなければ日本語の文言のまま表示する。
+    I18N_DICT
+      ? fetch(I18N_DICT + '?v=' + I18N_VERSION)
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .catch(function () { return null; })
+      : Promise.resolve(null)
+  ])
+    .then(function (loaded) {
+      DATA = loaded[0];
+      applyI18n(DATA, loaded[1]);
 
       // 作業中に見るページなので1行に収める。絞り込みの説明はプルダウンの下の注記に、
       // 項目数はタブの下の件数表示にあるので、ここでは繰り返さない。
