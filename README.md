@@ -31,11 +31,11 @@
 ビルドシステム（npm/バンドラ等）は使用しない4層構成です。
 
 ### フロントエンド (Frontend)
-- **言語/フレームワーク**: HTML5, CSS3 (Bootstrap), Vanilla JavaScript（静的HTML約25ページ＋`config.js`＋`parts.js`＋`spot.js`＋`sw.js`）
-- **ホスティング**: **Cloudflare Pages**（mainブランチへのpushで自動デプロイ）。Vercelはバックアップ。
+- **言語/フレームワーク**: HTML5, CSS3 (Bootstrap), Vanilla JavaScript。静的HTMLは直下に約70ページ＋`126/`（姉妹サイト）＋`en/`・`it/`（英伊版）＋テーマ別ディレクトリ（`engine-simulator/`・`paint-notebook/`・`event/` ほか）。共通JSは `config.js`（接続情報の正本）・`fab-nav.js`・`rg-join-cta.js`・`parts.js`・`stats-*.js`・`wiring-*.js`・`sw.js`。
+- **ホスティング**: **Cloudflare Pages**（mainブランチへのpushで自動デプロイ）。ドメイン登録だけ Vercel（Cloudflare Registrar へ移管予定）。
 - **データ可視化**: D3.js (Mappa), Chart.js (Statistics)
-- **PWA**: `manifest.json`＋`sw.js`（Service Worker）。デプロイ時に `build.sh` が `sw.js` の `__BUILD_VERSION__` をコミットSHAに置換。
-- 各ページがインラインJSで supabase-js を初期化し、Supabase に直接読み書き（書込はRLSで制御）。
+- **PWA**: `manifest.json`＋`sw.js`（Service Worker）。デプロイ時に `build.sh` が `sw.js` の `__BUILD_VERSION__` をコミットSHAに置換し、共通CSS/JS（`style.css`・`fab-nav.js`・`rg-join-cta.js`）の参照に同じ値を `?v=` で付ける。
+- 各ページがインラインJSで supabase-js（`@2.94.0`・SRI固定）を初期化し、Supabase に直接読み書き（書込はRLSで制御）。接続情報は `config.js` の `SUPABASE_URL` / `SUPABASE_ANON_KEY` から取る（直書きしない）。
 
 ### バックエンド (Backend / Managed Services)
 - **Database**: **Supabase (PostgreSQL)**
@@ -45,17 +45,16 @@
 - **Storage**: Firebase Storage (車両・イベント写真の保存)
 
 ### 外部連携・自動化 (External Integration)
-- **Google Apps Script (GAS)**: `main.gs` を clasp で管理。Web API（イベントCRUD・問い合わせ・mycars）、日次ニュース配信（Brevo）、X投稿を担当。
-- **GitHub Actions**: `py/` のクローラー群を定期実行し、欧米ショップのパーツ価格を Supabase に自動upsert（詳細は `py/README.md`）。
-- **Brevo**: ニュースメール配信。
+- **GitHub Actions**（`.github/workflows/`・18本）: `py/` のスクリプトを定期実行。パーツ価格のクロール＋AI翻訳、朝のお知らせメール（`daily-digest.yml`）、週次レポート、イベント個別ページ・YouTubeポータル・壁紙スプライトの再生成、旅手帳の公開制御、ログイン統計の収集など。設定値は Secrets から `py/.env` に書き出し、`py/common.py` が読む。
+- **Brevo**: ニュースメール配信（送信は `py/common.py` の `brevo_send` に集約）。
+- **Google Apps Script**: 廃止済み（`main.gs` 等は残置のデッドコード。掘り起こさない）。
 
 ### データフロー
 
 ```
 [欧米ショップ] --(GitHub Actions: py/クローラー)--> [Supabase parts] --(AI翻訳: Gemini)--> name_ja/category 充足
-[ブラウザ] --(supabase-js + anon key)--> [Supabase cars/parts/news/spots...]
-[ブラウザ] --(fetch API_URL)--> [GAS main.gs] --(service_role key)--> [Supabase] / [Brevo] / [Sheets]
-[GAS 時間トリガー] --> sendDailyDigest() --> Brevoでニュースメール配信
+[ブラウザ] --(supabase-js + 公開キー)--> [Supabase cars/parts/news/events...]（RLS）
+[GitHub Actions: py/send_digest.py] --(service_role)--> [Supabase news 等] --> Brevo でお知らせメール配信
 ```
 
 ---
@@ -63,13 +62,18 @@
 ## 📁 リポジトリ構成（主要）
 
 ```
-/                  静的HTML・config.js・parts.js・spot.js・sw.js・_headers 等
+/                  静的HTML・config.js・style.css・共通JS・sw.js・_headers・_redirects・sitemap.xml 等
 /126/              Fiat 126 姉妹サイト（../config.js を相対参照）
-/py/               パーツクローラー＋AI翻訳（GitHub Actionsで実行。py/README.md 参照）
-/.github/workflows/ クローラーの定期実行定義
+/en/ /it/          英語・イタリア語版（engine-simulator の英伊は日本語版から生成＝engine-simulator/i18n/build_i18n.py）
+/<テーマ>/         テーマ別の資材と正本（HANDOFF.md）＝ wiring-simulator/・engine-simulator/・equipment-notebook/・
+                   events-portal/・youtube-portal/・wallpaper/・car-history/・paint-notebook/ など
+/event/            イベント個別ページ（生成物。py/gen_event_pages.py の render() を直す）
+/py/               クローラー・メール配信・レポート・各種生成スクリプト（py/README.md 参照）。共通部＝py/common.py
+/.github/workflows/ 定期実行の定義（cron は UTC）
 /docs/             ドキュメント（docs/refactor-baseline.md = 保全すべき既存挙動）
-main.gs            GAS本体（claspでpush）
-build.sh           Cloudflare Pagesビルド時のsw.jsバージョン置換（ローカル実行禁止）
+database_schema.sql 本番DB（public スキーマ）の写し。手で編集せず python py/dump_schema.py で再生成
+build.sh           Cloudflare Pagesビルド時の sw.js バージョン置換と共通CSS/JS への ?v= 付与（ローカル実行禁止）
 ```
 
 > `docs/00_project_context.md` は Supabase 移行前（Google Sheets時代）の歴史的資料です。現行構成は本READMEを参照してください。
+> DBのスキーマ変更は migration（Supabase MCP `apply_migration`。SQLはテーマ別ディレクトリに日付付きで置く）で行い、当てたら `database_schema.sql` を再生成します。

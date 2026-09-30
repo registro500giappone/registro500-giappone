@@ -31,6 +31,11 @@
 
 - `archive/` — 旧世代スクリプト（run_all_v2.py・orchestrator.py・crawler_utils.py 等）。**歴史的資料であり実行禁止**。workflows・run_all.py からは参照されていない。
 
+### 共通部（クローラー以外のスクリプト）
+
+- `common.py` — 標準ライブラリだけの共通部。`py/.env`→環境変数の順で設定を読む `cfg`/`require`、Supabase REST の `sb_select`（Range ページング）・`sb_rpc`・`sb_upsert`・`sb_patch`、Brevo 送信 `brevo_send`。send_digest / send_report / gen_report / find_events / collect_daily_logins / build_wallpaper_sprite / dump_schema が使う（クローラーは `crawler_common.py`＝別物）。
+- `dump_schema.py` — 本番DB（public）の写し `../database_schema.sql` を再生成（DB 関数 `schema_snapshot()`）。migration を当てたら回す。
+
 ### その他の現役ユーティリティ（ローカル運用）
 
 - `gen_report.py` — 成長レポート生成（2026-06実装）
