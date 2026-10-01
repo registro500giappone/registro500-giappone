@@ -98,6 +98,7 @@ import {Reflector} from 'three/addons/objects/Reflector.js';
 // ?car=126 で 126 を走らせる（126 のお絵描き手帳の「動画にする」から来る）。無ければ 500
 const CAR126 = new URLSearchParams(location.search).get('car')==='126';
 const {readHash, loadCar} = await import(CAR126 ? './car126.js?v=18' : './car.js?v=34');
+const SHARE_TEXT='#レジちん #お絵描き手帳 https://www.registro500.com/paint-notebook/'+(CAR126?'126':''); // 共有に添える一言（X・LINE の本文に入る）
 const DIR = CAR126 ? -1 : 1; // ロゴの車の向き＝500 は左向き・126 は右向き（絵は反転しない＝動きのほうを左右逆にする）
 // ロゴ・題・body.c126 の差し替えは #title 直後の script で済ませてある
 
@@ -420,7 +421,7 @@ if(!REC){
   // iPhone／Android は共有シート＝X・Instagram・LINE へ直接渡せる（iPhone の Safari は <a download> が効かないので「ビデオを保存」もここから）。共有は押された流れの中で直に呼ぶ
   saveBtn.onclick=()=>{
     if(!outFile) return;
-    if(navigator.canShare && navigator.canShare({files:[outFile]})){ navigator.share({files:[outFile]}).catch(()=>{}); return; }
+    if(navigator.canShare && navigator.canShare({files:[outFile]})){ navigator.share({files:[outFile], text:SHARE_TEXT}).catch(()=>{}); return; }
     const a=document.createElement('a'); a.href=URL.createObjectURL(outFile); a.download=outFile.name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
   };
   $('make').onclick=async()=>{
@@ -458,7 +459,7 @@ if(!REC){
     if(cancel){ closeMk(); return; }
     meter.style.display='none'; closeBtn.textContent='閉じる';
     if(err){ msg.textContent='動画を作れませんでした（'+(err.message||err)+'）'; return; }
-    outFile=new File([muxer.target.buffer],'registro500-drive-'+Date.now()+'.mp4',{type:'video/mp4'});
+    outFile=new File([muxer.target.buffer],(CAR126?'registro126':'registro500')+'-drive-'+Date.now()+'.mp4',{type:'video/mp4'});
     vid.src=URL.createObjectURL(outFile); vid.style.display='block'; vid.play().catch(()=>{});
     saveBtn.hidden=false;
     msg.textContent='できました（'+Math.round((performance.now()-started)/1000)+'秒）。「保存・SNSへ送る」から X・Instagram・LINE などへそのまま送れます'+((navigator.canShare && navigator.canShare({files:[outFile]}))?'。':'（パソコンではファイルとして保存されます）。');

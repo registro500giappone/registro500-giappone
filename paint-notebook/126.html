@@ -294,18 +294,29 @@ document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.data
 // 項目を開いたら、その部分が見える向きへ回す（スマホでは車が小さく上に貼り付いているため）
 document.querySelectorAll('details[data-cam]').forEach(d=>d.addEventListener('toggle',()=>{ if(d.open) setView(d.dataset.cam); }));
 $('spin').onclick=()=>{controls.autoRotate=!controls.autoRotate; $('spin').setAttribute('aria-pressed',controls.autoRotate);};
+// 共有に添える一言＝X・LINE では本文に入る（Instagram は文字を無視する）。見た人がサイトへ戻れる手がかり
+const SHARE_TEXT='#レジちん #お絵描き手帳 https://www.registro500.com/paint-notebook/126';
+// 画像の右下にサイト名を入れる＝動画のロゴと同じ役目（SNS で画像だけが流れても出どころが分かる）
+function stamp(src){ const c=document.createElement('canvas'); c.width=src.width; c.height=src.height; const x=c.getContext('2d'); x.drawImage(src,0,0);
+  const fs=Math.max(14,Math.round(c.width*0.026)), pad=Math.round(fs*0.6), str='registro500.com'; x.font=`600 ${fs}px system-ui,-apple-system,sans-serif`; x.textBaseline='middle'; x.textAlign='right';
+  const w=x.measureText(str).width+pad*2, h=fs+pad, X=c.width-pad, Y=c.height-pad;
+  x.fillStyle='rgba(0,0,0,.45)'; if(x.roundRect){ x.beginPath(); x.roundRect(X-w,Y-h,w,h,h/2); x.fill(); } else x.fillRect(X-w,Y-h,w,h);
+  x.fillStyle='#fff'; x.fillText(str,X-pad,Y-h/2); return c; }
 // 画像も動画と同じ導線＝共有シートが使える端末（iPhone／Android）は「保存・SNSへ送る」から X・Instagram・LINE へ直接渡す。
 // 共有は押された流れの中で直に呼ぶ必要があるので、PNG の File は「画像にする」の時点で作っておく。使えない環境は従来どおり長押し保存
 let shotFile=null;
-$('save').onclick=()=>{ renderer.render(scene,cam); const img=$('shot').querySelector('img'); img.src=renderer.domElement.toDataURL('image/png'); $('shot').style.display='flex'; $('shotMsg').textContent='画像を長押しで保存できます（パソコンは右クリック）';
-  shotFile=null; $('shotShare').hidden=true; renderer.domElement.toBlob(b=>{ if(!b) return; const f=new File([b],'registro126-paint-'+Date.now()+'.png',{type:'image/png'}); if(navigator.canShare && navigator.canShare({files:[f]})){ shotFile=f; $('shotShare').hidden=false; $('shotMsg').textContent='X・Instagram・LINE などへそのまま送れます（長押しで保存もできます）'; } },'image/png'); };
-$('shotShare').onclick=()=>{ if(shotFile) navigator.share({files:[shotFile]}).catch(()=>{}); };
+$('save').onclick=()=>{ renderer.render(scene,cam); const c=stamp(renderer.domElement); const img=$('shot').querySelector('img'); img.src=c.toDataURL('image/png'); $('shot').style.display='flex'; $('shotMsg').textContent='画像を長押しで保存できます（パソコンは右クリック）';
+  shotFile=null; $('shotShare').hidden=true; c.toBlob(b=>{ if(!b) return; const fl=new File([b],'registro126-paint-'+Date.now()+'.png',{type:'image/png'}); if(navigator.canShare && navigator.canShare({files:[fl]})){ shotFile=fl; $('shotShare').hidden=false; $('shotMsg').textContent='X・Instagram・LINE などへそのまま送れます（長押しで保存もできます）'; } },'image/png'); };
+$('shotShare').onclick=()=>{ if(shotFile) navigator.share({files:[shotFile], text:SHARE_TEXT}).catch(()=>{}); };
 $('shotClose').onclick=()=>{$('shot').style.display='none';};
 // 動画は「走る126」（drive.html?car=126）の画面で作る＝いまの仕上がり（URLの # 以降）をそのまま渡す
 // 投稿＝いまの画面を縮小画像にして、設計図（# 以降）と一緒に送る
 $('post').onclick=mountPost({carType:'126', snap:()=>{ renderer.render(scene,cam); return renderer.domElement; }});
 $('drive').onclick=()=>{ location.href='drive.html?car=126'+location.hash; };
-$('share').onclick=async()=>{ try{ await navigator.clipboard.writeText(location.href); $('share').textContent='コピーしました'; }catch(e){ $('share').textContent='コピーできませんでした'; } setTimeout(()=>$('share').textContent='URLをコピー',1800); };
+// スマホでは「コピーして貼る」より共有シートで送る方が自然。パソコンや使えない環境は従来どおりコピー
+const canShareUrl=!!(navigator.canShare && navigator.canShare({url:location.href}) && matchMedia('(pointer:coarse)').matches);
+if(canShareUrl) $('share').textContent='URLを送る';
+$('share').onclick=async()=>{ if(canShareUrl){ navigator.share({url:location.href, text:'#レジちん #お絵描き手帳'}).catch(()=>{}); return; } try{ await navigator.clipboard.writeText(location.href); $('share').textContent='コピーしました'; }catch(e){ $('share').textContent='コピーできませんでした'; } setTimeout(()=>$('share').textContent='URLをコピー',1800); };
 
 function resize(){ const w=stage.clientWidth, h=stage.clientHeight; renderer.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix(); }
 new ResizeObserver(resize).observe(stage); resize();
