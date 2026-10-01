@@ -102,7 +102,9 @@ function card(p){
   el.innerHTML = `<a href="${esc(noteUrl(p))}"><img loading="lazy" alt="${esc(p.name)}さんの${p.car_type}" src="${esc(thumbUrl(p.thumb_path))}"></a>
     <div class="body">${p.comment ? `<div class="cmt">${esc(p.comment)}</div>` : ''}
       <div class="who"><span class="tag">${p.car_type}</span>${who}・${ymd(p.created_at)}</div>
-      <div class="acts"><a href="${esc(noteUrl(p))}">この色から描く</a><a href="${esc(driveUrl(p))}">走らせる</a></div></div>`;
+      <div class="acts"><a href="${esc(noteUrl(p))}" data-ga="gallery_remix">この色から描く</a><a href="${esc(driveUrl(p))}" data-ga="gallery_drive">走らせる</a></div></div>`;
+  // 一覧から手帳へ戻る導線が使われるか（＝人の色を見て描く気になるか）を GA に数える
+  el.querySelectorAll('a[data-ga]').forEach(a => a.onclick = () => { if(window.gtag) gtag('event', 'paint_action', { car_type: p.car_type, action: a.dataset.ga }); });
   if(canDelete(p)){
     // 削除は2度押し（確認のダイアログは出さない）
     const b = document.createElement('button'); b.className = 'del'; b.textContent = '削除';

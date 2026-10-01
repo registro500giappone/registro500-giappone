@@ -312,13 +312,16 @@ document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.data
 // 項目を開いたら、その部分が見える向きへ回す（スマホでは車が小さく上に貼り付いているため）
 document.querySelectorAll('details[data-cam]').forEach(d=>d.addEventListener('toggle',()=>{ if(d.open) setView(d.dataset.cam); }));
 $('spin').onclick=()=>{controls.autoRotate=!controls.autoRotate; $('spin').setAttribute('aria-pressed',controls.autoRotate);};
-$('save').onclick=()=>{ renderer.render(scene,cam); const img=$('shot').querySelector('img'); img.src=renderer.domElement.toDataURL('image/png'); $('shot').style.display='flex'; };
+// 仕上がりを持ち出す操作だけ GA に数える（色を触る回数は数えない＝遊ばれたかの判断は「持ち出し」で見る）
+const ga=(action,extra)=>{ if(window.gtag) gtag('event','paint_action',Object.assign({car_type:'500',action},extra||{})); };
+$('save').onclick=()=>{ renderer.render(scene,cam); const img=$('shot').querySelector('img'); img.src=renderer.domElement.toDataURL('image/png'); $('shot').style.display='flex'; ga('image'); };
 $('shotClose').onclick=()=>{$('shot').style.display='none';};
 // 動画は「走る500」の画面で作る＝いまの仕上がり（URLの # 以降）をそのまま渡す
 // 投稿＝いまの画面を縮小画像にして、設計図（# 以降）と一緒に送る
-$('post').onclick=mountPost({carType:'500', snap:()=>{ renderer.render(scene,cam); return renderer.domElement; }});
-$('drive').onclick=()=>{ location.href='drive.html'+location.hash; };
-$('share').onclick=async()=>{ try{ await navigator.clipboard.writeText(location.href); $('share').textContent='コピーしました'; }catch(e){ $('share').textContent='コピーできませんでした'; } setTimeout(()=>$('share').textContent='URLをコピー',1800); };
+const openPost=mountPost({carType:'500', snap:()=>{ renderer.render(scene,cam); return renderer.domElement; }});
+$('post').onclick=()=>{ ga('post_open'); openPost(); };
+$('drive').onclick=()=>{ ga('drive'); location.href='drive.html'+location.hash; };
+$('share').onclick=async()=>{ try{ await navigator.clipboard.writeText(location.href); $('share').textContent='コピーしました'; ga('url_copy'); }catch(e){ $('share').textContent='コピーできませんでした'; } setTimeout(()=>$('share').textContent='URLをコピー',1800); };
 
 function resize(){ const w=stage.clientWidth, h=stage.clientHeight; renderer.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix(); }
 new ResizeObserver(resize).observe(stage); resize();

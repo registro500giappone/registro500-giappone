@@ -413,6 +413,8 @@ if(!REC){
   const $=id=>document.getElementById(id);
   const mk=$('mk'), msg=$('mkMsg'), meter=mk.querySelector('.meter'), barEl=$('mkBar'), vid=$('mkVid'), saveBtn=$('mkSave'), closeBtn=$('mkClose');
   let cancel=false, outFile=null;
+  // 動画の「作る→できた→保存」を GA に数える（手帳側の paint_action と同じ名前で揃える）
+  const ga=(action,extra)=>{ if(window.gtag) gtag('event','paint_action',Object.assign({car_type:CAR126?'126':'500',action},extra||{})); };
   $('back').href=(CAR126?'./126.html':'./')+location.hash;
   $('retake').onclick=()=>{ location.href='drive.html?'+(CAR126?'car=126&':'')+'take='+(1+Math.floor(Math.random()*9999))+location.hash; };
   const closeMk=()=>{ mk.classList.remove('on'); vid.pause(); if(vid.src){ URL.revokeObjectURL(vid.src); vid.removeAttribute('src'); } };
@@ -420,6 +422,7 @@ if(!REC){
   // iPhone の Safari は <a download> が効かない＝共有シートから「ビデオを保存」。共有は押された流れの中で直に呼ぶ
   saveBtn.onclick=()=>{
     if(!outFile) return;
+    ga('video_save');
     if(navigator.canShare && navigator.canShare({files:[outFile]})){ navigator.share({files:[outFile]}).catch(()=>{}); return; }
     const a=document.createElement('a'); a.href=URL.createObjectURL(outFile); a.download=outFile.name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
   };
@@ -428,8 +431,8 @@ if(!REC){
     mk.classList.add('on'); vid.style.display='none'; saveBtn.hidden=true; meter.style.display=''; barEl.style.width='0';
     msg.textContent='動画を作っています…（1分ほどかかります）'; closeBtn.textContent='やめる';
     const cfg=await pickCodec();
-    if(!cfg){ msg.textContent='このブラウザでは動画を作れません。新しい Chrome か Safari でお試しください。'; meter.style.display='none'; closeBtn.textContent='閉じる'; return; }
-    making=true; cancel=false; outFile=null;
+    if(!cfg){ msg.textContent='このブラウザでは動画を作れません。新しい Chrome か Safari でお試しください。'; meter.style.display='none'; closeBtn.textContent='閉じる'; ga('video_unsupported'); return; }
+    making=true; cancel=false; outFile=null; ga('video_start');
     const wasPlaying=playing; playing=false;
     let err=null, muxer, enc;
     const acc=document.createElement('canvas'); acc.width=OUT_W; acc.height=OUT_H; const actx=acc.getContext('2d');
@@ -455,10 +458,11 @@ if(!REC){
     try{ if(enc && enc.state!=='closed') enc.close(); }catch(e){}
     making=false; renderer.setPixelRatio(Math.min(devicePixelRatio,2)); resize();
     playing=wasPlaying; t0=performance.now()-cur*1000; setT(cur);
-    if(cancel){ closeMk(); return; }
+    if(cancel){ closeMk(); ga('video_cancel'); return; }
     meter.style.display='none'; closeBtn.textContent='閉じる';
-    if(err){ msg.textContent='動画を作れませんでした（'+(err.message||err)+'）'; return; }
+    if(err){ msg.textContent='動画を作れませんでした（'+(err.message||err)+'）'; ga('video_error'); return; }
     outFile=new File([muxer.target.buffer],'registro500-drive-'+Date.now()+'.mp4',{type:'video/mp4'});
+    ga('video_done',{seconds:Math.round((performance.now()-started)/1000)});
     vid.src=URL.createObjectURL(outFile); vid.style.display='block'; vid.play().catch(()=>{});
     saveBtn.hidden=false;
     msg.textContent='できました（'+Math.round((performance.now()-started)/1000)+'秒）。「保存・共有」から端末に保存できます。';
