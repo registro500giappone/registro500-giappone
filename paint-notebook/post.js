@@ -1,5 +1,6 @@
 // みんなのお絵描き手帳への投稿（500・126 共通）
 // 投稿するのは「設計図」＝URL の # 以降と、一覧に並べる縮小画像1枚だけ。動画は預からない
+import { compose, dataUrlToFile, canShareFiles } from './share-image.js?v=1';
 const SB_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0';
 const SB_SRI = 'sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J';
 export const BUCKET = 'paint-thumbs';
@@ -72,6 +73,7 @@ const CSS = `
 #postDlg .rule{font-size:12px;color:var(--sub);margin:10px 0;line-height:1.6}
 #postDlg .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
 #postDlg .msg{font-size:13px;margin-top:8px;min-height:1em}
+#postDlg .sharebtn{display:block;margin-top:8px}
 #postDlg .golist{display:inline-block;margin-top:6px;color:var(--deep);font-weight:600}
 #postDlg [hidden]{display:none!important}
 #postLogin{border-bottom:1px solid var(--line);margin-bottom:6px;padding-bottom:8px}
@@ -115,7 +117,8 @@ const ERR = {
 };
 
 // carType＝'500' か '126'／snap()＝いまの画面を描いた canvas を返す
-export function mountPost({ carType, snap }){
+// logo＝共有画像に焼き込むロゴ（読み込み済みの Image か、それを返す関数。無ければロゴ無し）／urlText＝同じく左下に入れるURL文字／shareText＝共有シートに添える文
+export function mountPost({ carType, snap, logo, urlText, shareText }){
   const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
   const dlg = document.createElement('div'); dlg.id = 'postDlg'; dlg.innerHTML = HTML; document.body.appendChild(dlg);
   const $ = id => document.getElementById(id);
@@ -223,6 +226,20 @@ export function mountPost({ carType, snap }){
     }else toast('ログインできませんでした。もう一度お試しください。');
   }
 
+  // 投稿完了画面の「この画像をSNSにも共有」＝いまの画面を撮り直して、ロゴ・URLを焼き込み、共有シートへ渡す
+  function shareButton(){
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'sharebtn'; b.textContent = 'この画像をSNSにも共有';
+    b.onclick = async () => {
+      try{
+        const lg = typeof logo === 'function' ? logo() : (logo || null);
+        const file = dataUrlToFile(compose(snap(), lg, urlText || '').toDataURL('image/png'), 'registro' + carType + '-paint.png');
+        await navigator.share({ files: [file], text: shareText || '自分色のFIAT' + carType + 'を描きました｜REGISTRO 500 GIAPPONE お絵描き手帳', url: location.href });
+        if(window.gtag) gtag('event', 'paint_action', { car_type: carType, action: 'post_share' });
+      }catch(e){ if(!(e && e.name === 'AbortError')) b.textContent = '共有できませんでした'; }
+    };
+    return b;
+  }
+
   async function send(){
     if(busy) return;
     if(done){ close(); return; }
@@ -243,8 +260,12 @@ export function mountPost({ carType, snap }){
       if(key) saveKey(id, key);
       done = true;
       $('postMsg').textContent = carDoc ? '投稿しました。' : '投稿しました。この端末からなら、あとで削除できます。';
+      // 共有シートを出せる端末だけ＝投稿した画像を、ロゴ・URL入りでそのままSNSへ渡せる
+      const shareBtn = canShareFiles() ? shareButton() : null;
       const go = document.createElement('a'); go.href = '/paint-notebook/gallery'; go.textContent = 'みんなのお絵描き手帳を見る →'; go.className = 'golist';
-      $('postMsg').append(document.createElement('br'), go);
+      $('postMsg').append(document.createElement('br'));
+      if(shareBtn) $('postMsg').append(shareBtn);
+      $('postMsg').append(go);
       $('postSend').textContent = '閉じる'; $('postSend').disabled = false; $('postCancel').hidden = true;
       if(window.gtag) gtag('event', 'paint_post', { car_type: carType, owner: carDoc ? 1 : 0 });
     }catch(e){

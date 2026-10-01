@@ -186,7 +186,8 @@ import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {DEF, PAT_SIZE, PROVINCES, cleanText, cleanPlate, readHash, loadCar} from './car.js?v=34';
-import {mountPost} from './post.js?v=6';
+import {mountPost} from './post.js?v=7';
+import {loadLogo, compose, dataUrlToFile, canShareFiles} from './share-image.js?v=1';
 
 // 当時の純正色＝FIAT の色名と色番号・年はイタリアの色表（500 Club Italia ほか）。オランダの色表（Fiat van der Laan）とも名前・番号が一致
 // 色味（hex）は見た目の近似。並びは登場順
@@ -316,14 +317,16 @@ $('spin').onclick=()=>{controls.autoRotate=!controls.autoRotate; $('spin').setAt
 const ga=(action,extra)=>{ if(window.gtag) gtag('event','paint_action',Object.assign({car_type:'500',action},extra||{})); };
 // 画像＝スマホは共有シートへ直に渡す（保存→SNSアプリ→貼る、の3手を1手に）。渡せない端末は従来の長押し保存
 // 共有は押された流れの中で呼ぶ必要があるので、toBlob ではなく同期の toDataURL から File を組む
-const canShareImg=(()=>{ try{ return !!(navigator.canShare && navigator.canShare({files:[new File([''],'x.png',{type:'image/png'})]})); }catch(e){ return false; } })();
+const canShareImg=canShareFiles();
 if(canShareImg) $('save').textContent='画像を共有';
+// 共有・保存する画像には、ロゴとURLを焼き込む。ロゴは押される前に読んでおく（押された流れの中では待てない）
+let logo=null; loadLogo('logo-text.png').then(i=>logo=i);
+const URL_TEXT='registro500.com/paint-notebook/', SHARE_TEXT='自分色のFIAT500を描きました｜REGISTRO 500 GIAPPONE お絵描き手帳';
 $('save').onclick=async()=>{
-  renderer.render(scene,cam); const url=renderer.domElement.toDataURL('image/png');
+  renderer.render(scene,cam); const url=compose(renderer.domElement,logo,URL_TEXT).toDataURL('image/png'); // ロゴが読めていなければロゴ無し・URL文字だけ
   if(canShareImg){
-    const bin=atob(url.split(',')[1]), buf=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
-    const file=new File([buf],'registro500-paint.png',{type:'image/png'});
-    try{ await navigator.share({files:[file], text:'自分色のFIAT500を描きました｜REGISTRO 500 GIAPPONE お絵描き手帳', url:location.href}); ga('share'); return; }
+    const file=dataUrlToFile(url,'registro500-paint.png');
+    try{ await navigator.share({files:[file], text:SHARE_TEXT, url:location.href}); ga('share'); return; }
     catch(e){ if(e && e.name==='AbortError') return; } // やめた＝何もしない。共有に失敗した端末は下の長押し保存へ
   }
   const img=$('shot').querySelector('img'); img.src=url; $('shot').style.display='flex'; ga('image');
@@ -331,7 +334,7 @@ $('save').onclick=async()=>{
 $('shotClose').onclick=()=>{$('shot').style.display='none';};
 // 動画は「走る500」の画面で作る＝いまの仕上がり（URLの # 以降）をそのまま渡す
 // 投稿＝いまの画面を縮小画像にして、設計図（# 以降）と一緒に送る
-const openPost=mountPost({carType:'500', snap:()=>{ renderer.render(scene,cam); return renderer.domElement; }});
+const openPost=mountPost({carType:'500', snap:()=>{ renderer.render(scene,cam); return renderer.domElement; }, logo:()=>logo, urlText:URL_TEXT, shareText:SHARE_TEXT});
 $('post').onclick=()=>{ ga('post_open'); openPost(); };
 $('drive').onclick=()=>{ ga('drive'); location.href='drive.html'+location.hash; };
 $('share').onclick=async()=>{ try{ await navigator.clipboard.writeText(location.href); $('share').textContent='コピーしました'; ga('url_copy'); }catch(e){ $('share').textContent='コピーできませんでした'; } setTimeout(()=>$('share').textContent='URLをコピー',1800); };
