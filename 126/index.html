@@ -3,6 +3,17 @@
 
 <head>
   <meta charset="UTF-8">
+  <script>
+    // 起動診断（2026-10-01・iPhone のホーム画面起動で supabaseClient が初期化されない件の調査）。
+    // 読み込み失敗と例外を記録し、データ取得エラーのバナーに併記する（showDataErrorBanner）。普段は何も表示しない。
+    window.__boot = { t0: Date.now(), errs: [] };
+    addEventListener('error', function (e) {
+      var t = e.target, src = t && t !== window && (t.src || t.href);
+      __boot.errs.push((Date.now() - __boot.t0) + 'ms ' + (src
+        ? '読込失敗 ' + String(src).replace(location.origin, '').slice(0, 70)
+        : (e.message || '?') + ' @' + String(e.filename || '').split('/').pop() + ':' + e.lineno));
+    }, true);
+  </script>
   <!-- iOS PWAキャッシュ対策: HTTPヘッダと二重で古いHTMLを掴ませない -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -885,7 +896,13 @@ async function fetchCars() {
     const msg = document.getElementById('dataErrorMsg');
     if (!banner) return;
     if (msg) {
-      const reason = (err && err.message) ? err.message : '通信に失敗しました';
+      let reason = (err && err.message) ? err.message : '通信に失敗しました';
+      // 起動診断（<head> 先頭の __boot）。初期化の失敗は後段では TDZ としか出ないので、元の失敗を併記する
+      if (window.__boot) {
+        reason += ' ／診断 ' + (Date.now() - __boot.t0) + 'ms supabase:' + typeof supabase +
+          ' config:' + typeof SUPABASE_URL + ' sw:' + !!(navigator.serviceWorker && navigator.serviceWorker.controller) +
+          (__boot.errs.length ? ' ' + __boot.errs.slice(0, 4).join(' | ') : '');
+      }
       msg.textContent = '最新データ取得失敗: ' + reason;
     }
     banner.style.display = 'block';
