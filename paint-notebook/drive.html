@@ -87,7 +87,7 @@ body.rec .acts{display:none}
   <p id="mkMsg">動画を作っています…</p>
   <div class="meter"><i id="mkBar"></i></div>
   <video id="mkVid" playsinline muted loop></video>
-  <button id="mkSave" class="primary" hidden>保存・共有</button>
+  <button id="mkSave" class="primary" hidden>保存・SNSへ送る</button>
   <button id="mkClose">やめる</button>
 </div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
@@ -417,7 +417,7 @@ if(!REC){
   $('retake').onclick=()=>{ location.href='drive.html?'+(CAR126?'car=126&':'')+'take='+(1+Math.floor(Math.random()*9999))+location.hash; };
   const closeMk=()=>{ mk.classList.remove('on'); vid.pause(); if(vid.src){ URL.revokeObjectURL(vid.src); vid.removeAttribute('src'); } };
   closeBtn.onclick=()=>{ if(making) cancel=true; else closeMk(); };
-  // iPhone の Safari は <a download> が効かない＝共有シートから「ビデオを保存」。共有は押された流れの中で直に呼ぶ
+  // iPhone／Android は共有シート＝X・Instagram・LINE へ直接渡せる（iPhone の Safari は <a download> が効かないので「ビデオを保存」もここから）。共有は押された流れの中で直に呼ぶ
   saveBtn.onclick=()=>{
     if(!outFile) return;
     if(navigator.canShare && navigator.canShare({files:[outFile]})){ navigator.share({files:[outFile]}).catch(()=>{}); return; }
@@ -461,7 +461,7 @@ if(!REC){
     outFile=new File([muxer.target.buffer],'registro500-drive-'+Date.now()+'.mp4',{type:'video/mp4'});
     vid.src=URL.createObjectURL(outFile); vid.style.display='block'; vid.play().catch(()=>{});
     saveBtn.hidden=false;
-    msg.textContent='できました（'+Math.round((performance.now()-started)/1000)+'秒）。「保存・共有」から端末に保存できます。';
+    msg.textContent='できました（'+Math.round((performance.now()-started)/1000)+'秒）。「保存・SNSへ送る」から X・Instagram・LINE などへそのまま送れます'+((navigator.canShare && navigator.canShare({files:[outFile]}))?'。':'（パソコンではファイルとして保存されます）。');
   };
 }else setT(0);
 </script>

@@ -174,7 +174,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
   <p class="credit">3Dモデル：<a href="https://sketchfab.com/3d-models/polski-fiat-fiat-126p-edc1b9d866484e048b4c54d917cca900" rel="noopener" target="_blank">"Polski Fiat (Fiat 126p)"</a> by <a href="https://sketchfab.com/Bexxie" rel="noopener" target="_blank">Martin Trafas</a>, <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener" target="_blank">CC BY 4.0</a>（データを軽くし、塗装と模様の表示を加え、エンブレムとナンバーをイタリアの126の型に描き替えています）</p>
 </div>
 
-<div id="shot"><img alt="仕上がりの画像"><p>画像を長押しで保存できます（パソコンは右クリック）</p><button id="shotClose">閉じる</button></div>
+<div id="shot"><img alt="仕上がりの画像"><p id="shotMsg">画像を長押しで保存できます（パソコンは右クリック）</p><button id="shotShare" class="primary" hidden>保存・SNSへ送る</button><button id="shotClose">閉じる</button></div>
 
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
 <script type="module">
@@ -294,7 +294,12 @@ document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.data
 // 項目を開いたら、その部分が見える向きへ回す（スマホでは車が小さく上に貼り付いているため）
 document.querySelectorAll('details[data-cam]').forEach(d=>d.addEventListener('toggle',()=>{ if(d.open) setView(d.dataset.cam); }));
 $('spin').onclick=()=>{controls.autoRotate=!controls.autoRotate; $('spin').setAttribute('aria-pressed',controls.autoRotate);};
-$('save').onclick=()=>{ renderer.render(scene,cam); const img=$('shot').querySelector('img'); img.src=renderer.domElement.toDataURL('image/png'); $('shot').style.display='flex'; };
+// 画像も動画と同じ導線＝共有シートが使える端末（iPhone／Android）は「保存・SNSへ送る」から X・Instagram・LINE へ直接渡す。
+// 共有は押された流れの中で直に呼ぶ必要があるので、PNG の File は「画像にする」の時点で作っておく。使えない環境は従来どおり長押し保存
+let shotFile=null;
+$('save').onclick=()=>{ renderer.render(scene,cam); const img=$('shot').querySelector('img'); img.src=renderer.domElement.toDataURL('image/png'); $('shot').style.display='flex'; $('shotMsg').textContent='画像を長押しで保存できます（パソコンは右クリック）';
+  shotFile=null; $('shotShare').hidden=true; renderer.domElement.toBlob(b=>{ if(!b) return; const f=new File([b],'registro126-paint-'+Date.now()+'.png',{type:'image/png'}); if(navigator.canShare && navigator.canShare({files:[f]})){ shotFile=f; $('shotShare').hidden=false; $('shotMsg').textContent='X・Instagram・LINE などへそのまま送れます（長押しで保存もできます）'; } },'image/png'); };
+$('shotShare').onclick=()=>{ if(shotFile) navigator.share({files:[shotFile]}).catch(()=>{}); };
 $('shotClose').onclick=()=>{$('shot').style.display='none';};
 // 動画は「走る126」（drive.html?car=126）の画面で作る＝いまの仕上がり（URLの # 以降）をそのまま渡す
 // 投稿＝いまの画面を縮小画像にして、設計図（# 以降）と一緒に送る
