@@ -77,7 +77,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
 <div class="wrap">
   <div class="topbar"><a href="/">← REGISTRO 500 GIAPPONE</a></div>
   <h1>FIAT126お絵描き手帳</h1>
-  <p class="lead">好きな色や模様を描いて自分色の126を作ってください。指やマウスでぐるりと回して眺めることができます。<br>気に入ったデザインができたら、画像や動画を保存してSNSで公開してください！</p>
+  <p class="lead">好きな色や模様を描いて自分色の126を作ってください。指やマウスでぐるりと回して眺めることができます。<br>気に入ったデザインができたら、画像や動画をそのままSNSで共有してください！</p>
 
   <div class="layout">
     <div class="stagebox">
@@ -296,7 +296,20 @@ document.querySelectorAll('details[data-cam]').forEach(d=>d.addEventListener('to
 $('spin').onclick=()=>{controls.autoRotate=!controls.autoRotate; $('spin').setAttribute('aria-pressed',controls.autoRotate);};
 // 仕上がりを持ち出す操作だけ GA に数える（色を触る回数は数えない＝遊ばれたかの判断は「持ち出し」で見る）
 const ga=(action,extra)=>{ if(window.gtag) gtag('event','paint_action',Object.assign({car_type:'126',action},extra||{})); };
-$('save').onclick=()=>{ renderer.render(scene,cam); const img=$('shot').querySelector('img'); img.src=renderer.domElement.toDataURL('image/png'); $('shot').style.display='flex'; ga('image'); };
+// 画像＝スマホは共有シートへ直に渡す（保存→SNSアプリ→貼る、の3手を1手に）。渡せない端末は従来の長押し保存
+// 共有は押された流れの中で呼ぶ必要があるので、toBlob ではなく同期の toDataURL から File を組む
+const canShareImg=(()=>{ try{ return !!(navigator.canShare && navigator.canShare({files:[new File([''],'x.png',{type:'image/png'})]})); }catch(e){ return false; } })();
+if(canShareImg) $('save').textContent='画像を共有';
+$('save').onclick=async()=>{
+  renderer.render(scene,cam); const url=renderer.domElement.toDataURL('image/png');
+  if(canShareImg){
+    const bin=atob(url.split(',')[1]), buf=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
+    const file=new File([buf],'registro126-paint.png',{type:'image/png'});
+    try{ await navigator.share({files:[file], text:'自分色のFIAT126を描きました｜REGISTRO 500 GIAPPONE お絵描き手帳', url:location.href}); ga('share'); return; }
+    catch(e){ if(e && e.name==='AbortError') return; } // やめた＝何もしない。共有に失敗した端末は下の長押し保存へ
+  }
+  const img=$('shot').querySelector('img'); img.src=url; $('shot').style.display='flex'; ga('image');
+};
 $('shotClose').onclick=()=>{$('shot').style.display='none';};
 // 動画は「走る126」（drive.html?car=126）の画面で作る＝いまの仕上がり（URLの # 以降）をそのまま渡す
 // 投稿＝いまの画面を縮小画像にして、設計図（# 以降）と一緒に送る
