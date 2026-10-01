@@ -147,25 +147,29 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(staleWhileRevalidate(req, RUNTIME_CACHE));
 });
 
+// ネットワークから取り、成功なら保存して、画面へ返す応答を返す（3つの戦略で共用）。
+// clone() で本文を2つに分けて「保存」と「画面」に渡すと、iPhone のホーム画面起動で
+// 画面側の本文が空になる事例が出た（2026-10-01・config.js が空で SUPABASE_URL 未定義／HTML が空で真っ白／ロゴ画像の欠け）。
+// 本文を読み切ってから応答を2つ作り直し、空なら失敗扱いにして呼び出し側の保存分へ回す。
+// リダイレクトや失敗の応答は作り直さずにそのまま返す（ナビゲーションの redirected を壊さない）。
+async function fetchAndStore(req, cache) {
+  const fresh = await fetch(req);
+  if (!fresh || !fresh.ok || fresh.redirected) return fresh;
+  const body = await fresh.arrayBuffer();
+  if (body.byteLength === 0) throw new Error('empty body: ' + req.url);
+  const headers = new Headers(fresh.headers);
+  headers.delete('content-encoding');   // 本文は展開済み
+  headers.delete('content-length');
+  const init = { status: fresh.status, statusText: fresh.statusText, headers };
+  cache.put(req, new Response(body, init));
+  return new Response(body, init);
+}
+
 // timeoutMs を渡すと、その時間内にネットワークが返らず保存分があるとき保存分を先に返す
 // （取得は裏で続き、届いたら保存だけ更新する）。保存分が無ければネットワークを待ち続ける。
 async function networkFirst(req, cacheName, timeoutMs) {
   const cache = await caches.open(cacheName);
-  const network = fetch(req).then(async (fresh) => {
-    // リダイレクトや失敗の応答は作り直さずにそのまま返す（ナビゲーションの redirected を壊さない）
-    if (!fresh || !fresh.ok || fresh.redirected) return fresh;
-    // clone() で本文を2つに分けて「保存」と「画面」に渡すと、iPhone のホーム画面起動で
-    // 画面側の本文が空になる事例が出た（2026-10-01・config.js が空で SUPABASE_URL 未定義／HTML が空で真っ白）。
-    // 本文を読み切ってから応答を2つ作り直し、空なら失敗扱いにして保存分へ回す。
-    const body = await fresh.arrayBuffer();
-    if (body.byteLength === 0) throw new Error('empty body: ' + req.url);
-    const headers = new Headers(fresh.headers);
-    headers.delete('content-encoding');   // 本文は展開済み
-    headers.delete('content-length');
-    const init = { status: fresh.status, statusText: fresh.statusText, headers };
-    cache.put(req, new Response(body, init));
-    return new Response(body, init);
-  });
+  const network = fetchAndStore(req, cache);
   try {
     if (!timeoutMs) return await network;
     const timedOut = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
@@ -193,27 +197,12 @@ async function cacheFirst(req, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(req);
   if (cached) return cached;
-  try {
-    const fresh = await fetch(req);
-    if (fresh && fresh.ok) {
-      cache.put(req, fresh.clone());
-    }
-    return fresh;
-  } catch (err) {
-    throw err;
-  }
+  return fetchAndStore(req, cache);
 }
 
 async function staleWhileRevalidate(req, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(req);
-  const fetchPromise = fetch(req)
-    .then((fresh) => {
-      if (fresh && fresh.ok) {
-        cache.put(req, fresh.clone());
-      }
-      return fresh;
-    })
-    .catch(() => cached);
+  const fetchPromise = fetchAndStore(req, cache).catch(() => cached);
   return cached || fetchPromise;
 }
