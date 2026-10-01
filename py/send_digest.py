@@ -40,33 +40,10 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ENV = os.path.join(BASE, "py", ".env")
-
-env = {}
-if os.path.exists(ENV):
-    for line in open(ENV, encoding="utf-8"):
-        line = line.strip()
-        if "=" in line and not line.startswith("#"):
-            k, v = line.split("=", 1)
-            env[k] = v
-
-
-def cfg(name, default=None):
-    """py/.env を優先し、無ければ環境変数を見る（ローカル実行と CI の両対応）"""
-    return env.get(name) or os.environ.get(name) or default
-
-
-SUPA_URL = (cfg("SUPABASE_URL") or "").rstrip("/")
-SUPA_KEY = cfg("SUPABASE_SERVICE_KEY") or cfg("SUPABASE_KEY")
-BREVO_KEY = cfg("BREVO_API_KEY")
-
-# main.gs と同一
-SENDER_EMAIL = "news@registro500.com"
-SENDER_NAME = "Registro500 Giappone"
-REPLY_TO_EMAIL = "registro500giappone@gmail.com"
-ADMIN_EMAIL = "registro500giappone@gmail.com"
-SITE = "https://www.registro500.com"
+# 設定（py/.env 優先・無ければ環境変数）・Supabase REST・Brevo は py/common.py に寄せた（2026-09-30）。
+# 差出人などの定数は main.gs と同一の値を common.py が持つ。
+from common import (cfg, require, supa_key, sb_select, sb_patch, sb_rpc, brevo_send,
+                    SENDER_EMAIL, SENDER_NAME, REPLY_TO_EMAIL, ADMIN_EMAIL, SITE)
 
 CHUNK_SIZE = 90          # Brevo の BCC 上限に合わせた main.gs と同じ値
 WINDOW_DAYS = 14         # 取り残し救済窓（配信失敗しても14日以内は自動リカバリ）
@@ -86,70 +63,7 @@ def log(msg):
 
 
 # =========================================================
-# Supabase
-# =========================================================
-def _request(method, url, payload=None, extra_headers=None):
-    headers = {
-        "apikey": SUPA_KEY,
-        "Authorization": "Bearer " + SUPA_KEY,
-        "Content-Type": "application/json",
-    }
-    if extra_headers:
-        headers.update(extra_headers)
-    data = json.dumps(payload).encode("utf-8") if payload is not None else None
-    req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    with urllib.request.urlopen(req, timeout=40) as res:
-        body = res.read().decode("utf-8")
-        return res.status, body
-
-
-def sb_select(table, select, filters=None, extra=None):
-    """PostgREST の GET。1000行の既定上限に当たらないよう Range でページングする。"""
-    # PostgREST のフィルタ値は eq. / in.("a","b") の記法をそのまま通す必要がある
-    safe_chars = '.()*,' + '"'
-    params = ["select=" + urllib.parse.quote(select)]
-    for key, val in (filters or {}).items():
-        params.append(key + "=" + urllib.parse.quote(str(val), safe=safe_chars))
-    if extra:
-        params.append(extra)
-    url = f"{SUPA_URL}/rest/v1/{table}?" + "&".join(params)
-
-    rows = []
-    page = 1000
-    offset = 0
-    while True:
-        req = urllib.request.Request(url, headers={
-            "apikey": SUPA_KEY,
-            "Authorization": "Bearer " + SUPA_KEY,
-            "Range-Unit": "items",
-            "Range": f"{offset}-{offset + page - 1}",
-        })
-        with urllib.request.urlopen(req, timeout=40) as res:
-            chunk = json.loads(res.read().decode("utf-8"))
-        if not isinstance(chunk, list):
-            raise RuntimeError(f"{table} の応答が配列ではありません: {chunk}")
-        rows.extend(chunk)
-        if len(chunk) < page:
-            break
-        offset += page
-    return rows
-
-
-def sb_patch(table, row_id, data):
-    url = f"{SUPA_URL}/rest/v1/{table}?id=eq.{urllib.parse.quote(str(row_id))}"
-    code, body = _request("PATCH", url, data, {"Prefer": "return=minimal"})
-    if not 200 <= code < 300:
-        raise RuntimeError(f"{table} PATCH HTTP {code} / {body}")
-
-
-def sb_rpc(fn, payload):
-    code, body = _request("POST", f"{SUPA_URL}/rest/v1/rpc/{fn}", payload)
-    if not 200 <= code < 300:
-        raise RuntimeError(f"rpc {fn} HTTP {code} / {body}")
-
-
-# =========================================================
-# Brevo
+# Brevo（送信そのものは common.brevo_send）
 # =========================================================
 def text_to_html(text):
     """main.gs textToHtml_ の移植"""
@@ -180,20 +94,7 @@ def send_broadcast(bcc_list, subject, text_body):
         "trackClicks": True,
         "trackOpens": True,
     }
-    req = urllib.request.Request(
-        "https://api.brevo.com/v3/smtp/email",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"api-key": BREVO_KEY, "Content-Type": "application/json",
-                 "accept": "application/json"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=60) as res:
-            if not 200 <= res.status < 300:
-                raise RuntimeError(f"Brevo API error: HTTP {res.status}")
-    except urllib.error.HTTPError as e:
-        raise RuntimeError(
-            f"Brevo API error: HTTP {e.code} / {e.read().decode('utf-8', 'replace')[:300]}")
+    brevo_send(payload, timeout=60)   # 失敗は RuntimeError（HTTP コード＋本文の先頭）
 
 
 def send_admin_alert(subject, body):
@@ -209,11 +110,9 @@ def send_admin_alert(subject, body):
 # 本体
 # =========================================================
 def main():
-    missing = [n for n, v in
-               (("SUPABASE_URL", SUPA_URL), ("SUPABASE_SERVICE_KEY/SUPABASE_KEY", SUPA_KEY),
-                ("BREVO_API_KEY", BREVO_KEY)) if not v]
-    if missing:
-        raise SystemExit("必須の設定がありません: " + ", ".join(missing))
+    require("SUPABASE_URL", "BREVO_API_KEY")
+    if not supa_key():
+        raise SystemExit("必須の設定がありません: SUPABASE_SERVICE_KEY/SUPABASE_KEY")
 
     now = datetime.now(timezone.utc)
     window_start = (now - timedelta(days=WINDOW_DAYS)).isoformat().replace("+00:00", "Z")

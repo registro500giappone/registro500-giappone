@@ -17,10 +17,12 @@
 | D'Angelo Motori (イタリア) | `dangelo_recon.py` | 週2（crawl-dangelo.yml） |
 | EuroItalia500 (イタリア) | `euroitalia500_recon.py` | 週3（crawl-euro.yml） |
 | Passione 500 (イタリア) | `passione_recon.py` | 週2（crawl-passione.yml） |
-| AutoBella Parts | `autobella_crawler.py` | 毎日（daily-parts-update.yml） |
-| Ricambio | `ricambio_crawler.py` | 毎日（daily-parts-update.yml） |
-| Mr Fiat | `mrfiat_crawler.py` | 毎日（daily-parts-update.yml） |
-| 500Line | `500line_crawler.py` | ローカル実行のみ（run_all.py 経由） |
+| AutoBella Parts | `shopify_crawler.py autobella` | 毎日（daily-parts-update.yml） |
+| Ricambio | `shopify_crawler.py ricambio` | 毎日（daily-parts-update.yml） |
+| Mr Fiat | `shopify_crawler.py mrfiat` | 毎日（daily-parts-update.yml） |
+| 500Line | `shopify_crawler.py 500line` | ローカル実行のみ（run_all.py 経由） |
+
+- `shopify_crawler.py` — Shopify 系4店の共通クローラー（2026-09-30 に旧4本を統合）。店ごとの違い（通貨・SKU接頭辞・URL・判定列）は冒頭の `SHOPS` 表だけ。`--dump out.json` で DB に書かずに upsert 内容を確かめられる。
 
 - `ai_marathon_final_v9.py` — AI翻訳（Gemini API）。各クロール後に実行され、`category IS NULL` のレコードを対象に name_ja / category を充足。
 - `run_all.py` — ローカル手動実行用の統合スクリプト（9ショップ並列＋AI翻訳）。
@@ -30,6 +32,11 @@
 ### アーカイブ
 
 - `archive/` — 旧世代スクリプト（run_all_v2.py・orchestrator.py・crawler_utils.py 等）。**歴史的資料であり実行禁止**。workflows・run_all.py からは参照されていない。
+
+### 共通部（クローラー以外のスクリプト）
+
+- `common.py` — 標準ライブラリだけの共通部。`py/.env`→環境変数の順で設定を読む `cfg`/`require`、Supabase REST の `sb_select`（Range ページング）・`sb_rpc`・`sb_upsert`・`sb_patch`、Brevo 送信 `brevo_send`。send_digest / send_report / gen_report / find_events / collect_daily_logins / build_wallpaper_sprite / dump_schema が使う（クローラーは `crawler_common.py`＝別物）。
+- `dump_schema.py` — 本番DB（public）の写し `../database_schema.sql` を再生成（DB 関数 `schema_snapshot()`）。migration を当てたら回す。
 
 ### その他の現役ユーティリティ（ローカル運用）
 

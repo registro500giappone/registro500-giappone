@@ -4,35 +4,14 @@
 gen_report.py が生成した report.html と weekly_metrics の前週比を、サマリメールとして送る。
 実行: python py/send_report.py（gen_report.py の後に実行）
 """
-import json, urllib.request, urllib.error, base64, os
+import base64, os
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ENV = os.path.join(BASE, "py", ".env")
+from common import BASE, ADMIN_EMAIL, require, sb_select, brevo_send
+
 REPORT_HTML = os.path.join(BASE, "report.html")
+require("SUPABASE_URL", "BREVO_API_KEY")
 
-env = {}
-for line in open(ENV, encoding="utf-8"):
-    line = line.strip()
-    if "=" in line and not line.startswith("#"):
-        k, v = line.split("=", 1)
-        env[k] = v
-
-SUPA_URL = env["SUPABASE_URL"].rstrip("/")
-SUPA_KEY = env.get("SUPABASE_SERVICE_KEY") or env["SUPABASE_KEY"]
-BREVO_KEY = env["BREVO_API_KEY"]
-
-SENDER_EMAIL = "news@registro500.com"
-SENDER_NAME = "Registro500 Giappone"
-TO_EMAIL = "registro500giappone@gmail.com"
-
-
-def sb(table, select="*", extra=""):
-    url = f"{SUPA_URL}/rest/v1/{table}?select={select}"
-    if extra:
-        url += "&" + extra
-    req = urllib.request.Request(url, headers={
-        "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY})
-    return json.load(urllib.request.urlopen(req, timeout=40))
+TO_EMAIL = ADMIN_EMAIL
 
 
 def pct(n, d):
@@ -53,7 +32,7 @@ def delta_line(label, cur, prev, unit=""):
     return f"・{label}: {cur}{unit}（前週 {prev}{unit} / {sign} {d:+d}{unit}）"
 
 
-rows = sb("weekly_metrics", "*", "order=week_start.desc&limit=2")
+rows = sb_select("weekly_metrics", "*", extra="order=week_start.desc&limit=2", paged=False)
 if not rows:
     raise SystemExit("weekly_metrics にデータがありません。先に gen_report.py を実行してください。")
 cur = rows[0]
@@ -90,7 +69,6 @@ with open(REPORT_HTML, "rb") as f:
     report_b64 = base64.b64encode(f.read()).decode()
 
 payload = {
-    "sender": {"name": SENDER_NAME, "email": SENDER_EMAIL},
     "to": [{"email": TO_EMAIL}],
     "subject": f"📊 成長レポート {cur['week_start']}週",
     "textContent": body_text,
@@ -99,14 +77,4 @@ payload = {
         "name": f"report_{cur['week_start'].replace('-', '')}.html",
     }],
 }
-req = urllib.request.Request(
-    "https://api.brevo.com/v3/smtp/email",
-    data=json.dumps(payload).encode(),
-    headers={"api-key": BREVO_KEY, "Content-Type": "application/json", "Accept": "application/json"},
-    method="POST")
-try:
-    resp = json.load(urllib.request.urlopen(req, timeout=40))
-    print("OK 送信完了:", resp.get("messageId"))
-except urllib.error.HTTPError as e:
-    print("送信失敗:", e.code, e.read().decode())
-    raise
+print("OK 送信完了:", brevo_send(payload))

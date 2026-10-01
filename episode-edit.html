@@ -442,7 +442,8 @@
       statusEl.style.display = 'block';
       document.getElementById('coverArea').style.pointerEvents = 'none';
       try {
-        const url = await uploadImage(file, 'cover');
+        // 保存名に時刻を付けて毎回新しいファイルにする（Storage の rules は新規作成だけを許し、上書きは通さない）
+        const url = await uploadImage(file, 'cover_' + Date.now());
         coverUrl = url;
         setCoverPreview(url);
       } catch(err) {

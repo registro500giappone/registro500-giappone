@@ -291,7 +291,8 @@ def render(ev, slug, start, end) -> str:
     # チケット販売・会場のページなどが混じっているので「主催者の」とは名乗らせない。
     # 代わりに飛び先のドメインを添えて、押す前にどこへ行くか分かるようにする。
     link_html = ""
-    if ev.get("url"):
+    # http(s) 以外（javascript: 等）は href に書き出さない。投稿画面は type="url" しか見ていない
+    if ev.get("url") and re.match(r"^https?://", ev["url"], re.I):
         host = urlparse(ev["url"]).netloc.replace("www.", "")
         link_html = (f'    <a class="btn btn-ext" href="{e(ev.get("url"))}" target="_blank" '
                      f'rel="noopener nofollow">詳しい情報を見る</a>\n'
@@ -311,7 +312,7 @@ def render(ev, slug, start, end) -> str:
 <meta property="og:title" content="{e(name)}">
 <meta property="og:description" content="{e(summary)}">
 <meta property="og:url" content="{url}">
-<meta property="og:image" content="{SITE_BASE}/logo_horizontal.png">
+<meta property="og:image" content="{SITE_BASE}/og/site-ja.png">
 <meta property="og:site_name" content="Registro500 Giappone">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="/style.css">

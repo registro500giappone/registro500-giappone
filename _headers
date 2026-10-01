@@ -1,3 +1,11 @@
+# CSP は Report-Only（何もブロックしない）。違反はブラウザが /api/csp-report に送り、
+# functions/api/csp-report.js が csp_reports 表に数える（読み方はそのファイル冒頭）。
+# ⚠️ enforce（Content-Security-Policy）へは切り替えない。外部の読み込み先を新しく使うときは、
+#    script / style / font / connect / frame のうち該当するものに足す（img は https: 全部を許している）。
+#    1行 2000 字が上限（Cloudflare Pages の _headers）。
+/*
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://static.cloudflareinsights.com https://cdn.jsdelivr.net https://www.gstatic.com https://unpkg.com https://cdnjs.cloudflare.com https://platform.twitter.com https://maps.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://ttlttclfovuzafvghvaq.supabase.co https://firebasestorage.googleapis.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://cloudflareinsights.com https://nominatim.openstreetmap.org https://open.er-api.com https://maps.googleapis.com https://script.google.com https://script.googleusercontent.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://platform.twitter.com https://syndication.twitter.com; object-src 'none'; base-uri 'self'; form-action 'self'; report-uri /api/csp-report
+
 # Service Worker 本体は絶対にキャッシュさせない（新バージョン検知に必須）
 /sw.js
   Cache-Control: no-cache, no-store, must-revalidate

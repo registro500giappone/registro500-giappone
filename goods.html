@@ -13,7 +13,8 @@
   <meta property="og:description" content="48人のオーナーアンケートと管理人の実使用から選んだ旧車メンテ用品49点。オイル・CTEK・NGKプラグ・ワコーズから、KNIPEX・Weraなどの工具まで。">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://www.registro500.com/goods">
-  <meta property="og:image" content="https://www.registro500.com/logo_horizontal.png">
+  <meta property="og:image" content="https://www.registro500.com/og/site-ja.png">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script src="config.js"></script>
@@ -1507,11 +1508,13 @@
     if (!el) return;
     if (entries.length === 0) { el.innerHTML = '<span class="ranking-loading">集計データなし</span>'; return; }
     const maxCount = entries[0][1];
+    // brand は辞書にない値だとオーナーの入力（cars.engine_oil）がそのまま返る＝エスケープ必須
+    const escBrand = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     el.innerHTML = entries.map(([brand, n], i) => {
       const pct = Math.round(n / maxCount * 100);
       return '<div class="rank-row">' +
         '<span class="rank-num">' + (i + 1) + '</span>' +
-        '<span class="rank-brand">' + brand + '</span>' +
+        '<span class="rank-brand">' + escBrand(brand) + '</span>' +
         '<span class="rank-bar-wrap"><span class="rank-bar" style="width:' + pct + '%"></span></span>' +
         '<span class="rank-count">' + n + '台</span>' +
         // このリンクは await の後に挿入されるため DOMContentLoaded の一括付与に間に合わない。

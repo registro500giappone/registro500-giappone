@@ -3,6 +3,7 @@ name: db-checker
 description: SupabaseDBの確認・簡易クエリ専用エージェント。件数確認・データ検索・統計に使用。コスト削減のためHaikuモデルを使用。
 model: haiku
 memory: project
+omitClaudeMd: true
 tools:
   - mcp__supabase__execute_sql
   - mcp__supabase__list_tables

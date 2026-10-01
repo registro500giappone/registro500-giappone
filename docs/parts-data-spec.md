@@ -79,9 +79,10 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 | EuroItalia500 | shop.euroitalia500.it | `euroitalia500_recon.py` | WooCommerce Store API | 税込み | 22%（伊） |
 | Passione 500 | passione500.it | `passione_recon.py` | requests+BS4 | 税込み | 22%（伊） |
 | D'Angelo Motori | dangelomotori.it | `dangelo_recon.py` | requests+BS4 | 税抜き | - |
-| AutoBella Parts | autobellaparts.com | `autobella_crawler.py` | Shopify JSON API | 税込み | 20%（英） |
-| Ricambio | ricambio.co.uk | `ricambio_crawler.py` | Shopify JSON API | 税込み | 20%（英） |
-| Mr Fiat | mrfiat.com | `mrfiat_crawler.py` | Shopify JSON API | 税抜き（USD） | - |
+| AutoBella Parts | autobellaparts.com | `shopify_crawler.py autobella` | Shopify JSON API | 税込み | 20%（英） |
+| Ricambio | ricambio.co.uk | `shopify_crawler.py ricambio` | Shopify JSON API | 税込み | 20%（英） |
+| Mr Fiat | mrfiat.com | `shopify_crawler.py mrfiat` | Shopify JSON API | 税抜き（USD） | - |
+| 500Line | 500line.it | `shopify_crawler.py 500line` | Shopify JSON API | 税込み（EUR） | ローカル実行のみ |
 
 ### 3-2. クローラーの共通仕様
 
@@ -216,9 +217,7 @@ registro500-giappone/
     ├── parts_search_v2.py        # FD Ricambi
     ├── euroitalia500_recon.py    # EuroItalia500
     ├── dangelo_recon.py          # D'Angelo Motori
-    ├── autobella_crawler.py
-    ├── ricambio_crawler.py
-    ├── mrfiat_crawler.py
+    ├── shopify_crawler.py        # AutoBella / Ricambio / Mr Fiat / 500Line（引数で店を選ぶ）
     ├── run_all.py                # 全ショップ並列実行（ローカル用）
     └── ai_marathon_final_v9.py   # AI翻訳
 ```

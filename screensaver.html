@@ -260,6 +260,10 @@
         <button id="lgClose">閉じる</button>
         <button class="primary" id="lgSend">コードを送る</button>
       </div>
+      <p class="lead2" style="margin:14px 0 6px">または</p>
+      <div class="acts">
+        <button id="lgGoogle" style="width:100%">Googleでログイン</button>
+      </div>
     </div>
     <div id="lgStep2" class="hide">
       <input id="lgCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6桁のコード">
@@ -272,6 +276,7 @@
   </div>
 </div>
 
+<script src="/config.js"></script>
 <script>
 (function () {
   'use strict';
@@ -279,8 +284,8 @@
   /* ============================================================ 設定と材料 */
 
   var DATA     = 'wallpaper/dist/';
-  var SUPA_URL = 'https://ttlttclfovuzafvghvaq.supabase.co';
-  var SUPA_KEY = 'sb_publishable_YMQjADUCrD6BytxvcMm-lQ_7n8LMEAt';
+  var SUPA_URL = SUPABASE_URL;        /* config.js（全ページ共通の正本）＝キーを差し替えるとき取り残さない */
+  var SUPA_KEY = SUPABASE_ANON_KEY;
   /* ⚠️ supabase-js はログインに要るときだけ読む（起動を軽く保つ＝この画面は「開いて放置」が本分）。 */
   var SUPA_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0';
   var SUPA_SRI = 'sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J';
@@ -1014,6 +1019,15 @@
         $('lgCode').focus();
       })
       .catch(function () { $('lgSend').disabled = false; $('lgErr').textContent = '通信に失敗しました。'; });
+  };
+  /* Google ログイン（トップや車両編集と同じ Supabase Auth の Google）。
+     Google へ飛んでこのページに戻ってくると、checkOwner() の getSession() が拾う。 */
+  $('lgGoogle').onclick = function () {
+    supa().then(function (c) {
+      return c.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+    }).then(function (r) {
+      if (r && r.error) $('lgErr').textContent = 'Google ログインを開始できませんでした：' + r.error.message;
+    }).catch(function () { $('lgErr').textContent = '通信に失敗しました。'; });
   };
   $('lgResend').onclick = function () {
     supa().then(function (c) { return c.auth.signInWithOtp({ email: otpMail }); })

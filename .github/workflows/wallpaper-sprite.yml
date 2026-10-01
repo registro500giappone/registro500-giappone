@@ -42,6 +42,13 @@ jobs:
           key: wallpaper-photos-${{ github.run_id }}
           restore-keys: wallpaper-photos-
 
+      # 接続情報は py/common.py が py/.env から読む。⚠️ 公開キー（SUPABASE_KEY）だけを渡す＝
+      # RLS を効かせて匿名に見える車だけを対象にするため（service_role は渡さない）。
+      - name: 接続情報を py/.env に書く
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
+
       - name: 変化があればスプライトを焼き直す
         run: python py/build_wallpaper_sprite.py
 

@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="it"><head>
+<meta charset="utf-8">
+<script src="/engine-simulator/i18n/it.js"></script>
+<script src="/engine-simulator/i18n/tr.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Simulatore del Motore dei Sogni per FIAT 500 e 126 | Registro500 Giappone</title>
+<link rel="canonical" href="https://www.registro500.com/it/engine-simulator/">
+<link rel="alternate" hreflang="ja" href="https://www.registro500.com/engine-simulator/">
+<link rel="alternate" hreflang="en" href="https://www.registro500.com/en/engine-simulator/">
+<link rel="alternate" hreflang="it" href="https://www.registro500.com/it/engine-simulator/">
+<link rel="alternate" hreflang="x-default" href="https://www.registro500.com/en/engine-simulator/">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH');
+</script>
+<meta name="description" content="Immagina l'elaborazione del motore della tua FIAT 500 o 126 raffreddata ad aria: scegli maggiorazione, rapporto di compressione, albero a camme, testata, carburatore e scarico e guarda come cambierebbero coppia e potenza rispetto alla tua auto di oggi.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Simulatore del Motore dei Sogni">
+<meta property="og:description" content="Prova maggiorazioni, alberi a camme, testate, carburatori e scarichi su una FIAT 500 o 126 raffreddata ad aria e guarda come cambiano le curve di coppia e potenza.">
+<meta property="og:image" content="https://www.registro500.com/og/engine-race-it.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&amp;family=Noto+Serif+JP:wght@600&amp;display=swap" rel="stylesheet">
+<style>
+
+:root{
+  
+  --paper:#f2ece0; --card:#fbf7ee; --ink:#2b2a26; --sub:#7c7263; --line:#ddd3c0;
+  --stage:#173d2c; --stage2:#0d2a1e; --red:#b23b2b; --red2:#8f2a1f; --gold:#c8a457; --cream:#f6f0e2;
+  --bg:var(--paper); --deep:#2c3a31; --accent:var(--gold);
+  --surface-1:var(--card); --text-primary:var(--ink); --text-secondary:var(--sub); --grid:#e3dbca;
+  --series-a:#8fae9b; --series-b:#e8b04f;      
+  --up:#1f6e3a;
+  --warn:#8a5a00; --warnbg:#fff4dc; --warnborder:#e8d2a0;
+  --stop:var(--red2); --stopbg:#fdeae6; --stopborder:#e8b3aa;
+  --info:#3f5a4a; --infobg:#eef2ec; --infoborder:#cfdad2;
+  --tag-up-bg:#e3efe4; --tag-up-fg:#2b6440; --tag-dn-bg:#f7e3df;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;line-height:1.75;-webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto;padding:16px 16px 72px}
+.topbar{margin:0 0 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.topbar a{color:var(--sub);text-decoration:none;font-size:13px}
+.topbar a:hover{color:var(--deep)}
+h1{font-family:'Oswald',system-ui;font-weight:700;font-size:23px;margin:0 0 4px;color:var(--deep);letter-spacing:.03em}
+h2{font-family:'Oswald',system-ui;font-weight:500;font-size:15px;margin:26px 0 8px;color:var(--deep);border-left:4px solid var(--deep);padding-left:8px}
+.lead{margin:0 0 16px;font-size:13px;color:var(--sub)}
+.lead b{color:var(--ink)}
+label.row{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--sub);margin:0 0 8px}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+@media (max-width:640px){.cols{grid-template-columns:1fr}}
+.panel{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px}
+.panel h3{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+.key{display:inline-block;width:18px;height:0;border-top:3px solid;border-radius:2px}
+.key.a{border-color:var(--series-a)} .key.b{border-color:var(--series-b)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.chips button,.btn{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--deep);font:inherit;font-size:12px;padding:5px 10px;border-radius:999px;cursor:pointer;text-decoration:none;display:inline-block}
+.chips button:hover,.btn:hover{border-color:var(--deep)}
+.packs{display:flex;gap:9px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;margin-top:4px}
+.pk{appearance:none;flex:none;width:158px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 10px 10px 13px;position:relative;overflow:hidden;font:inherit;cursor:pointer}
+
+@media (min-width:641px){.packs{flex-wrap:wrap;overflow-x:visible}.pk{flex:1 1 calc(33.333% - 6px);width:auto;min-width:158px}}
+.pk::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--line)}
+.pk:hover{border-color:var(--deep)}
+.pk .no{font-family:'Oswald',system-ui;font-size:11px;color:var(--sub);letter-spacing:.1em}
+.pk .nm{font-weight:700;font-size:14px;margin:1px 0 4px;color:var(--deep)}
+.pk .sub{font-size:11px;color:var(--sub);line-height:1.5;min-height:31px}
+.pk .tags{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.pk .tg{font-size:10px;border-radius:999px;padding:1px 6px;background:#efe7d6;color:#6a5f4d}
+.pk .tg.up{background:var(--tag-up-bg);color:var(--tag-up-fg)}
+.pk .tg.dn{background:var(--tag-dn-bg);color:var(--red2)}
+.pk.on{background:var(--red);border-color:var(--red2);color:#fff;box-shadow:0 3px 0 #0002}
+.pk.on::before{background:var(--gold)}
+.pk.on .no,.pk.on .sub,.pk.on .nm{color:#ffdfd4}
+.pk.on .tg{background:#ffffff26;color:#fff}
+.packwhy{font-size:12px;color:var(--sub);margin:0 0 10px;min-height:1em}
+
+.packwrap{margin:16px 0 0}
+.sechead{font-family:'Oswald',system-ui;font-weight:500;font-size:15px;letter-spacing:.06em;margin:0 0 8px;
+  display:flex;align-items:center;gap:8px;color:var(--deep)}
+.sechead::before{content:"";width:16px;height:3px;background:var(--red)}
+.sechead small{font-weight:400;color:var(--sub);font-size:12px;letter-spacing:0}
+.btn{border-radius:9px;font-size:13px;padding:7px 12px}
+.delta{font-weight:700} .delta.up{color:var(--up)} .delta.down{color:var(--stop)}
+
+
+.banner{position:relative;margin:14px 0 0;border-radius:12px 12px 0 0;overflow:hidden;background:var(--red2)}
+.banner .stripe{height:7px;background:repeating-linear-gradient(115deg,#0000 0 10px,#ffffff1f 10px 20px),var(--red)}
+.banner .row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:9px 14px 11px}
+.banner .lab{font-family:'Oswald',system-ui;font-size:10px;letter-spacing:.18em;color:#ffffff9c;margin-bottom:1px}
+.banner .nm{font-weight:700;font-size:16px;color:#fff;line-height:1.25}
+
+.banner .sub{font-size:11px;color:#ffffffb0;margin-top:2px;line-height:1.35;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.banner .to{text-align:right}
+.banner .to .nm{color:var(--gold)}
+.banner .ar{font-size:20px;color:var(--gold);line-height:1}
+
+
+.stage{background:
+   radial-gradient(120% 90% at 20% 0%, #24543d 0%, transparent 60%),
+   linear-gradient(180deg,var(--stage) 0%,var(--stage2) 100%);
+  color:var(--cream);padding:16px 14px 18px;position:relative;border-radius:0 0 12px 12px;overflow:hidden}
+.stage::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.14;
+  background-image:radial-gradient(#fff 0.5px,transparent 0.6px);background-size:3px 3px}
+.stage .rows{display:flex;gap:10px;align-items:flex-end;position:relative}
+.stage .numblock{flex:1}
+.stage .cap{font-size:11px;letter-spacing:.14em;color:#bcd6c4;text-transform:uppercase}
+.stage .big{font-family:'Oswald',system-ui;font-weight:700;line-height:1;display:flex;align-items:baseline;gap:6px;margin-top:2px}
+.stage .big .from{font-size:26px;color:#8fae9b}
+.stage .big .to{font-size:46px;color:#fff;text-shadow:0 2px 0 #0004}
+.stage .big .unit{font-size:13px;color:#bcd6c4;letter-spacing:.08em}
+.stage .tri{color:var(--gold);font-size:18px}
+.stage .bar{height:9px;border-radius:999px;background:#0b241a;margin-top:9px;position:relative;overflow:hidden;border:1px solid #ffffff1a}
+.stage .bar i{position:absolute;inset:0 auto 0 0;display:block;border-radius:999px;background:linear-gradient(90deg,#7b3a2a,var(--red) 55%,var(--gold));width:0;transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+.stage .badge{width:96px;height:96px;border-radius:50%;background:var(--red);border:3px solid var(--cream);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;
+  box-shadow:0 4px 0 #0004, inset 0 -6px 12px #0003;flex:none}
+.stage .badge .d{font-family:'Oswald',system-ui;font-weight:700;font-size:30px;line-height:1}
+.stage .badge .p{font-size:11px;letter-spacing:.08em;margin-top:1px;color:#ffe9c9}
+.stage .grid2{display:flex;gap:12px;margin-top:14px;align-items:center;position:relative}
+.stage .radar{flex:none}
+.stage .quote{font-family:'Noto Serif JP',serif;font-weight:600;font-size:14.5px;color:#fff;
+  border-left:3px solid var(--gold);padding:2px 0 2px 10px;line-height:1.7;margin:0}
+.stage .radarlegend{font-size:11px;color:#bcd6c4;margin-top:8px;display:flex;gap:12px}
+.stage .radarlegend i{display:inline-block;width:14px;height:0;border-top:2px solid #8fae9b;vertical-align:middle;margin-right:4px}
+.stage .radarlegend i.b{border-top:2px solid var(--gold)}
+.stage .cta{display:block;text-align:center;margin:14px 0 0;padding:11px;border:1px solid var(--gold);color:var(--cream);
+  border-radius:10px;font-weight:700;font-size:14px;text-decoration:none;background:#ffffff0d;letter-spacing:.02em}
+.stage .cta2{display:block;text-align:center;margin:10px 0 0;color:#bcd6c4;font-size:12.5px;text-decoration:underline;text-underline-offset:3px}
+.chart{position:relative;border:1px solid var(--line);background:var(--surface-1);border-radius:12px;padding:10px 8px 6px;margin-top:12px}
+.chart .title{font-size:13px;color:var(--deep);margin:0 4px 4px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--text-secondary)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.chart canvas{display:block;width:100%;height:230px;touch-action:pan-y}
+.tip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px;color:var(--text-secondary);box-shadow:0 4px 14px #00000014;display:none;min-width:120px;z-index:2}
+.tip b{color:var(--text-primary);font-size:13px}
+.tip .r{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.tip .r i{display:inline-block;width:14px;border-top:2px solid;margin-right:6px}
+details.inner{margin-top:8px;font-size:12px;color:var(--sub)} details.inner summary{cursor:pointer}
+.sec{border:1px solid var(--line);background:var(--card);border-radius:12px;margin-top:8px;padding:0 12px}
+.sec>summary{cursor:pointer;font-size:14px;color:var(--deep);padding:9px 0;list-style:none;display:flex;justify-content:space-between;align-items:center}
+.sec>summary::-webkit-details-marker{display:none}
+.sec>summary::after{content:'▸';color:var(--sub);font-size:13px}
+.sec[open]>summary::after{content:'▾'}
+.sec>summary small{color:var(--sub);font-weight:400;font-size:12px;margin-left:6px}
+.sec .body{padding:2px 0 12px;font-size:13px}
+label.row.model{margin:12px 0 0} label.row.model select{padding:9px 12px}
+table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px} th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:right} th:first-child,td:first-child{text-align:left}
+.story{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px;margin-top:10px}
+.story .zone{padding:8px 0;border-bottom:1px dashed var(--line)} .story .zone:last-child{border-bottom:0}
+.story .zone .t{font-size:13px;font-weight:700;color:var(--deep)} .story .zone .v{font-size:12px;color:var(--sub);margin-left:6px;font-weight:400}
+.story .zone p{margin:2px 0 0;font-size:14px}
+.bottle{border:2px solid var(--deep);background:var(--infobg);border-radius:12px;padding:12px 14px;margin-top:10px;color:var(--deep)}
+.bottle b{font-size:15px}
+.bottle p{margin:4px 0 0;font-size:13px}
+.warns{list-style:none;padding:0;margin:8px 0 0;display:flex;flex-direction:column;gap:6px}
+.warns li{border-radius:10px;padding:8px 12px;font-size:13px;border:1px solid}
+.warns li.warn{background:var(--warnbg);border-color:var(--warnborder);color:var(--warn)}
+.warns li.stop{background:var(--stopbg);border-color:var(--stopborder);color:var(--stop)}
+.warns li.info{background:var(--infobg);border-color:var(--infoborder);color:var(--info)}
+.parts{font-size:13px;margin:8px 0 0;padding:0;list-style:none}
+.parts li{padding:6px 0;border-bottom:1px dashed var(--line)}
+.parts .k{color:var(--sub);font-size:12px}
+.parts .shops{color:var(--sub);font-size:12px;margin-top:2px}
+.tag{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:999px;padding:0 7px;margin-left:6px;color:var(--accent);vertical-align:middle}
+.limits{font-size:13px;color:var(--ink);padding-left:1.2em;margin:6px 0 0} .limits li{margin:4px 0}
+.note{font-size:12px;color:var(--sub);margin:10px 0 0}
+.busy{opacity:.55;transition:opacity .15s}
+.opt-reg::after{content:"(usato su un'auto del registro)"}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="topbar"><a href="/it/">← Torna alla home</a><span id="status" style="font-size:12px;color:var(--sub)"></span></p>
+  <h1>Simulatore del Motore dei Sogni</h1>
+  <p class="lead">Uno strumento per "sognare" il motore della Fiat 500/126. Basta scegliere un'elaborazione tipica e stima <b>come cambierebbe rispetto alle specifiche attuali</b> (i valori reali possono differire del 10–20% — vedi "limiti di questo strumento" qui sotto).</p>
+
+  <div id="result" class="busy" hidden="">
+    <div class="banner" id="banner">
+      <div class="stripe"></div>
+      <div class="row">
+        <div class="from"><div class="lab">Ora</div><div class="nm" id="bannerFrom"></div><div class="sub" id="bannerFromSub"></div></div>
+        <div class="ar">▶</div>
+        <div class="to"><div class="lab" id="bannerToLab">Modificata</div><div class="nm" id="bannerTo"></div><div class="sub" id="bannerToSub"></div></div>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="rows">
+        <div class="numblock">
+          <div class="cap">Potenza massima</div>
+          <div class="big"><span class="from" id="heroCvFrom">—</span><span class="tri">▶</span><span class="to" id="heroCv">—</span><span class="unit">CV</span></div>
+          <div class="bar"><i id="barCv"></i></div>
+          <div class="cap" style="margin-top:12px">Coppia massima</div>
+          <div class="big"><span class="from" id="heroNmFrom">—</span><span class="tri">▶</span><span class="to" id="heroNm" style="font-size:34px">—</span><span class="unit">Nm</span></div>
+          <div class="bar"><i id="barNm"></i></div>
+        </div>
+        <div class="badge"><span class="d" id="badgeD">—</span><span class="p">Potenza</span></div>
+      </div>
+      <div class="grid2">
+        <svg class="radar" id="radar" width="150" height="150" viewBox="0 0 200 200" aria-hidden="true"></svg>
+        <div>
+          <p class="quote" id="quote"></p>
+          <div class="radarlegend"><span><i></i>Ora</span><span><i class="b"></i>Modificata</span></div>
+        </div>
+      </div>
+      <a class="cta" id="toDrive" href="drive.html">Confronta queste due auto in salita →</a>
+      <a class="cta2" id="toGearbox" href="./gearbox">Vuoi cambiare cambio o gomme? (Simulatore della Trasmissione dei Sogni) →</a>
+    </div>
+  </div>
+
+    <h2 style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">Scelta della vettura di base<a href="#" id="resetAll" hidden="" style="color:var(--sub);text-decoration:none;font-size:13px">ricomincia</a></h2>
+
+  <details class="sec" name="sec" id="stepSeries"><summary>Scelta della vettura di base</summary><div class="body">
+    <div class="chips" id="seriesChips"></div>
+  </div></details>
+
+  <details class="sec" name="sec" id="stepType" hidden=""><summary>Tipo<small></small></summary><div class="body">
+    <div class="chips" id="typeChips"></div>
+    <p class="note" id="bisNote" hidden="">La BIS (703cc, raffreddata ad acqua) non è considerata. Se ha già un kit di maggiorazione, usa "Già modificata → imposta le specifiche attuali".</p>
+    <p class="note" id="modelNote"></p>
+  </div></details>
+
+  <details class="sec" name="sec" id="stepState" hidden=""><summary>Configurazione attuale<small></small></summary><div class="body">
+    <div class="chips" id="stateChips"></div>
+    <div id="stateDetail" hidden="">
+      <div class="chips" id="engChips"></div>
+      <section class="panel" id="panelA">
+        <h3><span class="key a"></span>Ora</h3>
+        <div class="chips" id="startChips"></div>
+        <div class="slots" data-side="a"></div>
+      </section>
+      <p style="margin:10px 0 0"><button type="button" class="btn" id="stateDecide">ok</button></p>
+    </div>
+  </div></details>
+
+  <div class="packwrap" id="stepPack" hidden="">
+    <p class="sechead">Scegli l'elaborazione modificata<small id="packSummary"></small></p>
+    <div class="packs" id="packs"></div>
+    <p class="packwhy" id="packWhy"></p>
+    <details class="inner" id="dFine"><summary>Configura senza schede ▸</summary><div>
+      <p class="note" style="margin:8px 0 8px">Nelle opzioni, "◎" indica un ricambio realmente montato su un'auto del nostro registro. "*" indica un ricambio per cui il negozio non riporta valori, calcolato con una stima presa da un ricambio simile.</p>
+      <section class="panel" id="panelB">
+        <h3><span class="key b"></span>Modificata</h3>
+        <div class="chips"><button type="button" id="copyAB">Copia qui i dati di "Ora"</button><button type="button" id="resetB">Ripristina di serie</button></div>
+        <div class="slots" data-side="b"></div>
+      </section>
+    </div></details>
+  </div>
+
+  <div id="resultMore" class="busy" hidden="">
+        <p class="note" id="unitNote"><b>CV</b> è un'unità di potenza, la stessa cosa che si chiama comunemente <b>PS (cavalli)</b> in Giappone.</p>
+
+    <div class="chart" id="chartT">
+      <div class="title"><span>Coppia (Nm)</span><span class="legend"><span><i class="key a"></i>Ora</span><span><i class="key b"></i>Modificata</span></span></div>
+      <canvas></canvas><div class="tip"></div>
+    </div>
+    <div class="chart" id="chartP">
+      <div class="title"><span>Potenza (CV)</span><span class="legend"><span><i class="key a"></i>Ora</span><span><i class="key b"></i>Modificata</span></span></div>
+      <canvas></canvas><div class="tip"></div>
+    </div>
+    <details class="inner"><summary>Vedi la tabella dei valori</summary><div id="tableWrap"></div></details>
+
+    <details class="sec" name="sec" id="dStory"><summary>Come cambia l'erogazione della potenza<small>Per fascia di giri</small></summary><div class="body">
+      <div class="story" id="story"></div>
+    </div></details>
+
+    <details class="sec" name="sec" id="dBottle"><summary>cosa la frena</summary><div class="body">
+      <div class="bottle" id="bottle"></div>
+    </div></details>
+
+    <details class="sec" name="sec" id="dWarns"><summary>Attenzione a<small id="warnCount"></small></summary><div class="body">
+      <ul class="warns" id="warns"></ul>
+    </div></details>
+
+    <details class="sec" name="sec" id="dParts"><summary>Ricambi usati in questa elaborazione</summary><div class="body">
+      <ul class="parts" id="parts"></ul>
+      <p class="note">I ricambi sono presi dai cataloghi di Axel Gerstl, FD Ricambi, EuroItalia500 (Julcar), D'Angelo Motori e PBP, oltre a quelli realmente montati sulle auto del nostro registro. Verifica prezzo, disponibilità e compatibilità presso ciascun negozio.</p>
+    </div></details>
+
+    <details class="sec" name="sec" id="dLimits"><summary>limiti di questo strumento</summary><div class="body">
+      <ul class="limits" id="limits"></ul>
+      <p class="note">Come funziona il calcolo: un modello 0-D a riempimento e svuotamento (passi di 0,25° di manovella, flusso comprimibile su valvole e diffusore, inerzia dei condotti, combustione di Wiebe, perdite per attrito e ventola). Calibrato sui valori pubblicati di 4 modelli di serie e 3 Abarth.</p>
+    </div></details>
+  </div>
+</div>
+
+<script type="module">
+import { simulate } from '/engine-simulator/sim.js';
+import { MODELS, SLOTS, START_EXAMPLES, PACKAGES, DEFAULT_CHOICES, buildSpec, modelById, packagesFor, packageChoices, packageSub, packageMatches } from '/engine-simulator/presets.js';
+import { tellStory, findBottleneck, warnings, summarizeRes, LIMITS } from '/engine-simulator/story.js';
+
+const RPM = [1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500];
+const SLOT_LABELS = { disp: '排気量（シリンダー＋ピストン）', cr: '圧縮比', cam: 'カム', head: 'ヘッド（バルブ径・ポート）', carb: 'キャブ', exh: 'マフラー' };
+const SLOT_ORDER = ['disp', 'cr', 'cam', 'head', 'carb', 'exh'];
+const ENG_OPTIONS = [
+  { id: null, label: '純正のエンジン' },
+  { id: '126A1', label: '126 後期（652）に換装済み' },
+  { id: '126A', label: '126 前期（594）に換装済み' },
+];
+const $ = (s, r = document) => r.querySelector(s);
+const state = { model: '500F', a: { ...DEFAULT_CHOICES }, b: { ...DEFAULT_CHOICES } };
+const hadHash = location.hash.length > 1;
+const progress = { series: hadHash, type: hadHash, state: hadHash, pack: hadHash, result: hadHash };
+let lastPkId = null;
+let stateEditorOpen = false;
+function setStepSummary(sel, label, value) {
+  const s = $(sel); s.textContent = label;
+  if (value) { const small = document.createElement('small'); small.textContent = value; s.append(small); }
+}
+function setResultHidden(v) { $('#result').hidden = v; $('#resultMore').hidden = v; }
+function setResultBusy(v) { $('#result').classList.toggle('busy', v); $('#resultMore').classList.toggle('busy', v); }
+function openStep(sel) {
+  const d = $(sel); d.hidden = false; d.open = true;
+  for (const other of document.querySelectorAll('details[name="sec"]')) if (other !== d && other.open) other.open = false;
+}
+function resetAll() {
+  state.model = '500F'; state.a = { ...DEFAULT_CHOICES }; state.b = { ...DEFAULT_CHOICES };
+  lastPkId = null; stateEditorOpen = false;
+  progress.series = false; progress.type = false; progress.state = false; progress.pack = false; progress.result = false;
+  for (const d of document.querySelectorAll('details[name="sec"]')) d.open = false;
+  $('#stepType').hidden = true; $('#stepState').hidden = true; $('#stepPack').hidden = true; setResultHidden(true);
+  renderSeriesChips(); renderTypeChips(); renderEngChips(); renderStateChips();
+  renderChips(); renderPacks(); renderSlots('a'); renderSlots('b');
+  update();
+  history.replaceState(null, '', location.pathname);
+}
+
+function readHash() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (![...h.keys()].length) return;
+  if (h.get('m') && modelById(h.get('m')).id === h.get('m')) state.model = h.get('m');
+  for (const side of ['a', 'b']) {
+    const v = h.get(side); if (!v) continue;
+    v.split(',').forEach(kv => {
+      const [k, val] = kv.split(':');
+      if (k === 'eng') { if (MODELS.some(m => m.id === val)) state[side].eng = val; return; }
+      if (SLOTS[k] && SLOTS[k].some(o => o.id === val)) state[side][k] = val;
+    });
+  }
+}
+function encSide(c) {
+  const parts = SLOT_ORDER.filter(k => c[k] !== 'stock').map(k => `${k}:${c[k]}`);
+  if (c.eng) parts.push(`eng:${c.eng}`);
+  return parts.join(',');
+}
+function writeHash() {
+  const p = new URLSearchParams(); p.set('m', state.model);
+  if (encSide(state.a)) p.set('a', encSide(state.a)); if (encSide(state.b)) p.set('b', encSide(state.b));
+  history.replaceState(null, '', '#' + p.toString());
+  $('#toDrive').href = 'drive.html#' + p.toString();
+  const g = new URLSearchParams(); g.set('m', state.model); if (encSide(state.a)) g.set('a', encSide(state.a));
+  $('#toGearbox').href = './gearbox#' + g.toString();
+}
+
+function isStockA() { return SLOT_ORDER.every(k => state.a[k] === 'stock') && !state.a.eng; }
+function engineSummaryFor(side) {
+  const built = buildSpec(state.model, state[side]);
+  const parts = SLOT_ORDER.filter(k => k !== 'disp' && state[side][k] !== 'stock')
+    .map(k => (k === 'cr' ? '圧縮比 ' : '') + built.picks[k].label.replace(/（.*$/, ''));
+  return `${Math.round(built.cc)}cc` + (parts.length ? '・' + parts.join('・') : '');
+}
+function bannerFromLabel() { const m = modelById(state.model); return `${m.series} ${m.type}`; }
+function bannerToLabel() { return lastPkId ? PACKAGES.find(p => p.id === lastPkId).name : engineSummaryFor('b'); }
+function sideStateText(side) {
+  const stockSlots = SLOT_ORDER.every(k => state[side][k] === 'stock');
+  if (state[side].eng) {
+    const em = modelById(state[side].eng);
+    return `${em.series} ${em.type} に換装済み` + (stockSlots ? '' : '（さらに部品を変更）');
+  }
+  return stockSlots ? '純正のまま' : engineSummaryFor(side);
+}
+function updateStep1Summary() {
+  if (!progress.series) { setStepSummary('#stepSeries summary', 'ベース車両の選択', ''); return; }
+  setStepSummary('#stepSeries summary', '車種', modelById(state.model).series);
+}
+function updateStep2Summary() { setStepSummary('#stepType summary', 'タイプ', progress.type ? modelById(state.model).type : ''); }
+function updateStep3Summary() { setStepSummary('#stepState summary', 'いまの状態', progress.state ? (isStockA() ? '純正のまま' : `改造済み（${engineSummaryFor('a')}）`) : ''); }
+function updateStep4Summary() {
+  const label = lastPkId ? PACKAGES.find(p => p.id === lastPkId).name : ((SLOT_ORDER.some(k => state.b[k] !== 'stock') || state.b.eng) ? engineSummaryFor('b') : '');
+  $('#packSummary').textContent = label ? '・' + label : '';
+}
+function handleSeriesPick(s) {
+  let invalidated = false;
+  if (s !== modelById(state.model).series) { state.model = MODELS.find(m => m.series === s).id; invalidated = onModelChanged(); }
+  progress.series = true; renderSeriesChips();
+  if (!invalidated) openStep('#stepType');
+}
+function handleTypePick(m) {
+  let invalidated = false;
+  if (m.id !== state.model) { state.model = m.id; invalidated = onModelChanged(); }
+  progress.type = true; renderTypeChips();
+  if (!invalidated) openStep('#stepState');
+}
+function renderSeriesChips() {
+  const box = $('#seriesChips'); box.textContent = '';
+  const cur = modelById(state.model).series;
+  for (const s of ['500', '126']) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = s; b.classList.toggle('on', s === cur);
+    b.addEventListener('click', () => handleSeriesPick(s));
+    box.append(b);
+  }
+  updateStep1Summary();
+}
+function renderTypeChips() {
+  const box = $('#typeChips'); box.textContent = '';
+  const cur = modelById(state.model);
+  for (const m of MODELS.filter(x => x.series === cur.series)) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = m.type; b.classList.toggle('on', m.id === cur.id);
+    b.addEventListener('click', () => handleTypePick(m));
+    box.append(b);
+  }
+  $('#bisNote').hidden = cur.series !== '126';
+  updateStep2Summary();
+}
+function settleStep3() {
+  progress.state = true; progress.pack = true;
+  renderStateChips();
+  openStep('#stepPack');
+  renderPacks();
+  update();
+}
+function renderStateChips() {
+  const box = $('#stateChips'); box.textContent = '';
+  const stock = isStockA();
+  const bStock = document.createElement('button'); bStock.type = 'button'; bStock.textContent = '純正のまま'; bStock.classList.toggle('on', stock);
+  bStock.addEventListener('click', () => {
+    state.a = { ...DEFAULT_CHOICES }; stateEditorOpen = false;
+    renderEngChips(); renderSlots('a');
+    settleStep3();
+  });
+  const bMod = document.createElement('button'); bMod.type = 'button'; bMod.textContent = '改造済み → 明細を設定 ▸'; bMod.classList.toggle('on', !stock);
+  bMod.addEventListener('click', () => { stateEditorOpen = true; renderStateChips(); });
+  box.append(bStock, bMod);
+  $('#stateDetail').hidden = stock && !stateEditorOpen;
+  updateStep3Summary();
+}
+function renderEngChips() {
+  const box = $('#engChips'); box.textContent = '';
+  const bm = modelById(state.model);
+  box.hidden = bm.series !== '500';
+  if (box.hidden) return;
+  for (const o of ENG_OPTIONS) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = o.label;
+    b.classList.toggle('on', (state.a.eng || null) === o.id);
+    b.addEventListener('click', () => {
+      if (o.id) state.a.eng = o.id; else delete state.a.eng;
+      renderEngChips(); renderStateChips(); renderSlots('a'); update();
+    });
+    box.append(b);
+  }
+}
+function onModelChanged() {
+  const m = modelById(state.model);
+  let invalidated = false;
+  if (lastPkId) {
+    const pkObj = PACKAGES.find(p => p.id === lastPkId);
+    if (packagesFor(m).some(pk => pk.id === lastPkId)) {
+      state.b = { ...DEFAULT_CHOICES, ...packageChoices(pkObj, m) };
+    } else {
+      state.b = { ...DEFAULT_CHOICES }; lastPkId = null;
+      progress.result = false; setResultHidden(true);
+      if (progress.pack) { openStep('#stepPack'); invalidated = true; }
+    }
+  }
+  renderSeriesChips(); renderTypeChips(); renderEngChips(); renderStateChips();
+  renderChips(); renderSlots('a'); renderSlots('b'); renderPacks();
+  update();
+  return invalidated;
+}
+
+function stockText(slot, m) {
+  const b = buildSpec(m.id, {});
+  switch (slot) {
+    case 'disp': return `純正のまま（${b.cc.toFixed(0)}cc・Ø${m.engine.bore}）`;
+    case 'cr': return `純正のまま（${m.engine.cr}）`;
+    case 'cam': return `純正のまま（${m.cam.ivo}/${m.cam.ivc}-${m.cam.evo}/${m.cam.evc}）`;
+    case 'head': return `純正のまま（吸 ${m.valves.dIn}／排 ${m.valves.dEx}）`;
+    case 'carb': return `純正のまま（${b.picks.carb.label.replace(/（.*$/, '')}）`;
+    default: return '純正のまま';
+  }
+}
+function renderSlots(side) {
+  const box = $(`.slots[data-side="${side}"]`); box.textContent = '';
+  const baseM = modelById(state.model);
+  const engM = state[side].eng ? modelById(state[side].eng) : baseM;
+  for (const k of SLOT_ORDER) {
+    const lab = document.createElement('label'); lab.className = 'row'; lab.append(SLOT_LABELS[k]);
+    const sel = document.createElement('select'); sel.dataset.slot = k; sel.dataset.side = side;
+    for (const o of SLOTS[k]) {
+      const opt = document.createElement('option'); opt.value = o.id;
+      opt.textContent = o.id === 'stock' ? stockText(k, engM) : o.label + (o.assumed ? ' ※' : '') + (o.registered ? '　◎' : '');
+      sel.append(opt);
+    }
+    sel.value = state[side][k];
+    sel.addEventListener('change', () => {
+      state[side][k] = sel.value; onDispChange(side, k);
+      if (side === 'b') { markPack(); revealResultIfChanged(); }
+      if (side === 'a') renderStateChips();
+      update();
+    });
+    lab.append(sel); box.append(lab);
+  }
+}
+function onDispChange(side, k) {
+  if (k !== 'disp') return;
+  const d = SLOTS.disp.find(o => o.id === state[side].disp);
+  if (d && d.crHint && state[side].cr === 'stock') {
+    const cr = SLOTS.cr.find(o => o.cr === d.crHint); if (cr) { state[side].cr = cr.id; const s = $(`select[data-side="${side}"][data-slot="cr"]`); if (s) s.value = cr.id; }
+  }
+  if (d && !d.bore) { state[side].cr = 'stock'; const s = $(`select[data-side="${side}"][data-slot="cr"]`); if (s) s.value = 'stock'; }
+}
+function renderChips() {
+  const m = modelById(state.model); const box = $('#startChips'); box.textContent = '';
+  for (const ex of START_EXAMPLES) {
+    if (ex.families && !ex.families.includes(m.series)) continue;
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = ex.label;
+    b.addEventListener('click', () => {
+      const eng = state.a.eng;
+      state.a = { ...DEFAULT_CHOICES, ...ex.choices }; if (eng) state.a.eng = eng;
+      renderSlots('a'); renderStateChips(); update();
+    });
+    box.append(b);
+  }
+  $('#modelNote').textContent = m.note + (m.assumed ? '　※' + m.assumed.join('／') : '');
+}
+function renderPacks() {
+  const m = modelById(state.model); const box = $('#packs'); box.textContent = '';
+  const baseSum = summarizeRes(simulate(buildSpec(m.id, state.a).spec, RPM));
+  packagesFor(m).forEach((pk, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pk'; b.dataset.id = pk.id;
+    const sum = summarizeRes(simulate(buildSpec(m.id, { ...DEFAULT_CHOICES, ...packageChoices(pk, m) }).spec, RPM));
+    const dPeak = Math.round(100 * (sum.peakCv / baseSum.peakCv - 1));
+    const dTown = Math.round(100 * (sum.town / baseSum.town - 1));
+    const ev = pk.evidence === null ? '参考（実例は未確認）' : `根拠 ${pk.evidence} 件`;
+    b.innerHTML = `<span class="no">No.${String(i + 1).padStart(2, '0')}</span><div class="nm">${pk.name}</div><div class="sub">${packageSub(pk, m)}</div><div class="tags"><span class="tg ${dPeak >= 0 ? 'up' : 'dn'}">力 ${dPeak >= 0 ? '+' : ''}${dPeak}%</span><span class="tg ${dTown >= 0 ? 'up' : 'dn'}">街で ${dTown >= 0 ? '+' : ''}${dTown}%</span><span class="tg">${ev}</span></div>`;
+    b.addEventListener('click', () => {
+      state.b = { ...DEFAULT_CHOICES, ...packageChoices(pk, m) }; renderSlots('b'); markPack();
+      progress.result = true; setResultHidden(false);
+      update();
+      gtag('event', 'engine_sim_package', { model: state.model, package: pk.id });
+    });
+    box.append(b);
+  });
+  markPack();
+}
+function markPack() {
+  const m = modelById(state.model); const pks = packagesFor(m);
+  let hit = null;
+  for (const pk of pks) { if (packageMatches(pk, m, state.b)) hit = pk.id; }
+  lastPkId = hit;
+  for (const b of $('#packs').querySelectorAll('button')) b.classList.toggle('on', b.dataset.id === hit);
+  $('#packWhy').textContent = hit ? pks.find(p => p.id === hit).why : '';
+  updateStep4Summary();
+}
+function revealResultIfChanged() {
+  if (progress.result) return;
+  if (SLOT_ORDER.some(k => state.b[k] !== 'stock') || state.b.eng) { progress.result = true; setResultHidden(false); }
+}
+$('#copyAB').addEventListener('click', () => { state.b = { ...state.a }; renderSlots('b'); markPack(); revealResultIfChanged(); update(); });
+$('#resetB').addEventListener('click', () => { state.b = { ...DEFAULT_CHOICES }; renderSlots('b'); markPack(); update(); });
+$('#stateDecide').addEventListener('click', () => { settleStep3(); });
+
+let timer = null, last = null;
+function update() {
+  $('#resetAll').hidden = $('#result').hidden;
+  writeHash(); setResultBusy(true); $('#status').textContent = '計算中…';
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    const A = buildSpec(state.model, state.a), B = buildSpec(state.model, state.b);
+    const resA = simulate(A.spec, RPM), resB = simulate(B.spec, RPM);
+    last = { A, B, resA, resB };
+    render(last); setResultBusy(false); $('#status').textContent = '';
+    gtag('event', 'engine_sim_update', { model: state.model, b: Object.entries(state.b).filter(([, v]) => v !== 'stock').map(([k, v]) => `${k}:${v}`).join(',') || 'stock' });
+  }, 30);
+}
+const fmtDelta = (b, a, d = 0) => { const p = 100 * (b / a - 1); const el = document.createElement('span'); el.className = 'delta ' + (p >= 0.5 ? 'up' : p <= -0.5 ? 'down' : ''); el.textContent = (p > 0 ? '+' : '') + p.toFixed(d) + '%'; return el; };
+function countUp(el, to, dec) {
+  const t0 = performance.now(), d = 900;
+  function f(t) {
+    const k = Math.min(1, (t - t0) / d), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = (to * e).toFixed(dec);
+    if (k < 1) requestAnimationFrame(f);
+  }
+  requestAnimationFrame(f);
+}
+function animateBar(el, pct) {
+  el.style.transition = 'none'; el.style.width = '0%';
+  requestAnimationFrame(() => { el.style.transition = ''; el.style.width = Math.max(0, pct) + '%'; });
+}
+function radarVals(sum, ws) {
+  const warnN = ws.filter(w => w.level === 'warn').length, stopN = ws.filter(w => w.level === 'stop').length;
+  const clamp = v => Math.min(1, Math.max(0.08, v));
+  return {
+    power: clamp(sum.peakCv / 45), torque: clamp(sum.peakNm / 78),
+    high: clamp(sum.high / 45), town: clamp(sum.town / 78),
+    guts: clamp(1 - 0.10 * warnN - 0.22 * stopN),
+  };
+}
+const RADAR_ORDER = ['power', 'torque', 'high', 'town', 'guts'];
+const RADAR_LABELS = ['力', 'トルク', '回りたがり', '扱いやすさ', '我慢'];
+function radarPt(i, val, R) { const ang = -Math.PI / 2 + i * (2 * Math.PI / 5); return [100 + R * val * Math.cos(ang), 100 + R * val * Math.sin(ang)]; }
+function radarPoly(vals, R) { return vals.map((v, i) => radarPt(i, v, R).map(n => n.toFixed(1)).join(',')).join(' '); }
+function drawRadar(el, before, after) {
+  const css = getComputedStyle(document.documentElement);
+  const red = css.getPropertyValue('--red').trim(), gold = css.getPropertyValue('--gold').trim();
+  const beforeVals = RADAR_ORDER.map(k => before[k]), afterVals = RADAR_ORDER.map(k => after[k]);
+  const spokes = RADAR_ORDER.map((_, i) => { const [x, y] = radarPt(i, 1, 70); return `<line x1="100" y1="100" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`; }).join('');
+  const labels = RADAR_ORDER.map((_, i) => { const [x, y] = radarPt(i, 1, 82); return `<text x="${x.toFixed(0)}" y="${y.toFixed(0)}">${RADAR_LABELS[i]}</text>`; }).join('');
+  el.innerHTML = `<g stroke="#ffffff22" fill="none"><polygon points="${radarPoly([1, 1, 1, 1, 1], 70)}"/><polygon points="${radarPoly([.5, .5, .5, .5, .5], 70)}"/>${spokes}</g>` +
+    `<polygon points="${radarPoly(beforeVals, 70)}" fill="none" stroke="#bcd6c4" stroke-width="2.5" stroke-dasharray="8 5"/>` +
+    `<polygon points="${radarPoly(afterVals, 70)}" fill="${red}88" stroke="${gold}" stroke-width="3"/>` +
+    `<g fill="#d6e5da" font-size="13" font-family="system-ui" text-anchor="middle">${labels}</g>`;
+}
+function render({ A, B, resA, resB }) {
+  const st = tellStory(resA, resB, A, B);
+  const wsA = warnings(A, resA), wsB = warnings(B, resB);
+  $('#bannerFrom').textContent = bannerFromLabel();
+  $('#bannerFromSub').textContent = `${sideStateText('a')}・${st.A.peakCv.toFixed(1)} CV`;
+  const bannerPk = lastPkId ? PACKAGES.find(p => p.id === lastPkId) : null;
+  $('#bannerToLab').textContent = bannerPk ? `変えた後　No.${String(packagesFor(modelById(state.model)).findIndex(p => p.id === bannerPk.id) + 1).padStart(2, '0')}` : '変えた後';
+  $('#bannerTo').textContent = bannerToLabel();
+  $('#bannerToSub').textContent = bannerPk ? packageSub(bannerPk, modelById(state.model)) : sideStateText('b');
+  $('#heroCvFrom').textContent = st.A.peakCv.toFixed(1);
+  $('#heroNmFrom').textContent = st.A.peakNm.toFixed(1);
+  countUp($('#heroCv'), st.B.peakCv, 1);
+  countUp($('#heroNm'), st.B.peakNm, 1);
+  animateBar($('#barCv'), Math.min(100, 100 * st.B.peakCv / 45));
+  animateBar($('#barNm'), Math.min(100, 100 * st.B.peakNm / 78));
+  const outPct = Math.round(100 * (st.B.peakCv / st.A.peakCv - 1));
+  $('#badgeD').textContent = (outPct >= 0 ? '+' : '') + outPct + '%';
+  drawRadar($('#radar'), radarVals(st.A, wsA), radarVals(st.B, wsB));
+  $('#quote').textContent = st.zones[0].text;
+  drawChart($('#chartT'), resA, resB, 'torque', 'Nm');
+  drawChart($('#chartP'), resA, resB, 'powerCv', 'CV');
+  const tw = $('#tableWrap'); tw.textContent = '';
+  const tb = document.createElement('table');
+  const tr0 = document.createElement('tr'); ['rpm', 'いま Nm', '変えた後 Nm', 'いま CV', '変えた後 CV'].forEach(h => { const th = document.createElement('th'); th.textContent = h; tr0.append(th); }); tb.append(tr0);
+  RPM.forEach((r, i) => { const tr = document.createElement('tr'); [r, resA[i].torque.toFixed(1), resB[i].torque.toFixed(1), resA[i].powerCv.toFixed(1), resB[i].powerCv.toFixed(1)].forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.append(td); }); tb.append(tr); });
+  tw.append(tb);
+  const sb = $('#story'); sb.textContent = '';
+  for (const z of st.zones) {
+    const d = document.createElement('div'); d.className = 'zone';
+    const t = document.createElement('div'); t.className = 't'; t.textContent = z.title; const v = document.createElement('span'); v.className = 'v'; v.textContent = z.value; t.append(v);
+    const p = document.createElement('p'); p.textContent = z.text; d.append(t, p); sb.append(d);
+  }
+  const bn = findBottleneck(resB, B); const bb = $('#bottle'); bb.textContent = '';
+  const b1 = document.createElement('b'); b1.textContent = bn.main; bb.append(b1);
+  for (const m of bn.more) { const p = document.createElement('p'); p.textContent = m; bb.append(p); }
+  const pm = document.createElement('p'); pm.style.color = 'var(--sub)'; pm.style.fontSize = '12px';
+  pm.textContent = `目安：ピーク回転でのベンチュリ前後の圧力差 ${bn.dpVenturi.toFixed(1)} kPa／バルブ前後 ${bn.dpValve.toFixed(1)} kPa／排気背圧 ${bn.pExh.toFixed(2)} bar／充填効率 ${(100 * bn.ve).toFixed(0)}%`; bb.append(pm);
+  const wl = $('#warns'); wl.textContent = '';
+  const wsShown = wsB.length ? wsB : [{ level: 'info', text: 'この組合せに目立った注意点はありません。' }];
+  for (const w of wsShown) { const li = document.createElement('li'); li.className = w.level; li.textContent = w.text; wl.append(li); }
+  const nw = wsB.filter(w => w.level !== 'info').length; $('#warnCount').textContent = nw ? `${nw} 件` : 'なし';
+  const pl = $('#parts'); pl.textContent = '';
+  for (const k of SLOT_ORDER) {
+    const o = B.picks[k]; if (o.id === 'stock') continue;
+    const li = document.createElement('li'); const kk = document.createElement('div'); kk.className = 'k'; kk.textContent = SLOT_LABELS[k];
+    const nm2 = document.createElement('div'); nm2.textContent = o.label; if (o.registered) { const tg = document.createElement('span'); tg.className = 'tag'; tg.textContent = '登録車で使用例あり'; nm2.append(tg); }
+    li.append(kk, nm2);
+    if (o.hint) { const h = document.createElement('div'); h.className = 'shops'; h.textContent = o.hint; li.append(h); }
+    if (o.shops && o.shops.length) { const s = document.createElement('div'); s.className = 'shops'; s.textContent = '掲載：' + o.shops.join('／'); li.append(s); }
+    if (o.assumed) { const s = document.createElement('div'); s.className = 'shops'; s.textContent = '※ ' + o.assumed.join('／'); li.append(s); }
+    pl.append(li);
+  }
+  if (!pl.children.length) { const li = document.createElement('li'); li.textContent = '「変えてみる」がすべて純正のままです。右の欄で部品を選んでください。'; pl.append(li); }
+}
+
+const charts = new Map();
+function drawChart(root, resA, resB, key, unit) {
+  const cv = $('canvas', root), tip = $('.tip', root);
+  const css = getComputedStyle(document.documentElement);
+  const colA = css.getPropertyValue('--series-a').trim(), colB = css.getPropertyValue('--series-b').trim();
+  const ink = css.getPropertyValue('--text-secondary').trim(), grid = css.getPropertyValue('--grid').trim();
+  const W = cv.clientWidth, H = cv.clientHeight, dpr = window.devicePixelRatio || 1;
+  cv.width = W * dpr; cv.height = H * dpr; const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const padL = 40, padR = 52, padT = 10, padB = 26;
+  const xs = RPM, ya = resA.map(r => r[key]), yb = resB.map(r => r[key]);
+  const ymax = Math.max(1, ...ya, ...yb) * 1.12;
+  const X = (r) => padL + (r - xs[0]) / (xs[xs.length - 1] - xs[0]) * (W - padL - padR);
+  const Y = (v) => padT + (1 - v / ymax) * (H - padT - padB);
+  g.clearRect(0, 0, W, H);
+  g.font = '11px system-ui, sans-serif'; g.fillStyle = ink; g.strokeStyle = grid; g.lineWidth = 1;
+  const step = ymax > 60 ? 20 : ymax > 30 ? 10 : 5;
+  for (let v = 0; v <= ymax; v += step) { g.beginPath(); g.moveTo(padL, Y(v)); g.lineTo(W - padR, Y(v)); g.stroke(); g.textAlign = 'right'; g.fillText(v, padL - 6, Y(v) + 4); }
+  g.textAlign = 'center'; for (const r of xs) if (r % 1000 === 500 || r === 1500) { } ; for (const r of [2000, 3000, 4000, 5000, 6000]) g.fillText(r, X(r), H - 8);
+  g.fillText('rpm', W - padR + 26, H - 8);
+  const line = (ys, col, label) => {
+    g.strokeStyle = col; g.lineWidth = 2; g.lineJoin = 'round'; g.beginPath();
+    ys.forEach((v, i) => i ? g.lineTo(X(xs[i]), Y(v)) : g.moveTo(X(xs[i]), Y(v))); g.stroke();
+    g.fillStyle = col; g.textAlign = 'left'; g.fillText(label, X(xs[xs.length - 1]) + 6, Y(ys[ys.length - 1]) + 4);
+  };
+  line(ya, colA, 'いま'); line(yb, colB, '変えた後');
+  const st = { W, H, X, Y, xs, ya, yb, colA, colB, unit, base: cv.toDataURL ? null : null };
+  charts.set(root, st);
+  if (!root.dataset.bound) {
+    root.dataset.bound = '1';
+    const move = (ev) => {
+      const s = charts.get(root); if (!s) return;
+      const rect = cv.getBoundingClientRect(); const px = (ev.touches ? ev.touches[0].clientX : ev.clientX) - rect.left;
+      let bi = 0, bd = 1e9; s.xs.forEach((r, i) => { const d = Math.abs(s.X(r) - px); if (d < bd) { bd = d; bi = i; } });
+      redrawHover(root, bi);
+    };
+    cv.addEventListener('pointermove', move); cv.addEventListener('pointerdown', move);
+    cv.addEventListener('pointerleave', () => { tip.style.display = 'none'; redrawHover(root, -1); });
+  }
+}
+function redrawHover(root, i) {
+  const s = charts.get(root); if (!s) return;
+  const cv = $('canvas', root), tip = $('.tip', root); const g = cv.getContext('2d');
+  const key = root.id === 'chartT' ? 'torque' : 'powerCv';
+  if (last) drawChartBase(root, key);
+  if (i < 0) return;
+  const x = s.X(s.xs[i]);
+  g.strokeStyle = '#b9b1a2'; g.lineWidth = 1; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(x, 8); g.lineTo(x, s.H - 22); g.stroke(); g.setLineDash([]);
+  for (const [ys, col] of [[s.ya, s.colA], [s.yb, s.colB]]) { g.beginPath(); g.arc(x, s.Y(ys[i]), 4.5, 0, Math.PI * 2); g.fillStyle = col; g.fill(); g.lineWidth = 2; g.strokeStyle = '#fffdf8'; g.stroke(); }
+  tip.textContent = '';
+  const h = document.createElement('div'); h.textContent = `${s.xs[i]} rpm`; tip.append(h);
+  for (const [ys, col, lab] of [[s.ya, s.colA, 'いま'], [s.yb, s.colB, '変えた後']]) {
+    const r = document.createElement('div'); r.className = 'r'; const l = document.createElement('span'); const ii = document.createElement('i'); ii.style.borderColor = col; l.append(ii, lab);
+    const b = document.createElement('b'); b.textContent = `${ys[i].toFixed(1)} ${s.unit}`; r.append(l, b); tip.append(r);
+  }
+  tip.style.display = 'block';
+  const left = Math.min(Math.max(x + 12, 4), s.W - tip.offsetWidth - 4); tip.style.left = left + 'px'; tip.style.top = '30px';
+}
+function drawChartBase(root, key) { const { resA, resB } = last; const unit = key === 'torque' ? 'Nm' : 'CV'; const bound = root.dataset.bound; drawChart(root, resA, resB, key, unit); root.dataset.bound = bound; }
+window.addEventListener('resize', () => { if (last) { drawChartBase($('#chartT'), 'torque'); drawChartBase($('#chartP'), 'powerCv'); } });
+
+for (const t of LIMITS) { const li = document.createElement('li'); li.textContent = t; $('#limits').append(li); }
+
+function bindAccordion() {
+  const groups = {};
+  for (const d of document.querySelectorAll('details[name]')) (groups[d.getAttribute('name')] ??= []).push(d);
+  for (const d of document.querySelectorAll('details[name]')) {
+    d.addEventListener('toggle', () => {
+      if (!d.open) return;
+      for (const other of groups[d.getAttribute('name')] || []) if (other !== d && other.open) other.open = false;
+    });
+  }
+}
+
+readHash();
+if (!hadHash) {
+  const demoM = modelById(state.model);
+  const demoPk = PACKAGES.find(p => p.id === 'p650' && packagesFor(demoM).includes(p)) || packagesFor(demoM)[0];
+  if (demoPk) {
+    state.b = { ...DEFAULT_CHOICES, ...packageChoices(demoPk, demoM) };
+    progress.series = progress.type = progress.state = progress.pack = progress.result = true;
+  }
+}
+renderSeriesChips(); renderTypeChips(); renderEngChips(); renderStateChips();
+renderChips(); renderPacks(); renderSlots('a'); renderSlots('b');
+$('#stepType').hidden = !progress.type;
+$('#stepState').hidden = !progress.state;
+$('#stepPack').hidden = !progress.pack;
+setResultHidden(!progress.result);
+$('#resetAll').addEventListener('click', (ev) => { ev.preventDefault(); resetAll(); });
+update();
+bindAccordion();
+</script>
+
+
+</body></html>

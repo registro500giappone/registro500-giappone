@@ -18,8 +18,9 @@
 import json, urllib.request, urllib.parse, datetime, os, html, csv
 from collections import defaultdict
 
+from common import cfg, require, sb_select, sb_rpc, sb_upsert
+
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ENV = os.path.join(BASE, "py", ".env")
 OUT = os.path.join(BASE, "report.html")
 
 # REPORT_DRY_RUN=1 で実行すると weekly_metrics への書き込みをスキップし、HTML も
@@ -28,47 +29,17 @@ DRY_RUN = os.environ.get("REPORT_DRY_RUN") == "1"
 if DRY_RUN:
     OUT = os.path.join(BASE, "report_dryrun.html")
 
-env = {}
-for line in open(ENV, encoding="utf-8"):
-    line = line.strip()
-    if "=" in line and not line.startswith("#"):
-        k, v = line.split("=", 1)
-        env[k] = v
-
-TOKEN = env["CLOUDFLARE_ANALYTICS_TOKEN"]
+require("SUPABASE_URL", "CLOUDFLARE_ANALYTICS_TOKEN")
+TOKEN = cfg("CLOUDFLARE_ANALYTICS_TOKEN")
 ACC = "ecd969022f5ba171fefeb39cf33e9eed"
 SITE = "8544926213c64b7b9474c495f5b59029"
-SUPA_URL = env["SUPABASE_URL"].rstrip("/")
-# レポートは管理タスク。集計・auth参照・個人情報CSVのため service_role を使う（anonにフォールバック）
-SUPA_KEY = env.get("SUPABASE_SERVICE_KEY") or env["SUPABASE_KEY"]
+# レポートは管理タスク。集計・auth参照・個人情報CSVのため service_role を使う
+# （common.sb_* の既定＝SUPABASE_SERVICE_KEY 優先・無ければ公開キーにフォールバック）
 
 
-# ───────────────────────── Supabase ヘルパ ─────────────────────────
+# ───────────────────────── Supabase ヘルパ（common.py の薄い別名） ─────────────────────────
 def sb(table, select="*", extra=""):
-    url = f"{SUPA_URL}/rest/v1/{table}?select={select}"
-    if extra:
-        url += "&" + extra
-    req = urllib.request.Request(url, headers={
-        "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY})
-    return json.load(urllib.request.urlopen(req, timeout=40))
-
-
-def sb_rpc(fn):
-    req = urllib.request.Request(
-        f"{SUPA_URL}/rest/v1/rpc/{fn}", data=b"{}",
-        headers={"apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY,
-                 "Content-Type": "application/json"})
-    return json.load(urllib.request.urlopen(req, timeout=40))
-
-
-def sb_upsert(table, row):
-    req = urllib.request.Request(
-        f"{SUPA_URL}/rest/v1/{table}", data=json.dumps(row).encode(),
-        headers={"apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY,
-                 "Content-Type": "application/json",
-                 "Prefer": "resolution=merge-duplicates,return=minimal"},
-        method="POST")
-    urllib.request.urlopen(req, timeout=40)
+    return sb_select(table, select, extra=extra, paged=False)
 
 
 def parse_ts(t):
@@ -260,7 +231,7 @@ except Exception as e:
     print("Cloudflare取得失敗（GA4のみでレポートを継続）:", e)
 
 # ───────────────────────── GA4 Data API（フェーズ2配線・失敗時はpending表示にフォールバック）─────────────────────────
-GA4_PROPERTY_ID = env.get("GA4_PROPERTY_ID")
+GA4_PROPERTY_ID = cfg("GA4_PROPERTY_ID")
 GA4_SA_JSON = os.path.join(BASE, "py", "ga4_sa.json")
 GA4_EDIT_PATH = "/edit"
 

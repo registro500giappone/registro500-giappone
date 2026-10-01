@@ -3,6 +3,17 @@
 
 <head>
   <meta charset="UTF-8">
+  <script>
+    // 起動診断（2026-10-01・iPhone のホーム画面起動で supabaseClient が初期化されない件の調査）。
+    // 読み込み失敗と例外を記録し、データ取得エラーのバナーに併記する（showDataErrorBanner）。普段は何も表示しない。
+    window.__boot = { t0: Date.now(), errs: [] };
+    addEventListener('error', function (e) {
+      var t = e.target, src = t && t !== window && (t.src || t.href);
+      __boot.errs.push((Date.now() - __boot.t0) + 'ms ' + (src
+        ? '読込失敗 ' + String(src).replace(location.origin, '').slice(0, 70)
+        : (e.message || '?') + ' @' + String(e.filename || '').split('/').pop() + ':' + e.lineno));
+    }, true);
+  </script>
   <!-- iOS PWAキャッシュ対策: HTTPヘッダと二重で古いHTMLを掴ませない -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -561,6 +572,8 @@
               <a href="/wiring-journey">🧭 電装トラブルの旅手帳</a>
               <!-- ?type=500 で早見帳のベース車体を初期選択させる（126サイト側は type=126 を渡す） -->
               <a href="/torque?type=500">🔩 締め付けトルク早見帳</a>
+              <a href="/engine-simulator/">💭 エンジン妄想シミュレーター</a>
+              <a href="/engine-simulator/gearbox">⚙️ 駆動系妄想シミュレーター</a>
               <div class="menu-group-heading">📖 読みもの・データ</div>
               <a href="/stories?type=500">📖 マイ500ストーリー</a>
               <a href="/garage-notes">📓 ガレージノート</a>
@@ -574,7 +587,7 @@
               <a href="/mappa">🗺️ Mappa（地図）</a>
               <a href="/spot-guide">📍 出没スポット</a>
               <div class="menu-group-heading">ℹ️ サイト情報</div>
-              <a href="/howto" data-updated="2026-08-15">初めての方へ<span class="news-badge page-badge" style="display:none;"></span></a>
+              <a href="/howto" data-updated="2026-10-01">初めての方へ<span class="news-badge page-badge" style="display:none;"></span></a>
               <!-- お知らせの赤丸は checkNewsBadge() が news テーブルの最新日から動的に判定する。
                    data-updated（静的な日付）を書くと二重管理になり実際の更新日とズレるため置かない。 -->
               <a href="/news">お知らせ<span id="newsBadge" class="news-badge page-badge" style="display:none;"></span></a>
@@ -941,7 +954,13 @@ async function fetchCars() {
     const msg = document.getElementById('dataErrorMsg');
     if (!banner) return;
     if (msg) {
-      const reason = (err && err.message) ? err.message : '通信に失敗しました';
+      let reason = (err && err.message) ? err.message : '通信に失敗しました';
+      // 起動診断（<head> 先頭の __boot）。初期化の失敗は後段では TDZ としか出ないので、元の失敗を併記する
+      if (window.__boot) {
+        reason += ' ／診断 ' + (Date.now() - __boot.t0) + 'ms supabase:' + typeof supabase +
+          ' config:' + typeof SUPABASE_URL + ' sw:' + !!(navigator.serviceWorker && navigator.serviceWorker.controller) +
+          (__boot.errs.length ? ' ' + __boot.errs.slice(0, 4).join(' | ') : '');
+      }
       msg.textContent = '最新データ取得失敗: ' + reason;
     }
     banner.style.display = 'block';
@@ -1078,12 +1097,20 @@ async function fetchCars() {
 
     async function loadLatestPostForBand() {
       try {
-        const [expRes, epiRes] = await Promise.all([
+        const [expRes, recRes, epiRes] = await Promise.all([
           // 公開されている手帳の経験談のみ。RLS側でも is_public で絞られるが、条件は明示しておく。
           supabaseClient
             .from('equipment_experiences')
             .select('body, created_at, equipment_records!inner(vehicle_id, is_public)')
             .eq('equipment_records.is_public', true)
+            .order('created_at', { ascending: false })
+            .limit(1),
+          // 手帳を新しく作っただけ（経験談なし）でも「動き」として出す。朝ダイジェストの新着車載手帳と同じ条件。
+          supabaseClient
+            .from('equipment_records')
+            .select('vehicle_id, created_at')
+            .eq('is_public', true)
+            .not('vehicle_id', 'is', null)
             .order('created_at', { ascending: false })
             .limit(1),
           supabaseClient
@@ -1097,7 +1124,11 @@ async function fetchCars() {
         const found = [];
         const exp = (!expRes.error && expRes.data && expRes.data[0]) || null;
         if (exp && exp.equipment_records && exp.body) {
-          found.push({ icon: '🧰', at: new Date(exp.created_at), docId: exp.equipment_records.vehicle_id, body: exp.body });
+          found.push({ icon: '🧰', at: new Date(exp.created_at), docId: exp.equipment_records.vehicle_id, body: exp.body, hash: '#equipment-notebook' });
+        }
+        const rec = (!recRes.error && recRes.data && recRes.data[0]) || null;
+        if (rec && rec.vehicle_id) {
+          found.push({ icon: '🧰', at: new Date(rec.created_at), docId: rec.vehicle_id, action: '車載手帳を作成', hash: '#equipment-notebook' });
         }
         const epi = (!epiRes.error && epiRes.data && epiRes.data[0]) || null;
         if (epi && epi.title) {
@@ -1139,9 +1170,12 @@ async function fetchCars() {
           const days = Math.ceil((Date.now() - bandPost.at.getTime()) / (1000 * 60 * 60 * 24));
           if (days <= 30) {
             const p = toJstParts(bandPost.at);
+            const who = `${bandPost.icon} ${p.mo + 1}/${p.d} ${esc(bandPost.name || 'オーナー')}さん`;
             line = {
               docId: bandPost.docId,
-              html: `${bandPost.icon} ${p.mo + 1}/${p.d} ${esc(bandPost.name || 'オーナー')}さん「${esc(trimForBand(bandPost.body))}」`
+              hash: bandPost.hash || '',
+              fresh: days <= 7,  // お知らせ行と同じ7日以内は赤丸
+              html: bandPost.action ? `${who}が${esc(bandPost.action)}` : `${who}「${esc(trimForBand(bandPost.body))}」`
             };
           }
         }
@@ -1160,15 +1194,17 @@ async function fetchCars() {
           if (edited) {
             const p = toJstParts(new Date(edited.updatedAt));
             const name = edited.HandleName || edited.Model_DisplayC || 'オーナー';
-            line = { docId: edited.DocumentID, html: `🔧 ${p.mo + 1}/${p.d} ${esc(name)}さんが愛車の記録を更新` };
+            const editedDays = Math.ceil((Date.now() - new Date(edited.updatedAt)) / DAY);
+            line = { docId: edited.DocumentID, fresh: editedDays <= 7, html: `🔧 ${p.mo + 1}/${p.d} ${esc(name)}さんが愛車の記録を更新` };
           }
         }
 
         const el = document.getElementById('topBandActivity');
         if (!line) { el.style.display = 'none'; return; }
 
-        el.innerHTML = `<span class="top-band-line-text">${line.html}</span>`;
-        el.href = `/detail?doc=${encodeURIComponent(line.docId)}`;
+        el.innerHTML = `<span class="top-band-line-text">${line.html}</span>`
+                     + `<span class="top-band-line-suffix">${line.fresh ? '<span class="news-badge"></span>' : ''}</span>`;
+        el.href = `/detail?doc=${encodeURIComponent(line.docId)}${line.hash || ''}`;
         el.style.display = 'flex';
         document.getElementById('topBand').style.display = 'block';
       } catch (e) { /* 静かに失敗（トップ表示をブロックしない） */ }
@@ -1428,10 +1464,10 @@ async function fetchCars() {
            
            statusActionHtml = `
            <div class="status-action-area" onclick="event.preventDefault(); event.stopPropagation();">
-             <button class="status-btn ${wantActive}" onclick="toggleStatus(this, 'want', '${car.DocumentID}')">
+             <button class="status-btn ${wantActive}" onclick="toggleStatus(this, 'want', '${esc(car.DocumentID)}')">
                <span>⭐️</span><span class="status-label">気になる</span>
              </button>
-             <button class="status-btn ${metActive}" onclick="toggleStatus(this, 'met', '${car.DocumentID}')">
+             <button class="status-btn ${metActive}" onclick="toggleStatus(this, 'met', '${esc(car.DocumentID)}')">
                <span>🤝</span><span class="status-label">挨拶済</span>
              </button>
            </div>`;
@@ -1441,7 +1477,7 @@ async function fetchCars() {
           ${updateBadgeHtml}
           <a href="/detail?doc=${encodeURIComponent(car.DocumentID)}" class="car-link" title="${esc('【' + (car.Prefecture||'-') + '】 ' + car.HandleName + ' / ' + car.Model_DisplayC)}">
             <div class="car-image-wrap">
-              <img src="${car.PhotoMain || NO_IMAGE_URL}" class="car-image" loading="lazy" onerror="this.src=NO_IMAGE_URL">
+              <img src="${esc(car.PhotoMain || NO_IMAGE_URL)}" class="car-image" loading="lazy" onerror="this.src=NO_IMAGE_URL">
             </div>
             <div class="car-main">
               <div class="car-meta-row">
@@ -1655,8 +1691,13 @@ async function fetchCars() {
       if (!('serviceWorker' in navigator)) return;
 
       let refreshing = false;
+      // 読み込み時点で SW が付いていなかった＝初回インストール。このときの controllerchange は
+      // clients.claim() によるもので更新ではないので、再読み込みしない（ホーム画面アイコンを
+      // 作った直後の起動で、表示された画面が再読み込みで白くなる経路を塞ぐ・2026-10-01）。
+      const hadController = !!navigator.serviceWorker.controller;
       // 新SWが activate → controllerchange 発火 → 1度だけリロード
       navigator.serviceWorker.addEventListener('controllerchange', function() {
+        if (!hadController) return;
         if (refreshing) return;
         refreshing = true;
         window.location.reload();

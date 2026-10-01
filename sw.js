@@ -4,11 +4,12 @@
  * 更新手順:
  *   CACHE_VERSION はデプロイ時に Cloudflare Pages のビルドスクリプト (build.sh) が
  *   自動的にコミットハッシュへ置換する。手動更新は不要。
- *   新しい SW が検知されると画面下部に更新バナーが表示され、
- *   ユーザーがタップすると新バージョンに切り替わる。
+ *   新しい SW は待機状態に入り、トップの「↻ 更新」ボタン（index.html の forceReload）が
+ *   SKIP_WAITING を送ったとき、またはタブを全て閉じたときに切り替わる（無音更新・バナーなし）。
  *
  * キャッシュ戦略:
- *   - HTML:  NetworkFirst  （常に最新取得、オフライン時のみキャッシュから返す）
+ *   - HTML:  NetworkFirst  （常に最新取得。オフライン時と、NETWORK_TIMEOUT_MS を超えたときはキャッシュから返す）
+ *   - supabase-js（版番号固定の CDN 版）: CacheFirst（VENDOR_CACHE＝デプロイをまたいで保持）
  *   - CSS/JS(自サイト): StaleWhileRevalidate （即表示＋裏で更新）
  *   - 画像・アイコン: CacheFirst （長期キャッシュ）
  *   - Supabase / Stripe / GA 等の外部API: SW を通さない（素通り）
@@ -17,6 +18,14 @@
 const CACHE_VERSION = '__BUILD_VERSION__';
 const RUNTIME_CACHE = `registro500-runtime-${CACHE_VERSION}`;
 const HTML_CACHE = `registro500-html-${CACHE_VERSION}`;
+// 版番号固定の外部ライブラリ置き場。名前が registro500- で始まらないので activate の掃除に掛からない。
+const VENDOR_CACHE = 'vendor-v1';
+const VENDOR_PATH = /^\/npm\/@supabase\/supabase-js@\d+\.\d+\.\d+$/;
+
+// 起動に必須な HTML・config.js のネットワーク待ちの上限（ミリ秒）。
+// 超えたら前回の保存分で先に表示し、取得は裏で続けて保存だけ更新する。
+// iPhone のホーム画面起動の直後は通信が詰まることがあり、上限が無いと白いまま止まる。
+const NETWORK_TIMEOUT_MS = 3500;
 
 // SW で扱わないホスト（API・決済・解析・CDN等）
 const BYPASS_HOSTS = [
@@ -68,6 +77,15 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
+  // supabase-js（版番号を固定した CDN 版）: CacheFirst・デプロイをまたいで保持
+  // <head> で同期読み込みしているため、ここがネットワーク待ちで詰まると画面が真っ白のまま止まり、
+  // 失敗すると supabase 未定義で全データ取得が落ちる（2026-10-01・iPhone のホーム画面起動で発生）。
+  // 版番号付きの URL は中身が変わらないので、一度取れたら二度と取りに行かない。
+  if (url.hostname === 'cdn.jsdelivr.net' && VENDOR_PATH.test(url.pathname)) {
+    event.respondWith(cacheFirst(req, VENDOR_CACHE));
+    return;
+  }
+
   // 外部ホスト（API/決済/解析/CDN）は素通り
   if (BYPASS_HOSTS.some((host) => url.hostname.includes(host))) return;
 
@@ -79,7 +97,7 @@ self.addEventListener('fetch', (event) => {
 
   // config.js は NetworkFirst（API_URL等の設定変更を即時反映）
   if (url.pathname === '/config.js') {
-    event.respondWith(networkFirst(req, RUNTIME_CACHE));
+    event.respondWith(networkFirst(req, RUNTIME_CACHE, NETWORK_TIMEOUT_MS));
     return;
   }
 
@@ -92,7 +110,7 @@ self.addEventListener('fetch', (event) => {
     url.pathname.endsWith('/');
 
   if (isHtml) {
-    event.respondWith(networkFirst(req, HTML_CACHE));
+    event.respondWith(networkFirst(req, HTML_CACHE, NETWORK_TIMEOUT_MS));
     return;
   }
 
@@ -111,6 +129,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // 開発中テーマのJS: NetworkFirst（StaleWhileRevalidate だと直した内容が1回遅れて出る）
+  // 実害が出た例＝engine-simulator（坂の名前が古いまま・直したはずの重なりが再発して見えた）。
+  // ⚠️ESM の import も destination は 'script' なので、下の分岐より先に置く必要がある。
+  if (url.pathname.startsWith('/engine-simulator/')) {
+    event.respondWith(networkFirst(req, RUNTIME_CACHE));
+    return;
+  }
+
   // CSS/JS(自サイト): StaleWhileRevalidate
   if (req.destination === 'style' || req.destination === 'script') {
     event.respondWith(staleWhileRevalidate(req, RUNTIME_CACHE));
@@ -121,14 +147,40 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(staleWhileRevalidate(req, RUNTIME_CACHE));
 });
 
-async function networkFirst(req, cacheName) {
+// ネットワークから取り、成功なら保存して、画面へ返す応答を返す（3つの戦略で共用）。
+// clone() で本文を2つに分けて「保存」と「画面」に渡すと、iPhone のホーム画面起動で
+// 画面側の本文が空になる事例が出た（2026-10-01・config.js が空で SUPABASE_URL 未定義／HTML が空で真っ白／ロゴ画像の欠け）。
+// 本文を読み切ってから応答を2つ作り直し、空なら失敗扱いにして呼び出し側の保存分へ回す。
+// リダイレクトや失敗の応答は作り直さずにそのまま返す（ナビゲーションの redirected を壊さない）。
+async function fetchAndStore(req, cache) {
+  const fresh = await fetch(req);
+  if (!fresh || !fresh.ok || fresh.redirected) return fresh;
+  const body = await fresh.arrayBuffer();
+  if (body.byteLength === 0) throw new Error('empty body: ' + req.url);
+  const headers = new Headers(fresh.headers);
+  headers.delete('content-encoding');   // 本文は展開済み
+  headers.delete('content-length');
+  const init = { status: fresh.status, statusText: fresh.statusText, headers };
+  cache.put(req, new Response(body, init));
+  return new Response(body, init);
+}
+
+// timeoutMs を渡すと、その時間内にネットワークが返らず保存分があるとき保存分を先に返す
+// （取得は裏で続き、届いたら保存だけ更新する）。保存分が無ければネットワークを待ち続ける。
+async function networkFirst(req, cacheName, timeoutMs) {
   const cache = await caches.open(cacheName);
+  const network = fetchAndStore(req, cache);
   try {
-    const fresh = await fetch(req);
-    if (fresh && fresh.ok) {
-      cache.put(req, fresh.clone());
+    if (!timeoutMs) return await network;
+    const timedOut = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
+    const first = await Promise.race([network, timedOut]);
+    if (first) return first;
+    const cached = await cache.match(req);
+    if (cached) {
+      network.catch(() => {});
+      return cached;
     }
-    return fresh;
+    return await network;
   } catch (err) {
     const cached = await cache.match(req);
     if (cached) return cached;
@@ -145,27 +197,12 @@ async function cacheFirst(req, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(req);
   if (cached) return cached;
-  try {
-    const fresh = await fetch(req);
-    if (fresh && fresh.ok) {
-      cache.put(req, fresh.clone());
-    }
-    return fresh;
-  } catch (err) {
-    throw err;
-  }
+  return fetchAndStore(req, cache);
 }
 
 async function staleWhileRevalidate(req, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(req);
-  const fetchPromise = fetch(req)
-    .then((fresh) => {
-      if (fresh && fresh.ok) {
-        cache.put(req, fresh.clone());
-      }
-      return fresh;
-    })
-    .catch(() => cached);
+  const fetchPromise = fetchAndStore(req, cache).catch(() => cached);
   return cached || fetchPromise;
 }
