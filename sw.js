@@ -8,7 +8,8 @@
  *   SKIP_WAITING を送ったとき、またはタブを全て閉じたときに切り替わる（無音更新・バナーなし）。
  *
  * キャッシュ戦略:
- *   - HTML:  NetworkFirst  （常に最新取得、オフライン時のみキャッシュから返す）
+ *   - HTML:  NetworkFirst  （常に最新取得。オフライン時と、NETWORK_TIMEOUT_MS を超えたときはキャッシュから返す）
+ *   - supabase-js（版番号固定の CDN 版）: CacheFirst（VENDOR_CACHE＝デプロイをまたいで保持）
  *   - CSS/JS(自サイト): StaleWhileRevalidate （即表示＋裏で更新）
  *   - 画像・アイコン: CacheFirst （長期キャッシュ）
  *   - Supabase / Stripe / GA 等の外部API: SW を通さない（素通り）
@@ -17,6 +18,14 @@
 const CACHE_VERSION = '__BUILD_VERSION__';
 const RUNTIME_CACHE = `registro500-runtime-${CACHE_VERSION}`;
 const HTML_CACHE = `registro500-html-${CACHE_VERSION}`;
+// 版番号固定の外部ライブラリ置き場。名前が registro500- で始まらないので activate の掃除に掛からない。
+const VENDOR_CACHE = 'vendor-v1';
+const VENDOR_PATH = /^\/npm\/@supabase\/supabase-js@\d+\.\d+\.\d+$/;
+
+// 起動に必須な HTML・config.js のネットワーク待ちの上限（ミリ秒）。
+// 超えたら前回の保存分で先に表示し、取得は裏で続けて保存だけ更新する。
+// iPhone のホーム画面起動の直後は通信が詰まることがあり、上限が無いと白いまま止まる。
+const NETWORK_TIMEOUT_MS = 3500;
 
 // SW で扱わないホスト（API・決済・解析・CDN等）
 const BYPASS_HOSTS = [
@@ -68,6 +77,15 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
+  // supabase-js（版番号を固定した CDN 版）: CacheFirst・デプロイをまたいで保持
+  // <head> で同期読み込みしているため、ここがネットワーク待ちで詰まると画面が真っ白のまま止まり、
+  // 失敗すると supabase 未定義で全データ取得が落ちる（2026-10-01・iPhone のホーム画面起動で発生）。
+  // 版番号付きの URL は中身が変わらないので、一度取れたら二度と取りに行かない。
+  if (url.hostname === 'cdn.jsdelivr.net' && VENDOR_PATH.test(url.pathname)) {
+    event.respondWith(cacheFirst(req, VENDOR_CACHE));
+    return;
+  }
+
   // 外部ホスト（API/決済/解析/CDN）は素通り
   if (BYPASS_HOSTS.some((host) => url.hostname.includes(host))) return;
 
@@ -79,7 +97,7 @@ self.addEventListener('fetch', (event) => {
 
   // config.js は NetworkFirst（API_URL等の設定変更を即時反映）
   if (url.pathname === '/config.js') {
-    event.respondWith(networkFirst(req, RUNTIME_CACHE));
+    event.respondWith(networkFirst(req, RUNTIME_CACHE, NETWORK_TIMEOUT_MS));
     return;
   }
 
@@ -92,7 +110,7 @@ self.addEventListener('fetch', (event) => {
     url.pathname.endsWith('/');
 
   if (isHtml) {
-    event.respondWith(networkFirst(req, HTML_CACHE));
+    event.respondWith(networkFirst(req, HTML_CACHE, NETWORK_TIMEOUT_MS));
     return;
   }
 
@@ -129,14 +147,27 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(staleWhileRevalidate(req, RUNTIME_CACHE));
 });
 
-async function networkFirst(req, cacheName) {
+// timeoutMs を渡すと、その時間内にネットワークが返らず保存分があるとき保存分を先に返す
+// （取得は裏で続き、届いたら保存だけ更新する）。保存分が無ければネットワークを待ち続ける。
+async function networkFirst(req, cacheName, timeoutMs) {
   const cache = await caches.open(cacheName);
-  try {
-    const fresh = await fetch(req);
+  const network = fetch(req).then((fresh) => {
     if (fresh && fresh.ok) {
       cache.put(req, fresh.clone());
     }
     return fresh;
+  });
+  try {
+    if (!timeoutMs) return await network;
+    const timedOut = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
+    const first = await Promise.race([network, timedOut]);
+    if (first) return first;
+    const cached = await cache.match(req);
+    if (cached) {
+      network.catch(() => {});
+      return cached;
+    }
+    return await network;
   } catch (err) {
     const cached = await cache.match(req);
     if (cached) return cached;

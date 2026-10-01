@@ -1674,8 +1674,13 @@ async function fetchCars() {
       if (!('serviceWorker' in navigator)) return;
 
       let refreshing = false;
+      // 読み込み時点で SW が付いていなかった＝初回インストール。このときの controllerchange は
+      // clients.claim() によるもので更新ではないので、再読み込みしない（ホーム画面アイコンを
+      // 作った直後の起動で、表示された画面が再読み込みで白くなる経路を塞ぐ・2026-10-01）。
+      const hadController = !!navigator.serviceWorker.controller;
       // 新SWが activate → controllerchange 発火 → 1度だけリロード
       navigator.serviceWorker.addEventListener('controllerchange', function() {
+        if (!hadController) return;
         if (refreshing) return;
         refreshing = true;
         window.location.reload();
