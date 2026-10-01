@@ -330,9 +330,11 @@ export async function loadCar(url){
   // （初期型はミラー無しが標準＝1976年に義務化。付け外しを切り替えられるように）
   mirrorHosts.forEach(o => {
     const gm=o.geometry, pos=gm.attributes.position, idx=gm.index?gm.index.array:[...Array(pos.count).keys()], v=new THREE.Vector3();
-    const out=(i)=>{ v.fromBufferAttribute(pos,i).applyMatrix4(o.matrixWorld); return Math.abs(v.x)>1.73 && v.y>2.0 && v.y<2.45 && v.z>1.05 && v.z<1.45; };
+    // ドアの台座（x 1.52〜）・ステー・殻の縁まで含める（以前は x>1.73 で、ミラー無しにしても台座とステーが残った）。
+    // すぐ内側に窓枠の樹脂（x 1.43〜1.54）がある＝3頂点とも範囲内の三角形だけ取る
+    const out=(i)=>{ v.fromBufferAttribute(pos,i).applyMatrix4(o.matrixWorld); return Math.abs(v.x)>1.512 && v.y>2.0 && v.y<2.45 && v.z>1.05 && v.z<1.46; };
     const keep=[], take=[];
-    for(let t=0;t<idx.length;t+=3){ const a=idx[t],b=idx[t+1],c=idx[t+2]; (out(a)||out(b)||out(c)?take:keep).push(a,b,c); }
+    for(let t=0;t<idx.length;t+=3){ const a=idx[t],b=idx[t+1],c=idx[t+2]; (out(a)&&out(b)&&out(c)?take:keep).push(a,b,c); }
     if(!take.length) return;
     const g2=new THREE.BufferGeometry(); for(const k in gm.attributes) g2.setAttribute(k,gm.attributes[k]); g2.setIndex(take);
     const g1=gm.clone(); g1.setIndex(keep); o.geometry=g1;
