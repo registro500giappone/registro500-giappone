@@ -141,12 +141,13 @@
       supa().then(function (c) { return c.auth.signInWithOtp({ email: email }); })
         .then(function (r) {
           b.disabled = false; b.textContent = 'Send confirmation code';
-          if (r.error) { err('Could not send it: ' + r.error.message); return; }
+          var sentBefore = !!r.error && /after [0-9]+ seconds/.test(String(r.error.message));  /* 1分以内に送信済み＝届いたコードが使える */
+          if (r.error && !sentBefore) { err(r.error.status === 429 ? 'Too many requests in a row. Please wait a few minutes and try again.' : 'Could not send it: ' + r.error.message); return; }
           otpEmail = email;
           localStorage.setItem('r500_login_email', email);
           $('jOtpSentTo').textContent = email;
           $('jOtp1').hidden = true; $('jOtp2').hidden = false;
-          err('');
+          err(sentBefore ? 'A code was sent a moment ago. Please enter the code from the newest email.' : '');
         }).catch(function () {
           b.disabled = false; b.textContent = 'Send confirmation code';
           err('Could not send it. Please check your connection.');
@@ -159,7 +160,7 @@
       supa().then(function (c) { return c.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' }); })
         .then(function (r) {
           b.disabled = false; b.textContent = 'Log in';
-          if (r.error) { err('The code is wrong or has expired. Please try again.'); return; }
+          if (r.error) { err('The code is wrong or has expired. If you requested it more than once, use the code from the newest email.'); return; }
           m.style.display = 'none';
         }).catch(function () {
           b.disabled = false; b.textContent = 'Log in';
@@ -169,7 +170,7 @@
     $('jOtpResend').onclick = function () {
       if (!otpEmail) return;
       supa().then(function (c) { return c.auth.signInWithOtp({ email: otpEmail }); })
-        .then(function (r) { err(r.error ? ('Could not resend it: ' + r.error.message) : ''); });
+        .then(function (r) { err(r.error ? (r.error.status === 429 ? 'Please wait about a minute before resending. The code you just received still works.' : 'Could not resend it: ' + r.error.message) : ''); });
     };
     return m;
   }

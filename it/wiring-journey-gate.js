@@ -142,12 +142,13 @@
       supa().then(function (c) { return c.auth.signInWithOtp({ email: email }); })
         .then(function (r) {
           b.disabled = false; b.textContent = 'Invia il codice';
-          if (r.error) { err('Invio non riuscito: ' + r.error.message); return; }
+          var sentBefore = !!r.error && /after [0-9]+ seconds/.test(String(r.error.message));  /* 1分以内に送信済み＝届いたコードが使える */
+          if (r.error && !sentBefore) { err(r.error.status === 429 ? 'Troppe richieste di seguito. Attendi qualche minuto e riprova.' : 'Invio non riuscito: ' + r.error.message); return; }
           otpEmail = email;
           localStorage.setItem('r500_login_email', email);
           $('jOtpSentTo').textContent = email;
           $('jOtp1').hidden = true; $('jOtp2').hidden = false;
-          err('');
+          err(sentBefore ? 'Un codice è stato appena inviato. Inserisci il codice della email più recente.' : '');
         }).catch(function () {
           b.disabled = false; b.textContent = 'Invia il codice';
           err('Invio non riuscito. Controlla la connessione.');
@@ -160,7 +161,7 @@
       supa().then(function (c) { return c.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' }); })
         .then(function (r) {
           b.disabled = false; b.textContent = 'Accedi';
-          if (r.error) { err('Il codice non e corretto o e scaduto. Riprova.'); return; }
+          if (r.error) { err('Il codice non e corretto o e scaduto. Se l’hai richiesto più volte, usa il codice della email più recente.'); return; }
           m.style.display = 'none';
         }).catch(function () {
           b.disabled = false; b.textContent = 'Accedi';
@@ -170,7 +171,7 @@
     $('jOtpResend').onclick = function () {
       if (!otpEmail) return;
       supa().then(function (c) { return c.auth.signInWithOtp({ email: otpEmail }); })
-        .then(function (r) { err(r.error ? ('Invio non riuscito: ' + r.error.message) : ''); });
+        .then(function (r) { err(r.error ? (r.error.status === 429 ? 'Attendi circa un minuto prima di inviarlo di nuovo. Il codice appena ricevuto è ancora valido.' : 'Invio non riuscito: ' + r.error.message) : ''); });
     };
     return m;
   }

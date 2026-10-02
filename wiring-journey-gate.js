@@ -151,12 +151,13 @@
       supa().then(function (c) { return c.auth.signInWithOtp({ email: email }); })
         .then(function (r) {
           b.disabled = false; b.textContent = '確認コードを送信';
-          if (r.error) { err('送信に失敗しました：' + r.error.message); return; }
+          var sentBefore = !!r.error && /after [0-9]+ seconds/.test(String(r.error.message));  /* 1分以内に送信済み＝届いたコードが使える */
+          if (r.error && !sentBefore) { err(r.error.status === 429 ? '送信が続いたため一時的に止まっています。数分おいてからお試しください。' : '送信に失敗しました：' + r.error.message); return; }
           otpEmail = email;
           localStorage.setItem('r500_login_email', email);
           $('jOtpSentTo').textContent = email;
           $('jOtp1').hidden = true; $('jOtp2').hidden = false;
-          err('');
+          err(sentBefore ? '確認コードは少し前に送信済みです。届いているメールの、いちばん新しいコードを入力してください。' : '');
         }).catch(function () {
           b.disabled = false; b.textContent = '確認コードを送信';
           err('送信に失敗しました。通信の状態をご確認ください。');
@@ -169,7 +170,7 @@
       supa().then(function (c) { return c.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' }); })
         .then(function (r) {
           b.disabled = false; b.textContent = 'ログイン';
-          if (r.error) { err('コードが正しくないか、期限切れです。もう一度お試しください。'); return; }
+          if (r.error) { err('コードが正しくないか、期限切れです。何度か送信した場合は、いちばん新しいメールのコードを入力してください。'); return; }
           m.style.display = 'none';
           /* 成功→ onAuthStateChange が拾って画面を作り直す */
         }).catch(function () {
@@ -180,7 +181,7 @@
     $('jOtpResend').onclick = function () {
       if (!otpEmail) return;
       supa().then(function (c) { return c.auth.signInWithOtp({ email: otpEmail }); })
-        .then(function (r) { err(r.error ? ('再送に失敗しました：' + r.error.message) : ''); });
+        .then(function (r) { err(r.error ? (r.error.status === 429 ? '再送は1分ほど間をあけてからお試しください。直前に届いたコードはそのまま使えます。' : '再送に失敗しました：' + r.error.message) : ''); });
     };
     return m;
   }

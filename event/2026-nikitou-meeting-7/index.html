@@ -266,13 +266,14 @@ async function sendOtpCode(){
   btn.disabled = true; btn.textContent = '送信中…';
   const { error } = await supabaseClient.auth.signInWithOtp({ email });
   btn.disabled = false; btn.textContent = '確認コードを送信';
-  if (error) { showOtpError('送信に失敗しました：' + error.message); return; }
+  const sentBefore = !!error && /after [0-9]+ seconds/.test(String(error.message));  // 1分以内に同じアドレスへ送信済み＝届いたコードがそのまま使える（2026-10-02 ここで止まってコード入力へ進めなかった）
+  if (error && !sentBefore) { showOtpError(error.status === 429 ? '送信が続いたため一時的に止まっています。数分おいてからお試しください。' : '送信に失敗しました：' + error.message); return; }
   otpEmail = email;
   localStorage.setItem('r500_login_email', email);
   document.getElementById('otpSentEmail').textContent = email;
   document.getElementById('otpStep1').style.display = 'none';
   document.getElementById('otpStep2').style.display = 'flex';
-  showOtpError('');
+  showOtpError(sentBefore ? '確認コードは少し前に送信済みです。届いているメールの、いちばん新しいコードを入力してください。' : '');
 }
 async function verifyOtpCode(){
   const code = document.getElementById('otpCodeInput').value.trim();
@@ -281,13 +282,13 @@ async function verifyOtpCode(){
   btn.disabled = true; btn.textContent = '確認中…';
   const { error } = await supabaseClient.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
   btn.disabled = false; btn.textContent = 'ログイン';
-  if (error) { showOtpError('コードが正しくないか、期限切れです。もう一度お試しください。'); return; }
+  if (error) { showOtpError('コードが正しくないか、期限切れです。何度か送信した場合は、いちばん新しいメールのコードを入力してください。'); return; }
   closeLoginModal();  // 成功 → onAuthStateChange が参加ボタンを更新
 }
 async function resendOtpCode(){
   if (!otpEmail) return;
   const { error } = await supabaseClient.auth.signInWithOtp({ email: otpEmail });
-  showOtpError(error ? ('再送に失敗しました：' + error.message) : '');
+  showOtpError(error ? (error.status === 429 ? '再送は1分ほど間をあけてからお試しください。直前に届いたコードはそのまま使えます。' : '再送に失敗しました：' + error.message) : '');
   if (!error) alert('確認コードを再送しました。');
 }
 

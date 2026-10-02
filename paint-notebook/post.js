@@ -183,7 +183,9 @@ export function mountPost({ carType, snap }){
     $('postErr1').textContent = ''; $('postOtpSend').disabled = true;
     try{
       const { error } = await (await sb()).auth.signInWithOtp({ email: m });
-      if(error){ $('postErr1').textContent = '送信できませんでした：' + error.message; return; }
+      const sentBefore = !!error && /after [0-9]+ seconds/.test(String(error.message));  // 1分以内に送信済み＝届いたコードが使える
+      if(error && !sentBefore){ $('postErr1').textContent = error.status === 429 ? '送信が続いたため一時的に止まっています。数分おいてからお試しください。' : '送信できませんでした：' + error.message; return; }
+      $('postErr2').textContent = sentBefore ? '確認コードは少し前に送信済みです。届いているメールの、いちばん新しいコードを入力してください。' : '';
       otpMail = m; try{ localStorage.setItem('r500_login_email', m); }catch(e){}
       $('postLogin1').hidden = true; $('postLogin2').hidden = false; $('postCode').focus();
     }catch(e){ $('postErr1').textContent = '通信に失敗しました。'; }
@@ -191,7 +193,7 @@ export function mountPost({ carType, snap }){
   };
   $('postResend').onclick = async () => {
     try{ const { error } = await (await sb()).auth.signInWithOtp({ email: otpMail });
-      $('postErr2').textContent = error ? '再送に失敗しました。' : 'コードを送り直しました。'; }
+      $('postErr2').textContent = error ? (error.status === 429 ? '再送は1分ほど間をあけてからお試しください。直前に届いたコードはそのまま使えます。' : '再送に失敗しました。') : 'コードを送り直しました。'; }
     catch(e){ $('postErr2').textContent = '通信に失敗しました。'; }
   };
   $('postVerify').onclick = async () => {
@@ -200,7 +202,7 @@ export function mountPost({ carType, snap }){
     $('postVerify').disabled = true;
     try{
       const { error } = await (await sb()).auth.verifyOtp({ email: otpMail, token: code, type: 'email' });
-      if(error){ $('postErr2').textContent = 'コードが違うようです。'; return; }
+      if(error){ $('postErr2').textContent = 'コードが違うようです。何度か送信した場合は、いちばん新しいメールのコードを入力してください。'; return; }
       $('postCode').value = ''; await refreshOwner();
     }catch(e){ $('postErr2').textContent = '通信に失敗しました。'; }
     finally{ $('postVerify').disabled = false; }

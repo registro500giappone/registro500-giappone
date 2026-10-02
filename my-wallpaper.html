@@ -376,7 +376,9 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
     supa().then(function (c) { return c.auth.signInWithOtp({ email: m }); })
       .then(function (r) {
         $('lgSend').disabled = false;
-        if (r.error) { $('lgErr').textContent = '送信できませんでした：' + r.error.message; return; }
+        var sentBefore = !!r.error && /after [0-9]+ seconds/.test(String(r.error.message));  /* 1分以内に送信済み＝届いたコードが使える */
+        if (r.error && !sentBefore) { $('lgErr').textContent = r.error.status === 429 ? '送信が続いたため一時的に止まっています。数分おいてからお試しください。' : '送信できませんでした：' + r.error.message; return; }
+        $('lgErr2').textContent = sentBefore ? '確認コードは少し前に送信済みです。届いているメールの、いちばん新しいコードを入力してください。' : '';
         otpMail = m;
         localStorage.setItem('r500_login_email', m);
         $('lgStep1').classList.add('hide'); $('lgStep2').classList.remove('hide');
@@ -394,7 +396,7 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
   };
   $('lgResend').onclick = function () {
     supa().then(function (c) { return c.auth.signInWithOtp({ email: otpMail }); })
-      .then(function (r) { $('lgErr2').textContent = r.error ? '再送に失敗しました。' : 'コードを送り直しました。'; });
+      .then(function (r) { $('lgErr2').textContent = r.error ? (r.error.status === 429 ? '再送は1分ほど間をあけてからお試しください。直前に届いたコードはそのまま使えます。' : '再送に失敗しました。') : 'コードを送り直しました。'; });
   };
   $('lgVerify').onclick = function () {
     var code = ($('lgCode').value || '').trim();
@@ -403,7 +405,7 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.04em}
     supa().then(function (c) { return c.auth.verifyOtp({ email: otpMail, token: code, type: 'email' }); })
       .then(function (r) {
         $('lgVerify').disabled = false;
-        if (r.error) { $('lgErr2').textContent = 'コードが違うようです。'; return; }
+        if (r.error) { $('lgErr2').textContent = 'コードが違うようです。何度か送信した場合は、いちばん新しいメールのコードを入力してください。'; return; }
         $('lg').style.display = 'none';
         checkOwner();
       })
