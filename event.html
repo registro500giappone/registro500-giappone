@@ -979,8 +979,7 @@ window.submitEvent = async () => {
       alert("保存しました！");
       location.reload();
     } catch(e) {
-      console.error(e);
-      alert("保存に失敗しました");
+      alert(errMsg(e, "保存に失敗しました"));
     } finally {
       btn.disabled = false; btn.innerText = "送信する";
     }
@@ -994,7 +993,7 @@ window.submitEvent = async () => {
       alert("削除しました");
       location.reload();
     } catch(e) {
-      alert("削除に失敗しました");
+      alert(errMsg(e, "削除に失敗しました"));
     }
   };
 
@@ -1007,7 +1006,7 @@ window.submitEvent = async () => {
         .select('id')
         .eq('event_id', eventId)
         .eq('car_id', myCarId)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         const { error: delError } = await supabaseClient.from('event_participants').delete().eq('id', existing.id);
@@ -1023,9 +1022,20 @@ window.submitEvent = async () => {
       }
       fetchEvents();
     } catch(e) {
-      alert("通信エラーが発生しました");
+      alert(errMsg(e, "通信エラーが発生しました"));
     }
   };
+
+  // 失敗の理由を握りつぶさない：コンソールに全文を残し、画面には次の行動が分かる文言とコードを出す
+  // （2026-10-02 参加表明が「通信エラー」とだけ出て、原因がログを見るまで分からなかったため）
+  function errMsg(e, fallback) {
+    console.error(e);
+    const code = e && e.code ? String(e.code) : '';
+    if (code === '42501') return '権限が確認できず保存できませんでした。ログインし直してから、もう一度お試しください。解決しない場合は管理者へお知らせください（コード: 42501）';
+    if (code === '23505') return 'すでに登録済みです。ページを再読み込みしてください。';
+    if (e instanceof TypeError) return '通信できませんでした。電波の良い場所で、もう一度お試しください。';
+    return fallback + (code ? `（コード: ${code}）` : '');
+  }
 
   function esc(s) {
     if(!s) return '';

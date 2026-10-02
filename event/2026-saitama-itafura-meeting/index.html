@@ -381,7 +381,13 @@ async function toggleJoin(){
     }
     await refreshParticipants();
   } catch (e) {
-    alert('通信エラーが発生しました');
+    // 失敗の理由を握りつぶさない（2026-10-02 参加表明の 42501 が「通信エラー」としか出なかったため）
+    console.error(e);
+    const code = e && e.code ? String(e.code) : '';
+    if (code === '42501') alert('権限が確認できず保存できませんでした。ログインし直してから、もう一度お試しください。解決しない場合は管理者へお知らせください（コード: 42501）');
+    else if (code === '23505') alert('すでに参加表明済みです。ページを再読み込みしてください。');
+    else if (e instanceof TypeError) alert('通信できませんでした。電波の良い場所で、もう一度お試しください。');
+    else alert('通信エラーが発生しました' + (code ? '（コード: ' + code + '）' : ''));
   } finally {
     btn.disabled = false;
   }
