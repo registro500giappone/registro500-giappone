@@ -178,7 +178,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
   <p class="credit">3Dモデル：<a href="https://sketchfab.com/3d-models/fiat-500-1970-model-213cd126fcd744809fb7996eb88366f5" rel="noopener" target="_blank">"Fiat 500 - 1970 Model"</a> by <a href="https://sketchfab.com/parsafarvadian" rel="noopener" target="_blank">Parsa Farvadian</a>, <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener" target="_blank">CC BY 4.0</a>（データを軽くし、塗装と模様の表示を加えています）</p>
 </div>
 
-<div id="shot"><img alt="仕上がりの画像"><p>画像を長押しで保存できます（パソコンは右クリック）</p><button id="shotClose">閉じる</button></div>
+<div id="shot"><img alt="仕上がりの画像"><p id="shotMsg">画像を長押しで保存できます（パソコンは右クリック）</p><button id="shotShare" class="primary" hidden>保存・SNSへ送る</button><button id="shotClose">閉じる</button></div>
 
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
 <script type="module">
@@ -312,13 +312,33 @@ document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.data
 // 項目を開いたら、その部分が見える向きへ回す（スマホでは車が小さく上に貼り付いているため）
 document.querySelectorAll('details[data-cam]').forEach(d=>d.addEventListener('toggle',()=>{ if(d.open) setView(d.dataset.cam); }));
 $('spin').onclick=()=>{controls.autoRotate=!controls.autoRotate; $('spin').setAttribute('aria-pressed',controls.autoRotate);};
-$('save').onclick=()=>{ renderer.render(scene,cam); const img=$('shot').querySelector('img'); img.src=renderer.domElement.toDataURL('image/png'); $('shot').style.display='flex'; };
+// 共有に添える一言＝X・LINE では本文に入る（Instagram は文字を無視する）。URL は # 付きの設計図＝開いた人が同じ車を見られる
+const shareText=()=>'#レジちん #お絵描き手帳 https://www.registro500.com/paint-notebook/'+location.hash;
+// 画像の右下にサイト名を入れる＝動画のロゴと同じ役目（SNS で画像だけが流れても出どころが分かる）
+function stamp(src){ const c=document.createElement('canvas'); c.width=src.width; c.height=src.height; const x=c.getContext('2d'); x.drawImage(src,0,0);
+  const fs=Math.max(14,Math.round(c.width*0.026)), pad=Math.round(fs*0.6), str='registro500.com'; x.font=`600 ${fs}px system-ui,-apple-system,sans-serif`; x.textBaseline='middle'; x.textAlign='right';
+  const w=x.measureText(str).width+pad*2, h=fs+pad, X=c.width-pad, Y=c.height-pad;
+  x.fillStyle='rgba(0,0,0,.45)'; if(x.roundRect){ x.beginPath(); x.roundRect(X-w,Y-h,w,h,h/2); x.fill(); } else x.fillRect(X-w,Y-h,w,h);
+  x.fillStyle='#fff'; x.fillText(str,X-pad,Y-h/2); return c; }
+// いまの画面を刻印入り PNG にする。共有は押された流れの中で直に呼ぶ必要があるので、toBlob（非同期）ではなく dataURL から同期で File を作る
+function shotNow(){ renderer.render(scene,cam); const data=stamp(renderer.domElement).toDataURL('image/png'); const b=atob(data.split(',')[1]), u=new Uint8Array(b.length); for(let i=0;i<b.length;i++) u[i]=b.charCodeAt(i);
+  return {data, file:new File([u],'registro500-paint-'+Date.now()+'.png',{type:'image/png'})}; }
+const canShareFile=fl=>!!(navigator.canShare && navigator.canShare({files:[fl]}));
+// 画像も動画と同じ導線＝共有シートが使える端末（iPhone／Android）は「保存・SNSへ送る」から X・Instagram・LINE へ直接渡す。使えない環境は従来どおり長押し保存
+let shotFile=null;
+$('save').onclick=()=>{ const r=shotNow(); $('shot').querySelector('img').src=r.data; $('shot').style.display='flex';
+  shotFile=canShareFile(r.file)?r.file:null; $('shotShare').hidden=!shotFile; $('shotMsg').textContent=shotFile?'X・Instagram・LINE などへそのまま送れます（長押しで保存もできます）':'画像を長押しで保存できます（パソコンは右クリック）'; };
+$('shotShare').onclick=()=>{ if(shotFile) navigator.share({files:[shotFile], text:shareText()}).catch(()=>{}); };
 $('shotClose').onclick=()=>{$('shot').style.display='none';};
 // 動画は「走る500」の画面で作る＝いまの仕上がり（URLの # 以降）をそのまま渡す
 // 投稿＝いまの画面を縮小画像にして、設計図（# 以降）と一緒に送る
 $('post').onclick=mountPost({carType:'500', snap:()=>{ renderer.render(scene,cam); return renderer.domElement; }});
 $('drive').onclick=()=>{ location.href='drive.html'+location.hash; };
-$('share').onclick=async()=>{ try{ await navigator.clipboard.writeText(location.href); $('share').textContent='コピーしました'; }catch(e){ $('share').textContent='コピーできませんでした'; } setTimeout(()=>$('share').textContent='URLをコピー',1800); };
+// スマホでは「コピーして貼る」より共有シートで送る方が自然。刻印入りの画像を同梱する＝X はメディア付き投稿ではリンクカード（サイト共通の OG 画像）を出さないので、自分の車が出る。
+// パソコンや使えない環境は従来どおり URL のコピー
+const canShareUrl=!!(navigator.canShare && navigator.canShare({url:location.href}) && matchMedia('(pointer:coarse)').matches);
+if(canShareUrl) $('share').textContent='この車を送る';
+$('share').onclick=async()=>{ if(canShareUrl){ const r=shotNow(); navigator.share(canShareFile(r.file)?{files:[r.file], text:shareText()}:{url:location.href, text:'#レジちん #お絵描き手帳'}).catch(()=>{}); return; } try{ await navigator.clipboard.writeText(location.href); $('share').textContent='コピーしました'; }catch(e){ $('share').textContent='コピーできませんでした'; } setTimeout(()=>$('share').textContent='URLをコピー',1800); };
 
 function resize(){ const w=stage.clientWidth, h=stage.clientHeight; renderer.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix(); }
 new ResizeObserver(resize).observe(stage); resize();

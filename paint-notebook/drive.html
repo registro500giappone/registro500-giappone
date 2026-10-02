@@ -36,11 +36,12 @@ body.rec #title .copy{font-size:66px}
 #acc{position:absolute;inset:0;width:100%;height:100%}
 #title img{display:block}
 /* ロゴを車の絵と文字に分けた（元の logo_vertical.png の配置を再現＝車は幅908/1200・左端147/1200） */
-#title .lcar{width:75.67%;margin-left:12.25%;transform-origin:14% 96%;will-change:transform}
-#title .ltxt{width:100%;margin-top:.75%}
-body.c126 #title .lcar{width:79%;margin-left:10.5%}
-#title span{display:block;margin-top:.9em;font-size:min(3.4vh,20px);letter-spacing:.08em;font-weight:600;color:#3f3a31}
-body.rec #title span{font-size:62px}
+/* ロゴ帯は幅の 2/3 に縮めた（2026-10-02）＝ワードマーク 84%→56%・車 64%→42%。コピーが主役で、ロゴは署名の大きさに留める。.logo の幅は変えない＝コピー（nowrap）が中央からずれないため */
+#title .lcar{width:50.45%;margin-left:24.82%;transform-origin:14% 96%;will-change:transform}
+#title .ltxt{width:66.67%;margin-left:16.67%;margin-top:.75%}
+body.c126 #title .lcar{width:52.67%;margin-left:23.65%}
+#title span{display:block;margin-top:.9em;font-size:min(2.4vh,14px);letter-spacing:.08em;font-weight:600;color:#3f3a31}
+body.rec #title span{font-size:44px}
 .bar{display:flex;gap:8px;align-items:center;width:min(100%,420px)}
 .bar button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:5px 14px;cursor:pointer}
 .bar input{flex:1}
@@ -87,7 +88,7 @@ body.rec .acts{display:none}
   <p id="mkMsg">動画を作っています…</p>
   <div class="meter"><i id="mkBar"></i></div>
   <video id="mkVid" playsinline muted loop></video>
-  <button id="mkSave" class="primary" hidden>保存・共有</button>
+  <button id="mkSave" class="primary" hidden>保存・SNSへ送る</button>
   <button id="mkClose">やめる</button>
 </div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
@@ -98,6 +99,7 @@ import {Reflector} from 'three/addons/objects/Reflector.js';
 // ?car=126 で 126 を走らせる（126 のお絵描き手帳の「動画にする」から来る）。無ければ 500
 const CAR126 = new URLSearchParams(location.search).get('car')==='126';
 const {readHash, loadCar} = await import(CAR126 ? './car126.js?v=18' : './car.js?v=34');
+const SHARE_TEXT='#レジちん #お絵描き手帳 https://www.registro500.com/paint-notebook/'+(CAR126?'126':'')+location.hash; // 共有に添える一言（X・LINE の本文に入る）。URL は # 付きの設計図＝開いた人が同じ車を塗る画面で見られる
 const DIR = CAR126 ? -1 : 1; // ロゴの車の向き＝500 は左向き・126 は右向き（絵は反転しない＝動きのほうを左右逆にする）
 // ロゴ・題・body.c126 の差し替えは #title 直後の script で済ませてある
 
@@ -335,11 +337,12 @@ function setT(t){
 // 書き出しでは #title（HTML で重ねているロゴの一枚）を同じ配置で絵へ描き込む。
 // 位置は収録モード（1080×1920）で実測した値＝record_drive.py の動画と同じ絵になる
 const OUT_W=1080, OUT_H=1920;
-const LAY={copy:{y:531,size:66,ls:3.96,col:'#3a352c',wt:700}, url:{y:1366,size:62,ls:4.96,col:'#3f3a31',wt:600},
-  lcar:{x:197.52,y:647.77,w:686.47,h:321.30}, ltxt:{x:86.40,y:975.88,w:907.20,h:285.01}};
+// 2026-10-02 ロゴ帯縮小後の値＝headless で実測し、旧 CSS の実測と旧 LAY の差（フォント由来・数px）で補正した
+const LAY={copy:{y:651.2,size:66,ls:3.96,col:'#3a352c',wt:700}, url:{y:1254.7,size:44,ls:3.52,col:'#3f3a31',wt:600},
+  lcar:{x:311.56,y:767.92,w:457.67,h:214.20}, ltxt:{x:237.63,y:988.92,w:604.81,h:190.00}};
 // 126 のロゴ（logo_vertical126.png を車 10.5〜89.5%・境目 53.76% で切った2枚）＝車と文字が 500 より背が高い。
 // 縦は中央ぞろえ＝増えた高さ Δ の半分だけ全体が上がる（車 716.7×345.5・文字 907.2×296.2・Δ＝35.4）
-if(CAR126) Object.assign(LAY,{copy:{...LAY.copy,y:513.3}, url:{...LAY.url,y:1383.7}, lcar:{x:181.66,y:630.07,w:716.69,h:345.50}, ltxt:{x:86.40,y:982.38,w:907.20,h:296.18}});
+if(CAR126) Object.assign(LAY,{copy:{...LAY.copy,y:639.4}, url:{...LAY.url,y:1266.5}, lcar:{x:300.95,y:756.13,w:477.81,h:230.34}, ltxt:{x:237.63,y:993.27,w:604.81,h:197.45}});
 const UI_FONT=getComputedStyle(document.body).fontFamily;
 function paintOverlay(ctx,t){
   const k=card(t);
@@ -417,10 +420,10 @@ if(!REC){
   $('retake').onclick=()=>{ location.href='drive.html?'+(CAR126?'car=126&':'')+'take='+(1+Math.floor(Math.random()*9999))+location.hash; };
   const closeMk=()=>{ mk.classList.remove('on'); vid.pause(); if(vid.src){ URL.revokeObjectURL(vid.src); vid.removeAttribute('src'); } };
   closeBtn.onclick=()=>{ if(making) cancel=true; else closeMk(); };
-  // iPhone の Safari は <a download> が効かない＝共有シートから「ビデオを保存」。共有は押された流れの中で直に呼ぶ
+  // iPhone／Android は共有シート＝X・Instagram・LINE へ直接渡せる（iPhone の Safari は <a download> が効かないので「ビデオを保存」もここから）。共有は押された流れの中で直に呼ぶ
   saveBtn.onclick=()=>{
     if(!outFile) return;
-    if(navigator.canShare && navigator.canShare({files:[outFile]})){ navigator.share({files:[outFile]}).catch(()=>{}); return; }
+    if(navigator.canShare && navigator.canShare({files:[outFile]})){ navigator.share({files:[outFile], text:SHARE_TEXT}).catch(()=>{}); return; }
     const a=document.createElement('a'); a.href=URL.createObjectURL(outFile); a.download=outFile.name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
   };
   $('make').onclick=async()=>{
@@ -458,10 +461,10 @@ if(!REC){
     if(cancel){ closeMk(); return; }
     meter.style.display='none'; closeBtn.textContent='閉じる';
     if(err){ msg.textContent='動画を作れませんでした（'+(err.message||err)+'）'; return; }
-    outFile=new File([muxer.target.buffer],'registro500-drive-'+Date.now()+'.mp4',{type:'video/mp4'});
+    outFile=new File([muxer.target.buffer],(CAR126?'registro126':'registro500')+'-drive-'+Date.now()+'.mp4',{type:'video/mp4'});
     vid.src=URL.createObjectURL(outFile); vid.style.display='block'; vid.play().catch(()=>{});
     saveBtn.hidden=false;
-    msg.textContent='できました（'+Math.round((performance.now()-started)/1000)+'秒）。「保存・共有」から端末に保存できます。';
+    msg.textContent='できました（'+Math.round((performance.now()-started)/1000)+'秒）。「保存・SNSへ送る」から X・Instagram・LINE などへそのまま送れます'+((navigator.canShare && navigator.canShare({files:[outFile]}))?'。':'（パソコンではファイルとして保存されます）。');
   };
 }else setT(0);
 </script>
