@@ -1,4 +1,4 @@
-// お絵描き手帳の車（500 L の3Dモデル）を組み立てる＝index.html（塗る画面）と drive.html（走る動画）で共用。
+// お絵描き帳の車（500 L の3Dモデル）を組み立てる＝index.html（塗る画面）と drive.html（走る動画）で共用。
 // 座標＝前が+z・上が+y・車の左（運転席）が+x・約2.6027単位/m。
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';

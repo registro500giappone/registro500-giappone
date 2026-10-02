@@ -1,4 +1,4 @@
-// みんなのお絵描き手帳への投稿（500・126 共通）
+// みんなのお絵描き帳への投稿（500・126 共通）
 // 投稿するのは「設計図」＝URL の # 以降と、一覧に並べる縮小画像1枚だけ。動画は預からない
 const SB_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0';
 const SB_SRI = 'sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J';
@@ -22,7 +22,7 @@ export function sb(){
   })();
 }
 // Google ログインから戻ると # がトークンに置き換わる＝描いた車（# の設計図）が消える。
-// 出る前に # を預け、戻ったら手帳が readHash() する前（＝この import の時点）に書き戻す。トークンは後で setSession する
+// 出る前に # を預け、戻ったらお絵描き帳が readHash() する前（＝この import の時点）に書き戻す。トークンは後で setSession する
 const RESUME = 'paintPostResume';
 let backAuth = null;
 try{
@@ -82,7 +82,7 @@ const CSS = `
 #postToast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:13px;z-index:12;max-width:90vw;box-shadow:0 4px 16px rgba(0,0,0,.3)}
 `;
 const HTML = `<div class="box" role="dialog" aria-modal="true" aria-labelledby="postTitle">
-  <h2 id="postTitle">みんなのお絵描き手帳に投稿</h2>
+  <h2 id="postTitle">みんなのお絵描き帳に投稿</h2>
   <img id="postImg" alt="投稿する画像">
   <div id="postLogin" hidden>
     <p class="rule" id="postLoginNote">登録オーナーの方は、ログインすると自分の車に紐づけて投稿できます。</p>
@@ -245,7 +245,7 @@ export function mountPost({ carType, snap }){
       if(key) saveKey(id, key);
       done = true;
       $('postMsg').textContent = carDoc ? '投稿しました。' : '投稿しました。この端末からなら、あとで削除できます。';
-      const go = document.createElement('a'); go.href = '/paint-notebook/gallery'; go.textContent = 'みんなのお絵描き手帳を見る →'; go.className = 'golist';
+      const go = document.createElement('a'); go.href = '/paint-notebook/gallery'; go.textContent = 'みんなのお絵描き帳を見る →'; go.className = 'golist';
       $('postMsg').append(document.createElement('br'), go);
       $('postSend').textContent = '閉じる'; $('postSend').disabled = false; $('postCancel').hidden = true;
       if(window.gtag) gtag('event', 'paint_post', { car_type: carType, owner: carDoc ? 1 : 0 });
