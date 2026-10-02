@@ -571,10 +571,25 @@
 
   async function checkMyCar(user) {
     try {
-      const { data: cars, error } = await supabaseClient
+      let { data: cars, error } = await supabaseClient
         .from('cars')
         .select('document_id')
         .eq('owner_user_id', user.id);
+
+      // 車両が owner_user_id 未連携（登録時のメールと同じアドレスで初めてログインした直後）の
+      // ことがある。index.html と同じく link_owner_car() で紐づけてから引き直す。
+      // これが無いと、自分の車があるのに「車両なし」扱いになり参加表明が RLS で弾かれる。
+      if (!cars || cars.length === 0) {
+        try {
+          const { data: linked } = await supabaseClient.rpc('link_owner_car');
+          if (linked > 0) {
+            ({ data: cars, error } = await supabaseClient
+              .from('cars')
+              .select('document_id')
+              .eq('owner_user_id', user.id));
+          }
+        } catch (e) { console.error(e); }
+      }
 
       if(cars && cars.length > 0) myCarId = cars[0].document_id;
       // 車を持たないログインユーザー全員を管理者扱いにしない（編集・削除ボタンが出てしまう。
@@ -730,6 +745,16 @@
     return div;
   }
 
+  // 参加ボタンは車両を登録したオーナーだけに出す（events-portal/HANDOFF.md §7-9）。
+  // ログイン済みで myCarId が無い人にボタンを出すと car_id=null で INSERT して RLS に弾かれる。
+  // 未ログインは従来どおりボタンを出し、押すと「ログインしてください」になる。
+  function joinControlHtml(ev, isJoined) {
+    if (currentUser && !myCarId) {
+      return '<div class="participants-list" style="margin-bottom:8px;">愛車を登録すると参加表明できます。<a href="/edit">車両を登録する</a></div>';
+    }
+    return `<button class="btn-join ${isJoined ? 'joined' : ''}" onclick="toggleJoin('${esc(ev.EventID)}')">${isJoined ? '✅ 参加予定です' : '✋ 参加予定'}</button>`;
+  }
+
   // 個別ページがまだ無いイベント用のフォールバック（従来のカード）。
   function createFullCard(ev, isPast, dateObj) {
     const div = document.createElement('div');
@@ -757,7 +782,7 @@
       ${ev.Fee ? `<div class="ev-info-row"><span class="ev-label">費用</span><div class="ev-info-val">${esc(ev.Fee)}</div></div>` : ''}
       <div class="ev-desc">${linkify(ev.Description)}</div>
       ${safeUrl(ev.URL) ? `<div class="ev-url-row">🔗 参照URL: <a href="${esc(safeUrl(ev.URL))}" target="_blank" rel="noopener nofollow">${esc(ev.URL)}</a></div>` : ''}
-      ${isPast ? '' : `<div class="participation-area"><button class="btn-join ${isJoined ? 'joined' : ''}" onclick="toggleJoin('${esc(ev.EventID)}')">${isJoined ? '✅ 参加予定です' : '✋ 参加予定'}</button><div class="participants-list">${namesHtml}</div></div>`}
+      ${isPast ? '' : `<div class="participation-area">${joinControlHtml(ev, isJoined)}<div class="participants-list">${namesHtml}</div></div>`}
       <div class="ev-footer">${ev.OwnerID === 'ADMIN' ? `<span class="owner-badge">👤 ${esc(ev.OwnerName)}</span>` : `<a href="/detail?doc=${encodeURIComponent(ev.OwnerID)}" class="owner-badge" target="_blank">👤 ${esc(ev.OwnerName)}</a>`}</div>
     `;
     return div;
@@ -1000,6 +1025,7 @@ window.submitEvent = async () => {
 
   window.toggleJoin = async (eventId) => {
     if (!currentUser) return alert("ログインしてください");
+    if (!myCarId) return alert("参加表明には愛車の登録が必要です。登録済みの方は、登録時のメールアドレスでログインし直してください。");
     if (!confirm("参加ステータスを変更しますか？")) return;
     try {
       const { data: existing } = await supabaseClient
@@ -1007,7 +1033,7 @@ window.submitEvent = async () => {
         .select('id')
         .eq('event_id', eventId)
         .eq('car_id', myCarId)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         const { error: delError } = await supabaseClient.from('event_participants').delete().eq('id', existing.id);
@@ -1023,7 +1049,11 @@ window.submitEvent = async () => {
       }
       fetchEvents();
     } catch(e) {
-      alert("通信エラーが発生しました");
+      console.error(e);
+      // 42501＝RLS で拒否（車両の持ち主として認識されていない）。通信の問題と区別して案内する
+      alert(e && e.code === '42501'
+        ? "この車両の持ち主として確認できませんでした。登録時のメールアドレスでログインし直してください。"
+        : "通信エラーが発生しました");
     }
   };
 

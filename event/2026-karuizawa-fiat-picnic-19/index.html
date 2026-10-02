@@ -296,8 +296,18 @@ async function resendOtpCode(){
 // ── 参加表明。event_participants は匿名読み取り可（一覧ページと同じ扱い）──
 async function checkMyCar(user){
   try {
-    const { data: cars } = await supabaseClient.from('cars')
+    let { data: cars } = await supabaseClient.from('cars')
       .select('document_id, handle_name').eq('owner_user_id', user.id);
+    // owner_user_id 未連携の車はメール一致で紐づけてから引き直す（index.html と同じ）
+    if (!cars || cars.length === 0) {
+      try {
+        const { data: linked } = await supabaseClient.rpc('link_owner_car');
+        if (linked > 0) {
+          ({ data: cars } = await supabaseClient.from('cars')
+            .select('document_id, handle_name').eq('owner_user_id', user.id));
+        }
+      } catch (e) { console.error(e); }
+    }
     if (cars && cars.length > 0) { myCarId = cars[0].document_id; myCarHandle = cars[0].handle_name; }
     else { myCarId = null; myCarHandle = null; }
   } catch (e) { myCarId = null; myCarHandle = null; }
