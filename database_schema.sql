@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-09-30 22:58 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-10-02 18:58 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -1238,7 +1238,7 @@ $function$
 CREATE OR REPLACE FUNCTION public.owns_car(p_doc text)
  RETURNS boolean
  LANGUAGE sql
- STABLE
+ STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
   select exists (
@@ -1252,7 +1252,7 @@ AS $function$
   );
 $function$
 ;
--- acl: =X/postgres postgres=X/postgres anon=X/postgres authenticated=X/postgres service_role=X/postgres
+-- acl: postgres=X/postgres anon=X/postgres authenticated=X/postgres service_role=X/postgres
 
 CREATE OR REPLACE FUNCTION public.paint_post_create(p_car_type text, p_design text, p_thumb_path text, p_comment text DEFAULT NULL::text, p_name text DEFAULT NULL::text, p_car_doc text DEFAULT NULL::text, p_delete_key text DEFAULT NULL::text)
  RETURNS bigint
