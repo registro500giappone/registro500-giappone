@@ -462,7 +462,11 @@ if(!REC){
     meter.style.display='none'; closeBtn.textContent='閉じる';
     if(err){ msg.textContent='動画を作れませんでした（'+(err.message||err)+'）'; return; }
     outFile=new File([muxer.target.buffer],(CAR126?'registro126':'registro500')+'-drive-'+Date.now()+'.mp4',{type:'video/mp4'});
-    vid.src=URL.createObjectURL(outFile); vid.style.display='block'; vid.play().catch(()=>{});
+    // 読み終える前に play すると iPhone は冒頭（ロゴが走り去る1秒）を飛ばして映し始める＝初回だけロゴが映らない。
+    // 最後まで読めてから頭出しし、最初のコマを一拍見せてから回す
+    let started1=false; const start1=()=>{ if(started1) return; started1=true; vid.currentTime=0; setTimeout(()=>vid.play().catch(()=>{}),400); };
+    vid.preload='auto'; vid.addEventListener('canplaythrough',start1,{once:true}); setTimeout(start1,3000);
+    vid.src=URL.createObjectURL(outFile); vid.style.display='block'; vid.load();
     saveBtn.hidden=false;
     msg.textContent='できました（'+Math.round((performance.now()-started)/1000)+'秒）。「保存・SNSへ送る」から X・Instagram・LINE などへそのまま送れます'+((navigator.canShare && navigator.canShare({files:[outFile]}))?'。':'（パソコンではファイルとして保存されます）。');
   };
