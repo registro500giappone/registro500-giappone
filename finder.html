@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>やりたいことから探す｜REGISTRO 500 GIAPPONE</title>
+<meta name="robots" content="noindex">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH');
+</script>
+<link rel="icon" href="/icon-192.png">
+<script src="/config.js"></script>
+<style>
+/* 共通CSSは読み込まない。この画面は色を1枚で完結させる＝サイト全体の配色に手を触れないため。 */
+:root{
+  --bg:#fffdf8; --ink:#3a352c; --sub:#8d8574; --deep:#2c3a31;
+  --line:#e6e0d4; --card:#fffefb; --accent:#7a6a53; --hit:#f3ecdc;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+  line-height:1.7;-webkit-text-size-adjust:100%}
+.wrap{max-width:560px;margin:0 auto;padding:16px 18px 64px}
+.topbar{margin:0 0 18px}
+.topbar a{color:var(--sub);text-decoration:none;font-size:13px}
+.topbar a:hover{color:var(--deep)}
+h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.02em}
+.lead{margin:0 0 14px;color:var(--sub);font-size:13px}
+.box{position:relative}
+#q{width:100%;font-size:17px;padding:13px 14px;border:2px solid var(--line);border-radius:12px;
+  background:var(--card);color:var(--ink);outline:none;-webkit-appearance:none;appearance:none}
+#q:focus{border-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0 4px}
+.chip{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--ink);
+  border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+#results{list-style:none;margin:16px 0 0;padding:0}
+.r a{display:flex;gap:12px;align-items:flex-start;text-decoration:none;color:inherit;
+  padding:12px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);margin-bottom:8px}
+.r a:hover{border-color:var(--accent);background:var(--hit)}
+.r .ic{font-size:22px;line-height:1.2;width:28px;text-align:center;flex:none}
+.r .t{font-weight:600;color:var(--deep);font-size:15px}
+.r .d{font-size:12.5px;color:var(--sub);margin-top:2px}
+.r .k{display:inline-block;font-size:11px;color:var(--accent);border:1px solid var(--line);
+  border-radius:6px;padding:0 6px;margin-right:6px;vertical-align:1px}
+.empty{color:var(--sub);font-size:14px;margin:18px 2px 6px}
+.more{margin-top:14px;border-top:1px dashed var(--line);padding-top:12px}
+.more p{margin:0 0 8px;font-size:12.5px;color:var(--sub)}
+.more a{display:block;color:var(--accent);text-decoration:none;font-size:14px;padding:5px 2px}
+.more a:hover{color:var(--deep)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar"><a href="/">← トップへ</a></div>
+  <h1>やりたいことから探す</h1>
+  <p class="lead">困っていること・知りたいことを一言で入れてください。合いそうなページを並べます。</p>
+  <div class="box">
+    <input id="q" type="search" placeholder="例：ライトが点かない／部品を安く買いたい" autocomplete="off" enterkeyhint="search">
+  </div>
+  <div class="chips" id="chips"></div>
+  <ul id="results"></ul>
+  <div id="more"></div>
+</div>
+
+<script>
+(function(){
+  // ============================================================
+  // 辞書：ページごとに「こう言われたらここ」の言い換えを持つ。
+  // ⭐言い換えを足すときは kw に1語足すだけ。外れた言葉は GA4 の finder_miss に溜まる。
+  // ⛔トップのメニューから辿れないページは載せない（未公開の画面への入口にしない）。
+  // ============================================================
+  var PAGES = [
+    {u:'/wiring-journey', i:'🧭', t:'電装トラブルの旅手帳', g:'整備', d:'症状から、電気がどこで止まっているかを1枚の絵でたどる連載の目次',
+     kw:'電装 電気 トラブル 故障 点かない つかない 点灯しない 動かない 診断 原因 切り分け 症状 壊れた 旅手帳'},
+    {u:'/wiring-preview', i:'⚡', t:'配線図ビューア', g:'整備', d:'D・F・L・R型の配線図を、ヘッドライト・ウインカーなど系統別に色分けして見る',
+     kw:'配線図 配線 回路 回路図 線の色 配線色 ハーネス 型式 D型 F型 L型 R型 ヒューズ 結線 電装'},
+    {u:'/torque?type=500', u126:'/torque?type=126', i:'🔩', t:'締め付けトルク早見帳', g:'整備', d:'部位名から締め付けトルクを引く。N·m・kgf·m・lb·ft を同時表示',
+     kw:'トルク 締め付け 締付 締める 増し締め ボルト ナット nm kgf kgfm lbft トルクレンチ 何ニュートン 単位換算'},
+    {u:'/videos', i:'🎬', t:'整備動画ガイド', g:'整備', d:'整備・レストアの動画を整備箇所別に。外国語の動画はAIの日本語要約付き',
+     kw:'動画 youtube ユーチューブ 映像 見ながら やり方 手順 方法 整備方法 レストア 要約 翻訳 外国 海外の動画'},
+    {u:'/equipment', i:'🧰', t:'みんなの車載手帳', g:'整備', d:'オーナーが何を車に積んでいるか。工具・スペアパーツ・救援用品の車載率も',
+     kw:'車載 積んでる 積む 載せる 何を積む 持っていく 携行 救援 スペア 予備 備え 準備 遠出 ツーリング ロングドライブ 手帳 牽引 ジャンプ'},
+    {u:'/goods', i:'📦', t:'メンテナンスおすすめグッズ', g:'整備', d:'オーナーのアンケートから選んだ工具・ケミカル・オイル・充電器',
+     kw:'おすすめ 工具 道具 ケミカル オイル エンジンオイル 充電器 バッテリー充電 何を買えば 買う ドライバー レンチ ネジザウルス グッズ 用品 揃える'},
+    {u:'/parts-shops', i:'🏪', t:'パーツ調達ガイド', g:'部品', d:'国内・海外のパーツショップ一覧。オーナーが実際に使っている店',
+     kw:'部品 パーツ どこで買う 買える 店 ショップ 通販 海外 輸入 取り寄せ 調達 注文 入手'},
+    {u:'/parts-guide', i:'💴', t:'どっちが安いか比べ太郎', g:'部品', d:'パーツの値段を店ごとに比べる。使い方と検索のコツ',
+     kw:'安い 安く 値段 価格 比較 最安 比べる 比べ太郎 いくら 相場 送料 部品代 パーツ代 節約'},
+    {u:'/garage-notes', i:'📓', t:'ガレージノート', g:'部品', d:'送料・関税の実績、通関の流れ、節約術をオーナー同士で共有',
+     kw:'送料 関税 通関 個人輸入 輸入 消費税 税金 節約 入手先 dhl 郵便 届いた'},
+    {u:'/engine-simulator/', i:'💭', t:'エンジン妄想シミュレーター', g:'楽しむ', d:'ボアアップ・カム・ヘッド・キャブの組み合わせで、出力の出方と坂の登り方を試算',
+     kw:'エンジン 改造 チューン チューニング ボアアップ 排気量 650 カム ヘッド キャブ マフラー 馬力 出力 パワー 速く 坂 登坂 圧縮比 妄想'},
+    {u:'/engine-simulator/gearbox', i:'⚙️', t:'駆動系妄想シミュレーター', g:'楽しむ', d:'ミッションやタイヤを変えると何が変わるか、いまの車と並べて見る',
+     kw:'ミッション ギア ギヤ ファイナル 5速 減速比 タイヤサイズ 駆動系 最高速 回転数 高速道路 巡航 妄想'},
+    {u:'/engine-simulator/drive-guide', i:'📘', t:'駆動系のしくみ帳', g:'読む', d:'ファイナル・5速化・ミッション換装・タイヤを変えると何が起きるかの読み物',
+     kw:'しくみ 仕組み 理屈 ファイナル 5速化 ショート ロング ミッション換装 タイヤ 読み物 駆動系'},
+    {u:'/stories?type=500', u126:'/stories?type=126', i:'📖', t:'マイ500ストーリー', g:'読む', d:'入手のきっかけ、トラブル、ドライブ記録。オーナーの愛車ストーリー',
+     kw:'ストーリー 物語 思い出 入手 出会い 体験談 エピソード 日記 読む 書きたい 投稿 経緯 なれそめ'},
+    {u:'/owners-creation', i:'✦', t:'オーナーズ・オリジナル・クリエーション', g:'読む', d:'オーナーが作り、オーナーが使う。オリジナルプロダクトの紹介',
+     kw:'オリジナル 手作り 作品 オーナーが作った 製品 自作 ステッカー オリジナルグッズ 作った'},
+    {u:'/stats', u126:'/stats?type=126', i:'📊', t:'統計データ', g:'みんな', d:'型式別・都道府県別の分布と、みんなが使っているキャブ・プラグ・タイヤ',
+     kw:'統計 データ 何台 台数 分布 割合 人気 みんな 他の人 何を使って 使ってる 都道府県 年式 モデル別 型式別 キャブ プラグ タイヤ メーカー ランキング'},
+    {u:'/mappa', u126:'/mappa?type=126', i:'🗺️', t:'Mappa（地図）', g:'みんな', d:'全国のオーナーの分布を地図で見る',
+     kw:'地図 マップ 近く 近所 地元 都道府県 どこに 仲間 オーナー 分布 何県 住んでる'},
+    {u:'/spot-guide', u126:'/spot-guide?type=126', i:'📍', t:'出没スポット', g:'みんな', d:'オーナーが集まるカフェ・駐車場・撮影スポットの探し方',
+     kw:'スポット 集まる 集まる場所 出没 カフェ 駐車場 撮影 写真を撮る 会える 会いたい 出会い ドライブ先 行き先'},
+    {u:'/event', u126:'/event?type=126', i:'📅', t:'イベント', g:'みんな', d:'オフ会・ミーティング・走行会の予定',
+     kw:'イベント ミーティング オフ会 集まり 参加 開催 予定 催し 走行会 今週末 週末 ツーリング'},
+    {u:'/my-wallpaper', i:'🖼️', t:'マイ壁紙', g:'楽しむ', d:'登録されている500・126を敷き詰めたスマホの待ち受け画像を作る',
+     kw:'壁紙 待ち受け 待受 ロック画面 スマホ 背景 画像 iphone アンドロイド'},
+    {u:'/screensaver', i:'🎞️', t:'スクリーンセーバー', g:'楽しむ', d:'登録車が次々に現れる眺める画面。15秒の動画にも保存できる',
+     kw:'スクリーンセーバー 眺める 動画 スライドショー sns 15秒 パソコン テレビ 飾る'},
+    {u:'/edit?type=500', u126:'/edit?type=126', i:'✍️', t:'愛車を登録する・編集する', g:'参加', d:'マイガレージ。写真や仕様の追加・修正、手放したときの手続きも',
+     kw:'登録 入会 加入 参加したい 愛車 載せたい 写真 追加 編集 修正 変更 更新 マイガレージ 手放した 売った 譲った 削除'},
+    {u:'/', i:'🔑', t:'ログイン（トップのメニューから）', g:'参加', d:'登録したメールアドレスに確認コードが届きます',
+     kw:'ログイン ログアウト サインイン 確認コード パスワード メールアドレス 入れない'},
+    {u:'/howto', i:'🔰', t:'初めての方へ', g:'サイト', d:'このサイトでできることと使い方',
+     kw:'初めて はじめて 使い方 何ができる ヘルプ 説明 わからない 案内 入門'},
+    {u:'/howto-homescreen', i:'📱', t:'ホーム画面に追加する方法', g:'サイト', d:'スマホのホーム画面からアプリのように開く',
+     kw:'ホーム画面 アプリ アイコン ショートカット ブックマーク お気に入り'},
+    {u:'/news', i:'📰', t:'お知らせ・更新履歴', g:'サイト', d:'新機能・イベント情報・更新のお知らせ',
+     kw:'お知らせ 更新 新着 新機能 最新 ニュース 履歴'},
+    {u:'/support', i:'☕', t:'サイトを支援', g:'サイト', d:'広告なし・無料サイトの維持費を応援する',
+     kw:'支援 寄付 応援 カンパ 維持費 コーヒー 協力'},
+    {u:'/policy', i:'📄', t:'利用規約・プライバシーポリシー', g:'サイト', d:'個人情報の扱い、公式SNSでの紹介について',
+     kw:'規約 利用規約 プライバシー 個人情報 ポリシー 特定商取引 sns 掲載 紹介しないで 公開したくない'},
+    {u:'/126/', i:'🚗', t:'126サイト（Registro126 Giappone）', g:'サイト', d:'FIAT 126 のオーナー向けトップ',
+     kw:'126 ポルスキ fiat126 チンクエチェント126'},
+    {u:'/en/', i:'🌐', t:'English / Italiano', g:'サイト', d:'英語版・イタリア語版のページ',
+     kw:'english 英語 italiano イタリア語 外国語 海外の友人'}
+  ];
+
+  // 動画ガイドの作業内容（/videos?part=）。名前は part_tags.name_ja に合わせる。
+  var VIDEO_PARTS = [
+    ['valve-clearance','タペット調整','タペット バルブクリアランス 隙間 カチカチ 音がうるさい'],
+    ['head-topend','ヘッド・腰上','ヘッド 腰上 ヘッドガスケット ガスケット バルブ'],
+    ['oil-seals','オイル・シール','オイル漏れ 漏れ にじみ シール パッキン オイル交換'],
+    ['carb-tuning','キャブ調整','キャブ キャブレター 調整 アイドリング 不調 ジェット 燃調 エンスト 吹けない'],
+    ['carb-rebuild','キャブOH','キャブ キャブレター オーバーホール 分解 清掃 掃除'],
+    ['ignition-timing','点火時期調整','点火時期 タイミング 進角 タイミングライト'],
+    ['contact-points','ポイント点検','ポイント 接点 コンデンサー ポイントギャップ'],
+    ['spark-plugs','プラグ','プラグ スパークプラグ 焼け かぶり'],
+    ['wiring-dynamo-belt','配線・ダイナモ・ファンベルト','ダイナモ ファンベルト ベルト 発電 配線 鳴く'],
+    ['clutch','クラッチ','クラッチ 滑る 切れない クラッチワイヤー'],
+    ['transmission','ミッション','ミッション ギア ギヤ 入らない 異音'],
+    ['brakes','ブレーキ','ブレーキ 効かない ブレーキシュー ドラム エア抜き マスター'],
+    ['suspension','サスペンション','サスペンション 足回り リーフ スプリング キングピン ショック']
+  ];
+  VIDEO_PARTS.forEach(function(p){
+    PAGES.push({u:'/videos?part='+p[0], i:'🎬', t:p[1]+' の動画', g:'動画', d:'整備動画ガイドを「'+p[1]+'」で絞り込んで開く',
+      kw:p[2]+' 動画 やり方 手順 見たい', cap:'video', w:0.9});
+  });
+
+  // 旅手帳の各回に足す言い換え（題名・説明文はスケジュール表から自動で入る）。
+  var JOURNEY_KW = {
+    'charge':'チャージランプ 充電 発電 ダイナモ バッテリー上がり 赤いランプ 警告灯 消えない generat',
+    'charge-alt':'オルタ オルタネーター 換装 チャージランプ 消えない',
+    'oil':'油圧 油圧警告灯 オイルランプ オイル警告灯 olio センダー 消えない',
+    'starter':'セル 回らない スターター エンジンがかからない 始動 カチッ バッテリー',
+    'key':'キー 鍵 イグニッション 警告灯 何も点かない 全部点かない 電気が来ない',
+    'ground':'アース 一度に 全部 複数 ばらばら 同時に',
+    'ignition':'かからない エンジンがかからない 始動しない 点火 コイル 火が飛ばない セルは回る',
+    'brake':'ブレーキランプ ストップランプ 点きっぱなし 消えない',
+    'headlight':'ヘッドライト ライト 前照灯 ハイビーム ロービーム 夜',
+    'headlight-lever':'コラムレバー レバー パッシング 切替',
+    'tail':'スモール スモールランプ 車幅灯 テールランプ ナンバー灯 尾灯 ライト',
+    'turn':'ウインカー ウィンカー 方向指示器 ハザード 点滅 フラッシャー リレー',
+    'wiper':'ワイパー 止まらない 動かない 定位置',
+    'horn':'ホーン クラクション 鳴らない 警笛',
+    'room':'ルームランプ 室内灯 車内灯 ドア'
+  };
+
+  // ============================================================
+  // 文字の正規化：全角半角・カタカナ/ひらがな・小書き文字・長音・記号の違いを吸収する
+  // ============================================================
+  var SMALL = {'ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','っ':'つ','ゃ':'や','ゅ':'ゆ','ょ':'よ','ゎ':'わ','ゕ':'か','ゖ':'け'};
+  function norm(s){
+    s = String(s||'').normalize('NFKC').toLowerCase();
+    s = s.replace(/[ァ-ヶ]/g, function(c){ return String.fromCharCode(c.charCodeAt(0)-0x60); });
+    s = s.replace(/[ぁぃぅぇぉっゃゅょゎゕゖ]/g, function(c){ return SMALL[c]; });
+    return s.replace(/[\s　ー\-・、。,.!?！？「」『』()（）~〜/／:：]/g, '');
+  }
+  function prep(e){
+    e.keys = [];
+    var seen = {};
+    (e.kw + ' ' + e.t).split(/\s+/).forEach(function(k){
+      var n = norm(k);
+      if (n.length >= 2 && !seen[n]) { seen[n] = 1; e.keys.push(n); }
+    });
+    e.tn = norm(e.t);
+    // 弱い語＝「点かない」のようにどの症状にも付く語。単独では順位を決めさせない。
+    e.weak = (e.weak || '').split(/\s+/).map(norm).filter(function(n){ return n.length >= 2; });
+    return e;
+  }
+  function bigrams(s){ var a=[]; for (var i=0;i<s.length-1;i++) a.push(s.substr(i,2)); return a; }
+  function dice(a, b){
+    var A = bigrams(a), B = bigrams(b); if (!A.length || !B.length) return 0;
+    var m = 0, used = {};
+    A.forEach(function(x){ for (var j=0;j<B.length;j++){ if(!used[j] && B[j]===x){ used[j]=1; m++; break; } } });
+    return 2*m/(A.length+B.length);
+  }
+
+  // 1語ずつ「質問の中に言い換えが含まれる」「言い換えの書きかけ」を数える。複数の語が当たるほど上に来る。
+  function score(e, q){
+    var s = 0;
+    for (var i=0;i<e.keys.length;i++){
+      var k = e.keys[i];
+      if (q.indexOf(k) !== -1) s += 10 + k.length*2;
+      else if (q.length >= 2 && k.indexOf(q) === 0) s += 6 + q.length;
+    }
+    if (s) for (var j=0;j<e.weak.length;j++){ if (q.indexOf(e.weak[j]) !== -1) s += 3; }
+    if (s && e.tn.indexOf(q) !== -1) s += 6;
+    return s * (e.w || 1);
+  }
+  function fuzzy(e, q){
+    var best = 0;
+    for (var i=0;i<e.keys.length;i++){ var d = dice(q, e.keys[i]); if (d > best) best = d; }
+    return best >= 0.5 ? best*10*(e.w || 1) : 0;
+  }
+
+  var CAPS = {video:3, torque:3, event:4};
+  var LIMIT = 10;
+  var entries = PAGES.map(prep);
+
+  function search(raw){
+    var q = norm(raw);
+    if (!q) return [];
+    var is126 = q.indexOf('126') !== -1;
+    // トルクの部位（110件）は「トルク」「締め」「ボルト」などを含む質問のときだけ上位に出す。
+    var torqueIntent = /とるく|締|しめ|nm|kgf|ぼると|なつと/.test(q);
+    var scored = entries.map(function(e){
+      var s = score(e,q);
+      if (e.cap === 'torque' && !torqueIntent) s *= 0.4;
+      return {e:e, s:s};
+    }).filter(function(x){ return x.s > 0; });
+    if (!scored.length) {
+      scored = entries.map(function(e){ return {e:e, s:fuzzy(e,q)}; }).filter(function(x){ return x.s > 0; });
+    }
+    scored.sort(function(a,b){ return b.s - a.s; });
+    var out = [], used = {};
+    scored.forEach(function(x){
+      if (out.length >= LIMIT) return;
+      var c = x.e.cap;
+      if (c) { used[c] = (used[c]||0) + 1; if (used[c] > CAPS[c]) return; }
+      out.push(x.e);
+    });
+    return out.map(function(e){
+      return {e:e, url:(is126 && e.u126) ? e.u126 : e.u};
+    });
+  }
+
+  // ============================================================
+  // 描画
+  // ============================================================
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  var $q = document.getElementById('q'), $r = document.getElementById('results'), $m = document.getElementById('more');
+  var missTimer = null, lastMiss = '';
+
+  function render(){
+    var raw = $q.value.trim();
+    var hits = search(raw);
+    $r.innerHTML = hits.map(function(h){
+      var e = h.e;
+      return '<li class="r"><a href="'+esc(h.url)+'" data-to="'+esc(h.url)+'">'
+        + '<span class="ic">'+e.i+'</span><span><div class="t">'+esc(e.t)+'</div>'
+        + '<div class="d"><span class="k">'+esc(e.g)+'</span>'+esc(e.d)+'</div></span></a></li>';
+    }).join('');
+    if (!raw) { $m.innerHTML = ''; }
+    else {
+      var enc = encodeURIComponent(raw);
+      $m.innerHTML = (hits.length ? '' : '<p class="empty">ぴったりのページが見つかりませんでした。言い方を変えるか、下の検索を試してください。</p>')
+        + '<div class="more"><p>部品や作業の名前なら、こちらでも探せます</p>'
+        + '<a href="/parts?q='+enc+'" data-to="/parts?q=">🔍 「'+esc(raw)+'」の部品を比べ太郎で探す</a>'
+        + '<a href="/videos?q='+enc+'" data-to="/videos?q=">🎬 「'+esc(raw)+'」の整備動画を探す</a></div>';
+    }
+    history.replaceState(null, '', raw ? ('?q='+encodeURIComponent(raw)) : location.pathname);
+
+    // 外れた言葉だけを記録する＝辞書を育てる材料。打ち終わって少し止まったときに1回だけ送る。
+    clearTimeout(missTimer);
+    if (raw && !hits.length && norm(raw).length >= 2) {
+      missTimer = setTimeout(function(){
+        if (raw === lastMiss) return;
+        lastMiss = raw;
+        try { gtag('event', 'finder_miss', {q: raw.slice(0,100)}); } catch(_) {}
+      }, 1500);
+    }
+  }
+
+  document.addEventListener('click', function(ev){
+    var a = ev.target.closest && ev.target.closest('a[data-to]');
+    if (!a) return;
+    try { gtag('event', 'finder_click', {q: $q.value.trim().slice(0,100), to: a.getAttribute('data-to'), transport_type: 'beacon'}); } catch(_) {}
+  });
+  $q.addEventListener('input', render);
+
+  var CHIPS = ['ライトが点かない','エンジンがかからない','部品を安く買いたい','ボルトの締め付けトルク','イベントに行きたい','スマホの待ち受け','愛車を登録したい','整備の動画を見たい'];
+  document.getElementById('chips').innerHTML = CHIPS.map(function(c){ return '<button type="button" class="chip">'+esc(c)+'</button>'; }).join('');
+  document.getElementById('chips').addEventListener('click', function(ev){
+    var b = ev.target.closest('.chip'); if (!b) return;
+    $q.value = b.textContent; render(); $q.focus();
+  });
+
+  function addEntries(list){
+    list.forEach(function(e){ entries.push(prep(e)); });
+    if ($q.value.trim()) render();
+  }
+
+  // ============================================================
+  // 深い場所：旅手帳の各回・トルクの部位・これからのイベント（読めなくても本体は動く）
+  // ============================================================
+  var today = new Date(Date.now() + 9*3600*1000).toISOString().slice(0,10); // JST
+  function md(d){ return Number(d.slice(5,7)) + '/' + Number(d.slice(8,10)); }
+
+  fetch('/journey-schedule.json').then(function(r){ return r.json(); }).then(function(js){
+    var list = [];
+    (js.issues || []).concat(js.extras || []).forEach(function(it){
+      var open = it.public && it.public <= today;
+      list.push({
+        u: open ? '/wiring-journey-' + it.slug : '/wiring-journey',
+        i: '🧭', t: it.title, g: open ? '旅手帳' : '旅手帳・' + md(it.public) + ' 公開予定',
+        d: open ? (it.lead || '') : '公開前の回です。目次で予定を見られます',
+        kw: (it.short || '') + ' ' + (JOURNEY_KW[it.slug] || ''),
+        weak: '点かない つかない 消えない 動かない 故障 電装',
+        w: open ? 1.1 : 0.8
+      });
+    });
+    addEntries(list);
+  }).catch(function(){});
+
+  fetch('/torque-data.json').then(function(r){ return r.json(); }).then(function(td){
+    addEntries((td.items || []).map(function(it){
+      // 片側にしか無い部位は、その側で開かないと早見帳の絞り込みで消える（fits の判定と対）。
+      var f = it.fits || {}, side = f.chassis || (f.engine || []).map(function(x){ return x.replace(/^e/, ''); });
+      var only = side.length === 1 ? side[0] : '';
+      var tag = only ? '（' + only + (f.engine ? '系エンジン' : '') + '）' : '';
+      var enc = encodeURIComponent(it.name);
+      return {
+        u: '/torque?type=' + (only || '500') + '&q=' + enc,
+        u126: '/torque?type=' + (only || '126') + '&q=' + enc,
+        i: '🔩', t: it.name + tag + ' の締め付けトルク', g: 'トルク', d: '締め付けトルク早見帳でこの部位を開く',
+        kw: [it.name].concat(it.aliases || []).join(' '), cap: 'torque', w: 0.85
+      };
+    }));
+  }).catch(function(){});
+
+  if (typeof SUPABASE_URL !== 'undefined') {
+    var since = new Date(Date.now() - 24*3600*1000).toISOString();
+    Promise.all([
+      fetch(SUPABASE_URL + '/rest/v1/events?select=id,event_name,event_date,location&event_date=gte.' + encodeURIComponent(since) + '&order=event_date&limit=40',
+        {headers: {apikey: SUPABASE_ANON_KEY}}).then(function(r){ return r.json(); }),
+      fetch('/event-slugs.json').then(function(r){ return r.json(); })
+    ]).then(function(res){
+      var evs = res[0] || [], slugs = res[1] || {};
+      addEntries(evs.filter(function(ev){ return slugs[ev.id]; }).map(function(ev){
+        var d = new Date(new Date(ev.event_date).getTime() + 9*3600*1000).toISOString().slice(0,10);
+        var loc = String(ev.location || '').split('\n')[0].replace(/〒?\d{3}-?\d{4}\s*/, '');
+        var month = Number(d.slice(5,7)) + '月';
+        return {
+          u: '/event/' + slugs[ev.id] + '/', i: '📅', t: ev.event_name, g: 'イベント・' + md(d),
+          d: loc, kw: ev.event_name + ' ' + loc + ' ' + month + ' イベント ミーティング 参加 開催',
+          cap: 'event', w: 0.7
+        };
+      }));
+    }).catch(function(){});
+  }
+
+  var q0 = new URLSearchParams(location.search).get('q');
+  if (q0) { $q.value = q0; }
+  render();
+})();
+</script>
+</body>
+</html>
