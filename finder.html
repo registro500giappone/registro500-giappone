@@ -53,6 +53,7 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.02em}
 .more p{margin:0 0 8px;font-size:12.5px;color:var(--sub)}
 .more a{display:block;color:var(--accent);text-decoration:none;font-size:14px;padding:5px 2px}
 .more a:hover{color:var(--deep)}
+.more .note{display:block;font-size:11.5px;color:var(--sub);margin:1px 0 0 1.6em}
 </style>
 </head>
 <body>
@@ -262,6 +263,15 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.02em}
   var $q = document.getElementById('q'), $r = document.getElementById('results'), $m = document.getElementById('more');
   var missTimer = null, lastMiss = '';
 
+  // 比べ太郎はログインしたオーナー限定＝ゲストには押す前に「限定」と分かる形で出す。
+  // 判定は rg-join-cta.js と同じ（supabase-js が残すセッションキーの有無）。
+  function isLoggedIn(){
+    try {
+      for (var i=0;i<localStorage.length;i++){ if (/^sb-.*-auth-token$/.test(localStorage.key(i) || '')) return true; }
+    } catch(_) {}
+    return false;
+  }
+
   function render(){
     var raw = $q.value.trim();
     var hits = search(raw);
@@ -276,7 +286,10 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.02em}
       var enc = encodeURIComponent(raw);
       $m.innerHTML = (hits.length ? '' : '<p class="empty">ぴったりのページが見つかりませんでした。言い方を変えるか、下の検索を試してください。</p>')
         + '<div class="more"><p>部品や作業の名前なら、こちらでも探せます</p>'
-        + '<a href="/parts?q='+enc+'" data-to="/parts?q=">🔍 「'+esc(raw)+'」の部品を比べ太郎で探す</a>'
+        + (isLoggedIn()
+          ? '<a href="/parts?q='+enc+'" data-to="/parts?q=">🔍 「'+esc(raw)+'」の部品を比べ太郎で探す</a>'
+          : '<a href="/parts?q='+enc+'" data-to="/parts?q=(guest)">🔒 「'+esc(raw)+'」の部品価格を比べる<span class="note">登録オーナー限定・登録は無料</span></a>'
+            + '<a href="/parts-shops" data-to="/parts-shops(guest)">🏪 部品を買える店の一覧（パーツ調達ガイド）</a>')
         + '<a href="/videos?q='+enc+'" data-to="/videos?q=">🎬 「'+esc(raw)+'」の整備動画を探す</a></div>';
     }
     history.replaceState(null, '', raw ? ('?q='+encodeURIComponent(raw)) : location.pathname);
