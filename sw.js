@@ -21,6 +21,10 @@ const HTML_CACHE = `registro500-html-${CACHE_VERSION}`;
 // 版番号固定の外部ライブラリ置き場。名前が registro500- で始まらないので activate の掃除に掛からない。
 const VENDOR_CACHE = 'vendor-v1';
 const VENDOR_PATH = /^\/npm\/@supabase\/supabase-js@\d+\.\d+\.\d+$/;
+// config.js の置き場。これもデプロイをまたいで保持する（registro500- で始めない＝activate の掃除に掛からない）。
+// 版ごとのキャッシュに置くと、デプロイ直後の初回起動では保存分が無く、通信が一瞬でも落ちると
+// SUPABASE_URL 未定義→全データ取得が落ちる（2026-10-03・ホーム画面起動 260ms で読込失敗）。
+const CONFIG_CACHE = 'config-v1';
 
 // 起動に必須な HTML・config.js のネットワーク待ちの上限（ミリ秒）。
 // 超えたら前回の保存分で先に表示し、取得は裏で続けて保存だけ更新する。
@@ -41,9 +45,13 @@ const BYPASS_HOSTS = [
 ];
 
 self.addEventListener('install', (event) => {
-  // install 完了を待たずに即 activate 可能状態へ（ただし clients への反映はユーザータップまで保留）
   // skipWaiting はメッセージ受信時のみ呼ぶ。ここでは呼ばない。
-  self.skipWaiting = self.skipWaiting; // no-op (明示コメント用)
+  // 新しい SW が切り替わる前に config.js を保存しておく（取れなくても install は失敗させない）。
+  event.waitUntil(
+    caches.open(CONFIG_CACHE)
+      .then((cache) => fetchAndStore(new Request('/config.js', { cache: 'no-store' }), cache))
+      .catch(() => {})
+  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -97,7 +105,7 @@ self.addEventListener('fetch', (event) => {
 
   // config.js は NetworkFirst（API_URL等の設定変更を即時反映）
   if (url.pathname === '/config.js') {
-    event.respondWith(networkFirst(req, RUNTIME_CACHE, NETWORK_TIMEOUT_MS));
+    event.respondWith(networkFirst(req, CONFIG_CACHE, NETWORK_TIMEOUT_MS, 2));
     return;
   }
 
@@ -165,10 +173,39 @@ async function fetchAndStore(req, cache) {
   return new Response(body, init);
 }
 
+// 通信エラー・空の本文のときだけ、間を置いて取り直す（失敗の応答＝404 等はそのまま返す）。
+// ホーム画面起動の直後は最初の数百ミリ秒だけ通信が落ちることがある。
+async function fetchAndStoreRetry(req, cache, retries) {
+  for (let i = 0; ; i++) {
+    try {
+      return await fetchAndStore(req, cache);
+    } catch (err) {
+      if (i >= retries) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 400 * (i + 1)));
+    }
+  }
+}
+
 // timeoutMs を渡すと、その時間内にネットワークが返らず保存分があるとき保存分を先に返す
 // （取得は裏で続き、届いたら保存だけ更新する）。保存分が無ければネットワークを待ち続ける。
-async function networkFirst(req, cacheName, timeoutMs) {
+// retries を渡すと、通信エラーのとき保存分へ回る前にその回数だけ取り直す（保存分があれば先にそちらを返す）。
+async function networkFirst(req, cacheName, timeoutMs, retries = 0) {
   const cache = await caches.open(cacheName);
+  if (retries) {
+    // 保存分があるなら取り直しを待たせない
+    const network = fetchAndStoreRetry(req, cache, retries);
+    const cached = await cache.match(req, { ignoreSearch: true });
+    if (cached) {
+      const first = await Promise.race([
+        network.catch(() => null),
+        new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs || 0)),
+      ]);
+      if (first && first.ok) return first;
+      network.catch(() => {});
+      return cached;
+    }
+    return await network;
+  }
   const network = fetchAndStore(req, cache);
   try {
     if (!timeoutMs) return await network;
