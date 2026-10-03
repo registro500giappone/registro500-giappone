@@ -149,6 +149,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
       </details>
       <details data-cam="rear34">
         <summary>ナンバー</summary>
+        <div class="row"><label class="cap">ナンバープレート</label><button id="np" aria-pressed="false">外す</button></div>
         <div class="row" id="pe"><label class="cap">登録の時期（後ろの板の型が変わる）</label>
           <button data-pe="51">1976年6月まで</button><button data-pe="76">1976年6月から</button></div>
         <p class="note" id="peNote" style="margin:-4px 0 10px"></p>
@@ -183,7 +184,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
-import {DEF, PAT_SIZE, PROVINCES, COLORS, cleanText, cleanPlate, readHash, loadCar} from './car126.js?v=19';
+import {DEF, PAT_SIZE, PROVINCES, COLORS, cleanText, cleanPlate, readHash, loadCar} from './car126.js?v=20';
 import {mountPost} from './post.js?v=7';
 
 const S = readHash();
@@ -260,6 +261,7 @@ document.querySelectorAll('[data-pt]').forEach(b=>b.onclick=()=>{ const t=b.data
 bindColor('patCol','pc'); bindRange('patS','ps'); bindColor('txCol','tc'); bindRange('txS','ts');
 $('plV').innerHTML=PROVINCES.map(([c,n])=>`<option value="${c}">${n}（${c==='RM'?'ROMA':c}）</option>`).join('');
 const PE_NOTE={'51':'黒地に白字の正方形2段（上段＝県・紋章・頭2桁／下段＝下4桁）。前は横長1段（番号・紋章・県）。','76':'上に橙の県名板、下に番号板（左に紋章と小さな県名・番号は1行）。前は横長1段のまま。'};
+$('np').onclick=()=>{S.np=S.np?0:1; apply();};
 $('plV').addEventListener('change',e=>{S.pv=e.target.value; apply();});
 $('plN').addEventListener('input',e=>{S.pn=cleanPlate(e.target.value,2); apply();});
 $('plL').addEventListener('input',e=>{S.pl=cleanPlate(e.target.value,4); apply();});
@@ -290,7 +292,7 @@ function syncUI(){
   if(ps){ $('patS').min=ps[1]; $('patS').max=ps[2]; $('patS').value=S.ps; }
   $('patSCap').textContent = S.pt==='low' ? '塗り分けの高さ' : '大きさ';
   if(document.activeElement!==$('tx')) $('tx').value=S.tx;
-  $('plV').value=S.pv; if(document.activeElement!==$('plN')) $('plN').value=S.pn; if(document.activeElement!==$('plL')) $('plL').value=S.pl;
+  $('np').setAttribute('aria-pressed',!!S.np); $('plV').value=S.pv; if(document.activeElement!==$('plN')) $('plN').value=S.pn; if(document.activeElement!==$('plL')) $('plL').value=S.pl;
 }
 
 const VIEWS={f34:[35,14,14.5],side:[90,4,15],rear34:[215,16,14.5],top:[20,70,17]};

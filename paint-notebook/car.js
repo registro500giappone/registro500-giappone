@@ -5,7 +5,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {DecalGeometry} from 'three/addons/geometries/DecalGeometry.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 
-export const DEF = {bc:'#f1ede2',fin:'solid',tt:0,rc:'#f1ede2',cv:1,cc:'#1c1c1c',st:0,sc:'#b8261f',sw:0.44,sg:0.12,so:0,sol:0,sor:0,sd:0,sdc:'#b8261f',sdy:1.25,sdw:0.1,sdt:'',nb:'',rim:'silver',bmp:'chrome',seat:'#8a2a22',em:'df',pt:'',pc:'#1a1a1a',ps:0.35,tx:'',tp:'hood',tc:'#1a1a1a',ts:1,pv:'RM',pn:'00',pl:'110F'};
+export const DEF = {bc:'#f1ede2',fin:'solid',tt:0,rc:'#f1ede2',cv:1,cc:'#1c1c1c',st:0,sc:'#b8261f',sw:0.44,sg:0.12,so:0,sol:0,sor:0,np:0,sd:0,sdc:'#b8261f',sdy:1.25,sdw:0.1,sdt:'',nb:'',rim:'silver',bmp:'chrome',seat:'#8a2a22',em:'df',pt:'',pc:'#1a1a1a',ps:0.35,tx:'',tp:'hood',tc:'#1a1a1a',ts:1,pv:'RM',pn:'00',pl:'110F'};
 // 模様の型ごとの「大きさ」の既定（チェッカー＝升目の一辺・水玉＝玉の間隔・塗り分け＝境目の高さ）
 export const PAT_SIZE = {chk:[0.35,0.15,0.8], dot:[0.45,0.2,1.0], low:[1.2,0.5,2.2]};
 // 文字は英数字と一部の記号だけ（書体に字形がある字＝端末で字が変わらない）
@@ -379,7 +379,7 @@ export async function loadCar(url){
 
   // ナンバープレート
   await fontReady;
-  let rearM = null, frontM = null;
+  let rearM = null, frontM = null; const plateObjs = [...rearPlates]; // ナンバーを外すときに隠すもの
   const plateMat = kind => new THREE.MeshPhysicalMaterial({map:plateTexture(kind,plateParts(DEF)),roughness:0.45,metalness:0,clearcoat:0.4,clearcoatRoughness:0.3});
   if(rearPlates.length){
     // 板はエンジンフードに沿って曲がっている＝面に沿うデカールで貼る
@@ -403,7 +403,7 @@ export async function loadCar(url){
       const m=rearM=plateMat('rear'); m.polygonOffset=true; m.polygonOffsetFactor=-4; m.depthWrite=false;
       for(const p of rearPlates){
         const geo=new DecalGeometry(p, pos, rot, new THREE.Vector3(x1-x0, y1-y0, 0.5));
-        geo.applyMatrix4(inv); root.add(new THREE.Mesh(geo, m));
+        geo.applyMatrix4(inv); const dm=new THREE.Mesh(geo, m); root.add(dm); plateObjs.push(dm);
       }
     }
   }
@@ -413,7 +413,7 @@ export async function loadCar(url){
     const w=0.68, h=0.148, d=0.012, black=new THREE.MeshPhysicalMaterial({color:0x0d0d0d,roughness:0.5});
     frontM=plateMat('front');
     const front=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), [black,black,black,black,frontM,black]);
-    front.position.set(0, 1.208, 3.857+d/2+0.003); root.add(front);
+    front.position.set(0, 1.208, 3.857+d/2+0.003); root.add(front); plateObjs.push(front);
   }
 
   let lastPl = (P=>[P.v,P.n,P.l].join('|'))(plateParts(DEF));
@@ -528,6 +528,7 @@ export async function loadCar(url){
     const em=['df','r'].includes(S.em)?S.em:'';
     if(em!==lastEm){ lastEm=em; buildEmblem(em); }
     // ナンバー＝県・上段2桁・下段4桁が変わったときだけ描き直す（前後とも同じ指定）
+    plateObjs.forEach(o=>o.visible=!S.np);
     const P=plateParts(S), plKey=[P.v,P.n,P.l].join('|');
     if(plKey!==lastPl){ lastPl=plKey; for(const [m,k] of [[rearM,'rear'],[frontM,'front']]){ if(!m) continue; if(m.map) m.map.dispose(); m.map=plateTexture(k,P); m.needsUpdate=true; } }
     const nbKey=[S.nb,S.sd,S.sdt,S.sdy,S.sdw].join('|');

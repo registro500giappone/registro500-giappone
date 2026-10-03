@@ -156,6 +156,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
       </details>
       <details data-cam="rear34">
         <summary>ナンバー</summary>
+        <div class="row"><label class="cap">ナンバープレート</label><button id="np" aria-pressed="false">外す</button></div>
         <div class="row"><label class="cap">左上＝県（前のナンバーも同じ）</label>
           <select id="plV"></select></div>
         <div class="row"><label class="cap">右上の2桁（英数字）</label>
@@ -187,7 +188,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
-import {DEF, PAT_SIZE, PROVINCES, cleanText, cleanPlate, readHash, loadCar} from './car.js?v=36';
+import {DEF, PAT_SIZE, PROVINCES, cleanText, cleanPlate, readHash, loadCar} from './car.js?v=37';
 import {mountPost} from './post.js?v=7';
 
 // 当時の純正色＝FIAT の色名と色番号・年はイタリアの色表（500 Club Italia ほか）。オランダの色表（Fiat van der Laan）とも名前・番号が一致
@@ -275,6 +276,7 @@ $('num').addEventListener('input',e=>{S.nb=e.target.value.replace(/[^0-9A-Za-z]/
 document.querySelectorAll('[data-pt]').forEach(b=>b.onclick=()=>{ const t=b.dataset.pt; S.pt=t; if(t){ S.ps=PAT_SIZE[t][0]; if(t==='chk') S.cv=0; } apply(); });
 bindColor('patCol','pc'); bindRange('patS','ps'); bindColor('txCol','tc'); bindRange('txS','ts');
 $('plV').innerHTML=PROVINCES.map(([c,n])=>`<option value="${c}">${n}（${c==='RM'?'ROMA':c}）</option>`).join('');
+$('np').onclick=()=>{S.np=S.np?0:1; apply();};
 $('plV').addEventListener('change',e=>{S.pv=e.target.value; apply();});
 $('plN').addEventListener('input',e=>{S.pn=cleanPlate(e.target.value,2); apply();});
 $('plL').addEventListener('input',e=>{S.pl=cleanPlate(e.target.value,4); apply();});
@@ -308,7 +310,7 @@ function syncUI(){
   if(ps){ $('patS').min=ps[1]; $('patS').max=ps[2]; $('patS').value=S.ps; }
   $('patSCap').textContent = S.pt==='low' ? '塗り分けの高さ' : '大きさ';
   if(document.activeElement!==$('tx')) $('tx').value=S.tx;
-  $('plV').value=S.pv; if(document.activeElement!==$('plN')) $('plN').value=S.pn; if(document.activeElement!==$('plL')) $('plL').value=S.pl;
+  $('np').setAttribute('aria-pressed',!!S.np); $('plV').value=S.pv; if(document.activeElement!==$('plN')) $('plN').value=S.pn; if(document.activeElement!==$('plL')) $('plL').value=S.pl;
 }
 
 const VIEWS={f34:[35,14,14.5],side:[90,4,15],rear34:[215,16,14.5],top:[20,70,17]};

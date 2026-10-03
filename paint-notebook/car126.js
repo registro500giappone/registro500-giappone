@@ -6,12 +6,12 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {DecalGeometry} from 'three/addons/geometries/DecalGeometry.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
-import {PROVINCES, cleanPlate, cleanText, loadPlateFont} from './car.js?v=36';
+import {PROVINCES, cleanPlate, cleanText, loadPlateFont} from './car.js?v=37';
 export {PROVINCES, cleanPlate, cleanText};
 
 const K = 2.6027;
 // 既定＝1972〜76年のイタリア製初期型（白 233・閉じた屋根・外ミラー無し・1976年6月までの登録のナンバー）
-export const DEF = {bc:'#eceae2',fin:'solid',tt:0,rc:'#1a1a1a',sr:0,cc:'#1c1c1c',seat:'#8a2a22',mr:0,st:0,sc:'#b8261f',sw:0.44,sg:0.12,so:0,sol:0,sor:0,sd:0,sdc:'#b8261f',sdy:1.25,sdw:0.1,nb:'',rim:'silver',pt:'',pc:'#1a1a1a',ps:0.35,tx:'',tp:'hood',tc:'#1a1a1a',ts:1,pe:'51',pv:'RM',pn:'M1',pl:'2672'};
+export const DEF = {bc:'#eceae2',fin:'solid',tt:0,rc:'#1a1a1a',sr:0,cc:'#1c1c1c',seat:'#8a2a22',mr:0,st:0,sc:'#b8261f',sw:0.44,sg:0.12,so:0,sol:0,sor:0,np:0,sd:0,sdc:'#b8261f',sdy:1.25,sdw:0.1,nb:'',rim:'silver',pt:'',pc:'#1a1a1a',ps:0.35,tx:'',tp:'hood',tc:'#1a1a1a',ts:1,pe:'51',pv:'RM',pn:'M1',pl:'2672'};
 // 当時の色＝FIAT の色番号と名前（初期型の資料＋1976年の Personal の6色）。色味は写真からの近似（色見本の実測ではない）
 export const COLORS = [['#eceae2','Bianco 233'],['#e6dcc0','Avorio Antico 234'],['#d9c9a3','Beige Chiaro 532'],['#e3c45a','Giallo Tufo 246'],['#d2461e','Rosso Arancio 171'],['#b3261e','Rosso Corallo Scuro 165'],['#5e7a2e','Verde Muschio 329'],['#8db255','Verde Chiaro 358'],['#3fa6a0','Turchese Farfalla 463'],['#3f7fb8','Blu Adriatico 408'],['#1f2f55','Blu Scuro 456']];
 export const PAT_SIZE = {chk:[0.35,0.15,0.8], dot:[0.45,0.2,1.0], low:[1.2,0.5,2.2]};
@@ -490,6 +490,7 @@ export async function loadCar(url){
       rimMat.needsUpdate=true;
     }
     mirrors.forEach(o=>o.visible=!!S.mr);
+    for(const k in plates) plates[k].mesh.visible=!S.np;
     const P=plateParts(S), plKey=[P.e,P.v,P.n,P.l].join('|');
     if(plKey!==lastPl){ lastPl=plKey; for(const k in plates){ const p=plates[k], T=plateTexture126(k,P); if(p.mat.map) p.mat.map.dispose(); p.mat.map=T.tex; p.mat.needsUpdate=true;
       const w=T.mm[0]*K/1000, h=T.mm[1]*K/1000; p.mesh.scale.set(w,h,1); p.mesh.position.y = k==='front' ? p.cy : p.y0+h/2; } }
