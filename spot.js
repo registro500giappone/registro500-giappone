@@ -134,10 +134,11 @@ function initMap() {
     zoomDelta: 0.5
   }).setView([37, 137], 7);
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
-    subdomains: 'abcd',
+  // 国土地理院の淡色地図（キー不要）。CARTO は 2026-10 に API キー必須となり「API KEY REQUIRED」の画像しか返さなくなった。
+  L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
+    attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html">地理院タイル</a>',
     maxZoom: 19,
+    maxNativeZoom: 18,
     noWrap: true
   }).addTo(map);
 
