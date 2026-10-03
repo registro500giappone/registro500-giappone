@@ -6,12 +6,12 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {DecalGeometry} from 'three/addons/geometries/DecalGeometry.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
-import {PROVINCES, cleanPlate, cleanText, loadPlateFont} from './car.js?v=35';
+import {PROVINCES, cleanPlate, cleanText, loadPlateFont} from './car.js?v=36';
 export {PROVINCES, cleanPlate, cleanText};
 
 const K = 2.6027;
 // 既定＝1972〜76年のイタリア製初期型（白 233・閉じた屋根・外ミラー無し・1976年6月までの登録のナンバー）
-export const DEF = {bc:'#eceae2',fin:'solid',tt:0,rc:'#1a1a1a',sr:0,cc:'#1c1c1c',seat:'#8a2a22',mr:0,st:0,sc:'#b8261f',sw:0.44,sg:0.12,so:0,sd:0,sdc:'#b8261f',sdy:1.25,sdw:0.1,nb:'',rim:'silver',pt:'',pc:'#1a1a1a',ps:0.35,tx:'',tp:'hood',tc:'#1a1a1a',ts:1,pe:'51',pv:'RM',pn:'M1',pl:'2672'};
+export const DEF = {bc:'#eceae2',fin:'solid',tt:0,rc:'#1a1a1a',sr:0,cc:'#1c1c1c',seat:'#8a2a22',mr:0,st:0,sc:'#b8261f',sw:0.44,sg:0.12,so:0,sol:0,sor:0,sd:0,sdc:'#b8261f',sdy:1.25,sdw:0.1,nb:'',rim:'silver',pt:'',pc:'#1a1a1a',ps:0.35,tx:'',tp:'hood',tc:'#1a1a1a',ts:1,pe:'51',pv:'RM',pn:'M1',pl:'2672'};
 // 当時の色＝FIAT の色番号と名前（初期型の資料＋1976年の Personal の6色）。色味は写真からの近似（色見本の実測ではない）
 export const COLORS = [['#eceae2','Bianco 233'],['#e6dcc0','Avorio Antico 234'],['#d9c9a3','Beige Chiaro 532'],['#e3c45a','Giallo Tufo 246'],['#d2461e','Rosso Arancio 171'],['#b3261e','Rosso Corallo Scuro 165'],['#5e7a2e','Verde Muschio 329'],['#8db255','Verde Chiaro 358'],['#3fa6a0','Turchese Farfalla 463'],['#3f7fb8','Blu Adriatico 408'],['#1f2f55','Blu Scuro 456']];
 export const PAT_SIZE = {chk:[0.35,0.15,0.8], dot:[0.45,0.2,1.0], low:[1.2,0.5,2.2]};
@@ -36,7 +36,7 @@ const U = {
   uCarInv:{value:new THREE.Matrix4()}, uBody:{value:new THREE.Color()},
   uTT:{value:0}, uRoofCol:{value:new THREE.Color()},
   uSR:{value:0}, uSRCol:{value:new THREE.Color('#1c1c1c')},
-  uStripe:{value:0}, uStripeCol:{value:new THREE.Color()}, uSW:{value:0.2}, uSG:{value:0.1}, uSO:{value:0},
+  uStripe:{value:0}, uStripeCol:{value:new THREE.Color()}, uSW:{value:0.2}, uSG:{value:0.1}, uSO:{value:0}, uSL:{value:0}, uSRt:{value:0},
   uSide:{value:0}, uSideCol:{value:new THREE.Color()}, uSideY:{value:1.2}, uSideW:{value:0.1},
   uPat:{value:0}, uPatCol:{value:new THREE.Color()}, uPatS:{value:0.35},
 };
@@ -50,7 +50,7 @@ function paintMaterial(){
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>',`#include <common>
 varying vec3 vWPos; varying vec3 vWNrm;
-uniform float uTT,uSR,uStripe,uSW,uSG,uSO,uSide,uSideY,uSideW;
+uniform float uTT,uSR,uStripe,uSW,uSG,uSO,uSL,uSRt,uSide,uSideY,uSideW;
 uniform vec3 uRoofCol,uSRCol,uStripeCol,uSideCol;
 uniform float uPat,uPatS; uniform vec3 uPatCol;
 float band(float d,float hw){ float a=fwidth(d)*1.2+1e-4; return 1.0-smoothstep(hw-a,hw+a,d); }`)
@@ -84,7 +84,7 @@ pat*=(1.0-isSR)*ff;
 diffuseColor.rgb=mix(diffuseColor.rgb,uPatCol,pat);
 float stp=0.0; float ax=abs(vWPos.x);
 if(uStripe>0.5 && uStripe<1.5) stp=band(abs(vWPos.x-uSO),uSW*0.5);
-if(uStripe>1.5) stp=band(abs(ax-(uSG*0.5+uSW*0.5)),uSW*0.5);
+if(uStripe>1.5) stp=max(band(abs(vWPos.x-uSL),uSW*0.5),band(abs(vWPos.x-uSRt),uSW*0.5));
 stp*=(1.0-smoothstep(0.6,0.8,abs(wn.x)))*(1.0-isSR)*ff;
 float sdl=0.0;
 if(uSide>0.5){ sdl=band(abs(vWPos.y-uSideY),uSideW*0.5)*smoothstep(0.45,0.65,abs(wn.x))*ff; }
@@ -471,7 +471,7 @@ export async function loadCar(url){
     curS=S;
     bodyMat.color.set(S.bc); U.uBody.value.set(S.bc); setFinish(bodyMat,S.fin);
     U.uTT.value=S.tt; U.uRoofCol.value.set(S.rc); U.uSR.value=S.sr; U.uSRCol.value.set(S.cc||'#1c1c1c'); seatMat.color.set(S.seat||'#8a2a22');
-    U.uStripe.value=S.st; U.uStripeCol.value.set(S.sc); U.uSW.value=S.sw; U.uSG.value=S.sg; U.uSO.value=-S.so;
+    U.uStripe.value=S.st; U.uStripeCol.value.set(S.sc); U.uSW.value=S.sw; U.uSG.value=S.sg; U.uSO.value=-S.so; { const b=S.sg*0.5+S.sw*0.5; U.uSL.value=b-S.sol; U.uSRt.value=-b-S.sor; } // 2本＝左右対称の位置から1本ずつずらす
     U.uSide.value=S.sd; U.uSideCol.value.set(S.sdc); U.uSideY.value=S.sdy; U.uSideW.value=S.sdw;
     const pt=['chk','dot','low'].indexOf(S.pt)+1;
     U.uPat.value=pt; U.uPatCol.value.set(S.pc);

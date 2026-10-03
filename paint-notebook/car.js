@@ -5,7 +5,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {DecalGeometry} from 'three/addons/geometries/DecalGeometry.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 
-export const DEF = {bc:'#f1ede2',fin:'solid',tt:0,rc:'#f1ede2',cv:1,cc:'#1c1c1c',st:0,sc:'#b8261f',sw:0.44,sg:0.12,so:0,sd:0,sdc:'#b8261f',sdy:1.25,sdw:0.1,sdt:'',nb:'',rim:'silver',bmp:'chrome',seat:'#8a2a22',em:'df',pt:'',pc:'#1a1a1a',ps:0.35,tx:'',tp:'hood',tc:'#1a1a1a',ts:1,pv:'RM',pn:'00',pl:'110F'};
+export const DEF = {bc:'#f1ede2',fin:'solid',tt:0,rc:'#f1ede2',cv:1,cc:'#1c1c1c',st:0,sc:'#b8261f',sw:0.44,sg:0.12,so:0,sol:0,sor:0,sd:0,sdc:'#b8261f',sdy:1.25,sdw:0.1,sdt:'',nb:'',rim:'silver',bmp:'chrome',seat:'#8a2a22',em:'df',pt:'',pc:'#1a1a1a',ps:0.35,tx:'',tp:'hood',tc:'#1a1a1a',ts:1,pv:'RM',pn:'00',pl:'110F'};
 // 模様の型ごとの「大きさ」の既定（チェッカー＝升目の一辺・水玉＝玉の間隔・塗り分け＝境目の高さ）
 export const PAT_SIZE = {chk:[0.35,0.15,0.8], dot:[0.45,0.2,1.0], low:[1.2,0.5,2.2]};
 // 文字は英数字と一部の記号だけ（書体に字形がある字＝端末で字が変わらない）
@@ -26,7 +26,7 @@ export function readHash(){
 const U = {
   uCarInv:{value:new THREE.Matrix4()},
   uCanvas:{value:1}, uCanvasCol:{value:new THREE.Color()},
-  uStripe:{value:0}, uStripeCol:{value:new THREE.Color()}, uSW:{value:0.2}, uSG:{value:0.1}, uSO:{value:0},
+  uStripe:{value:0}, uStripeCol:{value:new THREE.Color()}, uSW:{value:0.2}, uSG:{value:0.1}, uSO:{value:0}, uSL:{value:0}, uSRt:{value:0},
   uSide:{value:0}, uSideCol:{value:new THREE.Color()}, uSideY:{value:1.2}, uSideW:{value:0.1},
   // アバルトの帯＝形（0 ただの線／1 太帯＋細線2本／2 太帯1本）・帯の前端と後端の z・文字の枠の前端と後端の z・文字（白抜き＝アルファだけ使う）
   uSideT:{value:0}, uSideZ:{value:new THREE.Vector2(1.80,-1.30)}, uTxtZ:{value:new THREE.Vector2()}, uTxt:{value:null},
@@ -44,7 +44,7 @@ function paintMaterial(isRoof){
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>',`#include <common>
 varying vec3 vWPos; varying vec3 vWNrm;
-uniform float uRoof,uCanvas,uStripe,uSW,uSG,uSO,uSide,uSideY,uSideW;
+uniform float uRoof,uCanvas,uStripe,uSW,uSG,uSO,uSL,uSRt,uSide,uSideY,uSideW;
 uniform vec3 uCanvasCol,uStripeCol,uSideCol;
 uniform float uSideT; uniform vec2 uSideZ,uTxtZ; uniform sampler2D uTxt;
 uniform float uPat,uPatS; uniform vec3 uPatCol;
@@ -79,7 +79,7 @@ pat*=(1.0-isCanvas)*ff;
 diffuseColor.rgb=mix(diffuseColor.rgb,uPatCol,pat);
 float stp=0.0; float ax=abs(vWPos.x);
 if(uStripe>0.5 && uStripe<1.5) stp=band(abs(vWPos.x-uSO),uSW*0.5);
-if(uStripe>1.5) stp=band(abs(ax-(uSG*0.5+uSW*0.5)),uSW*0.5);
+if(uStripe>1.5) stp=max(band(abs(vWPos.x-uSL),uSW*0.5),band(abs(vWPos.x-uSRt),uSW*0.5));
 stp*=1.0-smoothstep(0.6,0.8,abs(wn.x));
 stp*=1.0-isCanvas;
 stp*=ff;
@@ -499,7 +499,7 @@ export async function loadCar(url){
     bodyMat.color.set(S.bc); roofMat.color.set(S.tt?S.rc:S.bc);
     setFinish(bodyMat,S.fin); setFinish(roofMat,S.fin);
     U.uCanvas.value=S.cv; U.uCanvasCol.value.set(S.cc);
-    U.uStripe.value=S.st; U.uStripeCol.value.set(S.sc); U.uSW.value=S.sw; U.uSG.value=S.sg; U.uSO.value=-S.so; // 車の右＝-x
+    U.uStripe.value=S.st; U.uStripeCol.value.set(S.sc); U.uSW.value=S.sw; U.uSG.value=S.sg; U.uSO.value=-S.so; { const b=S.sg*0.5+S.sw*0.5; U.uSL.value=b-S.sol; U.uSRt.value=-b-S.sor; } // 車の右＝-x／2本＝左右対称の位置から1本ずつずらす
     U.uSide.value=S.sd; U.uSideCol.value.set(S.sdc); U.uSideY.value=S.sdy; U.uSideW.value=S.sdw;
     const sdt=['595','695','fa'].includes(S.sdt)?S.sdt:'';
     U.uSideT.value = !sdt?0 : sdt==='fa'?2 : 1;

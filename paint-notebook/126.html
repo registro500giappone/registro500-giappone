@@ -132,8 +132,10 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
         <div class="row" id="stripe"><label class="cap">センターストライプ（ボンネット→屋根→エンジンフード）</label>
           <button data-st="0">なし</button><button data-st="1">1本</button><button data-st="2">2本</button><input type="color" id="stCol"></div>
         <div class="row"><label class="cap">太さ</label><input type="range" id="stW" min="0.16" max="1.2" step="0.01"></div>
-        <div class="row"><label class="cap">1本のときの位置（左 ← 中央 → 右）</label><input type="range" id="stO" min="-1.1" max="1.1" step="0.01"><button id="stOc">中央に戻す</button></div>
-        <div class="row"><label class="cap">2本の間隔</label><input type="range" id="stG" min="0.03" max="0.5" step="0.01"></div>
+        <div class="row" id="stRow1"><label class="cap">位置（左 ← 中央 → 右）</label><input type="range" id="stO" min="-1.1" max="1.1" step="0.01"><button id="stOc">中央に戻す</button></div>
+        <div class="row st2"><label class="cap">左の線の位置</label><input type="range" id="stL" min="-1.1" max="1.1" step="0.01"></div>
+        <div class="row st2"><label class="cap">右の線の位置</label><input type="range" id="stRt" min="-1.1" max="1.1" step="0.01"><button id="stLRc">左右対称に戻す</button></div>
+        <div class="row st2"><label class="cap">2本の間隔</label><input type="range" id="stG" min="0.03" max="0.5" step="0.01"></div>
         <div class="row"><label class="cap">サイドライン（側面）</label>
           <button id="sd" aria-pressed="false">引く</button><input type="color" id="sdCol"></div>
         <div class="row"><label class="cap">線の高さ</label><input type="range" id="sdY" min="0.6" max="2.2" step="0.01"></div>
@@ -181,7 +183,7 @@ input[type=text]{font:inherit;width:70px;padding:4px 8px;border:1px solid var(--
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
-import {DEF, PAT_SIZE, PROVINCES, COLORS, cleanText, cleanPlate, readHash, loadCar} from './car126.js?v=18';
+import {DEF, PAT_SIZE, PROVINCES, COLORS, cleanText, cleanPlate, readHash, loadCar} from './car126.js?v=19';
 import {mountPost} from './post.js?v=7';
 
 const S = readHash();
@@ -240,7 +242,12 @@ bindColor('canvasCol','cc');
 bindColor('seatCol','seat');
 const bindRange=(id,key)=>$(id).addEventListener('input',e=>{S[key]=+e.target.value; apply();});
 bindRange('stW','sw'); bindRange('stG','sg'); bindRange('stO','so');
-$('stOc').onclick=()=>{S.so=0; apply();}; bindRange('sdY','sdy'); bindRange('sdW','sdw');
+$('stOc').onclick=()=>{S.so=0; apply();};
+// 2本＝スライダーは線の実際の位置を出し、保存は左右対称の位置からのずれ（sol・sor）
+const stHalf=()=>S.sg*0.5+S.sw*0.5;
+$('stL').addEventListener('input',e=>{S.sol=+(+e.target.value+stHalf()).toFixed(2); apply();});
+$('stRt').addEventListener('input',e=>{S.sor=+(+e.target.value-stHalf()).toFixed(2); apply();});
+$('stLRc').onclick=()=>{S.sol=0; S.sor=0; apply();}; bindRange('sdY','sdy'); bindRange('sdW','sdw');
 const toggle=(id,key)=>$(id).onclick=()=>{S[key]=S[key]?0:1; apply();};
 toggle('tt','tt'); toggle('sr','sr'); toggle('mr','mr'); toggle('sd','sd');
 document.querySelectorAll('[data-fin]').forEach(b=>b.onclick=()=>{S.fin=b.dataset.fin; apply();});
@@ -263,7 +270,9 @@ function syncUI(){
   document.querySelectorAll('#canvasSw .sw').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===S.cc)); $('canvasCol').value=S.cc;
   document.querySelectorAll('#seatSw .sw').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===S.seat)); $('seatCol').value=S.seat;
   $('bodyCol').value=S.bc; $('roofCol').value=S.rc; $('stCol').value=S.sc; $('sdCol').value=S.sdc;
-  $('stW').value=S.sw; $('stG').value=S.sg; $('stO').value=S.so; $('sdY').value=S.sdy; $('sdW').value=S.sdw;
+  $('stW').value=S.sw; $('stG').value=S.sg; $('stO').value=S.so; $('stL').value=-stHalf()+S.sol; $('stRt').value=stHalf()+S.sor;
+  $('stRow1').style.display = S.st===1 ? '' : 'none'; document.querySelectorAll('.st2').forEach(r=>r.style.display = S.st===2 ? '' : 'none');
+  $('sdY').value=S.sdy; $('sdW').value=S.sdw;
   $('tt').setAttribute('aria-pressed',!!S.tt); $('sr').setAttribute('aria-pressed',!!S.sr); $('sd').setAttribute('aria-pressed',!!S.sd);
   document.querySelectorAll('[data-fin]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.fin===S.fin));
   document.querySelectorAll('[data-st]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.st===S.st));
