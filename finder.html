@@ -58,7 +58,7 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.02em}
 </head>
 <body>
 <div class="wrap">
-  <div class="topbar"><a href="/">← トップへ</a></div>
+  <div class="topbar"><a href="/" id="back">← トップへ</a></div>
   <h1>やりたいことから探す</h1>
   <p class="lead">困っていること・知りたいことを一言で入れてください。合いそうなページを並べます。</p>
   <div class="box">
@@ -232,7 +232,7 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.02em}
   function search(raw){
     var q = norm(raw);
     if (!q) return [];
-    var is126 = q.indexOf('126') !== -1;
+    var is126 = FROM126 || q.indexOf('126') !== -1;
     // トルクの部位（110件）は「トルク」「締め」「ボルト」などを含む質問のときだけ上位に出す。
     var torqueIntent = /とるく|締|しめ|nm|kgf|ぼると|なつと/.test(q);
     var scored = entries.map(function(e){
@@ -260,6 +260,9 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.02em}
   // 描画
   // ============================================================
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  // 126サイトのメニューから来たとき（?type=126）は、126向けのページを優先して開く。
+  var FROM126 = new URLSearchParams(location.search).get('type') === '126';
+  if (FROM126) document.getElementById('back').href = '/126/';
   var $q = document.getElementById('q'), $r = document.getElementById('results'), $m = document.getElementById('more');
   var missTimer = null, lastMiss = '';
 
@@ -292,7 +295,8 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.02em}
             + '<a href="/parts-shops" data-to="/parts-shops(guest)">🏪 部品を買える店の一覧（パーツ調達ガイド）</a>')
         + '<a href="/videos?q='+enc+'" data-to="/videos?q=">🎬 「'+esc(raw)+'」の整備動画を探す</a></div>';
     }
-    history.replaceState(null, '', raw ? ('?q='+encodeURIComponent(raw)) : location.pathname);
+    var qs = (FROM126 ? ['type=126'] : []).concat(raw ? ['q='+encodeURIComponent(raw)] : []);
+    history.replaceState(null, '', qs.length ? '?' + qs.join('&') : location.pathname);
 
     // 外れた言葉だけを記録する＝辞書を育てる材料。打ち終わって少し止まったときに1回だけ送る。
     clearTimeout(missTimer);
@@ -386,6 +390,8 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.02em}
   var q0 = new URLSearchParams(location.search).get('q');
   if (q0) { $q.value = q0; }
   render();
+  // メニューから来たときはすぐ打てるように。検索語付きで開いたときは結果を見せたいので触らない。
+  if (!q0) { try { $q.focus(); } catch(_) {} }
 })();
 </script>
 </body>
