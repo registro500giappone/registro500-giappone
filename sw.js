@@ -17,7 +17,11 @@
 
 const CACHE_VERSION = '__BUILD_VERSION__';
 const RUNTIME_CACHE = `registro500-runtime-${CACHE_VERSION}`;
-const HTML_CACHE = `registro500-html-${CACHE_VERSION}`;
+// HTML の置き場もデプロイをまたいで保持する（registro500- で始めない＝activate の掃除に掛からない）。
+// 版ごとに置くと、新しい SW に切り替わった直後の起動では保存分がゼロ＝通信が詰まったら白いまま止まる
+// （2026-10-07・公開デプロイ後に 500 のホーム画面アイコンだけが何度起動しても白いまま）。
+// 中身は NetworkFirst で毎回取り直すので、古い版が残り続けることはない。
+const HTML_CACHE = 'html-v1';
 // 版番号固定の外部ライブラリ置き場。名前が registro500- で始まらないので activate の掃除に掛からない。
 const VENDOR_CACHE = 'vendor-v1';
 const VENDOR_PATH = /^\/npm\/@supabase\/supabase-js@\d+\.\d+\.\d+$/;
@@ -30,6 +34,16 @@ const CONFIG_CACHE = 'config-v1';
 // 超えたら前回の保存分で先に表示し、取得は裏で続けて保存だけ更新する。
 // iPhone のホーム画面起動の直後は通信が詰まることがあり、上限が無いと白いまま止まる。
 const NETWORK_TIMEOUT_MS = 3500;
+// 1回の通信の打ち切り（ミリ秒）。iPhone のホーム画面起動の直後は、通信が失敗もせず返りもしないまま
+// 止まることがある＝上限が無いと保存分の無い資源（版が替わった直後の style.css 等）で永久に待つ。
+// 打ち切ったら新しく取り直す（AbortController は navigate の Request に init を渡せない端末があるので使わない）。
+const FETCH_TIMEOUT_MS = 6000;
+function fetchWithTimeout(req) {
+  return Promise.race([
+    fetch(req),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('fetch timeout: ' + req.url)), FETCH_TIMEOUT_MS)),
+  ]);
+}
 
 // SW で扱わないホスト（API・決済・解析・CDN等）
 const BYPASS_HOSTS = [
@@ -161,7 +175,7 @@ self.addEventListener('fetch', (event) => {
 // 本文を読み切ってから応答を2つ作り直し、空なら失敗扱いにして呼び出し側の保存分へ回す。
 // リダイレクトや失敗の応答は作り直さずにそのまま返す（ナビゲーションの redirected を壊さない）。
 async function fetchAndStore(req, cache) {
-  const fresh = await fetch(req);
+  const fresh = await fetchWithTimeout(req);
   if (!fresh || !fresh.ok || fresh.redirected) return fresh;
   const body = await fresh.arrayBuffer();
   if (body.byteLength === 0) throw new Error('empty body: ' + req.url);
@@ -206,7 +220,7 @@ async function networkFirst(req, cacheName, timeoutMs, retries = 0) {
     }
     return await network;
   }
-  const network = fetchAndStore(req, cache);
+  const network = fetchAndStoreRetry(req, cache, 2);
   try {
     if (!timeoutMs) return await network;
     const timedOut = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
@@ -234,12 +248,13 @@ async function cacheFirst(req, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(req);
   if (cached) return cached;
-  return fetchAndStore(req, cache);
+  return fetchAndStoreRetry(req, cache, 2);
 }
 
 async function staleWhileRevalidate(req, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(req);
-  const fetchPromise = fetchAndStore(req, cache).catch(() => cached);
+  // 保存分が無いときは画面が待っている＝詰まったら取り直す
+  const fetchPromise = fetchAndStoreRetry(req, cache, cached ? 0 : 2).catch(() => cached);
   return cached || fetchPromise;
 }
