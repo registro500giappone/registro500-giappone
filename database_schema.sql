@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-10-07 12:54 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-10-07 20:13 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -1354,6 +1354,7 @@ begin
     returning id into v_id;
   else
     if p_delete_key is null or char_length(p_delete_key) < 32 then raise exception 'bad key'; end if;
+    if v_name is null then raise exception 'name required'; end if;
     insert into paint_posts (car_type, design, thumb_path, comment, visitor_name, user_id, delete_key_hash)
     values (p_car_type, v_design, p_thumb_path, v_comment, v_name, v_uid,
             encode(sha256(convert_to(p_delete_key, 'UTF8')), 'hex'))

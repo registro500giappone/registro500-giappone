@@ -101,7 +101,7 @@ const HTML = `<div class="box" role="dialog" aria-modal="true" aria-labelledby="
     </div>
   </div>
   <div id="postCarRow" hidden><label for="postCar">投稿する車</label><select id="postCar"></select></div>
-  <div id="postNameRow"><label for="postName">お名前（任意・20字まで・空欄なら「ゲスト」）</label><input type="text" id="postName" maxlength="20" autocomplete="nickname"></div>
+  <div id="postNameRow"><label for="postName">お名前（必須・20字まで）</label><input type="text" id="postName" maxlength="20" autocomplete="nickname" required></div>
   <label for="postCmt">ひとこと（任意）<span class="cnt" id="postCnt">0/40</span></label><textarea id="postCmt" maxlength="40" rows="2" enterkeyhint="done"></textarea>
   <p class="rule">投稿は誰でも見られる一覧に載ります。不適切な内容は管理者が削除します。</p>
   <div class="btns"><button id="postCancel">やめる</button><button id="postSend" class="primary">投稿する</button></div>
@@ -110,7 +110,7 @@ const HTML = `<div class="box" role="dialog" aria-modal="true" aria-labelledby="
 
 const ERR = {
   'rate limited':'いま投稿が混み合っています。少し時間をおいてお試しください。',
-  'comment too long':'ひとことは40字までです。', 'name too long':'お名前は20字までです。',
+  'comment too long':'ひとことは40字までです。', 'name too long':'お名前は20字までです。', 'name required':'お名前を入れてください。',
   'not your car':'この車では投稿できませんでした。ログインし直してお試しください。'
 };
 
@@ -228,6 +228,8 @@ export function mountPost({ carType, snap }){
   async function send(){
     if(busy) return;
     if(done){ close(); return; }
+    // ゲスト投稿は名前が必須（車に紐づく投稿は登録のハンドルネームを使う）
+    if(!$('postNameRow').hidden && !$('postName').value.trim()){ $('postMsg').textContent = 'お名前を入れてください。'; $('postName').focus(); return; }
     busy = true; $('postSend').disabled = true; $('postMsg').textContent = '送っています…';
     const c = await sb().catch(() => null);
     if(!c){ $('postMsg').textContent = '接続できませんでした。電波の良い所でもう一度お試しください。'; busy = false; $('postSend').disabled = false; return; }
