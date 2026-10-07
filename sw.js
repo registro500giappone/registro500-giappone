@@ -175,10 +175,18 @@ self.addEventListener('fetch', (event) => {
 // 本文を読み切ってから応答を2つ作り直し、空なら失敗扱いにして呼び出し側の保存分へ回す。
 // リダイレクトや失敗の応答は作り直さずにそのまま返す（ナビゲーションの redirected を壊さない）。
 async function fetchAndStore(req, cache) {
-  const fresh = await fetchWithTimeout(req);
+  let fresh = await fetchWithTimeout(req);
   if (!fresh || !fresh.ok || fresh.redirected) return fresh;
-  const body = await fresh.arrayBuffer();
-  if (body.byteLength === 0) throw new Error('empty body: ' + req.url);
+  let body = await fresh.arrayBuffer();
+  if (body.byteLength === 0) {
+    // 200 なのに本文が空＝端末の HTTP キャッシュに空の控えが居座っている（2026-10-07 iPhone 実測：
+    // 「empty body: /news」で毎回同じに失敗）。同じ要求を繰り返しても同じ空が返るので、HTTP キャッシュを
+    // 飛ばしてサーバーから取り直す（navigate の Request には init を渡せない端末があるので URL から作る）。
+    fresh = await fetchWithTimeout(new Request(req.url, { cache: 'reload', credentials: 'same-origin' }));
+    if (!fresh || !fresh.ok || fresh.redirected) return fresh;
+    body = await fresh.arrayBuffer();
+    if (body.byteLength === 0) throw new Error('empty body: ' + req.url);
+  }
   const headers = new Headers(fresh.headers);
   headers.delete('content-encoding');   // 本文は展開済み
   headers.delete('content-length');
@@ -240,6 +248,8 @@ async function networkFirst(req, cacheName, timeoutMs, retries = 0) {
     // HTML が無ければ index.html のキャッシュをフォールバック
     const fallback = await cache.match('/') || await cache.match('/index.html');
     if (fallback) return fallback;
+    // 最後の手段＝SW で読まずにブラウザへそのまま渡す（エラー画面で止めない）
+    if (req.mode === 'navigate') return fetch(new Request(req.url, { cache: 'reload', credentials: 'same-origin' }));
     throw err;
   }
 }
