@@ -38,7 +38,7 @@
 | `id` uuid | |
 | `car_id` text | 投稿した車（`cars.document_id`）。RLS は `owns_car(car_id)` |
 | `name` text | 工具名（1〜80字）。メーカー・型番まで書くことを勧める |
-| `category` text | `ignition`点火・キャブ／`electric`電装／`chassis`足まわり・ジャッキ／`wrench`レンチ・ソケット・ドライバー／`measure`測る・調べる／`misc`あると助かる小物 |
+| `category` text | **道具の種類で1本の軸**（2026-10-07 ユーザー承認・旧6分類は作業の場所と道具の種類が混ざっていたため廃止）：`turn`回す／`grip`つかむ・切る・叩く／`measure`測る・調べる／`lift`持ち上げる・支える／`special`専用工具／`light`照らす・手を守る／`repair`応急・補修。⛔作業の場所（点火・電装など）を同じ選択肢に混ぜない＝要るなら別の任意欄にする。境目の決まり＝特定の作業の名前が付く道具は「専用工具」 |
 | `usage` text | `carry`車に積む／`garage`ガレージで使う／`both`両方 |
 | `comment` text | 一言（1〜400字）。何に使うか・なぜ良いか |
 | `photo_url` text | Firebase Storage `tools/{carId}/{時刻}.jpg` の URL（長辺1600px・JPEG 0.85）か、他サイトの画像URL（https・1000字まで） |

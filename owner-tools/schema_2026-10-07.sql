@@ -70,3 +70,8 @@ alter table public.owner_tools drop constraint if exists owner_tools_photo_url_c
 alter table public.owner_tools add constraint owner_tools_photo_url_check
   check (photo_url is null or (photo_url like 'https://%' and char_length(photo_url) <= 1000));
 comment on column public.owner_tools.consent_at is '投稿した時刻（掲載と購入リンクの告知を表示した上での投稿）';
+
+-- 【2026-10-07 追記】分類を「道具の種類」1本の軸の7種へ（投稿0件の時点で差し替え）
+alter table public.owner_tools drop constraint if exists owner_tools_category_check;
+alter table public.owner_tools add constraint owner_tools_category_check
+  check (category in ('turn','grip','measure','lift','special','light','repair'));
