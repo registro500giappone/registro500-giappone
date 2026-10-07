@@ -67,6 +67,14 @@
     .buy { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
     .amz { background: var(--amber); color: #fff; border-radius: 8px; padding: 7px 12px; font-size: .8rem; font-weight: 700; text-decoration: none; }
     .pr { font-size: .65rem; border: 1px solid var(--border-soft); border-radius: 3px; padding: 0 4px; color: var(--text-sub); }
+    .metoo-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+    .metoo { font-family: inherit; font-size: .8rem; font-weight: 700; border: 1px solid var(--accent); color: var(--accent); background: transparent; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+    .metoo.on { background: var(--accent); color: #fff; }
+    .metoo:disabled { opacity: .6; cursor: default; }
+    .metoo-note { font-size: .75rem; color: var(--text-sub); }
+    .metoo-note a { color: var(--accent); }
+    .also { font-size: .75rem; color: var(--text-sub); margin-top: 8px; line-height: 1.6; }
+    .also a { color: var(--accent); }
     .empty, #loading { text-align: center; color: var(--text-sub); padding: 36px 0; }
     .empty p { margin: 0 0 14px; }
     .affiliate-disclosure { font-size: .72rem; color: var(--text-sub); margin-top: 24px; padding: 10px 12px; border: 1px solid var(--border-soft); border-radius: 8px; line-height: 1.6; }
@@ -97,6 +105,9 @@
   const SHOW_VOICES = 3;
   let groups = [];
   let curCat = 'all';
+  let carMap = {};
+  let myCars = null;   // null＝未ログイン／[]＝車なし
+  let busy = false;
 
   function el(tag, cls, text) {
     const e = document.createElement(tag);
@@ -106,7 +117,7 @@
   }
 
   // tool_key が同じ投稿を1枚にまとめる（NULL は単独カード）
-  function buildGroups(rows, carMap) {
+  function buildGroups(rows, users) {
     const map = new Map();
     rows.forEach(r => {
       const key = r.tool_key ? 'k:' + r.tool_key : 'id:' + r.id;
@@ -120,6 +131,10 @@
       const withPhoto = asc.find(i => i.photo_url);
       const withAmz = asc.find(i => i.amazon_url);
       const usages = new Set(asc.map(i => i.usage));
+      const postIds = new Set(asc.map(i => i.id));
+      const authorCars = new Set(asc.map(i => i.car_id));
+      const metoo = users.filter(u => postIds.has(u.tool_id));
+      const metooCars = [...new Set(metoo.map(u => u.car_id))];
       // 見出しは購入リンクの付いた投稿の名前を優先し、無ければいちばん詳しい（長い）名前
       const longest = asc.reduce((a, b) => (b.name.length > a.name.length ? b : a));
       out.push({
@@ -128,7 +143,11 @@
         usage: usages.size === 1 ? first.usage : 'both',
         photo: withPhoto ? withPhoto.photo_url : null,
         amazon: withAmz ? withAmz.amazon_url : null,
-        carCount: new Set(asc.map(i => i.car_id)).size,
+        carCount: new Set([...authorCars, ...metooCars]).size,
+        repId: first.id,
+        authorCars: authorCars,
+        metoo: metoo,
+        alsoCars: metooCars.filter(id => !authorCars.has(id)),
         latest: new Date(asc[asc.length - 1].created_at).getTime(),
         voices: asc.slice().reverse().map(i => ({ comment: i.comment, car: carMap[i.car_id] || null }))
       });
@@ -137,12 +156,89 @@
     return out;
   }
 
+  function carLabel(car) {
+    return (car.handle_name || 'オーナー') + ' さん' + (car.modelDisplay ? '・' + car.modelDisplay : '');
+  }
+
+  // 「🔧 わたしも使ってる」— 登録オーナーが自分の車をこの工具の使用者に加える（人気の数ではなく、使っている車の数）
+  function metooEl(g) {
+    const row = el('div', 'metoo-row');
+    if (myCars === null) {
+      const b = el('button', 'metoo', '🔧 わたしも使ってる');
+      b.type = 'button';
+      b.addEventListener('click', () => {
+        b.remove();
+        const n = el('span', 'metoo-note', '登録オーナーとしてログインすると押せます。');
+        const a = el('a', null, 'ログインする');
+        a.href = '/tools-edit';
+        n.appendChild(document.createTextNode(' '));
+        n.appendChild(a);
+        row.appendChild(n);
+      });
+      row.appendChild(b);
+      return row;
+    }
+    if (!myCars.length) return null;
+    const eligible = myCars.filter(c => !g.authorCars.has(c.document_id));
+    if (!eligible.length) return null; // 自分の紹介には押さない
+    const mine = g.metoo.filter(u => eligible.some(c => c.document_id === u.car_id));
+    if (mine.length) {
+      const b = el('button', 'metoo on', '✅ 使ってる（取り消す）');
+      b.type = 'button';
+      b.addEventListener('click', () => act(b, async () => {
+        const { error } = await supabaseClient.from('owner_tool_users').delete().in('id', mine.map(u => u.id));
+        if (error) throw error;
+      }));
+      row.appendChild(b);
+      return row;
+    }
+    const press = car => async () => {
+      const { error } = await supabaseClient.from('owner_tool_users').insert({ tool_id: g.repId, car_id: car.document_id });
+      if (error) throw error;
+    };
+    const b = el('button', 'metoo', '🔧 わたしも使ってる');
+    b.type = 'button';
+    if (eligible.length === 1) {
+      b.addEventListener('click', () => act(b, press(eligible[0])));
+      row.appendChild(b);
+    } else {
+      b.addEventListener('click', () => {
+        b.remove();
+        row.appendChild(el('span', 'metoo-note', 'どの車で？'));
+        eligible.forEach(car => {
+          const cb = el('button', 'metoo', carLabel(car));
+          cb.type = 'button';
+          cb.addEventListener('click', () => act(cb, press(car)));
+          row.appendChild(cb);
+        });
+      });
+      row.appendChild(b);
+    }
+    return row;
+  }
+
+  async function act(btn, fn) {
+    if (busy) return;
+    busy = true;
+    btn.disabled = true;
+    try {
+      await fn();
+      await loadData();
+      renderList();
+    } catch (err) {
+      console.error('[tools metoo]', err);
+      alert('保存できませんでした。時間をおいてもう一度お試しください。');
+      btn.disabled = false;
+    } finally {
+      busy = false;
+    }
+  }
+
   function voiceEl(v) {
     const d = el('div', 'voice', v.comment);
     const who = el('span', 'who');
     if (v.car) {
-      const label = (v.car.handle_name || 'オーナー') + ' さん' + (v.car.modelDisplay ? '・' + v.car.modelDisplay : '');
-      const a = el('a', null, label);
+      const a = el('a', null, carLabel(v.car));
       a.href = '/detail?doc=' + encodeURIComponent(v.car.document_id);
       who.appendChild(a);
     } else {
@@ -176,6 +272,20 @@
       c.appendChild(box);
       c.appendChild(btn);
     }
+    const also = g.alsoCars.map(id => carMap[id]).filter(Boolean);
+    if (also.length) {
+      const d = el('div', 'also', 'ほかに ');
+      also.forEach((car, i) => {
+        if (i) d.appendChild(document.createTextNode('、'));
+        const a = el('a', null, carLabel(car));
+        a.href = '/detail?doc=' + encodeURIComponent(car.document_id);
+        d.appendChild(a);
+      });
+      d.appendChild(document.createTextNode(' も使用'));
+      c.appendChild(d);
+    }
+    const mt = metooEl(g);
+    if (mt) c.appendChild(mt);
     if (g.amazon) {
       const buy = el('div', 'buy');
       const a = el('a', 'amz', 'Amazonで見る');
@@ -229,29 +339,51 @@
     }
   }
 
+  function toCar(c) {
+    return {
+      document_id: c.document_id, handle_name: c.handle_name, car_type: c.car_type,
+      modelDisplay: c.model_display_c || [c.model_display_a || '', c.model_display_b || ''].filter(Boolean).join(' ')
+    };
+  }
+  const CAR_COLS = 'document_id, handle_name, model_display_a, model_display_b, model_display_c, car_type';
+
+  async function loadData() {
+    const { data: rows, error } = await supabaseClient.from('owner_tools')
+      .select('id, car_id, name, category, usage, comment, photo_url, tool_key, amazon_url, created_at')
+      .eq('is_hidden', false).order('created_at', { ascending: false }).limit(1000);
+    if (error) throw error;
+    const toolIds = (rows || []).map(r => r.id);
+    let users = [];
+    if (toolIds.length) {
+      const { data: u, error: eu } = await supabaseClient.from('owner_tool_users')
+        .select('id, tool_id, car_id').in('tool_id', toolIds);
+      if (eu) throw eu;
+      users = u || [];
+    }
+    const ids = [...new Set([...(rows || []).map(r => r.car_id), ...users.map(u => u.car_id)])];
+    carMap = {};
+    if (ids.length) {
+      const { data: cars, error: e2 } = await supabaseClient.from('cars').select(CAR_COLS).in('document_id', ids);
+      if (e2) throw e2;
+      (cars || []).forEach(c => { carMap[c.document_id] = toCar(c); });
+    }
+    groups = buildGroups(rows || [], users);
+  }
+
+  async function loadMyCars() {
+    const { data } = await supabaseClient.auth.getSession();
+    const user = data && data.session && data.session.user;
+    if (!user) { myCars = null; return; }
+    const { data: cars, error } = await supabaseClient.from('cars').select(CAR_COLS).eq('owner_user_id', user.id);
+    if (error) { console.error('[tools] my cars', error); myCars = []; return; }
+    myCars = (cars || []).map(toCar);
+  }
+
   async function init() {
     renderChips();
     const loading = document.getElementById('loading');
     try {
-      const { data: rows, error } = await supabaseClient.from('owner_tools')
-        .select('id, car_id, name, category, usage, comment, photo_url, tool_key, amazon_url, created_at')
-        .eq('is_hidden', false).order('created_at', { ascending: false }).limit(1000);
-      if (error) throw error;
-      const ids = [...new Set((rows || []).map(r => r.car_id))];
-      const carMap = {};
-      if (ids.length) {
-        const { data: cars, error: e2 } = await supabaseClient.from('cars')
-          .select('document_id, handle_name, model_display_a, model_display_b, model_display_c, car_type')
-          .in('document_id', ids);
-        if (e2) throw e2;
-        (cars || []).forEach(c => {
-          carMap[c.document_id] = {
-            document_id: c.document_id, handle_name: c.handle_name, car_type: c.car_type,
-            modelDisplay: c.model_display_c || [c.model_display_a || '', c.model_display_b || ''].filter(Boolean).join(' ')
-          };
-        });
-      }
-      groups = buildGroups(rows || [], carMap);
+      await Promise.all([loadData(), loadMyCars().catch(err => { console.error(err); myCars = null; })]);
       loading.remove();
       renderList();
     } catch (err) {

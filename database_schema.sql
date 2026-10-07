@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-10-07 12:21 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-10-07 12:37 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -515,6 +515,17 @@ alter table public.news add constraint news_title_unique UNIQUE (title);
 alter table public.news add constraint check_news_car_type CHECK (((target_car_type)::text = ANY ((ARRAY['both'::character varying, '500'::character varying, '126'::character varying])::text[])));
 alter table public.news enable row level security;
 
+create table public.owner_tool_users (
+  id uuid not null default gen_random_uuid(),
+  tool_id uuid not null,
+  car_id text not null,
+  created_at timestamp with time zone not null default now()
+);
+alter table public.owner_tool_users add constraint owner_tool_users_pkey PRIMARY KEY (id);
+alter table public.owner_tool_users add constraint owner_tool_users_tool_id_car_id_key UNIQUE (tool_id, car_id);
+alter table public.owner_tool_users add constraint owner_tool_users_tool_id_fkey FOREIGN KEY (tool_id) REFERENCES owner_tools(id) ON DELETE CASCADE;
+alter table public.owner_tool_users enable row level security;
+
 create table public.owner_tools (
   id uuid not null default gen_random_uuid(),
   car_id text not null,
@@ -821,6 +832,8 @@ CREATE INDEX idx_favorite_spots_owner ON public.favorite_spots USING btree (owne
 CREATE INDEX idx_favorite_spots_spot ON public.favorite_spots USING btree (spot_id);
 CREATE INDEX inquiry_log_sender_idx ON public.inquiry_log USING btree (sender_uid, created_at DESC);
 CREATE INDEX idx_news_target_car_type ON public.news USING btree (target_car_type);
+CREATE INDEX idx_owner_tool_users_car ON public.owner_tool_users USING btree (car_id);
+CREATE INDEX idx_owner_tool_users_tool ON public.owner_tool_users USING btree (tool_id);
 CREATE INDEX idx_owner_tools_car ON public.owner_tools USING btree (car_id);
 CREATE INDEX idx_owner_tools_created ON public.owner_tools USING btree (created_at DESC);
 CREATE INDEX paint_posts_car_idx ON public.paint_posts USING btree (car_doc, created_at DESC);
@@ -1797,6 +1810,12 @@ create policy garage_notes_select on public.garage_notes as permissive for SELEC
 create policy news_insert_policy on public.news as permissive for INSERT to public
   with check (is_admin());
 create policy news_select_policy on public.news as permissive for SELECT to public
+  using (true);
+create policy owner_tool_users_delete on public.owner_tool_users as permissive for DELETE to authenticated
+  using ((is_admin() OR owns_car(car_id)));
+create policy owner_tool_users_insert on public.owner_tool_users as permissive for INSERT to authenticated
+  with check ((is_admin() OR owns_car(car_id)));
+create policy owner_tool_users_read on public.owner_tool_users as permissive for SELECT to public
   using (true);
 create policy owner_tools_delete on public.owner_tools as permissive for DELETE to authenticated
   using ((is_admin() OR owns_car(car_id)));

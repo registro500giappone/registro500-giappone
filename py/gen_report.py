@@ -104,6 +104,8 @@ fav_users = len({f["owner_user_id"] for f in favs if f.get("owner_user_id")})
 gnotes = len(sb("garage_notes", "id"))
 usel = len(sb("user_selections", "id"))
 equip_recs = sb("equipment_records", "vehicle_id,created_at,updated_at")
+own_tools = sb("owner_tools", "car_id,created_at,updated_at")
+own_tool_users = sb("owner_tool_users", "car_id,created_at")
 
 # 真のアクティブ率 & コホート（auth.users 由来、集計RPC経由）
 act = sb_rpc("report_owner_activity")
@@ -116,12 +118,14 @@ cohort = act["cohort"]
 # ── 90日参加台数（participation_90d・成長戦略の北極星）──────────────────
 # ⛔ active_90d とは別物。active_90d は auth.users 由来の「90日以内にログインした人数」で、
 #    ログインしただけの人も入る＝参加ではない。参加は「この90日に何かした車」を数える。
-# 数える経路は5つ（車ID の和集合・重複なし）。所属は車＝人ではなく車で数えるのが台帳の単位。
+# 数える経路は7つ（車ID の和集合・重複なし）。所属は車＝人ではなく車で数えるのが台帳の単位。
 #   ① 新規登録   car_history.kind = registered
 #   ② 車両更新   car_history.kind = updated（occurred_at は cars.last_update_date 由来）
 #   ③ 車載手帳   equipment_records（車に紐づくものだけ。非公開の手帳も参加として数える）
 #   ④ イベント参加表明 event_participants
 #   ⑤ ストーリー car_episodes
+#   ⑥ おすすめ工具の投稿 owner_tools（2026-10-07 追加）
+#   ⑦ 「わたしも使ってる」 owner_tool_users（2026-10-07 追加）
 # ⚠️ car_history は 2026-09-10 のバックフィルで作った。バックフィルは車1台につき
 #    updated を最新1件しか持たないので、2026-09-10 より前の窓では②が実際より少なく出る。
 #    以後はトリガーが毎回記録するので正しくなる。
@@ -134,6 +138,10 @@ _part |= {e["car_id"] for e in eparts
           if e.get("car_id") and (e.get("created_at") or "")[:10] >= d90}
 _part |= {e["car_id"] for e in episodes
           if e.get("car_id") and (e.get("updated_at") or e.get("created_at") or "")[:10] >= d90}
+_part |= {e["car_id"] for e in own_tools
+          if e.get("car_id") and (e.get("updated_at") or e.get("created_at") or "")[:10] >= d90}
+_part |= {e["car_id"] for e in own_tool_users
+          if e.get("car_id") and (e.get("created_at") or "")[:10] >= d90}
 participation90 = len(_part)
 # ベースライン＝43台（2026-08-29 実測・成長戦略 §1 の定義）。
 # ⚠️ 同じ定義でいま数え直すと 42 になる（差の1台は上の②バックフィル制約）。
@@ -485,7 +493,7 @@ read_reg = (f"今週の新規登録は {new_7d}台（前週 {prev_7d}台）。�
             f"{last_ym} は {last_n}台。旧車ゆえ台数の急増は構造的に見込みにくく、<b>“数”より“質”を重視する局面</b>。")
 read_retain = (f"登録 {total}台のうち連携は {linked}台（{pct(linked, total)}）。残り {n_unlinked}台は"
                f"<b>メール登録のみの休眠</b>。名簿は py/unlinked_owners.csv に出力済。<b>声掛けで最も簡単に活性化できる資産</b>。")
-read_active = (f"直近90日に<b>何かした車は {participation90}台</b>（登録 {total}台の {pct(participation90, total)}・基準 {PARTICIPATION_BASE}台/{PARTICIPATION_BASE_AT}）。新規登録・車両更新・車載手帳・イベント参加・ストーリーの重複なし。"
+read_active = (f"直近90日に<b>何かした車は {participation90}台</b>（登録 {total}台の {pct(participation90, total)}・基準 {PARTICIPATION_BASE}台/{PARTICIPATION_BASE_AT}）。新規登録・車両更新・車載手帳・イベント参加・ストーリー・おすすめ工具（投稿／わたしも使ってる）の重複なし。"
                f"別指標として、連携 {linked_n}人中の90日ログインは {active90}人（{pct(active90, linked_n)}）"
                f"＝<b>ログインは参加ではない</b>ので混ぜて読まない。")
 read_cohort = (f"12月の大量登録はいま定着 {_boom:.0f}% まで低下。対して 2026-03 以降は平均 {_recent_avg:.0f}%。"
