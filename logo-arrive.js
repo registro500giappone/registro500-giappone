@@ -1,4 +1,4 @@
-// トップのロゴ：車が走り込んで急ブレーキで止まり、文字が浮かぶ。
+// トップのロゴ：車が発進して画面の外へ走り去り、反対側から戻ってきて急ブレーキでロゴの位置に止まる（文字は置いたまま）。
 // 1セッションに1回だけ／「視差効果を減らす」設定では動かさない／失敗したら静止のロゴに戻す。
 // 置き場所＝ロゴの <img> の直後に同期で読む（読み込み前にロゴを隠すため defer にしない）。
 (function () {
@@ -11,7 +11,9 @@
     'logo_horizontal126.png': { cut: 'x', at: 40.49, car: [0.8, 39.0],  dir: 1,  org: '33.6% 96%' }
   };
   var KEY = 'logoArrived';
-  var T_STOP = 0.55, T_TXT0 = 0.5, T_TXT1 = 0.8, T_END = 1.05, N = 64;
+  // T_GO＝発進まで（止まった姿を一瞬見せる）・T_OUT＝画面の外へ出た瞬間（ここで反対側へ回す）
+  // T_STOP＝ロゴの位置で止まる・T_END＝揺り戻しが収まる
+  var T_GO = 0.25, T_OUT = 0.85, T_STOP = 1.45, T_END = 1.95, N = 120;
 
   try { if (sessionStorage.getItem(KEY)) return; } catch (e) { return; }
   if (!window.matchMedia || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -31,7 +33,6 @@
   wrap.style.cssText = 'position:relative;display:block';
   img.parentNode.insertBefore(wrap, img);
   wrap.appendChild(img);
-  img.style.opacity = '0';
   var car = null, anims = [];
 
   function restore() {
@@ -46,20 +47,33 @@
   function run() {
     var r = img.getBoundingClientRect();
     if (!r.width) { restore(); return; }
-    // 画面の外から入る＝左へ進む車は右の外から、右へ進む車は左の外から
-    var D = L.dir < 0 ? window.innerWidth - (r.left + r.width * L.car[0] / 100) + 8
-                      : -(r.left + r.width * L.car[1] / 100 + 8);
+    var left = r.left + r.width * L.car[0] / 100, right = r.left + r.width * L.car[1] / 100;
+    // 出口＝進む向きの画面の外／入口＝反対側の画面の外（500 は左へ進む＝左へ消えて右から戻る・126 はその逆）
+    var OUT = L.dir < 0 ? -(right + 8) : window.innerWidth - left + 8;
+    var IN  = L.dir < 0 ? window.innerWidth - left + 8 : -(right + 8);
     var A = 3.6 * L.dir, frames = [];
+    function push(t, x, a) {
+      frames.push({ transform: 'translateX(' + x.toFixed(1) + 'px) rotate(' + a.toFixed(2) + 'deg)', offset: Math.min(t / T_END, 1) });
+    }
     for (var i = 0; i <= N; i++) {
-      var t = T_END * i / N, x, a;
-      if (t < T_STOP) {
-        x = D * Math.pow(1 - t / T_STOP, 3);               // 速く入って最後に一気に減速（急ブレーキ）
-        a = A * sstep(T_STOP - 0.22, T_STOP, t);          // ブレーキで前のめり
+      var t = T_END * i / N, x, a, k;
+      if (t < T_GO) {
+        x = 0; a = 0;                                       // 止まった姿
+      } else if (t < T_OUT) {
+        k = (t - T_GO) / (T_OUT - T_GO);
+        x = OUT * Math.pow(k, 2.6);                        // じわっと出てぐんぐん加速
+        a = -A * 0.6 * Math.sin(Math.min(k * 2.2, 1) * Math.PI / 2) * (1 - k); // 発進で鼻先が持ち上がる
+      } else if (t < T_STOP) {
+        k = (t - T_OUT) / (T_STOP - T_OUT);
+        x = IN * Math.pow(1 - k, 3);                       // 速く入って最後に一気に減速（急ブレーキ）
+        a = A * sstep(0.6, 1, k);                          // ブレーキで前のめり
       } else {
         x = 0;
         a = A * Math.exp(-(t - T_STOP) * 7) * Math.cos((t - T_STOP) * 20); // 止まって揺り戻す
       }
-      frames.push({ transform: 'translateX(' + x.toFixed(1) + 'px) rotate(' + a.toFixed(2) + 'deg)', offset: i / N });
+      // 画面の外へ出た瞬間に反対側へ回す（同じ offset に2コマ置く＝その間は補間しない）
+      if (i > 0 && t >= T_OUT && T_END * (i - 1) / N < T_OUT) { push(T_OUT, OUT, 0); push(T_OUT, IN, 0); }
+      push(t, x, a);
     }
     car = img.cloneNode(false);
     car.alt = '';
@@ -70,10 +84,6 @@
     wrap.appendChild(car);
     // fill:'forwards'＝終わってから後始末までの1コマで、開始位置に戻ったり文字が消えたりしないように
     anims.push(car.animate(frames, { duration: T_END * 1000, easing: 'linear', fill: 'forwards' }));
-    anims.push(img.animate([
-      { opacity: 0, offset: 0 }, { opacity: 0, offset: T_TXT0 / T_END },
-      { opacity: 1, offset: T_TXT1 / T_END }, { opacity: 1, offset: 1 }
-    ], { duration: T_END * 1000, easing: 'ease-out', fill: 'forwards' }));
     anims[0].onfinish = restore;
   }
 
