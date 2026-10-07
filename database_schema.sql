@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-10-07 11:29 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-10-07 12:17 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -536,7 +536,7 @@ alter table public.owner_tools add constraint owner_tools_amazon_url_check CHECK
 alter table public.owner_tools add constraint owner_tools_category_check CHECK ((category = ANY (ARRAY['ignition'::text, 'electric'::text, 'chassis'::text, 'wrench'::text, 'measure'::text, 'misc'::text])));
 alter table public.owner_tools add constraint owner_tools_comment_check CHECK (((char_length(btrim(comment)) >= 1) AND (char_length(btrim(comment)) <= 400)));
 alter table public.owner_tools add constraint owner_tools_name_check CHECK (((char_length(btrim(name)) >= 1) AND (char_length(btrim(name)) <= 80)));
-alter table public.owner_tools add constraint owner_tools_photo_url_check CHECK (((photo_url IS NULL) OR (photo_url ~~ 'https://firebasestorage.googleapis.com/%'::text)));
+alter table public.owner_tools add constraint owner_tools_photo_url_check CHECK (((photo_url IS NULL) OR ((photo_url ~~ 'https://%'::text) AND (char_length(photo_url) <= 1000))));
 alter table public.owner_tools add constraint owner_tools_source_check CHECK ((source = ANY (ARRAY['post'::text, 'notebook'::text])));
 alter table public.owner_tools add constraint owner_tools_usage_check CHECK ((usage = ANY (ARRAY['carry'::text, 'garage'::text, 'both'::text])));
 alter table public.owner_tools enable row level security;

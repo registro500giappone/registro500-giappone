@@ -64,8 +64,7 @@
     input[type=text], select, textarea { width: 100%; font: inherit; font-size: 1rem; padding: 9px 10px; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--bg-main); color: var(--text-main); }
     textarea { min-height: 110px; resize: vertical; }
     .count { font-size: .72rem; color: var(--text-sub); text-align: right; }
-    .consent { display: flex; gap: 8px; align-items: flex-start; font-size: .85rem; margin: 16px 0; }
-    .consent input { margin-top: 4px; flex: none; }
+    .notice { font-size: .82rem; line-height: 1.6; margin: 16px 0; padding: 10px 12px; border-radius: 8px; background: var(--accent-soft); color: var(--text, inherit); }
     .preview { max-width: 100%; max-height: 260px; border-radius: 8px; margin-top: 8px; display: block; }
     .msg { font-size: .88rem; margin: 10px 0 0; }
     .msg.err { color: var(--danger); }
@@ -137,12 +136,12 @@
       <label class="f" for="fPhoto">写真<span class="req" id="photoReq">必須</span></label>
       <input type="file" id="fPhoto" accept="image/*,.heic,.heif,.HEIC,.HEIF">
       <p class="note" id="photoNote">工具が分かる写真を1枚。</p>
+      <label class="f" for="fPhotoUrl" style="font-weight:normal">または、ほかのサイトにある画像のURL</label>
+      <input type="url" id="fPhotoUrl" inputmode="url" placeholder="https://…（ブログ・みんカラ・メーカーの商品画像など）">
+      <p class="note">画像そのもののURLを入れてください。InstagramやXの投稿URLは画像として表示できません。写真を選んだときは写真が優先されます。</p>
       <img id="preview" class="preview hidden" alt="選んだ写真のプレビュー">
 
-      <label class="consent">
-        <input type="checkbox" id="fConsent">
-        <span>この紹介はサイトで公開され、管理人が購入リンク（Amazon・PR）を添えることがあります。</span>
-      </label>
+      <p class="notice">📢 投稿した紹介はこのサイトで公開されます。紹介した工具には、管理人が購入リンク（Amazonアソシエイト・PR表記つき）を添えることがあります。</p>
 
       <button type="submit" class="btn-main" id="saveBtn">投稿する</button>
       <button type="button" class="btn-sub hidden" id="cancelEdit" style="margin-top:10px;width:100%;">修正をやめる</button>
@@ -270,6 +269,18 @@
     } catch (err) { setMsg(err.message, 'err'); $('fPhoto').value = ''; }
   });
 
+  // ── 外部の画像URLが表示できるか確かめる ──
+  function canLoadImage(url) {
+    return new Promise(resolve => {
+      const im = new Image();
+      im.referrerPolicy = 'no-referrer';
+      const t = setTimeout(() => resolve(false), 10000);
+      im.onload = () => { clearTimeout(t); resolve(im.naturalWidth > 0); };
+      im.onerror = () => { clearTimeout(t); resolve(false); };
+      im.src = url;
+    });
+  }
+
   // ── 縮小してアップロード（長辺1600px・JPEG 0.85）──
   function uploadPhoto(file, carId) {
     const ref = storage.ref().child('tools/' + carId + '/' + Date.now() + '.jpg');
@@ -318,13 +329,13 @@
     $('doneCard').classList.add('hidden');
     $('fName').value = row.name; $('fCat').value = row.category; $('fUsage').value = row.usage;
     $('fComment').value = row.comment; $('cmCount').textContent = row.comment.length;
-    $('fConsent').checked = true;
+    $('fPhotoUrl').value = (row.photo_url && !row.photo_url.startsWith('https://firebasestorage.googleapis.com/')) ? row.photo_url : '';
     $('carSel').value = row.car_id; $('carSel').disabled = true;
     $('formTitle').textContent = '紹介を修正する';
     $('saveBtn').textContent = '修正を保存する';
     $('photoReq').classList.add('hidden');
     $('photoNote').textContent = '写真を変えるときだけ選んでください（そのままなら今の写真が残ります）。';
-    if (row.photo_url) { $('preview').src = row.photo_url; $('preview').classList.remove('hidden'); }
+    if (row.photo_url) { $('preview').referrerPolicy = 'no-referrer'; $('preview').src = row.photo_url; $('preview').classList.remove('hidden'); }
     $('cancelEdit').classList.remove('hidden');
     $('form').scrollIntoView({ behavior: 'smooth' });
   }
@@ -341,14 +352,21 @@
     if (!usage) return setMsg('使い方を選んでください', 'err');
     if (!comment) return setMsg('一言を入力してください', 'err');
     if (comment.length > 400) return setMsg('一言は400字までです', 'err');
-    if (!editing && !photoFile) return setMsg('写真を1枚選んでください', 'err');
-    if (!$('fConsent').checked) return setMsg('同意にチェックしてください', 'err');
+    const photoUrl = $('fPhotoUrl').value.trim();
+    if (!photoFile && photoUrl) {
+      if (!/^https:\/\//i.test(photoUrl) || photoUrl.length > 1000) return setMsg('画像のURLは https:// から始まるものを入れてください', 'err');
+      if (/^https:\/\/(www\.)?(instagram\.com|x\.com|twitter\.com)\//i.test(photoUrl)) return setMsg('InstagramやXの投稿URLは画像として表示できません。画像そのもののURLか、写真のファイルを選んでください', 'err');
+      setMsg('画像を確かめています…');
+      if (!(await canLoadImage(photoUrl))) return setMsg('このURLは画像として表示できませんでした。画像そのもののURLか確かめてください', 'err');
+    }
+    if (!editing && !photoFile && !photoUrl) return setMsg('写真を選ぶか、画像のURLを入れてください', 'err');
 
     busy = true; $('saveBtn').disabled = true; setMsg('保存しています…');
     try {
       const carId = editing ? editing.car_id : $('carSel').value;
       const payload = { name, category, usage, comment };
       if (photoFile) payload.photo_url = await uploadPhoto(photoFile, carId);
+      else if (photoUrl) payload.photo_url = photoUrl;
       let error;
       if (editing) {
         ({ error } = await supabaseClient.from('owner_tools').update(payload).eq('id', editing.id));
@@ -383,7 +401,7 @@
         d.appendChild(el('div', 'note', (CAT_LABEL[r.category] || '') + ' ／ ' + (USAGE_LABEL[r.usage] || '')));
         if (r.is_hidden) d.appendChild(el('div', 'warn', '管理人が非表示にしています'));
         d.appendChild(el('div', 'cm', r.comment));
-        if (r.photo_url) { const im = el('img'); im.src = r.photo_url; im.alt = r.name; d.appendChild(im); }
+        if (r.photo_url) { const im = el('img'); im.referrerPolicy = 'no-referrer'; im.src = r.photo_url; im.alt = r.name; d.appendChild(im); }
         const acts = el('div', 'acts');
         const b1 = el('button', 'btn-sub', '修正'); b1.type = 'button';
         b1.addEventListener('click', () => startEdit(r));

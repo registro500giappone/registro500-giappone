@@ -64,3 +64,9 @@ create policy owner_tools_delete on public.owner_tools for delete to authenticat
 
 grant select on public.owner_tools to anon;
 grant select, insert, update, delete on public.owner_tools to authenticated;
+
+-- 【2026-10-07 追記】写真は他サイトの画像URLでも可（ユーザー指示）・購入リンクは同意チェックではなく告知で
+alter table public.owner_tools drop constraint if exists owner_tools_photo_url_check;
+alter table public.owner_tools add constraint owner_tools_photo_url_check
+  check (photo_url is null or (photo_url like 'https://%' and char_length(photo_url) <= 1000));
+comment on column public.owner_tools.consent_at is '投稿した時刻（掲載と購入リンクの告知を表示した上での投稿）';
