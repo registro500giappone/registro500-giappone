@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-10-02 18:58 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-10-07 11:29 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -515,6 +515,32 @@ alter table public.news add constraint news_title_unique UNIQUE (title);
 alter table public.news add constraint check_news_car_type CHECK (((target_car_type)::text = ANY ((ARRAY['both'::character varying, '500'::character varying, '126'::character varying])::text[])));
 alter table public.news enable row level security;
 
+create table public.owner_tools (
+  id uuid not null default gen_random_uuid(),
+  car_id text not null,
+  name text not null,
+  category text not null,
+  usage text not null,
+  comment text not null,
+  photo_url text,
+  consent_at timestamp with time zone not null default now(),
+  source text not null default 'post'::text,
+  tool_key text,
+  amazon_url text,
+  is_hidden boolean not null default false,
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now()
+);
+alter table public.owner_tools add constraint owner_tools_pkey PRIMARY KEY (id);
+alter table public.owner_tools add constraint owner_tools_amazon_url_check CHECK (((amazon_url IS NULL) OR (amazon_url ~~ 'https://www.amazon.co.jp/%'::text) OR (amazon_url ~~ 'https://amzn.to/%'::text)));
+alter table public.owner_tools add constraint owner_tools_category_check CHECK ((category = ANY (ARRAY['ignition'::text, 'electric'::text, 'chassis'::text, 'wrench'::text, 'measure'::text, 'misc'::text])));
+alter table public.owner_tools add constraint owner_tools_comment_check CHECK (((char_length(btrim(comment)) >= 1) AND (char_length(btrim(comment)) <= 400)));
+alter table public.owner_tools add constraint owner_tools_name_check CHECK (((char_length(btrim(name)) >= 1) AND (char_length(btrim(name)) <= 80)));
+alter table public.owner_tools add constraint owner_tools_photo_url_check CHECK (((photo_url IS NULL) OR (photo_url ~~ 'https://firebasestorage.googleapis.com/%'::text)));
+alter table public.owner_tools add constraint owner_tools_source_check CHECK ((source = ANY (ARRAY['post'::text, 'notebook'::text])));
+alter table public.owner_tools add constraint owner_tools_usage_check CHECK ((usage = ANY (ARRAY['carry'::text, 'garage'::text, 'both'::text])));
+alter table public.owner_tools enable row level security;
+
 create table public.paint_posts (
   id bigint generated always as identity not null,
   car_type text not null,
@@ -795,6 +821,8 @@ CREATE INDEX idx_favorite_spots_owner ON public.favorite_spots USING btree (owne
 CREATE INDEX idx_favorite_spots_spot ON public.favorite_spots USING btree (spot_id);
 CREATE INDEX inquiry_log_sender_idx ON public.inquiry_log USING btree (sender_uid, created_at DESC);
 CREATE INDEX idx_news_target_car_type ON public.news USING btree (target_car_type);
+CREATE INDEX idx_owner_tools_car ON public.owner_tools USING btree (car_id);
+CREATE INDEX idx_owner_tools_created ON public.owner_tools USING btree (created_at DESC);
 CREATE INDEX paint_posts_car_idx ON public.paint_posts USING btree (car_doc, created_at DESC);
 CREATE INDEX paint_posts_created_idx ON public.paint_posts USING btree (created_at DESC);
 CREATE INDEX idx_reco_video ON public.recommendations USING btree (video_id);
@@ -1235,6 +1263,30 @@ $function$
 ;
 -- acl: postgres=X/postgres service_role=X/postgres
 
+CREATE OR REPLACE FUNCTION public.owner_tools_guard()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  new.updated_at := now();
+  -- 管理人（サイト上の管理アカウント）と、サーバー側の権限（postgres・service_role）は全列を書ける
+  if public.is_admin() or current_user not in ('authenticated','anon') then
+    return new;
+  end if;
+  if tg_op = 'INSERT' then
+    new.tool_key := null; new.amazon_url := null; new.is_hidden := false; new.source := 'post';
+    new.consent_at := now();
+  else
+    new.tool_key := old.tool_key; new.amazon_url := old.amazon_url;
+    new.is_hidden := old.is_hidden; new.source := old.source;
+    new.consent_at := old.consent_at; new.car_id := old.car_id; new.created_at := old.created_at;
+  end if;
+  return new;
+end $function$
+;
+-- acl: =X/postgres postgres=X/postgres anon=X/postgres authenticated=X/postgres service_role=X/postgres
+
 CREATE OR REPLACE FUNCTION public.owns_car(p_doc text)
  RETURNS boolean
  LANGUAGE sql
@@ -1571,6 +1623,7 @@ CREATE TRIGGER tr_lower_email BEFORE INSERT OR UPDATE ON public.cars FOR EACH RO
 CREATE TRIGGER tr_set_doc_id BEFORE INSERT ON public.cars FOR EACH ROW EXECUTE FUNCTION trigger_set_doc_id();
 CREATE TRIGGER after_favorite_spot_change AFTER INSERT OR DELETE ON public.favorite_spots FOR EACH ROW EXECUTE FUNCTION update_spot_registration_count();
 CREATE TRIGGER before_insert_favorite_spots BEFORE INSERT ON public.favorite_spots FOR EACH ROW WHEN ((new.favorite_id IS NULL)) EXECUTE FUNCTION generate_favorite_id();
+CREATE TRIGGER owner_tools_guard BEFORE INSERT OR UPDATE ON public.owner_tools FOR EACH ROW EXECUTE FUNCTION owner_tools_guard();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.parts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER before_insert_schedules BEFORE INSERT ON public.spot_schedules FOR EACH ROW WHEN ((new.schedule_id IS NULL)) EXECUTE FUNCTION generate_schedule_id();
 CREATE TRIGGER before_insert_spots BEFORE INSERT ON public.spots FOR EACH ROW WHEN ((new.spot_id IS NULL)) EXECUTE FUNCTION generate_spot_id();
@@ -1745,6 +1798,15 @@ create policy news_insert_policy on public.news as permissive for INSERT to publ
   with check (is_admin());
 create policy news_select_policy on public.news as permissive for SELECT to public
   using (true);
+create policy owner_tools_delete on public.owner_tools as permissive for DELETE to authenticated
+  using ((is_admin() OR owns_car(car_id)));
+create policy owner_tools_insert on public.owner_tools as permissive for INSERT to authenticated
+  with check ((is_admin() OR owns_car(car_id)));
+create policy owner_tools_public_read on public.owner_tools as permissive for SELECT to public
+  using (((is_hidden = false) OR is_admin() OR owns_car(car_id)));
+create policy owner_tools_update on public.owner_tools as permissive for UPDATE to authenticated
+  using ((is_admin() OR owns_car(car_id)))
+  with check ((is_admin() OR owns_car(car_id)));
 create policy "public read part_tags" on public.part_tags as permissive for SELECT to public
   using (true);
 create policy parts_select_policy on public.parts as permissive for SELECT to public

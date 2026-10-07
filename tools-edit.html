@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>おすすめ工具を紹介する | Registro500 Giappone</title>
+  <meta name="description" content="あなたが使っている工具を写真と一言で紹介します。">
+  <link rel="canonical" href="https://www.registro500.com/tools-edit">
+  <meta property="og:title" content="おすすめ工具を紹介する">
+  <meta property="og:description" content="あなたが使っている工具を写真と一言で紹介します。">
+  <meta property="og:url" content="https://www.registro500.com/tools-edit">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Registro500 Giappone">
+  <meta property="og:image" content="https://www.registro500.com/og/site-ja.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-27SHHC4JYH');
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" integrity="sha384-HLJUgAQ2oo6rdMC4QW+Oz2qQfPOtu/lzncKG4sZiq8+2W9uOa3K0b3UGpckKqv7H" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js" integrity="sha384-oFrOL1TiREYNET0lsYF3LjQuyi2gL7vhjH1X8vFr+umcmzAdPELopeSgbcrv4uRm" crossorigin="anonymous"></script>
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
+  <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
+  <style>
+    :root {
+      --bg-main: #f5f0e6; --card-bg: #fffefb; --border-soft: #d6c9b0;
+      --shadow-soft: 0 2px 8px rgba(70,58,40,.10); --text-main: #2e2a24; --text-sub: #7a705f;
+      --accent: #1f5c3d; --accent-soft: #e7efe7; --danger: #a33a2a;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-main: #1a1714; --card-bg: #2b2721; --border-soft: #403a30;
+        --shadow-soft: 0 2px 10px rgba(0,0,0,.35); --text-main: #ece6d9; --text-sub: #a89e8c;
+        --accent: #7fb894; --accent-soft: #24382c; --danger: #e08a7a;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { font-size: 16px; max-width: 100%; overflow-x: hidden; }
+    body { font-family: var(--font-sans); margin: 0; padding: 20px 16px 60px; background: var(--bg-main); color: var(--text-main); line-height: 1.6; }
+    .page { max-width: 640px; margin: 0 auto; }
+    .back-link { display: inline-block; font-size: .85rem; color: var(--text-sub); text-decoration: none; margin-bottom: 12px; }
+    .back-link:hover { color: var(--accent); }
+    h1 { font-size: 1.35rem; margin: .2em 0 .6em; }
+    .lead { font-size: .88rem; color: var(--text-sub); margin: 0 0 12px; }
+    .btn-main { display: block; width: 100%; text-align: center; background: var(--accent); color: #fff; border: 0; border-radius: 10px; padding: 12px; font-size: 1rem; font-weight: 700; text-decoration: none; cursor: pointer; font-family: inherit; }
+    .btn-main:disabled { opacity: .5; cursor: default; }
+    @media (prefers-color-scheme: dark) { .btn-main { color: #10261a; } }
+    .btn-sub { background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 6px 12px; font-size: .85rem; cursor: pointer; font-family: inherit; }
+    .btn-danger { color: var(--danger); border-color: var(--danger); }
+    .hidden { display: none !important; }
+    .card { background: var(--card-bg); border: 1px solid var(--border-soft); border-radius: 12px; padding: 14px; margin-bottom: 14px; box-shadow: var(--shadow-soft); }
+    .card h2 { font-size: 1.05rem; margin: 0 0 10px; }
+    label.f { display: block; font-weight: 700; font-size: .88rem; margin: 14px 0 4px; }
+    .req { color: var(--danger); font-size: .75rem; margin-left: 4px; }
+    .note { font-size: .75rem; color: var(--text-sub); margin: 3px 0 0; font-weight: 400; }
+    input[type=text], select, textarea { width: 100%; font: inherit; font-size: 1rem; padding: 9px 10px; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--bg-main); color: var(--text-main); }
+    textarea { min-height: 110px; resize: vertical; }
+    .count { font-size: .72rem; color: var(--text-sub); text-align: right; }
+    .consent { display: flex; gap: 8px; align-items: flex-start; font-size: .85rem; margin: 16px 0; }
+    .consent input { margin-top: 4px; flex: none; }
+    .preview { max-width: 100%; max-height: 260px; border-radius: 8px; margin-top: 8px; display: block; }
+    .msg { font-size: .88rem; margin: 10px 0 0; }
+    .msg.err { color: var(--danger); }
+    .msg.ok { color: var(--accent); }
+    .mine { border-top: 1px solid var(--border-soft); padding: 12px 0; }
+    .mine:first-child { border-top: 0; }
+    .mine .nm { font-weight: 700; }
+    .mine .cm { font-size: .85rem; color: var(--text-sub); white-space: pre-wrap; word-break: break-word; margin: 4px 0; }
+    .mine img { max-width: 120px; max-height: 90px; border-radius: 6px; display: block; margin: 6px 0; }
+    .mine .acts { display: flex; gap: 8px; margin-top: 6px; }
+    .warn { font-size: .8rem; color: var(--danger); }
+    .center { text-align: center; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <a href="/tools" class="back-link">&larr; みんなのおすすめ工具に戻る</a>
+  <h1>🔧 おすすめ工具を紹介する</h1>
+
+  <div id="stateLoading" class="lead">確認中…</div>
+
+  <div id="stateLogin" class="card center hidden">
+    <p>紹介を投稿するにはログインが必要です。</p>
+    <button type="button" class="btn-main" id="loginBtn">Googleでログイン</button>
+  </div>
+
+  <div id="stateNoCar" class="card center hidden">
+    <p><strong>車両登録が必要です。</strong></p>
+    <p class="lead">工具の紹介は、登録済みのお車に紐づけて投稿します。</p>
+    <a class="btn-main" href="/edit">車両を登録する</a>
+  </div>
+
+  <div id="stateForm" class="hidden">
+    <form class="card" id="form" novalidate>
+      <h2 id="formTitle">新しく紹介する</h2>
+
+      <div id="carRow" class="hidden">
+        <label class="f" for="carSel">投稿する車<span class="req">必須</span></label>
+        <select id="carSel"></select>
+      </div>
+
+      <label class="f" for="fName">工具名<span class="req">必須</span></label>
+      <input type="text" id="fName" maxlength="80" placeholder="KTC パンタグラフジャッキ PJ-06" autocomplete="off">
+      <p class="note">メーカー・型番まで書くと探しやすくなります（80字まで）</p>
+
+      <label class="f" for="fCat">分類<span class="req">必須</span></label>
+      <select id="fCat">
+        <option value="">選んでください</option>
+        <option value="ignition">点火・キャブ</option>
+        <option value="electric">電装</option>
+        <option value="chassis">足まわり・ジャッキ</option>
+        <option value="wrench">レンチ・ソケット・ドライバー</option>
+        <option value="measure">測る・調べる</option>
+        <option value="misc">あると助かる小物</option>
+      </select>
+
+      <label class="f" for="fUsage">使い方<span class="req">必須</span></label>
+      <select id="fUsage">
+        <option value="">選んでください</option>
+        <option value="carry">車に積む</option>
+        <option value="garage">ガレージで使う</option>
+        <option value="both">両方</option>
+      </select>
+
+      <label class="f" for="fComment">一言<span class="req">必須</span></label>
+      <textarea id="fComment" maxlength="400" placeholder="何に使うか・どこが良いか"></textarea>
+      <div class="count"><span id="cmCount">0</span> / 400</div>
+
+      <label class="f" for="fPhoto">写真<span class="req" id="photoReq">必須</span></label>
+      <input type="file" id="fPhoto" accept="image/*,.heic,.heif,.HEIC,.HEIF">
+      <p class="note" id="photoNote">工具が分かる写真を1枚。</p>
+      <img id="preview" class="preview hidden" alt="選んだ写真のプレビュー">
+
+      <label class="consent">
+        <input type="checkbox" id="fConsent">
+        <span>この紹介はサイトで公開され、管理人が購入リンク（Amazon・PR）を添えることがあります。</span>
+      </label>
+
+      <button type="submit" class="btn-main" id="saveBtn">投稿する</button>
+      <button type="button" class="btn-sub hidden" id="cancelEdit" style="margin-top:10px;width:100%;">修正をやめる</button>
+      <p class="msg" id="msg" role="status"></p>
+    </form>
+
+    <div class="card hidden" id="doneCard">
+      <p class="msg ok" style="margin:0 0 10px;">保存しました。</p>
+      <a class="btn-main" href="/tools">一覧を見る</a>
+    </div>
+
+    <div class="card" id="mineCard">
+      <h2>あなたの投稿</h2>
+      <div id="mineList"><p class="lead">読み込み中…</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  if (firebase.apps.length === 0) firebase.initializeApp(FIREBASE_CONFIG);
+  const storage = firebase.storage();
+
+  const CAT_LABEL = { ignition: '点火・キャブ', electric: '電装', chassis: '足まわり・ジャッキ', wrench: 'レンチ・ソケット・ドライバー', measure: '測る・調べる', misc: 'あると助かる小物' };
+  const USAGE_LABEL = { carry: '車に積む', garage: 'ガレージで使う', both: '両方' };
+
+  const $ = id => document.getElementById(id);
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  let currentUser = null;
+  let myCars = [];
+  let editing = null;      // 修正中の行
+  let photoFile = null;    // 変換済みの選択写真
+  let busy = false;
+  let started = false;
+
+  function show(which) {
+    ['stateLoading', 'stateLogin', 'stateNoCar', 'stateForm'].forEach(k => $(k).classList.toggle('hidden', k !== which));
+  }
+  function setMsg(text, kind) { const m = $('msg'); m.textContent = text || ''; m.className = 'msg' + (kind ? ' ' + kind : ''); }
+
+  // ── 認証 ──
+  async function handleAuth(session) {
+    currentUser = session && session.user ? session.user : null;
+    if (!currentUser) { started = false; show('stateLogin'); return; }
+    if (started) return;
+    started = true;
+    try {
+      const { data, error } = await supabaseClient.from('cars')
+        .select('document_id, handle_name, model_display_a, model_display_b, model_display_c, car_type')
+        .eq('owner_user_id', currentUser.id);
+      if (error) throw error;
+      myCars = (data || []).map(c => ({
+        id: c.document_id,
+        label: (c.handle_name || '') + ' ' + (c.model_display_c || [c.model_display_a || '', c.model_display_b || ''].filter(Boolean).join(' '))
+      }));
+    } catch (err) {
+      console.error('[tools-edit] cars', err);
+      started = false;
+      show('stateLoading'); $('stateLoading').textContent = '読み込みに失敗しました。再読み込みしてください。';
+      return;
+    }
+    if (!myCars.length) { show('stateNoCar'); return; }
+    const sel = $('carSel');
+    sel.textContent = '';
+    myCars.forEach(c => { const o = el('option', null, c.label.trim() || c.id); o.value = c.id; sel.appendChild(o); });
+    $('carRow').classList.toggle('hidden', myCars.length < 2);
+    show('stateForm');
+    loadMine();
+  }
+  supabaseClient.auth.getSession().then(({ data }) => handleAuth(data && data.session)).catch(err => { console.error(err); show('stateLogin'); });
+  supabaseClient.auth.onAuthStateChange((ev, session) => { if (ev === 'SIGNED_OUT' || ev === 'SIGNED_IN') handleAuth(session); });
+  $('loginBtn').addEventListener('click', () => {
+    supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href } });
+  });
+
+  // ── HEIC → JPEG ──
+  function isHeic(file) {
+    const n = (file.name || '').toLowerCase(), t = (file.type || '').toLowerCase();
+    return n.endsWith('.heic') || n.endsWith('.heif') || t === 'image/heic' || t === 'image/heif' || t === 'image/heic-sequence' || t === 'image/heif-sequence';
+  }
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src; s.onload = resolve; s.onerror = () => reject(new Error('script load failed'));
+      document.head.appendChild(s);
+    });
+  }
+  let heicLoading = null;
+  function ensureHeic2any() {
+    if (window.heic2any) return Promise.resolve();
+    if (!heicLoading) {
+      heicLoading = loadScript('https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js')
+        .catch(() => loadScript('https://unpkg.com/heic2any@0.0.4/dist/heic2any.min.js'))
+        .catch(() => { throw new Error('HEIC変換ライブラリを読み込めません（ネットワークを確認してください）'); });
+    }
+    return heicLoading;
+  }
+  async function toJpegIfHeic(file) {
+    if (!isHeic(file)) return file;
+    await ensureHeic2any();
+    let out;
+    try { out = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 }); }
+    catch (err) { throw new Error('HEICの変換に失敗しました。JPEGに変換してからお試しください。'); }
+    const blob = Array.isArray(out) ? out[0] : out;
+    if (!blob) throw new Error('HEIC変換の結果が空でした');
+    return new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+  }
+
+  $('fPhoto').addEventListener('change', async ev => {
+    const f = ev.target.files && ev.target.files[0];
+    photoFile = null;
+    $('preview').classList.add('hidden');
+    if (!f) return;
+    setMsg('写真を処理しています…');
+    try {
+      photoFile = await toJpegIfHeic(f);
+      const old = $('preview').dataset.url;
+      if (old) URL.revokeObjectURL(old);
+      const url = URL.createObjectURL(photoFile);
+      $('preview').dataset.url = url;
+      $('preview').src = url;
+      $('preview').classList.remove('hidden');
+      setMsg('');
+    } catch (err) { setMsg(err.message, 'err'); $('fPhoto').value = ''; }
+  });
+
+  // ── 縮小してアップロード（長辺1600px・JPEG 0.85）──
+  function uploadPhoto(file, carId) {
+    const ref = storage.ref().child('tools/' + carId + '/' + Date.now() + '.jpg');
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onload = e => { img.src = e.target.result; };
+      img.onload = () => {
+        const MAX = 1600;
+        let w = img.width, h = img.height;
+        const long = Math.max(w, h);
+        if (long > MAX) { const s = MAX / long; w = Math.round(w * s); h = Math.round(h * s); }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(async blob => {
+          if (!blob) { reject(new Error('画像の変換に失敗しました')); return; }
+          try { await ref.put(blob, { contentType: 'image/jpeg' }); resolve(await ref.getDownloadURL()); }
+          catch (err) { reject(err); }
+        }, 'image/jpeg', 0.85);
+      };
+      img.onerror = () => reject(new Error('画像の読み込みに失敗しました'));
+      reader.onerror = () => reject(new Error('画像の読み込みに失敗しました'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  $('fComment').addEventListener('input', () => { $('cmCount').textContent = $('fComment').value.length; });
+
+  // ── フォーム状態 ──
+  function resetForm() {
+    editing = null; photoFile = null;
+    $('form').reset();
+    $('cmCount').textContent = '0';
+    $('preview').classList.add('hidden');
+    $('formTitle').textContent = '新しく紹介する';
+    $('saveBtn').textContent = '投稿する';
+    $('photoReq').classList.remove('hidden');
+    $('photoNote').textContent = '工具が分かる写真を1枚。';
+    $('cancelEdit').classList.add('hidden');
+    $('carSel').disabled = false;
+  }
+  function startEdit(row) {
+    resetForm();
+    editing = row;
+    $('doneCard').classList.add('hidden');
+    $('fName').value = row.name; $('fCat').value = row.category; $('fUsage').value = row.usage;
+    $('fComment').value = row.comment; $('cmCount').textContent = row.comment.length;
+    $('fConsent').checked = true;
+    $('carSel').value = row.car_id; $('carSel').disabled = true;
+    $('formTitle').textContent = '紹介を修正する';
+    $('saveBtn').textContent = '修正を保存する';
+    $('photoReq').classList.add('hidden');
+    $('photoNote').textContent = '写真を変えるときだけ選んでください（そのままなら今の写真が残ります）。';
+    if (row.photo_url) { $('preview').src = row.photo_url; $('preview').classList.remove('hidden'); }
+    $('cancelEdit').classList.remove('hidden');
+    $('form').scrollIntoView({ behavior: 'smooth' });
+  }
+  $('cancelEdit').addEventListener('click', () => { resetForm(); setMsg(''); });
+
+  // ── 保存 ──
+  $('form').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    if (busy || !currentUser) return;
+    const name = $('fName').value.trim(), category = $('fCat').value, usage = $('fUsage').value, comment = $('fComment').value.trim();
+    if (!name) return setMsg('工具名を入力してください', 'err');
+    if (name.length > 80) return setMsg('工具名は80字までです', 'err');
+    if (!category) return setMsg('分類を選んでください', 'err');
+    if (!usage) return setMsg('使い方を選んでください', 'err');
+    if (!comment) return setMsg('一言を入力してください', 'err');
+    if (comment.length > 400) return setMsg('一言は400字までです', 'err');
+    if (!editing && !photoFile) return setMsg('写真を1枚選んでください', 'err');
+    if (!$('fConsent').checked) return setMsg('同意にチェックしてください', 'err');
+
+    busy = true; $('saveBtn').disabled = true; setMsg('保存しています…');
+    try {
+      const carId = editing ? editing.car_id : $('carSel').value;
+      const payload = { name, category, usage, comment };
+      if (photoFile) payload.photo_url = await uploadPhoto(photoFile, carId);
+      let error;
+      if (editing) {
+        ({ error } = await supabaseClient.from('owner_tools').update(payload).eq('id', editing.id));
+      } else {
+        payload.car_id = carId;
+        ({ error } = await supabaseClient.from('owner_tools').insert(payload));
+      }
+      if (error) throw error;
+      resetForm(); setMsg('');
+      $('doneCard').classList.remove('hidden');
+      loadMine();
+    } catch (err) {
+      console.error('[tools-edit] save', err);
+      setMsg('保存に失敗しました。時間をおいてもう一度お試しください。', 'err');
+    } finally { busy = false; $('saveBtn').disabled = false; }
+  });
+
+  // ── 自分の投稿 ──
+  async function loadMine() {
+    const box = $('mineList');
+    try {
+      const ids = myCars.map(c => c.id);
+      const { data, error } = await supabaseClient.from('owner_tools')
+        .select('id, car_id, name, category, usage, comment, photo_url, is_hidden, created_at')
+        .in('car_id', ids).order('created_at', { ascending: false });
+      if (error) throw error;
+      box.textContent = '';
+      if (!data || !data.length) { box.appendChild(el('p', 'lead', 'まだ投稿はありません。')); return; }
+      data.forEach(r => {
+        const d = el('div', 'mine');
+        d.appendChild(el('div', 'nm', r.name));
+        d.appendChild(el('div', 'note', (CAT_LABEL[r.category] || '') + ' ／ ' + (USAGE_LABEL[r.usage] || '')));
+        if (r.is_hidden) d.appendChild(el('div', 'warn', '管理人が非表示にしています'));
+        d.appendChild(el('div', 'cm', r.comment));
+        if (r.photo_url) { const im = el('img'); im.src = r.photo_url; im.alt = r.name; d.appendChild(im); }
+        const acts = el('div', 'acts');
+        const b1 = el('button', 'btn-sub', '修正'); b1.type = 'button';
+        b1.addEventListener('click', () => startEdit(r));
+        const b2 = el('button', 'btn-sub btn-danger', '削除'); b2.type = 'button';
+        b2.addEventListener('click', async () => {
+          if (!confirm('「' + r.name + '」の紹介を削除しますか？')) return;
+          const { error: e2 } = await supabaseClient.from('owner_tools').delete().eq('id', r.id);
+          if (e2) { alert('削除に失敗しました。'); return; }
+          if (editing && editing.id === r.id) resetForm();
+          loadMine();
+        });
+        acts.appendChild(b1); acts.appendChild(b2);
+        d.appendChild(acts);
+        box.appendChild(d);
+      });
+    } catch (err) {
+      console.error('[tools-edit] mine', err);
+      box.textContent = '';
+      box.appendChild(el('p', 'warn', '読み込みに失敗しました。'));
+    }
+  }
+})();
+</script>
+</body>
+</html>
