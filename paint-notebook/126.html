@@ -324,8 +324,13 @@ $('shotShare').onclick=()=>{ if(shotFile) navigator.share({files:[shotFile], tex
 $('shotClose').onclick=()=>{$('shot').style.display='none';};
 // 動画は「走る126」（drive.html?car=126）の画面で作る＝いまの仕上がり（URLの # 以降）をそのまま渡す
 // 投稿＝いまの画面を縮小画像にして、設計図（# 以降）と一緒に送る
+// みんなのお絵描き帳から開いたとき（?from=gallery）は左上を「戻る」にする。一覧から直接来たなら履歴で戻る＝一覧の位置と絞り込みが残る
+const FROM_GALLERY = new URLSearchParams(location.search).get('from')==='gallery';
+function backToGallery(a){ a.textContent='← みんなのお絵描き帳へ戻る'; a.href='/paint-notebook/gallery';
+  a.onclick=e=>{ try{ if(history.length>1 && new URL(document.referrer).pathname.replace(/\.html$/,'').endsWith('/paint-notebook/gallery')){ e.preventDefault(); history.back(); } }catch(_){} }; }
+if(FROM_GALLERY) backToGallery(document.querySelector('.topbar a'));
 $('post').onclick=mountPost({carType:'126', snap:()=>{ renderer.render(scene,cam); return renderer.domElement; }});
-$('drive').onclick=()=>{ location.href='drive.html?car=126'+location.hash; };
+$('drive').onclick=()=>{ location.href='drive.html?car=126'+(FROM_GALLERY?'&from=gallery':'')+location.hash; };
 // スマホでは「コピーして貼る」より共有シートで送る方が自然。刻印入りの画像を同梱する＝X はメディア付き投稿ではリンクカード（サイト共通の OG 画像）を出さないので、自分の車が出る。
 // パソコンや使えない環境は従来どおり URL のコピー
 const canShareUrl=!!(navigator.canShare && navigator.canShare({url:location.href}) && matchMedia('(pointer:coarse)').matches);

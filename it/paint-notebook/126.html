@@ -310,8 +310,12 @@ $('save').onclick=()=>{ const r=shotNow(); $('shot').querySelector('img').src=r.
   shotFile=canShareFile(r.file)?r.file:null; $('shotShare').hidden=!shotFile; $('shotMsg').textContent=shotFile?'X・Instagram・LINE などへそのまま送れます（長押しで保存もできます）':'画像を長押しで保存できます（パソコンは右クリック）'; };
 $('shotShare').onclick=()=>{ if(shotFile) navigator.share({files:[shotFile], text:shareText()}).catch(()=>{}); };
 $('shotClose').onclick=()=>{$('shot').style.display='none';};
+const FROM_GALLERY = new URLSearchParams(location.search).get('from')==='gallery';
+function backToGallery(a){ a.textContent='← みんなのお絵描き帳へ戻る'; a.href='/it/paint-notebook/gallery';
+  a.onclick=e=>{ try{ if(history.length>1 && new URL(document.referrer).pathname.replace(/\.html$/,'').endsWith('/it/paint-notebook/gallery')){ e.preventDefault(); history.back(); } }catch(_){} }; }
+if(FROM_GALLERY) backToGallery(document.querySelector('.topbar a'));
 $('post').onclick=mountPost({carType:'126', snap:()=>{ renderer.render(scene,cam); return renderer.domElement; }});
-$('drive').onclick=()=>{ location.href='drive.html?car=126'+location.hash; };
+$('drive').onclick=()=>{ location.href='drive.html?car=126'+(FROM_GALLERY?'&from=gallery':'')+location.hash; };
 const canShareUrl=!!(navigator.canShare && navigator.canShare({url:location.href}) && matchMedia('(pointer:coarse)').matches);
 if(canShareUrl) $('share').textContent='この車を送る';
 $('share').onclick=async()=>{ if(canShareUrl){ const r=shotNow(); navigator.share(canShareFile(r.file)?{files:[r.file], text:shareText()}:{url:location.href, text:'#registro500giappone'}).catch(()=>{}); return; } try{ await navigator.clipboard.writeText(location.href); $('share').textContent='コピーしました'; }catch(e){ $('share').textContent='コピーできませんでした'; } setTimeout(()=>$('share').textContent='URLをコピー',1800); };

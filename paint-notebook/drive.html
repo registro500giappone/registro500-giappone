@@ -165,6 +165,10 @@ const CUTS=[4.2,5.8,8.0,10.0,11.3];
 // 変えるのはカメラだけ＝左右どちら側から撮るか・回り込む向き・高さと距離・中盤3場面（横並び/真上/後ろ姿）の順番。
 // ⛔画面の左右反転はしない（ナンバーや帯の文字が鏡文字になる）＝「反転」はカメラを車の反対側へ回して作る
 // take が無い（塗る画面の「動画にする」から来た）ときは毎回くじを引く＝場面・始まりの型が毎回変わる。引いた番号は URL に残す（再読込で同じ絵）
+// みんなのお絵描き帳から開いたとき（?from=gallery）は左上を「戻る」にする。一覧から直接来たなら履歴で戻る＝一覧の位置と絞り込みが残る
+const FROM_GALLERY = new URLSearchParams(location.search).get('from')==='gallery';
+function backToGallery(a){ a.textContent='← みんなのお絵描き帳へ戻る'; a.href='/paint-notebook/gallery';
+  a.onclick=e=>{ try{ if(history.length>1 && new URL(document.referrer).pathname.replace(/\.html$/,'').endsWith('/paint-notebook/gallery')){ e.preventDefault(); history.back(); } }catch(_){} }; }
 const QS = new URLSearchParams(location.search);
 const TAKE = QS.has('take') ? (+QS.get('take') || 0) : 1+Math.floor(Math.random()*9999);
 if(!QS.has('take')){ QS.set('take', TAKE); history.replaceState(null, '', location.pathname+'?'+QS+location.hash); }
@@ -423,8 +427,10 @@ if(!REC){
   const $=id=>document.getElementById(id);
   const mk=$('mk'), msg=$('mkMsg'), meter=mk.querySelector('.meter'), barEl=$('mkBar'), vid=$('mkVid'), saveBtn=$('mkSave'), closeBtn=$('mkClose');
   let cancel=false, outFile=null;
-  $('back').href=(CAR126?'./126.html':'./')+location.hash;
-  $('retake').onclick=()=>{ location.href='drive.html?'+(CAR126?'car=126&':'')+'take='+(1+Math.floor(Math.random()*9999))+location.hash; };
+  $('back').href=(CAR126?'./126.html':'./')+(FROM_GALLERY?'?from=gallery':'')+location.hash;
+  // 一覧の「走らせる」から直接来たときは、戻り先も一覧
+  if(FROM_GALLERY && /\/paint-notebook\/gallery(\.html)?$/.test((()=>{ try{ return new URL(document.referrer).pathname; }catch(_){ return ''; } })())) backToGallery($('back'));
+  $('retake').onclick=()=>{ location.href='drive.html?'+(CAR126?'car=126&':'')+(FROM_GALLERY?'from=gallery&':'')+'take='+(1+Math.floor(Math.random()*9999))+location.hash; };
   const closeMk=()=>{ mk.classList.remove('on'); vid.pause(); if(vid.src){ URL.revokeObjectURL(vid.src); vid.removeAttribute('src'); } };
   closeBtn.onclick=()=>{ if(making) cancel=true; else closeMk(); };
   // iPhone／Android は共有シート＝X・Instagram・LINE へ直接渡せる（iPhone の Safari は <a download> が効かないので「ビデオを保存」もここから）。共有は押された流れの中で直に呼ぶ

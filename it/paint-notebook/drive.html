@@ -154,6 +154,9 @@ const light=t=> sstep(1.3,2.1,t);
 const head=t=> t<1.0?0 : t<1.07?1 : t<1.15?0.15 : sstep(1.15,1.25,t);
 const CUTS=[4.2,5.8,8.0,10.0,11.3];
 
+const FROM_GALLERY = new URLSearchParams(location.search).get('from')==='gallery';
+function backToGallery(a){ a.textContent='← みんなのお絵描き帳へ戻る'; a.href='/it/paint-notebook/gallery';
+  a.onclick=e=>{ try{ if(history.length>1 && new URL(document.referrer).pathname.replace(/\.html$/,'').endsWith('/it/paint-notebook/gallery')){ e.preventDefault(); history.back(); } }catch(_){} }; }
 const QS = new URLSearchParams(location.search);
 const TAKE = QS.has('take') ? (+QS.get('take') || 0) : 1+Math.floor(Math.random()*9999);
 if(!QS.has('take')){ QS.set('take', TAKE); history.replaceState(null, '', location.pathname+'?'+QS+location.hash); }
@@ -393,8 +396,9 @@ if(!REC){
   const $=id=>document.getElementById(id);
   const mk=$('mk'), msg=$('mkMsg'), meter=mk.querySelector('.meter'), barEl=$('mkBar'), vid=$('mkVid'), saveBtn=$('mkSave'), closeBtn=$('mkClose');
   let cancel=false, outFile=null;
-  $('back').href=(CAR126?'./126.html':'./')+location.hash;
-  $('retake').onclick=()=>{ location.href='drive.html?'+(CAR126?'car=126&':'')+'take='+(1+Math.floor(Math.random()*9999))+location.hash; };
+  $('back').href=(CAR126?'./126.html':'./')+(FROM_GALLERY?'?from=gallery':'')+location.hash;
+  if(FROM_GALLERY && /\/paint-notebook\/gallery(\.html)?$/.test((()=>{ try{ return new URL(document.referrer).pathname; }catch(_){ return ''; } })())) backToGallery($('back'));
+  $('retake').onclick=()=>{ location.href='drive.html?'+(CAR126?'car=126&':'')+(FROM_GALLERY?'from=gallery&':'')+'take='+(1+Math.floor(Math.random()*9999))+location.hash; };
   const closeMk=()=>{ mk.classList.remove('on'); vid.pause(); if(vid.src){ URL.revokeObjectURL(vid.src); vid.removeAttribute('src'); } };
   closeBtn.onclick=()=>{ if(making) cancel=true; else closeMk(); };
   saveBtn.onclick=()=>{
