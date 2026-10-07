@@ -80,6 +80,12 @@
 - 独自イベント：`tool_post`（`mode`=new/edit・`category`・`photo`=file/url/keep）／`tool_metoo`（`action`=add/remove・`category`）／`tool_metoo_guest`（未ログインで押した＝ログインしてでも押したい需要）／`tool_filter`（`category`）。
 - ⏳週次レポートへの組み込みは公開判断のあと（導線なしの間は数が出ない）。
 
+## 8. 新規投稿の通知（2026-10-07 ユーザー指示）
+
+- **① 管理人宛の即時メール**＝`functions/api/tool-notify.js`（Cloudflare Pages Function・Brevo）。投稿ページが新規保存に成功した直後に `{toolId}` を送る（待たない）。トークンで本人を確かめ、本人の車の投稿で、30分以内で、`admin_notified_at` が空の行にだけ**先に印を付けてから**1通送る＝1件1回・同時呼び出しでも二重にならない・宛先は管理人固定。送信失敗時は印を戻す。修正では送らない。管理人がSQLで入れた行（手帳からの移行）も送らない。
+- **② 登録オーナー宛の翌朝ダイジェスト**＝`py/send_digest.py` の「🔧 新しいおすすめ工具」節（`notification_sent` 方式・1通10件まで）。⛔**スイッチ `TOOLS_DIGEST_ON` は False のまま**＝全オーナーにURLが届く＝実質公開。公開判断のときに True にする（False の間はフラグも立てない）。⛔`send_digest.py`・`daily-digest.yml` の時刻は触っていない。
+- DB：`admin_notified_at`・`notification_sent` は投稿者が書けない（トリガー `owner_tools_guard`・`notify_2026-10-07.sql`）。
+
 ## 5. 残タスク
 
 1. ✅ ページ専用タグ `registro500tl-22` をユーザーが発行済（2026-10-07）。リンクは「工具のリンクを付けて」の指示で、未付与の投稿を一覧→商品の候補を提示→確認後に `https://www.amazon.co.jp/dp/ASIN?tag=registro500tl-22` を `amazon_url` へ（⛔確認なしで付けない）。

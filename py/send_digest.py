@@ -21,6 +21,8 @@ GAS の main.gs sendDailyDigest() からの移植。挙動は1:1で揃えてあ�
   - 新規車載手帳  equipment_records.notification_sent = false かつ is_public = true かつ 14日以内
                  （2026-09-09 追加。公開時から通知経路が無かったため後付け。
                    車に紐づかない手帳＝vehicle_id が null は行き先が無いので載せない）
+  - 新規おすすめ工具 owner_tools.notification_sent = false かつ is_hidden = false かつ 14日以内
+                 （2026-10-07 追加。TOOLS_DIGEST_ON が True のときだけ。オフの間はフラグも立てない）
   - お知らせ      news.sent_at IS NULL                  かつ 14日以内（最大5件）
 
 送信に1通も成功しなかった場合はフラグを更新せず、次回実行で再送する。
@@ -54,6 +56,13 @@ NEWS_LIMIT = 5           # main.gs の getUnsentNewsAll_ と同じ
 # アンカーより前の分は追加時に「配信済み扱い」で埋めたものなので数に入れない。
 # 一度配信すれば条件は二度と成立しない＝この分岐を消し忘れても案内が再び出ることはない。
 NOTEBOOK_FIRST_ANCHOR = "2026-09-08T00:00:00Z"
+
+# おすすめ工具（/tools）の新着をダイジェストに載せるか（2026-10-07）。
+# ⚠️ダイジェストは登録オーナー全員に届く＝URLを載せた時点で実質公開になる。
+#    ページを公開する（導線を付ける）判断をユーザーが出すまで False のまま。
+#    False の間は対象を読まず、フラグも立てない＝True にした日から14日以内の分が載る。
+TOOLS_DIGEST_ON = False
+TOOLS_LIST_MAX = 10      # 1通に並べる件数の上限（手帳からの移行で一度に増えたとき用）
 
 DRY_RUN = str(cfg("DIGEST_DRY_RUN", "")).strip().lower() in ("1", "true", "yes")
 
@@ -192,7 +201,24 @@ def main():
         {"notification_sent": "eq.true", "created_at": f"gte.{NOTEBOOK_FIRST_ANCHOR}"},
         "limit=1")
 
-    if not (news or new_cars or new_events or new_episodes or new_notebooks):
+    # 5b. 新規おすすめ工具（2026-10-07 追加・TOOLS_DIGEST_ON のときだけ）
+    new_tools = []
+    if TOOLS_DIGEST_ON:
+        tl_raw = sb_select(
+            "owner_tools", "id,car_id,name,created_at,notification_sent,is_hidden",
+            {"notification_sent": "eq.false", "is_hidden": "eq.false",
+             "created_at": f"gte.{window_start}"},
+            "order=created_at.asc")
+        tl_car_map = {}
+        if tl_raw:
+            in_list = ",".join('"' + str(i) + '"' for i in sorted({r["car_id"] for r in tl_raw}))
+            for c in sb_select("cars", "document_id,handle_name", {"document_id": f"in.({in_list})"}):
+                tl_car_map[c["document_id"]] = c
+        new_tools = [{"id": r["id"], "name": r["name"],
+                      "owner": (tl_car_map.get(r["car_id"]) or {}).get("handle_name") or "オーナー"}
+                     for r in tl_raw]
+
+    if not (news or new_cars or new_events or new_episodes or new_notebooks or new_tools):
         log("配信対象なし")
         if DRY_RUN:
             # 対象が無い日でも Brevo 送信経路まで通しておかないと試運転の意味が薄い
@@ -216,6 +242,8 @@ def main():
     if new_notebooks:
         # 冊数は出さない（2026-09-09 ユーザー確定）
         parts.append("新着車載手帳")
+    if new_tools:
+        parts.append("新着おすすめ工具")
     if news:
         parts.append("お知らせ")
     subject = "【Registro500/126 Giappone】" + "・".join(parts)
@@ -251,6 +279,14 @@ def main():
             body += (f"・{n['owner']}様\n"
                      f"　{SITE}/detail.html?doc={n['doc']}#equipment-notebook\n")
         body += f"\n一覧: {SITE}/equipment\n"
+
+    if new_tools:
+        body += f"\n■ 🔧 新しいおすすめ工具 ({len(new_tools)}件)\n"
+        for t in new_tools[:TOOLS_LIST_MAX]:
+            body += f"・{t['name']}（{t['owner']}様）\n"
+        if len(new_tools) > TOOLS_LIST_MAX:
+            body += f"・ほか{len(new_tools) - TOOLS_LIST_MAX}件\n"
+        body += f"\n一覧: {SITE}/tools\n"
 
     if news:
         body += "\n■ 📢 お知らせ\n"
@@ -320,6 +356,11 @@ def main():
             sb_patch("equipment_records", nb["id"], {"notification_sent": True})
         except Exception as e:
             log(f"equipment_records フラグ更新エラー: {e}")
+    for t in new_tools:
+        try:
+            sb_patch("owner_tools", t["id"], {"notification_sent": True})
+        except Exception as e:
+            log(f"owner_tools フラグ更新エラー: {e}")
     for n in news:
         try:
             sb_patch("news", n["id"], {
@@ -330,7 +371,7 @@ def main():
 
     log(f"メール配信完了: お知らせ{len(news)}件、車両{len(new_cars)}台、"
         f"イベント{len(new_events)}件、ストーリー{len(new_episodes)}件、"
-        f"車載手帳{len(new_notebooks)}冊"
+        f"車載手帳{len(new_notebooks)}冊、工具{len(new_tools)}件"
         f"（送信chunk {sent_chunks}成功/{failed_chunks}失敗、宛先{len(recipients)}人）")
 
 

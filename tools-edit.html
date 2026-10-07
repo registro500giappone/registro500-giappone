@@ -276,6 +276,21 @@
     try { if (typeof gtag === 'function') gtag('event', name, params || {}); } catch (e) {}
   }
 
+  // ── 新規投稿を管理人へ知らせる（待たない・失敗しても投稿は成功のまま）──
+  async function notifyAdmin(toolId) {
+    try {
+      const { data } = await supabaseClient.auth.getSession();
+      const token = data && data.session && data.session.access_token;
+      if (!token) return;
+      fetch('/api/tool-notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ toolId }),
+        keepalive: true
+      }).catch(err => console.error('[tool-notify]', err));
+    } catch (err) { console.error('[tool-notify]', err); }
+  }
+
   // ── 外部の画像URLが表示できるか確かめる ──
   function canLoadImage(url) {
     return new Promise(resolve => {
@@ -379,7 +394,9 @@
         ({ error } = await supabaseClient.from('owner_tools').update(payload).eq('id', editing.id));
       } else {
         payload.car_id = carId;
-        ({ error } = await supabaseClient.from('owner_tools').insert(payload));
+        let inserted;
+        ({ data: inserted, error } = await supabaseClient.from('owner_tools').insert(payload).select('id').single());
+        if (!error && inserted) notifyAdmin(inserted.id);
       }
       if (error) throw error;
       track('tool_post', { mode: editing ? 'edit' : 'new', category, photo: photoFile ? 'file' : (photoUrl ? 'url' : 'keep') });

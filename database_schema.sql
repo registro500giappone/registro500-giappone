@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-10-07 12:37 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-10-07 12:54 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -540,7 +540,9 @@ create table public.owner_tools (
   amazon_url text,
   is_hidden boolean not null default false,
   created_at timestamp with time zone not null default now(),
-  updated_at timestamp with time zone not null default now()
+  updated_at timestamp with time zone not null default now(),
+  admin_notified_at timestamp with time zone,
+  notification_sent boolean not null default false
 );
 alter table public.owner_tools add constraint owner_tools_pkey PRIMARY KEY (id);
 alter table public.owner_tools add constraint owner_tools_amazon_url_check CHECK (((amazon_url IS NULL) OR (amazon_url ~~ 'https://www.amazon.co.jp/%'::text) OR (amazon_url ~~ 'https://amzn.to/%'::text)));
@@ -1283,17 +1285,17 @@ CREATE OR REPLACE FUNCTION public.owner_tools_guard()
 AS $function$
 begin
   new.updated_at := now();
-  -- 管理人（サイト上の管理アカウント）と、サーバー側の権限（postgres・service_role）は全列を書ける
   if public.is_admin() or current_user not in ('authenticated','anon') then
     return new;
   end if;
   if tg_op = 'INSERT' then
     new.tool_key := null; new.amazon_url := null; new.is_hidden := false; new.source := 'post';
-    new.consent_at := now();
+    new.consent_at := now(); new.admin_notified_at := null; new.notification_sent := false;
   else
     new.tool_key := old.tool_key; new.amazon_url := old.amazon_url;
     new.is_hidden := old.is_hidden; new.source := old.source;
     new.consent_at := old.consent_at; new.car_id := old.car_id; new.created_at := old.created_at;
+    new.admin_notified_at := old.admin_notified_at; new.notification_sent := old.notification_sent;
   end if;
   return new;
 end $function$
