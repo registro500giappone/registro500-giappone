@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="it"><head>
+<meta charset="utf-8">
+<script src="/paint-notebook/i18n/it.js"></script>
+<script src="/engine-simulator/i18n/tr.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Porta a spasso la tua 500 | Registro500 Giappone</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://www.registro500.com/it/paint-notebook/drive">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH');
+</script>
+<meta name="description" content="Un video di 15 secondi della FIAT 500 che hai dipinto nel Quaderno da colorare mentre parte.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Porta a spasso la tua 500">
+<meta property="og:description" content="La 500 che hai dipinto parte in 15 secondi.">
+<meta property="og:image" content="https://www.registro500.com/og/paint-gallery-ja.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon-192.png">
+<style>
+:root{--paper:#1d1b18;--ink:#ece6da;--sub:#a99f8e;--line:#3b362e;--chip:#322e27}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif}
+.wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px 16px 24px}
+#frame{position:relative;height:min(78vh,calc((100vw - 32px)*16/9));aspect-ratio:9/16;overflow:hidden;border-radius:12px;background:#0b0a09}
+#frame canvas{display:block;width:100%;height:100%}
+
+#title{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;background:transparent}
+#title .logo{margin-top:-4%;text-align:center;width:84%}
+#title .copy{display:block;margin:0 0 9%;font-size:min(3.6vh,21px,5.2vw);white-space:nowrap;font-weight:700;letter-spacing:.06em;color:#3a352c;opacity:0}
+body.rec #title .copy{font-size:66px}
+#acc{position:absolute;inset:0;width:100%;height:100%}
+#title img{display:block}
+
+
+#title .lcar{width:50.45%;margin-left:24.82%;transform-origin:14% 96%;will-change:transform}
+#title .ltxt{width:66.67%;margin-left:16.67%;margin-top:.75%}
+body.c126 #title .lcar{width:52.67%;margin-left:23.65%}
+#title span{display:block;margin-top:.9em;font-size:min(2.4vh,14px);letter-spacing:.08em;font-weight:600;color:#3f3a31}
+body.rec #title span{font-size:44px}
+.bar{display:flex;gap:8px;align-items:center;width:min(100%,420px)}
+.bar button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:5px 14px;cursor:pointer}
+.bar input{flex:1}
+.bar span{font-size:12px;color:var(--sub);width:3.2em;text-align:right}
+.loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#a99f8e;font-size:14px}
+
+body.rec .wrap{padding:0;gap:0}
+body.rec #frame{height:1920px;width:1080px;border-radius:0}
+body.rec .bar{display:none}
+body.rec .acts{display:none}
+body.rec .credit{display:none}
+.credit{width:min(100%,420px);margin:6px 0 0;font-size:11px;line-height:1.6;color:var(--sub)}
+.credit a{color:var(--sub)}
+
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:min(100%,420px)}
+.acts button,.acts a{font:inherit;font-size:14px;font-weight:600;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:10px;padding:10px 12px;cursor:pointer;text-align:center;text-decoration:none}
+.acts .primary{grid-column:1/-1;background:#b23b2b;border-color:#b23b2b;color:#fff}
+#mk{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:10;padding:16px;text-align:center}
+#mk.on{display:flex}
+#mk p{margin:0;font-size:14px;line-height:1.7}
+#mk .meter{width:min(80vw,320px);height:8px;border-radius:4px;background:#3b362e;overflow:hidden}
+#mk .meter i{display:block;height:100%;width:0;background:#e3d9c6}
+#mk video{max-height:52vh;max-width:100%;border-radius:10px;display:none}
+#mk button{font:inherit;font-size:14px;font-weight:600;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:10px;padding:10px 18px;cursor:pointer;min-width:200px}
+#mk button.primary{background:#b23b2b;border-color:#b23b2b;color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="frame"><div class="loading" id="loading">Caricamento del modello 3D...</div>
+    <div id="title"><div class="logo"><p class="copy">Porta a spasso la tua 500</p><img class="lcar" src="/paint-notebook/logo-car.png" alt=""><img class="ltxt" src="/paint-notebook/logo-text.png" alt="Registro500 Giappone"><span>registro500.com</span></div></div>
+    <script>// ?car=126 のロゴは最初の描画の前に差し替える（module の中だと three.js と car126.js を読み終えるまで 500 のロゴが出ていた）
+    if(new URLSearchParams(location.search).get('car')==='126'){
+      document.title='走る126｜REGISTRO 500 GIAPPONE'; document.body.classList.add('c126');
+      const T=document.getElementById('title'), x=T.querySelector('.ltxt'); T.querySelector('.copy').textContent='あなた色の126を走らせよう';
+      T.querySelector('.lcar').src='/paint-notebook/logo-car126.png'; x.src='/paint-notebook/logo-text126.png'; x.alt='Registro126 Giappone';
+    }</script>
+  </div>
+  <div class="bar"><button id="play">Pausa</button><input type="range" id="seek" min="0" max="15" step="0.01" value="0"><span id="tt">0.0</span></div>
+  <div class="acts">
+    <button id="make" class="primary">Esporta un video (15 s, verticale)</button>
+    <button id="retake">Cambia inquadratura</button>
+    <a id="back" href="./">← Torna a colorare</a>
+  </div>
+  <p class="credit" id="credit">Modello 3D: <a href="https://sketchfab.com/3d-models/fiat-500-1970-model-213cd126fcd744809fb7996eb88366f5" rel="noopener" target="_blank">"Fiat 500 - 1970 Model"</a> by <a href="https://sketchfab.com/parsafarvadian" rel="noopener" target="_blank">Parsa Farvadian</a>, <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener" target="_blank">CC BY 4.0</a> (alleggerito, con vernice e motivi aggiunti)</p>
+</div>
+<div id="mk" role="dialog" aria-live="polite">
+  <p id="mkMsg">Creazione del video...</p>
+  <div class="meter"><i id="mkBar"></i></div>
+  <video id="mkVid" playsinline="" muted="" loop=""></video>
+  <button id="mkSave" class="primary" hidden="">Salva / condividi</button>
+  <button id="mkClose">Annulla</button>
+</div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {Reflector} from 'three/addons/objects/Reflector.js';
+const CAR126 = new URLSearchParams(location.search).get('car')==='126';
+const {readHash, loadCar} = await import(CAR126 ? '/paint-notebook/car126.js?v=20' : '/paint-notebook/car.js?v=37');
+const SHARE_TEXT='#registro500giappone https://www.registro500.com/it/paint-notebook/'+(CAR126?'126':'')+location.hash;
+const DIR = CAR126 ? -1 : 1;
+if(CAR126){
+  document.getElementById('credit').innerHTML='3Dモデル：<a href="https://sketchfab.com/3d-models/polski-fiat-fiat-126p-edc1b9d866484e048b4c54d917cca900" rel="noopener" target="_blank">"Polski Fiat (Fiat 126p)"</a> by <a href="https://sketchfab.com/Bexxie" rel="noopener" target="_blank">Martin Trafas</a>, <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener" target="_blank">CC BY 4.0</a>（データを軽くし、塗装と模様の表示を加え、エンブレムとナンバーをイタリアの126の型に描き替えています）';
+}
+
+const REC = new URLSearchParams(location.search).has('rec');
+if(REC) document.body.classList.add('rec');
+const DUR = 15, FPS = 30;
+const S = readHash();
+const frame = document.getElementById('frame');
+
+const renderer = new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(REC ? 1 : Math.min(devicePixelRatio,2));
+renderer.toneMapping = THREE.NeutralToneMapping;
+frame.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(),0.04).texture;
+const cam = new THREE.PerspectiveCamera(45,9/16,0.1,400);
+const rim = new THREE.DirectionalLight(0xe6ecff,0); rim.position.set(3,7,-12); scene.add(rim);
+
+const BG = new THREE.Color('#e7e0d1'), DARK = new THREE.Color('#0b0a09');
+scene.background = BG.clone();
+scene.fog = new THREE.Fog(BG.clone(), 30, 110);
+const FLOOR_LEN = 900, FLOOR_Z = 380;
+const FLOOR_C = new THREE.Color('#efe8da');
+const mirror = new Reflector(new THREE.PlaneGeometry(240, FLOOR_LEN), {clipBias:0.003, textureWidth:1024, textureHeight:1024, color:0x8a8a8a});
+mirror.rotation.x = -Math.PI/2; mirror.position.set(0,-0.002,FLOOR_Z); scene.add(mirror);
+let floorMat;
+{
+  const c=document.createElement('canvas'); c.width=64; c.height=512; const g=c.getContext('2d');
+  g.fillStyle='#ffffff'; g.fillRect(0,0,64,512); g.fillStyle='#c9bea9'; g.fillRect(0,0,64,16);
+  const tex=new THREE.CanvasTexture(c); tex.colorSpace=THREE.SRGBColorSpace;
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(1, FLOOR_LEN/2.5); tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
+  floorMat=new THREE.MeshPhysicalMaterial({color:FLOOR_C.clone(),map:tex,roughness:0.9,metalness:0,specularIntensity:0,transparent:true,opacity:0.955});
+  const f=new THREE.Mesh(new THREE.PlaneGeometry(240,FLOOR_LEN),floorMat);
+  f.rotation.x=-Math.PI/2; f.position.set(0,0,FLOOR_Z); f.renderOrder=1; scene.add(f);
+}
+
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t);};
+const lerp=(a,b,t)=>a+(b-a)*t;
+const T_GO=4.6, RAMP=6.0, VMAX=28;
+const vel=t=>{ const x=clamp((t-T_GO)/RAMP,0,1); return VMAX*(1-(1-x)*(1-x)); };
+const acc=t=>{ const x=(t-T_GO)/RAMP; return (x>0&&x<1) ? VMAX*2*(1-x)/RAMP : 0; };
+const ZT=[0]; const DT=1/1000;
+for(let i=1;i<=(DUR+1)/DT;i++) ZT[i]=ZT[i-1]+vel(i*DT)*DT;
+const posZ=t=>{ const k=clamp(t/DT,0,ZT.length-1), i=Math.floor(k); return ZT[i]+(ZT[Math.min(i+1,ZT.length-1)]-ZT[i])*(k-i); };
+const light=t=> sstep(1.3,2.1,t);
+const head=t=> t<1.0?0 : t<1.07?1 : t<1.15?0.15 : sstep(1.15,1.25,t);
+const CUTS=[4.2,5.8,8.0,10.0,11.3];
+
+const QS = new URLSearchParams(location.search);
+const TAKE = QS.has('take') ? (+QS.get('take') || 0) : 1+Math.floor(Math.random()*9999);
+if(!QS.has('take')){ QS.set('take', TAKE); history.replaceState(null, '', location.pathname+'?'+QS+location.hash); }
+const R = (s=>()=>{ s=s+0x6D2B79F5|0; let x=Math.imul(s^s>>>15,1|s); x=x+Math.imul(x^x>>>7,61|x)^x; return ((x^x>>>14)>>>0)/4294967296; })(TAKE*7919+1);
+const side=()=> TAKE && R()<0.5 ? -1 : 1;
+const turn=()=> TAKE && R()<0.5;
+const jit=a=> TAKE ? (R()*2-1)*a : 0;
+const V={
+  A:{m:side(), rev:turn(), el:jit(3), d:jit(1.2), op:TAKE ? Math.floor(R()*4) : 0},
+  B:{m:side()},
+  C:{m:side(), rev:turn(), el:jit(1.5), d:jit(2)},
+  E:{m:side()},
+  F:{m:side(), rev:turn(), el:jit(3), d:jit(2)},
+  D:{m:side()},
+  G:{m:side()},
+  H:{m:side(), rev:turn(), el:jit(1.5), d:jit(2)},
+  I:{m:side(), rev:turn(), el:jit(6), d:jit(3)},
+};
+let MID=['C','E','F'];
+if(TAKE){
+  MID=['C','E','F','G','H','I'];
+  for(let i=MID.length-1;i>0;i--){ const j=Math.floor(R()*(i+1)); [MID[i],MID[j]]=[MID[j],MID[i]]; }
+  MID=MID.slice(0,3);
+}
+const SLOTS=[[5.8,8.0],[8.0,10.0],[10.0,11.3]];
+const sweep=(a,b,k,rev)=> rev ? lerp(b,a,k) : lerp(a,b,k);
+
+const PALETTE=['#b8261f','#9fc6d6','#e8c23a','#f1ede2','#1f2e57'];
+const cdist=(a,b)=>{ const x=new THREE.Color(a), y=new THREE.Color(b); return Math.abs(x.r-y.r)+Math.abs(x.g-y.g)+Math.abs(x.b-y.b); };
+const lum=c=>{ const x=new THREE.Color(c); return 0.2126*x.r+0.7152*x.g+0.0722*x.b; };
+let SEQ = PALETTE.filter(c=>cdist(c,S.bc)>0.25);
+if(lum(S.bc)>0.6) SEQ = SEQ.filter(c=>lum(c)<=0.6 || c==='#e8c23a');
+SEQ = [S.bc].concat(SEQ.slice(0,3), [S.bc]);
+const SEQ_T=[0,2.35,2.8,3.25,3.7].slice(5-SEQ.length);
+SEQ_T[0]=0;
+const bodyCol=new THREE.Color(), cA=new THREE.Color(), cB=new THREE.Color();
+function bodyAt(t){
+  let i=0; while(i+1<SEQ_T.length && t>=SEQ_T[i+1]) i++;
+  if(i===0) return bodyCol.set(SEQ[0]);
+  const f=sstep(SEQ_T[i], SEQ_T[i]+0.09, t);
+  return bodyCol.copy(cA.set(SEQ[i-1])).lerp(cB.set(SEQ[i]), f);
+}
+
+const card=t=> t<7 ? 1-sstep(0.55,1.0,t) : sstep(13.3,13.55,t);
+const ltxt=t=> t<7 ? 1-sstep(0.4,0.85,t) : sstep(13.4,13.7,t);
+const copy=t=> t<7 ? 1-sstep(0.2,0.5,t) : sstep(14.2,14.55,t);
+const T_IN=13.6, T_STOP=14.1;
+function logoCar(t){
+  if(t<7){
+    const k=sstep(0.08,0.75,t);
+    return {o:1, x:-175*k*k*DIR, a:2.4*sstep(0.08,0.25,t)*(1-sstep(0.5,0.75,t))*DIR, org:CAR126?'20% 97%':'86% 96%'};
+  }
+  const k=clamp((t-T_IN)/(T_STOP-T_IN),0,1);
+  const x=150*Math.pow(1-k,3);
+  const a= t<T_STOP ? -3.6*sstep(T_STOP-0.22,T_STOP,t)
+                    : -3.6*Math.exp(-(t-T_STOP)*7)*Math.cos((t-T_STOP)*20);
+  return {o:t<T_IN?0:1, x:x*DIR, a:a*DIR, org:CAR126?'83% 97%':'14% 96%'};
+}
+
+let car, spots=[], PASS_Z=0, WHEEL0, WHEEL0R, shadow;
+const titleEl=document.getElementById('title'), lcarEl=titleEl.querySelector('.lcar'), ltxtEl=titleEl.querySelector('.ltxt'), urlEl=titleEl.querySelector('span'), copyEl=titleEl.querySelector('.copy');
+function orbit(target, azDeg, elDeg, d){
+  const a=azDeg*Math.PI/180, e=elDeg*Math.PI/180;
+  return new THREE.Vector3(target.x+d*Math.cos(e)*Math.sin(a), target.y+d*Math.sin(e), target.z+d*Math.cos(e)*Math.cos(a));
+}
+function draw(t){
+  const z=posZ(t), v=vel(t);
+  car.root.position.set(0, 0.006*(Math.sin(t*43)+0.6*Math.sin(t*71+1))*clamp(v/8,0,1), z);
+  car.root.rotation.x = -0.0016*acc(t)*sstep(T_GO,T_GO+0.25,t);
+  car.wheels.forEach(w=>{ w.pivot.rotation.x = z/w.radius; });
+  car.setBody(bodyAt(t));
+  car.update();
+  shadow.position.set(car.root.position.x, v>0.3 ? 0.006+car.root.position.y : 0.02, car.root.position.z+0.15);
+  shadow.rotation.x = -Math.PI/2 + (v>0.3 ? car.root.rotation.x : 0);
+
+  const L=light(t), H=head(t);
+  scene.environmentIntensity = 0.03+0.97*L;
+  scene.background.copy(DARK).lerp(BG,L); scene.fog.color.copy(scene.background);
+  car.setHeadlights(H); spots.forEach(s=>s.intensity=H*260*(1-0.85*L));
+  rim.intensity = 2.6*(1-L);
+  floorMat.color.copy(FLOOR_C).multiplyScalar(0.12+0.88*L);
+
+  const c=car.root.position;
+  let pos, look, fov=45;
+  cam.up.set(0,1,0);
+  const si=SLOTS.findIndex(s=>t>=s[0] && t<s[1]), shot = t<4.2?'A' : t<5.8?'B' : si>=0?MID[si] : 'D';
+  const [s0,s1] = si>=0 ? SLOTS[si] : [0,0], sv=V[shot], m=sv.m;
+  if(shot==='A'){
+    const k=sstep(1.8,4.2,t);
+    if(sv.op===1){
+      const q=sstep(1.2,4.2,t), tg=new THREE.Vector3(m*lerp(0.95,0,q), lerp(1.7,1.35,q), lerp(3.4,0.3,q));
+      pos=orbit(tg, m*lerp(12,40,q), lerp(3,8+sv.el,q), lerp(4.2,16.5+sv.d,q*q*(3-2*q))); look=tg;
+    }else if(sv.op===2){
+      pos=orbit(new THREE.Vector3(0,1.3,0.3), m*lerp(8,40,k), lerp(58,8+sv.el,k), lerp(21,16.5+sv.d,k));
+      look=new THREE.Vector3(0,1.35,0.3);
+    }else if(sv.op===3){
+      pos=orbit(new THREE.Vector3(0,1.3,0.3), m*lerp(50,36,k), lerp(0.6,8+sv.el,k), lerp(15,16.5+sv.d,k));
+      look=new THREE.Vector3(0,lerp(1.1,1.35,k),lerp(1.1,0.3,k));
+    }else{
+      const a0=-4+t*1.5, az=sv.rev ? lerp(-a0,-40,k) : lerp(a0,40,k);
+      pos=orbit(new THREE.Vector3(0,1.3,0.3), m*az, lerp(3,8+sv.el,k), lerp(15.5,16.5+sv.d,k));
+      look=new THREE.Vector3(0,lerp(1.5,1.35,k),0.3);
+    }
+  }else if(shot==='B'){
+    const wc=m>0?WHEEL0:WHEEL0R;
+    pos=new THREE.Vector3(wc.x+m*5.4, 0.85, wc.z+3.3); look=new THREE.Vector3(wc.x, wc.y+0.35, wc.z-0.4); fov=40;
+  }else if(shot==='C'){
+    const k=sstep(s0,s1,t);
+    pos=orbit(new THREE.Vector3(c.x,1.0,c.z+0.2), m*sweep(74,96,k,sv.rev), Math.max(1,lerp(3,2,k)+sv.el), 19.5+sv.d);
+    look=new THREE.Vector3(c.x,1.9,c.z+0.2);
+  }else if(shot==='E'){
+    const zm=posZ((s0+s1)/2), zc=zm+0.72*(c.z-zm);
+    pos=new THREE.Vector3(0, 20, zc+0.01); look=new THREE.Vector3(0, 0, zc);
+    const r=0.62*m; cam.up.set(Math.sin(r),0,Math.cos(r));
+  }else if(shot==='F'){
+    const k=sstep(s0,s1,t);
+    pos=orbit(new THREE.Vector3(c.x,1.2,c.z), m*sweep(205,160,k,sv.rev), Math.max(3,lerp(9,5,k)+sv.el), 17+sv.d);
+    look=new THREE.Vector3(c.x,1.6,c.z);
+  }else if(shot==='G'){
+    const k=sstep(s0,s1,t);
+    const tg=new THREE.Vector3(c.x+m*lerp(0.2,1.0,k), lerp(1.45,1.5,k), c.z+lerp(3.4,0.4,k));
+    pos=orbit(tg, m*lerp(28,82,k), 7, lerp(5.2,6.4,k)); look=tg; fov=34;
+  }else if(shot==='H'){
+    const k=sstep(s0,s1,t);
+    pos=orbit(new THREE.Vector3(c.x,1.2,c.z+0.5), m*sweep(24,48,k,sv.rev), Math.max(1.5,lerp(4,3,k)+sv.el), 25+sv.d);
+    look=new THREE.Vector3(c.x,1.45,c.z+0.5); fov=28;
+  }else if(shot==='I'){
+    const k=sstep(s0,s1,t);
+    pos=orbit(new THREE.Vector3(c.x,0.8,c.z), m*sweep(130,30,k,sv.rev), 34+sv.el, 24+sv.d);
+    look=new THREE.Vector3(c.x,1.0,c.z+0.3);
+  }else{
+    pos=new THREE.Vector3(-4.8*m, 0.95, PASS_Z);
+    look=new THREE.Vector3(c.x, 1.2, c.z+0.3); fov=40;
+  }
+  cam.position.copy(pos); cam.fov=fov; cam.updateProjectionMatrix(); cam.lookAt(look);
+  renderer.render(scene,cam);
+}
+function overlay(t){
+  const k=card(t), c8=BG.getRGB({},THREE.SRGBColorSpace);
+  titleEl.style.background=`rgba(${c8.r*255|0},${c8.g*255|0},${c8.b*255|0},${k})`;
+  const o=ltxt(t); ltxtEl.style.opacity=o; urlEl.style.opacity=o; copyEl.style.opacity=copy(t);
+  const lc=logoCar(t); lcarEl.style.opacity=lc.o; lcarEl.style.transformOrigin=lc.org;
+  lcarEl.style.transform=`translateX(${lc.x}%) rotate(${lc.a}deg)`;
+}
+
+const SUB=6, SHUTTER=0.5/FPS;
+let accCv=null, accCtx=null, making=false;
+function blurFrame(t, ctx){
+  let t0=t-SHUTTER; for(const c of CUTS) if(t0<c && c<=t) t0=c;
+  for(let i=0;i<SUB;i++){
+    draw(lerp(t0,t,(i+1)/SUB));
+    ctx.globalAlpha=1/(i+1); ctx.drawImage(renderer.domElement,0,0,ctx.canvas.width,ctx.canvas.height);
+  }
+  ctx.globalAlpha=1;
+}
+function setT(t){
+  if(!REC){ draw(t); overlay(t); return; }
+  if(!accCv){
+    accCv=document.createElement('canvas'); accCv.id='acc'; accCv.width=renderer.domElement.width; accCv.height=renderer.domElement.height;
+    renderer.domElement.after(accCv); accCtx=accCv.getContext('2d');
+  }
+  blurFrame(t, accCtx);
+  overlay(t);
+}
+
+const OUT_W=1080, OUT_H=1920;
+const LAY={copy:{y:651.2,size:66,ls:3.96,col:'#3a352c',wt:700}, url:{y:1254.7,size:44,ls:3.52,col:'#3f3a31',wt:600},
+  lcar:{x:311.56,y:767.92,w:457.67,h:214.20}, ltxt:{x:237.63,y:988.92,w:604.81,h:190.00}};
+if(CAR126) Object.assign(LAY,{copy:{...LAY.copy,y:639.4}, url:{...LAY.url,y:1266.5}, lcar:{x:300.95,y:756.13,w:477.81,h:230.34}, ltxt:{x:237.63,y:993.27,w:604.81,h:197.45}});
+const UI_FONT=getComputedStyle(document.body).fontFamily;
+function paintOverlay(ctx,t){
+  const k=card(t);
+  if(k>0){ ctx.globalAlpha=k; ctx.fillStyle='#'+BG.getHexString(); ctx.fillRect(0,0,OUT_W,OUT_H); }
+  const txt=(str,L,o)=>{ if(o<=0) return;
+    ctx.globalAlpha=o; ctx.fillStyle=L.col; ctx.font=`${L.wt} ${L.size}px ${UI_FONT}`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    if('letterSpacing' in ctx) ctx.letterSpacing=L.ls+'px';
+    ctx.fillText(str,OUT_W/2,L.y); if('letterSpacing' in ctx) ctx.letterSpacing='0px'; };
+  txt(copyEl.textContent,LAY.copy,copy(t));
+  const lc=logoCar(t);
+  if(lc.o>0){
+    const [ox,oy]=lc.org.split(' ').map(v=>parseFloat(v)/100), L=LAY.lcar;
+    ctx.save(); ctx.globalAlpha=lc.o; ctx.translate(L.x+ox*L.w+lc.x/100*L.w, L.y+oy*L.h); ctx.rotate(lc.a*Math.PI/180);
+    ctx.drawImage(lcarEl,-ox*L.w,-oy*L.h,L.w,L.h); ctx.restore();
+  }
+  const o=ltxt(t);
+  if(o>0){ const L=LAY.ltxt; ctx.globalAlpha=o; ctx.drawImage(ltxtEl,L.x,L.y,L.w,L.h); }
+  txt(urlEl.textContent,LAY.url,o);
+  ctx.globalAlpha=1;
+}
+async function pickCodec(){
+  if(!('VideoEncoder' in window) || !('VideoFrame' in window)) return null;
+  for(const codec of ['avc1.640028','avc1.4d0028','avc1.42e028','avc1.640033']){
+    const cfg={codec, width:OUT_W, height:OUT_H, bitrate:12_000_000, framerate:FPS, avc:{format:'avc'}};
+    try{ if((await VideoEncoder.isConfigSupported(cfg)).supported) return cfg; }catch(e){}
+  }
+  return null;
+}
+
+function resize(){
+  if(making) return;
+  const w=frame.clientWidth, h=frame.clientHeight;
+  renderer.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(frame); resize();
+
+car = await loadCar(CAR126 ? '/paint-notebook/fiat126.glb' : '/paint-notebook/fiat500.glb');
+scene.add(car.root); car.apply(S);
+{
+  const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d');
+  const gr=g.createRadialGradient(128,128,10,128,128,128); gr.addColorStop(0,'rgba(0,0,0,.6)'); gr.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=gr; g.fillRect(0,0,256,256);
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(4.4,9.2), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthWrite:false}));
+  m.rotation.x=-Math.PI/2; m.renderOrder=2; scene.add(m); shadow=m;
+}
+car.heads.forEach(p=>{
+  const s=new THREE.SpotLight(0xfff0d0,0,0,0.42,0.7,2);
+  s.position.copy(p); s.target.position.set(p.x, 0, p.z+9);
+  car.root.add(s); car.root.add(s.target); spots.push(s);
+});
+PASS_Z = posZ(12.2);
+car.update(); WHEEL0 = (car.wheels.find(w=>w.front&&w.left)||car.wheels[0]).pivot.getWorldPosition(new THREE.Vector3());
+WHEEL0R = (car.wheels.find(w=>w.front&&!w.left)||car.wheels[0]).pivot.getWorldPosition(new THREE.Vector3());
+document.getElementById('loading').remove();
+
+await Promise.all([lcarEl.decode(),ltxtEl.decode()]).catch(()=>{});
+window.__drive = {setT, ready:true, dur:DUR, seq:SEQ, seqT:SEQ_T};
+if(!REC){
+  let t0=performance.now(), playing=true, cur=0;
+  const seek=document.getElementById('seek'), tt=document.getElementById('tt'), play=document.getElementById('play');
+  play.onclick=()=>{ playing=!playing; play.textContent=playing?'一時停止':'再生'; t0=performance.now()-cur*1000; };
+  seek.oninput=()=>{ cur=+seek.value; t0=performance.now()-cur*1000; if(!playing) setT(cur); };
+  renderer.setAnimationLoop(()=>{
+    if(!playing) return;
+    cur=((performance.now()-t0)/1000)%DUR; seek.value=cur; tt.textContent=cur.toFixed(1); setT(cur);
+  });
+
+  const $=id=>document.getElementById(id);
+  const mk=$('mk'), msg=$('mkMsg'), meter=mk.querySelector('.meter'), barEl=$('mkBar'), vid=$('mkVid'), saveBtn=$('mkSave'), closeBtn=$('mkClose');
+  let cancel=false, outFile=null;
+  $('back').href=(CAR126?'./126.html':'./')+location.hash;
+  $('retake').onclick=()=>{ location.href='drive.html?'+(CAR126?'car=126&':'')+'take='+(1+Math.floor(Math.random()*9999))+location.hash; };
+  const closeMk=()=>{ mk.classList.remove('on'); vid.pause(); if(vid.src){ URL.revokeObjectURL(vid.src); vid.removeAttribute('src'); } };
+  closeBtn.onclick=()=>{ if(making) cancel=true; else closeMk(); };
+  saveBtn.onclick=()=>{
+    if(!outFile) return;
+    if(navigator.canShare && navigator.canShare({files:[outFile]})){ navigator.share({files:[outFile], text:SHARE_TEXT}).catch(()=>{}); return; }
+    const a=document.createElement('a'); a.href=URL.createObjectURL(outFile); a.download=outFile.name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  };
+  $('make').onclick=async()=>{
+    if(making) return;
+    mk.classList.add('on'); vid.style.display='none'; saveBtn.hidden=true; meter.style.display=''; barEl.style.width='0';
+    msg.textContent='動画を作っています…（1分ほどかかります）'; closeBtn.textContent='やめる';
+    const cfg=await pickCodec();
+    if(!cfg){ msg.textContent='このブラウザでは動画を作れません。新しい Chrome か Safari でお試しください。'; meter.style.display='none'; closeBtn.textContent='閉じる'; return; }
+    making=true; cancel=false; outFile=null;
+    const wasPlaying=playing; playing=false;
+    let err=null, muxer, enc;
+    const acc=document.createElement('canvas'); acc.width=OUT_W; acc.height=OUT_H; const actx=acc.getContext('2d');
+    const out=document.createElement('canvas'); out.width=OUT_W; out.height=OUT_H; const octx=out.getContext('2d');
+    const started=performance.now(), N=DUR*FPS;
+    try{
+      const {Muxer, ArrayBufferTarget}=await import('https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.mjs');
+      muxer=new Muxer({target:new ArrayBufferTarget(), video:{codec:'avc', width:OUT_W, height:OUT_H, frameRate:FPS}, fastStart:'in-memory'});
+      enc=new VideoEncoder({output:(c,m)=>muxer.addVideoChunk(c,m), error:e=>{ err=e; }});
+      enc.configure(cfg);
+      renderer.setPixelRatio(1); renderer.setSize(OUT_W,OUT_H,false); cam.aspect=OUT_W/OUT_H; cam.updateProjectionMatrix();
+      for(let n=0;n<N && !cancel && !err;n++){
+        const t=n/FPS;
+        blurFrame(t,actx); octx.drawImage(acc,0,0); paintOverlay(octx,t); overlay(t);
+        const f=new VideoFrame(out,{timestamp:Math.round(n*1e6/FPS), duration:Math.round(1e6/FPS)});
+        enc.encode(f,{keyFrame:n%(FPS*2)===0}); f.close();
+        while(enc.encodeQueueSize>3) await new Promise(r=>setTimeout(r,5));
+        barEl.style.width=((n+1)/N*100).toFixed(1)+'%';
+        await new Promise(r=>setTimeout(r,0));
+      }
+      if(!cancel && !err){ await enc.flush(); muxer.finalize(); }
+    }catch(e){ err=e; }
+    try{ if(enc && enc.state!=='closed') enc.close(); }catch(e){}
+    making=false; renderer.setPixelRatio(Math.min(devicePixelRatio,2)); resize();
+    playing=wasPlaying; t0=performance.now()-cur*1000; setT(cur);
+    if(cancel){ closeMk(); return; }
+    meter.style.display='none'; closeBtn.textContent='閉じる';
+    if(err){ msg.textContent='動画を作れませんでした（'+(err.message||err)+'）'; return; }
+    outFile=new File([muxer.target.buffer],(CAR126?'registro126':'registro500')+'-drive-'+Date.now()+'.mp4',{type:'video/mp4'});
+    let started1=false; const start1=()=>{ if(started1) return; started1=true; vid.currentTime=0; setTimeout(()=>vid.play().catch(()=>{}),400); };
+    vid.preload='auto'; vid.addEventListener('canplaythrough',start1,{once:true}); setTimeout(start1,3000);
+    vid.src=URL.createObjectURL(outFile); vid.style.display='block'; vid.load();
+    saveBtn.hidden=false;
+    msg.textContent='できました（'+Math.round((performance.now()-started)/1000)+'秒）。「保存・SNSへ送る」から X・Instagram・LINE などへそのまま送れます'+((navigator.canShare && navigator.canShare({files:[outFile]}))?'。':'（パソコンではファイルとして保存されます）。');
+  };
+}else setT(0);
+</script>
+
+
+</body></html>

@@ -166,16 +166,19 @@
   function walk(node) {
     if (node.nodeType === 3) {
       if (node.parentNode && SKIP.has(node.parentNode.nodeName)) return;
+      // text written by visitors (names, comments) is marked translate="no" and left as written
+      if (node.parentElement && node.parentElement.closest('[translate="no"]')) return;
       const v = node.data;
       if (JP.test(v)) { const t = tr(v); if (t !== v) node.data = t; }
       return;
     }
-    if (node.nodeType !== 1 || SKIP.has(node.tagName)) return;
+    if (node.nodeType !== 1 || SKIP.has(node.tagName) || node.getAttribute('translate') === 'no') return;
     for (const a of ATTRS) {
       const v = node.getAttribute(a);
       if (v && JP.test(v)) { const t = tr(v); if (t !== v) node.setAttribute(a, t); }
     }
-    if (!JP.test(node.textContent)) return;
+    // an <a> holding only an <img> has no text of its own, but the alt inside still needs translating
+    if (!JP.test(node.textContent) && !node.querySelector(ATTRS.map(x => '[' + x + ']').join(','))) return;
     if (trHtml(node)) return;
     for (let c = node.firstChild; c; c = c.nextSibling) walk(c);
   }

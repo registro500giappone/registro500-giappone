@@ -245,7 +245,7 @@ export function mountPost({ carType, snap }){
       if(key) saveKey(id, key);
       done = true;
       $('postMsg').textContent = carDoc ? '投稿しました。' : '投稿しました。この端末からなら、あとで削除できます。';
-      const go = document.createElement('a'); go.href = '/paint-notebook/gallery'; go.textContent = 'みんなのお絵描き帳を見る →'; go.className = 'golist';
+      const go = document.createElement('a'); go.href = (location.pathname.match(/^\/(en|it)(?=\/)/) || [''])[0] + '/paint-notebook/gallery'; go.textContent = 'みんなのお絵描き帳を見る →'; go.className = 'golist';
       $('postMsg').append(document.createElement('br'), go);
       $('postSend').textContent = '閉じる'; $('postSend').disabled = false; $('postCancel').hidden = true;
       if(window.gtag) gtag('event', 'paint_post', { car_type: carType, owner: carDoc ? 1 : 0 });
