@@ -156,6 +156,11 @@
     return out;
   }
 
+  // GA4 のイベント（失敗しても画面の動きは止めない）
+  function track(name, params) {
+    try { if (typeof gtag === 'function') gtag('event', name, params || {}); } catch (e) {}
+  }
+
   function carLabel(car) {
     return (car.handle_name || 'オーナー') + ' さん' + (car.modelDisplay ? '・' + car.modelDisplay : '');
   }
@@ -167,6 +172,7 @@
       const b = el('button', 'metoo', '🔧 わたしも使ってる');
       b.type = 'button';
       b.addEventListener('click', () => {
+        track('tool_metoo_guest');
         b.remove();
         const n = el('span', 'metoo-note', '登録オーナーとしてログインすると押せます。');
         const a = el('a', null, 'ログインする');
@@ -188,6 +194,7 @@
       b.addEventListener('click', () => act(b, async () => {
         const { error } = await supabaseClient.from('owner_tool_users').delete().in('id', mine.map(u => u.id));
         if (error) throw error;
+        track('tool_metoo', { action: 'remove', category: g.category });
       }));
       row.appendChild(b);
       return row;
@@ -195,6 +202,7 @@
     const press = car => async () => {
       const { error } = await supabaseClient.from('owner_tool_users').insert({ tool_id: g.repId, car_id: car.document_id });
       if (error) throw error;
+      track('tool_metoo', { action: 'add', category: g.category });
     };
     const b = el('button', 'metoo', '🔧 わたしも使ってる');
     b.type = 'button';
@@ -305,7 +313,7 @@
     CATS.forEach(([k, label]) => {
       const b = el('button', 'chip' + (k === curCat ? ' on' : ''), label);
       b.type = 'button';
-      b.addEventListener('click', () => { curCat = k; renderChips(); renderList(); });
+      b.addEventListener('click', () => { curCat = k; track('tool_filter', { category: k }); renderChips(); renderList(); });
       box.appendChild(b);
     });
   }

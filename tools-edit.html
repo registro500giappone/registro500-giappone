@@ -271,6 +271,11 @@
     } catch (err) { setMsg(err.message, 'err'); $('fPhoto').value = ''; }
   });
 
+  // GA4 のイベント（失敗しても画面の動きは止めない）
+  function track(name, params) {
+    try { if (typeof gtag === 'function') gtag('event', name, params || {}); } catch (e) {}
+  }
+
   // ── 外部の画像URLが表示できるか確かめる ──
   function canLoadImage(url) {
     return new Promise(resolve => {
@@ -377,6 +382,7 @@
         ({ error } = await supabaseClient.from('owner_tools').insert(payload));
       }
       if (error) throw error;
+      track('tool_post', { mode: editing ? 'edit' : 'new', category, photo: photoFile ? 'file' : (photoUrl ? 'url' : 'keep') });
       resetForm(); setMsg('');
       $('doneCard').classList.remove('hidden');
       loadMine();

@@ -74,6 +74,12 @@
 - **90日参加台数に数える**（`py/gen_report.py` の⑥投稿・⑦わたしも使ってる／`report-design.md`）。
 - 💡保留：「参考になった」の数を**投稿した本人にだけ**知らせる案（画面には出さない）＝投稿が20〜30件たまってから判断。
 
+## 7. 計測（GA4・2026-10-07）
+
+- タグは2ページとも入っている（`G-27SHHC4JYH`）。Amazonボタンのクリックは GA4 の自動計測（外部リンクの `click`・`linkDomain` に amazon）で拾われ、週次レポートのアフィクリック（ページ別）に `/tools` として出る＝専用イベントは作らない。
+- 独自イベント：`tool_post`（`mode`=new/edit・`category`・`photo`=file/url/keep）／`tool_metoo`（`action`=add/remove・`category`）／`tool_metoo_guest`（未ログインで押した＝ログインしてでも押したい需要）／`tool_filter`（`category`）。
+- ⏳週次レポートへの組み込みは公開判断のあと（導線なしの間は数が出ない）。
+
 ## 5. 残タスク
 
 1. ⏳（ユーザー）Amazon アソシエイトでページ専用タグを発行する（案 `registro500tl-22`）。
