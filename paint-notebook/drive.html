@@ -146,6 +146,52 @@ let floorMat;
   f.rotation.x=-Math.PI/2; f.position.set(0,0,FLOOR_Z); f.renderOrder=1; scene.add(f);
 }
 
+// ---- 雨＝短い線を空間に撒き、t から位置が1つに決まるように落とす（収録で1コマずつ撮っても同じ絵） ----
+// 雨粒は地面に固定した座標で落ち、撮る場所のまわりの箱（W×W・高さ RH）へ折り返して並べる＝走る車が雨の中を突っ切って見える
+const RAIN_BG = new THREE.Color('#646b73');
+const RAIN_N=4000, RAIN_W=50, RAIN_H=26, RAIN_V=17, RAIN_LEN=1.4, RAIN_WIND=0.12;
+let rain=null, rainBase=null;
+{
+  const g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(RAIN_N*6),3));
+  rainBase=new Float32Array(RAIN_N*3);
+  let s=12345; const rnd=()=>{ s=(s*1103515245+12345)&0x7fffffff; return s/0x7fffffff; }; // 粒の並びは毎回同じ
+  for(let i=0;i<RAIN_N*3;i++) rainBase[i]=rnd();
+  rain=new THREE.LineSegments(g, new THREE.LineBasicMaterial({color:0xf4f8fc, transparent:true, opacity:0, depthWrite:false}));
+  rain.frustumCulled=false; rain.renderOrder=3; rain.visible=false; scene.add(rain);
+}
+// 床の波紋＝落ちた粒が輪になって広がり消える（粒ごとに場所と時刻をずらして繰り返す）
+const SPL_N=500, SPL_W=36, SPL_P=0.55;
+const splash=new THREE.InstancedMesh(new THREE.RingGeometry(0.8,1,24).rotateX(-Math.PI/2),
+  new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0, depthWrite:false, blending:THREE.AdditiveBlending}), SPL_N);
+splash.frustumCulled=false; splash.renderOrder=3; splash.visible=false; scene.add(splash);
+const splM=new THREE.Matrix4(), splQ=new THREE.Quaternion(), splP=new THREE.Vector3(), splS=new THREE.Vector3(), splC=new THREE.Color();
+for(let i=0;i<SPL_N;i++) splash.setColorAt(i, splC.setScalar(0));
+const wrap=(x,w)=>x-Math.floor(x/w)*w;
+function rainFrame(t, RN, pos, look){
+  rain.visible = RN>0.001; if(!rain.visible){ splash.visible=false; return; }
+  rain.material.opacity = 0.7*RN;
+  const cx=(pos.x+look.x)/2, cz=(pos.z+look.z)/2, p=rain.geometry.attributes.position.array, H=RAIN_W/2;
+  for(let i=0;i<RAIN_N;i++){
+    const y=wrap(rainBase[i*3+1]*RAIN_H - RAIN_V*t, RAIN_H);
+    const x=cx+wrap(rainBase[i*3]*RAIN_W + RAIN_WIND*RAIN_V*t - cx + H, RAIN_W) - H; // 風で少し流れる
+    const z=cz+wrap(rainBase[i*3+2]*RAIN_W - cz + H, RAIN_W) - H;
+    const o=i*6; p[o]=x; p[o+1]=y; p[o+2]=z; p[o+3]=x-RAIN_WIND*RAIN_LEN; p[o+4]=y+RAIN_LEN; p[o+5]=z;
+  }
+  rain.geometry.attributes.position.needsUpdate=true;
+  // 波紋は見ている先（look）のまわりに撒く。1周期のうちに半径 0〜0.35 へ広がり、薄れて消える
+  splash.visible=true; splash.material.opacity=0.6*RN;
+  for(let i=0;i<SPL_N;i++){
+    const ph=wrap(t/SPL_P + rainBase[i*3+1], 1), cyc=Math.floor(t/SPL_P + rainBase[i*3+1]);
+    const jx=rainBase[(i*3+cyc*7)%(RAIN_N*3)], jz=rainBase[(i*3+2+cyc*13)%(RAIN_N*3)]; // 周期ごとに落ちる場所を変える
+    const x=look.x+wrap(rainBase[i*3]*SPL_W+jx*5 - look.x + SPL_W/2, SPL_W) - SPL_W/2;
+    const z=look.z+wrap(rainBase[i*3+2]*SPL_W+jz*5 - look.z + SPL_W/2, SPL_W) - SPL_W/2;
+    const r=0.02+0.33*ph, f=(1-ph)*(1-ph);
+    splash.setMatrixAt(i, splM.compose(splP.set(x,0.012,z), splQ, splS.set(r,1,r)));
+    splash.setColorAt(i, splC.setScalar(f));   // 加算で重ねる＝色を落とすほど薄くなる
+  }
+  splash.instanceMatrix.needsUpdate=true; splash.instanceColor.needsUpdate=true;
+}
+
 // ---- 時間の流れ（t 秒を渡すと、その瞬間の絵が1つに決まる＝収録で1コマずつ撮れる） ----
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t);};
@@ -196,6 +242,13 @@ if(TAKE){
   MID=MID.slice(0,3);
 }
 const SLOTS=[[5.8,8.0],[8.0,10.0],[10.0,11.3]];
+// 雨＝take の番号でおよそ4回に1回だけ降る（同じ番号なら同じ天気）。0＝決まった撮り方では降らない。
+// ?rain=1 で必ず降る・?rain=0 で降らない（SNS 用に狙って撮るための隠しパラメータ＝画面にボタンは出さない）。
+// 降るのは中盤の3場面だけ＝塗り替えの瞬間と最後の見せ場は晴れ。上がったあとは床が濡れて映り込みが強くなる（雨上がり）
+// くじは撮り方（R）と別の種から引く＝雨を足しても既存の番号の撮り方は変わらない
+const RAIN = QS.get('rain')==='1' ? true : QS.get('rain')==='0' ? false : !!TAKE && ((TAKE*2654435761>>>0)%1000)/1000 < 0.25;
+const rainAt=t=> RAIN ? sstep(5.5,6.3,t)*(1-sstep(10.7,11.3,t)) : 0;   // 雨の強さ 0〜1
+const wetAt =t=> RAIN ? sstep(6.0,8.0,t) : 0;                          // 床の濡れ（上がっても残る）
 const sweep=(a,b,k,rev)=> rev ? lerp(b,a,k) : lerp(a,b,k);
 
 // 塗り替え＝暗がりから最初に現れるのはこの車の色（ユーザー確定）→ 色見本を次々に見せて → この車の色に戻って決まる（白っぽい車なら途中の白を抜く＝変化が見えないため）
@@ -252,12 +305,14 @@ function draw(t){
   shadow.position.set(car.root.position.x, v>0.3 ? 0.006+car.root.position.y : 0.02, car.root.position.z+0.15);
   shadow.rotation.x = -Math.PI/2 + (v>0.3 ? car.root.rotation.x : 0); // 車体の傾きも伝える＝影の一部が床に潜る
 
-  const L=light(t), H=head(t);
-  scene.environmentIntensity = 0.03+0.97*L;
-  scene.background.copy(DARK).lerp(BG,L); scene.fog.color.copy(scene.background);
+  const L=light(t), H=head(t), RN=rainAt(t), WT=wetAt(t);
+  scene.environmentIntensity = (0.03+0.97*L)*(1-0.35*RN);
+  scene.background.copy(DARK).lerp(BG,L).lerp(RAIN_BG,0.75*RN); scene.fog.color.copy(scene.background);
+  scene.fog.near = 30-18*RN; scene.fog.far = 110-55*RN;                 // 雨のあいだは遠くが煙る
   car.setHeadlights(H); spots.forEach(s=>s.intensity=H*260*(1-0.85*L)); // 明るいスタジオでは光だまりを控える
-  rim.intensity = 2.6*(1-L); // 暗がりで車の輪郭だけを浮かべる逆光
-  floorMat.color.copy(FLOOR_C).multiplyScalar(0.12+0.88*L); // 暗いあいだは床も落とす
+  rim.intensity = 2.6*(1-L) + 1.6*RN; // 暗がりで車の輪郭だけを浮かべる逆光（雨の中でも輪郭を残す）
+  floorMat.color.copy(FLOOR_C).multiplyScalar((0.12+0.88*L)*(1-0.35*RN)); // 暗いあいだは床も落とす
+  floorMat.opacity = 0.955-0.3*WT;    // 濡れた床＝下の鏡が透けて映り込みが強くなる
 
   const c=car.root.position;
   let pos, look, fov=45;
@@ -313,6 +368,7 @@ function draw(t){
     look=new THREE.Vector3(c.x, 1.2, c.z+0.3); fov=40;
   }
   cam.position.copy(pos); cam.fov=fov; cam.updateProjectionMatrix(); cam.lookAt(look);
+  if(rain) rainFrame(t, RN, pos, look);
   renderer.render(scene,cam);
 }
 function overlay(t){
