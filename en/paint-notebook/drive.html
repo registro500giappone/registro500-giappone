@@ -141,7 +141,11 @@ let floorMat;
   f.rotation.x=-Math.PI/2; f.position.set(0,0,FLOOR_Z); f.renderOrder=1; scene.add(f);
 }
 
-const RAIN_BG = new THREE.Color('#646b73');
+const RAIN_BG = new THREE.Color('#3a4048'), BOLT_C = new THREE.Color('#eef2ff');
+const boltAt=t=>{ if(!RAIN) return 0; let v=0;
+  for(const b of [6.4+((TAKE*97)%60)/100, 8.6+((TAKE*131)%80)/100]){ const d=t-b; if(d<0||d>0.6) continue;
+    v=Math.max(v, d<0.05 ? 1 : d<0.12 ? 0.25 : d<0.17 ? 0.85 : 0.85*Math.exp(-(d-0.17)*9)); }
+  return v*rainAt(t); };
 const RAIN_N=4000, RAIN_W=50, RAIN_H=26, RAIN_V=17, RAIN_LEN=1.4, RAIN_WIND=0.12;
 let rain=null, rainBase=null;
 {
@@ -152,6 +156,11 @@ let rain=null, rainBase=null;
   rain=new THREE.LineSegments(g, new THREE.LineBasicMaterial({color:0xf4f8fc, transparent:true, opacity:0, depthWrite:false}));
   rain.frustumCulled=false; rain.renderOrder=3; rain.visible=false; scene.add(rain);
 }
+const NEAR_N=500, NEAR_W=9, NEAR_H=9, NEAR_V=14;
+const nearRain=new THREE.InstancedMesh(new THREE.PlaneGeometry(0.014,0.55),
+  new THREE.MeshBasicMaterial({color:0xf4f8fc, transparent:true, opacity:0, depthWrite:false, fog:false}), NEAR_N);
+nearRain.frustumCulled=false; nearRain.renderOrder=4; nearRain.visible=false; scene.add(nearRain);
+const nrM=new THREE.Matrix4(), nrQ=new THREE.Quaternion(), nrP=new THREE.Vector3(), nrS=new THREE.Vector3(1,1,1), nrE=new THREE.Euler();
 const SPL_N=500, SPL_W=36, SPL_P=0.55;
 const splash=new THREE.InstancedMesh(new THREE.RingGeometry(0.8,1,24).rotateX(-Math.PI/2),
   new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0, depthWrite:false, blending:THREE.AdditiveBlending}), SPL_N);
@@ -160,8 +169,8 @@ const splM=new THREE.Matrix4(), splQ=new THREE.Quaternion(), splP=new THREE.Vect
 for(let i=0;i<SPL_N;i++) splash.setColorAt(i, splC.setScalar(0));
 const wrap=(x,w)=>x-Math.floor(x/w)*w;
 function rainFrame(t, RN, pos, look){
-  rain.visible = RN>0.001; if(!rain.visible){ splash.visible=false; return; }
-  rain.material.opacity = 0.7*RN;
+  rain.visible = RN>0.001; if(!rain.visible){ splash.visible=false; nearRain.visible=false; return; }
+  rain.material.opacity = 0.85*RN;
   const cx=(pos.x+look.x)/2, cz=(pos.z+look.z)/2, p=rain.geometry.attributes.position.array, H=RAIN_W/2;
   for(let i=0;i<RAIN_N;i++){
     const y=wrap(rainBase[i*3+1]*RAIN_H - RAIN_V*t, RAIN_H);
@@ -170,6 +179,16 @@ function rainFrame(t, RN, pos, look){
     const o=i*6; p[o]=x; p[o+1]=y; p[o+2]=z; p[o+3]=x-RAIN_WIND*RAIN_LEN; p[o+4]=y+RAIN_LEN; p[o+5]=z;
   }
   rain.geometry.attributes.position.needsUpdate=true;
+  nearRain.visible=true; nearRain.material.opacity=0.5*RN;
+  const fx=look.x-pos.x, fz=look.z-pos.z, fl=Math.hypot(fx,fz)||1, ncx=pos.x+fx/fl*NEAR_W/2, ncz=pos.z+fz/fl*NEAR_W/2, nh=NEAR_W/2;
+  for(let i=0;i<NEAR_N;i++){
+    const b=rainBase[(i*3+1000*3)%(RAIN_N*3)], b2=rainBase[(i*3+1000*3+1)%(RAIN_N*3)], b3=rainBase[(i*3+1000*3+2)%(RAIN_N*3)];
+    const x=ncx+wrap(b*NEAR_W - ncx + nh, NEAR_W) - nh, z=ncz+wrap(b3*NEAR_W - ncz + nh, NEAR_W) - nh;
+    const y=pos.y-NEAR_H/2+wrap(b2*NEAR_H - NEAR_V*t - pos.y + NEAR_H/2, NEAR_H);
+    nrE.set(0, Math.atan2(pos.x-x, pos.z-z), -RAIN_WIND);
+    nearRain.setMatrixAt(i, nrM.compose(nrP.set(x,y,z), nrQ.setFromEuler(nrE), nrS));
+  }
+  nearRain.instanceMatrix.needsUpdate=true;
   splash.visible=true; splash.material.opacity=0.6*RN;
   for(let i=0;i<SPL_N;i++){
     const ph=wrap(t/SPL_P + rainBase[i*3+1], 1), cyc=Math.floor(t/SPL_P + rainBase[i*3+1]);
@@ -278,12 +297,13 @@ function draw(t){
   shadow.rotation.x = -Math.PI/2 + (v>0.3 ? car.root.rotation.x : 0);
 
   const L=light(t), H=head(t), RN=rainAt(t), WT=wetAt(t);
-  scene.environmentIntensity = (0.03+0.97*L)*(1-0.35*RN);
-  scene.background.copy(DARK).lerp(BG,L).lerp(RAIN_BG,0.75*RN); scene.fog.color.copy(scene.background);
+  const LT=boltAt(t);
+  scene.environmentIntensity = (0.03+0.97*L)*(1-0.55*RN) + 1.2*LT;
+  scene.background.copy(DARK).lerp(BG,L).lerp(RAIN_BG,0.9*RN).lerp(BOLT_C,LT); scene.fog.color.copy(scene.background);
   scene.fog.near = 30-18*RN; scene.fog.far = 110-55*RN;
-  car.setHeadlights(H); spots.forEach(s=>s.intensity=H*260*(1-0.85*L));
-  rim.intensity = 2.6*(1-L) + 1.6*RN;
-  floorMat.color.copy(FLOOR_C).multiplyScalar((0.12+0.88*L)*(1-0.35*RN));
+  car.setHeadlights(H); spots.forEach(s=>s.intensity=H*260*(1-0.85*L*(1-0.8*RN)));
+  rim.intensity = 2.6*(1-L) + 1.6*RN + 9*LT;
+  floorMat.color.copy(FLOOR_C).multiplyScalar((0.12+0.88*L)*(1-0.6*RN)+0.5*LT);
   floorMat.opacity = 0.955-0.3*WT;
 
   const c=car.root.position;
