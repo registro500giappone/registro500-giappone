@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>選んでパレード｜みんなのお絵描き帳｜REGISTRO 500 GIAPPONE</title>
+<meta name="robots" content="noindex">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH');
+</script>
+<meta name="description" content="みんなのお絵描き帳から好きな絵を何台か選んで、一緒に走らせます。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="選んでパレード｜FIAT500/126みんなのお絵描き帳">
+<meta property="og:description" content="みんなのお絵描き帳から好きな絵を何台か選んで、一緒に走らせます。">
+<meta property="og:image" content="https://www.registro500.com/og/paint-gallery-ja.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon-192.png">
+<style>
+:root{
+  --paper:#1d1b18; --card:#27241f; --ink:#ece6da; --sub:#a99f8e; --line:#3b362e;
+  --deep:#e3d9c6; --accent:#b23b2b; --chip:#322e27; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;line-height:1.7;-webkit-text-size-adjust:100%}
+.wrap{max-width:960px;margin:0 auto;padding:12px 16px 110px}
+.topbar a{color:var(--sub);text-decoration:none;font-size:13px}
+h1{font-size:21px;margin:6px 0 0;color:var(--deep);letter-spacing:.04em}
+p.lead{font-size:13px;color:var(--sub);margin:2px 0 12px}
+button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}
+button.primary{background:var(--deep);color:var(--paper);border-color:var(--deep);font-weight:700;padding:8px 20px;font-size:15px}
+button:disabled{opacity:.4;cursor:default}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.card{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.card img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#cfc4ae}
+.card .who{font-size:11px;color:var(--sub);padding:4px 8px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .no{position:absolute;top:6px;left:6px;min-width:28px;height:28px;border-radius:999px;background:rgba(0,0,0,.45);border:2px solid #fff;color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;padding:0 6px}
+.card.on{border-color:var(--deep)}
+.card.on .no{background:var(--accent);border-color:var(--accent)}
+.tag{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:6px;padding:0 6px;margin-right:6px}
+.status{font-size:13px;color:var(--sub);text-align:center;padding:24px 0}
+#more{display:block;margin:16px auto 0}
+.bar{position:fixed;left:0;right:0;bottom:0;background:rgba(29,27,24,.94);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:center;gap:12px;backdrop-filter:blur(6px)}
+.bar .cnt{font-size:13px;color:var(--sub)}
+.credit{margin-top:18px;font-size:11px;color:var(--sub)}
+.credit a{color:var(--sub)}
+
+/* パレードの舞台＝画面いっぱい */
+#stage{position:fixed;inset:0;background:#e7e0d1;overflow:hidden}
+#stage canvas{display:block;width:100%;height:100%;touch-action:manipulation}
+#stage .back{position:absolute;top:calc(10px + env(safe-area-inset-top));left:10px;background:rgba(29,27,24,.7);border-color:transparent;color:#fff}
+#stage .hint{position:absolute;top:calc(14px + env(safe-area-inset-top));right:12px;font-size:11px;color:rgba(40,35,28,.55)}
+#cap{position:absolute;left:50%;bottom:calc(28px + env(safe-area-inset-bottom));transform:translateX(-50%);max-width:92%;text-align:center;color:#2a251e;pointer-events:none;transition:opacity .5s}
+#cap .t{font-size:clamp(17px,4.6vw,28px);font-weight:700;letter-spacing:.06em;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+#cap .c{font-size:clamp(12px,3.4vw,16px);opacity:.8}
+#prep{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:#3a352c;background:#e7e0d1}
+</style>
+</head>
+<body>
+<div class="wrap" id="picker">
+  <div class="topbar"><a href="/paint-notebook/gallery">← みんなのお絵描き帳</a></div>
+  <h1>選んでパレード</h1>
+  <p class="lead">一緒に走らせたい絵を選んでください（2〜<span id="maxN"></span>台）。選んだ順に、先頭から並びます。</p>
+  <div class="grid" id="grid"></div>
+  <p class="status" id="status" role="status">読み込み中…</p>
+  <button id="more" hidden>もっと見る</button>
+  <p class="credit">3Dモデル：<a href="https://sketchfab.com/3d-models/fiat-500-1970-model-213cd126fcd744809fb7996eb88366f5" rel="noopener" target="_blank">"Fiat 500 - 1970 Model"</a> by <a href="https://sketchfab.com/parsafarvadian" rel="noopener" target="_blank">Parsa Farvadian</a>／<a href="https://sketchfab.com/3d-models/polski-fiat-fiat-126p-edc1b9d866484e048b4c54d917cca900" rel="noopener" target="_blank">"Polski Fiat (Fiat 126p)"</a> by <a href="https://sketchfab.com/Bexxie" rel="noopener" target="_blank">Martin Trafas</a>, <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener" target="_blank">CC BY 4.0</a>（どちらもデータを軽くし、塗装と模様の表示を加えています）</p>
+</div>
+<div class="bar" id="bar">
+  <span class="cnt" id="cnt">0台</span>
+  <button id="clear">選び直す</button>
+  <button id="go" class="primary" disabled>パレード開始</button>
+</div>
+<div id="stage" hidden>
+  <button class="back" id="back">← 絵を選び直す</button>
+  <span class="hint">画面をタップで次のアングル</span>
+  <div id="cap"><div class="t"></div><div class="c"></div></div>
+  <div id="prep">準備中…</div>
+</div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {Reflector} from 'three/addons/objects/Reflector.js';
+import {sb, thumbUrl} from './post.js?v=9';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const MAX = 6, PAGE = 60;  // 台数の上限＝列の全体が映る場面で最後尾の色と模様が見分けられる数（スマホ縦で実測・7台以上は粒になる）
+$('maxN').textContent = MAX;
+
+// ---- 絵を選ぶ ----
+let last = null, sel = [];
+const byId = new Map();
+function paintSel(){
+  document.querySelectorAll('.card').forEach(el => {
+    const i = sel.findIndex(p => p.id === +el.dataset.id);
+    el.classList.toggle('on', i >= 0); el.querySelector('.no').textContent = i >= 0 ? i + 1 : '';
+  });
+  $('cnt').textContent = sel.length + '台';
+  $('go').disabled = sel.length < 2;
+}
+function card(p){
+  const el = document.createElement('div'); el.className = 'card'; el.dataset.id = p.id;
+  el.innerHTML = `<img loading="lazy" alt="" src="${esc(thumbUrl(p.thumb_path))}"><span class="no"></span>
+    <div class="who"><span class="tag">${p.car_type}</span><span translate="no">${esc(p.name)}</span></div>`;
+  el.onclick = () => {
+    const i = sel.findIndex(q => q.id === p.id);
+    if(i >= 0) sel.splice(i, 1); else if(sel.length < MAX) sel.push(p);
+    paintSel();
+  };
+  return el;
+}
+async function load(){
+  const c = await sb();
+  $('status').textContent = '読み込み中…'; $('status').hidden = false; $('more').hidden = true;
+  const { data, error } = await c.rpc('paint_posts_list', { p_car_type: null, p_car_doc: null, p_limit: PAGE, p_before: last });
+  if(error){ $('status').textContent = '読み込めませんでした。'; return []; }
+  data.forEach(p => { byId.set(p.id, p); $('grid').appendChild(card(p)); });
+  if(data.length) last = data[data.length - 1].id;
+  $('status').hidden = !!$('grid').children.length;
+  if(!$('grid').children.length) $('status').textContent = 'まだ投稿がありません。';
+  $('more').hidden = data.length < PAGE;
+  paintSel();
+  return data;
+}
+$('more').onclick = load;
+$('clear').onclick = () => { sel = []; paintSel(); };
+$('go').onclick = () => start();
+$('back').onclick = () => { history.replaceState(null, '', location.pathname); location.reload(); };
+
+// ---- パレード ----
+const parseS = (DEF, d) => { // 投稿の設計図（# 以降）→ 塗り方。readHash と同じ読み方
+  const S = {...DEF}; const h = new URLSearchParams(d || '');
+  for(const k in DEF) if(h.has(k)){ const v = h.get(k); S[k] = typeof DEF[k] === 'number' ? (+v || 0) : v; }
+  return S;
+};
+const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const SPEED = 7;  // 進む速さ（単位/秒）＝ゆっくり流すパレードの歩み
+
+async function start(){
+  if(sel.length < 2) return;
+  history.replaceState(null, '', location.pathname + '?ids=' + sel.map(p => p.id).join(','));
+  $('picker').hidden = true; $('bar').hidden = true; $('stage').hidden = false;
+  if(window.gtag) gtag('event', 'paint_parade', {cars: sel.length});
+
+  const stage = $('stage');
+  const mobile = Math.min(innerWidth, innerHeight) < 700;
+  const renderer = new THREE.WebGLRenderer({antialias: true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio, mobile ? 1.5 : 2));
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  stage.prepend(renderer.domElement);
+  const scene = new THREE.Scene();
+  scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+  const BG = new THREE.Color('#e7e0d1');
+  scene.background = BG.clone();
+  scene.fog = new THREE.Fog(BG.clone(), 70, 260);  // 列が長いので走る動画より遠くまで見せる
+  const cam = new THREE.PerspectiveCamera(40, 1, 0.1, 600);
+  function resize(){ const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
+  new ResizeObserver(resize).observe(stage); resize();
+
+  // 床＝走る動画と同じ撮影スタジオ。車は場所を動かさず、床の目地を後ろへ流して進ませる（いつまでも走り続けられる）
+  const FLOOR_LEN = 900, FLOOR_Z = -60, TILE = 2.5;
+  const mirror = new Reflector(new THREE.PlaneGeometry(800, FLOOR_LEN), {clipBias: 0.003, textureWidth: mobile ? 512 : 1024, textureHeight: mobile ? 512 : 1024, color: 0x8a8a8a});
+  // 鏡は床から少し下げる＝近すぎると時々床が消えて鏡だけが映るコマが出る（-0.002 で実測。-0.05 で0件）
+  mirror.rotation.x = -Math.PI / 2; mirror.position.set(0, -0.05, FLOOR_Z); scene.add(mirror);
+  let floorTex;
+  {
+    const c = document.createElement('canvas'); c.width = 64; c.height = 512; const g = c.getContext('2d');
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, 64, 512); g.fillStyle = '#c9bea9'; g.fillRect(0, 0, 64, 16);
+    floorTex = new THREE.CanvasTexture(c); floorTex.colorSpace = THREE.SRGBColorSpace;
+    floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping; floorTex.repeat.set(1, FLOOR_LEN / TILE); floorTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    const m = new THREE.MeshPhysicalMaterial({color: '#efe8da', map: floorTex, roughness: 0.9, metalness: 0, specularIntensity: 0, transparent: true, opacity: 0.955});
+    const f = new THREE.Mesh(new THREE.PlaneGeometry(800, FLOOR_LEN), m);
+    f.rotation.x = -Math.PI / 2; f.position.set(0, 0, FLOOR_Z); f.renderOrder = 1; scene.add(f);
+  }
+  const shadowTex = (() => {
+    const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+    const gr = g.createRadialGradient(128, 128, 10, 128, 128, 128); gr.addColorStop(0, 'rgba(0,0,0,.6)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 256, 256); return new THREE.CanvasTexture(c);
+  })();
+
+  // 車を読む（500・126 は必要なほうだけ）
+  const mods = {};
+  if(sel.some(p => p.car_type !== '126')) mods['500'] = await import('./car.js?v=38');
+  if(sel.some(p => p.car_type === '126')) mods['126'] = await import('./car126.js?v=21');
+  let done = 0;
+  const prog = () => { $('prep').textContent = `${sel.length}台を準備中…（${done}/${sel.length}）`; };
+  prog();
+  const cars = await Promise.all(sel.map(async p => {
+    const is126 = p.car_type === '126', M = mods[is126 ? '126' : '500'];
+    const car = await M.loadCar(is126 ? 'fiat126.glb' : 'fiat500.glb');
+    car.apply(parseS(M.DEF, p.design));
+    car.setHeadlights(1);
+    scene.add(car.root);
+    const box = new THREE.Box3().setFromObject(car.root);
+    const sh = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 9.2), new THREE.MeshBasicMaterial({map: shadowTex, transparent: true, depthWrite: false}));
+    sh.rotation.x = -Math.PI / 2; sh.renderOrder = 2; scene.add(sh);
+    done++; prog();
+    return {p, car, sh, len: box.max.z - box.min.z, cz: (box.max.z + box.min.z) / 2, z: 0};
+  }));
+  // 先頭（z=0）から後ろへ一列に。車間＝車1台の半分ほど
+  let z = 0;
+  cars.forEach((c, i) => { if(i) z -= cars[i - 1].len / 2 + c.len / 2 + c.len * 0.55; c.z = z - c.cz; });
+  const HEAD = cars[0].z, TAIL = cars[cars.length - 1].z, MID = (HEAD + TAIL) / 2;
+  $('prep').remove();
+
+  // ---- 列の長さと画面の向きに合わせてカメラを決める（台数・スマホ／PC で大きさが変わらないように）----
+  const L = HEAD - TAIL, LEN = L + cars[0].len;  // 先頭と最後尾の間／列の全長
+  const R2D = 180 / Math.PI, tanD = d => Math.tan(d / 2 / R2D);
+  const vFromH = h => 2 * Math.atan(tanD(h) / cam.aspect) * R2D;  // 横の画角 → 縦の画角
+  // 出迎え（dir=+1・前から）／見送り（-1・後ろから）＝望遠で列を重ねる。遠くから撮るほど最後尾が大きく残る（最後尾≒先頭の半分）。
+  // 先頭の車が画面幅の F（スマホ縦 5割・横長 4割）になるよう画角を絞る
+  function headOn(dir, k){
+    const D = Math.max(26, 1.05 * L) * (1 - 0.08 * k), F = cam.aspect >= 1 ? 0.42 : 0.5, W0 = 4.6;
+    const end = dir > 0 ? HEAD : TAIL;
+    const h = 2 * Math.atan(W0 / (2 * D * F)) * R2D;
+    return {pos: new THREE.Vector3(dir * D * 0.12, 1.5 + 0.6 * k, end + dir * D), look: new THREE.Vector3(0, 1.3, end - dir * L * 0.12), fov: vFromH(h), fit: true};
+  }
+  // 真上＝前半は列の全体を画面の長い辺いっぱいに、後半は列の前半へ寄る。横長の画面では列が横に流れる向きから
+  function overhead(k){
+    const wide = cam.aspect >= 1, e = 0.95, v = wide ? 40 : 50;
+    const span = LEN * 1.15, tz = wide ? tanD(v) * cam.aspect : tanD(v);
+    const D0 = span / (2 * tz) * (wide ? 1 : Math.sin(e)), u = sstep(0.45, 1, k);
+    const D = D0 * (1 - 0.45 * u), cz = MID + (HEAD - MID) * 0.6 * u;
+    const a = (wide ? Math.PI / 2 - 0.25 : -0.25) + 0.4 * k;
+    return {pos: new THREE.Vector3(D * Math.cos(e) * Math.sin(a), D * Math.sin(e), cz + D * Math.cos(e) * Math.cos(a)), look: new THREE.Vector3(0, 0.6, cz), fov: v, fit: true};
+  }
+
+  // ---- カメラの段取り（繰り返す）＝出迎え → 列を横から流す → 1台ずつ紹介 → 真上 → 見送り ----
+  const N = cars.length, EACH = 3.4;
+  const nm = c => `${c.p.name}さんの${c.p.car_type}`;
+  const SHOTS = [
+    {d: 7, cap: () => [`${N}台のパレード`, ''], cam: k => headOn(+1, k)},
+    {d: Math.max(8, N * 1.6), cap: () => ['', ''],
+      cam(k){ const zz = HEAD + 8 + (TAIL - HEAD - 16) * sstep(0, 1, k); return {pos: new THREE.Vector3(15, 2.6, zz + 4), look: new THREE.Vector3(0, 1.3, zz), fov: 40}; }},
+    {d: EACH * N, each: true,
+      cap(k){ const c = cars[Math.min(N - 1, Math.floor(k * N))]; return [nm(c), c.p.comment || '']; },
+      cam(k){
+        const i = Math.min(N - 1, Math.floor(k * N)), u = k * N - i, c = cars[i], az = (i % 2 ? -1 : 1) * (38 + 30 * u) * Math.PI / 180, e = 0.2;
+        const tg = new THREE.Vector3(0, 1.3, c.car.root.position.z + c.cz), d = 12;
+        return {pos: new THREE.Vector3(d * Math.cos(e) * Math.sin(az), 1.3 + d * Math.sin(e), tg.z + d * Math.cos(e) * Math.cos(az)), look: tg, fov: 38};
+      }},
+    {d: 9, cap: () => ['', ''], cam: k => overhead(k)},
+    {d: 7, cap: () => ['', ''], cam: k => headOn(-1, k)},
+  ];
+  const TOTAL = SHOTS.reduce((a, s) => a + s.d, 0);
+  let shotOfs = 0;  // タップで次のアングルへ飛ばすぶんのずれ（秒）
+  const shotAt = tt => { let x = ((tt + shotOfs) % TOTAL + TOTAL) % TOTAL; for(const s of SHOTS){ if(x < s.d) return [s, x / s.d, x]; x -= s.d; } return [SHOTS[0], 0, 0]; };
+  renderer.domElement.onclick = () => { const [s, k] = shotAt(now()); shotOfs += s.d * (1 - k); };
+
+  const capT = $('cap').querySelector('.t'), capC = $('cap').querySelector('.c');
+  let lastCap = null;
+  const t0 = performance.now();
+  const now = () => (performance.now() - t0) / 1000;
+  function frame(){
+    const t = now();
+    const dist = SPEED * t;
+    floorTex.offset.y = -((dist / TILE) % 1);  // 床の目地を後ろへ流す＝前へ進んで見える
+    cars.forEach((c, i) => {
+      // 列の中でわずかに詰めたり離れたり・左右にふらつく（人が運転している感じ）
+      const dz = 0.5 * Math.sin(t * 0.45 + i * 1.7), dx = 0.12 * Math.sin(t * 0.3 + i * 2.3);
+      c.car.root.position.set(dx, 0.006 * (Math.sin(t * 43 + i) + 0.6 * Math.sin(t * 71 + 1 + i)), c.z + dz);
+      c.car.wheels.forEach(w => { w.pivot.rotation.x = (dist + dz) / w.radius; });
+      c.car.update();
+      c.sh.position.set(dx, 0.006 + c.car.root.position.y, c.car.root.position.z + 0.15);
+    });
+    const [s, k] = shotAt(t), v = s.cam(k);
+    cam.position.copy(v.pos); cam.lookAt(v.look);
+    // 縦長の画面（スマホ）では横の写る幅をそろえるため画角を広げる
+    const fov = v.fit || cam.aspect >= 1 ? v.fov : 2 * Math.atan(Math.tan(v.fov * Math.PI / 360) / cam.aspect * 0.8) * 180 / Math.PI;
+    if(cam.fov !== fov){ cam.fov = fov; cam.updateProjectionMatrix(); }
+    const [ct, cc] = s.cap(k), key = ct + '|' + cc;
+    if(key !== lastCap){ lastCap = key; capT.textContent = ct; capC.textContent = cc; }
+    renderer.render(scene, cam);
+    requestAnimationFrame(frame);
+  }
+  window.__parade = {cars: N, total: TOTAL, shots: SHOTS.map(s => s.d), at: x => { shotOfs = x - now(); }};  // 確認用＝段取りの x 秒目へ飛ぶ
+  frame();
+}
+
+// ?ids= 付きで開いたら（再読込・共有）、その顔ぶれですぐ走らせる
+(async () => {
+  const want = (new URLSearchParams(location.search).get('ids') || '').split(',').map(Number).filter(Boolean).slice(0, MAX);
+  let data = await load();
+  while(want.some(id => !byId.has(id)) && data.length === PAGE) data = await load();
+  if(want.length){
+    sel = want.map(id => byId.get(id)).filter(Boolean); paintSel();
+    if(sel.length >= 2) start();
+  }
+})();
+</script>
+</body>
+</html>

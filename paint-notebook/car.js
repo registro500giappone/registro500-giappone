@@ -23,7 +23,8 @@ export function readHash(){
 }
 
 // 模様は「車の座標」で描く＝車が動いても幌やストライプが車体に付いてくる（uCarInv＝車の置き場所の逆行列）
-const U = {
+// 1台ごとに作る＝パレードで何台並べても、模様やストライプが他の車に移らない
+const makeU = () => ({
   uCarInv:{value:new THREE.Matrix4()},
   uCanvas:{value:1}, uCanvasCol:{value:new THREE.Color()},
   uStripe:{value:0}, uStripeCol:{value:new THREE.Color()}, uSW:{value:0.2}, uSG:{value:0.1}, uSO:{value:0}, uSL:{value:0}, uSRt:{value:0},
@@ -32,8 +33,8 @@ const U = {
   uSideT:{value:0}, uSideZ:{value:new THREE.Vector2(1.80,-1.30)}, uTxtZ:{value:new THREE.Vector2()}, uTxt:{value:null},
   // 模様＝0 なし／1 屋根のチェッカー／2 水玉／3 腰下の塗り分け。uPatS は型ごとの大きさ（PAT_SIZE）
   uPat:{value:0}, uPatCol:{value:new THREE.Color()}, uPatS:{value:0.35},
-};
-function paintMaterial(isRoof){
+});
+function paintMaterial(isRoof, U){
   // 両面描画＝窓越しに見える外板の裏側（室内側）もボディ色にする（実車も室内の鉄板はボディ同色）
   const m = new THREE.MeshPhysicalMaterial({clearcoat:1, clearcoatRoughness:0.06, side:THREE.DoubleSide});
   m.onBeforeCompile = sh => {
@@ -327,7 +328,8 @@ function setFinish(m,fin){
 }
 
 export async function loadCar(url){
-  const bodyMat = paintMaterial(false), roofMat = paintMaterial(true);
+  const U = makeU();
+  const bodyMat = paintMaterial(false, U), roofMat = paintMaterial(true, U);
   const rimMat = new THREE.MeshPhysicalMaterial({metalness:0.8,roughness:0.25});
   const seatMat = new THREE.MeshPhysicalMaterial({roughness:0.55,metalness:0,clearcoat:0.3,clearcoatRoughness:0.4});
   // 元データのガラスは濃いグレー・不透明度84%で暗い＝薄い色で透かし、映り込みだけ残す

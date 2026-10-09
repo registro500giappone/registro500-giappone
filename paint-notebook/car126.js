@@ -32,15 +32,16 @@ const REAR_PLATE_DX = -0.25;
 // 帆布の開閉屋根（注文装備）＝前席の上あたり（屋根の前半分ほど・当時の写真）。前にも左右と同じくらい車体の縁を残す。幅は雨どいの内側
 const SR = {hx:1.0, z0:0.62, z1:-0.7};
 
-const U = {
+// 1台ごとに作る＝パレードで何台並べても、模様やストライプが他の車に移らない
+const makeU = () => ({
   uCarInv:{value:new THREE.Matrix4()}, uBody:{value:new THREE.Color()},
   uTT:{value:0}, uRoofCol:{value:new THREE.Color()},
   uSR:{value:0}, uSRCol:{value:new THREE.Color('#1c1c1c')},
   uStripe:{value:0}, uStripeCol:{value:new THREE.Color()}, uSW:{value:0.2}, uSG:{value:0.1}, uSO:{value:0}, uSL:{value:0}, uSRt:{value:0},
   uSide:{value:0}, uSideCol:{value:new THREE.Color()}, uSideY:{value:1.2}, uSideW:{value:0.1},
   uPat:{value:0}, uPatCol:{value:new THREE.Color()}, uPatS:{value:0.35},
-};
-function paintMaterial(){
+});
+function paintMaterial(U){
   const m = new THREE.MeshPhysicalMaterial({clearcoat:1, clearcoatRoughness:0.06, side:THREE.DoubleSide});
   m.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, U);
@@ -240,7 +241,7 @@ function badgeRear(){
 
 // 元のモデル（126p の後期）の横長のナンバー取付部＝黒い樹脂。初期型は正方形の板を車体に直に付ける＝この範囲は車体の色で塗る
 // 範囲は実測（後ろ z-3.9・|x|≦0.62・y1.2〜1.47／前 z3.71・y0.6〜0.87）
-function plasticMaterial(src){
+function plasticMaterial(src, U){
   const m=src.clone();
   m.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, {uCarInv:U.uCarInv, uBody:U.uBody});
@@ -275,7 +276,8 @@ function setFinish(m,fin){
 }
 
 export async function loadCar(url){
-  const bodyMat = paintMaterial();
+  const U = makeU();
+  const bodyMat = paintMaterial(U);
   const glassMat = new THREE.MeshPhysicalMaterial({color:0xe4ecef,transparent:true,opacity:0.32,roughness:0.02,metalness:0,depthWrite:false,envMapIntensity:2.2,clearcoat:1,clearcoatRoughness:0.02});
   const decalMat = new THREE.MeshPhysicalMaterial({transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,clearcoat:1,clearcoatRoughness:0.06,roughness:0.4});
   let rimMat = null, metalMat = null, plasticMat = null; const headMats = [];
@@ -301,7 +303,7 @@ export async function loadCar(url){
     else if(mn==='Fiat_126P_Car_paint'){ if(o.material.aoMap){ bodyMat.aoMap=o.material.aoMap; bodyMat.aoMapIntensity=1; } o.material = bodyMat; bodyMesh = o; }
     else if(mn==='Fiat_126P_Windows') o.material = glassMat;
     else if(mn==='Fiat_126P_Rim'){ if(!rimMat){ rimMat=o.material.clone(); rimMat.userData.maps={map:rimMat.map, metalnessMap:rimMat.metalnessMap, roughnessMap:rimMat.roughnessMap}; } o.material = rimMat; }
-    else if(mn==='Fiat_126P_Plastic'){ if(!plasticMat) plasticMat=plasticMaterial(o.material); o.material=plasticMat; }
+    else if(mn==='Fiat_126P_Plastic'){ if(!plasticMat) plasticMat=plasticMaterial(o.material, U); o.material=plasticMat; }
     else if(mn==='Fiat_126P_Metal'){ if(!metalMat){ metalMat=o.material.clone(); } o.material = metalMat; }
     else if(mn==='Fiat_126P_License_plate'){ o.material = new THREE.MeshPhysicalMaterial({color:0x0d0d0d,roughness:0.5}); plateMesh = o; }
     // 灯火の反射板は元のモデルでは点灯している（発光10）＝消しておく。前照灯だけ動画で点ける

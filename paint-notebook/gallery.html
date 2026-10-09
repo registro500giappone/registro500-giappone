@@ -67,6 +67,8 @@ button[aria-pressed="true"]{background:var(--deep);color:var(--paper);border-col
   <p class="lead">お絵描き帳で描かれた、自分色の500と126。気に入った1台を開くと、ぐるりと回して眺めたり、その色から自分の1台を作ったりできます。</p>
   <p class="rule">投稿は誰でも見られます。不適切な内容は管理者が削除します。</p>
   <div class="start">自分も描いてみる<a href="/paint-notebook/">500を描く</a><a href="/paint-notebook/126">126を描く</a></div>
+  <!-- 選んでパレード＝日本語ページだけ（英伊版は生成物で、パレードの画面は日本語しかない）。表示は下の script で lang を見て出す -->
+  <div class="start" id="paradeEntry" hidden>好きな絵を何台か選んで<a href="/paint-notebook/parade">🚗 選んでパレード</a></div>
   <div class="tabs" role="group" aria-label="型式で絞る">
     <button data-t="" aria-pressed="true">すべて</button>
     <button data-t="500" aria-pressed="false">500</button>
@@ -82,6 +84,7 @@ button[aria-pressed="true"]{background:var(--deep);color:var(--paper);border-col
 <script type="module">
 import {sb, thumbUrl, myKeys, deletePost} from './post.js?v=9';
 const $ = id => document.getElementById(id);
+if(document.documentElement.lang === 'ja') $('paradeEntry').hidden = false;
 const PAGE = 30;
 let type = '', last = null, me = null, myCars = new Set(), admin = false;
 
