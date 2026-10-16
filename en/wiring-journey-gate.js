@@ -211,7 +211,7 @@
       el.innerHTML =
         '<h2>' + kai + ' isn’t published yet</h2>' +
         '<p>This series comes out once a week, every Friday. Published parts can be read from the index.</p>' +
-        '<p class="j-gate-act"><a class="j-btn" href="/en/wiring-journey.html">Back to the index</a></p>';
+        '<p class="j-gate-act"><a class="j-btn" href="/en/">Back to the index</a></p>';
       return el;
     }
     var why = q && q.offline
@@ -226,7 +226,7 @@
       why +
       '<p class="j-gate-act">' +
         '<button type="button" class="j-btn" id="jGateLogin">Log in to read</button>' +
-        '<a class="j-btn ghost" href="/en/wiring-journey.html">Back to the index</a>' +
+        '<a class="j-btn ghost" href="/en/">Back to the index</a>' +
       '</p>';
     return el;
   }

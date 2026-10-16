@@ -212,7 +212,7 @@
       el.innerHTML =
         '<h2>' + kai + ' non e ancora pubblicata</h2>' +
         '<p>Questa rubrica esce una volta a settimana, ogni venerdi. Le puntate gia pubblicate si leggono dall\'indice.</p>' +
-        '<p class="j-gate-act"><a class="j-btn" href="/it/wiring-journey.html">Vai all\'indice</a></p>';
+        '<p class="j-gate-act"><a class="j-btn" href="/it/">Vai all\'indice</a></p>';
       return el;
     }
     var why = q && q.offline
@@ -227,7 +227,7 @@
       why +
       '<p class="j-gate-act">' +
         '<button type="button" class="j-btn" id="jGateLogin">Accedi per leggere</button>' +
-        '<a class="j-btn ghost" href="/it/wiring-journey.html">Vai all\'indice</a>' +
+        '<a class="j-btn ghost" href="/it/">Vai all\'indice</a>' +
       '</p>';
     return el;
   }

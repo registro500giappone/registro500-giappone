@@ -128,6 +128,14 @@ def block(item, state, gv, title):
         lines.append('<meta name="robots" content="noindex, nofollow">')
     lines.append('<meta name="description" content="%s">' % esc(item['desc']))
     lines.append('<link rel="canonical" href="%s">' % url)
+    # 英伊版がある回だけ hreflang を相互に出す（英伊版の側にも同じ4行がある）。x-default は英語＝サイト全体の決まり。
+    langs = [lg for lg in ('en', 'it')
+             if os.path.exists(os.path.join(ROOT, lg, 'wiring-journey-%s.html' % item['slug']))]
+    if langs:
+        lines.append('<link rel="alternate" hreflang="ja" href="%s">' % url)
+        for lg in langs:
+            lines.append('<link rel="alternate" hreflang="%s" href="%s/%s/wiring-journey-%s">' % (lg, BASE, lg, item['slug']))
+        lines.append('<link rel="alternate" hreflang="x-default" href="%s/%s/wiring-journey-%s">' % (BASE, langs[0], item['slug']))
     lines.append('<meta property="og:type" content="article">')
     lines.append('<meta property="og:title" content="%s">' % esc(ogt))
     lines.append('<meta property="og:description" content="%s">' % esc(item['desc']))
