@@ -97,6 +97,7 @@ description: 配線シミュレーターの連載「電装トラブルの旅手�
 - 💡⭐**「Actions が success」は「本番に出た」ではない＝公開系は必ず本番の実物で確かめる**（curl は必ず `-L`）。
 - 告知は `news` に1行 INSERT すれば翌朝06:20の朝ダイジェストに乗る＝新規開発は不要。⛔外向き送信はユーザー判断を仰ぐ。
 - ⚠️**未ログイン経路を測るときは先に `localStorage` の `sb-*` を消す。**
+- ⭐**英伊版（`en/`・`it/wiring-journey-*.html`）は日本語版からの生成物**＝⛔手で直さない。**日本語の記事・図の文字を直したら** `cd wiring-journey-i18n && PYTHONIOENCODING=utf-8 python build.py <slug>` → `--check <slug>`（日本語の残り0が正）。訳が足りなければ `--todo <slug>` で一覧を出し `src/<lang>/<slug>.json` に足す。英伊の目次は `build.py --index`（文言＝`index.json`）。⚠️**新しい回を足したら `index.json` と `meta.json` にも1行ずつ**。
 - ⛔**回を `pending` へ伏せるときは `horn`・`room` をセットで動かす**（互いを名指しで参照し合っているため）。⚠️目次の `GROUPS` は slug 直書き＝`by[sl] &&` の防御を外さない・`GROUPS` の配列は触らない。
 
 ---
