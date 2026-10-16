@@ -16,7 +16,7 @@
     /* 赤地に白抜きの札＝この絵でいちばん見てほしい所に1枚だけ置く。札は1つの絵に1枚まで。
        2枚置くと、どちらを見ればいいのか分からなくなる。 */
     function chip(x, y, t, anchor) {
-      var w = t.length * 12 + 14, h = 22;
+      var w = (window.__tw ? __tw(t) : t.length * 12) + 14, h = 22;   /* __tw＝英伊版で訳文の幅を測る */
       var bx = (anchor === 'end') ? x - w : x;
       s.push('<rect x="' + bx + '" y="' + (y - h / 2) + '" width="' + w + '" height="' + h + '" rx="5" fill="' + C.hi + '"/>');
       s.push('<text x="' + (bx + 7) + '" y="' + (y + 4.5) + '" font-size="12" font-weight="700" fill="#fffdf8">' + t + '</text>');

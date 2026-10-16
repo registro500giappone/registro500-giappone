@@ -210,8 +210,12 @@
   }
 
   /* ---- 記事ページの門 --------------------------------------------------- */
+  /* 英伊版（wiring-journey-i18n が生成）も同じ門番を使う＝目次と日付だけはページの言語に合わせる。文言は辞書が訳す */
+  var LANG = (document.documentElement.getAttribute('lang') || 'ja').slice(0, 2);
+  var TOC = LANG === 'ja' ? '/wiring-journey.html' : '/' + LANG + '/';
   function jaDate(iso) {
     var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    if (m && LANG !== 'ja') return new Date(+m[1], m[2] - 1, +m[3]).toLocaleDateString(LANG, { month: 'long', day: 'numeric' });
     return m ? (Number(m[2]) + '月' + Number(m[3]) + '日') : '';
   }
 
@@ -223,7 +227,7 @@
       el.innerHTML =
         '<h2>' + kai + 'はまだ公開していません</h2>' +
         '<p>この連載は毎週金曜に1回ずつ出しています。公開ずみの回は目次から読めます。</p>' +
-        '<p class="j-gate-act"><a class="j-btn" href="/wiring-journey.html">目次へ</a></p>';
+        '<p class="j-gate-act"><a class="j-btn" href="' + TOC + '">目次へ</a></p>';
       return el;
     }
     /* early＝登録オーナー先行 */
@@ -239,7 +243,7 @@
       why +
       '<p class="j-gate-act">' +
         '<button type="button" class="j-btn" id="jGateLogin">ログインして読む</button>' +
-        '<a class="j-btn ghost" href="/wiring-journey.html">目次へ</a>' +
+        '<a class="j-btn ghost" href="' + TOC + '">目次へ</a>' +
       '</p>';
     return el;
   }

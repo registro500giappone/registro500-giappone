@@ -39,7 +39,7 @@
 
     /* 赤地に白抜きの札（第4回の道具）。1つの絵に1枚まで。 */
     function chip(x, y, t) {
-      var w = t.length * 12 + 14, h = 22;
+      var w = (window.__tw ? __tw(t) : t.length * 12) + 14, h = 22;   /* __tw＝英伊版で訳文の幅を測る */
       s.push('<rect x="' + x + '" y="' + (y - h / 2) + '" width="' + w + '" height="' + h + '" rx="5" fill="' + C.hi + '"/>');
       s.push('<text x="' + (x + 7) + '" y="' + (y + 4.5) + '" font-size="12" font-weight="700" fill="#fffdf8">' + t + '</text>');
     }

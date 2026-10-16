@@ -52,6 +52,9 @@ SITEMAP_LINE = 'Sitemap: %s/sitemap-journey.xml' % BASE
 # OG画像は回ごと＝og/journey-<slug>.png（作るのは build_og_cards.py）。
 # ⚠️無ければ og:image を出さない（在りもしない画像を指すと、SNSのカードが壊れて配られる）。
 OG_FMT = 'og/journey-%s.png'
+# 英伊版＝wiring-journey-i18n/build.py が日本語版から生成する。題名と説明文の訳はここ（正本は日本語の journey-schedule.json）
+I18N_META = os.path.join(ROOT, 'wiring-journey-i18n', 'meta.json')
+LANGS = ('en', 'it')
 
 
 def today_jst():
@@ -110,35 +113,40 @@ def page_title(src):
     return m.group(1).strip() if m else ''
 
 
-def block(item, state, gv, title):
+def lang_path(lang, slug):
+    return os.path.join(ROOT, lang, 'wiring-journey-%s.html' % slug)
+
+
+def block(item, state, gv, title, lang='ja', meta=None):
     """記事HTMLの head に入れる管理ブロック。門番（gate.js）はこの値だけを見る。
 
     ⚠️description・canonical・OGP もここが持つ＝日付と同じで正本は journey-schedule.json。
       HTML 側に散らすと、回が増えるたびに書き漏らす。
     """
     data = {'slug': item['slug'], 'n': item['n'], 'state': state, 'pub': item['public']}
-    url = '%s/wiring-journey-%s' % (BASE, item['slug'])
+    pre = '' if lang == 'ja' else '/' + lang
+    url = '%s%s/wiring-journey-%s' % (BASE, pre, item['slug'])
+    desc = item['desc'] if lang == 'ja' else meta[item['slug']][lang]['desc']
     # og:title は <title> からサイト名を落としたもの（SNS のカードで二重に出さない）
-    ogt = title.split('｜')[0].strip()
+    ogt = re.split(r'｜| \| ', title)[0].strip()
     og = OG_FMT % item['slug']
     has_og = os.path.exists(os.path.join(ROOT, og))
     lines = [BEGIN]
     if state != 'open':
         # 先行中・公開前は検索に載せない。公開日にこの行が消える＝それが「公開」。
         lines.append('<meta name="robots" content="noindex, nofollow">')
-    lines.append('<meta name="description" content="%s">' % esc(item['desc']))
+    lines.append('<meta name="description" content="%s">' % esc(desc))
     lines.append('<link rel="canonical" href="%s">' % url)
     # 英伊版がある回だけ hreflang を相互に出す（英伊版の側にも同じ4行がある）。x-default は英語＝サイト全体の決まり。
-    langs = [lg for lg in ('en', 'it')
-             if os.path.exists(os.path.join(ROOT, lg, 'wiring-journey-%s.html' % item['slug']))]
+    langs = [lg for lg in LANGS if os.path.exists(lang_path(lg, item['slug']))]
     if langs:
-        lines.append('<link rel="alternate" hreflang="ja" href="%s">' % url)
+        lines.append('<link rel="alternate" hreflang="ja" href="%s/wiring-journey-%s">' % (BASE, item['slug']))
         for lg in langs:
             lines.append('<link rel="alternate" hreflang="%s" href="%s/%s/wiring-journey-%s">' % (lg, BASE, lg, item['slug']))
         lines.append('<link rel="alternate" hreflang="x-default" href="%s/%s/wiring-journey-%s">' % (BASE, langs[0], item['slug']))
     lines.append('<meta property="og:type" content="article">')
     lines.append('<meta property="og:title" content="%s">' % esc(ogt))
-    lines.append('<meta property="og:description" content="%s">' % esc(item['desc']))
+    lines.append('<meta property="og:description" content="%s">' % esc(desc))
     lines.append('<meta property="og:url" content="%s">' % url)
     if has_og:
         lines.append('<meta property="og:image" content="%s/%s">' % (BASE, og))
@@ -152,9 +160,9 @@ def block(item, state, gv, title):
     return '\n'.join(lines)
 
 
-def apply_article(path, item, state, gv, dry, changed):
+def apply_article(path, item, state, gv, dry, changed, lang='ja', meta=None):
     src = read(path)
-    new = block(item, state, gv, page_title(src))
+    new = block(item, state, gv, page_title(src), lang, meta)
     if BEGIN in src:
         out = re.sub(re.escape(BEGIN) + r'.*?' + re.escape(END), lambda m: new, src, flags=re.S)
     else:
@@ -233,6 +241,7 @@ def main():
         items.append(dict(e, n=e['of']))
 
     gv = gate_version()
+    meta = None
     changed = []
     published = []
     rows = []
@@ -242,6 +251,11 @@ def main():
         if not os.path.exists(path):
             raise SystemExit('記事が見つかりません: %s' % path)
         apply_article(path, it, st, gv, args.dry_run, changed)
+        for lg in LANGS:          # 英伊版も同じ日に同じ状態へ（門番は window.JOURNEY.state だけを見る）
+            if os.path.exists(lang_path(lg, it['slug'])):
+                if meta is None:
+                    meta = json.loads(read(I18N_META))
+                apply_article(lang_path(lg, it['slug']), it, st, gv, args.dry_run, changed, lg, meta)
         if st == 'open':
             published.append((it, st))
         rows.append((it['slug'], st))

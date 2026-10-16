@@ -154,6 +154,8 @@
 
   function trHtml(el) {
     if (!el.firstElementChild || el.childElementCount > 12) return false;
+    // noSvgHtml: inside an SVG drawing only single text nodes are translated (its markup carries coordinates)
+    if (D.noSvgHtml && el.closest && el.closest('svg')) return false;
     const key = norm(el.innerHTML);
     if (key.length > 1500 || !JP.test(key)) return false;
     let out = D.html && Object.prototype.hasOwnProperty.call(D.html, key) ? D.html[key] : null;
@@ -163,13 +165,27 @@
     return true;
   }
 
+  // Japanese runs straight into inline markup with no space; a translated piece needs one where words meet
+  const WEND = /[\p{L}\d,;:.)!?"”·]$/u, WBEG = /^[\p{L}\d(“"·]/u;
+  function spaced(n, t) {
+    const p = n.previousSibling, q = n.nextSibling;
+    // a space the Japanese kept before inline code does not belong before punctuation
+    if (p && p.nodeType === 1) t = t.replace(/^\s+(?=[,.;:)!?])/, '');
+    // the next element is translated after this node: judge it by what it will become
+    const qt = q && q.nodeType === 1 ? (JP.test(q.textContent) ? tr(q.textContent) : q.textContent) : '';
+    if (WEND.test(t) && WBEG.test(qt)) t += ' ';
+    if (p && p.nodeType === 1 && WBEG.test(t) && WEND.test(p.textContent)) t = ' ' + t;
+    return t;
+  }
+
   function walk(node) {
     if (node.nodeType === 3) {
       if (node.parentNode && SKIP.has(node.parentNode.nodeName)) return;
       // text written by visitors (names, comments) is marked translate="no" and left as written
       if (node.parentElement && node.parentElement.closest('[translate="no"]')) return;
       const v = node.data;
-      if (JP.test(v)) { const t = tr(v); if (t !== v) node.data = t; }
+      // compare after spacing: a half-translated node would otherwise be rewritten forever by its own mutation
+      if (JP.test(v)) { const t = spaced(node, tr(v)); if (t !== v) node.data = t; }
       return;
     }
     if (node.nodeType !== 1 || SKIP.has(node.tagName) || node.getAttribute('translate') === 'no') return;
@@ -185,6 +201,8 @@
 
   const mo = new MutationObserver(recs => {
     for (const r of recs) {
+      // innerHTML written in one go: match the whole sentence before its pieces are translated one by one
+      if (r.type === 'childList' && r.addedNodes.length > 1 && r.target.nodeType === 1 && trHtml(r.target)) continue;
       if (r.type === 'childList') r.addedNodes.forEach(n => {
         // a text node added next to inline markup may complete a sentence that is matched as html
         if (n.nodeType === 3 && r.target.nodeType === 1 && trHtml(r.target)) return;
@@ -193,7 +211,8 @@
       else if (r.type === 'characterData') walk(r.target);
       else if (r.type === 'attributes') {
         const v = r.target.getAttribute(r.attributeName);
-        if (v && JP.test(v)) r.target.setAttribute(r.attributeName, tr(v));
+        // setting the same value still fires a record: an attribute left untranslated would loop forever
+        if (v && JP.test(v)) { const t = tr(v); if (t !== v) r.target.setAttribute(r.attributeName, t); }
       }
     }
   });
