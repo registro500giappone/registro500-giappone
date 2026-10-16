@@ -200,8 +200,13 @@ def apply_sitemap(published, today, dry, changed):
     if not published:
         return False
     urls = [('%s/wiring-journey' % BASE, today, '0.7')]
+    # 英伊の目次も（作ってあれば）。記事は日本語版と同じく公開ずみの回だけ
+    urls += [('%s/%s/wiring-journey' % (BASE, lg), today, '0.5') for lg in LANGS
+             if os.path.exists(os.path.join(ROOT, lg, 'wiring-journey.html'))]
     for it, state in published:
         urls.append(('%s/wiring-journey-%s' % (BASE, it['slug']), it['public'], '0.6'))
+        urls += [('%s/%s/wiring-journey-%s' % (BASE, lg, it['slug']), it['public'], '0.5') for lg in LANGS
+                 if os.path.exists(lang_path(lg, it['slug']))]
     body = ['<?xml version="1.0" encoding="UTF-8"?>',
             '<!-- 電装トラブルの旅手帳＝publish_journey.py が生成。公開ずみの回だけを載せる -->',
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']

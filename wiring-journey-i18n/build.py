@@ -4,6 +4,7 @@
     python wiring-journey-i18n/build.py oil key         # build only these parts
     python wiring-journey-i18n/build.py --todo oil      # list the Japanese text of a part that the dictionaries do not cover yet
     python wiring-journey-i18n/build.py --check         # open every built page, press every button, list text left in Japanese
+    python wiring-journey-i18n/build.py --index         # the contents pages en/ and it/wiring-journey.html (from index.json)
 
 Source of truth = the Japanese pages (wiring-journey-*.html) + src/{en,it}/{common,<slug>}.json + meta.json.
 Re-run after any change to a Japanese part or to the dictionaries.
@@ -63,12 +64,14 @@ def load_dict(lang, slug):
 
 
 def rewrite_links(html, lang, slugs):
-    """Links: other parts of the series stay in the language; the table of contents is the language home."""
+    """Links: other parts of the series and the contents page stay in the language."""
     def link(mm):
         q, path, rest = mm.group(1), mm.group(2), mm.group(3)
         p = path[1:]
-        if p in ('', 'wiring-journey', 'wiring-journey.html'):
+        if p == '':
             return f'href={q}/{lang}/{rest}'
+        if p in ('wiring-journey', 'wiring-journey.html'):
+            return f'href={q}/{lang}/wiring-journey{rest}'
         s = re.sub(r'\.html$', '', p)
         if s.startswith('wiring-journey-') and s[len('wiring-journey-'):] in slugs:
             return f'href={q}/{lang}/{s}{rest}'
@@ -287,6 +290,145 @@ def check(slugs_wanted):
     return res
 
 
+# ---- the contents page ---------------------------------------------------------------------------
+# Same look as the Japanese one (its <style> is copied) and the same dates (journey-schedule.json is
+# read in the browser). Readers abroad see only the parts open to everyone: no early access, no sign-up.
+INDEX_JS = r'''(function () {
+  var T = __T__;
+  function todayJST() {
+    var n = new Date(), j = new Date(n.getTime() + n.getTimezoneOffset() * 60000 + 9 * 3600000);
+    return j.getFullYear() + '-' + String(j.getMonth() + 1).padStart(2, '0') + '-' + String(j.getDate()).padStart(2, '0');
+  }
+  var today = todayJST();
+  function fmt(s, n) { return s.replace('{0}', n); }
+  fetch('/journey-schedule.json?v=5').then(function (r) { return r.json(); }).then(function (s) {
+    var rows = [];
+    s.issues.forEach(function (it) {
+      rows.push(it);
+      (s.extras || []).filter(function (e) { return e.of === it.n; }).forEach(function (e) { e.side = true; rows.push(e); });
+    });
+    var by = {};
+    s.issues.forEach(function (it) { by[it.slug] = it; });
+    function canRead(it) { return !!(it && T.items[it.slug] && today >= it.public); }
+    var html = '';
+    rows.forEach(function (it) {
+      if (!canRead(it)) return;
+      var t = T.items[it.slug];
+      html += '<li class="' + (it.side ? 'side' : '') + '"><div><div class="row">' +
+              '<a class="ttl" href="/' + T.lang + '/wiring-journey-' + it.slug + '">' + t.title + '</a>' +
+              '<span class="when">' + T.open + '</span></div>' +
+              '<p class="lead"><span class="no">' + fmt(it.side ? T.extra : T.part, it.side ? it.of : it.n) + '</span>' +
+              t.lead + '</p></div></li>';
+    });
+    document.getElementById('list').innerHTML = html;
+    var lines = '';
+    T.groups.forEach(function (g) {
+      var live = g[1].filter(function (sl) { return canRead(by[sl]); });
+      if (!live.length) return;
+      lines += g[0] + ' → ' + live.map(function (sl) {
+        return '<a href="/' + T.lang + '/wiring-journey-' + sl + '">' + T.items[sl].short + '</a>';
+      }).join(' · ') + '<br>';
+    });
+    var fx = document.getElementById('find');
+    fx.innerHTML = lines ? ('<b>' + T.find + '</b>' + lines) : '';
+    fx.style.display = lines ? '' : 'none';
+  }).catch(function () {
+    document.getElementById('list').innerHTML = '<li class="soon"><p class="lead">' + T.fail + '</p></li>';
+  });
+})();'''
+
+INDEX_HTML = '''<!DOCTYPE html>
+<html lang="__LANG__">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>__TITLE__ | Registro500</title>
+<meta name="description" content="__DESC__">
+<link rel="canonical" href="__URL__">
+__ALTS__
+<meta property="og:type" content="website">
+<meta property="og:title" content="__TITLE__">
+<meta property="og:description" content="__DESC__">
+<meta property="og:url" content="__URL__">
+<meta property="og:image" content="https://www.registro500.com/og/journey-charge-__LANG__.png">
+<meta property="og:site_name" content="Registro500 Giappone">
+<meta name="twitter:card" content="summary_large_image">
+
+__GTAG__
+
+__STYLE__
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-in">
+    <div class="hero-top">
+      <a class="back" href="/__LANG__/"><span>←</span><span>__BACK__</span></a>
+      <nav class="lang-sw" translate="no" aria-label="Language">__NAV__</nav>
+    </div>
+    <h1>__TITLE__</h1>
+    <div class="rule"></div>
+    <p class="lede">__LEDE__</p>
+  </div>
+</div>
+
+<div class="col">
+
+  <h2 class="sec">__TOC__</h2>
+  <ol class="toc" id="list"></ol>
+
+  <div class="find" id="find"></div>
+
+  <div class="notes">
+__NOTES__
+  </div>
+
+</div>
+
+<script>
+__JS__
+</script>
+</body>
+</html>
+'''
+
+GROUP_SLUGS = [['charge', 'oil'], ['starter', 'ignition'], ['key', 'ground'], ['headlight', 'tail'], ['horn', 'room', 'brake']]
+
+
+def build_index():
+    """en/ and it/wiring-journey.html from index.json (texts) + meta.json (titles) + the Japanese page (look)."""
+    ja = (ROOT / 'wiring-journey.html').read_text(encoding='utf-8')
+    style = re.search(r'<style>[\s\S]*?</style>', ja).group(0)
+    style = re.sub(r'\n?[ \t]*/\*[\s\S]*?\*/', '', style)     # the comments are notes in Japanese
+    gtag = re.search(r'<script async src="https://www\.googletagmanager\.com[\s\S]*?</script>\s*<script>[\s\S]*?</script>', ja).group(0)
+    tx = json.loads((HERE / 'index.json').read_text(encoding='utf-8'))
+    meta = json.loads((HERE / 'meta.json').read_text(encoding='utf-8'))
+    names = {'ja': ('', '日本語'), 'en': ('/en', 'English'), 'it': ('/it', 'Italiano')}
+    for lang in LANGS:
+        L = tx[lang]
+        items = {}
+        for sl, (short, lead) in L['slugs'].items():
+            title = re.sub(r'\s*\((?:Part|Puntata) \d+\)$', '', meta[sl][lang]['title'])
+            items[sl] = {'title': pj.esc(title), 'short': pj.esc(short), 'lead': pj.esc(lead)}
+        T = {'lang': lang, 'items': items, 'open': L['open'], 'part': L['part'], 'extra': L['extra'],
+             'find': L['find'], 'fail': L['fail'], 'groups': [[g, s] for g, s in zip(L['groups'], GROUP_SLUGS)]}
+        alts = '\n'.join(f'<link rel="alternate" hreflang="{lg}" href="{pj.BASE}{names[lg][0]}/wiring-journey">'
+                         for lg in ('ja', 'en', 'it'))
+        alts += f'\n<link rel="alternate" hreflang="x-default" href="{pj.BASE}/en/wiring-journey">'
+        nav = '<i>·</i>'.join(f'<a href="{names[lg][0]}/wiring-journey" hreflang="{lg}" lang="{lg}">{names[lg][1]}</a>'
+                              for lg in ('ja', 'en', 'it') if lg != lang)
+        page = INDEX_HTML
+        for k, v in [('__JS__', INDEX_JS.replace('__T__', json.dumps(T, ensure_ascii=False))),
+                     ('__STYLE__', style), ('__GTAG__', gtag), ('__ALTS__', alts), ('__NAV__', nav),
+                     ('__NOTES__', '\n'.join(f'    <p>{n}</p>' for n in L['notes'])),
+                     ('__URL__', f'{pj.BASE}/{lang}/wiring-journey'), ('__TITLE__', pj.esc(L['title'])),
+                     ('__DESC__', pj.esc(L['desc'])), ('__LEDE__', L['lede']), ('__TOC__', L['toc']),
+                     ('__BACK__', L['back']), ('__LANG__', lang)]:
+            page = page.replace(k, v)
+        (ROOT / lang / 'wiring-journey.html').write_text(page, encoding='utf-8')
+        print(f'{lang}/wiring-journey.html')
+
+
 if __name__ == '__main__':
     try:
         sys.stdout.reconfigure(encoding='utf-8')
@@ -306,6 +448,8 @@ if __name__ == '__main__':
         for k, v in res.items():
             print(f"{k}: left in Japanese {len(v['left'])} / errors {len(v['errors'])}")
         print('details:', f)
+    elif '--index' in sys.argv:
+        build_index()
     else:
         rep = build(wanted)
         for k, v in rep.items():
