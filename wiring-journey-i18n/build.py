@@ -104,6 +104,11 @@ def stage1(html, lang, it, meta, slugs):
     html = re.sub(r'<script src="/rg-join-cta\.js"[^>]*></script>\n?', '', html)
 
     html = rewrite_links(html, lang, slugs)
+    # language switch: the Japanese page links to English and Italian; here, to the other two
+    names = {'ja': ('', '日本語'), 'en': ('/en', 'English'), 'it': ('/it', 'Italiano')}
+    nav = '<i>·</i>'.join(f'<a href="{names[lg][0]}/wiring-journey-{slug}" hreflang="{lg}" lang="{lg}">{names[lg][1]}</a>'
+                          for lg in ('ja', 'en', 'it') if lg != lang)
+    html = re.sub(r'(<nav class="lang-sw"[^>]*>)[\s\S]*?(</nav>)', lambda mm: mm.group(1) + nav + mm.group(2), html, count=1)
     dic = write_dict_js(lang, slug, slugs)
     tr = ROOT / 'engine-simulator' / 'i18n' / 'tr.js'
     html = html.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n'
