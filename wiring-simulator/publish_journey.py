@@ -85,7 +85,8 @@ def gate_version():
       門番だけは古い版が返ると「先行中の回が読めてしまう」ので、URL を変えて取り直させる。
     """
     with io.open(os.path.join(ROOT, GATE_JS), 'rb') as f:
-        return hashlib.sha1(f.read()).hexdigest()[:8]
+        # 改行は LF に揃えてから＝Windows の作業コピー（CRLF）と Actions（LF）で版数が食い違わないように
+        return hashlib.sha1(f.read().replace(b'\r\n', b'\n')).hexdigest()[:8]
 
 
 def gate_ref(text, gv):
