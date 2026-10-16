@@ -223,6 +223,13 @@ def build_jsonld(ev, start, end, url):
     desc = (ev.get("description") or "").strip()
     if desc:
         data["description"] = " ".join(desc.split())[:300]
+    else:
+        # 説明文が空のイベントでも Search Console が description を推奨項目として求めるため、
+        # 手元で確かな事実（日付・場所）だけで組む＝推測で中身を足さない
+        place = loc.splitlines()[0] if loc else ""
+        data["description"] = "｜".join(x for x in (
+            f"{data['name']}（{fmt_date(start, end)}）", place,
+            "クラシックFIAT 500/126 のイベント") if x)
     return data
 
 
