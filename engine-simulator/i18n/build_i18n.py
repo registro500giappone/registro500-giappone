@@ -90,6 +90,11 @@ def stage1(html, lang, page, meta):
     html = re.sub(r"""from '\./([\w.-]+\.js)'""", r"from '/engine-simulator/\1'", html)
     html = re.sub(r"""(['"])img/""", r"\1/engine-simulator/img/", html)
     html = html.replace('href="/"', f'href="/{lang}/"')
+    # language switch: link to the other two languages of the same page
+    names = {'ja': '日本語', 'en': 'English', 'it': 'Italiano'}
+    sw = '<i>·</i>'.join(f'<a href="{page_url(l, page).replace(SITE, "") if l != "ja" else "/engine-simulator/" + ("" if page == "index" else page)}" lang="{l}">{names[l]}</a>'
+                         for l in ('ja', 'en', 'it') if l != lang)
+    html = re.sub(r'(<nav class="lang-sw"[^>]*>)[\s\S]*?(</nav>)', lambda mm: mm.group(1) + sw + mm.group(2), html, count=1)
 
     def scripts(mm):
         return mm.group(1) + strip_js_comments(mm.group(2)) + mm.group(3)
@@ -163,7 +168,7 @@ EXPLORE_JS = r"""async (rounds) => {
     for (const d of document.querySelectorAll('details')) d.open = true;
     const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     for (let n; (n = w.nextNode());) {
-      const p = n.parentElement; if (!p || /SCRIPT|STYLE/.test(p.tagName)) continue;
+      const p = n.parentElement; if (!p || /SCRIPT|STYLE/.test(p.tagName) || p.closest('[translate="no"]')) continue;
       if (JP.test(n.data)) seen.add(n.data.trim());
     }
     for (const el of document.querySelectorAll('[title],[aria-label],[placeholder],[alt]'))
