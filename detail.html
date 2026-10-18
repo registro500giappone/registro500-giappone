@@ -250,6 +250,16 @@
     .standing-key.mine { background: var(--rg-accent); }
     .standing-tag { font-size: 0.68rem; border: 1px solid var(--rg-accent-border); background: var(--rg-accent-soft); color: var(--rg-accent); border-radius: 10px; padding: 1px 7px; margin-left: 6px; white-space: nowrap; }
     .standing-note { font-size: 0.72rem; color: var(--rg-muted); margin: 16px 0 0; line-height: 1.6; }
+    /* 要約（少ない仕様）と、同じ仕様の仲間。内訳の帯は <details> の中に畳む */
+    .standing-point { font-size: 0.9rem; line-height: 1.6; margin: 0 0 12px; }
+    .standing-point b { color: var(--rg-accent); }
+    .standing-mates { margin: 0 0 14px; }
+    .standing-mates-label { font-size: 0.85rem; margin-bottom: 6px; }
+    .standing-mates-row { display: flex; gap: 6px; }
+    .standing-mate { flex: 0 0 calc(25% - 5px); aspect-ratio: 4 / 3; border-radius: 6px; overflow: hidden; background: var(--rg-surface-sub); display: block; }
+    .standing-mate img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .standing-details > summary { cursor: pointer; font-size: 0.82rem; color: var(--rg-accent); padding: 4px 0; }
+    .standing-details[open] > summary { margin-bottom: 10px; }
 
     /* まだ書かれていない欄（オーナー本人だけに出す）。
        埋まっていないことを責める見せ方にしない＝残り件数や達成率は出さず、
@@ -335,10 +345,14 @@
           </dl></section>
           <section class="rg-card" id="standingSection" style="display:none;">
             <h2 class="rg-section-title">この車の立ち位置</h2>
-            <p class="standing-lead" id="standingLead"></p>
-            <div id="standingRows"></div>
-            <p class="standing-legend"><span class="standing-key mine"></span>この車<span class="standing-key" style="margin-left:8px;"></span>ほかの選択肢</p>
-            <p class="standing-note">数が多いほど良い、という意味ではありません。自由記入のため答えが揃わない項目（オイルの銘柄など）はここに出していません。</p>
+            <div id="standingSummary"></div>
+            <details class="standing-details">
+              <summary id="standingToggle">項目ごとの内訳を見る</summary>
+              <p class="standing-lead" id="standingLead"></p>
+              <div id="standingRows"></div>
+              <p class="standing-legend"><span class="standing-key mine"></span>この車<span class="standing-key" style="margin-left:8px;"></span>ほかの選択肢</p>
+              <p class="standing-note">数が多いほど良い、という意味ではありません。自由記入のため答えが揃わない項目（オイルの銘柄など）はここに出していません。</p>
+            </details>
           </section>
           <!-- 空欄の記入うながし。オーナー本人にしか出ない（他人の車では意味がない） -->
           <section class="rg-card" id="blanksSection" style="display:none;">
@@ -554,7 +568,8 @@
     async function fetchStanding(car) {
       // 同じ車種なら母集団は共通なので、車を渡り歩くたびに取り直さない。
       // 30分で捨てる（登録が増えても、その日のうちには反映される程度）。
-      const cacheKey = 'rg_standing_pop_' + car.car_type;
+      // 仲間の写真を出すため列を足した＝キーを変えて古い控えを読まない
+      const cacheKey = 'rg_standing_pop2_' + car.car_type;
       try {
         const hit = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
         if (hit && Date.now() - hit.t < 30 * 60 * 1000 && Array.isArray(hit.d) && hit.d.length) {
@@ -566,7 +581,7 @@
       try {
         const { data, error } = await supabaseClient
           .from('cars')
-          .select('year, body_color, engine_cc, ignition_type, steering, wheel, tire_type, model_display_a, model_display_b, model_display_c, car_type')
+          .select('document_id, photo_main, year, body_color, engine_cc, ignition_type, steering, wheel, tire_type, model_display_a, model_display_b, model_display_c, car_type')
           .eq('car_type', car.car_type)
           .eq('is_sold', false);
         if (error || !data || data.length === 0) return;
@@ -580,6 +595,7 @@
 
     function renderStanding(car, population) {
       const rows = [];
+      const fewer = [];   // 選択肢が少ない項目で、この車の答えが1割以下のもの（要約に出す）
       STANDING_FIELDS.forEach(f => {
         const mine = f.value(car);
         if (!mine) return;
@@ -608,7 +624,7 @@
         let tag = '';
         if (entries.length <= 5) {
           if (pct >= 50) tag = '<span class="standing-tag">多数派</span>';
-          else if (pct <= 10) tag = '<span class="standing-tag">少数派</span>';
+          else if (pct <= 10) { tag = '<span class="standing-tag">少数派</span>'; fewer.push(mine); }
         }
 
         // 選択肢が少ないときは内訳をそのまま書ける。多いときは書ききれないので、
@@ -630,6 +646,32 @@
       document.getElementById('standingLead').textContent =
         `登録されている${carLabel} ${population.length}台と、この車を項目ごとに比べたものです。`;
       document.getElementById('standingRows').innerHTML = rows.join('');
+      document.getElementById('standingToggle').textContent = `項目ごとの内訳を見る（${rows.length}項目）`;
+
+      // 要約：少ない仕様を1行で。「この1台だけ」のような珍しさの数字は出さない
+      let summary = '';
+      if (fewer.length) {
+        summary += `<p class="standing-point"><b>${fewer.map(esc).join('・')}</b>は、登録されている${carLabel}の中では少ない仕様です。</p>`;
+      }
+      // 同じ仕様の仲間：年式・ボディカラーが同じ車を写真で並べ、その車のページへ渡す。
+      // 仲間がいない項目は書かない（「同じ車はいません」と珍しさを強調しない）
+      const others = population.filter(o => o.document_id && o.document_id !== car.document_id && o.photo_main);
+      [STANDING_FIELDS.find(f => f.label === '年式'), STANDING_FIELDS.find(f => f.label === 'ボディカラー')].forEach(f => {
+        const mine = f && f.value(car);
+        // 色の「その他」は寄せ集めの区分なので、同じ仲間として見せても意味がない
+        if (!mine || mine === 'その他') return;
+        const mates = others.filter(o => f.value(o) === mine);
+        if (mates.length === 0) return;
+        // 開くたびに違う仲間が見えるよう、毎回混ぜて4台
+        const pick = mates.slice().sort(() => Math.random() - 0.5).slice(0, 4);
+        const what = f.label === '年式' ? `同じ${esc(mine)}式の${carLabel}` : `同じボディカラー（${esc(mine)}）の${carLabel}`;
+        summary += `<div class="standing-mates">
+            <div class="standing-mates-label">${what}が、ほかに${mates.length}台</div>
+            <div class="standing-mates-row">${pick.map(o =>
+              `<a class="standing-mate" href="/detail?doc=${encodeURIComponent(o.document_id)}"><img src="${esc(o.photo_main)}" alt="" loading="lazy"></a>`).join('')}</div>
+          </div>`;
+      });
+      document.getElementById('standingSummary').innerHTML = summary;
       document.getElementById('standingSection').style.display = 'block';
     }
 
