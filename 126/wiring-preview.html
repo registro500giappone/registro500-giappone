@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, follow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FIAT 126 配線図 系統別ビューア（前期型 1972〜76）｜Registro500 Giappone</title>
+<meta name="description" content="クラシック・フィアット126（前期型 1972〜76）の配線図を、ヘッドライト・ウインカー・ワイパーなど16の系統別に色分けして表示できるビューア。系統を選ぶとその回路だけが浮かび上がります。">
+<link rel="canonical" href="https://www.registro500.com/126/wiring-preview">
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH');
+</script>
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="FIAT 126 配線図 系統別ビューア（前期型 1972〜76）">
+<meta property="og:description" content="フィアット126（前期型）の配線図を16の系統別に色分け表示。系統を選ぶとその回路だけが浮かび上がります。">
+<meta property="og:url" content="https://www.registro500.com/126/wiring-preview">
+<meta property="og:image" content="https://www.registro500.com/og/wiring-126-ja.png">
+<meta property="og:site_name" content="Registro500 Giappone">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" as="image" href="/wiring-img/k00.webp" fetchpriority="high">
+<style>
+  :root { --bg:#eceef1; --panel:#fff; --ink:#1c2230; --sub:#6b7280; --accent:#c0392b; --line:#e3e6ea; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1216; --panel:#1c2027; --ink:#e8eaed; --sub:#9aa2ad; --accent:#e05a47; --line:#2a2f38; }
+  }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; display:flex; flex-direction:column; height:100vh; overflow:hidden;
+         font-family:-apple-system,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic UI",sans-serif;
+         background:var(--bg); color:var(--ink); }
+  header { position:relative; flex:none; display:flex; align-items:center; gap:10px; padding:calc(8px + env(safe-area-inset-top)) 12px 8px;
+           border-bottom:1px solid var(--line); background:var(--panel); }
+  header .back { display:flex; align-items:center; gap:4px; flex:none; z-index:2;
+                 color:var(--ink); text-decoration:none; font-size:13px; font-weight:700; white-space:nowrap; }
+  header .back .ico { font-size:16px; line-height:1; }
+  header .back:hover { color:var(--accent); }
+  header .brand { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+                  font-size:15px; font-weight:800; letter-spacing:.3px; white-space:nowrap; pointer-events:none;
+                  max-width:60%; overflow:hidden; text-overflow:ellipsis; }
+  header .cur { font-size:13px; font-weight:700; color:var(--accent); white-space:nowrap; }
+  .ctl { display:flex; align-items:center; gap:6px; margin-left:auto; flex:none; }
+  .navbtn { border:1px solid var(--line); background:var(--bg); color:var(--ink); border-radius:8px;
+            width:38px; height:38px; font-size:20px; line-height:1; cursor:pointer; flex:none; }
+  #sel { display:none; font-size:15px; padding:8px 8px; border-radius:8px; border:1px solid var(--line);
+         background:var(--panel); color:var(--ink); max-width:42vw; }
+  .wrap { flex:1; display:flex; min-height:0; }
+  nav { width:210px; flex:0 0 210px; overflow-y:auto; padding:8px; border-right:1px solid var(--line);
+        background:var(--panel); }
+  .tab { display:block; width:100%; text-align:left; margin:2px 0; padding:8px 11px; border:1px solid transparent;
+         border-radius:8px; background:transparent; color:var(--ink); font-size:13.5px; cursor:pointer; }
+  .tab:hover { background:var(--bg); }
+  .tab.active { background:var(--accent); color:#fff; font-weight:700; }
+  .tab[data-i="0"] { font-weight:700; margin-bottom:6px; border-bottom:1px solid var(--line); border-radius:8px; }
+  main { flex:1; min-width:0; overflow:auto; -webkit-overflow-scrolling:touch; position:relative;
+         display:flex; align-items:center; justify-content:center; padding:6px; }
+  #img { display:block; max-width:100%; max-height:100%; object-fit:contain;
+         background:#fff; border:1px solid var(--line); border-radius:4px;
+         box-shadow:0 1px 8px rgba(0,0,0,.12); cursor:zoom-in;
+         touch-action:none; transform-origin:0 0; transition:transform .15s ease-out; }
+  #msg { position:absolute; font-size:13px; color:var(--sub); }
+  /* 端子番号オーバーレイ：画像と同じ座標系(1684x2382)のSVGを #img に重ね、
+     同じ transform を適用してズーム・パンに追従させる（画像は一切触らない） */
+  #tlayer { position:absolute; transform-origin:0 0; pointer-events:none; display:none;
+            transition:transform .15s ease-out; z-index:2; }
+  #termbtn { position:absolute; top:10px; right:10px; z-index:3;
+             border:1px solid var(--line); background:var(--bg); color:var(--ink);
+             border-radius:20px; padding:6px 14px; font-size:12.5px; font-weight:700;
+             cursor:pointer; box-shadow:0 1px 6px rgba(0,0,0,.15); }
+  #termbtn:hover { border-color:var(--accent); color:var(--accent); }
+  #termbtn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  #termbtn:disabled { display:none; }
+  /* 図だけの全画面：PCは body が height:100vh・overflow:hidden の縦積みなので、
+     上に積んだ行（header+lead+tbar＝約182px）がそのまま図の縮小になる。
+     隠せばその分そのまま図が大きくなる（図は縦フィットで縮尺が決まるため）。 */
+  #fsbtn { position:absolute; top:10px; left:10px; z-index:3;
+           border:1px solid var(--line); background:var(--bg); color:var(--ink);
+           border-radius:20px; padding:6px 12px; font-size:12.5px; font-weight:700;
+           cursor:pointer; box-shadow:0 1px 6px rgba(0,0,0,.15); }
+  #fsbtn:hover { border-color:var(--accent); color:var(--accent); }
+  body.fs > header, body.fs > .lead, body.fs > .tbar { display:none; }
+  /* 注記帯（#tnote/#lnote/#dnote）は全画面では図の上に重ねる。縦の場所を取らせない＝図をさらに約49px大きく
+     できるが、⛔文面自体は隠さない（#lnote は「番号が無いのは手を抜いたから」という誤解を防ぐ断り＝実態は原典の側に端子名が無い）。
+     通常時は display:contents ＝ラッパーが無いのと同じ挙動なので、既存レイアウトは1pxも変わらない。 */
+  #notes { display:contents; }
+  /* 図は縦フィットなので、横長の画面では main の中に左右の余白ができる（1440x900 で片側約300px）。
+     全画面のときは注記をその左余白へ寄せる＝縦を1pxも使わせずに図を大きくできる。
+     ⛔図の上に重ねない（頭＝前まわりの配線が隠れる）。⛔系統リスト（main の外）にも重ねない
+     ＝position は fixed ではなく main 基準の absolute。⛔文面自体は隠さない
+     （#lnote は「番号が無いのは手を抜いたから」という誤解を防ぐ断り＝実態は原典の側に端子名が無い）。
+     余白が足りない縦長の画面では contents のまま＝これまでどおり図の上に行として並べる。 */
+  @media (min-aspect-ratio: 3/2) and (min-width: 721px) {
+    /* 左端から nav(210px)+10px。幅は「図の左端まで」で頭打ちにする＝図の左端は
+       210 + (100vw - 210 - 0.707*図の高さ)/2 ≒ 50vw + 105 - 35.4vh（図は縦フィット・原図比 1684:2382）。 */
+    body.fs #notes { display:block; position:fixed; left:220px; top:52px; z-index:4;
+                     width:min(300px, calc(50vw - 35.4vh - 125px));
+                     max-height:calc(100vh - 72px); overflow:auto;
+                     border:1px solid var(--line); border-radius:8px;
+                     box-shadow:0 2px 10px rgba(0,0,0,.18); }
+    body.fs #notes .dnote { border-bottom:none; }
+    body.fs #notes .dnote + .dnote { border-top:1px solid var(--line); }
+  }
+  .hint { position:fixed; bottom:10px; left:50%; transform:translateX(-50%);
+          font-size:11px; color:#fff; background:rgba(0,0,0,.55); padding:4px 10px; border-radius:20px;
+          pointer-events:none; opacity:.9; }
+  .hint-mobile { display:none; }
+  .lead { flex:none; padding:7px 12px; font-size:12.5px; line-height:1.45; color:var(--ink);
+          background:var(--panel); border-bottom:1px solid var(--line); }
+  .lead b { color:var(--accent); }
+  .lead .sub { display:block; color:var(--sub); margin-top:2px; }
+  .lead .lang { white-space:nowrap; margin-left:10px; }
+  .lead .lang a { color:var(--accent); text-decoration:none; font-weight:600; }
+  .lead .lang a:hover { text-decoration:underline; }
+  .lead .lang i { font-style:normal; color:var(--sub); margin:0 5px; }
+  /* 型式（F／L／R）の切替バー。冒頭に置き、スクロールでは固定しない
+     （「見たい系統」バーだけを sticky に残したいため） */
+  .tbar { flex:none; display:flex; align-items:center; gap:10px; padding:7px 12px;
+          background:var(--panel); border-bottom:1px solid var(--line); }
+  .tbar-label { font-size:12px; font-weight:700; color:var(--sub); white-space:nowrap; }
+  .tbar-btns { display:flex; gap:6px; }
+  .tbtn { border:1px solid var(--line); background:var(--bg); color:var(--ink);
+          font-size:13px; font-weight:700; padding:6px 15px; border-radius:16px;
+          cursor:pointer; white-space:nowrap; }
+  .tbtn:hover { border-color:var(--accent); color:var(--accent); }
+  .tbtn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  /* D型選択時だけ出す断り書き（表頭の一部＝スマホではリード文と同じくスクロールで隠れる） */
+  .dnote { display:none; flex:none; padding:6px 12px; font-size:11.5px; line-height:1.5;
+           color:var(--sub); background:var(--panel); border-bottom:1px solid var(--line); }
+  .mbar { display:none; }
+  @media (max-width:720px) {
+    .tbar { padding:8px 10px; gap:8px; }
+    .tbar-btns { flex:1; }
+    .tbtn { flex:1; min-height:40px; padding:9px 0; font-size:14px; text-align:center; }
+    nav { display:none; }
+    #sel { display:block; }
+    header .cur { display:none; }
+    header .brand { font-size:13px; }
+    .ctl { display:none; }
+    /* スマホは body が overflow-y:auto ＝上の行はスクロールで逃がせるので全画面は不要 */
+    #fsbtn { display:none; }
+    .lead { font-size:13px; padding:9px 12px; }
+    .hint-desktop { display:none; }
+    .hint-mobile { display:inline; }
+    .mbar { display:flex; align-items:center; gap:8px; padding:8px 10px;
+            border-bottom:1px solid var(--line); background:var(--panel); }
+    .mbar-btn { flex:none; width:44px; height:44px; border:1px solid var(--line); background:var(--bg);
+                color:var(--ink); border-radius:10px; font-size:18px; cursor:pointer; }
+    .mbar-center { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; }
+    .mbar-caption { font-size:10.5px; color:var(--sub); }
+    .mbar-select { width:100%; min-height:44px; font-size:16px; font-weight:700; padding:6px 6px;
+                   border-radius:8px; border:1px solid var(--line); background:var(--panel);
+                   color:var(--accent); text-align:center; }
+    /* スマホ：表頭（タイトル・リード文）はスクロールで上に隠す。メニュー（見たい系統バー）は上に残す */
+    body { height:auto; min-height:100dvh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+    .mbar { position:sticky; top:0; z-index:20; box-shadow:0 2px 6px rgba(0,0,0,.06); }
+    .wrap { display:block; flex:none; }
+    main { height:calc(100dvh - 62px); align-items:flex-start; }
+  }
+  .ldiff-btn { display:inline-block; margin-top:0; margin-left:4px; vertical-align:baseline; border:1px solid var(--accent); background:transparent;
+              color:var(--accent); font-size:12px; font-weight:700; padding:4px 11px; border-radius:14px; cursor:pointer; }
+  .ldiff-btn:hover { background:var(--accent); color:#fff; }
+  #ldiff-overlay, #tinfo-overlay { position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.5); display:none; }
+  #ldiff-overlay.open, #tinfo-overlay.open { display:block; }
+  #ldiff-panel, #tinfo-panel { position:absolute; top:0; right:0; bottom:0; width:min(560px,92vw); background:var(--panel);
+                 color:var(--ink); overflow-y:auto; -webkit-overflow-scrolling:touch;
+                 box-shadow:-4px 0 24px rgba(0,0,0,.28); padding:16px 18px 44px; }
+  #ldiff-panel h2, #tinfo-panel h2 { font-size:17px; margin:0 6px 4px 0; }
+  #ldiff-panel h3, #tinfo-panel h3 { font-size:13.5px; color:var(--accent); margin:18px 0 6px; }
+  #ldiff-panel p, #ldiff-panel li, #tinfo-panel p, #tinfo-panel li { font-size:13px; line-height:1.65; }
+  #ldiff-panel ul, #tinfo-panel ul { margin:6px 0; padding-left:1.2em; }
+  #ldiff-panel .k, #tinfo-panel .k { color:var(--accent); font-weight:700; }
+  #ldiff-panel .note, #tinfo-panel .note { color:var(--sub); font-size:12px; margin-top:16px; }
+  #ldiff-close, #tinfo-close { position:sticky; top:0; float:right; border:none; background:var(--bg); color:var(--ink);
+                 width:34px; height:34px; border-radius:17px; font-size:18px; line-height:1; cursor:pointer; }
+  /* 端子番号の用語表（パネル内） */
+  #tinfo-panel dl { margin:6px 0 0; font-size:13px; line-height:1.6; }
+  #tinfo-panel dt { font-weight:700; color:var(--accent); margin-top:9px; }
+  #tinfo-panel dd { margin:1px 0 0 0; }
+</style>
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="/126/" aria-label="ガレージに戻る"><span class="ico">←</span><span class="txt">ガレージに戻る</span></a>
+  <span class="brand" id="brand">FIAT 126 配線図</span>
+  <span class="cur" id="cur"></span>
+  <div class="ctl">
+    <button class="navbtn" id="prev" aria-label="前へ">‹</button>
+    <select id="sel"><option value="0">全表示</option>
+<option value="1">アース／マイナス</option>
+<option value="2">ヘッドライト</option>
+<option value="3">ポジション／スモールランプ</option>
+<option value="4">ウインカー</option>
+<option value="5">ホーン</option>
+<option value="6">ブレーキスイッチ</option>
+<option value="7">オイルプレッシャースイッチ</option>
+<option value="8">ルームランプ</option>
+<option value="9">点火系</option>
+<option value="10">イグニッション</option>
+<option value="11">スターター／ダイナモ・発電系</option>
+<option value="12">フューエルセンサー</option>
+<option value="13">ワイパー</option>
+<option value="14">ステアリングコラム</option>
+<option value="15">メーターパネル</option></select>
+    <button class="navbtn" id="next" aria-label="次へ">›</button>
+  </div>
+</header>
+<div class="lead" id="lead">FIAT 126の配線を<b>16の系統</b>に分けて見られます。系統を選ぶと、その回路の配線だけが表示されます（部品はすべて表示したまま）。<span class="sub">対象は<b>前期型（1972〜76年）</b>です。年式によって配線が異なる場合があります。<br><button type="button" id="ldiff-open" class="ldiff-btn">この図について ›</button></span></div>
+<div class="mbar" id="mbar">
+  <button class="mbar-btn" id="mprev" aria-label="前へ">◀</button>
+  <div class="mbar-center">
+    <span class="mbar-caption">見たい系統</span>
+    <select id="msel" class="mbar-select"><option value="0">全表示</option>
+<option value="1">アース／マイナス</option>
+<option value="2">ヘッドライト</option>
+<option value="3">ポジション／スモールランプ</option>
+<option value="4">ウインカー</option>
+<option value="5">ホーン</option>
+<option value="6">ブレーキスイッチ</option>
+<option value="7">オイルプレッシャースイッチ</option>
+<option value="8">ルームランプ</option>
+<option value="9">点火系</option>
+<option value="10">イグニッション</option>
+<option value="11">スターター／ダイナモ・発電系</option>
+<option value="12">フューエルセンサー</option>
+<option value="13">ワイパー</option>
+<option value="14">ステアリングコラム</option>
+<option value="15">メーターパネル</option></select>
+  </div>
+  <button class="mbar-btn" id="mnext" aria-label="次へ">▶</button>
+</div>
+<div class="wrap">
+  <nav id="nav"><button class="tab active" data-i="0">全表示</button>
+<button class="tab" data-i="1">アース／マイナス</button>
+<button class="tab" data-i="2">ヘッドライト</button>
+<button class="tab" data-i="3">ポジション／スモールランプ</button>
+<button class="tab" data-i="4">ウインカー</button>
+<button class="tab" data-i="5">ホーン</button>
+<button class="tab" data-i="6">ブレーキスイッチ</button>
+<button class="tab" data-i="7">オイルプレッシャースイッチ</button>
+<button class="tab" data-i="8">ルームランプ</button>
+<button class="tab" data-i="9">点火系</button>
+<button class="tab" data-i="10">イグニッション</button>
+<button class="tab" data-i="11">スターター／ダイナモ・発電系</button>
+<button class="tab" data-i="12">フューエルセンサー</button>
+<button class="tab" data-i="13">ワイパー</button>
+<button class="tab" data-i="14">ステアリングコラム</button>
+<button class="tab" data-i="15">メーターパネル</button></nav>
+  <main id="main"><div id="msg">読み込み中…</div><img id="img" alt="FIAT 126 前期型の配線図"><button type="button" id="fsbtn" aria-pressed="false" title="図だけを大きく表示（Escで戻る）">⛶ 図を大きく</button></main>
+</div>
+<div class="hint" id="hint">2本指でズーム／タップで拡大・戻す／拡大中はドラッグで移動<span class="hint-desktop"> ・ホイールでズーム・← → で系統切替</span></div>
+<div id="rg-join-cta" data-where="wiring" data-type="126"></div>
+<script src="/rg-join-cta.js" defer></script>
+<script>
+  // 126は前期型1種類だけ。画像は500版と同じ座標系（1684x2382）・同じ16系統で、頭文字は k。
+  // ⚠️/wiring-img/* は immutable（1年キャッシュ）なので、図を差し替えたら【ファイル名を変える】
+  //   （IMGV に "k04": "-v2" のように足す）。同じ名前で上書きしても、一度見た人には古い図が出続ける。
+  const NPAGE = 16;
+  const IMGV = {};
+  function srcOf(i){ const b = "k" + String(i).padStart(2,"0"); return "/wiring-img/" + b + (IMGV[b] || "") + ".webp"; }
+  const LAB = ["全表示", "アース／マイナス", "ヘッドライト", "ポジション／スモールランプ", "ウインカー", "ホーン", "ブレーキスイッチ", "オイルプレッシャースイッチ", "ルームランプ", "点火系", "イグニッション", "スターター／ダイナモ・発電系", "フューエルセンサー", "ワイパー", "ステアリングコラム", "メーターパネル"];
+  const img=document.getElementById('img'), cur=document.getElementById('cur'),
+        sel=document.getElementById('sel'), msg=document.getElementById('msg');
+  const msel=document.getElementById('msel'), mprev=document.getElementById('mprev'), mnext=document.getElementById('mnext');
+  const tabs=[...document.querySelectorAll('.tab')]; let idx=0;
+  const main=document.getElementById('main');
+  // 500版のズーム処理をそのまま使うための受け皿（126は端子番号の重ね表示が無い）
+  const tlayer={ style:{} };
+  function syncTermBox(){}
+  const zstate={scale:1,tx:0,ty:0}; let base=null;
+  const ZOOM_SCALE=2.6, TAP_SLOP=8, EDGE_MARGIN=60;
+  function measureBase(){
+    const prev=img.style.transform; img.style.transform='none';
+    const r=img.getBoundingClientRect();
+    base={left:r.left,top:r.top,width:r.width,height:r.height};
+    img.style.transform=prev;
+  }
+  function applyTransform(){
+    img.style.transform=`translate(${zstate.tx}px,${zstate.ty}px) scale(${zstate.scale})`;
+    tlayer.style.transform=img.style.transform;
+    img.style.cursor=zstate.scale>1.01?'move':'zoom-in';
+  }
+  function resetZoom(){ zstate.scale=1; zstate.tx=0; zstate.ty=0; applyTransform(); }
+  function clampPan(){
+    if(!base) return;
+    const m=main.getBoundingClientRect();
+    const scaledW=base.width*zstate.scale, scaledH=base.height*zstate.scale;
+    let left=base.left+zstate.tx, top=base.top+zstate.ty, right=left+scaledW, bottom=top+scaledH;
+    if(right<m.left+EDGE_MARGIN) zstate.tx+=(m.left+EDGE_MARGIN-right);
+    if(left>m.right-EDGE_MARGIN) zstate.tx-=(left-(m.right-EDGE_MARGIN));
+    left=base.left+zstate.tx; top=base.top+zstate.ty; bottom=top+scaledH;
+    if(bottom<m.top+EDGE_MARGIN) zstate.ty+=(m.top+EDGE_MARGIN-bottom);
+    if(top>m.bottom-EDGE_MARGIN) zstate.ty-=(top-(m.bottom-EDGE_MARGIN));
+  }
+  let pStart=null, dragging=false, moved=0;
+  const pointers=new Map(); let pinch=null; const MAX_SCALE=6;   // 2本指ピンチ用
+  img.addEventListener('pointerdown',e=>{
+    try{ img.setPointerCapture(e.pointerId); }catch(_){}
+    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    img.style.transition='none'; tlayer.style.transition='none';
+    if(pointers.size===2){            // 2本指→ピンチ開始
+      measureBase();
+      const p=[...pointers.values()];
+      const mx=(p[0].x+p[1].x)/2, my=(p[0].y+p[1].y)/2;
+      pinch={ d0:Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y), s0:zstate.scale,
+              lx:(mx-base.left-zstate.tx)/zstate.scale, ly:(my-base.top-zstate.ty)/zstate.scale };
+      pStart=null; dragging=false; moved=999;
+    } else {
+      pStart={x:e.clientX,y:e.clientY,tx:zstate.tx,ty:zstate.ty};
+      moved=0; dragging=zstate.scale>1.01;
+    }
+  });
+  img.addEventListener('pointermove',e=>{
+    if(pointers.has(e.pointerId)) pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pinch && pointers.size>=2){    // ピンチ：焦点を保ったまま倍率と位置を更新
+      const p=[...pointers.values()];
+      const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+      const mx=(p[0].x+p[1].x)/2, my=(p[0].y+p[1].y)/2;
+      const sN=Math.min(MAX_SCALE, Math.max(1, pinch.s0*(d/pinch.d0)));
+      zstate.scale=sN;
+      zstate.tx=mx-base.left-sN*pinch.lx;
+      zstate.ty=my-base.top-sN*pinch.ly;
+      clampPan(); applyTransform(); return;
+    }
+    if(!pStart) return;
+    const dx=e.clientX-pStart.x, dy=e.clientY-pStart.y;
+    moved=Math.max(moved,Math.hypot(dx,dy));
+    if(dragging){ zstate.tx=pStart.tx+dx; zstate.ty=pStart.ty+dy; clampPan(); applyTransform(); }
+  });
+  function endPointer(e){
+    pointers.delete(e.pointerId);
+    if(pinch){                        // ピンチ終了処理
+      if(pointers.size>=2) return;
+      pinch=null; img.style.transition=''; tlayer.style.transition='';
+      if(pointers.size===1){ const q=[...pointers.values()][0];
+        pStart={x:q.x,y:q.y,tx:zstate.tx,ty:zstate.ty}; moved=999; dragging=zstate.scale>1.01; return; }
+      if(zstate.scale<=1.01) resetZoom();
+      pStart=null; dragging=false; return;
+    }
+    if(!pStart) return;
+    img.style.transition=''; tlayer.style.transition='';
+    if(moved<TAP_SLOP){
+      if(zstate.scale>1.01){ resetZoom(); }
+      else{
+        measureBase();
+        const lx=(e.clientX-base.left-zstate.tx)/zstate.scale;
+        const ly=(e.clientY-base.top-zstate.ty)/zstate.scale;
+        zstate.scale=ZOOM_SCALE;
+        zstate.tx=e.clientX-base.left-ZOOM_SCALE*lx;
+        zstate.ty=e.clientY-base.top-ZOOM_SCALE*ly;
+        clampPan(); applyTransform();
+      }
+    }
+    pStart=null; dragging=false;
+  }
+  img.addEventListener('pointerup',endPointer);
+  img.addEventListener('pointercancel',endPointer);
+  img.addEventListener('wheel',e=>{   // PC：カーソル中心にホイールズーム
+    e.preventDefault(); measureBase();
+    const lx=(e.clientX-base.left-zstate.tx)/zstate.scale;
+    const ly=(e.clientY-base.top-zstate.ty)/zstate.scale;
+    const sN=Math.min(MAX_SCALE, Math.max(1, zstate.scale*(e.deltaY<0?1.15:1/1.15)));
+    zstate.scale=sN;
+    zstate.tx=e.clientX-base.left-sN*lx;
+    zstate.ty=e.clientY-base.top-sN*ly;
+    if(sN<=1.01){ resetZoom(); } else { clampPan(); applyTransform(); }
+  },{passive:false});
+  img.addEventListener('dragstart',e=>e.preventDefault());
+  img.addEventListener('load', ()=>{ msg.style.display='none'; syncTermBox(); });
+  img.addEventListener('error', ()=>{ msg.style.display='block'; msg.textContent='画像を表示できませんでした'; });
+  function loadImage(){
+    msg.style.display='block'; msg.textContent='読み込み中…';
+    img.src=srcOf(idx);
+  }
+  function show(i){
+    idx=(i+NPAGE)%NPAGE; loadImage(); resetZoom();
+    cur.textContent=LAB[idx]; sel.value=idx; msel.value=idx;
+    tabs.forEach(t=>t.classList.toggle('active',+t.dataset.i===idx));
+    main.scrollTo(0,0);
+  }
+  // 図だけの全画面（PCのみ）。⛔状態は保存しない
+  const fsbtn=document.getElementById('fsbtn');
+  function setFs(on){
+    document.body.classList.toggle('fs', on);
+    fsbtn.setAttribute('aria-pressed', on?'true':'false');
+    fsbtn.textContent = on ? '⛶ 元に戻す' : '⛶ 図を大きく';
+  }
+  fsbtn.addEventListener('click', ()=>setFs(!document.body.classList.contains('fs')));
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && document.body.classList.contains('fs')) setFs(false); });
+  tabs.forEach(t=>t.addEventListener('click',()=>show(+t.dataset.i)));
+  sel.addEventListener('change',()=>show(+sel.value));
+  document.getElementById('prev').addEventListener('click',()=>show(idx-1));
+  document.getElementById('next').addEventListener('click',()=>show(idx+1));
+  msel.addEventListener('change',()=>show(+msel.value));
+  mprev.addEventListener('click',()=>show(idx-1));
+  mnext.addEventListener('click',()=>show(idx+1));
+  document.addEventListener('keydown',e=>{ if(e.key==='ArrowRight')show(idx+1); if(e.key==='ArrowLeft')show(idx-1); });
+  show(0);
+  // 残り15系統は、読み込み後のアイドル時に1枚ずつ先読みする（切替時の待ちを消す）
+  const idle = window.requestIdleCallback || (fn => setTimeout(fn, 1200));
+  function preloadRest(){
+    let n = 0;
+    (function next(){
+      if (n === idx) n++;
+      if (n >= NPAGE) return;
+      const pre = new Image();
+      pre.onload = pre.onerror = () => idle(next);
+      pre.src = srcOf(n++);
+    })();
+  }
+  window.addEventListener('load', preloadRest);
+</script>
+<div id="ldiff-overlay"><div id="ldiff-panel">
+  <button id="ldiff-close" aria-label="閉じる">×</button>
+  <h2>この図について</h2>
+  <p>FIAT 126 <span class="k">前期型（1972〜76年）</span>の配線図です。英語版の整備書（Autobook『Fiat 126 1972-76』の全体配線図）を元に、配線を1本ずつたどって<span class="k">当サイトが描き起こした図</span>です。部品の位置は実車の配置そのものではなく、<span class="k">前まわり・室内・エンジンルーム</span>の3つに分けて並べています。</p>
+  <h3>図の見方</h3>
+  <ul>
+    <li>線の色は配線の被覆の色です。2色の線は、地の色に<span class="k">黒または白の破線</span>を重ねて示しています。</li>
+    <li>ボディにアースしている所は、部品の脇の<span class="k">アース記号</span>で示しています。</li>
+    <li>「JUNCTION」は配線どうしをつなぐ<span class="k">中継のコネクター</span>です。前まわりと室内の間、室内とエンジンルームの間に1つずつ描いています。</li>
+    <li>ヒューズ箱の A〜H は原典の図の印字のままです。</li>
+  </ul>
+  <h3>主な仕様（前期型）</h3>
+  <ul>
+    <li>電圧：12V・マイナスアース</li>
+    <li>発電：ダイナモ（オルタネータではありません）</li>
+    <li>スターター：<span class="k">ケーブル（レバー）式</span>＝キーではセルは回りません</li>
+    <li>メーター：燃料計付き</li>
+    <li>ヒューズ：8本</li>
+    <li>配線色：Azzurro=水／Bianco=白／Blu=紺／Giallo=黄／Grigio=灰／Marrone=茶／Nero=黒／Rosso=赤／Verde=緑／Viola=紫</li>
+  </ul>
+  <h3>500との違い</h3>
+  <ul>
+    <li><span class="k">燃料計</span>がある（タンクの燃料センダー＋メーターのゲージ）</li>
+    <li>ヒューズが<span class="k">8本</span>（ハイビーム・ロービームを左右で別のヒューズに分けている）</li>
+    <li>前フェンダーに<span class="k">サイドウインカー</span>がある</li>
+    <li>テールランプは<span class="k">左右を交差して</span>給電している（左の車幅灯と同じヒューズが右のテールへ、右の車幅灯と同じヒューズが左のテールへ）</li>
+  </ul>
+  <p class="note">年式・仕向け地・改造によって細部は異なります（後期型では熱線リアウインドウなどが加わります）。ヒューズの容量は、後年の整備書の表を機能で当てはめた参考値です。作業時は実車と付き合わせてご確認ください。</p>
+</div></div>
+<script>
+(function(){
+  var ov=document.getElementById('ldiff-overlay'), cl=document.getElementById('ldiff-close');
+  function setO(v){ ov.classList.toggle('open', v); }
+  document.getElementById('ldiff-open').addEventListener('click', function(){ setO(true); });
+  cl.addEventListener('click', function(){ setO(false); });
+  ov.addEventListener('click', function(e){ if(e.target===ov) setO(false); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') setO(false); });
+})();
+</script>
+</body>
+</html>
