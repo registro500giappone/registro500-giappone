@@ -999,66 +999,29 @@ async function fetchCars() {
       return flat.length > n ? flat.slice(0, n) + '…' : flat;
     }
 
-    // 帯の2行目「みんなの動き」。
-    // 出すのは "人が手を動かした痕跡" だけで、新規登録は入れない（左上の新着カードと重複するため）。
-    // 濃い投稿（経験談・ストーリー）が30日以内にあればそれを優先し、無ければ車両の更新で埋める。
-    let bandPost = null;        // 取得できた最新の投稿（無ければ null）
-    let bandPostLoaded = false; // 取得を試み終えたか（失敗時も true にして車両更新へ落とす）
+    // 帯の2行目＝「オーナーの更新情報」（/activity）の1行目と同じもの。
+    // 行の組み立ては activity-feed.js に一本化してある（帯と一覧で選び方がずれないように）。
+    // 押すと一覧へ行く。新規登録は一覧にも入らない（左上の新着カードと重複するため）。
+    let bandPost = null;        // 一覧の1行目（無ければ null）
+    let bandPostLoaded = false; // 取得を試み終えたか（失敗時も true）
+
+    // 帯は表示を急がないので、共通スクリプトは要るときに読み込む
+    function loadActivityFeedScript() {
+      if (window.ActivityFeed) return Promise.resolve();
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = '/activity-feed.js?v=1';
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
 
     async function loadLatestPostForBand() {
       try {
-        const [expRes, recRes, epiRes] = await Promise.all([
-          // 公開されている手帳の経験談のみ。RLS側でも is_public で絞られるが、条件は明示しておく。
-          supabaseClient
-            .from('equipment_experiences')
-            .select('body, created_at, equipment_records!inner(vehicle_id, is_public)')
-            .eq('equipment_records.is_public', true)
-            .order('created_at', { ascending: false })
-            .limit(1),
-          // 手帳を新しく作っただけ（経験談なし）でも「動き」として出す。朝ダイジェストの新着車載手帳と同じ条件。
-          supabaseClient
-            .from('equipment_records')
-            .select('vehicle_id, created_at')
-            .eq('is_public', true)
-            .not('vehicle_id', 'is', null)
-            .order('created_at', { ascending: false })
-            .limit(1),
-          supabaseClient
-            .from('car_episodes')
-            .select('car_id, title, created_at')
-            .eq('is_published', true)
-            .order('created_at', { ascending: false })
-            .limit(1)
-        ]);
-
-        const found = [];
-        const exp = (!expRes.error && expRes.data && expRes.data[0]) || null;
-        if (exp && exp.equipment_records && exp.body) {
-          found.push({ icon: '🧰', at: new Date(exp.created_at), docId: exp.equipment_records.vehicle_id, body: exp.body, hash: '#equipment-notebook' });
-        }
-        const rec = (!recRes.error && recRes.data && recRes.data[0]) || null;
-        if (rec && rec.vehicle_id) {
-          found.push({ icon: '🧰', at: new Date(rec.created_at), docId: rec.vehicle_id, action: '車載手帳を作成', hash: '#equipment-notebook' });
-        }
-        const epi = (!epiRes.error && epiRes.data && epiRes.data[0]) || null;
-        if (epi && epi.title) {
-          found.push({ icon: '📖', at: new Date(epi.created_at), docId: epi.car_id, body: epi.title });
-        }
-        found.sort((a, b) => b.at - a.at);
-        const top = found[0] || null;
-
-        // 投稿者の名前は cars から引く。500・126どちらのオーナーの投稿でも出す
-        // （入口は分けているが兄弟車で、同じ話題に興味があるという判断）。
-        // cars と equipment_records / car_episodes の間には外部キーが無く embed できないため、ここだけ1本引く。
-        if (top && top.docId) {
-          const { data: owner } = await supabaseClient
-            .from('cars')
-            .select('handle_name')
-            .eq('document_id', top.docId)
-            .limit(1);
-          top.name = (owner && owner[0] && owner[0].handle_name) || 'オーナー';
-        }
-        bandPost = top;
+        await loadActivityFeedScript();
+        const rows = await ActivityFeed.load(30);  // お知らせ行と同じ30日の鮮度制限
+        bandPost = rows[0] || null;
       } catch (e) {
         bandPost = null;
       } finally {
@@ -1067,51 +1030,20 @@ async function fetchCars() {
       }
     }
 
-    // 投稿の取得が済んでから描く（フォールバックの車両更新のほうは carsData を使う）。
-    // どちらが先に終わっても描けるよう、fetchCars 側とこの取得側の2箇所から呼ぶ。
     function renderActivityLineForBand() {
       try {
         if (!bandPostLoaded) return;
-
-        let line = null;
-
-        // ① 30日以内の投稿。500・126どちらのオーナーのものでも出す。
-        if (bandPost && bandPost.docId) {
-          const days = Math.ceil((Date.now() - bandPost.at.getTime()) / (1000 * 60 * 60 * 24));
-          if (days <= 30) {
-            const p = toJstParts(bandPost.at);
-            const who = `${bandPost.icon} ${p.mo + 1}/${p.d} ${esc(bandPost.name || 'オーナー')}さん`;
-            line = {
-              docId: bandPost.docId,
-              hash: bandPost.hash || '',
-              html: bandPost.action ? `${who}が${esc(bandPost.action)}` : `${who}「${esc(trimForBand(bandPost.body))}」`
-            };
-          }
-        }
-
-        // ② 投稿が無ければ、このサイトに載っている車の更新で埋める。
-        //    登録直後は updated_at ≒ created_at で、それは左上の新着カードと同じものになるので除く。
-        if (!line && carsData && carsData.length) {
-          const DAY = 24 * 60 * 60 * 1000;
-          const edited = carsData
-            .filter(c => {
-              if (!c.updatedAt || !c.createdAt) return false;                          // 旧いlocalStorageキャッシュには createdAt が無い
-              if (new Date(c.updatedAt) - new Date(c.createdAt) <= DAY) return false;  // 登録直後＝左上の新着カードと同じもの
-              return (Date.now() - new Date(c.updatedAt)) <= 30 * DAY;                 // お知らせ行と同じ30日の鮮度制限
-            })
-            .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))[0];
-          if (edited) {
-            const p = toJstParts(new Date(edited.updatedAt));
-            const name = edited.HandleName || edited.Model_DisplayC || 'オーナー';
-            line = { docId: edited.DocumentID, html: `🔧 ${p.mo + 1}/${p.d} ${esc(name)}さんが愛車の記録を更新` };
-          }
-        }
-
         const el = document.getElementById('topBandActivity');
-        if (!line) { el.style.display = 'none'; return; }
+        if (!bandPost) { el.style.display = 'none'; return; }
 
-        el.innerHTML = `<span class="top-band-line-text">${line.html}</span>`;
-        // 中身は最新の1件のまま、行き先は一覧（オーナーの更新情報）。1件しか出せない帯の取りこぼしを一覧で拾う
+        const d = ActivityFeed.describe(bandPost, 34);
+        const p = toJstParts(new Date(bandPost.at));
+        const days = Math.ceil((Date.now() - new Date(bandPost.at).getTime()) / (1000 * 60 * 60 * 24));
+        // 引用のある行（ストーリー・経験談）は、帯の幅に収まるよう「◯◯さん「本文」」の形にする
+        const name = ActivityFeed.esc(bandPost.car.handle_name || bandPost.car.model_display_c || 'オーナー');
+        const text = d.quote ? `${name}さん${d.quote}` : d.what;
+        el.innerHTML = `<span class="top-band-line-text">${d.icon} ${p.mo + 1}/${p.d} ${text}</span>`
+                     + `<span class="top-band-line-suffix">${days <= 7 ? '<span class="news-badge"></span>' : ''}</span>`;  // お知らせ行と同じ7日以内は赤丸
         el.href = '/activity?type=126';
         el.style.display = 'flex';
         document.getElementById('topBand').style.display = 'block';
