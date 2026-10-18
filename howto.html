@@ -702,6 +702,20 @@
         </div>
       </details>
 
+      <!-- 126から来た人（?from=126）にだけ出す。500版の wiringDetails と入れ替える -->
+      <details class="rg-details" id="wiringDetails126" style="display:none;">
+        <summary>⚡ 配線図ビューアの使い方</summary>
+        <div class="rg-details-body">
+          <p>フィアット126の<strong>前期型（1972〜76年）</strong>の配線図を、系統ごとに色分けして見られるビューアです。整備書の全体配線図をもとに、当サイトで配線を1本ずつたどって描き起こしました。</p>
+          <p>上部（スマホは下部）の<strong>「見たい系統」</strong>からヘッドライト・ウインカー・ワイパーなど16の系統を選ぶと、その回路だけが表示されます。<strong>「全表示」</strong>で全系統をまとめて表示します。スマホは<strong>タップで拡大／2本指でズーム／拡大中はドラッグで移動</strong>、パソコンはマウスホイールでズーム・←→キーで系統切替ができます。</p>
+          <p>年式・仕向け地・改造によって細部は異なります（後期型とは配線が違います）。作業の際は必ず実車とつき合わせてご確認ください。</p>
+          <a href="/126/wiring-preview" class="link-card">
+            <span class="lc-icon">⚡</span>
+            <span>FIAT 126 配線図ビューア<span class="lc-sub">前期型・16の系統を色分け表示・スマホ対応</span></span>
+          </a>
+        </div>
+      </details>
+
       <details class="rg-details">
         <summary>📱 スマホのホーム画面に追加する</summary>
         <div class="rg-details-body">
@@ -767,11 +781,17 @@
         const storyTitle = document.querySelector('a[href="/stories?type=126"] .fc-title');
         if (storyTitle) storyTitle.textContent = 'マイ126ストーリー';
 
-        // 配線図ビューアは500F専用で126サイトのメニューには無いため、126からは案内しない
+        // 配線図ビューアは 500 と 126（前期型）で別ページ＝126から来た人には126版を案内する
         const wiringCard = document.querySelector('a.feature-card[href="wiring-preview"]');
-        if (wiringCard) wiringCard.style.display = 'none';
+        if (wiringCard) {
+          wiringCard.setAttribute('href', '/126/wiring-preview');
+          const d = wiringCard.querySelector('.fc-desc');
+          if (d) d.textContent = 'FIAT 126（前期型 1972〜76）の配線図を、ヘッドライトやウインカーなど16の系統ごとに色分けして表示します。紙の図では追いにくい1系統だけを浮かび上がらせて確認できます。';
+        }
         const wiringDetails = document.getElementById('wiringDetails');
         if (wiringDetails) wiringDetails.style.display = 'none';
+        const wiringDetails126 = document.getElementById('wiringDetails126');
+        if (wiringDetails126) wiringDetails126.style.display = '';
       }
     })();
   </script>
