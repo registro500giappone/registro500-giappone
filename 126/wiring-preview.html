@@ -24,7 +24,7 @@
 <meta property="og:image" content="https://www.registro500.com/og/wiring-126-ja.png">
 <meta property="og:site_name" content="Registro500 Giappone">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="preload" as="image" href="/wiring-img/k00.webp" fetchpriority="high">
+<link rel="preload" as="image" href="/wiring-img/k00-v2.webp" fetchpriority="high">
 <style>
   :root { --bg:#eceef1; --panel:#fff; --ink:#1c2230; --sub:#6b7280; --accent:#c0392b; --line:#e3e6ea; }
   @media (prefers-color-scheme: dark) {
@@ -262,8 +262,10 @@
   // ⚠️/wiring-img/* は immutable（1年キャッシュ）なので、図を差し替えたら【ファイル名を変える】
   //   （IMGV に "k04": "-v2" のように足す）。同じ名前で上書きしても、一度見た人には古い図が出続ける。
   const NPAGE = 16;
+  // 2026-10-18 v2：電装チェックで結線を4か所直した（左右後ろ・左前ウインカー／フラッシャーのアース）＝16枚とも引き直し
+  const VER = "-v2";
   const IMGV = {};
-  function srcOf(i){ const b = "k" + String(i).padStart(2,"0"); return "/wiring-img/" + b + (IMGV[b] || "") + ".webp"; }
+  function srcOf(i){ const b = "k" + String(i).padStart(2,"0"); return "/wiring-img/" + b + (IMGV[b] || VER) + ".webp"; }
   const LAB = ["全表示", "アース／マイナス", "ヘッドライト", "ポジション／スモールランプ", "ウインカー", "ホーン", "ブレーキスイッチ", "オイルプレッシャースイッチ", "ルームランプ", "点火系", "イグニッション", "スターター／ダイナモ・発電系", "フューエルセンサー", "ワイパー", "ステアリングコラム", "メーターパネル"];
   const img=document.getElementById('img'), cur=document.getElementById('cur'),
         sel=document.getElementById('sel'), msg=document.getElementById('msg');
@@ -423,8 +425,8 @@
   <h3>図の見方</h3>
   <ul>
     <li>線の色は配線の被覆の色です。2色の線は、地の色に<span class="k">黒または白の破線</span>を重ねて示しています。</li>
-    <li>ボディにアースしている所は、部品の脇の<span class="k">アース記号</span>で示しています。</li>
-    <li>「JUNCTION」は配線どうしをつなぐ<span class="k">中継のコネクター</span>です。前まわりと室内の間、室内とエンジンルームの間に1つずつ描いています。</li>
+    <li>ボディにアースしている所は、部品の脇の<span class="k">アース記号</span>で示しています。白黒（BIANCO-NERO）の線は<span class="k">ウインカーリレー（フラッシャー）の取付部でアースに落ちる線</span>で、右サイドウインカー・ワイパースイッチ・ホーンボタンのアースはここを通ります。</li>
+    <li>「JUNCTION」は配線どうしをつなぐ<span class="k">中継のコネクター</span>です。原典では<span class="k">2つとも前まわりと室内の境目</span>（右側と左側に1つずつ）にあります。この図では線を見やすくするため、左側の1つを室内の下に描いています。</li>
     <li>ヒューズ箱の A〜H は原典の図の印字のままです。</li>
   </ul>
   <h3>主な仕様（前期型）</h3>
