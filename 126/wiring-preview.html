@@ -114,7 +114,7 @@
           font-size:11px; color:#fff; background:rgba(0,0,0,.55); padding:4px 10px; border-radius:20px;
           pointer-events:none; opacity:.9; }
   .hint-mobile { display:none; }
-  .lead { flex:none; padding:7px 12px; font-size:12.5px; line-height:1.45; color:var(--ink);
+  .lead { flex:none; padding:5px 12px; font-size:12.5px; line-height:1.45; color:var(--ink);
           background:var(--panel); border-bottom:1px solid var(--line); }
   .lead b { color:var(--accent); }
   .lead .sub { display:block; color:var(--sub); margin-top:2px; }
@@ -219,7 +219,15 @@
     <button class="navbtn" id="next" aria-label="次へ">›</button>
   </div>
 </header>
-<div class="lead" id="lead">FIAT 126の配線を<b>16の系統</b>に分けて見られます。系統を選ぶと、その回路の配線だけが表示されます（部品はすべて表示したまま）。<span class="sub">対象は<b>前期型（1972〜76年）</b>です。年式によって配線が異なる場合があります。<br><button type="button" id="ldiff-open" class="ldiff-btn">この図について ›</button></span></div>
+<div class="lead" id="lead">FIAT 126 <b>前期型（1972〜76年）</b>の配線を<b>16の系統</b>に分けて表示します。年式によって配線が異なる場合があります。<button type="button" id="ldiff-open" class="ldiff-btn">この図について ›</button></div>
+<div class="tbar" id="tbar">
+  <span class="tbar-label">型式</span>
+  <div class="tbar-btns" role="group" aria-label="型式を選ぶ">
+    <button type="button" class="tbtn active" data-href="/126/wiring-preview" title="1972〜76年">前期型</button>
+    <button type="button" class="tbtn" data-href="/126/wiring-preview-late" title="1976〜85年・イタリア製">後期型</button>
+    <button type="button" class="tbtn" data-href="/126/wiring-preview-126p" title="1985〜94年・ポーランド製">126p FL</button>
+  </div>
+</div>
 <div class="mbar" id="mbar">
   <button class="mbar-btn" id="mprev" aria-label="前へ">◀</button>
   <div class="mbar-center">
@@ -415,7 +423,13 @@
   mprev.addEventListener('click',()=>show(idx-1));
   mnext.addEventListener('click',()=>show(idx+1));
   document.addEventListener('keydown',e=>{ if(e.key==='ArrowRight')show(idx+1); if(e.key==='ArrowLeft')show(idx-1); });
-  show(0);
+  // 型式バー：別ページへ移るが、見ていた系統は #c=N で引き継ぐ（0〜15 は3型式で同じ並び・無い番号は全表示）
+  document.querySelectorAll('.tbtn[data-href]').forEach(b=>b.addEventListener('click',()=>{
+    if (b.classList.contains('active')) return;
+    if (window.gtag) gtag('event','wiring_type',{ wiring_type: '126:'+b.textContent });
+    location.href = b.dataset.href + (idx ? '#c='+idx : '');
+  }));
+  { const m=/^#c=(\d+)$/.exec(location.hash); const c=m?+m[1]:0; show(c<NPAGE?c:0); }
   // 残り15系統は、読み込み後のアイドル時に1枚ずつ先読みする（切替時の待ちを消す）
   const idle = window.requestIdleCallback || (fn => setTimeout(fn, 1200));
   function preloadRest(){
