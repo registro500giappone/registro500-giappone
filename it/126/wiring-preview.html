@@ -118,7 +118,7 @@
           font-size:11px; color:#fff; background:rgba(0,0,0,.55); padding:4px 10px; border-radius:20px;
           pointer-events:none; opacity:.9; }
   .hint-mobile { display:none; }
-  .lead { flex:none; padding:7px 12px; font-size:12.5px; line-height:1.45; color:var(--ink);
+  .lead { flex:none; padding:5px 12px; font-size:12.5px; line-height:1.45; color:var(--ink);
           background:var(--panel); border-bottom:1px solid var(--line); }
   .lead b { color:var(--accent); }
   .lead .sub { display:block; color:var(--sub); margin-top:2px; }
@@ -218,7 +218,15 @@
     <button class="navbtn" id="next" aria-label="Circuito successivo">›</button>
   </div>
 </header>
-<div class="lead" id="lead">L'impianto della FIAT 126 diviso in <b>16 circuiti</b>. Scegline uno e vengono mostrati solo i fili di quel circuito (i componenti restano tutti visibili). <span class="sub">Riguarda la <b>prima serie (1972–76)</b>; l'impianto può variare secondo l'anno.<br><button type="button" id="ldiff-open" class="ldiff-btn">Su questo schema ›</button><span class="lang"><a href="/126/wiring-preview" hreflang="ja">日本語</a><i>·</i><a href="/en/126/wiring-preview" hreflang="en">English</a></span></span></div>
+<div class="lead" id="lead">L'impianto della FIAT 126 <b>prima serie (1972–76)</b>, diviso in <b>16 circuiti</b>. L'impianto può variare secondo l'anno.<button type="button" id="ldiff-open" class="ldiff-btn">Su questo schema ›</button><span class="lang"><a href="/126/wiring-preview" hreflang="ja">日本語</a><i>·</i><a href="/en/126/wiring-preview" hreflang="en">English</a></span></div>
+<div class="tbar" id="tbar">
+  <span class="tbar-label">Serie</span>
+  <div class="tbar-btns" role="group" aria-label="Scegli la serie">
+    <button type="button" class="tbtn active" data-href="/it/126/wiring-preview" title="1972–76">Prima 72–76</button>
+    <button type="button" class="tbtn" data-href="/it/126/wiring-preview-late" title="set. 1976 – mag. 1985">Ultime 76–85</button>
+    <button type="button" class="tbtn" data-href="/it/126/wiring-preview-126p" title="126p FL, 1985–94, costruita in Polonia">FL 85–94</button>
+  </div>
+</div>
 <div class="mbar" id="mbar">
   <button class="mbar-btn" id="mprev" aria-label="Circuito precedente">◀</button>
   <div class="mbar-center">
@@ -404,7 +412,13 @@
   mprev.addEventListener('click',()=>show(idx-1));
   mnext.addEventListener('click',()=>show(idx+1));
   document.addEventListener('keydown',e=>{ if(e.key==='ArrowRight')show(idx+1); if(e.key==='ArrowLeft')show(idx-1); });
-  show(0);
+  // 型式バー：別ページへ移るが、見ていた系統は #c=N で引き継ぐ（0〜15 は3型式で同じ並び・無い番号は全表示）
+  document.querySelectorAll('.tbtn[data-href]').forEach(b=>b.addEventListener('click',()=>{
+    if (b.classList.contains('active')) return;
+    if (window.gtag) gtag('event','wiring_type',{ wiring_type: '126:'+b.textContent });
+    location.href = b.dataset.href + (idx ? '#c='+idx : '');
+  }));
+  { const m=/^#c=(\d+)$/.exec(location.hash); const c=m?+m[1]:0; show(c<NPAGE?c:0); }
   const idle = window.requestIdleCallback || (fn => setTimeout(fn, 1200));
   function preloadRest(){
     let n = 0;

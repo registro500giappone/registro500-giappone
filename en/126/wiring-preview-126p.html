@@ -2,10 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="robots" content="noindex, nofollow">
+<meta name="robots" content="index, follow">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>FIAT 126p Wiring Diagram (126p FL, 1985–94) – Circuit-by-Circuit Viewer | Registro500 Giappone</title>
 <meta name="description" content="The Polish-built Fiat 126p (FL, 1985–94) wiring diagram split into 19 circuits – headlights, turn signals, wiper and more. Pick a circuit and only that one is shown.">
+<link rel="canonical" href="https://www.registro500.com/en/126/wiring-preview-126p">
+<link rel="alternate" hreflang="ja" href="https://www.registro500.com/126/wiring-preview-126p">
+<link rel="alternate" hreflang="en" href="https://www.registro500.com/en/126/wiring-preview-126p">
+<link rel="alternate" hreflang="it" href="https://www.registro500.com/it/126/wiring-preview-126p">
+<link rel="alternate" hreflang="x-default" href="https://www.registro500.com/en/126/wiring-preview-126p">
 
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
@@ -16,6 +21,13 @@
   gtag('config', 'G-27SHHC4JYH');
 </script>
 
+<meta property="og:type" content="article">
+<meta property="og:title" content="FIAT 126p Wiring Diagram (126p FL, 1985–94) – Circuit-by-Circuit Viewer">
+<meta property="og:description" content="The Polish-built Fiat 126p (FL, 1985–94) wiring diagram split into 19 circuits – headlights, turn signals, wiper and more. Pick a circuit and only that one is shown.">
+<meta property="og:url" content="https://www.registro500.com/en/126/wiring-preview-126p">
+<meta property="og:image" content="https://www.registro500.com/og/wiring-126-en.png">
+<meta property="og:site_name" content="Registro500 Giappone">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preload" as="image" href="/wiring-img/en/kp00.webp" fetchpriority="high">
 <style>
   .lead .lang { white-space:nowrap; margin-left:10px; }
@@ -210,6 +222,14 @@
   </div>
 </header>
 <div class="lead" id="lead">The wiring of the Polish-built <b>126p FL (1985–94)</b>, split into <b>19 circuits</b>. Wiring may differ by year.<button type="button" id="ldiff-open" class="ldiff-btn">About this diagram ›</button><span class="lang"><a href="/126/wiring-preview-126p" hreflang="ja">日本語</a><i>·</i><a href="/it/126/wiring-preview-126p" hreflang="it">Italiano</a></span></div>
+<div class="tbar" id="tbar">
+  <span class="tbar-label">Model</span>
+  <div class="tbar-btns" role="group" aria-label="Choose the model">
+    <button type="button" class="tbtn" data-href="/en/126/wiring-preview" title="1972–76">Early 72–76</button>
+    <button type="button" class="tbtn" data-href="/en/126/wiring-preview-late" title="Sept. 1976 – May 1985">Later 76–85</button>
+    <button type="button" class="tbtn active" data-href="/en/126/wiring-preview-126p" title="126p FL, 1985–94, built in Poland">FL 85–94</button>
+  </div>
+</div>
 <div class="mbar" id="mbar">
   <button class="mbar-btn" id="mprev" aria-label="Previous circuit">◀</button>
   <div class="mbar-center">
@@ -401,7 +421,13 @@
   mprev.addEventListener('click',()=>show(idx-1));
   mnext.addEventListener('click',()=>show(idx+1));
   document.addEventListener('keydown',e=>{ if(e.key==='ArrowRight')show(idx+1); if(e.key==='ArrowLeft')show(idx-1); });
-  show(0);
+  // 型式バー：別ページへ移るが、見ていた系統は #c=N で引き継ぐ（0〜15 は3型式で同じ並び・無い番号は全表示）
+  document.querySelectorAll('.tbtn[data-href]').forEach(b=>b.addEventListener('click',()=>{
+    if (b.classList.contains('active')) return;
+    if (window.gtag) gtag('event','wiring_type',{ wiring_type: '126:'+b.textContent });
+    location.href = b.dataset.href + (idx ? '#c='+idx : '');
+  }));
+  { const m=/^#c=(\d+)$/.exec(location.hash); const c=m?+m[1]:0; show(c<NPAGE?c:0); }
   const idle = window.requestIdleCallback || (fn => setTimeout(fn, 1200));
   function preloadRest(){
     let n = 0;
