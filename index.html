@@ -442,6 +442,18 @@
     .footer-lang a { color: #5c5346; text-decoration: none; }
     .footer-lang a:hover { color: var(--accent); text-decoration: underline; }
     .footer-lang i { font-style: normal; opacity: 0.45; margin: 0 8px; }
+
+    /* ===== 英伊版への入口（ヘッダー右上＋日本語以外のブラウザだけ案内バー） ===== */
+    .page-header { position: relative; }
+    .hdr-lang { position: absolute; top: 0; right: 0; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+    .hdr-lang a { color: var(--text-sub); text-decoration: none; padding: 4px 2px; }
+    .hdr-lang a:hover { color: var(--accent); text-decoration: underline; }
+    .hdr-lang i { font-style: normal; opacity: 0.45; margin: 0 4px; }
+    @media (min-width: 1025px) { .hdr-lang { top: -30px; } }
+    .lang-hint { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; padding: 8px 12px; border: 1px solid var(--accent-border); border-radius: 8px; background: var(--accent-soft); color: var(--text-main); font-size: 0.82rem; line-height: 1.45; }
+    .lang-hint p { margin: 0; flex: 1; }
+    .lang-hint a { color: var(--accent); font-weight: 700; white-space: nowrap; }
+    .lang-hint button { flex: 0 0 auto; background: none; border: 0; color: var(--text-sub); font-size: 1.1rem; line-height: 1; padding: 4px 6px; cursor: pointer; font-family: inherit; }
     .share-btn { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); text-decoration: none; font-weight: 600; cursor: pointer; border: 1px solid var(--accent-border); padding: 10px 24px; border-radius: 999px; background: #fff; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
     .share-btn:hover { background: var(--accent-soft); transform: translateY(-1px); }
 
@@ -528,7 +540,27 @@
   </script>
 
   <div class="page">
+    <div id="langHint" class="lang-hint" style="display:none;" translate="no"></div>
+    <script>
+      (function () {
+        var lang = ((navigator.languages && navigator.languages[0]) || navigator.language || '').toLowerCase();
+        if (!lang || lang.indexOf('ja') === 0) return;
+        try { if (localStorage.getItem('langHintClosed')) return; } catch (e) {}
+        var it = lang.indexOf('it') === 0;
+        var box = document.getElementById('langHint');
+        box.lang = it ? 'it' : 'en';
+        box.innerHTML = it
+          ? '<p>Questo sito è principalmente in giapponese. Gli strumenti per l’officina (schemi elettrici, coppie di serraggio, simulatore del motore) sono disponibili in italiano: <a href="/it/" hreflang="it">Italiano ›</a> <a href="/en/" hreflang="en" lang="en">English ›</a></p><button type="button" aria-label="Chiudi">×</button>'
+          : '<p>This site is mainly in Japanese. Our workshop tools (wiring diagrams, torque table, engine simulator) are available in English: <a href="/en/" hreflang="en">English ›</a> <a href="/it/" hreflang="it" lang="it">Italiano ›</a></p><button type="button" aria-label="Close">×</button>';
+        box.querySelector('button').onclick = function () {
+          box.style.display = 'none';
+          try { localStorage.setItem('langHintClosed', '1'); } catch (e) {}
+        };
+        box.style.display = 'flex';
+      })();
+    </script>
     <header class="page-header">
+      <nav class="hdr-lang" translate="no" aria-label="Language"><a href="/en/" hreflang="en" lang="en">English</a><i>·</i><a href="/it/" hreflang="it" lang="it">Italiano</a></nav>
       <div class="header-brand-block">
         <img src="logo_vertical.png" class="logo-mobile" alt="Registro500">
         <img src="logo_horizontal.png" class="logo-pc" alt="Registro500">
