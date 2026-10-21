@@ -36,6 +36,14 @@
   var body = document.body;
   if (!body || body.dataset.fab === 'off') return;
 
+  // 読み上げ・ツールチップの文言（英伊版のページでは日本語を出さない）
+  var lang = (document.documentElement.lang || 'ja').slice(0, 2);
+  var TXT = {
+    ja: { back: '一つ前のページに戻る', home: 'ガレージに戻る', top: 'ページの先頭へ' },
+    en: { back: 'Back to the previous page', home: 'Back to home', top: 'Back to top' },
+    it: { back: 'Torna alla pagina precedente', home: 'Torna alla home', top: 'Torna su' }
+  }[lang] || { back: '一つ前のページに戻る', home: 'ガレージに戻る', top: 'ページの先頭へ' };
+
   var forced = /[?&]fab=1(&|$)/.test(location.search);
   var standalone =
     (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
@@ -119,14 +127,14 @@
     fabs.push(makeFab(
       'rg-fab-back',
       ICON.back,
-      goesBack ? '一つ前のページに戻る' : 'ガレージに戻る',
+      goesBack ? TXT.back : TXT.home,
       function () { if (goesBack) history.back(); else location.href = home; }
     ));
   }
 
   // ---- 右下：先頭へ（常時。長いページをスクロールしたときだけ現れる） ----
   if (body.dataset.fabTop !== 'off') {
-    var topBtn = makeFab('rg-fab-top', ICON.up, 'ページの先頭へ', function () {
+    var topBtn = makeFab('rg-fab-top', ICON.up, TXT.top, function () {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
     fabs.push(topBtn);
