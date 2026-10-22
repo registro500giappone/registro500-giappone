@@ -73,6 +73,10 @@
     .metoo:disabled { opacity: .6; cursor: default; }
     .metoo-note { font-size: .75rem; color: var(--text-sub); }
     .metoo-note a { color: var(--accent); }
+    .helpful-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
+    .helpful { font-family: inherit; font-size: .72rem; border: 1px solid var(--border-soft); color: var(--text-sub); background: transparent; border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+    .helpful.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+    .helpful:disabled { opacity: .6; cursor: default; }
     .also { font-size: .75rem; color: var(--text-sub); margin-top: 8px; line-height: 1.6; }
     .also a { color: var(--accent); }
     .empty, #loading { text-align: center; color: var(--text-sub); padding: 36px 0; }
@@ -140,6 +144,7 @@
   let carMap = {};
   let myCars = null;   // null＝未ログイン／[]＝車なし
   let busy = false;
+  let myHelpful = new Map();   // 自分が「参考になった」を押した投稿 id → 行 id
 
   function el(tag, cls, text) {
     const e = document.createElement(tag);
@@ -181,7 +186,7 @@
         metoo: metoo,
         alsoCars: metooCars.filter(id => !authorCars.has(id)),
         latest: new Date(asc[asc.length - 1].created_at).getTime(),
-        voices: asc.slice().reverse().map(i => ({ comment: i.comment, car: carMap[i.car_id] || null }))
+        voices: asc.slice().reverse().map(i => ({ id: i.id, carId: i.car_id, comment: i.comment, car: carMap[i.car_id] || null }))
       });
     });
     out.sort((a, b) => b.latest - a.latest);
@@ -285,7 +290,68 @@
       who.textContent = 'オーナー';
     }
     d.appendChild(who);
+    const h = helpfulEl(v);
+    if (h) d.appendChild(h);
     return d;
+  }
+
+  // 「👍 参考になった」— 使っていなくても、読んで役に立った登録オーナーが書いた人をたたえる（2026-10-22）。
+  // ⛔数は画面に出さない＝書いた本人にだけ翌朝のメールで届く（owner-tools/HANDOFF.md §6c）。
+  function helpfulEl(v) {
+    const row = el('div', 'helpful-row');
+    const b = el('button', 'helpful');
+    b.type = 'button';
+    if (myCars === null) {
+      b.textContent = '👍 参考になった';
+      b.addEventListener('click', () => {
+        track('tool_helpful_guest');
+        b.remove();
+        const n = el('span', 'metoo-note', '登録オーナーとしてログインすると押せます。');
+        const a = el('a', null, 'ログインする');
+        a.href = '/tools-edit';
+        n.appendChild(document.createTextNode(' '));
+        n.appendChild(a);
+        row.appendChild(n);
+      });
+      row.appendChild(b);
+      return row;
+    }
+    if (!myCars.length || myCars.some(c => c.document_id === v.carId)) return null; // 自分の紹介には押さない
+    const paint = () => {
+      const on = myHelpful.has(v.id);
+      b.classList.toggle('on', on);
+      b.textContent = on ? '👍 参考になった ✓' : '👍 参考になった';
+      note.textContent = on ? '書いた方にお伝えします' : '';
+    };
+    const note = el('span', 'metoo-note');
+    b.addEventListener('click', async () => {
+      if (b.disabled) return;
+      b.disabled = true;
+      try {
+        if (myHelpful.has(v.id)) {
+          const { error } = await supabaseClient.from('owner_tool_helpful').delete().eq('id', myHelpful.get(v.id));
+          if (error) throw error;
+          myHelpful.delete(v.id);
+          track('tool_helpful', { action: 'remove' });
+        } else {
+          const { data, error } = await supabaseClient.from('owner_tool_helpful')
+            .insert({ tool_id: v.id, car_id: myCars[0].document_id }).select('id').single();
+          if (error) throw error;
+          myHelpful.set(v.id, data.id);
+          track('tool_helpful', { action: 'add' });
+        }
+        paint();
+      } catch (err) {
+        console.error('[tools helpful]', err);
+        alert('保存できませんでした。時間をおいてもう一度お試しください。');
+      } finally {
+        b.disabled = false;
+      }
+    });
+    paint();
+    row.appendChild(b);
+    row.appendChild(note);
+    return row;
   }
 
   function cardEl(g) {
@@ -417,6 +483,12 @@
     const { data: cars, error } = await supabaseClient.from('cars').select(CAR_COLS).eq('owner_user_id', user.id);
     if (error) { console.error('[tools] my cars', error); myCars = []; return; }
     myCars = (cars || []).map(toCar);
+    if (myCars.length) {
+      const { data: h, error: eh } = await supabaseClient.from('owner_tool_helpful')
+        .select('id, tool_id').in('car_id', myCars.map(c => c.document_id));
+      if (eh) console.error('[tools] helpful', eh);
+      myHelpful = new Map((h || []).map(r => [r.tool_id, r.id]));
+    }
   }
 
   async function init() {

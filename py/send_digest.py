@@ -64,7 +64,7 @@ NOTEBOOK_FIRST_ANCHOR = "2026-09-08T00:00:00Z"
 TOOLS_DIGEST_ON = False
 TOOLS_LIST_MAX = 10      # 1通に並べる件数の上限（手帳からの移行で一度に増えたとき用）
 
-# 「わたしも使ってる」を、紹介した本人にだけ知らせる（2026-10-22・owner-tools/HANDOFF.md §6b）。
+# 「わたしも使ってる」「参考になった」を、紹介した本人にだけ知らせる（2026-10-22・owner-tools/HANDOFF.md §6b・§6c）。
 # ダイジェスト（全員に同じBCC）とは別の個別メール。投稿者ごとに1日1通まとめ、
 # 同じ（工具, 押した車）の組は owner_tool_metoo_notices に残して二度と知らせない。
 # 画面に件数は出さない＝押されたときだけ届くので「0」を見せることもない。
@@ -383,25 +383,30 @@ def main():
 
 
 def send_metoo_notices():
-    """「わたしも使ってる」が押された工具の投稿者へ、1人1通の知らせを送る。
-    押した直後に取り消された組は owner_tool_users から消えているので知らせない。
+    """「🔧 わたしも使ってる」「👍 参考になった」が押された投稿の投稿者へ、1人1通の知らせを送る。
+    参考になったの数は画面に出さない＝ここが唯一の届け先（owner-tools/HANDOFF.md §6b・§6c）。
+    押した直後に取り消された組は行が消えているので知らせない。
     伏せた工具・自分の車どうし・売却済みの車・宛先の無い車には送らない。"""
     if not METOO_NOTICE_ON:
         return
     now = datetime.now(timezone.utc)
     window_start = (now - timedelta(days=WINDOW_DAYS)).isoformat().replace("+00:00", "Z")
-    presses = sb_select("owner_tool_users", "tool_id,car_id,created_at",
-                        {"created_at": f"gte.{window_start}"}, "order=created_at.asc")
+    presses = []
+    for table, kind in (("owner_tool_users", "metoo"), ("owner_tool_helpful", "helpful")):
+        for p in sb_select(table, "tool_id,car_id,created_at",
+                           {"created_at": f"gte.{window_start}"}, "order=created_at.asc"):
+            p["kind"] = kind
+            presses.append(p)
     if not presses:
-        log("わたしも使ってる: 知らせる対象なし")
+        log("わたしも使ってる・参考になった: 知らせる対象なし")
         return
     tool_ids = sorted({p["tool_id"] for p in presses})
     in_tools = ",".join(tool_ids)
-    done = {(r["tool_id"], r["car_id"]) for r in sb_select(
-        "owner_tool_metoo_notices", "tool_id,car_id", {"tool_id": f"in.({in_tools})"})}
-    presses = [p for p in presses if (p["tool_id"], p["car_id"]) not in done]
+    done = {(r["tool_id"], r["car_id"], r.get("kind") or "metoo") for r in sb_select(
+        "owner_tool_metoo_notices", "tool_id,car_id,kind", {"tool_id": f"in.({in_tools})"})}
+    presses = [p for p in presses if (p["tool_id"], p["car_id"], p["kind"]) not in done]
     if not presses:
-        log("わたしも使ってる: 知らせる対象なし（すべて知らせ済み）")
+        log("わたしも使ってる・参考になった: 知らせる対象なし（すべて知らせ済み）")
         return
 
     tools = {t["id"]: t for t in sb_select(
@@ -422,34 +427,43 @@ def send_metoo_notices():
         mail = str(poster.get("owner_email") or "").strip().lower()
         same_owner = poster.get("owner_user_id") and poster.get("owner_user_id") == presser.get("owner_user_id")
         entry = by_mail.setdefault(mail, {"name": poster.get("handle_name") or "オーナー", "items": [], "keys": []})
-        entry["keys"].append({"tool_id": p["tool_id"], "car_id": p["car_id"]})
+        entry["keys"].append({"tool_id": p["tool_id"], "car_id": p["car_id"], "kind": p["kind"]})
         if same_owner or poster.get("is_sold") or "@" not in mail:
             continue                       # 送らないが記録はする（翌日以降も読み直さないため）
         who = (presser.get("handle_name") or "オーナー") + "さん"
         if presser.get("model_display_c"):
             who += "（" + presser["model_display_c"] + "）"
-        entry["items"].append((tool["name"], who))
+        entry["items"].append((tool["name"], p["kind"], who))
 
+    VERB = {"metoo": "🔧 わたしも使ってる", "helpful": "👍 参考になった"}
     sent = 0
     for mail, entry in by_mail.items():
         if entry["items"]:
             lines = []
-            for name in dict.fromkeys(n for n, _ in entry["items"]):
+            for name in dict.fromkeys(n for n, _, _ in entry["items"]):
                 lines.append("・" + name)
-                lines += ["　　― " + w for n, w in entry["items"] if n == name]
+                lines += [f"　　{VERB[k]} ― {w}" for n, k, w in entry["items"] if n == name]
+            kinds = {k for _, k, _ in entry["items"]}
+            if kinds == {"helpful"}:
+                lead = "「みんなのおすすめ工具」に書いていただいた紹介が、ほかのオーナーの参考になりました。"
+                subject = "【Registro500】あなたの工具の紹介が、ほかのオーナーの参考になりました"
+            elif kinds == {"metoo"}:
+                lead = ("「みんなのおすすめ工具」で紹介していただいた工具に、"
+                        "ほかのオーナーから「🔧 わたしも使ってる」が届きました。")
+                subject = "【Registro500】あなたの紹介した工具を、ほかのオーナーも使っています"
+            else:
+                lead = "「みんなのおすすめ工具」に書いていただいた紹介に、ほかのオーナーから声が届きました。"
+                subject = "【Registro500】あなたの工具の紹介に、ほかのオーナーから声が届きました"
             body = (
-                f"{entry['name']} さん\n\n"
-                "「みんなのおすすめ工具」で紹介していただいた工具に、"
-                "ほかのオーナーから「🔧 わたしも使ってる」が届きました。\n\n"
+                f"{entry['name']} さん\n\n" + lead + "\n\n"
                 + "\n".join(lines) + "\n\n"
-                "あなたの紹介が、同じ工具を使う仲間とつながるきっかけになっています。"
-                "ありがとうございます。\n\n"
+                "あなたの紹介が、ほかのオーナーの役に立っています。ありがとうございます。\n\n"
                 f"みんなのおすすめ工具\n{SITE}/tools\n\n"
                 "――\n"
-                "このメールは、紹介した工具に「わたしも使ってる」が押されたとき、"
-                "翌朝にまとめて1通だけお送りしています。\n"
+                "このメールは、紹介に「わたしも使ってる」「参考になった」が押されたとき、"
+                "翌朝にまとめて1通だけお送りしています。"
+                "「参考になった」の数はサイトには表示せず、このメールでだけお知らせしています。\n"
                 "Registro500 Giappone")
-            subject = "【Registro500】あなたの紹介した工具を、ほかのオーナーも使っています"
             to = ADMIN_EMAIL if DRY_RUN else mail
             try:
                 brevo_send({
@@ -461,15 +475,15 @@ def send_metoo_notices():
                 })
                 sent += 1
             except Exception as e:
-                log(f"わたしも使ってる: 送信エラー（{entry['name']}）: {e}")
+                log(f"わたしも使ってる・参考になった: 送信エラー（{entry['name']}）: {e}")
                 continue                   # 記録しない＝翌朝もう一度
         if DRY_RUN:
             continue                       # 試運転は記録しない
         try:
-            sb_upsert("owner_tool_metoo_notices", entry["keys"], on_conflict="tool_id,car_id", ignore_dup=True)
+            sb_upsert("owner_tool_metoo_notices", entry["keys"], on_conflict="tool_id,car_id,kind", ignore_dup=True)
         except Exception as e:
-            log(f"わたしも使ってる: 記録エラー（{entry['name']}）: {e}")
-    log(f"わたしも使ってる: {sent}通送信" + ("（DRY RUN＝管理者宛・記録なし）" if DRY_RUN else ""))
+            log(f"わたしも使ってる・参考になった: 記録エラー（{entry['name']}）: {e}")
+    log(f"わたしも使ってる・参考になった: {sent}通送信" + ("（DRY RUN＝管理者宛・記録なし）" if DRY_RUN else ""))
 
 
 if __name__ == "__main__":
