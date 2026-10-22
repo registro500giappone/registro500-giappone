@@ -106,7 +106,7 @@ export async function onRequestPost({ request, env }) {
 投稿者: ${owner}
 工具名: ${tool.name}
 分類　: ${CAT_LABEL[tool.category] || tool.category} ／ ${USAGE_LABEL[tool.usage] || tool.usage}
-一言　:
+おすすめポイント:
 ${tool.comment}
 
 写真　: ${tool.photo_url || "なし"}
