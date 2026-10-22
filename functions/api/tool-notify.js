@@ -25,7 +25,7 @@ const CAT_LABEL = {
   turn: "回す", grip: "つかむ・切る・叩く", measure: "測る・調べる", lift: "持ち上げる・支える",
   special: "専用工具", light: "照らす・手を守る", repair: "応急・補修",
 };
-const USAGE_LABEL = { carry: "車に積む", garage: "ガレージで使う", both: "両方" };
+const USAGE_LABEL = { carry: "車に積む", garage: "ガレージで使う", both: "車に積む・ガレージでも使う" };
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
