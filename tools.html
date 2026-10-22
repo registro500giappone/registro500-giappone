@@ -61,10 +61,12 @@
     .meta { font-size: .75rem; color: var(--text-sub); margin-top: 3px; }
     .badge { display: inline-block; background: var(--accent-soft); color: var(--accent); border-radius: 5px; padding: 1px 6px; font-size: .7rem; font-weight: 700; margin-right: 4px; }
     .voice { border-left: 3px solid var(--accent-soft); padding: 4px 0 4px 10px; margin: 9px 0 0; font-size: .9rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
-    .who { display: block; font-size: .72rem; color: var(--text-sub); margin-top: 2px; white-space: normal; }
+    .who { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: .72rem; color: var(--text-sub); margin-top: 4px; white-space: normal; }
     .who a { color: var(--accent); }
     .more { font-size: .78rem; color: var(--accent); margin-top: 8px; background: none; border: 0; padding: 0; cursor: pointer; font-family: inherit; }
-    .buy { display: flex; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border-soft); align-items: center; justify-content: flex-end; }
+    .tool-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+    .tool-foot .metoo-row { margin-top: 0; }
+    .buy { display: flex; gap: 6px; align-items: center; margin-left: auto; }
     .amz { background: transparent; color: var(--amber); border: 1.5px solid var(--amber); font-weight: 700; border-radius: 999px; padding: 4px 12px; font-size: .75rem; text-decoration: none; }
     .pr { font-size: .65rem; border: 1px solid var(--border-soft); border-radius: 3px; padding: 0 4px; color: var(--text-sub); }
     .metoo-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
@@ -73,9 +75,9 @@
     .metoo:disabled { opacity: .6; cursor: default; }
     .metoo-note { font-size: .75rem; color: var(--text-sub); }
     .metoo-note a { color: var(--accent); }
-    .helpful-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
-    .helpful { font-family: inherit; font-size: .8rem; font-weight: 700; border: 1px solid var(--accent); color: var(--accent); background: transparent; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
-    .helpful.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+    .helpful-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: flex-end; margin-left: auto; }
+    .helpful { font-family: inherit; font-size: .75rem; font-weight: 700; border: 1px solid var(--accent); color: var(--accent); background: transparent; border-radius: 999px; padding: 4px 10px; cursor: pointer; }
+    .helpful.on { border-color: var(--accent); color: #fff; background: var(--accent); }
     .helpful:disabled { opacity: .6; cursor: default; }
     .also { font-size: .75rem; color: var(--text-sub); margin-top: 8px; line-height: 1.6; }
     .also a { color: var(--accent); }
@@ -289,9 +291,10 @@
     } else {
       who.textContent = 'オーナー';
     }
-    d.appendChild(who);
+    // 「参考になった」は名前と同じ行の右端（声ごとに同じ形・ボタンだけの行を作らない＝2026-10-22 C案）
     const h = helpfulEl(v);
-    if (h) d.appendChild(h);
+    if (h) who.appendChild(h);
+    d.appendChild(who);
     return d;
   }
 
@@ -390,8 +393,10 @@
       d.appendChild(document.createTextNode(' も使用'));
       c.appendChild(d);
     }
+    // わたしも使ってる（左）と Amazon（右端）を1行に（2026-10-22）
+    const foot = el('div', 'tool-foot');
     const mt = metooEl(g);
-    if (mt) c.appendChild(mt);
+    if (mt) foot.appendChild(mt);
     if (g.amazon) {
       const buy = el('div', 'buy');
       const a = el('a', 'amz', 'Amazonで見る ›');
@@ -400,8 +405,9 @@
       a.rel = 'nofollow sponsored noopener';
       buy.appendChild(a);
       buy.appendChild(el('span', 'pr', 'PR'));
-      c.appendChild(buy);
+      foot.appendChild(buy);
     }
+    if (foot.childNodes.length) c.appendChild(foot);
     return c;
   }
 
