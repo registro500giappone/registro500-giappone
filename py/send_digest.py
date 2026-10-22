@@ -44,7 +44,7 @@ from datetime import datetime, timedelta, timezone
 
 # 設定（py/.env 優先・無ければ環境変数）・Supabase REST・Brevo は py/common.py に寄せた（2026-09-30）。
 # 差出人などの定数は main.gs と同一の値を common.py が持つ。
-from common import (cfg, require, supa_key, sb_select, sb_patch, sb_rpc, brevo_send,
+from common import (cfg, require, supa_key, sb_select, sb_patch, sb_rpc, sb_upsert, brevo_send,
                     SENDER_EMAIL, SENDER_NAME, REPLY_TO_EMAIL, ADMIN_EMAIL, SITE)
 
 CHUNK_SIZE = 90          # Brevo の BCC 上限に合わせた main.gs と同じ値
@@ -63,6 +63,13 @@ NOTEBOOK_FIRST_ANCHOR = "2026-09-08T00:00:00Z"
 #    False の間は対象を読まず、フラグも立てない＝True にした日から14日以内の分が載る。
 TOOLS_DIGEST_ON = False
 TOOLS_LIST_MAX = 10      # 1通に並べる件数の上限（手帳からの移行で一度に増えたとき用）
+
+# 「わたしも使ってる」を、紹介した本人にだけ知らせる（2026-10-22・owner-tools/HANDOFF.md §6b）。
+# ダイジェスト（全員に同じBCC）とは別の個別メール。投稿者ごとに1日1通まとめ、
+# 同じ（工具, 押した車）の組は owner_tool_metoo_notices に残して二度と知らせない。
+# 画面に件数は出さない＝押されたときだけ届くので「0」を見せることもない。
+# 宛先は投稿者本人だけ（既に /tools を知っている人）なので、ページ公開前でも鳴らしてよい。
+METOO_NOTICE_ON = True
 
 DRY_RUN = str(cfg("DIGEST_DRY_RUN", "")).strip().lower() in ("1", "true", "yes")
 
@@ -375,6 +382,96 @@ def main():
         f"（送信chunk {sent_chunks}成功/{failed_chunks}失敗、宛先{len(recipients)}人）")
 
 
+def send_metoo_notices():
+    """「わたしも使ってる」が押された工具の投稿者へ、1人1通の知らせを送る。
+    押した直後に取り消された組は owner_tool_users から消えているので知らせない。
+    伏せた工具・自分の車どうし・売却済みの車・宛先の無い車には送らない。"""
+    if not METOO_NOTICE_ON:
+        return
+    now = datetime.now(timezone.utc)
+    window_start = (now - timedelta(days=WINDOW_DAYS)).isoformat().replace("+00:00", "Z")
+    presses = sb_select("owner_tool_users", "tool_id,car_id,created_at",
+                        {"created_at": f"gte.{window_start}"}, "order=created_at.asc")
+    if not presses:
+        log("わたしも使ってる: 知らせる対象なし")
+        return
+    tool_ids = sorted({p["tool_id"] for p in presses})
+    in_tools = ",".join(tool_ids)
+    done = {(r["tool_id"], r["car_id"]) for r in sb_select(
+        "owner_tool_metoo_notices", "tool_id,car_id", {"tool_id": f"in.({in_tools})"})}
+    presses = [p for p in presses if (p["tool_id"], p["car_id"]) not in done]
+    if not presses:
+        log("わたしも使ってる: 知らせる対象なし（すべて知らせ済み）")
+        return
+
+    tools = {t["id"]: t for t in sb_select(
+        "owner_tools", "id,car_id,name,is_hidden", {"id": f"in.({in_tools})"})}
+    car_ids = sorted({p["car_id"] for p in presses} | {t["car_id"] for t in tools.values()})
+    in_cars = ",".join('"' + str(i) + '"' for i in car_ids)
+    cars = {c["document_id"]: c for c in sb_select(
+        "cars", "document_id,handle_name,model_display_c,owner_email,owner_user_id,is_sold",
+        {"document_id": f"in.({in_cars})"})}
+
+    # 投稿者のメールごとにまとめる
+    by_mail = {}
+    for p in presses:
+        tool = tools.get(p["tool_id"])
+        if not tool or tool.get("is_hidden"):
+            continue                       # 伏せた・消えた工具は知らせない（記録もしない＝14日で対象外になる）
+        poster, presser = cars.get(tool["car_id"]) or {}, cars.get(p["car_id"]) or {}
+        mail = str(poster.get("owner_email") or "").strip().lower()
+        same_owner = poster.get("owner_user_id") and poster.get("owner_user_id") == presser.get("owner_user_id")
+        entry = by_mail.setdefault(mail, {"name": poster.get("handle_name") or "オーナー", "items": [], "keys": []})
+        entry["keys"].append({"tool_id": p["tool_id"], "car_id": p["car_id"]})
+        if same_owner or poster.get("is_sold") or "@" not in mail:
+            continue                       # 送らないが記録はする（翌日以降も読み直さないため）
+        who = (presser.get("handle_name") or "オーナー") + "さん"
+        if presser.get("model_display_c"):
+            who += "（" + presser["model_display_c"] + "）"
+        entry["items"].append((tool["name"], who))
+
+    sent = 0
+    for mail, entry in by_mail.items():
+        if entry["items"]:
+            lines = []
+            for name in dict.fromkeys(n for n, _ in entry["items"]):
+                lines.append("・" + name)
+                lines += ["　　― " + w for n, w in entry["items"] if n == name]
+            body = (
+                f"{entry['name']} さん\n\n"
+                "「みんなのおすすめ工具」で紹介していただいた工具に、"
+                "ほかのオーナーから「🔧 わたしも使ってる」が届きました。\n\n"
+                + "\n".join(lines) + "\n\n"
+                "あなたの紹介が、同じ工具を使う仲間とつながるきっかけになっています。"
+                "ありがとうございます。\n\n"
+                f"みんなのおすすめ工具\n{SITE}/tools\n\n"
+                "――\n"
+                "このメールは、紹介した工具に「わたしも使ってる」が押されたとき、"
+                "翌朝にまとめて1通だけお送りしています。\n"
+                "Registro500 Giappone")
+            subject = "【Registro500】あなたの紹介した工具を、ほかのオーナーも使っています"
+            to = ADMIN_EMAIL if DRY_RUN else mail
+            try:
+                brevo_send({
+                    "replyTo": {"name": SENDER_NAME, "email": REPLY_TO_EMAIL},
+                    "to": [{"email": to}],
+                    "subject": ("[DRY RUN] " if DRY_RUN else "") + subject,
+                    "textContent": body,
+                    "htmlContent": text_to_html(body),
+                })
+                sent += 1
+            except Exception as e:
+                log(f"わたしも使ってる: 送信エラー（{entry['name']}）: {e}")
+                continue                   # 記録しない＝翌朝もう一度
+        if DRY_RUN:
+            continue                       # 試運転は記録しない
+        try:
+            sb_upsert("owner_tool_metoo_notices", entry["keys"], on_conflict="tool_id,car_id", ignore_dup=True)
+        except Exception as e:
+            log(f"わたしも使ってる: 記録エラー（{entry['name']}）: {e}")
+    log(f"わたしも使ってる: {sent}通送信" + ("（DRY RUN＝管理者宛・記録なし）" if DRY_RUN else ""))
+
+
 if __name__ == "__main__":
     try:
         main()
@@ -385,3 +482,10 @@ if __name__ == "__main__":
         send_admin_alert("【要確認】朝ダイジェスト送信失敗",
                          f"send_digest.py で例外が発生しました: {err}")
         sys.exit(1)
+    # ダイジェストとは独立。こちらが落ちてもダイジェストの結果は変えない（管理者にだけ知らせる）。
+    try:
+        send_metoo_notices()
+    except Exception as err:
+        log(f"❌ わたしも使ってるの知らせでエラー: {err}")
+        send_admin_alert("【要確認】わたしも使ってるの知らせ失敗",
+                         f"send_digest.py の send_metoo_notices で例外が発生しました: {err}")

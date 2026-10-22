@@ -21,6 +21,7 @@
 | `sitemap.xml` | `/equipment` の直前に `/tools`（lastmod＝公開日・weekly・0.7） |
 | `finder.html` | `PAGES` の `/goods` の直前に下の1件（⛔公開前に載せない） |
 | `py/send_digest.py` | `TOOLS_DIGEST_ON = False` → `True`（公開日から14日以内の投稿が翌朝のダイジェストに載る） |
+| `detail.html` | `TOOLS_ON_CAR_PAGE = false` → `true`（車両ページに「このオーナーのおすすめ工具」・2026-10-22 追加） |
 
 フッター（「整備と道具」列）は今回は入れない＝足すなら別途指示。
 

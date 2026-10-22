@@ -136,6 +136,12 @@
     .paint-item .pd { font-size: 0.72rem; color: var(--rg-muted); padding: 2px 8px 6px; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
     .paint-item .pdel { font: inherit; font-size: 0.72rem; border: 1px solid var(--rg-border); background: none; color: #b23b2b; border-radius: 999px; padding: 1px 8px; cursor: pointer; }
     .paint-item .pdel.sure { background: #b23b2b; color: #fff; border-color: #b23b2b; }
+    .tl-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--rg-border, #e5e7eb); }
+    .tl-item:last-child { border-bottom: 0; }
+    .tl-item img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; flex: none; background: #f3f4f6; }
+    .tl-name { font-weight: 700; font-size: 0.95rem; line-height: 1.35; }
+    .tl-cm { font-size: 0.85rem; color: var(--rg-muted); margin-top: 2px; white-space: pre-wrap; word-break: break-word; }
+    .tl-also { font-size: 0.82rem; color: var(--rg-muted); margin: 8px 0 0; }
     .rg-episodes-more { display: block; text-align: center; padding: 0.75rem; font-size: 0.9rem; color: var(--rg-accent); text-decoration: none; margin-top: 0.25rem; }
     /* 「この1台の歩み」の自動行（登録・更新・イベント参加・車載手帳・売却）。
        ストーリー行（rg-episode-timeline-item）と余白感を揃える。 */
@@ -391,6 +397,12 @@
             <h2 class="rg-section-title">この車のお絵描き</h2>
             <div id="paintGrid" class="paint-grid"></div>
             <a class="rg-episodes-more" href="/paint-notebook/gallery">みんなのお絵描き帳を見る →</a>
+          </section>
+          <section class="rg-card" id="toolsSection" style="display:none;">
+            <h2 class="rg-section-title">このオーナーのおすすめ工具</h2>
+            <div id="toolsList"></div>
+            <p id="toolsAlso" class="tl-also" style="display:none;"></p>
+            <a class="rg-episodes-more" href="/tools">みんなのおすすめ工具を見る →</a>
           </section>
           <section class="rg-card"><h2 class="rg-section-title">共有・連絡</h2>
             <div class="rg-action-row"><button class="rg-btn rg-btn-dark" onclick="showQRCode()">QR表示</button><a id="shareX" class="rg-btn rg-btn-black" target="_blank">Xでシェア</a><a id="shareLINE" class="rg-btn" style="background:#06C755;color:#fff;" target="_blank">LINEで送る</a></div>
@@ -1442,7 +1454,46 @@
       document.getElementById('paintSection').style.display = 'block';
     }
 
-    fetchDetail().then(loadPaint);
+    // ─── このオーナーのおすすめ工具（/tools の投稿と「わたしも使ってる」・2026-10-22） ───
+    // ⛔ /tools への導線になる＝ページの公開判断（owner-tools/LAUNCH.md）が出るまで false のまま。
+    const TOOLS_ON_CAR_PAGE = false;
+    const TOOLS_CM_MAX = 80;
+    async function loadTools() {
+      if (!TOOLS_ON_CAR_PAGE || !currentCar) return;
+      const doc = currentCar.document_id;
+      const [mine, used] = await Promise.all([
+        supabaseClient.from('owner_tools').select('id, name, comment, photo_url')
+          .eq('car_id', doc).eq('is_hidden', false).order('created_at', { ascending: true }),
+        supabaseClient.from('owner_tool_users').select('owner_tools(name, is_hidden)').eq('car_id', doc)
+      ]);
+      const posts = (!mine.error && mine.data) || [];
+      const also = ((!used.error && used.data) || []).map(u => u.owner_tools).filter(t => t && !t.is_hidden).map(t => t.name);
+      if (!posts.length && !also.length) return;
+      const list = document.getElementById('toolsList');
+      list.innerHTML = '';
+      posts.forEach(t => {
+        const row = document.createElement('div'); row.className = 'tl-item';
+        if (t.photo_url) {
+          const im = document.createElement('img'); im.loading = 'lazy'; im.referrerPolicy = 'no-referrer'; im.alt = t.name; im.src = t.photo_url;
+          im.onerror = () => im.remove();
+          row.appendChild(im);
+        }
+        const body = document.createElement('div');
+        const nm = document.createElement('div'); nm.className = 'tl-name'; nm.textContent = t.name;
+        const cm = document.createElement('div'); cm.className = 'tl-cm';
+        cm.textContent = t.comment.length > TOOLS_CM_MAX ? t.comment.slice(0, TOOLS_CM_MAX) + '…' : t.comment;
+        body.appendChild(nm); body.appendChild(cm); row.appendChild(body);
+        list.appendChild(row);
+      });
+      if (also.length) {
+        const p = document.getElementById('toolsAlso');
+        p.textContent = (posts.length ? 'ほかに使っている工具：' : '使っている工具：') + also.join('、');
+        p.style.display = 'block';
+      }
+      document.getElementById('toolsSection').style.display = 'block';
+    }
+
+    fetchDetail().then(() => { loadPaint(); loadTools(); });
   </script>
 <footer style="margin-top:48px;padding:20px 16px;border-top:1px solid #e5e7eb;text-align:center;">
   <a href="/goods" style="font-size:0.82rem;color:#6b7280;text-decoration:none;">📦 メンテナンスおすすめグッズ</a>

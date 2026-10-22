@@ -50,6 +50,12 @@
     .back-link:hover { color: var(--accent); }
     h1 { font-size: 1.35rem; margin: .2em 0 .6em; }
     .lead { font-size: .88rem; color: var(--text-sub); margin: 0 0 12px; }
+    .nb-box { background: var(--accent-soft); border-radius: 10px; padding: 10px 12px; margin: 0 0 6px; }
+    .nb-title { font-size: .85rem; font-weight: 700; margin: 0 0 8px; }
+    .nb-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .nb-chip { font: inherit; font-size: .8rem; border: 1px solid var(--accent); color: var(--accent); background: var(--card-bg); border-radius: 999px; padding: 5px 11px; cursor: pointer; text-align: left; }
+    .nb-chip.on { background: var(--accent); color: #fff; }
+    @media (prefers-color-scheme: dark) { .nb-chip.on { color: #10261a; } }
     .lead.intro { line-height: 1.8; margin: -4px 0 16px; }
     .btn-main { display: block; width: 100%; text-align: center; background: var(--accent); color: #fff; border: 0; border-radius: 10px; padding: 12px; font-size: 1rem; font-weight: 700; text-decoration: none; cursor: pointer; font-family: inherit; }
     .btn-main:disabled { opacity: .5; cursor: default; }
@@ -126,6 +132,12 @@
   <div id="stateForm" class="hidden">
     <form class="card" id="form" novalidate>
       <h2 id="formTitle">新しく紹介する</h2>
+
+      <div id="nbBox" class="nb-box hidden">
+        <p class="nb-title">📒 車載手帳に書いた工具から始める</p>
+        <div class="nb-chips" id="nbChips"></div>
+        <p class="note">選ぶと工具名と、手帳に書いたメモが入ります。工具名はお使いのメーカー・型番に書き換えると、ほかの方が探しやすくなります。</p>
+      </div>
 
       <div id="carRow" class="hidden">
         <label class="f" for="carSel">投稿する車<span class="req">必須</span></label>
@@ -419,6 +431,7 @@
     $('photoNote').textContent = '工具が分かる写真を1枚。';
     $('cancelEdit').classList.add('hidden');
     $('carSel').disabled = false;
+    if (nbCache) renderNotebook();
   }
   function startEdit(row) {
     resetForm();
@@ -434,6 +447,7 @@
     $('photoNote').textContent = '写真を変えるときだけ選んでください（そのままなら今の写真が残ります）。';
     if (row.photo_url) { $('preview').referrerPolicy = 'no-referrer'; $('preview').src = row.photo_url; $('preview').classList.remove('hidden'); }
     $('cancelEdit').classList.remove('hidden');
+    $('nbBox').classList.add('hidden');
     $('form').scrollIntoView({ behavior: 'smooth' });
   }
   $('cancelEdit').addEventListener('click', () => { resetForm(); setMsg(''); });
@@ -493,6 +507,8 @@
         .select('id, car_id, name, category, usage, comment, photo_url, is_hidden, created_at')
         .in('car_id', ids).order('created_at', { ascending: false });
       if (error) throw error;
+      mineNames = new Set((data || []).map(r => normName(r.name)));
+      loadNotebook();
       box.textContent = '';
       if (!data || !data.length) { box.appendChild(el('p', 'lead', 'まだ投稿はありません。')); return; }
       data.forEach(r => {
@@ -522,6 +538,63 @@
       box.textContent = '';
       box.appendChild(el('p', 'warn', '読み込みに失敗しました。'));
     }
+  }
+
+  // ── 車載手帳から始める（2026-10-22・owner-tools/HANDOFF.md §4c） ──
+  // 本人の手帳の「工具」から、まだ紹介していないものを候補に出す。メモのある項目を先に。
+  // 催促ではなく、この画面を開いた人への手助け＝ほかの画面には出さない。
+  let mineNames = new Set();
+  let nbCache = null;      // null＝未読込／[]＝候補なし
+  function normName(s) { return String(s || '').replace(/[（(].*?[)）]/g, '').replace(/\s+/g, '').toLowerCase(); }
+  async function loadNotebook() {
+    try {
+      if (nbCache === null) {
+        nbCache = [];
+        const { data: recs } = await supabaseClient.from('equipment_records')
+          .select('id').eq('user_id', currentUser.id).order('updated_at', { ascending: false }).limit(1);
+        const rec = recs && recs[0];
+        if (rec) {
+          const [entRes, cusRes] = await Promise.all([
+            supabaseClient.from('equipment_entries').select('note, equipment_items(name, category, sort_order)').eq('record_id', rec.id),
+            supabaseClient.from('equipment_custom_items').select('name, category, reason').eq('record_id', rec.id)
+          ]);
+          (entRes.data || []).forEach(e => {
+            const it = e.equipment_items;
+            if (it && it.category === '工具') nbCache.push({ name: it.name, note: (e.note || '').trim(), order: it.sort_order || 0 });
+          });
+          (cusRes.data || []).forEach(c => {
+            if (c.category === '工具' && c.name) nbCache.push({ name: c.name, note: (c.reason || '').trim(), order: 9999 });
+          });
+          nbCache.sort((a, b) => (b.note ? 1 : 0) - (a.note ? 1 : 0) || a.order - b.order);
+        }
+      }
+      renderNotebook();
+    } catch (err) {
+      console.error('[tools-edit] notebook', err);
+    }
+  }
+  function renderNotebook() {
+    const box = $('nbBox'), chips = $('nbChips');
+    chips.textContent = '';
+    const list = (nbCache || []).filter(n => !mineNames.has(normName(n.name))).slice(0, 12);
+    box.classList.toggle('hidden', !list.length || !!editing);
+    list.forEach(n => {
+      const b = el('button', 'nb-chip', n.name.replace(/[（(].*?[)）]/g, '').trim() + (n.note ? ' 📝' : ''));
+      b.type = 'button';
+      b.title = n.name;
+      b.addEventListener('click', () => {
+        chips.querySelectorAll('.nb-chip').forEach(x => x.classList.toggle('on', x === b));
+        $('fName').value = n.name.slice(0, 80);
+        if ($('fUsage').value === '') $('fUsage').value = 'carry';
+        if (n.note && !$('fComment').value.trim()) {
+          $('fComment').value = n.note.slice(0, 400);
+          $('cmCount').textContent = String($('fComment').value.length);
+        }
+        $('fName').focus();
+        try { gtag('event', 'tool_from_notebook', { has_note: n.note ? 1 : 0 }); } catch (e) {}
+      });
+      chips.appendChild(b);
+    });
   }
 })();
 </script>
