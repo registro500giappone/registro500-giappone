@@ -61,7 +61,14 @@
     label.f { display: block; font-weight: 700; font-size: .88rem; margin: 14px 0 4px; }
     .req { color: var(--danger); font-size: .75rem; margin-left: 4px; }
     .note { font-size: .75rem; color: var(--text-sub); margin: 3px 0 0; font-weight: 400; }
-    input[type=text], select, textarea { width: 100%; font: inherit; font-size: 1rem; padding: 9px 10px; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--bg-main); color: var(--text-main); }
+    .login-col { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+    .btn-wide { width: 100%; padding: 12px; font-size: 1rem; }
+    .link-btn { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-size: .85rem; cursor: pointer; align-self: center; }
+    #clearEmailBtn { align-self: flex-start; color: var(--text-sub); font-size: .78rem; }
+    .or-line { display: flex; align-items: center; gap: 8px; color: var(--text-sub); font-size: .78rem; }
+    .or-line span { flex: 1; height: 1px; background: var(--border-soft); }
+    .otp-code { font-size: 1.4rem !important; letter-spacing: 8px; text-align: center; }
+    input[type=text], input[type=email], select, textarea { width: 100%; font: inherit; font-size: 1rem; padding: 9px 10px; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--bg-main); color: var(--text-main); }
     textarea { min-height: 110px; resize: vertical; }
     .count { font-size: .72rem; color: var(--text-sub); text-align: right; }
     .notice { font-size: .82rem; line-height: 1.6; margin: 16px 0; padding: 10px 12px; border-radius: 8px; background: var(--accent-soft); color: var(--text, inherit); }
@@ -88,7 +95,22 @@
 
   <div id="stateLogin" class="card center hidden">
     <p>紹介を投稿するにはログインが必要です。</p>
-    <button type="button" class="btn-main" id="loginBtn">Googleでログイン</button>
+    <div class="login-col">
+      <div id="otpStep1" class="login-col">
+        <input type="email" id="emailLoginInput" placeholder="登録したメールアドレス" autocomplete="email">
+        <button type="button" id="clearEmailBtn" class="link-btn hidden">別のアドレスを使う</button>
+        <button type="button" class="btn-main" id="emailLoginBtn">確認コードを送信</button>
+        <div class="or-line"><span></span>または<span></span></div>
+        <button type="button" class="btn-sub btn-wide" id="loginBtn">Googleでログイン（従来方式）</button>
+      </div>
+      <div id="otpStep2" class="login-col hidden">
+        <p class="msg ok">✅ <strong id="otpSentEmail"></strong> に6桁の確認コードを送信しました。届いたコードを入力してください。</p>
+        <input type="text" id="otpCodeInput" class="otp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+        <button type="button" class="btn-main" id="otpVerifyBtn">ログイン</button>
+        <button type="button" class="link-btn" id="otpResendBtn">確認コードを再送する</button>
+      </div>
+      <p id="otpErrorMsg" class="msg err hidden"></p>
+    </div>
   </div>
 
   <div id="stateNoCar" class="card center hidden">
@@ -219,6 +241,55 @@
   $('loginBtn').addEventListener('click', () => {
     supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href } });
   });
+
+  // ── メールの確認コードでログイン（equipment-edit.html と同じ流れ） ──
+  function showOtpError(msg) {
+    $('otpErrorMsg').textContent = msg || '';
+    $('otpErrorMsg').classList.toggle('hidden', !msg);
+  }
+  let otpEmail = '';
+  $('emailLoginBtn').addEventListener('click', async () => {
+    const email = $('emailLoginInput').value.trim();
+    if (!email) { showOtpError('メールアドレスを入力してください。'); return; }
+    const btn = $('emailLoginBtn');
+    btn.disabled = true; btn.textContent = '送信中…';
+    const { error } = await supabaseClient.auth.signInWithOtp({ email });
+    btn.disabled = false; btn.textContent = '確認コードを送信';
+    const sentBefore = !!error && /after [0-9]+ seconds/.test(String(error.message));  // 1分以内に送信済み＝届いたコードがそのまま使える
+    if (error && !sentBefore) { showOtpError(error.status === 429 ? '送信が続いたため一時的に止まっています。数分おいてからお試しください。' : '送信に失敗しました：' + error.message); return; }
+    otpEmail = email;
+    try { localStorage.setItem('r500_login_email', email); } catch (e) {}
+    $('otpSentEmail').textContent = email;
+    $('otpStep1').classList.add('hidden');
+    $('otpStep2').classList.remove('hidden');
+    showOtpError(sentBefore ? '確認コードは少し前に送信済みです。届いているメールの、いちばん新しいコードを入力してください。' : '');
+  });
+  $('otpVerifyBtn').addEventListener('click', async () => {
+    const code = $('otpCodeInput').value.trim();
+    if (!code) { showOtpError('確認コードを入力してください。'); return; }
+    const btn = $('otpVerifyBtn');
+    btn.disabled = true; btn.textContent = '確認中…';
+    const { error } = await supabaseClient.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
+    btn.disabled = false; btn.textContent = 'ログイン';
+    if (error) { showOtpError('コードが正しくないか、期限切れです。何度か送信した場合は、いちばん新しいメールのコードを入力してください。'); return; }
+    showOtpError('');  // 成功 → onAuthStateChange の SIGNED_IN で読み込みが走る
+  });
+  $('otpResendBtn').addEventListener('click', async () => {
+    if (!otpEmail) return;
+    const { error } = await supabaseClient.auth.signInWithOtp({ email: otpEmail });
+    showOtpError(error ? (error.status === 429 ? '再送は1分ほど間をあけてからお試しください。直前に届いたコードはそのまま使えます。' : '再送に失敗しました：' + error.message) : '確認コードを再送しました。');
+  });
+  (function () {
+    let saved = null;
+    try { saved = localStorage.getItem('r500_login_email'); } catch (e) {}
+    if (saved) { $('emailLoginInput').value = saved; $('clearEmailBtn').classList.remove('hidden'); }
+    $('clearEmailBtn').addEventListener('click', () => {
+      $('emailLoginInput').value = '';
+      $('clearEmailBtn').classList.add('hidden');
+      try { localStorage.removeItem('r500_login_email'); } catch (e) {}
+      $('emailLoginInput').focus();
+    });
+  })();
 
   // ── HEIC → JPEG ──
   function isHeic(file) {
