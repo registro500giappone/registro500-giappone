@@ -61,7 +61,7 @@ NOTEBOOK_FIRST_ANCHOR = "2026-09-08T00:00:00Z"
 # ⚠️ダイジェストは登録オーナー全員に届く＝URLを載せた時点で実質公開になる。
 #    ページを公開する（導線を付ける）判断をユーザーが出すまで False のまま。
 #    False の間は対象を読まず、フラグも立てない＝True にした日から14日以内の分が載る。
-TOOLS_DIGEST_ON = False
+TOOLS_DIGEST_ON = True
 TOOLS_LIST_MAX = 10      # 1通に並べる件数の上限（手帳からの移行で一度に増えたとき用）
 
 # 「わたしも使ってる」「参考になった」を、紹介した本人にだけ知らせる（2026-10-22・owner-tools/HANDOFF.md §6b・§6c）。

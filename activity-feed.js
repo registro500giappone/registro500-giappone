@@ -36,7 +36,7 @@
   async function load(days) {
     const since = new Date(Date.now() - days * DAY_MS).toISOString();
     const sinceT = new Date(since).getTime();
-    const [carsRes, histRes, recRes, expRes, epiRes, partRes, slugsRes] = await Promise.allSettled([
+    const [carsRes, histRes, recRes, expRes, epiRes, partRes, slugsRes, toolRes] = await Promise.allSettled([
       supabaseClient.from('cars').select('document_id, handle_name, car_type, year, model_display_c, is_sold, created_at, ' + PHOTO_COLS.join(', ')),
       supabaseClient.from('car_history').select('car_id, fields, occurred_at').eq('kind', 'updated').gte('occurred_at', since),
       // 公開されていて、車に紐づき、名前を伏せていない手帳だけ
@@ -47,7 +47,9 @@
       // ログイン中は下書きまで読めてしまうので、公開済みの条件は必ず付ける
       supabaseClient.from('car_episodes').select('car_id, title, created_at').eq('is_published', true).gte('created_at', since),
       supabaseClient.from('event_participants').select('event_id, car_id, created_at').not('car_id', 'is', null).gte('created_at', since),
-      fetch('/event-slugs.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {})
+      fetch('/event-slugs.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}),
+      // おすすめ工具の紹介（2026-10-22）。伏せた投稿は出さない。「参考になった」は数を伏せる約束なので出さない
+      supabaseClient.from('owner_tools').select('car_id, name, created_at').eq('is_hidden', false).gte('created_at', since)
     ]);
     const ok = r => (r.status === 'fulfilled' && r.value && !r.value.error && r.value.data) || [];
 
@@ -97,6 +99,8 @@
     });
 
     ok(epiRes).forEach(ep => add('story', ep.car_id, ep.created_at, { texts: [ep.title || ''] }));
+
+    ok(toolRes).forEach(t => add('tool', t.car_id, t.created_at, { texts: [t.name || ''] }));
 
     // イベント参加は開催名を引いてから。同じ日・同じイベントへの参加表明は1行にまとめ、
     // 「◯◯さんほか2人」と書く（1人ずつ並べると、募集中のイベントがあるだけで一覧が埋まる）
@@ -149,6 +153,11 @@
     } else if (r.kind === 'story') {
       icon = '📖'; what = `${name}さんがストーリーを投稿`;
       quote = r.texts[0] ? `「${esc(trim(r.texts[0], n))}」` : '';
+    } else if (r.kind === 'tool') {
+      // 同じ日に何件紹介しても1行（工具名を「・」でつなぐ）
+      icon = '🔧'; what = `${name}さんがおすすめ工具を紹介`;
+      quote = `「${esc(trim(r.texts.filter(Boolean).join('・'), n))}」`;
+      href = '/tools';
     } else if (r.kind === 'event') {
       const others = r.cars.length - 1;
       icon = '🎪'; what = `${name}さん${others > 0 ? `ほか${others}人` : ''}が「${esc(r.texts[0])}」に参加表明`;
