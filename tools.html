@@ -48,6 +48,8 @@
     .back-link:hover { color: var(--accent); }
     h1 { font-size: 1.35rem; margin: .2em 0; }
     .lead { font-size: .88rem; color: var(--text-sub); margin: 0 0 12px; }
+    .see-also { font-size: .85rem; color: var(--text-sub); margin: 20px 0 8px; text-align: center; }
+    .see-also a { color: var(--accent); font-weight: 700; }
     .btn-main { display: block; width: 100%; text-align: center; background: var(--accent); color: #fff; border: 0; border-radius: 10px; padding: 12px; font-size: 1rem; font-weight: 700; text-decoration: none; cursor: pointer; font-family: inherit; }
     @media (prefers-color-scheme: dark) { .btn-main { color: #10261a; } }
     .hidden { display: none !important; }
@@ -83,12 +85,6 @@
     .also a { color: var(--accent); }
     .empty, #loading { text-align: center; color: var(--text-sub); padding: 36px 0; }
     .empty p { margin: 0 0 14px; }
-    .nb-stats { background: var(--card-bg); border: 1px solid var(--border-soft); border-radius: 12px; padding: 12px; margin: 4px 0 12px; }
-    .nb-stats-title { font-size: .85rem; font-weight: 700; margin: 0 0 8px; }
-    .nb-stats-list { display: flex; flex-wrap: wrap; gap: 6px; }
-    .nb-stat { font-size: .78rem; background: var(--accent-soft); border-radius: 999px; padding: 3px 10px; }
-    .nb-stat b { color: var(--accent); margin-left: 4px; }
-    .nb-stats-q { font-size: .82rem; color: var(--text-sub); margin: 10px 0 0; }
     .affiliate-disclosure { font-size: .72rem; color: var(--text-sub); margin-top: 24px; padding: 10px 12px; border: 1px solid var(--border-soft); border-radius: 8px; line-height: 1.6; }
   </style>
 </head>
@@ -97,16 +93,11 @@
   <a href="/" class="back-link">&larr; ガレージに戻る</a>
   <h1>🔧 みんなのおすすめ工具</h1>
   <p class="lead">500・126オーナーが、実際に使っている工具をおすすめポイントつきで紹介しています。車に積む工具も、ガレージで使う工具も。</p>
-  <!-- 集めた答えを先に見せてから頼む（2026-10-22・owner-tools/HANDOFF.md §4c）。順位は付けない＝並びは多い順でも番号は振らない -->
-  <div id="nbStats" class="nb-stats hidden">
-    <p class="nb-stats-title">📒 車載手帳<span id="nbTotal"></span>冊から — みんなが車に積んでいる工具</p>
-    <div class="nb-stats-list" id="nbStatsList"></div>
-    <p class="nb-stats-q">あなたが頼りにしている工具は？ メーカーや型番、選んだ理由まで教えてください。</p>
-  </div>
   <a class="btn-main" href="/tools-edit">＋ わたしのおすすめ工具を紹介する（写真つき）</a>
   <div class="chips" id="chips"></div>
   <div id="loading">読み込み中…</div>
   <div id="list"></div>
+  <p class="see-also">🧰 何を車に積んでいるかは <a href="/equipment">みんなの車載手帳</a> ›</p>
   <div id="disclosure" class="affiliate-disclosure hidden">
     このページにはAmazonアソシエイトのリンクが含まれています（PR）。<br>
     リンク経由でご購入いただいた場合、Amazonからわずかな報酬がこのサイトに入りますが、商品の価格は変わりません。紹介文は各オーナーが書いたもので、広告主からの依頼ではありません。<br>
@@ -121,26 +112,7 @@
   const CAT_LABEL = Object.fromEntries(CATS);
   const USAGE_LABEL = { carry: '車に積む', garage: 'ガレージで使う', both: '車に積む・ガレージで使う' };
   const SHOW_VOICES = 3;
-  const NB_STATS_MAX = 10;
 
-  // ── 車載手帳の集計（非公開の手帳も含む＝equipment_item_rates は SECURITY DEFINER・/equipment と同じ数） ──
-  async function loadNbStats() {
-    try {
-      const { data, error } = await supabaseClient.rpc('equipment_item_rates');
-      if (error || !data) return;
-      const rows = data.filter(r => r.category === '工具' && Number(r.loaded_count) > 0)
-        .sort((a, b) => Number(b.loaded_count) - Number(a.loaded_count)).slice(0, NB_STATS_MAX);
-      if (!rows.length) return;
-      document.getElementById('nbTotal').textContent = String(rows[0].total_records);
-      const list = document.getElementById('nbStatsList');
-      rows.forEach(r => {
-        const s = el('span', 'nb-stat', String(r.name).replace(/[（(].*?[)）]/g, '').trim());
-        s.appendChild(el('b', null, r.loaded_count + '台'));
-        list.appendChild(s);
-      });
-      document.getElementById('nbStats').classList.remove('hidden');
-    } catch (e) { console.error('[tools] nb stats', e); }
-  }
   let groups = [];
   let curCat = 'all';
   let carMap = {};
@@ -510,7 +482,6 @@
     }
   }
   init();
-  loadNbStats();
 })();
 </script>
 </body>
