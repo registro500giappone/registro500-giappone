@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="it"><head>
 <meta charset="utf-8">
-<script src="/wiring-journey-i18n/it/charge-alt.js?v=2a37262b"></script>
+<script src="/wiring-journey-i18n/it/charge-alt.js?v=7fdd6fcc"></script>
 <script src="/engine-simulator/i18n/tr.js?v=1a48698d"></script>
 <!-- JOURNEY-STATE:BEGIN ⛔ここから END までは publish_journey.py が書き換える＝手で編集しない -->
 <meta name="description" content="Quando la spia di carica non si spegne su una FIAT 500 raffreddata ad aria convertita all'alternatore. La spia funziona in modo diverso rispetto alla dinamo originale. Seguiamo il circuito di carica di un'auto convertita su un unico schema.">
@@ -101,7 +101,7 @@
 </div>
 <div class="scene"><svg id="j-main" width="320"></svg></div>
 <p class="cap" id="mainCap"></p>
-<p class="cap">La spia di carica è una piccola lampadina messa a metà del percorso della corrente. Con l'alternatore sparisce del tutto il discorso del “disgiuntore” delle auto con dinamo (il contatto che impedisce alla corrente di tornare indietro quando la carica cala), e il percorso diventa più semplice. Il ritorno lo bloccano i diodi raddrizzatori dell'alternatore, quindi non serve alcun contatto che si apre e si chiude. Il principio è lo stesso:</p>
+<p class="cap">La spia di carica è una piccola lampadina messa a metà del percorso della corrente. Con l'alternatore sparisce del tutto il discorso del “interruttore di minima” delle auto con dinamo (il contatto che impedisce alla corrente di tornare indietro quando la carica cala), e il percorso diventa più semplice. Il ritorno lo bloccano i diodi raddrizzatori dell'alternatore, quindi non serve alcun contatto che si apre e si chiude. Il principio è lo stesso:</p>
 <ol class="causes">
   <li><b>Chiave ON, motore fermo</b>: il lato inferiore della spia (morsetto D+) è vicino a massa. C'è differenza di tensione ai capi = passa corrente = <b>accesa</b>.</li>
   <li><b>Il motore gira</b>: inizia la carica, e D+ sale allo stesso livello di B+.</li>
@@ -121,6 +121,7 @@
   <li><b>Regolatore difettoso</b> (un componente separato avvitato sull'alternatore. Si trova anche da solo, quindi vale la pena sospettarlo prima di cambiare l'alternatore)</li>
   <li><b>Cablaggio difettoso</b> (filo D+, filo B+ o massa danneggiati o staccati)</li>
 </ol>
+<p class="note">Tutto questo vale quando la spia è <b>chiaramente accesa</b>. Se a motore acceso è <b>debolmente</b> accesa, andate a «Quando si accende debolmente» dopo la tabella del tester.</p>
 
 <div class="eyebrow">Restringere il campo</div>
 <h2 class="brk"><span>Due misure col tester rivelano la causa</span></h2>
@@ -136,6 +137,21 @@
 </tbody></table>
 <p class="note">Il puntale nero del tester vale come “scocca” su qualsiasi parte metallica nuda del motore o sul morsetto negativo della batteria.</p>
 <p class="note">⚠️ <b>Se leggete 15V o più, non continuate a guidare.</b> Quando il regolatore si guasta e non tiene più bassa la tensione si ha <b>sovraccarica</b>: la batteria bolle, perde liquido e alla fine muore (un proprietario ha davvero perso una batteria così). Con questo sintomo la spia di carica non si accende, quindi <b>ve ne accorgete solo misurando la tensione</b>.</p>
+
+<div class="eyebrow">Quando si accende debolmente</div>
+<h2 class="brk"><span>Spia debole =</span><span>differenza piccola, ma non zero</span></h2>
+<p class="cap">La luminosità della spia dipende da <b>quanto è grande la differenza di tensione ai suoi capi</b>. Senza alcuna carica la differenza è vicina a 12V e la spia è <b>chiaramente</b> accesa. Se l'alternatore carica ma i due capi non arrivano esattamente allo stesso livello, e resta <b>una piccola differenza</b>, la spia si accende <b>debolmente</b>. La sezione «i sospetti sono nella metà inferiore» qui sopra riguarda una spia <b>chiaramente accesa</b>; se è debole, la differenza può restare in due versi opposti:</p>
+<ol class="causes">
+  <li><b>Solo D+ è un po' bassa</b>: la maggior parte degli alternatori con morsetto D+ ha, oltre ai diodi raddrizzatori che alimentano B+, dei <b>piccoli diodi che alimentano D+</b> (i diodi di eccitazione). Se si deteriorano, B+ sale alla tensione di carica ma <b>D+ non ci arriva</b>, e la spia si accende per quella differenza.</li>
+  <li><b>Solo il lato alto (chiave) della spia è un po' basso</b>: se il cavo grosso da B+ dell'alternatore alla batteria, o un morsetto della batteria, è allentato o ossidato, lì la tensione cala. Anche con l'alternatore sano, il lato alto della spia, alimentato dalla batteria, diventa <b>più basso di D+</b>, e la spia si accende per una differenza <b>nel verso opposto al solito</b>.</li>
+</ol>
+<p class="cap">Poiché la differenza è piccola, misurare due volte rispetto alla carrozzeria come nella tabella sopra e sottrarre tende a perderla nell'errore del tester. <b>Appoggiate invece un puntale su ciascuno dei due morsetti da confrontare e leggete direttamente la differenza</b> (motore acceso, <b>al regime in cui la spia è debolmente accesa</b>):</p>
+<table>
+  <tbody><tr><th>Dove misurare</th><th>Lettura</th><th>Significato</th></tr>
+  <tr><td>③ Morsetto B+ dell'alternatore ↔ morsetto D+</td><td>C'è differenza (non 0V)</td><td><b>Solo D+ è bassa</b> = i <b>diodi di eccitazione</b> (dentro l'alternatore)</td></tr>
+  <tr><td>④ Morsetto + della batteria ↔ morsetto B+ dell'alternatore</td><td>C'è differenza (non 0V)</td><td><b>Si perde tensione tra B+ e la batteria</b> = cavo grosso rovinato, morsetto allentato o ossidato</td></tr>
+</tbody></table>
+<p class="note">Il ③ e il ④ non sono disegnati nello schema qui sopra. In entrambi i puntali vanno sui <b>morsetti stessi</b> dell'alternatore e della batteria, quindi lo stato dei cavi in mezzo non si mescola alla misura. Una differenza al ③ significa che il guasto è dentro l'alternatore. Per sostituire la piastra che porta i diodi (la piastra raddrizzatrice) bisogna smontarlo; se non potete farlo da soli, la soluzione è un alternatore nuovo o rigenerato.</p>
 
 <div class="eyebrow">Dove si trova sull'auto</div>
 <h2 class="brk"><span>L'alternatore è</span><span>qui sulla tua auto</span></h2>

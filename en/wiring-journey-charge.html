@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8">
-<script src="/wiring-journey-i18n/en/charge.js?v=ba65c3d6"></script>
+<script src="/wiring-journey-i18n/en/charge.js?v=eab0cd41"></script>
 <script src="/engine-simulator/i18n/tr.js?v=1a48698d"></script>
 <!-- JOURNEY-STATE:BEGIN ⛔ここから END までは publish_journey.py が書き換える＝手で編集しない -->
 <meta name="description" content="The charge lamp (GENERAT.) won't go out even while driving. We trace the charging circuit of an air-cooled FIAT 500 (Cinquecento) on a single diagram drawn from the factory wiring diagram, to narrow down whether the dynamo, the regulator, or the wiring is where it stops.">
@@ -109,7 +109,7 @@
   <li><b>When both ends are at the same voltage, no current flows = out.</b> So “it went out” is <b>the signal that the car is charging</b>.</li>
 </ol>
 <p class="note">Wire colours are the real insulation colours (ROSSO = red, AZZURRO = light blue, VERDE = green, MARRONE = brown). Yellow dots = where current is flowing now. Faint lines = where no current reaches.</p>
-<div class="qa"><span class="qa-h">A common question</span> Even after the cut-out closes, the path to the lamp <b>is still connected</b>. It still doesn't light (and nothing flows backwards) because the upper and lower sides of the lamp are tied together and become <b>the same point at the same voltage</b> — just as water doesn't move between two ponds at the same level, with no difference nothing flows either way. “But while charging, isn't the dynamo side higher?” — that difference is used up along the heavy charging path (contact → wiring → battery). The lamp just joins the same two points <b>in parallel with the closed contact</b>, and the closed contact is a near-0Ω shortcut = <b>it shorts out the bulb beside it</b>, so the lamp sees only a few tens of mV (orders of magnitude too little to light). Conversely, if a badly adjusted regulator makes the charging voltage wobble and a difference appears, the lamp can <b>glow faintly</b> (that's what the “faint glow” symptom is).</div>
+<div class="qa"><span class="qa-h">A common question</span> Even after the cut-out closes, the path to the lamp <b>is still connected</b>. It still doesn't light (and nothing flows backwards) because the upper and lower sides of the lamp are tied together and become <b>the same point at the same voltage</b> — just as water doesn't move between two ponds at the same level, with no difference nothing flows either way. “But while charging, isn't the dynamo side higher?” — that difference is used up along the heavy charging path (contact → wiring → battery). The lamp just joins the same two points <b>in parallel with the closed contact</b>, and the closed contact is a near-0Ω shortcut = <b>it shorts out the bulb beside it</b>, so the lamp sees only a few tens of mV (orders of magnitude too little to light). Conversely, if the contact is burnt or dirty and <b>the shortcut gains some resistance</b>, a difference appears across it and the lamp can <b>glow faintly</b> (see “When it glows faintly” below).</div>
 
 <div class="eyebrow">When something is wrong</div>
 <h2 class="brk"><span>Lit with the engine running =</span><span>Suspect: the lower half</span></h2>
@@ -121,6 +121,7 @@
   <li><b>Faulty regulator</b> (the cut-out contact won't close, or it's out of adjustment)</li>
   <li><b>Faulty wiring</b> (damaged or disconnected green wire = VERDE, loose ground)</li>
 </ol>
+<p class="note">All of this is for when the lamp is <b>clearly lit</b>. If it glows <b>faintly</b>, go to “When it glows faintly” after the tester table.</p>
 <p class="note">It's tempting to suspect a fuse, but <b>this lamp's path doesn't go through a fuse</b> (the ignition switch's 30 branches off the supply side of fuse F1). Checking fuses won't fix this symptom.</p>
 <p class="note">⭐ <b>The factory documents also give a number for “how fast it should be turning before it goes out”</b> — <b>about 1100 rpm on the D, about 1200 rpm on the L</b> (roughly 23 km/h and 25 km/h). <b>Staying lit at idle is normal</b>; if it goes out when you open the throttle a little, charging has started. ⚠️ If it <b>doesn't go out well above that speed</b>, suspect the four above in order.</p>
 
@@ -136,6 +137,22 @@
   <tr><td colspan="2">Lit although ① and ② are both normal</td><td><b>Wiring</b>: suspect the green wire (VERDE) with worn insulation touching the body (a partial short to ground)</td></tr>
 </tbody></table>
 <p class="note">The expected values aren't hand-written numbers; they come from the same calculation as the diagram above (whether the path reaches). Touch the meter's black probe to bare metal on the engine or to the battery's negative terminal and that counts as “body”.</p>
+
+<div class="eyebrow">When it glows faintly</div>
+<h2 class="brk"><span>A faint glow =</span><span>a small difference, but not zero</span></h2>
+<p class="cap">How bright the lamp is depends on <b>how big the voltage difference across it is</b>. If the dynamo is not turning at all, the difference is close to 12V and the lamp is <b>clearly</b> lit. When the difference is <b>small</b>, it glows <b>faintly</b>. The “suspects are in the lower half” section above is about a <b>clearly lit</b> lamp. For a faint glow, first note when it is faint:</p>
+<ol class="causes">
+  <li><b>Faint only from idle up to the speed where it should go out</b>: this is <b>normal</b>. Before the cut-out closes, the dynamo voltage rises with engine speed and the gap to the battery narrows little by little. So the lamp <b>does not snap off; it fades first, then goes out</b>. If it is out by the figures marked ⭐ above (<b>about 1100 rpm on the D, about 1200 rpm on the L</b>), all is well. The English workshop manual gives 1100 rpm as the figure <b>with the headlights off</b>, so switch them off when you check.</li>
+  <li><b>Still faintly lit well above that speed</b>: the cut-out has closed, but <b>its contacts may be badly burnt or dirty and have become a resistance</b>. The lamp sits alongside the closed contacts (see “A common question” above), so when the charging current passing through that resistance creates a difference across the contacts, the lamp glows from that difference too.</li>
+  <li><b>Voltage is being lost on the way to the battery</b>: if the wire from regulator terminal 30 to the battery, or a battery terminal, is loose or corroded, voltage drops there. The upper side of the lamp is fed from the battery through the key, so it ends up <b>lower than the dynamo side</b>, and the lamp glows from a difference <b>in the opposite direction to usual</b>.</li>
+</ol>
+<p class="cap">Because the difference is small, <b>put one probe on each of the two terminals you want to compare and read the difference directly</b> (engine running, well above the ⭐ speed, with the lamp still faintly lit):</p>
+<table>
+  <tbody><tr><th>Where to measure</th><th>Reading</th><th>Meaning</th></tr>
+  <tr><td>③ Regulator 51 ↔ 30 (same points as ② in the table above)</td><td>A difference (not 0V)</td><td>At this speed the contacts should be closed = <b>burnt or dirty cut-out contacts</b></td></tr>
+  <tr><td>④ Battery + terminal ↔ regulator 30</td><td>A difference (not 0V)</td><td><b>Voltage is being lost between 30 and the battery</b> = a worn wire, or a loose or corroded terminal</td></tr>
+</tbody></table>
+<p class="note">④ is not drawn in the diagram above.</p>
 
 <div class="eyebrow">Where it is on the car</div>
 <h2 class="brk"><span>Terminal “51” is</span><span>Here on your car</span></h2>
@@ -159,7 +176,7 @@
 
 <p class="backlink"><a href="/en/wiring-journey">← Back to the index</a></p>
 
-<footer>Every lamp state and colour in the diagram is a calculation result; no numbers were made to fit the picture. ⚠️ “Running, dynamo not turning” means the belt has broken and the shaft isn't turning. Electrically it's drawn the same as stopped.<br> 📝 <b>Correction 2026-09-14</b>: when first published, the page was written as if the dynamo had its own ground wire. The dynamo's ground returns not through a wire but <b>through its mounting</b>. To match, the “faulty wiring” example became “loose ground”, and the side question now says “the dynamo's ground (its mounting)”.<br></footer>
+<footer>Every lamp state and colour in the diagram is a calculation result; no numbers were made to fit the picture. ⚠️ “Running, dynamo not turning” means the belt has broken and the shaft isn't turning. Electrically it's drawn the same as stopped.<br> 📝 <b>Correction 2026-09-14</b>: when first published, the page was written as if the dynamo had its own ground wire. The dynamo's ground returns not through a wire but <b>through its mounting</b>. To match, the “faulty wiring” example became “loose ground”, and the side question now says “the dynamo's ground (its mounting)”.<br> 📝 <b>Correction and addition 2026-10-27</b>: in “A common question”, the page said a faint glow comes from “a badly adjusted regulator making the charging voltage wobble”. While the cut-out is closed, both ends of the lamp are the same point, so a wobbling voltage creates no difference. This now reads “burnt contacts creating resistance”, and a “When it glows faintly” section has been added.<br></footer>
 
 </div>
 

@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="it"><head>
 <meta charset="utf-8">
-<script src="/wiring-journey-i18n/it/charge.js?v=31596a02"></script>
+<script src="/wiring-journey-i18n/it/charge.js?v=bc8402e6"></script>
 <script src="/engine-simulator/i18n/tr.js?v=1a48698d"></script>
 <!-- JOURNEY-STATE:BEGIN ⛔ここから END までは publish_journey.py が書き換える＝手で編集しない -->
 <meta name="description" content="La spia di carica (GENERAT.) resta accesa anche mentre si guida. Seguiamo il circuito di carica di una FIAT 500 raffreddata ad aria su un unico schema, tratto dallo schema elettrico originale, per capire se il problema è nella dinamo, nel regolatore o nel cablaggio.">
@@ -109,7 +109,7 @@
   <li><b>Quando i due capi hanno la stessa tensione, non passa corrente = spenta.</b> Quindi «si è spenta» è <b>il segnale che sta caricando</b>.</li>
 </ol>
 <p class="note">I colori dei fili sono quelli reali delle guaine (ROSSO, AZZURRO, VERDE, MARRONE). Punti gialli = dove ora passa corrente. Linee chiare = dove la corrente non arriva.</p>
-<div class="qa"><span class="qa-h">Una domanda frequente</span> Anche dopo che l'interruttore di minima si è chiuso, la via verso la spia <b>resta collegata</b>. Se comunque non si accende (e nulla torna indietro) è perché il lato superiore e quello inferiore della spia sono uniti e diventano <b>lo stesso punto alla stessa tensione</b> — come l'acqua che non si muove tra due stagni allo stesso livello: senza differenza non scorre in nessuna direzione. «Ma durante la carica il lato della dinamo non è più alto?» — quella differenza si consuma lungo la via di carica grossa (contatto → cavo → batteria). La spia collega soltanto gli stessi due punti <b>in parallelo al contatto chiuso</b>, e il contatto chiuso è una scorciatoia di quasi 0Ω = <b>cortocircuita la lampadina che ha accanto</b>, quindi ai capi della spia restano poche decine di mV (ordini di grandezza in meno di quanto serve per accenderla). Al contrario, se un regolatore starato fa oscillare la tensione di carica e nasce una differenza, la spia può <b>accendersi debolmente</b> (ecco cos'è il sintomo della «luce fioca»).</div>
+<div class="qa"><span class="qa-h">Una domanda frequente</span> Anche dopo che l'interruttore di minima si è chiuso, la via verso la spia <b>resta collegata</b>. Se comunque non si accende (e nulla torna indietro) è perché il lato superiore e quello inferiore della spia sono uniti e diventano <b>lo stesso punto alla stessa tensione</b> — come l'acqua che non si muove tra due stagni allo stesso livello: senza differenza non scorre in nessuna direzione. «Ma durante la carica il lato della dinamo non è più alto?» — quella differenza si consuma lungo la via di carica grossa (contatto → cavo → batteria). La spia collega soltanto gli stessi due punti <b>in parallelo al contatto chiuso</b>, e il contatto chiuso è una scorciatoia di quasi 0Ω = <b>cortocircuita la lampadina che ha accanto</b>, quindi ai capi della spia restano poche decine di mV (ordini di grandezza in meno di quanto serve per accenderla). Al contrario, se il contatto è bruciato o sporco e <b>la scorciatoia acquista una certa resistenza</b>, ai suoi capi nasce una differenza e la spia può <b>accendersi debolmente</b> (vedi «Quando si accende debolmente» più sotto).</div>
 
 <div class="eyebrow">Quando c'è un guasto</div>
 <h2 class="brk"><span>Accesa a motore avviato =</span><span>Sospetta: la metà inferiore</span></h2>
@@ -121,6 +121,7 @@
   <li><b>Regolatore difettoso</b> (il contatto dell'interruttore di minima non si chiude, o è starato)</li>
   <li><b>Cablaggio difettoso</b> (filo VERDE danneggiato o staccato, massa allentata)</li>
 </ol>
+<p class="note">Tutto questo vale quando la spia è <b>chiaramente accesa</b>. Se è <b>debolmente</b> accesa, andate a «Quando si accende debolmente» dopo la tabella del tester.</p>
 <p class="note">Viene voglia di sospettare un fusibile, ma <b>il percorso di questa spia non passa da nessun fusibile</b> (il 30 del commutatore d'avviamento si dirama dal lato di alimentazione del fusibile F1). Controllare i fusibili non risolve questo sintomo.</p>
 <p class="note">⭐ <b>I documenti originali danno anche un numero per «a quanti giri è normale che si spenga»</b> — <b>circa 1100 giri sulla D, circa 1200 sulla L</b> (in velocità, intorno a 23 km/h e 25 km/h). <b>Al minimo può restare accesa ed è normale</b>; se si spegne aprendo un po' il gas, la carica è partita. ⚠️ Se <b>non si spegne nemmeno ben oltre quei giri</b>, sospettate nell'ordine le quattro cause qui sopra.</p>
 
@@ -136,6 +137,22 @@
   <tr><td colspan="2">Accesa anche se ① e ② sono normali</td><td><b>Cablaggio</b>: sospettate il filo verde (VERDE) con la guaina consumata che tocca la scocca (dispersione parziale a massa)</td></tr>
 </tbody></table>
 <p class="note">I valori attesi non sono scritti a mano: vengono dallo stesso calcolo del disegno qui sopra (se il percorso arriva). Appoggiando il puntale nero del tester sul metallo nudo del motore o sul morsetto negativo della batteria, quello vale come «scocca».</p>
+
+<div class="eyebrow">Quando si accende debolmente</div>
+<h2 class="brk"><span>Spia debole =</span><span>differenza piccola, ma non zero</span></h2>
+<p class="cap">La luminosità della spia dipende da <b>quanto è grande la differenza di tensione ai suoi capi</b>. Se la dinamo non gira affatto, la differenza è vicina a 12V e la spia è <b>chiaramente</b> accesa. Quando la differenza è <b>piccola</b>, si accende <b>debolmente</b>. La sezione «i sospetti sono nella metà inferiore» qui sopra riguarda una spia <b>chiaramente accesa</b>. Se è debole, guardate prima di tutto quando lo è:</p>
+<ol class="causes">
+  <li><b>Debole solo dal minimo fino al regime in cui dovrebbe spegnersi</b>: è <b>normale</b>. Prima che l'interruttore di minima si chiuda, la tensione della dinamo sale con i giri e la differenza con la batteria si riduce a poco a poco. Per questo la spia <b>non si spegne di colpo: prima si affievolisce, poi si spegne</b>. Se è spenta entro i valori segnati con ⭐ qui sopra (<b>circa 1100 giri per la D, circa 1200 per la L</b>), va tutto bene. Il manuale d'officina in inglese indica i 1100 giri <b>con i fari spenti</b>, quindi spegneteli quando controllate.</li>
+  <li><b>Resta debolmente accesa ben oltre quel regime</b>: l'interruttore di minima si è chiuso, ma <b>i contatti potrebbero essere molto bruciati o sporchi e fare resistenza</b>. La spia sta accanto ai contatti chiusi (vedi «Una domanda frequente» sopra), quindi quando la corrente di carica, attraversando quella resistenza, crea una differenza ai capi dei contatti, anche la spia si accende per quella differenza.</li>
+  <li><b>Si perde tensione verso la batteria</b>: se il cavo dal morsetto 30 del regolatore alla batteria, o un morsetto della batteria, è allentato o ossidato, lì la tensione cala. Il lato alto della spia è alimentato dalla batteria attraverso la chiave, quindi diventa <b>più basso del lato dinamo</b>, e la spia si accende per una differenza <b>nel verso opposto al solito</b>.</li>
+</ol>
+<p class="cap">Poiché la differenza è piccola, <b>appoggiate un puntale su ciascuno dei due morsetti da confrontare e leggete direttamente la differenza</b> (motore acceso, ben oltre il regime ⭐, con la spia ancora debolmente accesa):</p>
+<table>
+  <tbody><tr><th>Dove misurare</th><th>Lettura</th><th>Significato</th></tr>
+  <tr><td>③ Regolatore 51 ↔ 30 (gli stessi punti del ② nella tabella sopra)</td><td>C'è differenza (non 0V)</td><td>A questo regime i contatti dovrebbero essere chiusi = <b>contatti dell'interruttore di minima bruciati o sporchi</b></td></tr>
+  <tr><td>④ Morsetto + della batteria ↔ 30 del regolatore</td><td>C'è differenza (non 0V)</td><td><b>Si perde tensione tra il 30 e la batteria</b> = cavo rovinato, morsetto allentato o ossidato</td></tr>
+</tbody></table>
+<p class="note">Il ④ non è disegnato nello schema qui sopra.</p>
 
 <div class="eyebrow">Dove si trova sull'auto</div>
 <h2 class="brk"><span>Il morsetto «51» è</span><span>Qui sulla tua auto</span></h2>
@@ -159,7 +176,7 @@
 
 <p class="backlink"><a href="/it/wiring-journey">← Torna all'indice</a></p>
 
-<footer>Accensioni e colori nel disegno sono tutti risultati di calcolo; nessun numero è stato adattato al disegno. ⚠️ «In moto, dinamo ferma» significa che la cinghia si è rotta e l'albero non gira. Elettricamente è disegnato come a motore fermo.<br> 📝 <b>Correzione del 14/09/2026</b>: alla pubblicazione, la pagina era scritta come se la dinamo avesse un proprio filo di massa. La massa della dinamo non torna tramite un filo ma <b>attraverso il suo fissaggio</b>. Di conseguenza, l'esempio di «cablaggio difettoso» è diventato «massa allentata» e la domanda a margine ora dice «la massa della dinamo (il suo fissaggio)».<br></footer>
+<footer>Accensioni e colori nel disegno sono tutti risultati di calcolo; nessun numero è stato adattato al disegno. ⚠️ «In moto, dinamo ferma» significa che la cinghia si è rotta e l'albero non gira. Elettricamente è disegnato come a motore fermo.<br> 📝 <b>Correzione del 14/09/2026</b>: alla pubblicazione, la pagina era scritta come se la dinamo avesse un proprio filo di massa. La massa della dinamo non torna tramite un filo ma <b>attraverso il suo fissaggio</b>. Di conseguenza, l'esempio di «cablaggio difettoso» è diventato «massa allentata» e la domanda a margine ora dice «la massa della dinamo (il suo fissaggio)».<br> 📝 <b>Correzione e aggiunta 2026-10-27</b>: in «Una domanda frequente» la pagina diceva che la luce fioca nasce da «un regolatore starato che fa oscillare la tensione di carica». Finché l'interruttore di minima è chiuso, i due capi della spia sono lo stesso punto, quindi una tensione che oscilla non crea differenza. Ora dice «contatti bruciati che fanno resistenza», ed è stata aggiunta la sezione «Quando si accende debolmente».<br></footer>
 
 </div>
 
