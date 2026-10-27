@@ -121,6 +121,8 @@
 ## 5. 残タスク
 
 1. ✅ ページ専用タグ `registro500tl-22` をユーザーが発行済（2026-10-07）。リンクは「工具のリンクを付けて」の指示で、未付与の投稿を一覧→商品の候補を提示→確認後に `https://www.amazon.co.jp/dp/ASIN?tag=registro500tl-22` を `amazon_url` へ（⛔確認なしで付けない）。
+   - 【2026-10-27 更新・ユーザー決裁】**投稿時の自動付与へ切り替える＝確認なしで付けてよい**。方式＝Amazon 公式の商品検索 API（B案＝AIのWeb検索は不採用）。付けるのは「工具名に型番がある」かつ「Amazon の商品名に同じ型番とメーカー名がそろう」ときだけ・それ以外は付けない（型番なし・候補が割れる）。付けたら管理人へメールで知らせる。⚠️PA-API 5 は廃止済で後継は Creators API。
+   - 【2026-10-27 実装】`functions/api/tool-notify.js` が通知の前に探して付ける（`parseToolName`＝数字を含む5文字以上の英数字を型番・`pickAmazonMatch`＝候補がちょうど1つのときだけ）。結果と見送り理由は管理人メールに出る。⏳**現状は 403 AssociateNotEligible（直近30日の販売10件未達）で何も付かない**＝条件を満たせば自動で動き出す（確認は `py/creators_api_check.py`）。⚠️searchItems の URL・本文は getItems からの類推で、本番で一度も通っていない＝資格が戻った最初の投稿のメールで成否を見る。Cloudflare Pages の環境変数 `AMAZON_CLIENT_ID`・`AMAZON_CLIENT_SECRET`（py/.env の `PAAPI_ACCESS_KEY`・`PAAPI_SECRET_KEY` と同じ値）が要る。それまでは指示で手付けを続ける。
 2. ⏳ 手帳から移す候補の選定と、本人への了解依頼の文面（声をかける対象は7〜8人）。
 3. ⏳ ユーザーが先行投稿を数件（スマホで写真・HEIC・2台持ち・修正・削除・即時メールも併せて確認）→「公開して」の指示で **`LAUNCH.md` の手順**（メニュー500・126／初めての方へ／noindex 解除／sitemap／finder／`TOOLS_DIGEST_ON=True`）→ お知らせ `news_insert_draft.sql`。⛔指示が出るまで導線は入れない。
 4. ✅ ダイジェスト掲載は実装済（§8）＝公開時に `TOOLS_DIGEST_ON` を True にする。
