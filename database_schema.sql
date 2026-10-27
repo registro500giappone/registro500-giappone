@@ -546,7 +546,7 @@ create table public.owner_tools (
 );
 alter table public.owner_tools add constraint owner_tools_pkey PRIMARY KEY (id);
 alter table public.owner_tools add constraint owner_tools_amazon_url_check CHECK (((amazon_url IS NULL) OR (amazon_url ~~ 'https://www.amazon.co.jp/%'::text) OR (amazon_url ~~ 'https://amzn.to/%'::text)));
-alter table public.owner_tools add constraint owner_tools_category_check CHECK ((category = ANY (ARRAY['turn'::text, 'grip'::text, 'measure'::text, 'lift'::text, 'special'::text, 'light'::text, 'repair'::text])));
+alter table public.owner_tools add constraint owner_tools_category_check CHECK ((category = ANY (ARRAY['turn'::text, 'grip'::text, 'measure'::text, 'lift'::text, 'special'::text, 'light'::text, 'repair'::text, 'part'::text])));
 alter table public.owner_tools add constraint owner_tools_comment_check CHECK (((char_length(btrim(comment)) >= 1) AND (char_length(btrim(comment)) <= 400)));
 alter table public.owner_tools add constraint owner_tools_name_check CHECK (((char_length(btrim(name)) >= 1) AND (char_length(btrim(name)) <= 80)));
 alter table public.owner_tools add constraint owner_tools_photo_url_check CHECK (((photo_url IS NULL) OR ((photo_url ~~ 'https://%'::text) AND (char_length(photo_url) <= 1000))));

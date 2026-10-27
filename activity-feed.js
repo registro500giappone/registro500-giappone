@@ -155,7 +155,7 @@
       quote = r.texts[0] ? `「${esc(trim(r.texts[0], n))}」` : '';
     } else if (r.kind === 'tool') {
       // 同じ日に何件紹介しても1行（工具名を「・」でつなぐ）
-      icon = '🔧'; what = `${name}さんがおすすめ工具を紹介`;
+      icon = '🔧'; what = `${name}さんがおすすめ工具・パーツを紹介`;
       quote = `「${esc(trim(r.texts.filter(Boolean).join('・'), n))}」`;
       href = '/tools';
     } else if (r.kind === 'event') {

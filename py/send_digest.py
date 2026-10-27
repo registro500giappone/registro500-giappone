@@ -250,7 +250,7 @@ def main():
         # 冊数は出さない（2026-09-09 ユーザー確定）
         parts.append("新着車載手帳")
     if new_tools:
-        parts.append("新着おすすめ工具")
+        parts.append("新着おすすめ工具・パーツ")
     if news:
         parts.append("お知らせ")
     subject = "【Registro500/126 Giappone】" + "・".join(parts)
@@ -270,36 +270,38 @@ def main():
             body += (f"・{e['date']}開催: {e['name']} (by {e['owner']}様)\n"
                      f"　場所: {e['loc']}\n　詳細: {SITE}/event.html\n")
 
+    # 一覧・詳細のURLは見出しの直後に置く（2026-10-27 ユーザー指示＝項目が多いと文末のURLが埋もれる）
     if new_episodes:
         body += f"\n■ 📖 新しいストーリー ({len(new_episodes)}件)\n"
+        body += f"一覧: {SITE}/stories.html\n\n"
         for e in new_episodes:
             body += f"・「{e['title']}」({e['owner']}様)\n　{SITE}/episode.html?ep={e['id']}\n"
-        body += f"\n一覧: {SITE}/stories.html\n"
 
     if new_notebooks:
         if notebook_first:
             body += "\n■ 🧰 新規で登録された車載手帳もお知らせメールに追加しました。\n"
+            body += f"一覧: {SITE}/equipment\n"
             body += "\n新しい車載手帳が登録されました。\n"
         else:
             body += "\n■ 🧰 新しい車載手帳が登録されました。\n"
+            body += f"一覧: {SITE}/equipment\n\n"
         for n in new_notebooks:
             body += (f"・{n['owner']}様\n"
                      f"　{SITE}/detail.html?doc={n['doc']}#equipment-notebook\n")
-        body += f"\n一覧: {SITE}/equipment\n"
 
     if new_tools:
-        body += f"\n■ 🔧 新しいおすすめ工具 ({len(new_tools)}件)\n"
+        body += f"\n■ 🔧 新しいおすすめ工具・パーツ ({len(new_tools)}件)\n"
+        body += f"一覧: {SITE}/tools\n\n"
         for t in new_tools[:TOOLS_LIST_MAX]:
             body += f"・{t['name']}（{t['owner']}様）\n"
         if len(new_tools) > TOOLS_LIST_MAX:
             body += f"・ほか{len(new_tools) - TOOLS_LIST_MAX}件\n"
-        body += f"\n一覧: {SITE}/tools\n"
 
     if news:
         body += "\n■ 📢 お知らせ\n"
+        body += f"詳細: {SITE}/news.html\n"
         for n in news:
             body += f"\n【{n['title']}】\n{n['content']}\n"
-        body += f"\n詳細: {SITE}/news.html\n"
 
     body += ("\n---------------------------------------------------------\n"
              "Registro500 / Registro126 Giappone\n" + SITE + "/")
@@ -445,20 +447,20 @@ def send_metoo_notices():
                 lines += [f"　　{VERB[k]} ― {w}" for n, k, w in entry["items"] if n == name]
             kinds = {k for _, k, _ in entry["items"]}
             if kinds == {"helpful"}:
-                lead = "「みんなのおすすめ工具」に書いていただいた紹介が、ほかのオーナーの参考になりました。"
-                subject = "【Registro500】あなたの工具の紹介が、ほかのオーナーの参考になりました"
+                lead = "「みんなのおすすめ工具・パーツ」に書いていただいた紹介が、ほかのオーナーの参考になりました。"
+                subject = "【Registro500】あなたの紹介が、ほかのオーナーの参考になりました"
             elif kinds == {"metoo"}:
-                lead = ("「みんなのおすすめ工具」で紹介していただいた工具に、"
+                lead = ("「みんなのおすすめ工具・パーツ」で紹介していただいた物に、"
                         "ほかのオーナーから「🔧 わたしも使ってる」が届きました。")
-                subject = "【Registro500】あなたの紹介した工具を、ほかのオーナーも使っています"
+                subject = "【Registro500】あなたの紹介した物を、ほかのオーナーも使っています"
             else:
-                lead = "「みんなのおすすめ工具」に書いていただいた紹介に、ほかのオーナーから声が届きました。"
-                subject = "【Registro500】あなたの工具の紹介に、ほかのオーナーから声が届きました"
+                lead = "「みんなのおすすめ工具・パーツ」に書いていただいた紹介に、ほかのオーナーから声が届きました。"
+                subject = "【Registro500】あなたの紹介に、ほかのオーナーから声が届きました"
             body = (
                 f"{entry['name']} さん\n\n" + lead + "\n\n"
                 + "\n".join(lines) + "\n\n"
                 "あなたの紹介が、ほかのオーナーの役に立っています。ありがとうございます。\n\n"
-                f"みんなのおすすめ工具\n{SITE}/tools\n\n"
+                f"みんなのおすすめ工具・パーツ\n{SITE}/tools\n\n"
                 "――\n"
                 "このメールは、紹介に「わたしも使ってる」「参考になった」が押されたとき、"
                 "翌朝にまとめて1通だけお送りしています。"
