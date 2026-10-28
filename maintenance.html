@@ -138,7 +138,7 @@
     const my = ++seq;
     // 公開で作業日のある記録だけ（RLS でも同じ条件。ログイン中の本人の非公開分はここでは出さない）
     let q = supabaseClient.from('maint_records')
-      .select('id, car_id, title, comment, work_date, odometer_km, worker, areas, video_urls, created_at, maint_photos(url, thumb_url, caption, sort_order)')
+      .select('id, car_id, title, comment, work_date, odometer_km, worker, areas, video_urls, source, minkara_url, created_at, maint_photos(url, thumb_url, caption, sort_order)')
       .eq('is_public', true).not('work_date', 'is', null)
       // 同じ作業日は入力した順（車両ページの歩みと同じ）
       .order('work_date', { ascending: false }).order('created_at', { ascending: true })

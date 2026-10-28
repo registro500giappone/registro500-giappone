@@ -14,6 +14,8 @@
 .mv-row .mv-thumb { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; flex: none; }
 .mv-title { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--mv-accent, #1f5c3d); cursor: pointer; text-align: left; }
 .mv-title:hover { text-decoration: underline; }
+a.mv-title { text-decoration: none; }
+.mv-mk { display: inline-block; margin-top: 4px; font-size: .8rem; color: var(--mv-accent, #1f5c3d); }
 .mv-body { margin-top: 10px; }
 .mv-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .mv-chip { font-size: .72rem; padding: 2px 8px; border-radius: 999px; background: var(--mv-soft, #e7efe7); color: var(--mv-text, inherit); }
@@ -71,8 +73,7 @@
     if (rec.worker) parts.push(WORKER_LABEL[rec.worker]);
     const n = (rec.maint_photos || []).length;
     if (n) parts.push('写真' + n + '枚');
-    if ((rec.video_urls || []).length) parts.push('▶ 動画');
-    if (rec.is_public === false) parts.push('🔒 非公開');
+    if ((rec.video_urls || []).length) parts.push('▶ 動画');    if (rec.is_public === false) parts.push('🔒 非公開');
     return parts.join(' ・ ');
   }
 
@@ -138,12 +139,31 @@
     const txt = el('div');
     txt.style.minWidth = '0';
     if (opts.prefix) txt.appendChild(opts.prefix);
-    const t = el('button', 'mv-title', (opts.emoji ? opts.emoji + ' ' : '') + rec.title); t.type = 'button';
+    const label = (opts.emoji ? opts.emoji + ' ' : '') + rec.title;
+    const hasBody = !!(rec.comment || ps.length || (rec.video_urls || []).some(videoKind));
+    // みんカラから載せた記事で、ここに書いた中身が無いものは題名そのものを記事へのリンクにする
+    if (rec.minkara_url && !hasBody) {
+      const a = el('a', 'mv-title', label + ' ↗');
+      a.href = rec.minkara_url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      if (opts.onOpen) a.addEventListener('click', () => opts.onOpen(rec));
+      txt.appendChild(a);
+      txt.appendChild(el('div', 'mv-meta', [metaText(rec), 'みんカラの記事'].filter(Boolean).join(' ・ ')));
+      if ((rec.areas || []).length) txt.appendChild(chips(rec));
+      row.appendChild(txt);
+      wrap.appendChild(row);
+      return wrap;
+    }
+    const t = el('button', 'mv-title', label); t.type = 'button';
     t.setAttribute('aria-expanded', 'false');
     txt.appendChild(t);
     const meta = metaText(rec);
     if (meta) txt.appendChild(el('div', 'mv-meta', meta));
     if ((rec.areas || []).length) txt.appendChild(chips(rec));
+    if (rec.minkara_url) {
+      const a = el('a', 'mv-mk', 'みんカラで読む ↗');
+      a.href = rec.minkara_url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      txt.appendChild(a);
+    }
     row.appendChild(txt);
     wrap.appendChild(row);
     let body = null;

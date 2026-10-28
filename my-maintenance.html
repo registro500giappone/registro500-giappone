@@ -118,6 +118,16 @@
     .mine .meta { font-size: .78rem; color: var(--text-sub); }
     .mine .acts { display: flex; gap: 8px; margin-top: 6px; }
     .center { text-align: center; }
+    .mk-row { border-top: 1px solid var(--border-soft); padding: 10px 0; }
+    .mk-row:first-child { border-top: 0; }
+    .mk-top { display: flex; gap: 8px; align-items: center; }
+    .mk-top input[type=checkbox] { width: 20px; height: 20px; flex: none; accent-color: var(--accent); }
+    .mk-top input[type=text] { flex: 1; min-width: 0; }
+    .mk-sub { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; font-size: .82rem; }
+    .mk-sub input[type=date] { width: auto; flex: 0 1 170px; font-size: .9rem; padding: 6px 8px; }
+    .mk-sub input.mk-km { width: 110px; font-size: .9rem; padding: 6px 8px; text-align: right; }
+    .mk-sub a { color: var(--accent); }
+    .mk-areas { font-size: .75rem; color: var(--text-sub); margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -200,6 +210,23 @@
       <button type="button" class="btn-sub hidden" id="retryBtn" style="margin-top:10px;width:100%;">残りの写真を送る</button>
       <p class="msg" id="msg" role="status"></p>
     </form>
+
+    <div class="card" style="margin-top:14px;padding:4px 14px">
+      <details class="fold" id="mkFold">
+        <summary><span>＋ みんカラの記事を載せる</span><small>まとめて貼れます</small></summary>
+        <p class="note" style="margin-bottom:8px">みんカラの整備手帳の記事URLを、1行に1本ずつ貼ってください。読み込むのは記事の題名だけです（本文と写真は取りません）。<br>作業日を入れた記事から、車両ページに「みんカラで読む ↗」付きで並びます。作業日が空のあいだは、あなたにだけ「日付待ち」で見えます。</p>
+        <textarea id="mkUrls" placeholder="https://minkara.carview.co.jp/userid/…/note.aspx&#10;1行に1本"></textarea>
+        <button type="button" class="btn-sub" id="mkLoad" style="margin-top:8px">題名を読み込む</button>
+        <p class="msg" id="mkMsg" role="status"></p>
+        <div id="mkRows"></div>
+        <div id="mkBulk" class="hidden">
+          <p class="f">チェックした記事に箇所を付ける</p>
+          <div class="chips" id="mkChips"></div>
+          <button type="button" class="btn-sub" id="mkApply" style="margin-top:8px">チェックした記事に付ける</button>
+          <button type="button" class="btn-main" id="mkSave" style="margin-top:14px">日付と題名を保存する</button>
+        </div>
+      </details>
+    </div>
 
     <div id="stateLogin" class="card center hidden" style="margin-top:14px">
       <p>保存するにはログインが必要です。<br><span class="note">入力した内容はこのまま残ります。</span></p>
@@ -538,6 +565,7 @@
     $('mineCard').classList.remove('hidden');
     updatePrevKm();
     loadMine();
+    mkLoadPending();
     if (pendingSave) {
       pendingSave = false;
       // 2台以上なら車を選んでもらってから
@@ -704,10 +732,12 @@
       return;
     }
     track('maint_save', { photos: photos.length, edit: editing ? 1 : 0 });
+    const wasMinkara = !!(editing && editing.source === 'minkara');
     clearDraft();
     resetForm();
     setMsg('保存しました。', 'ok');
     loadMine();
+    if (wasMinkara) mkLoadPending();
   }
   $('retryBtn').addEventListener('click', () => {
     if (busy || !savedRecordId) return;
@@ -772,7 +802,7 @@
   async function loadMine() {
     const box = $('mineList');
     const { data, error } = await supabaseClient.from('maint_records')
-      .select('id, car_id, title, work_date, odometer_km, worker, is_public, areas, created_at, maint_photos(thumb_url, url, sort_order)')
+      .select('id, car_id, title, work_date, odometer_km, worker, is_public, areas, source, created_at, maint_photos(thumb_url, url, sort_order)')
       .eq('author_user_id', currentUser.id)
       .order('work_date', { ascending: false, nullsFirst: true }).order('created_at', { ascending: true });
     box.textContent = '';
@@ -792,6 +822,7 @@
       if (r.worker) meta.push(WORKER_LABEL[r.worker]);
       if (ps.length) meta.push('写真' + ps.length + '枚');
       (r.areas || []).forEach(a => meta.push(AREA_LABEL[a]));
+      if (r.source === 'minkara') meta.push('みんカラ');
       if (!r.is_public) meta.push('🔒 非公開');
       if (meta.length) bd.appendChild(el('div', 'meta', meta.join(' ・ ')));
       const acts = el('div', 'acts');
@@ -805,6 +836,7 @@
         if (e2) { setMsg('消せませんでした：' + e2.message, 'err'); return; }
         if (editing && editing.id === r.id) resetForm();
         loadMine();
+        mkLoadPending();
       });
       acts.append(ed, del);
       bd.appendChild(acts);
@@ -812,6 +844,177 @@
       box.appendChild(item);
     });
   }
+
+  // ── みんカラの記事をまとめて載せる ──
+  // 題名は /api/minkara-title が og:title だけを読む。読んだらすぐ「日付待ち」の記録として保存する＝同じ記事を二度読まない
+  const MK_RE = /^https:\/\/minkara\.carview\.co\.jp\/userid\/\d+\/car\/\d+\/\d+\/note\.aspx$/;
+  const MK_INTERVAL_MS = 3000;   // 間隔を空けて1本ずつ
+  const MK_MAX = 30;             // 1回に読む上限
+  let mkRows = [];               // 日付待ちの記録（source=minkara・work_date なし）。_title 等は未保存の書きかけ
+  function mkNormalize(raw) {
+    try {
+      const u = new URL(String(raw).trim());
+      if (u.hostname !== 'minkara.carview.co.jp') return null;
+      const out = 'https://minkara.carview.co.jp' + u.pathname.replace(/^\/smart\//, '/');
+      return MK_RE.test(out) ? out : null;
+    } catch (e) { return null; }
+  }
+  // 題名に「25,888km」の形があれば距離の候補にする（貼られた題名の文字から拾うだけ）
+  function mkKmFromTitle(t) {
+    const m = String(t || '').match(/([0-9][0-9,]{2,8})\s*km/i);
+    if (!m) return null;
+    const n = Number(m[1].replace(/,/g, ''));
+    return n <= 999999 ? n : null;
+  }
+  function mkSetMsg(t, kind) { const m = $('mkMsg'); m.textContent = t || ''; m.className = 'msg' + (kind ? ' ' + kind : ''); }
+
+  AREAS.forEach(([v, label]) => {
+    const b = el('button', 'chip', label);
+    b.type = 'button'; b.dataset.v = v; b.setAttribute('aria-pressed', 'false');
+    $('mkChips').appendChild(b);
+  });
+  $('mkChips').addEventListener('click', ev => {
+    const b = ev.target.closest('.chip'); if (!b) return;
+    b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+  });
+
+  async function mkLoadPending() {
+    if (!currentUser) return;
+    const { data } = await supabaseClient.from('maint_records')
+      .select('id, car_id, title, work_date, odometer_km, areas, minkara_url')
+      .eq('author_user_id', currentUser.id).eq('source', 'minkara').is('work_date', null)
+      .order('created_at');
+    mkRows = data || [];
+    if (mkRows.length) $('mkFold').open = true;
+    mkRender();
+  }
+  function mkRender() {
+    const box = $('mkRows');
+    box.textContent = '';
+    const carLabel = Object.fromEntries(myCars.map(c => [c.id, c.label.trim()]));
+    mkRows.forEach(r => {
+      const row = el('div', 'mk-row');
+      const top = el('div', 'mk-top');
+      const cb = el('input'); cb.type = 'checkbox'; cb.checked = !!r._checked; cb.setAttribute('aria-label', 'この記事を選ぶ');
+      cb.addEventListener('change', () => { r._checked = cb.checked; });
+      const ti = el('input'); ti.type = 'text'; ti.maxLength = 80; ti.value = r._title != null ? r._title : r.title; ti.setAttribute('aria-label', '題名');
+      ti.addEventListener('input', () => { r._title = ti.value; });
+      top.append(cb, ti);
+      const sub = el('div', 'mk-sub');
+      const d = el('input'); d.type = 'date'; d.value = r._date != null ? r._date : (r.work_date || ''); d.setAttribute('aria-label', '作業日');
+      d.addEventListener('change', () => { r._date = d.value; });
+      const km = el('input', 'mk-km'); km.type = 'text'; km.inputMode = 'numeric'; km.maxLength = 7; km.placeholder = '距離';
+      km.value = r._km != null ? r._km : (r.odometer_km != null ? String(r.odometer_km) : '');
+      km.addEventListener('input', () => { km.value = km.value.replace(/[^0-9]/g, ''); r._km = km.value; });
+      const a = el('a', null, '記事 ↗'); a.href = r.minkara_url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      sub.append(d, km, el('span', null, 'km'), a);
+      row.append(top, sub);
+      const ar = r._areas != null ? r._areas : (r.areas || []);
+      const info = ar.map(x => AREA_LABEL[x]).filter(Boolean);
+      if (myCars.length > 1 && carLabel[r.car_id]) info.unshift(carLabel[r.car_id]);
+      if (info.length) row.appendChild(el('div', 'mk-areas', info.join(' ・ ')));
+      box.appendChild(row);
+    });
+    $('mkBulk').classList.toggle('hidden', !mkRows.length);
+  }
+
+  $('mkLoad').addEventListener('click', async () => {
+    if (busy) return;
+    if (!currentUser) {
+      $('stateLogin').classList.remove('hidden');
+      $('stateLogin').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    const lines = $('mkUrls').value.split(/\s+/).filter(Boolean);
+    const urls = [];
+    let bad = 0;
+    lines.forEach(l => { const u = mkNormalize(l); if (!u) bad++; else if (!urls.includes(u)) urls.push(u); });
+    if (!urls.length) { mkSetMsg(bad ? 'みんカラの整備手帳の記事URL（…/note.aspx で終わるもの）だけ読み込めます。' : 'URLを貼ってください。', 'err'); return; }
+    // もう載せた記事は読まない
+    const { data: have } = await supabaseClient.from('maint_records').select('minkara_url')
+      .eq('author_user_id', currentUser.id).in('minkara_url', urls);
+    const known = new Set((have || []).map(h => h.minkara_url));
+    const fresh = urls.filter(u => !known.has(u));
+    const todo = fresh.slice(0, MK_MAX);
+    const rest = fresh.slice(MK_MAX);
+    if (!todo.length) { mkSetMsg('貼られた記事は、どれも載せてあります。', 'ok'); return; }
+
+    busy = true; $('mkLoad').disabled = true;
+    const { data: sess } = await supabaseClient.auth.getSession();
+    const token = sess && sess.session && sess.session.access_token;
+    let ok = 0, noTitle = 0, fail = 0;
+    for (let i = 0; i < todo.length; i++) {
+      if (i) await new Promise(r => setTimeout(r, MK_INTERVAL_MS));
+      mkSetMsg('題名を読み込んでいます（' + (i + 1) + ' / ' + todo.length + '）…');
+      let title = null;
+      try {
+        const res = await fetch('/api/minkara-title', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ url: todo[i] })
+        });
+        const j = await res.json().catch(() => ({}));
+        if (res.ok && j.success && j.title) title = j.title;
+      } catch (e) { console.error('[my-maintenance] minkara', e); }
+      if (!title) noTitle++;
+      const { data: ins, error } = await supabaseClient.from('maint_records')
+        .insert({ car_id: currentCarId(), title: title || 'みんカラの記事', source: 'minkara', minkara_url: todo[i],
+          work_date: null, odometer_km: mkKmFromTitle(title), is_public: true })
+        .select('id, car_id, title, work_date, odometer_km, areas, minkara_url').single();
+      if (error) { fail++; console.error('[my-maintenance] minkara insert', error); continue; }
+      ok++;
+      mkRows.push(ins);
+      mkRender();
+    }
+    busy = false; $('mkLoad').disabled = false;
+    $('mkUrls').value = rest.join('\n');
+    const parts = [ok + '本を載せました。作業日を入れて「日付と題名を保存する」を押すと、車両ページに並びます。'];
+    if (noTitle) parts.push('題名を読めなかった' + noTitle + '本は「みんカラの記事」にしてあります。題名を直してください。');
+    if (known.size) parts.push(known.size + '本はもう載せてあったので読んでいません。');
+    if (rest.length) parts.push('残り' + rest.length + '本は欄に残しました。もう一度「題名を読み込む」を押してください。');
+    if (bad) parts.push('記事URLではない行が' + bad + '行ありました。');
+    if (fail) parts.push(fail + '本は保存に失敗しました。');
+    mkSetMsg(parts.join(''), fail ? 'err' : 'ok');
+    track('maint_minkara_load', { n: ok });
+    loadMine();
+  });
+
+  $('mkApply').addEventListener('click', () => {
+    const sel = [...$('mkChips').querySelectorAll('.chip[aria-pressed="true"]')].map(b => b.dataset.v);
+    const targets = mkRows.filter(r => r._checked);
+    if (!targets.length) { mkSetMsg('箇所を付ける記事にチェックを入れてください。', 'err'); return; }
+    targets.forEach(r => { r._areas = sel; });
+    mkRender();
+    mkSetMsg('チェックした' + targets.length + '本に付けました。「日付と題名を保存する」で保存されます。', 'ok');
+  });
+
+  $('mkSave').addEventListener('click', async () => {
+    if (busy) return;
+    busy = true; $('mkSave').disabled = true;
+    let saved = 0, dated = 0, fail = 0, empty = 0;
+    for (const r of mkRows) {
+      const patch = {};
+      const t = String(r._title != null ? r._title : r.title).trim();
+      if (!t) { empty++; continue; }
+      if (t !== r.title) patch.title = t;
+      if (r._date != null && (r._date || null) !== r.work_date) patch.work_date = r._date || null;
+      if (r._km != null) patch.odometer_km = r._km ? Number(r._km) : null;
+      if (r._areas != null) patch.areas = r._areas;
+      if (!Object.keys(patch).length) continue;
+      const { error } = await supabaseClient.from('maint_records').update(patch).eq('id', r.id);
+      if (error) { fail++; console.error('[my-maintenance] minkara save', error); continue; }
+      saved++;
+      if (patch.work_date) dated++;
+    }
+    busy = false; $('mkSave').disabled = false;
+    await mkLoadPending();
+    loadMine();
+    const parts = [saved ? saved + '本を保存しました。' : '変わったところはありませんでした。'];
+    if (dated) parts.push('作業日を入れた' + dated + '本は、車両ページに並びます。');
+    if (empty) parts.push('題名が空の' + empty + '本は保存していません。');
+    if (fail) parts.push(fail + '本は保存に失敗しました。');
+    mkSetMsg(parts.join(''), fail || empty ? 'err' : 'ok');
+  });
 
   loadDraft();
   renderPhotos();
