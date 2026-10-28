@@ -45,7 +45,7 @@
       supabaseClient.from('equipment_experiences').select('body, created_at, equipment_records!inner(vehicle_id, is_public, is_anonymous)')
         .eq('equipment_records.is_public', true).gte('created_at', since),
       // ログイン中は下書きまで読めてしまうので、公開済みの条件は必ず付ける
-      supabaseClient.from('car_episodes').select('car_id, title, created_at').eq('is_published', true).gte('created_at', since),
+      supabaseClient.from('car_episodes').select('id, car_id, title, created_at').eq('is_published', true).gte('created_at', since),
       supabaseClient.from('event_participants').select('event_id, car_id, created_at').not('car_id', 'is', null).gte('created_at', since),
       fetch('/event-slugs.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}),
       // おすすめ工具の紹介（2026-10-22）。伏せた投稿は出さない。「参考になった」は数を伏せる約束なので出さない
@@ -70,9 +70,10 @@
         if (new Date(at) > new Date(row.at)) row.at = at;
         if (extra && extra.fields) extra.fields.forEach(f => { if (row.fields.indexOf(f) === -1) row.fields.push(f); });
         if (extra && extra.texts) extra.texts.forEach(t => row.texts.push(t));
+        if (extra && extra.ids) extra.ids.forEach(i => row.ids.push(i));
         return;
       }
-      byKey.set(key, Object.assign({ kind, car, day, at, fields: [], texts: [] }, extra || {}));
+      byKey.set(key, Object.assign({ kind, car, day, at, fields: [], texts: [], ids: [] }, extra || {}));
     };
 
     ok(histRes).forEach(h => {
@@ -98,7 +99,7 @@
       add('experience', rec.vehicle_id, e.created_at, { texts: [e.body] });
     });
 
-    ok(epiRes).forEach(ep => add('story', ep.car_id, ep.created_at, { texts: [ep.title || ''] }));
+    ok(epiRes).forEach(ep => add('story', ep.car_id, ep.created_at, { texts: [ep.title || ''], ids: [ep.id] }));
 
     ok(toolRes).forEach(t => add('tool', t.car_id, t.created_at, { texts: [t.name || ''] }));
 
@@ -143,6 +144,9 @@
         if (hit && labels.indexOf(hit.label) === -1) labels.push(hit.label);
       });
       what = `${name}さんが愛車の記録を更新` + (labels.length ? `（${esc(labels.slice(0, 3).join('・'))}）` : '');
+      // 押したら、見出しの先頭に出した欄へ飛ぶ（飛び先の解決は detail.html の jumpToHash）
+      const first = r.fields.find(col => FIELD_LABELS.some(f => f.test(col))) || r.fields[0];
+      if (first) hash = `#field-${encodeURIComponent(first)}`;
     } else if (r.kind === 'notebook_new') {
       icon = '🧰'; what = `${name}さんが車載手帳をつくりました`; hash = '#equipment-notebook';
     } else if (r.kind === 'notebook_upd') {
@@ -153,11 +157,14 @@
     } else if (r.kind === 'story') {
       icon = '📖'; what = `${name}さんがストーリーを投稿`;
       quote = r.texts[0] ? `「${esc(trim(r.texts[0], n))}」` : '';
+      // 1本ならそのストーリーを開く。同じ日に何本も書いた行は車ページの歩みへ
+      if (r.ids.length === 1 && r.ids[0]) href = `/episode?ep=${encodeURIComponent(r.ids[0])}`;
+      else hash = '#history';
     } else if (r.kind === 'tool') {
       // 同じ日に何件紹介しても1行（工具名を「・」でつなぐ）
       icon = '🔧'; what = `${name}さんがおすすめ工具・パーツを紹介`;
       quote = `「${esc(trim(r.texts.filter(Boolean).join('・'), n))}」`;
-      href = '/tools';
+      hash = '#tools';  // 紹介した工具が並ぶ、その車ページの欄へ
     } else if (r.kind === 'event') {
       const others = r.cars.length - 1;
       icon = '🎪'; what = `${name}さん${others > 0 ? `ほか${others}人` : ''}が「${esc(r.texts[0])}」に参加表明`;

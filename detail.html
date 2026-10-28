@@ -281,6 +281,9 @@
     .blanks-cta { display: inline-block; margin-top: 14px; text-decoration: none; padding: 0.6rem 1.25rem;
       background: var(--rg-accent); color: #fff; border-radius: 6px; font-size: 0.9rem; font-weight: 600; }
     .blanks-note { font-size: 0.72rem; color: var(--rg-muted); margin: 12px 0 0; line-height: 1.6; }
+    /* 更新情報などから「#◯◯」付きで飛んできた先を一瞬だけ示す（jumpToHash） */
+    @keyframes rg-jump-flash { 0%, 60% { background-color: rgba(250, 204, 21, 0.35); } 100% { background-color: transparent; } }
+    .rg-jump-flash { animation: rg-jump-flash 2.2s ease-out; border-radius: 4px; }
   </style>
 </head>
 <body>
@@ -911,7 +914,6 @@
       // 一覧から来た人にだけ戻り道を出す（一般の訪問者には出さない＝ノイズにしない）
       if (location.hash === '#equipment-notebook') {
         document.getElementById('equipmentBackLink').style.display = 'inline-flex';
-        setTimeout(() => document.getElementById('equipmentSection').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
       }
     }
 
@@ -1191,15 +1193,7 @@
             more.href = `/stories?car=${encodeURIComponent(carDocId)}`;
           }
         }
-      // #stories ハッシュで来た場合はエピソードセクションにスクロール
-      if (location.hash === '#stories') {
-        const target = document.getElementById('acquisitionSection').style.display !== 'none'
-          ? document.getElementById('acquisitionSection')
-          : document.getElementById('episodesSection');
-        if (target && target.style.display !== 'none') {
-          setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-        }
-      }
+      // #stories で来た場合のスクロールは jumpToHash が受け持つ
     } catch(e) { /* エピソード取得失敗は無視 */ }
       // ここまでの描画（入手セクション・エピソード一覧の3件・もっと見るリンク）は残したまま、
       // 「この1台の歩み」は年表として episodesList を描き直す（登録・更新・イベント参加・車載手帳も混ぜる）
@@ -1493,6 +1487,58 @@
       document.getElementById('toolsSection').style.display = 'block';
     }
 
+    // ─── 「#◯◯」付きで来たとき、その欄へ飛ぶ（オーナーの更新情報・車載手帳一覧などから・2026-10-28） ───
+    // 欄は非同期で順に描かれ、上の欄（歩みなど）があとから伸びて着地点がずれるため、
+    // 見つかってから10秒は合わせ直す（上の写真や歩みが遅れて伸び縮みする）。読む人が触ったらそこでやめる。
+    function resolveHashTarget(hash) {
+      const byId = id => document.getElementById(id);
+      const shown = el => (el && el.offsetParent !== null ? el : null);
+      if (hash === '#equipment-notebook') return shown(byId('equipmentSection'));
+      if (hash === '#tools') return shown(byId('toolsSection'));
+      if (hash === '#history') return shown(byId('episodesSection'));
+      if (hash === '#stories') return shown(byId('acquisitionSection')) || shown(byId('episodesSection'));
+      const m = hash.match(/^#field-(.+)$/);
+      if (!m) return null;
+      let col = '';
+      try { col = decodeURIComponent(m[1]); } catch (e) { return null; }
+      if (col === 'photo_main') return shown(byId('photoMainContainer'));
+      if (col.indexOf('photo_') === 0) return shown(byId('gallerySection')) || shown(byId('photoMainContainer'));
+      if (col === 'highlights') return shown(byId('highlightsSection'));
+      if (['x_twitter', 'instagram', 'youtube', 'minkara', 'facebook', 'threads', 'blog_or_website'].indexOf(col) !== -1) return shown(byId('snsSection'));
+      const el = [...document.querySelectorAll('[data-field]')].find(e => e.dataset.field.split(',').indexOf(col) !== -1);
+      return shown(el) || shown(el && el.closest('section'));
+    }
+    function jumpToHash() {
+      const hash = location.hash;
+      if (!hash) return;
+      const t0 = Date.now();
+      let target = null, foundAt = 0, stopped = false;
+      const stop = () => { stopped = true; };
+      ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach(ev => window.addEventListener(ev, stop, { once: true, passive: true }));
+      (function tick() {
+        if (stopped) return;
+        const now = Date.now();
+        if (!target) {
+          target = resolveHashTarget(hash);
+          if (!target) { if (now - t0 < 8000) setTimeout(tick, 150); return; }
+          foundAt = now;
+          // 項目（dt）なら値（dd）も一緒に光らせる
+          [target, target.tagName === 'DT' ? target.nextElementSibling : null].forEach(el => el && el.classList.add('rg-jump-flash'));
+        }
+        // 欄は先頭を、項目は画面の真ん中を合わせる。上に貼り付くヘッダーの下に隠れないようにずらす。
+        // なめらかに流すと、流れている最中の合わせ直しが飲み込まれるので一瞬で飛ぶ（普通のページ内リンクと同じ）
+        const rect = target.getBoundingClientRect();
+        const header = document.querySelector('header');
+        const hb = header && /sticky|fixed/.test(getComputedStyle(header).position) ? header.getBoundingClientRect().height : 0;
+        const top = rect.top + window.scrollY;
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        const y = Math.max(0, Math.min(max, Math.round(target.tagName === 'SECTION' ? top - hb - 12 : top - (window.innerHeight - rect.height) / 2)));
+        if (Math.abs(window.scrollY - y) > 2) window.scrollTo(0, y);
+        if (now - foundAt < 10000) setTimeout(tick, 200);
+      })();
+    }
+
+    jumpToHash();
     fetchDetail().then(() => { loadPaint(); loadTools(); });
   </script>
 <footer style="margin-top:48px;padding:20px 16px;border-top:1px solid #e5e7eb;text-align:center;">
