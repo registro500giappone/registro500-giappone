@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-10-28 22:17 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-10-28 23:23 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -1340,7 +1340,7 @@ CREATE OR REPLACE FUNCTION public.maint_photos_guard()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 begin
-  if tg_op = 'UPDATE' and not public.is_admin() then
+  if tg_op = 'UPDATE' and auth.uid() is not null and not public.is_admin() then
     new.record_id := old.record_id;
     new.created_at := old.created_at;
   end if;
@@ -1355,13 +1355,15 @@ CREATE OR REPLACE FUNCTION public.maint_records_guard()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 begin
+  if auth.uid() is null or public.is_admin() then
+    if tg_op = 'UPDATE' then new.updated_at := now(); end if;
+    return new;
+  end if;
   new.updated_at := now();
   if tg_op = 'INSERT' then
-    if not public.is_admin() then
-      new.author_user_id := auth.uid();
-    end if;
+    new.author_user_id := auth.uid();
     new.created_at := now();
-  elsif not public.is_admin() then
+  else
     new.car_id := old.car_id;
     new.author_user_id := old.author_user_id;
     new.created_at := old.created_at;
