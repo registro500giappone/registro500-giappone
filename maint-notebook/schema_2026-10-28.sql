@@ -167,3 +167,35 @@ create policy maint_costs_own on public.maint_costs for all to authenticated
 
 revoke all on public.maint_costs from anon, authenticated;
 grant select, insert, update, delete on public.maint_costs to authenticated;
+
+-- 【2026-10-28 追記】ガードは「画面からの一般利用者の操作」だけに掛ける。
+-- auth.uid() が無い操作（SQL からの管理作業・バックアップからの復元）は値をそのまま通す
+-- （前の形だと作者が空になって入れられず、復元では作成日時が今の時刻に置き換わっていた）。
+create or replace function public.maint_records_guard()
+returns trigger language plpgsql set search_path = public, pg_temp as $$
+begin
+  if auth.uid() is null or public.is_admin() then
+    if tg_op = 'UPDATE' then new.updated_at := now(); end if;
+    return new;
+  end if;
+  new.updated_at := now();
+  if tg_op = 'INSERT' then
+    new.author_user_id := auth.uid();
+    new.created_at := now();
+  else
+    new.car_id := old.car_id;
+    new.author_user_id := old.author_user_id;
+    new.created_at := old.created_at;
+  end if;
+  return new;
+end $$;
+
+create or replace function public.maint_photos_guard()
+returns trigger language plpgsql set search_path = public, pg_temp as $$
+begin
+  if tg_op = 'UPDATE' and auth.uid() is not null and not public.is_admin() then
+    new.record_id := old.record_id;
+    new.created_at := old.created_at;
+  end if;
+  return new;
+end $$;

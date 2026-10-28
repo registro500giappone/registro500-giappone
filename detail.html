@@ -148,6 +148,11 @@
     .rg-history-item { border-bottom: 1px solid var(--rg-border); padding: 0.75rem 0; font-size: 0.92rem; line-height: 1.6; }
     .rg-history-item:last-child { border-bottom: none; }
     .rg-history-item a { color: var(--rg-accent); text-decoration: none; font-weight: 600; }
+    #episodesSection { --mv-accent: var(--rg-accent); --mv-muted: var(--rg-muted); }
+    .rg-maint-seg, .rg-maint-areas { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .rg-maint-seg button, .rg-maint-areas button { font: inherit; font-size: 0.82rem; padding: 5px 12px; border: 1px solid var(--rg-border); border-radius: 999px; background: transparent; color: inherit; cursor: pointer; }
+    .rg-maint-areas button { font-size: 0.76rem; padding: 3px 10px; }
+    .rg-maint-seg button[aria-pressed="true"], .rg-maint-areas button[aria-pressed="true"] { background: var(--rg-accent); border-color: var(--rg-accent); color: #fff; font-weight: 700; }
     .rg-btn-add-episode { width: 100%; padding: 0.75rem; margin-top: 0.75rem; border: 1px dashed var(--rg-border); background: none; color: var(--rg-muted); border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
     .rg-btn-add-episode:hover { border-color: var(--rg-accent); color: var(--rg-accent); }
     /* エピソード写真グリッド */
@@ -1270,18 +1275,77 @@
 
     let rgHistoryRows = [];
 
+    // 整備手帳（マイ整備手帳で書いた記録）を歩みに混ぜる。
+    // 公開の準備が整うまで止めておく＝URL に ?maint-preview を付けたときだけ出す（止めている間は maint-view.js も読まない）
+    const MAINT_ON_CAR_PAGE = false;
+    const maintOn = MAINT_ON_CAR_PAGE || new URLSearchParams(location.search).has('maint-preview');
+    let rgMaintRecs = {};
+    let rgHistoryFilter = { mode: 'all', area: null };
+
+    function loadMaintView() {
+      if (window.MaintView) return Promise.resolve();
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'maint-view.js'; s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+    async function fetchMaintRows(carDocId) {
+      await loadMaintView();
+      // 作業日の無い行（みんカラの日付待ち）は歩みに出さない。非公開の行は RLS が本人にだけ返す
+      const { data, error } = await supabaseClient.from('maint_records')
+        .select('id, title, comment, work_date, odometer_km, worker, areas, is_public, video_urls, source, minkara_url, created_at, maint_photos(url, thumb_url, caption, sort_order)')
+        .eq('car_id', carDocId).not('work_date', 'is', null);
+      if (error) throw error;
+      return data || [];
+    }
+
+    // 「すべて／🔧 整備だけ」。整備の記録がある車にだけ出す（数は出さない）
+    function historyControlsHtml() {
+      const maintRows = rgHistoryRows.filter(r => r.kind === 'maint');
+      if (!maintRows.length) return '';
+      const on = m => rgHistoryFilter.mode === m ? 'true' : 'false';
+      let html = `<div class="rg-maint-seg"><button type="button" data-hmode="all" aria-pressed="${on('all')}">すべて</button><button type="button" data-hmode="maint" aria-pressed="${on('maint')}">🔧 整備だけ</button></div>`;
+      if (rgHistoryFilter.mode === 'maint') {
+        const used = new Set();
+        maintRows.forEach(r => (rgMaintRecs[r.id].areas || []).forEach(a => used.add(a)));
+        const areas = MaintView.AREAS.filter(([v]) => used.has(v));
+        if (areas.length > 1) {
+          html += `<div class="rg-maint-areas"><button type="button" data-harea="" aria-pressed="${rgHistoryFilter.area ? 'false' : 'true'}">すべての箇所</button>`;
+          areas.forEach(([v, label]) => { html += `<button type="button" data-harea="${esc(v)}" aria-pressed="${rgHistoryFilter.area === v ? 'true' : 'false'}">${esc(label)}</button>`; });
+          html += `</div>`;
+        }
+      }
+      return html;
+    }
+
     // 8行まで表示し、超過分は「もっと見る」でクライアント側展開する
     function renderHistoryRows(limit) {
       const list = document.getElementById('episodesList');
       if (!list) return;
-      const shown = rgHistoryRows.slice(0, limit);
-      let html = shown.map(r => r.html).join('');
-      if (rgHistoryRows.length > limit) {
+      const rows = rgHistoryFilter.mode === 'maint'
+        ? rgHistoryRows.filter(r => r.kind === 'maint' && (!rgHistoryFilter.area || (rgMaintRecs[r.id].areas || []).includes(rgHistoryFilter.area)))
+        : rgHistoryRows;
+      const shown = rows.slice(0, limit);
+      let html = historyControlsHtml() + shown.map(r => r.html).join('');
+      if (rows.length > limit) {
         html += `<button type="button" id="historyMoreBtn" class="rg-episodes-more" style="width:100%;border:none;background:none;cursor:pointer;">もっと見る →</button>`;
       }
       list.innerHTML = html;
+      list.querySelectorAll('[data-mid]').forEach(slot => {
+        const rec = rgMaintRecs[slot.dataset.mid];
+        if (rec) slot.appendChild(MaintView.renderItem(rec, { emoji: '🔧' }));
+      });
+      list.querySelectorAll('[data-hmode]').forEach(b => b.onclick = () => {
+        rgHistoryFilter = { mode: b.dataset.hmode, area: null };
+        renderHistoryRows(8);
+      });
+      list.querySelectorAll('[data-harea]').forEach(b => b.onclick = () => {
+        rgHistoryFilter.area = b.dataset.harea || null;
+        renderHistoryRows(8);
+      });
       const moreBtn = document.getElementById('historyMoreBtn');
-      if (moreBtn) moreBtn.onclick = () => renderHistoryRows(rgHistoryRows.length);
+      if (moreBtn) moreBtn.onclick = () => renderHistoryRows(rows.length);
     }
 
     async function fetchHistory(carDocId) {
@@ -1289,11 +1353,12 @@
       document.getElementById('episodesSection').style.display = 'block';
       const rows = [];
 
-      const [historyRes, participantRes, slugsRes, equipmentRes] = await Promise.allSettled([
+      const [historyRes, participantRes, slugsRes, equipmentRes, maintRes] = await Promise.allSettled([
         supabaseClient.from('car_history').select('kind, fields, occurred_at').eq('car_id', carDocId),
         supabaseClient.from('event_participants').select('event_id').eq('car_id', carDocId),
         fetch('/event-slugs.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}),
-        supabaseClient.from('equipment_records').select('created_at, updated_at').eq('vehicle_id', carDocId).eq('is_public', true)
+        supabaseClient.from('equipment_records').select('created_at, updated_at').eq('vehicle_id', carDocId).eq('is_public', true),
+        maintOn ? fetchMaintRows(carDocId) : Promise.resolve([])
       ]);
 
       // ① car_history（登録・更新・売却）。取れなければ currentCar.created_at で登録行だけ作る
@@ -1351,8 +1416,20 @@
         rows.push({ date: d, kind: 'story', html: renderEpisodeTimelineItem(ep) });
       });
 
+      // ⑤ 整備手帳。並びは入力した順ではなく作業日（あとから昔の記録を足しても、その日の位置に入る）
+      rgMaintRecs = {};
+      const maintRecs = (maintRes.status === 'fulfilled' && maintRes.value) || [];
+      maintRecs.forEach(m => {
+        rgMaintRecs[m.id] = m;
+        const dateLabel = formatEpisodeDate(m.work_date, 'day', false);
+        rows.push({ date: m.work_date, created: m.created_at, kind: 'maint', id: m.id,
+          html: `<div class="rg-history-item"><div class="rg-episode-date">${esc(dateLabel)}</div><div data-mid="${esc(m.id)}"></div></div>` });
+      });
+
       // 新しい順に並べ、同じ日の「更新」は1行に畳み、登録日と同日の「更新」は出さない
-      rows.sort((a, b) => new Date(b.date) - new Date(a.date));
+      // 同じ作業日の整備は入力した順（created_at の古い順）
+      rows.sort((a, b) => (new Date(b.date) - new Date(a.date))
+        || (a.kind === 'maint' && b.kind === 'maint' ? new Date(a.created) - new Date(b.created) : 0));
       const dayKey = d => { const dt = new Date(d); return isNaN(dt) ? String(d) : dt.toDateString(); };
       const registeredRow = rows.find(r => r.kind === 'registered');
       const registeredDay = registeredRow ? dayKey(registeredRow.date) : null;
