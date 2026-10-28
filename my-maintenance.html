@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>マイ整備手帳 | Registro500 Giappone</title>
+  <meta name="description" content="自分の車の整備を、写真とひとことで記録しておく手帳です。">
+  <link rel="canonical" href="https://www.registro500.com/my-maintenance">
+  <meta property="og:title" content="マイ整備手帳">
+  <meta property="og:description" content="自分の車の整備を、写真とひとことで記録しておく手帳です。">
+  <meta property="og:url" content="https://www.registro500.com/my-maintenance">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Registro500 Giappone">
+  <meta property="og:image" content="https://www.registro500.com/og/site-ja.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-27SHHC4JYH');
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" integrity="sha384-HLJUgAQ2oo6rdMC4QW+Oz2qQfPOtu/lzncKG4sZiq8+2W9uOa3K0b3UGpckKqv7H" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js" integrity="sha384-oFrOL1TiREYNET0lsYF3LjQuyi2gL7vhjH1X8vFr+umcmzAdPELopeSgbcrv4uRm" crossorigin="anonymous"></script>
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
+  <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
+  <style>
+    :root {
+      --bg-main: #f5f0e6; --card-bg: #fffefb; --border-soft: #d6c9b0;
+      --shadow-soft: 0 2px 8px rgba(70,58,40,.10); --text-main: #2e2a24; --text-sub: #7a705f;
+      --accent: #1f5c3d; --accent-soft: #e7efe7; --danger: #a33a2a;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-main: #1a1714; --card-bg: #2b2721; --border-soft: #403a30;
+        --shadow-soft: 0 2px 10px rgba(0,0,0,.35); --text-main: #ece6d9; --text-sub: #a89e8c;
+        --accent: #7fb894; --accent-soft: #24382c; --danger: #e08a7a;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { font-size: 16px; max-width: 100%; overflow-x: hidden; }
+    body { font-family: var(--font-sans); margin: 0; padding: 20px 16px 60px; background: var(--bg-main); color: var(--text-main); line-height: 1.6; }
+    .page { max-width: 640px; margin: 0 auto; }
+    .back-link { display: inline-block; font-size: .85rem; color: var(--text-sub); text-decoration: none; margin-bottom: 12px; }
+    .back-link:hover { color: var(--accent); }
+    h1 { font-size: 1.35rem; margin: .2em 0 .6em; }
+    .lead { font-size: .88rem; color: var(--text-sub); margin: 0 0 12px; }
+    .lead.intro { line-height: 1.8; margin: -4px 0 16px; }
+    .hidden { display: none !important; }
+    .card { background: var(--card-bg); border: 1px solid var(--border-soft); border-radius: 12px; padding: 14px; margin-bottom: 14px; box-shadow: var(--shadow-soft); }
+    .card h2 { font-size: 1.05rem; margin: 0 0 10px; }
+    label.f, p.f { display: block; font-weight: 700; font-size: .88rem; margin: 14px 0 4px; }
+    label.f:first-child, p.f:first-child { margin-top: 0; }
+    .f small { font-weight: 400; color: var(--text-sub); margin-left: 4px; }
+    .note { font-size: .75rem; color: var(--text-sub); margin: 3px 0 0; font-weight: 400; }
+    input[type=text], input[type=email], input[type=date], input[type=number], select, textarea { width: 100%; font: inherit; font-size: 1rem; padding: 9px 10px; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--bg-main); color: var(--text-main); }
+    ::placeholder { color: #b8ae9c; opacity: 1; }
+    @media (prefers-color-scheme: dark) { ::placeholder { color: #6e6658; } }
+    textarea { min-height: 90px; resize: vertical; }
+    .count { font-size: .72rem; color: var(--text-sub); text-align: right; }
+    .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .row input[type=date] { width: auto; flex: 0 1 190px; }
+    .km { display: flex; align-items: center; gap: 6px; flex: 0 1 190px; }
+    .km input { text-align: right; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { font: inherit; font-size: .85rem; padding: 7px 11px; border: 1px solid var(--border-soft); border-radius: 999px; background: var(--bg-main); color: var(--text-main); cursor: pointer; }
+    .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+    @media (prefers-color-scheme: dark) { .chip[aria-pressed="true"] { color: #10261a; } }
+    .chip.hint { cursor: default; background: var(--accent-soft); border-color: transparent; color: var(--text-sub); }
+    .link-btn { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-size: .85rem; cursor: pointer; }
+    .btn-main { display: block; width: 100%; text-align: center; background: var(--accent); color: #fff; border: 0; border-radius: 10px; padding: 12px; font-size: 1rem; font-weight: 700; text-decoration: none; cursor: pointer; font-family: inherit; }
+    .btn-main:disabled { opacity: .5; cursor: default; }
+    @media (prefers-color-scheme: dark) { .btn-main { color: #10261a; } }
+    .btn-sub { background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 6px 12px; font-size: .85rem; cursor: pointer; font-family: inherit; }
+    .btn-danger { color: var(--danger); border-color: var(--danger); }
+    .btn-wide { width: 100%; padding: 12px; font-size: 1rem; }
+    .file-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+    .add-photo { display: flex; align-items: center; justify-content: center; min-height: 64px; border: 2px dashed var(--border-soft); border-radius: 12px; background: var(--bg-main); color: var(--accent); font-weight: 700; cursor: pointer; margin-top: 10px; }
+    .ph { border-top: 1px solid var(--border-soft); padding: 10px 0; }
+    .ph:first-child { border-top: 0; padding-top: 0; }
+    .ph-row { display: flex; gap: 10px; align-items: flex-start; }
+    .ph-row img { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; flex: none; background: var(--border-soft); }
+    .ph-row textarea { min-height: 96px; font-size: .9rem; }
+    .ph-ord { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: .8rem; }
+    .ph-ord em { font-style: normal; color: var(--accent); font-weight: 700; margin-right: auto; }
+    .ph-ord .sp { margin-right: auto; }
+    .ph-ord button { font: inherit; font-size: .8rem; padding: 4px 10px; border: 1px solid var(--border-soft); border-radius: 6px; background: var(--card-bg); color: var(--text-main); cursor: pointer; }
+    .ph-ord button:disabled { opacity: .35; cursor: default; }
+    .ph-st { font-size: .72rem; color: var(--text-sub); }
+    .ph-st.err { color: var(--danger); }
+    details.fold { border-top: 1px solid var(--border-soft); padding: 10px 0; }
+    details.fold:first-child { border-top: 0; }
+    details.fold summary { cursor: pointer; font-weight: 700; font-size: .9rem; color: var(--accent); list-style: none; display: flex; justify-content: space-between; gap: 8px; }
+    details.fold summary::-webkit-details-marker { display: none; }
+    details.fold summary small { font-weight: 400; color: var(--text-sub); }
+    details.fold[open] summary { margin-bottom: 8px; }
+    .tg { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+    .tg input { width: 22px; height: 22px; flex: none; accent-color: var(--accent); }
+    .msg { font-size: .88rem; margin: 10px 0 0; }
+    .msg.err { color: var(--danger); }
+    .msg.ok { color: var(--accent); }
+    .login-col { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+    #clearEmailBtn { align-self: flex-start; color: var(--text-sub); font-size: .78rem; }
+    .or-line { display: flex; align-items: center; gap: 8px; color: var(--text-sub); font-size: .78rem; }
+    .or-line span { flex: 1; height: 1px; background: var(--border-soft); }
+    .otp-code { font-size: 1.4rem !important; letter-spacing: 8px; text-align: center; }
+    .mine { border-top: 1px solid var(--border-soft); padding: 12px 0; display: flex; gap: 10px; }
+    .mine:first-child { border-top: 0; padding-top: 0; }
+    .mine img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; flex: none; }
+    .mine .bd { flex: 1; min-width: 0; }
+    .mine .dt { font-size: .75rem; color: var(--text-sub); }
+    .mine .nm { font-weight: 700; word-break: break-word; }
+    .mine .meta { font-size: .78rem; color: var(--text-sub); }
+    .mine .acts { display: flex; gap: 8px; margin-top: 6px; }
+    .center { text-align: center; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <a href="/" class="back-link">&larr; トップに戻る</a>
+  <h1>🛠️ マイ整備手帳</h1>
+  <p class="lead intro">自分の車の整備を、写真とひとことで残しておく手帳です。タイトルだけでも保存できます。公開にした記録は、車両ページの「この1台の歩み」に並びます。</p>
+
+  <div id="stateLoading" class="lead">確認中…</div>
+
+  <div id="stateNoCar" class="card center hidden">
+    <p><strong>車両登録が必要です。</strong></p>
+    <p class="lead">整備の記録は、登録済みのお車に紐づけて残します。</p>
+    <a class="btn-main" href="/edit">車両を登録する</a>
+  </div>
+
+  <div id="stateForm" class="hidden">
+    <form id="form" novalidate>
+      <div class="card">
+        <h2 id="formTitle">整備を記録する</h2>
+        <div id="carRow" class="hidden">
+          <label class="f" for="carSel">どの車？</label>
+          <select id="carSel"></select>
+        </div>
+        <label class="f" for="fTitle">タイトル</label>
+        <input type="text" id="fTitle" maxlength="80" placeholder="例：ドライブシャフト グリスアップ" autocomplete="off">
+        <label class="f" for="fComment">コメント<small>省略できます</small></label>
+        <textarea id="fComment" maxlength="2000" placeholder="例：前回から約1,800km。異音はなかったが、車検前に見ておいた。"></textarea>
+        <div class="count"><span id="cmCount">0</span> / 2000</div>
+      </div>
+
+      <div class="card">
+        <p class="f">写真と説明<small>どちらも省略できます</small></p>
+        <div id="photoList"></div>
+        <label class="add-photo" for="fPhotos">📷 写真を足す</label>
+        <input type="file" id="fPhotos" class="file-hidden" multiple accept="image/*,.heic,.heif,.HEIC,.HEIF">
+        <p class="note" id="photoNote">何枚でも選べます。はじめは撮影した順に並びます。</p>
+      </div>
+
+      <div class="card">
+        <label class="f" for="fDate">いつ</label>
+        <div class="row">
+          <input type="date" id="fDate">
+          <span class="chip hint hidden" id="dateHint">写真の撮影日を使いました</span>
+          <button type="button" class="chip" id="todayBtn">今日にする</button>
+        </div>
+        <label class="f" for="fKm">走行距離<small>任意</small></label>
+        <div class="row">
+          <div class="km"><input type="text" id="fKm" inputmode="numeric" maxlength="7" autocomplete="off"><span>km</span></div>
+          <span class="note" id="prevKm"></span>
+        </div>
+        <p class="f">どこを触った？<small>いくつでも・選ばなくても保存できます</small></p>
+        <div class="chips" id="areaChips"></div>
+        <p class="f">作業したのは<small>任意</small></p>
+        <div class="chips" id="workerChips">
+          <button type="button" class="chip" data-v="diy" aria-pressed="false">DIY（自分で）</button>
+          <button type="button" class="chip" data-v="shop" aria-pressed="false">SHOP（お店で）</button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:4px 14px">
+        <details class="fold" id="costFold">
+          <summary><span>＋ 費用をメモする</span><small>🔒 ほかの人には見えません</small></summary>
+          <div class="row"><input type="number" id="fCost" min="0" step="1" inputmode="numeric" style="flex:0 1 190px" placeholder="例：4200"><span>円</span></div>
+        </details>
+        <details class="fold" id="videoFold">
+          <summary><span>＋ 動画のリンクを貼る</span><small>YouTube・Instagram・X</small></summary>
+          <textarea id="fVideos" placeholder="https://youtu.be/…&#10;1行に1本"></textarea>
+          <p class="note">YouTube・Instagram・X の投稿URLだけ貼れます。動画そのものはこのサイトに預かりません。</p>
+        </details>
+      </div>
+
+      <label class="card tg" for="fPublic">
+        <span><b>車両ページに公開する</b><br><span class="note">費用は公開されません</span></span>
+        <input type="checkbox" id="fPublic" checked>
+      </label>
+
+      <button type="submit" class="btn-main" id="saveBtn">保存する</button>
+      <button type="button" class="btn-sub hidden" id="cancelEdit" style="margin-top:10px;width:100%;">直すのをやめる</button>
+      <button type="button" class="btn-sub hidden" id="retryBtn" style="margin-top:10px;width:100%;">残りの写真を送る</button>
+      <p class="msg" id="msg" role="status"></p>
+    </form>
+
+    <div id="stateLogin" class="card center hidden" style="margin-top:14px">
+      <p>保存するにはログインが必要です。<br><span class="note">入力した内容はこのまま残ります。</span></p>
+      <div class="login-col">
+        <div id="otpStep1" class="login-col">
+          <input type="email" id="emailLoginInput" placeholder="登録したメールアドレス" autocomplete="email">
+          <button type="button" id="clearEmailBtn" class="link-btn hidden">別のアドレスを使う</button>
+          <button type="button" class="btn-main" id="emailLoginBtn">確認コードを送信</button>
+          <div class="or-line"><span></span>または<span></span></div>
+          <button type="button" class="btn-sub btn-wide" id="loginBtn">Googleでログイン（従来方式）</button>
+        </div>
+        <div id="otpStep2" class="login-col hidden">
+          <p class="msg ok">✅ <strong id="otpSentEmail"></strong> に6桁の確認コードを送信しました。届いたコードを入力してください。</p>
+          <input type="text" id="otpCodeInput" class="otp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+          <button type="button" class="btn-main" id="otpVerifyBtn">ログイン</button>
+          <button type="button" class="link-btn" id="otpResendBtn">確認コードを再送する</button>
+        </div>
+        <p id="otpErrorMsg" class="msg err hidden"></p>
+      </div>
+    </div>
+
+    <div class="card hidden" id="mineCard" style="margin-top:14px">
+      <h2>これまでの記録</h2>
+      <div id="mineList"><p class="lead">読み込み中…</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  if (firebase.apps.length === 0) firebase.initializeApp(FIREBASE_CONFIG);
+  const storage = firebase.storage();
+
+  // 箇所チップ（id と名前は torque-data.json の areas に合わせる＋電装・オイル消耗品）
+  const AREAS = [
+    ['engine', '⚙️ エンジン'], ['fuel', '🔥 燃料・点火'], ['driveline', '🔗 駆動系'], ['suspension', '🛞 足回り・操舵'],
+    ['brake', '🛑 ブレーキ'], ['electric', '⚡ 電装'], ['consumable', '🛢 オイル・消耗品'], ['body', '🚗 ボディ・その他']
+  ];
+  const AREA_LABEL = Object.fromEntries(AREAS);
+  const WORKER_LABEL = { diy: 'DIY', shop: 'SHOP' };
+  // DB の maint_video_urls_ok と同じ条件
+  const VIDEO_RE = /^https:\/\/((www|m)\.)?(youtube\.com|youtu\.be|instagram\.com|x\.com|twitter\.com)\//;
+  const DRAFT_KEY = 'r500_maint_draft';
+
+  const $ = id => document.getElementById(id);
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function track(name, params) { try { if (typeof gtag === 'function') gtag('event', name, params || {}); } catch (e) {} }
+  function setMsg(text, kind) { const m = $('msg'); m.textContent = text || ''; m.className = 'msg' + (kind ? ' ' + kind : ''); }
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function fmtDate(s) { if (!s) return '日付待ち'; const [y, m, d] = s.split('-'); return y + '年' + Number(m) + '月' + Number(d) + '日'; }
+  function fmtKm(n) { return Number(n).toLocaleString('ja-JP') + 'km'; }
+
+  let currentUser = null;
+  let myCars = [];
+  let started = false;
+  let editing = null;        // 直している記録（maint_records の行）
+  let photos = [];           // { key, file?, previewUrl, row?, caption, takenAt, state: 'new'|'saved'|'sending'|'failed' }
+  let removedPhotoIds = [];  // 直す中に外した既存の写真
+  let savedRecordId = null;  // 写真の送信が途中で止まったときの続き先
+  let dateTouched = false;   // 日付を手で変えたら写真の撮影日で上書きしない
+  let pendingSave = false;   // 未ログインで「保存する」を押した
+  let busy = false;
+  let keySeq = 0;
+
+  // ── チップ ──
+  AREAS.forEach(([v, label]) => {
+    const b = el('button', 'chip', label);
+    b.type = 'button'; b.dataset.v = v; b.setAttribute('aria-pressed', 'false');
+    $('areaChips').appendChild(b);
+  });
+  $('areaChips').addEventListener('click', ev => {
+    const b = ev.target.closest('.chip'); if (!b) return;
+    b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+    saveDraft();
+  });
+  $('workerChips').addEventListener('click', ev => {
+    const b = ev.target.closest('.chip'); if (!b) return;
+    const on = b.getAttribute('aria-pressed') !== 'true';
+    $('workerChips').querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', 'false'));
+    if (on) b.setAttribute('aria-pressed', 'true');
+    saveDraft();
+  });
+  function areasVal() { return [...$('areaChips').querySelectorAll('.chip[aria-pressed="true"]')].map(b => b.dataset.v); }
+  function setAreas(list) { $('areaChips').querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', (list || []).includes(b.dataset.v) ? 'true' : 'false')); }
+  function workerVal() { const b = $('workerChips').querySelector('.chip[aria-pressed="true"]'); return b ? b.dataset.v : null; }
+  function setWorker(v) { $('workerChips').querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v ? 'true' : 'false')); }
+
+  // ── 日付・距離 ──
+  $('fDate').value = ymd(new Date());
+  $('fDate').addEventListener('change', () => { dateTouched = true; $('dateHint').classList.add('hidden'); updatePrevKm(); saveDraft(); });
+  $('todayBtn').addEventListener('click', () => { $('fDate').value = ymd(new Date()); dateTouched = true; $('dateHint').classList.add('hidden'); updatePrevKm(); saveDraft(); });
+  $('fKm').addEventListener('input', () => { $('fKm').value = $('fKm').value.replace(/[^0-9]/g, ''); saveDraft(); });
+  $('fComment').addEventListener('input', () => { $('cmCount').textContent = $('fComment').value.length; });
+  ['fTitle', 'fComment', 'fCost', 'fVideos'].forEach(id => $(id).addEventListener('input', saveDraft));
+  $('fPublic').addEventListener('change', saveDraft);
+  $('carSel').addEventListener('change', updatePrevKm);
+
+  // 「前回の記録」＝作業日が一つ前で、距離の入った記録（入力した順ではない）
+  let prevSeq = 0;
+  async function updatePrevKm() {
+    const seq = ++prevSeq;
+    $('prevKm').textContent = '';
+    const carId = currentCarId(), d = $('fDate').value;
+    if (!carId || !d) return;
+    let q = supabaseClient.from('maint_records').select('odometer_km, work_date')
+      .eq('car_id', carId).lt('work_date', d).not('odometer_km', 'is', null)
+      .order('work_date', { ascending: false }).order('created_at', { ascending: false }).limit(1);
+    const { data } = await q;
+    if (seq !== prevSeq || !data || !data.length) return;
+    $('prevKm').textContent = '前回の記録は ' + fmtKm(data[0].odometer_km);
+  }
+  function currentCarId() {
+    if (editing) return editing.car_id;
+    return myCars.length ? $('carSel').value : null;
+  }
+
+  // ── 下書き（ログイン前・うっかり閉じたとき用。写真は残せない） ──
+  function saveDraft() {
+    if (editing) return;
+    const d = { title: $('fTitle').value, comment: $('fComment').value, date: dateTouched ? $('fDate').value : '', km: $('fKm').value,
+      areas: areasVal(), worker: workerVal(), cost: $('fCost').value, videos: $('fVideos').value, pub: $('fPublic').checked };
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch (e) {}
+  }
+  function loadDraft() {
+    let d = null;
+    try { d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch (e) {}
+    if (!d) return;
+    $('fTitle').value = d.title || ''; $('fComment').value = d.comment || ''; $('cmCount').textContent = $('fComment').value.length;
+    if (d.date) { $('fDate').value = d.date; dateTouched = true; }
+    $('fKm').value = d.km || ''; setAreas(d.areas); setWorker(d.worker);
+    $('fCost').value = d.cost || ''; if (d.cost) $('costFold').open = true;
+    $('fVideos').value = d.videos || ''; if (d.videos) $('videoFold').open = true;
+    $('fPublic').checked = d.pub !== false;
+  }
+  function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (e) {} }
+
+  // ── 写真：撮影日を読む（JPEG の Exif。読めなければファイルの日時） ──
+  async function takenAtOf(file) {
+    try {
+      const buf = await file.slice(0, 262144).arrayBuffer();
+      const v = new DataView(buf);
+      if (v.getUint16(0) !== 0xFFD8) throw 0;
+      let off = 2;
+      while (off + 4 < v.byteLength) {
+        const marker = v.getUint16(off), len = v.getUint16(off + 2);
+        if (marker === 0xFFE1 && v.getUint32(off + 4) === 0x45786966) {
+          const t = off + 10, le = v.getUint16(t) === 0x4949;
+          const u16 = p => v.getUint16(t + p, le), u32 = p => v.getUint32(t + p, le);
+          const readStr = (p, n) => { let s = ''; for (let i = 0; i < n - 1; i++) s += String.fromCharCode(v.getUint8(t + p + i)); return s; };
+          const findTag = (ifd, tag) => {
+            const n = u16(ifd);
+            for (let i = 0; i < n; i++) { const e = ifd + 2 + i * 12; if (u16(e) === tag) return e; }
+            return -1;
+          };
+          const ifd0 = u32(4);
+          let e = -1;
+          const exifPtr = findTag(ifd0, 0x8769);
+          if (exifPtr >= 0) e = findTag(u32(exifPtr + 8), 0x9003);
+          if (e < 0) e = findTag(ifd0, 0x0132);
+          if (e < 0) throw 0;
+          const m = readStr(u32(e + 8), 20).match(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+          if (!m) throw 0;
+          return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
+        }
+        if ((marker & 0xFF00) !== 0xFF00) break;
+        off += 2 + len;
+      }
+    } catch (e) {}
+    return file.lastModified ? new Date(file.lastModified) : null;
+  }
+
+  // ── HEIC → JPEG ──
+  function isHeic(file) {
+    const n = (file.name || '').toLowerCase(), t = (file.type || '').toLowerCase();
+    return n.endsWith('.heic') || n.endsWith('.heif') || t === 'image/heic' || t === 'image/heif' || t === 'image/heic-sequence' || t === 'image/heif-sequence';
+  }
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src; s.onload = resolve; s.onerror = () => reject(new Error('script load failed'));
+      document.head.appendChild(s);
+    });
+  }
+  let heicLoading = null;
+  function ensureHeic2any() {
+    if (window.heic2any) return Promise.resolve();
+    if (!heicLoading) {
+      heicLoading = loadScript('https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js')
+        .catch(() => loadScript('https://unpkg.com/heic2any@0.0.4/dist/heic2any.min.js'))
+        .catch(() => { throw new Error('HEIC変換ライブラリを読み込めません（ネットワークを確認してください）'); });
+    }
+    return heicLoading;
+  }
+  async function toJpegIfHeic(file) {
+    if (!isHeic(file)) return file;
+    await ensureHeic2any();
+    let out;
+    try { out = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 }); }
+    catch (err) { throw new Error('HEICの変換に失敗しました。JPEGに変換してからお試しください。'); }
+    const blob = Array.isArray(out) ? out[0] : out;
+    if (!blob) throw new Error('HEIC変換の結果が空でした');
+    return new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+  }
+
+  $('fPhotos').addEventListener('change', async ev => {
+    const files = [...(ev.target.files || [])];
+    ev.target.value = '';
+    if (!files.length) return;
+    setMsg('写真を読み込んでいます…');
+    const batch = [];
+    for (const f of files) {
+      try {
+        const takenAt = await takenAtOf(f);           // 変換前に読む＝変換すると撮影日が消える
+        const file = await toJpegIfHeic(f);
+        batch.push({ key: ++keySeq, file, previewUrl: URL.createObjectURL(file), caption: '', takenAt, state: 'new' });
+      } catch (err) { setMsg(err.message, 'err'); }
+    }
+    // 選んだ順は機種によって当てにならないので、撮影した順（古い→新しい）に並べてから後ろへ足す
+    batch.sort((a, b) => (a.takenAt ? a.takenAt.getTime() : 0) - (b.takenAt ? b.takenAt.getTime() : 0));
+    photos = photos.concat(batch);
+    if (!dateTouched && !editing) {
+      const first = batch.find(p => p.takenAt);
+      if (first) { $('fDate').value = ymd(first.takenAt); $('dateHint').classList.remove('hidden'); updatePrevKm(); }
+    }
+    if ($('msg').className.indexOf('err') === -1) setMsg('');
+    renderPhotos();
+  });
+
+  function renderPhotos() {
+    const box = $('photoList');
+    box.textContent = '';
+    photos.forEach((p, i) => {
+      const wrap = el('div', 'ph');
+      const row = el('div', 'ph-row');
+      const img = el('img'); img.src = p.previewUrl || p.row.thumb_url || p.row.url; img.alt = ''; img.loading = 'lazy';
+      const ta = el('textarea'); ta.maxLength = 500; ta.placeholder = 'この写真の説明（省略できます）'; ta.value = p.caption || '';
+      ta.addEventListener('input', () => { p.caption = ta.value; });
+      row.append(img, ta);
+      const ord = el('div', 'ph-ord');
+      if (i === 0) ord.appendChild(el('em', null, '1枚目（一覧に出ます）'));
+      else {
+        const top = el('button', null, '1枚目にする'); top.type = 'button';
+        top.addEventListener('click', () => { photos.unshift(photos.splice(i, 1)[0]); renderPhotos(); });
+        ord.appendChild(top);
+        ord.appendChild(el('span', 'sp'));
+      }
+      const up = el('button', null, '↑'); up.type = 'button'; up.disabled = i === 0; up.setAttribute('aria-label', 'ひとつ上へ');
+      up.addEventListener('click', () => { [photos[i - 1], photos[i]] = [photos[i], photos[i - 1]]; renderPhotos(); });
+      const dn = el('button', null, '↓'); dn.type = 'button'; dn.disabled = i === photos.length - 1; dn.setAttribute('aria-label', 'ひとつ下へ');
+      dn.addEventListener('click', () => { [photos[i + 1], photos[i]] = [photos[i], photos[i + 1]]; renderPhotos(); });
+      const rm = el('button', null, '外す'); rm.type = 'button';
+      rm.addEventListener('click', () => {
+        const [gone] = photos.splice(i, 1);
+        if (gone.row) removedPhotoIds.push(gone.row.id);
+        if (gone.previewUrl) URL.revokeObjectURL(gone.previewUrl);
+        renderPhotos();
+      });
+      ord.append(up, dn, rm);
+      wrap.append(row, ord);
+      if (p.state === 'sending') wrap.appendChild(el('div', 'ph-st', '送信中…'));
+      if (p.state === 'failed') wrap.appendChild(el('div', 'ph-st err', '送れませんでした（「残りの写真を送る」で続きから送れます）'));
+      box.appendChild(wrap);
+    });
+    $('photoNote').textContent = photos.length
+      ? photos.length + '枚・枚数に上限はありません。並びは「↑」「↓」で変えられます。'
+      : '何枚でも選べます。はじめは撮影した順に並びます。';
+  }
+
+  // ── 縮小して2サイズ作る（本体＝長辺1600px・一覧用＝長辺400px） ──
+  function loadImage(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('画像の読み込みに失敗しました')); };
+      img.src = url;
+    });
+  }
+  function shrink(img, max, quality) {
+    return new Promise((resolve, reject) => {
+      let w = img.naturalWidth, h = img.naturalHeight;
+      const long = Math.max(w, h);
+      if (long > max) { const s = max / long; w = Math.round(w * s); h = Math.round(h * s); }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('画像の変換に失敗しました')), 'image/jpeg', quality);
+    });
+  }
+  async function uploadOne(p, carId, recordId) {
+    const img = await loadImage(p.file);
+    const [big, small] = [await shrink(img, 1600, 0.85), await shrink(img, 400, 0.8)];
+    const base = 'maint/' + carId + '/' + recordId + '/' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+    const r1 = storage.ref().child(base + '.jpg'), r2 = storage.ref().child(base + '_t.jpg');
+    await r1.put(big, { contentType: 'image/jpeg' });
+    await r2.put(small, { contentType: 'image/jpeg' });
+    return { url: await r1.getDownloadURL(), thumb_url: await r2.getDownloadURL() };
+  }
+
+  // ── 認証 ──
+  async function handleAuth(session) {
+    currentUser = session && session.user ? session.user : null;
+    if (!currentUser) {
+      started = false;
+      $('stateLoading').classList.add('hidden');
+      $('stateForm').classList.remove('hidden');
+      $('mineCard').classList.add('hidden');
+      return;
+    }
+    if (started) return;
+    started = true;
+    try {
+      const { data, error } = await supabaseClient.from('cars')
+        .select('document_id, handle_name, model_display_a, model_display_b, model_display_c')
+        .eq('owner_user_id', currentUser.id);
+      if (error) throw error;
+      myCars = (data || []).map(c => ({
+        id: c.document_id,
+        label: (c.handle_name || '') + ' ' + (c.model_display_c || [c.model_display_a || '', c.model_display_b || ''].filter(Boolean).join(' '))
+      }));
+    } catch (err) {
+      console.error('[my-maintenance] cars', err);
+      started = false;
+      $('stateLoading').textContent = '読み込みに失敗しました。再読み込みしてください。';
+      return;
+    }
+    $('stateLoading').classList.add('hidden');
+    $('stateLogin').classList.add('hidden');
+    if (!myCars.length) { $('stateForm').classList.add('hidden'); $('stateNoCar').classList.remove('hidden'); return; }
+    const sel = $('carSel');
+    sel.textContent = '';
+    myCars.forEach(c => { const o = el('option', null, c.label.trim() || c.id); o.value = c.id; sel.appendChild(o); });
+    $('carRow').classList.toggle('hidden', myCars.length < 2 || !!editing);
+    $('stateForm').classList.remove('hidden');
+    $('mineCard').classList.remove('hidden');
+    updatePrevKm();
+    loadMine();
+    if (pendingSave) {
+      pendingSave = false;
+      // 2台以上なら車を選んでもらってから
+      if (myCars.length < 2) save();
+      else setMsg('ログインしました。どの車の記録かを選んで、もう一度「保存する」を押してください。', 'ok');
+    }
+  }
+  supabaseClient.auth.getSession().then(({ data }) => handleAuth(data && data.session)).catch(err => { console.error(err); handleAuth(null); });
+  supabaseClient.auth.onAuthStateChange((ev, session) => { if (ev === 'SIGNED_OUT' || ev === 'SIGNED_IN') handleAuth(session); });
+  $('loginBtn').addEventListener('click', () => {
+    saveDraft();
+    supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href } });
+  });
+
+  // ── メールの確認コードでログイン（tools-edit.html と同じ流れ） ──
+  function showOtpError(msg) {
+    $('otpErrorMsg').textContent = msg || '';
+    $('otpErrorMsg').classList.toggle('hidden', !msg);
+  }
+  let otpEmail = '';
+  $('emailLoginBtn').addEventListener('click', async () => {
+    const email = $('emailLoginInput').value.trim();
+    if (!email) { showOtpError('メールアドレスを入力してください。'); return; }
+    const btn = $('emailLoginBtn');
+    btn.disabled = true; btn.textContent = '送信中…';
+    const { error } = await supabaseClient.auth.signInWithOtp({ email });
+    btn.disabled = false; btn.textContent = '確認コードを送信';
+    const sentBefore = !!error && /after [0-9]+ seconds/.test(String(error.message));
+    if (error && !sentBefore) { showOtpError(error.status === 429 ? '送信が続いたため一時的に止まっています。数分おいてからお試しください。' : '送信に失敗しました：' + error.message); return; }
+    otpEmail = email;
+    try { localStorage.setItem('r500_login_email', email); } catch (e) {}
+    $('otpSentEmail').textContent = email;
+    $('otpStep1').classList.add('hidden');
+    $('otpStep2').classList.remove('hidden');
+    showOtpError(sentBefore ? '確認コードは少し前に送信済みです。届いているメールの、いちばん新しいコードを入力してください。' : '');
+  });
+  $('otpVerifyBtn').addEventListener('click', async () => {
+    const code = $('otpCodeInput').value.trim();
+    if (!code) { showOtpError('確認コードを入力してください。'); return; }
+    const btn = $('otpVerifyBtn');
+    btn.disabled = true; btn.textContent = '確認中…';
+    const { error } = await supabaseClient.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
+    btn.disabled = false; btn.textContent = 'ログイン';
+    if (error) { showOtpError('コードが正しくないか、期限切れです。何度か送信した場合は、いちばん新しいメールのコードを入力してください。'); return; }
+    showOtpError('');
+  });
+  $('otpResendBtn').addEventListener('click', async () => {
+    if (!otpEmail) return;
+    const { error } = await supabaseClient.auth.signInWithOtp({ email: otpEmail });
+    showOtpError(error ? (error.status === 429 ? '再送は1分ほど間をあけてからお試しください。直前に届いたコードはそのまま使えます。' : '再送に失敗しました：' + error.message) : '確認コードを再送しました。');
+  });
+  (function () {
+    let saved = null;
+    try { saved = localStorage.getItem('r500_login_email'); } catch (e) {}
+    if (saved) { $('emailLoginInput').value = saved; $('clearEmailBtn').classList.remove('hidden'); }
+    $('clearEmailBtn').addEventListener('click', () => {
+      $('emailLoginInput').value = '';
+      $('clearEmailBtn').classList.add('hidden');
+      try { localStorage.removeItem('r500_login_email'); } catch (e) {}
+      $('emailLoginInput').focus();
+    });
+  })();
+
+  // ── 保存 ──
+  function videoList() {
+    return $('fVideos').value.split(/\s+/).map(s => s.trim()).filter(Boolean);
+  }
+  $('form').addEventListener('submit', ev => { ev.preventDefault(); save(); });
+
+  async function save() {
+    if (busy) return;
+    const title = $('fTitle').value.trim();
+    if (!title) { setMsg('タイトルを入れてください。', 'err'); $('fTitle').focus(); return; }
+    if (!$('fDate').value) { setMsg('日付を入れてください。', 'err'); return; }
+    const videos = videoList();
+    const badVideo = videos.find(u => !VIDEO_RE.test(u) || u.length > 500);
+    if (badVideo) { setMsg('動画のリンクは YouTube・Instagram・X のURLだけ貼れます：' + badVideo, 'err'); $('videoFold').open = true; return; }
+    const costRaw = $('fCost').value.trim();
+    if (costRaw && !/^\d+$/.test(costRaw)) { setMsg('費用は数字だけで入れてください。', 'err'); $('costFold').open = true; return; }
+    if (!currentUser) {
+      pendingSave = true;
+      saveDraft();
+      $('stateLogin').classList.remove('hidden');
+      $('stateLogin').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    busy = true; $('saveBtn').disabled = true; $('retryBtn').classList.add('hidden');
+    setMsg('保存しています…');
+    const carId = currentCarId();
+    const rec = {
+      title, comment: $('fComment').value.trim() || null, work_date: $('fDate').value,
+      odometer_km: $('fKm').value ? Number($('fKm').value) : null,
+      areas: areasVal(), worker: workerVal(), is_public: $('fPublic').checked, video_urls: videos
+    };
+    try {
+      let recordId;
+      if (editing) {
+        const { error } = await supabaseClient.from('maint_records').update(rec).eq('id', editing.id);
+        if (error) throw error;
+        recordId = editing.id;
+      } else if (savedRecordId) {
+        // 写真の送信が途中で止まったあとに、もう一度「保存する」を押した＝同じ記録を直す
+        const { error } = await supabaseClient.from('maint_records').update(rec).eq('id', savedRecordId);
+        if (error) throw error;
+        recordId = savedRecordId;
+      } else {
+        const { data, error } = await supabaseClient.from('maint_records').insert(Object.assign({ car_id: carId }, rec)).select('id').single();
+        if (error) throw error;
+        recordId = data.id;
+      }
+      savedRecordId = recordId;
+
+      // 費用（本人専用の表）
+      if (costRaw) {
+        const { error } = await supabaseClient.from('maint_costs').upsert({ record_id: recordId, cost_yen: Number(costRaw), updated_at: new Date().toISOString() });
+        if (error) throw error;
+      } else if (editing) {
+        await supabaseClient.from('maint_costs').delete().eq('record_id', recordId);
+      }
+
+      // 外した写真
+      if (removedPhotoIds.length) {
+        const { error } = await supabaseClient.from('maint_photos').delete().in('id', removedPhotoIds);
+        if (error) throw error;
+        removedPhotoIds = [];
+      }
+      await sendPhotos(carId, recordId);
+    } catch (err) {
+      console.error('[my-maintenance] save', err);
+      setMsg('保存に失敗しました：' + (err.message || err), 'err');
+      busy = false; $('saveBtn').disabled = false;
+    }
+  }
+
+  // 写真は記録を保存してから1枚ずつ送る（途中で切れても、送れた分は残る）
+  async function sendPhotos(carId, recordId) {
+    let failed = 0;
+    for (let i = 0; i < photos.length; i++) {
+      const p = photos[i];
+      if (p.state === 'saved') {
+        const { error } = await supabaseClient.from('maint_photos').update({ sort_order: i, caption: p.caption.trim() || null }).eq('id', p.row.id);
+        if (error) { console.error(error); failed++; }
+        continue;
+      }
+      p.state = 'sending'; renderPhotos();
+      setMsg('写真を送っています（' + (i + 1) + ' / ' + photos.length + '）…');
+      try {
+        const urls = await uploadOne(p, carId, recordId);
+        const { data, error } = await supabaseClient.from('maint_photos')
+          .insert({ record_id: recordId, url: urls.url, thumb_url: urls.thumb_url, caption: p.caption.trim() || null, sort_order: i, taken_at: p.takenAt ? p.takenAt.toISOString() : null })
+          .select('id, url, thumb_url').single();
+        if (error) throw error;
+        p.row = data; p.state = 'saved';
+      } catch (err) {
+        console.error('[my-maintenance] photo', err);
+        p.state = 'failed'; failed++;
+      }
+      renderPhotos();
+    }
+    busy = false; $('saveBtn').disabled = false;
+    if (failed) {
+      setMsg('記録は保存しました。写真のうち ' + failed + ' 枚が送れませんでした。電波の良いところで「残りの写真を送る」を押してください。', 'err');
+      $('retryBtn').classList.remove('hidden');
+      return;
+    }
+    track('maint_save', { photos: photos.length, edit: editing ? 1 : 0 });
+    clearDraft();
+    resetForm();
+    setMsg('保存しました。', 'ok');
+    loadMine();
+  }
+  $('retryBtn').addEventListener('click', () => {
+    if (busy || !savedRecordId) return;
+    busy = true; $('saveBtn').disabled = true; $('retryBtn').classList.add('hidden');
+    photos.forEach(p => { if (p.state === 'failed') p.state = 'new'; });
+    sendPhotos(currentCarId(), savedRecordId);
+  });
+
+  function resetForm() {
+    editing = null; savedRecordId = null; dateTouched = false; removedPhotoIds = [];
+    photos.forEach(p => { if (p.previewUrl) URL.revokeObjectURL(p.previewUrl); });
+    photos = [];
+    $('form').reset();
+    $('fPublic').checked = true;
+    $('fDate').value = ymd(new Date());
+    $('dateHint').classList.add('hidden');
+    setAreas([]); setWorker(null);
+    $('cmCount').textContent = '0';
+    $('costFold').open = false; $('videoFold').open = false;
+    $('formTitle').textContent = '整備を記録する';
+    $('saveBtn').textContent = '保存する';
+    $('cancelEdit').classList.add('hidden');
+    $('retryBtn').classList.add('hidden');
+    $('carRow').classList.toggle('hidden', myCars.length < 2);
+    renderPhotos();
+    updatePrevKm();
+  }
+  $('cancelEdit').addEventListener('click', () => { resetForm(); setMsg(''); loadDraft(); });
+
+  // ── 直す ──
+  async function startEdit(id) {
+    setMsg('読み込んでいます…');
+    const [r, ph, co] = await Promise.all([
+      supabaseClient.from('maint_records').select('*').eq('id', id).single(),
+      supabaseClient.from('maint_photos').select('id, url, thumb_url, caption, sort_order').eq('record_id', id).order('sort_order').order('created_at'),
+      supabaseClient.from('maint_costs').select('cost_yen').eq('record_id', id).maybeSingle()
+    ]);
+    if (r.error) { setMsg('読み込みに失敗しました：' + r.error.message, 'err'); return; }
+    resetForm();
+    editing = r.data; savedRecordId = null; dateTouched = true;
+    $('fTitle').value = editing.title || '';
+    $('fComment').value = editing.comment || ''; $('cmCount').textContent = $('fComment').value.length;
+    $('fDate').value = editing.work_date || ymd(new Date());
+    $('fKm').value = editing.odometer_km != null ? String(editing.odometer_km) : '';
+    setAreas(editing.areas); setWorker(editing.worker);
+    $('fPublic').checked = !!editing.is_public;
+    $('fVideos').value = (editing.video_urls || []).join('\n'); $('videoFold').open = !!(editing.video_urls || []).length;
+    const cost = co.data && co.data.cost_yen;
+    $('fCost').value = cost != null ? String(cost) : ''; $('costFold').open = cost != null;
+    photos = (ph.data || []).map(row => ({ key: ++keySeq, row, caption: row.caption || '', state: 'saved' }));
+    renderPhotos();
+    $('formTitle').textContent = '記録を直す';
+    $('saveBtn').textContent = '直した内容を保存する';
+    $('cancelEdit').classList.remove('hidden');
+    $('carRow').classList.add('hidden');
+    setMsg('');
+    updatePrevKm();
+    $('form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ── これまでの記録（自分が書いたもの・作業日の新しい順） ──
+  async function loadMine() {
+    const box = $('mineList');
+    const { data, error } = await supabaseClient.from('maint_records')
+      .select('id, car_id, title, work_date, odometer_km, worker, is_public, areas, created_at, maint_photos(thumb_url, url, sort_order)')
+      .eq('author_user_id', currentUser.id)
+      .order('work_date', { ascending: false, nullsFirst: true }).order('created_at', { ascending: true });
+    box.textContent = '';
+    if (error) { box.appendChild(el('p', 'lead', '読み込みに失敗しました。')); console.error(error); return; }
+    if (!data.length) { $('mineCard').classList.add('hidden'); return; }
+    $('mineCard').classList.remove('hidden');
+    const carLabel = Object.fromEntries(myCars.map(c => [c.id, c.label.trim()]));
+    data.forEach(r => {
+      const item = el('div', 'mine');
+      const ps = (r.maint_photos || []).slice().sort((a, b) => a.sort_order - b.sort_order);
+      if (ps.length) { const im = el('img'); im.src = ps[0].thumb_url || ps[0].url; im.alt = ''; im.loading = 'lazy'; item.appendChild(im); }
+      const bd = el('div', 'bd');
+      bd.appendChild(el('div', 'dt', fmtDate(r.work_date) + (myCars.length > 1 && carLabel[r.car_id] ? '　' + carLabel[r.car_id] : '')));
+      bd.appendChild(el('div', 'nm', r.title));
+      const meta = [];
+      if (r.odometer_km != null) meta.push(fmtKm(r.odometer_km));
+      if (r.worker) meta.push(WORKER_LABEL[r.worker]);
+      if (ps.length) meta.push('写真' + ps.length + '枚');
+      (r.areas || []).forEach(a => meta.push(AREA_LABEL[a]));
+      if (!r.is_public) meta.push('🔒 非公開');
+      if (meta.length) bd.appendChild(el('div', 'meta', meta.join(' ・ ')));
+      const acts = el('div', 'acts');
+      const ed = el('button', 'btn-sub', '直す'); ed.type = 'button';
+      ed.addEventListener('click', () => startEdit(r.id));
+      const del = el('button', 'btn-sub btn-danger', '消す'); del.type = 'button';
+      let armed = false;
+      del.addEventListener('click', async () => {
+        if (!armed) { armed = true; del.textContent = 'もう一度押すと消します'; setTimeout(() => { armed = false; del.textContent = '消す'; }, 4000); return; }
+        const { error: e2 } = await supabaseClient.from('maint_records').delete().eq('id', r.id);
+        if (e2) { setMsg('消せませんでした：' + e2.message, 'err'); return; }
+        if (editing && editing.id === r.id) resetForm();
+        loadMine();
+      });
+      acts.append(ed, del);
+      bd.appendChild(acts);
+      item.appendChild(bd);
+      box.appendChild(item);
+    });
+  }
+
+  loadDraft();
+  renderPhotos();
+})();
+</script>
+</body>
+</html>
