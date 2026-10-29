@@ -23,6 +23,8 @@ GAS の main.gs sendDailyDigest() からの移植。挙動は1:1で揃えてあ�
                    車に紐づかない手帳＝vehicle_id が null は行き先が無いので載せない）
   - 新規おすすめ工具 owner_tools.notification_sent = false かつ is_hidden = false かつ 14日以内
                  （2026-10-07 追加。TOOLS_DIGEST_ON が True のときだけ。オフの間はフラグも立てない）
+  - マイ整備手帳  maint_records.digest_sent_at IS NULL かつ is_public かつ 作業日あり かつ 14日以内（1台1日1行）
+                 （2026-10-29 追加。MAINT_DIGEST_ON が True のときだけ）
   - オーナーの記事 owner_articles.digest_sent_at IS NULL かつ is_hidden = false かつ 14日以内（貼った日）
                  （2026-10-29 追加。ARTICLES_DIGEST_ON が True のときだけ。載せた記事の書き手には「紹介しました」を1通）
   - お知らせ      news.sent_at IS NULL                  かつ 14日以内（最大5件）
@@ -53,11 +55,11 @@ CHUNK_SIZE = 90          # Brevo の BCC 上限に合わせた main.gs と同じ
 WINDOW_DAYS = 14         # 取り残し救済窓（配信失敗しても14日以内は自動リカバリ）
 NEWS_LIMIT = 5           # main.gs の getUnsentNewsAll_ と同じ
 
-# 車載手帳を初めて載せる便にだけ「対象に加えました」の一文を添える（2026-09-09 ユーザー指示）。
-# 判定＝このアンカー日以降に作られた手帳で、すでに配信済みのものが1件も無ければ初回。
-# アンカーより前の分は追加時に「配信済み扱い」で埋めたものなので数に入れない。
-# 一度配信すれば条件は二度と成立しない＝この分岐を消し忘れても案内が再び出ることはない。
-NOTEBOOK_FIRST_ANCHOR = "2026-09-08T00:00:00Z"
+# マイ整備手帳の記録を載せるか（2026-10-29 ユーザー決裁「載せたい。1台1日1行でいい」）。
+# 整備手帳はまだ導線なし＝公開の判断をユーザーが出すまで False。False の間は対象を読まず、印も付けない。
+# 公開前から有る記録は digest_sent_at を埋めてある（maint-notebook/digest_2026-10-29.sql）＝入れた日に過去分は流れない。
+MAINT_DIGEST_ON = False
+MAINT_LIST_MAX = 10      # 1通に並べる行（台×日）の上限。超えた分は印を付けず翌朝へ
 
 # おすすめ工具（/tools）の新着をダイジェストに載せるか（2026-10-07）。
 # ⚠️ダイジェストは登録オーナー全員に届く＝URLを載せた時点で実質公開になる。
@@ -168,10 +170,21 @@ def main():
         {"notification_sent": "eq.false", "created_at": f"gte.{window_start}",
          "event_date": f"gte.{today_utc}"},
         "order=created_at.asc")
+    # 行き先はイベントの個別ページ（2026-10-29 ユーザー指示）。個別ページは gen_event_pages.py が6時間ごとに作る＝
+    # まだ slug が無い登録直後のイベントだけ一覧へ
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "event-slugs.json"), encoding="utf-8") as f:
+            event_slugs = json.load(f)
+    except Exception as ex:
+        log(f"event-slugs.json が読めないので、イベントは一覧へ案内します: {ex}")
+        event_slugs = {}
     new_events = []
     for e in events_raw:
         d = datetime.strptime(str(e["event_date"])[:10], "%Y-%m-%d")
-        new_events.append({"name": e["event_name"], "date": f"{d.year}/{d.month}/{d.day}",
+        slug = event_slugs.get(e["id"])
+        new_events.append({"name": e["event_name"],
+                           "date": f"{d.year}年{d.month}月{d.day}日（{'月火水木金土日'[d.weekday()]}）",
+                           "url": f"{SITE}/event/{slug}/" if slug else f"{SITE}/event",
                            "owner": e["owner_name"], "loc": e["location"], "db_id": e["id"]})
 
     # 4. 新規ストーリー
@@ -212,10 +225,36 @@ def main():
     new_notebooks = [{"id": r["id"], "doc": r["vehicle_id"],
                       "owner": (nb_car_map.get(r["vehicle_id"]) or {}).get("handle_name") or "オーナー"}
                      for r in nb_raw if r.get("vehicle_id")]
-    notebook_first = bool(new_notebooks) and not sb_select(
-        "equipment_records", "id",
-        {"notification_sent": "eq.true", "created_at": f"gte.{NOTEBOOK_FIRST_ANCHOR}"},
-        "limit=1")
+
+    # 5d. マイ整備手帳（2026-10-29 追加・MAINT_DIGEST_ON のときだけ）
+    #     公開で作業日のある記録（みんなの整備手帳に出るものと同じ条件）。1台・1日（登録したJSTの日）で1行に畳む。
+    #     手放された車は載せない＝印も付けず、14日で対象から外れる
+    new_maint, maint_ids = [], []
+    if MAINT_DIGEST_ON:
+        mr_raw = sb_select(
+            "maint_records", "id,car_id,title,created_at",
+            {"digest_sent_at": "is.null", "is_public": "eq.true", "work_date": "not.is.null",
+             "created_at": f"gte.{window_start}"},
+            "order=created_at.asc")
+        mr_car_map = {}
+        if mr_raw:
+            in_list = ",".join('"' + str(i) + '"' for i in sorted({r["car_id"] for r in mr_raw}))
+            for c in sb_select("cars", "document_id,handle_name,model_display_c,is_sold",
+                               {"document_id": f"in.({in_list})"}):
+                mr_car_map[c["document_id"]] = c
+        groups = {}
+        for r in mr_raw:
+            car = mr_car_map.get(r["car_id"])
+            if not car or car.get("is_sold"):
+                continue
+            day = (datetime.fromisoformat(r["created_at"].replace("Z", "+00:00")) + timedelta(hours=9)).date()
+            g = groups.setdefault((r["car_id"], day), {
+                "doc": r["car_id"], "owner": car.get("handle_name") or "オーナー",
+                "model": car.get("model_display_c") or "FIAT 500", "titles": [], "ids": []})
+            g["titles"].append(r["title"])
+            g["ids"].append(r["id"])
+        new_maint = list(groups.values())[:MAINT_LIST_MAX]
+        maint_ids = [i for g in new_maint for i in g["ids"]]
 
     # 5b. 新規おすすめ工具（2026-10-07 追加・TOOLS_DIGEST_ON のときだけ）
     new_tools = []
@@ -261,7 +300,7 @@ def main():
                          if car.get("owner_user_id") and car.get("owner_user_id") == r.get("author_user_id") else "")})
         new_articles = new_articles[:ARTICLES_LIST_MAX]
 
-    if not (news or new_cars or new_events or new_episodes or new_notebooks or new_tools or new_articles):
+    if not (news or new_cars or new_events or new_episodes or new_notebooks or new_maint or new_tools or new_articles):
         log("配信対象なし")
         if DRY_RUN:
             # 対象が無い日でも Brevo 送信経路まで通しておかないと試運転の意味が薄い
@@ -274,62 +313,56 @@ def main():
             log(f"✅ DRY RUN: {ADMIN_EMAIL} に疎通確認メールを送信しました。")
         return
 
-    # 6. 件名・本文（main.gs と同一の文面。車載手帳の節だけ 2026-09-09 に追加）
-    parts = []
-    if new_cars:
-        parts.append(f"新着車両{len(new_cars)}台")
-    if new_events:
-        parts.append(f"新着イベント{len(new_events)}件")
-    if new_episodes:
-        parts.append(f"新着ストーリー{len(new_episodes)}件")
-    if new_notebooks:
-        # 冊数は出さない（2026-09-09 ユーザー確定）
-        parts.append("新着車載手帳")
-    if new_tools:
-        parts.append("新着おすすめ工具・パーツ")
-    if new_articles:
-        parts.append("オーナーの記事")
-    if news:
-        parts.append("お知らせ")
-    subject = "【Registro500/126 Giappone】" + "・".join(parts)
+    # 6. 件名・本文（2026-10-29 全面見直し・ユーザー決裁）
+    #    件名は毎日同じ＝中身を件名に並べない（欄が多い日に「新着」が何度も並んで読めなかったため）。
+    #    見出しは「◯◯（N件）が登録されました」にそろえ、一覧URLは見出しの直後（2026-10-27 ユーザー指示）。
+    #    名前は「◯◯様」・括弧は全角・URLは .html の付かない形にそろえる。
+    subject = "【Registro500/126】新着情報のお知らせ"
 
     # ⛔時刻に依存する挨拶にしない（2026-09-09 ユーザー確定）。Actions の schedule は
     # 実測18分〜3時間34分遅れ、午前9時台に届くことがある＝「おはようございます」が嘘になる。
-    body = "Registro500 / Registro126 Giappone オーナーの皆様\n\nご愛用ありがとうございます。\n"
+    body = ("Registro500 / Registro126 Giappone オーナーの皆様\n\n"
+            "ご愛用ありがとうございます。新着情報のお知らせです。\n")
+
+    def section(emoji, heading, list_url=None):
+        s = f"\n■ {emoji} {heading}\n"
+        if list_url:
+            s += f"一覧：{SITE}{list_url}\n"
+        return s + "\n"
 
     if new_cars:
-        body += f"\n■ 🚗 新しい仲間 ({len(new_cars)}台)\n"
+        body += section("🚗", f"新しい仲間（{len(new_cars)}台）が登録されました")
         for c in new_cars:
-            body += f"・{c['model']} ({c['name']}様)\n　{SITE}/detail.html?doc={c['id']}\n"
+            body += f"・{c['model']}（{c['name']}様）\n　{SITE}/detail?doc={c['id']}\n"
 
     if new_events:
-        body += f"\n■ 📅 新しいイベント ({len(new_events)}件)\n"
+        body += section("📅", f"新しいイベント（{len(new_events)}件）が登録されました", "/event")
         for e in new_events:
-            body += (f"・{e['date']}開催: {e['name']} (by {e['owner']}様)\n"
-                     f"　場所: {e['loc']}\n　詳細: {SITE}/event.html\n")
+            body += (f"・{e['name']}（{e['owner']}様）\n"
+                     f"　日時：{e['date']}　場所：{e['loc']}\n"
+                     f"　{e['url']}\n")
 
-    # 一覧・詳細のURLは見出しの直後に置く（2026-10-27 ユーザー指示＝項目が多いと文末のURLが埋もれる）
     if new_episodes:
-        body += f"\n■ 📖 新しいストーリー ({len(new_episodes)}件)\n"
-        body += f"一覧: {SITE}/stories.html\n\n"
+        body += section("📖", f"新しいストーリー（{len(new_episodes)}件）が投稿されました", "/stories")
         for e in new_episodes:
-            body += f"・「{e['title']}」({e['owner']}様)\n　{SITE}/episode.html?ep={e['id']}\n"
+            body += f"・「{e['title']}」（{e['owner']}様）\n　{SITE}/episode?ep={e['id']}\n"
 
     if new_notebooks:
-        if notebook_first:
-            body += "\n■ 🧰 新規で登録された車載手帳もお知らせメールに追加しました。\n"
-            body += f"一覧: {SITE}/equipment\n"
-            body += "\n新しい車載手帳が登録されました。\n"
-        else:
-            body += "\n■ 🧰 新しい車載手帳が登録されました。\n"
-            body += f"一覧: {SITE}/equipment\n\n"
+        body += section("🧰", f"新しい車載手帳（{len(new_notebooks)}冊）が登録されました", "/equipment")
         for n in new_notebooks:
-            body += (f"・{n['owner']}様\n"
-                     f"　{SITE}/detail.html?doc={n['doc']}#equipment-notebook\n")
+            body += f"・{n['owner']}様の車載手帳\n　{SITE}/detail?doc={n['doc']}#equipment-notebook\n"
+
+    if new_maint:
+        # 1台1日1行（2026-10-29 ユーザー決裁）。題名は3つまで並べ、残りは「ほか◯件」
+        body += section("🛠️", f"新しい整備の記録（{sum(len(m['titles']) for m in new_maint)}件）が登録されました",
+                        "/maintenance")
+        for m in new_maint:
+            names = "・".join(m["titles"][:3]) + (f" ほか{len(m['titles']) - 3}件" if len(m["titles"]) > 3 else "")
+            body += f"・{m['model']}（{m['owner']}様）：{names}\n　{SITE}/detail?doc={m['doc']}#history\n"
 
     if new_tools:
-        body += f"\n■ 🔧 新しいおすすめ工具・パーツ ({len(new_tools)}件)\n"
-        body += f"一覧: {SITE}/tools\n\n"
+        # 個々の投稿ではなく一覧の先頭へ（2026-10-29 ユーザー指示＝ついでに全部見てほしい）
+        body += section("🔧", f"新しいおすすめ工具・パーツ（{len(new_tools)}件）が登録されました", "/tools")
         for t in new_tools[:TOOLS_LIST_MAX]:
             body += f"・{t['name']}（{t['owner']}様）\n"
         if len(new_tools) > TOOLS_LIST_MAX:
@@ -337,15 +370,13 @@ def main():
 
     if new_articles:
         # 題名の下に記事そのものへのURL。⛔閲覧数・件数の比較は出さない（owner-articles/HANDOFF.md §1-9）
-        body += f"\n■ 📝 オーナーの記事 ({len(new_articles)}件)\n"
-        body += f"一覧: {SITE}/activity\n\n"
+        body += section("📝", f"オーナーの記事（{len(new_articles)}件）が登録されました", "/activity")
         for a in new_articles:
             via = f"・{a['site']}" if a["site"] else ""
             body += f"・「{a['title']}」（{a['owner']}様{via}）\n　{a['url']}\n"
 
     if news:
-        body += "\n■ 📢 お知らせ\n"
-        body += f"詳細: {SITE}/news.html\n"
+        body += f"\n■ 📢 お知らせ（{len(news)}件）\n一覧：{SITE}/news\n"
         for n in news:
             body += f"\n【{n['title']}】\n{n['content']}\n"
 
@@ -418,6 +449,11 @@ def main():
         except Exception as e:
             log(f"owner_tools フラグ更新エラー: {e}")
     stamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    for mid in maint_ids:
+        try:
+            sb_patch("maint_records", mid, {"digest_sent_at": stamp})
+        except Exception as e:
+            log(f"maint_records 印の更新エラー: {e}")
     for a in new_articles:
         try:
             sb_patch("owner_articles", a["id"], {"digest_sent_at": stamp})
@@ -433,7 +469,7 @@ def main():
 
     log(f"メール配信完了: お知らせ{len(news)}件、車両{len(new_cars)}台、"
         f"イベント{len(new_events)}件、ストーリー{len(new_episodes)}件、"
-        f"車載手帳{len(new_notebooks)}冊、工具{len(new_tools)}件、記事{len(new_articles)}件"
+        f"車載手帳{len(new_notebooks)}冊、整備{len(maint_ids)}件、工具{len(new_tools)}件、記事{len(new_articles)}件"
         f"（送信chunk {sent_chunks}成功/{failed_chunks}失敗、宛先{len(recipients)}人）")
 
     # ダイジェストが届いたあとで、載せた記事の書き手へ。こちらの失敗はダイジェストの結果を変えない

@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-10-29 15:03 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-10-29 15:58 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -541,7 +541,8 @@ create table public.maint_records (
   minkara_url text,
   video_urls text[] not null default '{}'::text[],
   created_at timestamp with time zone not null default now(),
-  updated_at timestamp with time zone not null default now()
+  updated_at timestamp with time zone not null default now(),
+  digest_sent_at timestamp with time zone
 );
 alter table public.maint_records add constraint maint_records_pkey PRIMARY KEY (id);
 alter table public.maint_records add constraint maint_records_areas_check CHECK ((areas <@ ARRAY['engine'::text, 'fuel'::text, 'driveline'::text, 'suspension'::text, 'brake'::text, 'body'::text, 'electric'::text, 'consumable'::text]));
@@ -938,6 +939,7 @@ CREATE INDEX inquiry_log_sender_idx ON public.inquiry_log USING btree (sender_ui
 CREATE INDEX idx_maint_photos_record ON public.maint_photos USING btree (record_id, sort_order);
 CREATE INDEX idx_maint_records_car ON public.maint_records USING btree (car_id, work_date DESC, created_at);
 CREATE INDEX idx_maint_records_public ON public.maint_records USING btree (work_date DESC, created_at DESC) WHERE (is_public AND (work_date IS NOT NULL));
+CREATE INDEX maint_records_digest_idx ON public.maint_records USING btree (created_at) WHERE (digest_sent_at IS NULL);
 CREATE INDEX idx_news_target_car_type ON public.news USING btree (target_car_type);
 CREATE INDEX owner_articles_car_idx ON public.owner_articles USING btree (car_id, published_on DESC);
 CREATE INDEX owner_articles_new_idx ON public.owner_articles USING btree (created_at DESC) WHERE (NOT is_hidden);
@@ -1389,10 +1391,12 @@ begin
   if tg_op = 'INSERT' then
     new.author_user_id := auth.uid();
     new.created_at := now();
+    new.digest_sent_at := null;
   else
     new.car_id := old.car_id;
     new.author_user_id := old.author_user_id;
     new.created_at := old.created_at;
+    new.digest_sent_at := old.digest_sent_at;
   end if;
   return new;
 end $function$

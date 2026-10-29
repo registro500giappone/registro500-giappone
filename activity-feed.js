@@ -175,7 +175,7 @@
       // 同じ日に何件紹介しても1行（工具名を「・」でつなぐ）
       icon = '🔧'; what = `${name}さんがおすすめ工具・パーツを紹介`;
       quote = `「${esc(trim(r.texts.filter(Boolean).join('・'), n))}」`;
-      hash = '#tools';  // 紹介した工具が並ぶ、その車ページの欄へ
+      href = '/tools';  // 一覧の先頭へ（2026-10-29 ユーザー指示＝ついでにほかの紹介も見てほしい）
     } else if (r.kind === 'article') {
       // 1本なら記事そのものへ（新しいタブ）。同じ日に何本も貼った行は車ページの歩みへ
       const one = r.ids.length === 1 && /^https:\/\//.test(r.ids[0]);

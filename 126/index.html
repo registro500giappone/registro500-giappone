@@ -1045,7 +1045,7 @@ async function fetchCars() {
       if (window.ActivityFeed) return Promise.resolve();
       return new Promise((resolve, reject) => {
         const s = document.createElement('script');
-        s.src = '/activity-feed.js?v=3';
+        s.src = '/activity-feed.js?v=4';
         s.onload = resolve;
         s.onerror = reject;
         document.head.appendChild(s);
@@ -1079,7 +1079,8 @@ async function fetchCars() {
         const text = d.quote ? `${name}さん${d.quote}` : d.what;
         el.innerHTML = `<span class="top-band-line-text">${d.icon} ${p.mo + 1}/${p.d} ${text}</span>`
                      + `<span class="top-band-line-suffix">${days <= 7 ? '<span class="news-badge"></span>' : ''}</span>`;  // お知らせ行と同じ7日以内は赤丸
-        el.href = '/activity?type=126';
+        // 工具の行だけは一覧 /tools の先頭へ（2026-10-29 ユーザー指示）。それ以外は更新情報の一覧へ
+        el.href = bandPost.kind === 'tool' ? '/tools' : '/activity?type=126';
         el.style.display = 'flex';
         document.getElementById('topBand').style.display = 'block';
       } catch (e) { /* 静かに失敗（トップ表示をブロックしない） */ }
