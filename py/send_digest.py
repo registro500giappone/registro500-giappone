@@ -23,6 +23,8 @@ GAS の main.gs sendDailyDigest() からの移植。挙動は1:1で揃えてあ�
                    車に紐づかない手帳＝vehicle_id が null は行き先が無いので載せない）
   - 新規おすすめ工具 owner_tools.notification_sent = false かつ is_hidden = false かつ 14日以内
                  （2026-10-07 追加。TOOLS_DIGEST_ON が True のときだけ。オフの間はフラグも立てない）
+  - オーナーの記事 owner_articles.digest_sent_at IS NULL かつ is_hidden = false かつ 14日以内（貼った日）
+                 （2026-10-29 追加。ARTICLES_DIGEST_ON が True のときだけ。載せた記事の書き手には「紹介しました」を1通）
   - お知らせ      news.sent_at IS NULL                  かつ 14日以内（最大5件）
 
 送信に1通も成功しなかった場合はフラグを更新せず、次回実行で再送する。
@@ -70,6 +72,13 @@ TOOLS_LIST_MAX = 10      # 1通に並べる件数の上限（手帳からの移�
 # 画面に件数は出さない＝押されたときだけ届くので「0」を見せることもない。
 # 宛先は投稿者本人だけ（既に /tools を知っている人）なので、ページ公開前でも鳴らしてよい。
 METOO_NOTICE_ON = True
+
+# オーナーの記事（ブログなど外部記事へのリンク・/my-articles で載せる）を載せるか（2026-10-29・owner-articles/HANDOFF.md §1-5）。
+# ⚠️ダイジェストは登録オーナー全員に届く＝載せた時点で実質公開。公開の判断をユーザーが出すまで False のまま。
+#    False の間は対象を読まず、印（digest_sent_at）も付けない＝True にした日から14日以内に貼られた分が載る。
+# 載せた記事の書き手には、同じ朝に「あなたの記事を紹介しました」を1人1通（工具の「わたしも使ってる」と同じ形）。
+ARTICLES_DIGEST_ON = False
+ARTICLES_LIST_MAX = 10   # 1通に並べる件数の上限（超えた分は印を付けず翌朝に回す＝「ほか◯件」だと一度も紹介されないまま終わる）
 
 DRY_RUN = str(cfg("DIGEST_DRY_RUN", "")).strip().lower() in ("1", "true", "yes")
 
@@ -225,7 +234,34 @@ def main():
                       "owner": (tl_car_map.get(r["car_id"]) or {}).get("handle_name") or "オーナー"}
                      for r in tl_raw]
 
-    if not (news or new_cars or new_events or new_episodes or new_notebooks or new_tools):
+    # 5c. オーナーの記事（2026-10-29 追加・ARTICLES_DIGEST_ON のときだけ）
+    #     手放された車の記事は載せない（更新情報と同じ）＝印も付けず、14日で対象から外れる
+    new_articles = []
+    if ARTICLES_DIGEST_ON:
+        ar_raw = sb_select(
+            "owner_articles", "id,car_id,author_user_id,title,url,site_name,created_at",
+            {"digest_sent_at": "is.null", "is_hidden": "eq.false",
+             "created_at": f"gte.{window_start}"},
+            "order=created_at.asc")
+        ar_car_map = {}
+        if ar_raw:
+            in_list = ",".join('"' + str(i) + '"' for i in sorted({r["car_id"] for r in ar_raw}))
+            for c in sb_select("cars", "document_id,handle_name,owner_email,owner_user_id,is_sold",
+                               {"document_id": f"in.({in_list})"}):
+                ar_car_map[c["document_id"]] = c
+        for r in ar_raw:
+            car = ar_car_map.get(r["car_id"])
+            if not car or car.get("is_sold"):
+                continue
+            new_articles.append({
+                "id": r["id"], "doc": r["car_id"], "title": r["title"], "url": r["url"],
+                "site": r.get("site_name") or "", "owner": car.get("handle_name") or "オーナー",
+                # 知らせの宛先は、書いた人がいまもその車の持ち主のときだけ（前の持ち主には送らない）
+                "mail": (str(car.get("owner_email") or "").strip().lower()
+                         if car.get("owner_user_id") and car.get("owner_user_id") == r.get("author_user_id") else "")})
+        new_articles = new_articles[:ARTICLES_LIST_MAX]
+
+    if not (news or new_cars or new_events or new_episodes or new_notebooks or new_tools or new_articles):
         log("配信対象なし")
         if DRY_RUN:
             # 対象が無い日でも Brevo 送信経路まで通しておかないと試運転の意味が薄い
@@ -251,6 +287,8 @@ def main():
         parts.append("新着車載手帳")
     if new_tools:
         parts.append("新着おすすめ工具・パーツ")
+    if new_articles:
+        parts.append("オーナーの記事")
     if news:
         parts.append("お知らせ")
     subject = "【Registro500/126 Giappone】" + "・".join(parts)
@@ -297,6 +335,14 @@ def main():
         if len(new_tools) > TOOLS_LIST_MAX:
             body += f"・ほか{len(new_tools) - TOOLS_LIST_MAX}件\n"
 
+    if new_articles:
+        # 題名の下に記事そのものへのURL。⛔閲覧数・件数の比較は出さない（owner-articles/HANDOFF.md §1-9）
+        body += f"\n■ 📝 オーナーの記事 ({len(new_articles)}件)\n"
+        body += f"一覧: {SITE}/activity\n\n"
+        for a in new_articles:
+            via = f"・{a['site']}" if a["site"] else ""
+            body += f"・「{a['title']}」（{a['owner']}様{via}）\n　{a['url']}\n"
+
     if news:
         body += "\n■ 📢 お知らせ\n"
         body += f"詳細: {SITE}/news.html\n"
@@ -320,6 +366,7 @@ def main():
         log("---- 本文 ----\n" + body + "\n--------------")
         send_broadcast([ADMIN_EMAIL], "[DRY RUN] " + subject, body)
         log(f"✅ DRY RUN: {ADMIN_EMAIL} にのみ送信しました。フラグは更新していません。")
+        send_article_notices(new_articles)   # 試運転では管理者宛になる
         return
 
     sent_chunks = 0
@@ -370,6 +417,12 @@ def main():
             sb_patch("owner_tools", t["id"], {"notification_sent": True})
         except Exception as e:
             log(f"owner_tools フラグ更新エラー: {e}")
+    stamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    for a in new_articles:
+        try:
+            sb_patch("owner_articles", a["id"], {"digest_sent_at": stamp})
+        except Exception as e:
+            log(f"owner_articles 印の更新エラー: {e}")
     for n in news:
         try:
             sb_patch("news", n["id"], {
@@ -380,8 +433,54 @@ def main():
 
     log(f"メール配信完了: お知らせ{len(news)}件、車両{len(new_cars)}台、"
         f"イベント{len(new_events)}件、ストーリー{len(new_episodes)}件、"
-        f"車載手帳{len(new_notebooks)}冊、工具{len(new_tools)}件"
+        f"車載手帳{len(new_notebooks)}冊、工具{len(new_tools)}件、記事{len(new_articles)}件"
         f"（送信chunk {sent_chunks}成功/{failed_chunks}失敗、宛先{len(recipients)}人）")
+
+    # ダイジェストが届いたあとで、載せた記事の書き手へ。こちらの失敗はダイジェストの結果を変えない
+    try:
+        send_article_notices(new_articles)
+    except Exception as e:
+        log(f"❌ 記事を紹介した知らせでエラー: {e}")
+        send_admin_alert("【要確認】記事を紹介した知らせの失敗",
+                         f"send_digest.py の send_article_notices で例外が発生しました: {e}")
+
+
+def send_article_notices(articles):
+    """ダイジェストに載せたオーナーの記事の書き手へ、「あなたの記事を紹介しました」を1人1通。
+    ダイジェストと同じ朝に1回だけ（印は digest_sent_at＝ダイジェスト側で付く）。送れなくても再送はしない
+    ＝同じ記事の紹介を二度知らせないほうを取る。宛先の無い人・前の持ち主には送らない。"""
+    by_mail = {}
+    for a in articles:
+        if "@" in a["mail"]:
+            by_mail.setdefault(a["mail"], {"name": a["owner"], "items": []})["items"].append(a)
+    sent = 0
+    for mail, entry in by_mail.items():
+        lines = "\n".join(f"・「{a['title']}」\n　{a['url']}" for a in entry["items"])
+        doc = entry["items"][0]["doc"]
+        body = (
+            f"{entry['name']} さん\n\n"
+            "登録オーナーのみなさんへのお知らせメールで、あなたの記事を「オーナーの記事」として紹介しました。\n\n"
+            + lines + "\n\n"
+            "車両ページの「この1台の歩み」にも並んでいます。\n"
+            f"{SITE}/detail.html?doc={doc}#history\n\n"
+            "新しい記事を書いたときも、URLを貼るだけで同じように紹介されます。\n"
+            f"{SITE}/my-articles\n\n"
+            "――\n"
+            "このメールは、記事がお知らせメールに載った日に1通だけお送りしています。\n"
+            "Registro500 Giappone")
+        to = ADMIN_EMAIL if DRY_RUN else mail
+        try:
+            brevo_send({
+                "replyTo": {"name": SENDER_NAME, "email": REPLY_TO_EMAIL},
+                "to": [{"email": to}],
+                "subject": ("[DRY RUN] " if DRY_RUN else "") + "【Registro500】あなたの記事を紹介しました",
+                "textContent": body,
+                "htmlContent": text_to_html(body),
+            })
+            sent += 1
+        except Exception as e:
+            log(f"記事を紹介した知らせ: 送信エラー（{entry['name']}）: {e}")
+    log(f"記事を紹介した知らせ: {sent}通送信" + ("（DRY RUN＝管理者宛）" if DRY_RUN else ""))
 
 
 def send_metoo_notices():

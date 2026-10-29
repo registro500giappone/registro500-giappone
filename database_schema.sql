@@ -1445,16 +1445,18 @@ CREATE OR REPLACE FUNCTION public.owner_articles_guard()
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+declare
+  trusted boolean := public.is_admin() or current_user not in ('authenticated', 'anon');
 begin
   new.updated_at := now();
   if tg_op = 'INSERT' then
-    if not public.is_admin() then
+    if not trusted then
       new.author_user_id := auth.uid();
       new.is_hidden := false;
       new.digest_sent_at := null;
     end if;
     new.created_at := now();
-  elsif not public.is_admin() then
+  elsif not trusted then
     new.car_id := old.car_id;
     new.author_user_id := old.author_user_id;
     new.created_at := old.created_at;
