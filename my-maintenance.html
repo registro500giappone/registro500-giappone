@@ -116,6 +116,7 @@
     .mine .dt { font-size: .75rem; color: var(--text-sub); }
     .mine .nm { font-weight: 700; word-break: break-word; }
     .mine .meta { font-size: .78rem; color: var(--text-sub); }
+    .mine .meta a, #mineLinks a { color: var(--accent); }
     .mine .acts { display: flex; gap: 8px; margin-top: 6px; }
     .center { text-align: center; }
     .mk-row { border-top: 1px solid var(--border-soft); padding: 10px 0; }
@@ -250,6 +251,7 @@
 
     <div class="card hidden" id="mineCard" style="margin-top:14px">
       <h2>これまでの記録</h2>
+      <p class="note" id="mineLinks" style="margin:-4px 0 6px"></p>
       <div id="mineList"><p class="lead">読み込み中…</p></div>
     </div>
   </div>
@@ -802,7 +804,7 @@
   async function loadMine() {
     const box = $('mineList');
     const { data, error } = await supabaseClient.from('maint_records')
-      .select('id, car_id, title, work_date, odometer_km, worker, is_public, areas, source, created_at, maint_photos(thumb_url, url, sort_order)')
+      .select('id, car_id, title, work_date, odometer_km, worker, is_public, areas, source, minkara_url, created_at, maint_photos(thumb_url, url, sort_order)')
       .eq('author_user_id', currentUser.id)
       .order('work_date', { ascending: false, nullsFirst: true }).order('created_at', { ascending: true });
     box.textContent = '';
@@ -810,6 +812,17 @@
     if (!data.length) { $('mineCard').classList.add('hidden'); return; }
     $('mineCard').classList.remove('hidden');
     const carLabel = Object.fromEntries(myCars.map(c => [c.id, c.label.trim()]));
+    // 訪問者からの見え方を確かめる入口（車両ページの歩み・みんなの整備手帳）
+    // ⚠️ 車両ページは MAINT_ON_CAR_PAGE=false の間は ?maint-preview が要る
+    const links = $('mineLinks');
+    links.textContent = '';
+    const cars = [...new Set(data.filter(r => r.work_date && r.is_public).map(r => r.car_id))];
+    cars.forEach(id => {
+      const a = el('a', null, (cars.length > 1 && carLabel[id] ? carLabel[id] + 'の' : '') + '車両ページの歩みで見る →');
+      a.href = '/detail?doc=' + encodeURIComponent(id) + '&maint-preview#history';
+      links.append(a, document.createTextNode('　'));
+    });
+    if (cars.length) { const a = el('a', null, 'みんなの整備手帳で見る →'); a.href = '/maintenance'; links.appendChild(a); }
     data.forEach(r => {
       const item = el('div', 'mine');
       const ps = (r.maint_photos || []).slice().sort((a, b) => a.sort_order - b.sort_order);
@@ -822,9 +835,16 @@
       if (r.worker) meta.push(WORKER_LABEL[r.worker]);
       if (ps.length) meta.push('写真' + ps.length + '枚');
       (r.areas || []).forEach(a => meta.push(AREA_LABEL[a]));
-      if (r.source === 'minkara') meta.push('みんカラ');
       if (!r.is_public) meta.push('🔒 非公開');
-      if (meta.length) bd.appendChild(el('div', 'meta', meta.join(' ・ ')));
+      if (meta.length || r.minkara_url) {
+        const m = el('div', 'meta', meta.join(' ・ '));
+        if (r.minkara_url) {
+          if (meta.length) m.appendChild(document.createTextNode(' ・ '));
+          const a = el('a', null, 'みんカラの記事 ↗'); a.href = r.minkara_url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+          m.appendChild(a);
+        }
+        bd.appendChild(m);
+      }
       const acts = el('div', 'acts');
       const ed = el('button', 'btn-sub', '直す'); ed.type = 'button';
       ed.addEventListener('click', () => startEdit(r.id));
