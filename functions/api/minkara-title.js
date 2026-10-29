@@ -17,6 +17,7 @@
  */
 
 const NOTE_RE = /^https:\/\/minkara\.carview\.co\.jp\/userid\/\d+\/car\/\d+\/\d+\/note\.aspx$/;
+const ADMIN_EMAIL = "registro500giappone@gmail.com";
 const FETCH_TIMEOUT_MS = 8000;
 const HEAD_LIMIT = 200 * 1024;
 const DATE_LIMIT = 120 * 1024; // 作業日は先頭から約30KBの位置（2026-10 実測）
@@ -135,8 +136,9 @@ export async function onRequestPost({ request, env }) {
     return json({ success: false }, 502);
   }
   if (!user || !user.id) return json({ success: false }, 401);
-  try {
-    const email = String(user.email || "").toLowerCase();
+  // 管理人は他の人の車へ代わりに記録できる（/my-maintenance の代理入力・2026-10-29）＝自分の車が無くても通す
+  const email = String(user.email || "").toLowerCase();
+  if (email !== ADMIN_EMAIL) try {
     const filter = email
       ? `or=(owner_user_id.eq.${user.id},owner_email.ilike.${encodeURIComponent(email)})`
       : `owner_user_id=eq.${user.id}`;
