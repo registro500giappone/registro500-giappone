@@ -20,6 +20,7 @@ a.mv-title { text-decoration: none; }
 .mv-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .mv-chip { font-size: .72rem; padding: 2px 8px; border-radius: 999px; background: var(--mv-soft, #e7efe7); color: var(--mv-text, inherit); }
 .mv-comment { white-space: pre-wrap; word-break: break-word; margin: 0 0 12px; line-height: 1.75; }
+.mv-comment a, .mv-photo figcaption a { color: var(--mv-accent, #1f5c3d); word-break: break-all; }
 .mv-videos { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .mv-yt { position: relative; display: block; width: 100%; max-width: 480px; aspect-ratio: 16 / 9; border: 0; padding: 0; border-radius: 8px; overflow: hidden; cursor: pointer; background: #000; }
 .mv-yt img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -41,6 +42,21 @@ a.mv-title { text-decoration: none; }
   }
 
   function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  // 本文中の http(s) の URL だけをリンクにする（それ以外は文字のまま＝HTMLとしては読まない）
+  function linkified(tag, cls, text) {
+    const e = el(tag, cls);
+    const re = /https?:\/\/[^\s<>"'（）「」、。]+/g;
+    let last = 0, m;
+    while ((m = re.exec(text))) {
+      let url = m[0].replace(/[.,!?)\]]+$/, '');
+      if (m.index > last) e.appendChild(document.createTextNode(text.slice(last, m.index)));
+      const a = el('a', null, url); a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer nofollow ugc';
+      e.appendChild(a);
+      last = m.index + url.length; re.lastIndex = last;
+    }
+    if (last < text.length) e.appendChild(document.createTextNode(text.slice(last)));
+    return e;
+  }
   function fmtKm(n) { return Number(n).toLocaleString('ja-JP') + 'km'; }
   function fmtDate(s) { if (!s) return ''; const [y, m, d] = String(s).slice(0, 10).split('-'); return y + '年' + Number(m) + '月' + Number(d) + '日'; }
   function sortedPhotos(rec) { return (rec.maint_photos || []).slice().sort((a, b) => a.sort_order - b.sort_order); }
@@ -87,7 +103,7 @@ a.mv-title { text-decoration: none; }
   function renderBody(rec) {
     injectCss();
     const body = el('div', 'mv-body');
-    if (rec.comment) body.appendChild(el('p', 'mv-comment', rec.comment));
+    if (rec.comment) body.appendChild(linkified('p', 'mv-comment', rec.comment));
     const vids = (rec.video_urls || []).filter(videoKind);
     if (vids.length) {
       const vb = el('div', 'mv-videos');
@@ -122,7 +138,7 @@ a.mv-title { text-decoration: none; }
       const fig = el('figure', 'mv-photo');
       const im = el('img'); im.src = p.url; im.alt = p.caption || ''; im.loading = 'lazy';
       fig.appendChild(im);
-      if (p.caption) fig.appendChild(el('figcaption', null, p.caption));
+      if (p.caption) fig.appendChild(linkified('figcaption', null, p.caption));
       body.appendChild(fig);
     });
     return body;
