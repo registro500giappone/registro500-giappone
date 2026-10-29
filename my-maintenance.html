@@ -57,6 +57,8 @@
     label.f, p.f { display: block; font-weight: 700; font-size: .88rem; margin: 14px 0 4px; }
     label.f:first-child, p.f:first-child { margin-top: 0; }
     .f small { font-weight: 400; color: var(--text-sub); margin-left: 4px; }
+    .proxy-banner { margin: 6px 0 0; padding: 8px 10px; border-radius: 8px; background: #fef3c7; color: #92400e; font-size: .85rem; font-weight: 600; }
+    #carFilter { margin-bottom: 6px; }
     .note { font-size: .75rem; color: var(--text-sub); margin: 3px 0 0; font-weight: 400; }
     input[type=text], input[type=email], input[type=date], input[type=number], select, textarea { width: 100%; font: inherit; font-size: 1rem; padding: 9px 10px; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--bg-main); color: var(--text-main); }
     ::placeholder { color: #b8ae9c; opacity: 1; }
@@ -152,7 +154,10 @@
         <h2 id="formTitle">整備を記録する</h2>
         <div id="carRow" class="hidden">
           <label class="f" for="carSel">どの車？</label>
+          <!-- 管理人だけ：全車から選ぶための絞り込み（2026-10-29・代理入力） -->
+          <input type="search" id="carFilter" class="hidden" placeholder="DOC番号・名前で絞り込む" autocomplete="off">
           <select id="carSel"></select>
+          <p id="proxyBanner" class="proxy-banner hidden"></p>
         </div>
         <label class="f" for="fTitle">タイトル</label>
         <input type="text" id="fTitle" maxlength="80" placeholder="例：ドライブシャフト グリスアップ" autocomplete="off">
@@ -289,7 +294,8 @@
   function fmtKm(n) { return Number(n).toLocaleString('ja-JP') + 'km'; }
 
   let currentUser = null;
-  let myCars = [];
+  let myCars = [];            // 管理人のときは全車（owner＝持ち主の user id）
+  let isAdmin = false;        // 管理人は他の人の車へ代わりに書ける（作者＝その車の持ち主・2026-10-29 ユーザー決裁）
   let started = false;
   let editing = null;        // 直している記録（maint_records の行）
   let photos = [];           // { key, file?, previewUrl, row?, caption, takenAt, state: 'new'|'saved'|'sending'|'failed' }
@@ -331,7 +337,11 @@
   $('fComment').addEventListener('input', () => { $('cmCount').textContent = $('fComment').value.length; });
   ['fTitle', 'fComment', 'fCost', 'fVideos'].forEach(id => $(id).addEventListener('input', saveDraft));
   $('fPublic').addEventListener('change', saveDraft);
-  $('carSel').addEventListener('change', updatePrevKm);
+  $('carSel').addEventListener('change', () => {
+    updatePrevKm(); updateProxyBanner();
+    // 管理人の一覧は「選んでいる車」の記録（作者が持ち主になるため、作者では引けない）
+    if (isAdmin && currentUser) { loadMine(); mkLoadPending(); }
+  });
 
   // 「前回の記録」＝作業日が一つ前で、距離の入った記録（入力した順ではない）
   let prevSeq = 0;
@@ -347,6 +357,37 @@
     if (seq !== prevSeq || !data || !data.length) return;
     $('prevKm').textContent = '前回の記録は ' + fmtKm(data[0].odometer_km);
   }
+  // 管理人の代理入力：作者をその車の持ち主にする（本人があとで直す・消すため）。持ち主が未ログインの車は管理人のまま
+  function proxyOwner(carId) {
+    if (!isAdmin) return null;
+    const c = myCars.find(x => x.id === carId);
+    return c && c.owner && c.owner !== currentUser.id ? c.owner : null;
+  }
+  function withAuthor(rec, carId) { const o = proxyOwner(carId); return o ? Object.assign({ author_user_id: o }, rec) : rec; }
+  // 「自分の記録」の範囲＝普段は作者が自分／管理人は選んでいる車
+  function mineScope(q) { return isAdmin ? q.eq('car_id', currentCarId()) : q.eq('author_user_id', currentUser.id); }
+  function updateProxyBanner() {
+    const b = $('proxyBanner');
+    if (!isAdmin) { b.classList.add('hidden'); return; }
+    const id = currentCarId(), c = myCars.find(x => x.id === id);
+    if (!c || c.owner === currentUser.id) { b.classList.add('hidden'); return; }
+    b.textContent = c.owner
+      ? '🛡️ 管理人として「' + (c.label.trim() || c.id) + '」の持ち主の記録を代わりに入力しています（作者＝持ち主）'
+      : '🛡️ 「' + (c.label.trim() || c.id) + '」は持ち主がまだログインしていない車です＝作者は管理人になります';
+    b.classList.remove('hidden');
+  }
+  function fillCarSel(keep) {
+    const sel = $('carSel'), f = $('carFilter').value.trim().toLowerCase();
+    sel.textContent = '';
+    myCars.filter(c => !f || (c.id + ' ' + c.label).toLowerCase().includes(f))
+      .forEach(c => { const o = el('option', null, c.label.trim() || c.id); o.value = c.id; sel.appendChild(o); });
+    if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
+  }
+  $('carFilter').addEventListener('input', () => {
+    const before = $('carSel').value;
+    fillCarSel(before);
+    if ($('carSel').value !== before) $('carSel').dispatchEvent(new Event('change'));
+  });
   function currentCarId() {
     if (editing) return editing.car_id;
     return myCars.length ? $('carSel').value : null;
@@ -548,13 +589,15 @@
     if (started) return;
     started = true;
     try {
-      const { data, error } = await supabaseClient.from('cars')
-        .select('document_id, handle_name, model_display_a, model_display_b, model_display_c')
-        .eq('owner_user_id', currentUser.id);
+      isAdmin = typeof ADMIN_EMAIL !== 'undefined' && (currentUser.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      let q = supabaseClient.from('cars')
+        .select('document_id, handle_name, model_display_a, model_display_b, model_display_c, owner_user_id');
+      q = isAdmin ? q.order('document_id') : q.eq('owner_user_id', currentUser.id);
+      const { data, error } = await q;
       if (error) throw error;
       myCars = (data || []).map(c => ({
-        id: c.document_id,
-        label: (c.handle_name || '') + ' ' + (c.model_display_c || [c.model_display_a || '', c.model_display_b || ''].filter(Boolean).join(' '))
+        id: c.document_id, owner: c.owner_user_id || null,
+        label: (isAdmin ? c.document_id + ' ' : '') + (c.handle_name || '') + ' ' + (c.model_display_c || [c.model_display_a || '', c.model_display_b || ''].filter(Boolean).join(' '))
       }));
     } catch (err) {
       console.error('[my-maintenance] cars', err);
@@ -565,9 +608,12 @@
     $('stateLoading').classList.add('hidden');
     $('stateLogin').classList.add('hidden');
     if (!myCars.length) { $('stateForm').classList.add('hidden'); $('stateNoCar').classList.remove('hidden'); return; }
-    const sel = $('carSel');
-    sel.textContent = '';
-    myCars.forEach(c => { const o = el('option', null, c.label.trim() || c.id); o.value = c.id; sel.appendChild(o); });
+    // ?car=<DOC番号> で開いたらその車を選んでおく（車両ページのマイメニューから来たとき）
+    const want = new URLSearchParams(location.search).get('car');
+    const mine = myCars.find(c => c.owner === currentUser.id);
+    $('carFilter').classList.toggle('hidden', !isAdmin);
+    fillCarSel(want || (mine && mine.id));
+    updateProxyBanner();
     $('carRow').classList.toggle('hidden', myCars.length < 2 || !!editing);
     $('stateForm').classList.remove('hidden');
     $('mineCard').classList.remove('hidden');
@@ -686,7 +732,7 @@
         if (error) throw error;
         recordId = savedRecordId;
       } else {
-        const { data, error } = await supabaseClient.from('maint_records').insert(Object.assign({ car_id: carId }, rec)).select('id').single();
+        const { data, error } = await supabaseClient.from('maint_records').insert(withAuthor(Object.assign({ car_id: carId }, rec), carId)).select('id').single();
         if (error) throw error;
         recordId = data.id;
       }
@@ -829,9 +875,8 @@
   // ── これまでの記録（自分が書いたもの・作業日の新しい順） ──
   async function loadMine() {
     const box = $('mineList');
-    const { data, error } = await supabaseClient.from('maint_records')
-      .select('id, car_id, title, work_date, odometer_km, worker, is_public, areas, source, minkara_url, created_at, maint_photos(thumb_url, url, sort_order)')
-      .eq('author_user_id', currentUser.id)
+    const { data, error } = await mineScope(supabaseClient.from('maint_records')
+      .select('id, car_id, title, work_date, odometer_km, worker, is_public, areas, source, minkara_url, created_at, maint_photos(thumb_url, url, sort_order)'))
       .order('work_date', { ascending: false, nullsFirst: true }).order('created_at', { ascending: true });
     box.textContent = '';
     if (error) { box.appendChild(el('p', 'lead', '読み込みに失敗しました。')); console.error(error); return; }
@@ -941,9 +986,9 @@
 
   async function mkLoadPending() {
     if (!currentUser) return;
-    const { data } = await supabaseClient.from('maint_records')
-      .select('id, car_id, title, work_date, odometer_km, areas, minkara_url')
-      .eq('author_user_id', currentUser.id).eq('source', 'minkara').is('work_date', null)
+    const { data } = await mineScope(supabaseClient.from('maint_records')
+      .select('id, car_id, title, work_date, odometer_km, areas, minkara_url'))
+      .eq('source', 'minkara').is('work_date', null)
       .order('created_at');
     mkRows = data || [];
     if (mkRows.length) $('mkFold').open = true;
@@ -994,8 +1039,8 @@
     lines.forEach(l => { const u = mkNormalize(l); if (!u) bad++; else if (!urls.includes(u)) urls.push(u); });
     if (!urls.length) { mkSetMsg(bad ? 'みんカラの整備手帳の記事URL（…/note.aspx で終わるもの）だけ読み込めます。' : 'URLを貼ってください。', 'err'); return; }
     // もう載せた記事は読まない
-    const { data: have } = await supabaseClient.from('maint_records').select('id, minkara_url, work_date')
-      .eq('author_user_id', currentUser.id).in('minkara_url', urls);
+    const { data: have } = await mineScope(supabaseClient.from('maint_records').select('id, minkara_url, work_date'))
+      .in('minkara_url', urls);
     const known = new Set((have || []).filter(h => h.work_date).map(h => h.minkara_url));
     const pendingId = Object.fromEntries((have || []).filter(h => !h.work_date).map(h => [h.minkara_url, h.id]));
     const fresh = urls.filter(u => !known.has(u));
@@ -1032,8 +1077,8 @@
       if (!title) noTitle++;
       if (!workDate) noDate++;
       const { data: ins, error } = await supabaseClient.from('maint_records')
-        .insert({ car_id: currentCarId(), title: title || 'みんカラの記事', source: 'minkara', minkara_url: todo[i],
-          work_date: workDate, odometer_km: mkKmFromTitle(title), is_public: true })
+        .insert(withAuthor({ car_id: currentCarId(), title: title || 'みんカラの記事', source: 'minkara', minkara_url: todo[i],
+          work_date: workDate, odometer_km: mkKmFromTitle(title), is_public: true }, currentCarId()))
         .select('id, car_id, title, work_date, odometer_km, areas, minkara_url').single();
       if (error) { fail++; lastErr = error; console.error('[my-maintenance] minkara insert', error); continue; }
       ok++;
