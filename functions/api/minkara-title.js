@@ -2,12 +2,14 @@
  * みんカラの整備手帳記事の題名を読む — POST /api/minkara-title
  *
  * マイ整備手帳の「みんカラの記事を載せる」から { url } を1本ずつ送ってくる。
- * 返すのは記事の og:title（リンクカード用の題名）から先頭の [車名] を落としたものだけ。
+ * 返すのは記事の og:title（リンクカード用の題名）から先頭の [車名] を落としたものと、
+ * 記事の見出し部分にある「作業日：YYYY年M月D日」だけ（2026-10-29 ユーザー決裁で作業日を追加）。
  *
  * 守る線:
  *   - ログイン中で、車を登録しているオーナーからの要求だけ受ける（/auth/v1/user と cars で確かめる）
  *   - 対象は minkara.carview.co.jp の整備手帳記事URL（/userid/数字/car/数字/数字/note.aspx）だけ
- *   - 1回の要求で1本。読むのは <head> の中だけで、本文・写真・作業日は取らない・保存しない
+ *   - 1回の要求で1本。題名は <head> の中から、作業日は本文の手前の見出し部分から取る。
+ *     作業日が見つかったら読むのをやめる。本文・写真は取らない・保存しない
  *   - 読めなければ title なしで返す（画面は手入力に落とす）
  *   同じURLを二度読まない・間隔を空けて順に送るのは画面側（読んだ題名は記録として保存される）。
  *
@@ -17,6 +19,8 @@
 const NOTE_RE = /^https:\/\/minkara\.carview\.co\.jp\/userid\/\d+\/car\/\d+\/\d+\/note\.aspx$/;
 const FETCH_TIMEOUT_MS = 8000;
 const HEAD_LIMIT = 200 * 1024;
+const DATE_LIMIT = 120 * 1024; // 作業日は先頭から約30KBの位置（2026-10 実測）
+const DATE_RE = /user-article-header__date"[^>]*>\s*作業日[：:]\s*(\d{4})年(\d{1,2})月(\d{1,2})日/;
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -61,23 +65,41 @@ export function titleFromHead(head) {
   return null;
 }
 
-// 本文まで読まないよう、</head> が来たら（または上限で）読むのをやめる
-async function readHead(res) {
+// 見出し部分の作業日を YYYY-MM-DD に（ありえない日付は捨てる）
+export function workDateFrom(text) {
+  const m = text.match(DATE_RE);
+  if (!m) return null;
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return null;
+  return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+// <head> を取ったあと、作業日が見つかった所（または上限）で読むのをやめる＝本文までは読まない
+export async function readHeadAndDate(res) {
   const reader = res.body.getReader();
   const dec = new TextDecoder("utf-8");
-  let text = "";
+  let text = "", head = null, workDate = null, read = 0;
   try {
-    while (text.length < HEAD_LIMIT) {
+    while (read < DATE_LIMIT) {
       const { done, value } = await reader.read();
       if (done) break;
+      read += value.length;
       text += dec.decode(value, { stream: true });
-      const i = text.search(/<\/head>/i);
-      if (i !== -1) { text = text.slice(0, i); break; }
+      if (head == null) {
+        const i = text.search(/<\/head>/i);
+        if (i !== -1) { head = text.slice(0, i); text = text.slice(i); }
+        else if (text.length >= HEAD_LIMIT) { head = text; text = ""; }
+        else continue;
+      }
+      workDate = workDateFrom(text);
+      if (workDate) break;
+      text = text.slice(-400); // 区切れ目で途切れた「作業日」を拾えるだけ残す
     }
   } finally {
     try { await reader.cancel(); } catch (e) {}
   }
-  return text;
+  return { head: head != null ? head : text, workDate };
 }
 
 export async function onRequestPost({ request, env }) {
@@ -137,11 +159,11 @@ export async function onRequestPost({ request, env }) {
       redirect: "follow",
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
-    if (!res.ok || !res.body) return json({ success: true, url, title: null, reason: `http_${res.status}` });
-    const title = titleFromHead(await readHead(res));
-    return json({ success: true, url, title });
+    if (!res.ok || !res.body) return json({ success: true, url, title: null, work_date: null, reason: `http_${res.status}` });
+    const { head, workDate } = await readHeadAndDate(res);
+    return json({ success: true, url, title: titleFromHead(head), work_date: workDate });
   } catch (e) {
     console.error("みんカラの読み取りエラー:", e);
-    return json({ success: true, url, title: null, reason: "fetch_failed" });
+    return json({ success: true, url, title: null, work_date: null, reason: "fetch_failed" });
   }
 }
