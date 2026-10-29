@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-10-28 23:23 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-10-29 15:03 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -573,6 +573,30 @@ alter table public.news add constraint news_title_unique UNIQUE (title);
 alter table public.news add constraint check_news_car_type CHECK (((target_car_type)::text = ANY ((ARRAY['both'::character varying, '500'::character varying, '126'::character varying])::text[])));
 alter table public.news enable row level security;
 
+create table public.owner_articles (
+  id uuid not null default gen_random_uuid(),
+  car_id text not null,
+  author_user_id uuid not null default auth.uid(),
+  url text not null,
+  title text not null,
+  site_name text,
+  published_on date not null,
+  is_maintenance boolean not null default false,
+  areas text[] not null default '{}'::text[],
+  is_hidden boolean not null default false,
+  digest_sent_at timestamp with time zone,
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now()
+);
+alter table public.owner_articles add constraint owner_articles_pkey PRIMARY KEY (id);
+alter table public.owner_articles add constraint owner_articles_car_url_key UNIQUE (car_id, url);
+alter table public.owner_articles add constraint owner_articles_areas_check CHECK ((areas <@ ARRAY['engine'::text, 'fuel'::text, 'driveline'::text, 'suspension'::text, 'brake'::text, 'body'::text, 'electric'::text, 'consumable'::text]));
+alter table public.owner_articles add constraint owner_articles_site_name_check CHECK (((site_name IS NULL) OR (char_length(site_name) <= 60)));
+alter table public.owner_articles add constraint owner_articles_title_check CHECK (((char_length(btrim(title)) >= 1) AND (char_length(btrim(title)) <= 120)));
+alter table public.owner_articles add constraint owner_articles_url_check CHECK (((url ~~ 'https://%'::text) AND (char_length(url) <= 1000)));
+alter table public.owner_articles add constraint owner_articles_author_user_id_fkey FOREIGN KEY (author_user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+alter table public.owner_articles enable row level security;
+
 create table public.owner_tool_helpful (
   id uuid not null default gen_random_uuid(),
   tool_id uuid not null,
@@ -915,6 +939,8 @@ CREATE INDEX idx_maint_photos_record ON public.maint_photos USING btree (record_
 CREATE INDEX idx_maint_records_car ON public.maint_records USING btree (car_id, work_date DESC, created_at);
 CREATE INDEX idx_maint_records_public ON public.maint_records USING btree (work_date DESC, created_at DESC) WHERE (is_public AND (work_date IS NOT NULL));
 CREATE INDEX idx_news_target_car_type ON public.news USING btree (target_car_type);
+CREATE INDEX owner_articles_car_idx ON public.owner_articles USING btree (car_id, published_on DESC);
+CREATE INDEX owner_articles_new_idx ON public.owner_articles USING btree (created_at DESC) WHERE (NOT is_hidden);
 CREATE INDEX idx_owner_tool_helpful_car ON public.owner_tool_helpful USING btree (car_id);
 CREATE INDEX idx_owner_tool_users_car ON public.owner_tool_users USING btree (car_id);
 CREATE INDEX idx_owner_tool_users_tool ON public.owner_tool_users USING btree (tool_id);
@@ -1414,6 +1440,32 @@ $function$
 ;
 -- acl: postgres=X/postgres service_role=X/postgres
 
+CREATE OR REPLACE FUNCTION public.owner_articles_guard()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  new.updated_at := now();
+  if tg_op = 'INSERT' then
+    if not public.is_admin() then
+      new.author_user_id := auth.uid();
+      new.is_hidden := false;
+      new.digest_sent_at := null;
+    end if;
+    new.created_at := now();
+  elsif not public.is_admin() then
+    new.car_id := old.car_id;
+    new.author_user_id := old.author_user_id;
+    new.created_at := old.created_at;
+    new.is_hidden := old.is_hidden;
+    new.digest_sent_at := old.digest_sent_at;
+  end if;
+  return new;
+end $function$
+;
+-- acl: =X/postgres postgres=X/postgres anon=X/postgres authenticated=X/postgres service_role=X/postgres
+
 CREATE OR REPLACE FUNCTION public.owner_tools_guard()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1777,6 +1829,7 @@ CREATE TRIGGER after_favorite_spot_change AFTER INSERT OR DELETE ON public.favor
 CREATE TRIGGER before_insert_favorite_spots BEFORE INSERT ON public.favorite_spots FOR EACH ROW WHEN ((new.favorite_id IS NULL)) EXECUTE FUNCTION generate_favorite_id();
 CREATE TRIGGER maint_photos_guard BEFORE UPDATE ON public.maint_photos FOR EACH ROW EXECUTE FUNCTION maint_photos_guard();
 CREATE TRIGGER maint_records_guard BEFORE INSERT OR UPDATE ON public.maint_records FOR EACH ROW EXECUTE FUNCTION maint_records_guard();
+CREATE TRIGGER owner_articles_guard BEFORE INSERT OR UPDATE ON public.owner_articles FOR EACH ROW EXECUTE FUNCTION owner_articles_guard();
 CREATE TRIGGER owner_tools_guard BEFORE INSERT OR UPDATE ON public.owner_tools FOR EACH ROW EXECUTE FUNCTION owner_tools_guard();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.parts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER before_insert_schedules BEFORE INSERT ON public.spot_schedules FOR EACH ROW WHEN ((new.schedule_id IS NULL)) EXECUTE FUNCTION generate_schedule_id();
@@ -1979,6 +2032,15 @@ create policy news_insert_policy on public.news as permissive for INSERT to publ
   with check (is_admin());
 create policy news_select_policy on public.news as permissive for SELECT to public
   using (true);
+create policy owner_articles_delete on public.owner_articles as permissive for DELETE to authenticated
+  using ((is_admin() OR (author_user_id = auth.uid())));
+create policy owner_articles_insert on public.owner_articles as permissive for INSERT to authenticated
+  with check ((is_admin() OR (owns_car(car_id) AND (author_user_id = auth.uid()))));
+create policy owner_articles_read on public.owner_articles as permissive for SELECT to public
+  using (((NOT is_hidden) OR (author_user_id = auth.uid()) OR is_admin()));
+create policy owner_articles_update on public.owner_articles as permissive for UPDATE to authenticated
+  using ((is_admin() OR (author_user_id = auth.uid())))
+  with check ((is_admin() OR (author_user_id = auth.uid())));
 create policy owner_tool_helpful_delete on public.owner_tool_helpful as permissive for DELETE to authenticated
   using ((is_admin() OR owns_car(car_id)));
 create policy owner_tool_helpful_insert on public.owner_tool_helpful as permissive for INSERT to authenticated
