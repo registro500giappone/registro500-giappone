@@ -89,7 +89,6 @@
     body.layout-v2 #toolsSection { order: 5; }
     body.layout-v2 #paintSection { order: 6; }
     body.layout-v2 #specGroup { order: 7; }
-    body.layout-v2 #blanksSection { order: 8; }
     body.layout-v2 #standingSection { order: 9; }
     body.layout-v2 #shareSection { order: 10; }
     body.layout-v2 #colRight > * { scroll-margin-top: 88px; }
@@ -101,6 +100,7 @@
     body.layout-v2 .spec-group-title { display: block; }
     body.layout-v2 .spec-group > .rg-card { border: 0; padding: 0; margin: 0 0 1.1rem; background: transparent !important; }
     body.layout-v2 .spec-group > .rg-card:last-child { margin-bottom: 0; }
+    body.layout-v2 .spec-group > #blanksSection { border-top: 1px dashed var(--rg-border); padding-top: 1rem; }
     body.layout-v2 .spec-group > .rg-card .rg-section-title { background: none; border-left: 0; padding: 0; margin: 0 0 0.35rem; font-size: 0.82rem; color: var(--rg-muted); letter-spacing: 0.05em; }
     body.is-sold-page.layout-v2 .spec-group { background: #f5f5f3; }
     @media (min-width: 992px) {
@@ -138,7 +138,8 @@
     .rg-btn-dark:hover { background: #374151; }
     .rg-btn-black { background: black; color: white; }
     .rg-btn-black:hover { opacity: 0.85; }
-    .rg-action-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    .rg-action-row { display: flex; gap: 0.5rem; }
+    .rg-action-row .rg-btn { padding: 10px 6px; font-size: 0.85rem; white-space: nowrap; border-radius: 8px; }
 
     /* モーダル内コンテンツ */
     .rg-modal-box { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 25px 50px rgba(0,0,0,0.25); }
@@ -168,7 +169,7 @@
     .rg-episode-timeline-item:last-child { border-bottom: none; }
     .rg-episode-date { font-size: 0.8rem; color: var(--rg-muted); margin-bottom: 0.2rem; }
     .paint-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
-    .paint-item { border: 1px solid var(--rg-border); border-radius: 8px; overflow: hidden; background: #fff; }
+    .paint-item { border: 1px solid var(--rg-border); border-radius: 8px; overflow: hidden; background: var(--rg-surface); }
     .paint-item img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; background: #e8e1d3; }
     .paint-item .pc { font-size: 0.82rem; padding: 4px 8px 0; word-break: break-word; }
     .paint-item .pd { font-size: 0.72rem; color: var(--rg-muted); padding: 2px 8px 6px; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
@@ -191,7 +192,7 @@
     .rg-upcoming-title { font-size: 0.78rem; font-weight: 700; color: var(--rg-muted); padding-top: 0.4rem; letter-spacing: 0.05em; }
     .rg-upcoming .rg-history-item { padding: 0.5rem 0; font-size: 0.88rem; }
     .rg-upcoming .rg-episodes-more { padding: 0.4rem; font-size: 0.82rem; }
-    #episodesSection { --mv-accent: var(--rg-accent); --mv-muted: var(--rg-muted); }
+    #episodesSection { --mv-accent: var(--rg-accent); --mv-muted: var(--rg-muted); --mv-soft: var(--rg-accent-soft); }
     .rg-maint-seg, .rg-maint-areas { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
     .rg-maint-seg button, .rg-maint-areas button { font: inherit; font-size: 0.82rem; padding: 5px 12px; border: 1px solid var(--rg-border); border-radius: 999px; background: transparent; color: inherit; cursor: pointer; }
     .rg-maint-areas button { font-size: 0.76rem; padding: 3px 10px; }
@@ -419,6 +420,14 @@
           <section class="rg-card"><h2 class="rg-section-title">オイル・バッテリー</h2><dl class="rg-spec-grid js-auto-hide">
             <dt data-field="engine_oil">エンジンオイル</dt><dd id="val_EngineOil"></dd><dt data-field="engine_oil_interval">周期</dt><dd id="val_EngineOilInterval"></dd><dt data-field="transmission_oil">ミッションオイル</dt><dd id="val_TransmissionOil"></dd><dt data-field="transmission_oil_interval">周期</dt><dd id="val_TransmissionOilInterval"></dd><dt data-field="battery">バッテリー</dt><dd id="val_Battery"></dd>
           </dl></section>
+          <!-- 空欄の記入うながし。オーナー本人にしか出ない（他人の車では意味がない） -->
+          <section class="rg-card" id="blanksSection" style="display:none;">
+            <h2 class="rg-section-title">まだ書かれていない欄</h2>
+            <p class="blanks-lead" id="blanksLead"></p>
+            <div id="blanksRows"></div>
+            <a id="blanksCta" class="blanks-cta" href="#">この車の情報を書き足す →</a>
+            <p class="blanks-note">この欄は、統計ページの「みんなが使っている製品」に、書かれたままの言葉で並びます。「純正のまま」「不明」と書いている人もいます。分からない欄は空のままで構いません。</p>
+          </section>
           </div>
           <section class="rg-card" id="standingSection" style="display:none;">
             <h2 class="rg-section-title">この車の立ち位置</h2>
@@ -430,14 +439,6 @@
               <p class="standing-legend"><span class="standing-key mine"></span>この車<span class="standing-key" style="margin-left:8px;"></span>ほかの選択肢</p>
               <p class="standing-note">数が多いほど良い、という意味ではありません。自由記入のため答えが揃わない項目（オイルの銘柄など）はここに出していません。</p>
             </details>
-          </section>
-          <!-- 空欄の記入うながし。オーナー本人にしか出ない（他人の車では意味がない） -->
-          <section class="rg-card" id="blanksSection" style="display:none;">
-            <h2 class="rg-section-title">まだ書かれていない欄</h2>
-            <p class="blanks-lead" id="blanksLead"></p>
-            <div id="blanksRows"></div>
-            <a id="blanksCta" class="blanks-cta" href="#">この車の情報を書き足す →</a>
-            <p class="blanks-note">この欄は、統計ページの「みんなが使っている製品」に、書かれたままの言葉で並びます。「純正のまま」「不明」と書いている人もいます。分からない欄は空のままで構いません。</p>
           </section>
           <section class="rg-card" id="highlightsSection" style="display:none;"><h2 class="rg-section-title" id="highlightsTitle" data-field="highlights">こだわり</h2><p id="val_Highlights" style="white-space:pre-wrap;"></p></section>
           <section class="rg-card" id="acquisitionSection" style="display:none;">
@@ -474,7 +475,7 @@
             <a class="rg-episodes-more" href="/paint-notebook/gallery">みんなのお絵描き帳を見る →</a>
           </section>
           <section class="rg-card" id="toolsSection" style="display:none;">
-            <h2 class="rg-section-title">このオーナーのおすすめ工具・パーツ</h2>
+            <h2 class="rg-section-title">おすすめ工具・パーツ</h2>
             <div id="toolsList"></div>
             <p id="toolsAlso" class="tl-also" style="display:none;"></p>
             <a class="rg-episodes-more" href="/tools">みんなのおすすめ工具・パーツを見る →</a>
@@ -1337,6 +1338,14 @@
     // last_update_fields（カンマ区切りの列名）から「（写真・こだわり）」のような添え書きを作る。
     // 対応表に無い列は「その他」にまとめる（黙って消すと「何を更新したのか分からない」行になる）。
     // 3語を超えたら「ほか」で締める
+    // 1種類だけの更新は「写真を更新しました」のように言い切る（2026-10-29）
+    function historyUpdateText(fieldsStr) {
+      const cols = String(fieldsStr || '').split(',').map(s => s.trim()).filter(Boolean);
+      const hits = cols.map(col => HISTORY_FIELD_LABELS.find(f => f.test(col)));
+      const labels = [...new Set(hits.filter(Boolean).map(h => h.label))];
+      if (cols.length && hits.every(Boolean) && labels.length === 1) return `${esc(labels[0])}を更新しました`;
+      return '情報を更新しました' + historyFieldsSuffix(fieldsStr);
+    }
     function historyFieldsSuffix(fieldsStr) {
       if (!fieldsStr) return '';
       const cols = String(fieldsStr).split(',').map(s => s.trim()).filter(Boolean);
@@ -1493,7 +1502,7 @@
           if (h.kind === 'registered') {
             rows.push({ date: h.occurred_at, kind: 'registered', html: renderHistoryLine(h.occurred_at, '🏁', 'Registro500 に登録されました') });
           } else if (h.kind === 'updated') {
-            rows.push({ date: h.occurred_at, kind: 'updated', html: renderHistoryLine(h.occurred_at, '✏️', '情報を更新しました' + historyFieldsSuffix(h.fields)) });
+            rows.push({ date: h.occurred_at, kind: 'updated', html: renderHistoryLine(h.occurred_at, '✏️', historyUpdateText(h.fields)) });
           } else if (h.kind === 'sold') {
             rows.push({ date: h.occurred_at, kind: 'sold', html: renderHistoryLine(h.occurred_at, '🔑', '手放しました') });
           }
