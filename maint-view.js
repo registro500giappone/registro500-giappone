@@ -10,8 +10,8 @@
 
   const CSS = `
 .mv-meta { font-size: .8rem; color: var(--mv-muted, #7a705f); }
-.mv-row { display: flex; gap: 10px; align-items: flex-start; }
-.mv-row .mv-thumb { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; flex: none; }
+.mv-row { display: flex; gap: 12px; align-items: flex-start; }
+.mv-row .mv-thumb { width: 112px; height: 112px; object-fit: cover; border-radius: 8px; flex: none; }
 .mv-title { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--mv-accent, #1f5c3d); cursor: pointer; text-align: left; }
 .mv-title:hover { text-decoration: underline; }
 a.mv-title { text-decoration: none; }
