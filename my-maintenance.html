@@ -164,7 +164,7 @@
         <div id="mkEditRow" class="hidden">
           <label class="f" for="fMkUrl">みんカラの記事<small><a id="mkEditOpen" href="#" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">開いて確かめる ↗</a></small></label>
           <input type="text" id="fMkUrl" inputmode="url" autocomplete="off" placeholder="https://minkara.carview.co.jp/userid/…/note.aspx">
-          <p class="note">違う記事を貼っていたら、ここで正しいURLに貼り替えられます（消して載せ直す必要はありません）。</p>
+          <p class="note">違う記事を貼っていたら、ここで正しいURLに貼り替えられます（消して載せ直す必要はありません）。欄を空にして保存すると、みんカラとのつながりを外せます。</p>
         </div>
         <label class="f" for="fComment">コメント<small>省略できます</small></label>
         <textarea id="fComment" maxlength="2000" placeholder="例：前回から約1,800km。異音はなかったが、車検前に見ておいた。"></textarea>
@@ -697,10 +697,14 @@
     const videos = videoList();
     const badVideo = videos.find(u => !VIDEO_RE.test(u) || u.length > 500);
     if (badVideo) { setMsg('動画のリンクは YouTube・Instagram・X のURLだけ貼れます：' + badVideo, 'err'); $('videoFold').open = true; return; }
-    let mkUrl = null;
+    let mkUrl = null, mkDrop = false;
     if (editing && editing.minkara_url) {
-      mkUrl = mkNormalize($('fMkUrl').value);
-      if (!mkUrl) { setMsg('みんカラの記事URL（…/note.aspx で終わるもの）を入れてください。', 'err'); $('fMkUrl').focus(); return; }
+      // 空にしたら、みんカラとのつながりを外してこのサイトの記録として残す（2026-10-29）
+      if (!$('fMkUrl').value.trim()) mkDrop = true;
+      else {
+        mkUrl = mkNormalize($('fMkUrl').value);
+        if (!mkUrl) { setMsg('みんカラの記事URL（…/note.aspx で終わるもの）を入れてください。外すときは欄を空にしてください。', 'err'); $('fMkUrl').focus(); return; }
+      }
     }
     const costRaw = $('fCost').value.trim();
     if (costRaw && !/^\d+$/.test(costRaw)) { setMsg('費用は数字だけで入れてください。', 'err'); $('costFold').open = true; return; }
@@ -720,6 +724,7 @@
       areas: areasVal(), worker: workerVal(), is_public: $('fPublic').checked, video_urls: videos
     };
     if (mkUrl) rec.minkara_url = mkUrl;
+    if (mkDrop) { rec.minkara_url = null; rec.source = 'post'; }
     try {
       let recordId;
       if (editing) {
