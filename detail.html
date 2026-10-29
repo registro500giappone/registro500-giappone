@@ -1282,6 +1282,22 @@
     let rgMaintRecs = {};
     let rgHistoryFilter = { mode: 'all', area: null };
 
+    // オーナーの記事（ブログなど外部記事へのリンク・/my-articles で載せる）。正本 owner-articles/HANDOFF.md
+    // 公開の準備が整うまで止めておく＝URL に ?articles-preview を付けたときだけ出す
+    const ARTICLES_ON_CAR_PAGE = false;
+    const articlesOn = ARTICLES_ON_CAR_PAGE || new URLSearchParams(location.search).has('articles-preview');
+    function articleLineHtml(a) {
+      const url = /^https:\/\//.test(a.url || '') ? a.url : '';
+      const title = url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer nofollow ugc">${esc(a.title)}</a>` : esc(a.title);
+      const sub = [a.site_name ? `${esc(a.site_name)} の記事` : '記事'];
+      if (a.is_maintenance) sub.push('🔧 整備');
+      if (a.is_hidden) sub.push('伏せています（あなたにだけ見えています）');
+      return `${title} <span style="font-size:.78rem;color:var(--rg-muted);">（${sub.join('・')}）</span>`;
+    }
+    // 「整備だけ」に入る行＝整備の記録と、整備の記事。箇所は両方の areas
+    function isMaintRow(r) { return r.kind === 'maint' || (r.kind === 'article' && r.article.is_maintenance); }
+    function rowAreas(r) { return (r.kind === 'maint' ? rgMaintRecs[r.id].areas : r.article.areas) || []; }
+
     function loadMaintView() {
       if (window.MaintView) return Promise.resolve();
       return new Promise((resolve, reject) => {
@@ -1302,14 +1318,14 @@
 
     // 「すべて／🔧 整備だけ」。整備の記録がある車にだけ出す（数は出さない）
     function historyControlsHtml() {
-      const maintRows = rgHistoryRows.filter(r => r.kind === 'maint');
+      const maintRows = rgHistoryRows.filter(isMaintRow);
       if (!maintRows.length) return '';
       const on = m => rgHistoryFilter.mode === m ? 'true' : 'false';
       let html = `<div class="rg-maint-seg"><button type="button" data-hmode="all" aria-pressed="${on('all')}">すべて</button><button type="button" data-hmode="maint" aria-pressed="${on('maint')}">🔧 整備だけ</button></div>`;
       if (rgHistoryFilter.mode === 'maint') {
         const used = new Set();
-        maintRows.forEach(r => (rgMaintRecs[r.id].areas || []).forEach(a => used.add(a)));
-        const areas = MaintView.AREAS.filter(([v]) => used.has(v));
+        maintRows.forEach(r => rowAreas(r).forEach(a => used.add(a)));
+        const areas = (window.MaintView ? MaintView.AREAS : []).filter(([v]) => used.has(v));
         if (areas.length > 1) {
           html += `<div class="rg-maint-areas"><button type="button" data-harea="" aria-pressed="${rgHistoryFilter.area ? 'false' : 'true'}">すべての箇所</button>`;
           areas.forEach(([v, label]) => { html += `<button type="button" data-harea="${esc(v)}" aria-pressed="${rgHistoryFilter.area === v ? 'true' : 'false'}">${esc(label)}</button>`; });
@@ -1324,7 +1340,7 @@
       const list = document.getElementById('episodesList');
       if (!list) return;
       const rows = rgHistoryFilter.mode === 'maint'
-        ? rgHistoryRows.filter(r => r.kind === 'maint' && (!rgHistoryFilter.area || (rgMaintRecs[r.id].areas || []).includes(rgHistoryFilter.area)))
+        ? rgHistoryRows.filter(r => isMaintRow(r) && (!rgHistoryFilter.area || rowAreas(r).includes(rgHistoryFilter.area)))
         : rgHistoryRows;
       const shown = rows.slice(0, limit);
       let html = historyControlsHtml() + shown.map(r => r.html).join('');
@@ -1353,12 +1369,17 @@
       document.getElementById('episodesSection').style.display = 'block';
       const rows = [];
 
-      const [historyRes, participantRes, slugsRes, equipmentRes, maintRes] = await Promise.allSettled([
+      const [historyRes, participantRes, slugsRes, equipmentRes, maintRes, articleRes] = await Promise.allSettled([
         supabaseClient.from('car_history').select('kind, fields, occurred_at').eq('car_id', carDocId),
         supabaseClient.from('event_participants').select('event_id').eq('car_id', carDocId),
         fetch('/event-slugs.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}),
         supabaseClient.from('equipment_records').select('created_at, updated_at').eq('vehicle_id', carDocId).eq('is_public', true),
-        maintOn ? fetchMaintRows(carDocId) : Promise.resolve([])
+        maintOn ? fetchMaintRows(carDocId) : Promise.resolve([]),
+        // 整備の記事の箇所名は maint-view.js の AREAS を使う。伏せた行は RLS が本人と管理人にだけ返す
+        articlesOn ? Promise.all([supabaseClient.from('owner_articles')
+          .select('id, title, url, site_name, published_on, is_maintenance, areas, is_hidden, created_at')
+          .eq('car_id', carDocId), loadMaintView().catch(() => {})]).then(([r]) => { if (r.error) throw r.error; return r.data || []; })
+          : Promise.resolve([])
       ]);
 
       // ① car_history（登録・更新・売却）。取れなければ currentCar.created_at で登録行だけ作る
@@ -1424,6 +1445,13 @@
         const dateLabel = formatEpisodeDate(m.work_date, 'day', false);
         rows.push({ date: m.work_date, created: m.created_at, kind: 'maint', id: m.id,
           html: `<div class="rg-history-item"><div class="rg-episode-date">${esc(dateLabel)}</div><div data-mid="${esc(m.id)}"></div></div>` });
+      });
+
+      // ⑥ オーナーの記事。並びは記事の日付（書いた日）
+      const articles = (articleRes.status === 'fulfilled' && articleRes.value) || [];
+      articles.forEach(a => {
+        rows.push({ date: a.published_on, created: a.created_at, kind: 'article', id: a.id, article: a,
+          html: renderHistoryLine(a.published_on, '📝', articleLineHtml(a)) });
       });
 
       // 新しい順に並べ、同じ日の「更新」は1行に畳み、登録日と同日の「更新」は出さない
