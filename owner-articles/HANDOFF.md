@@ -25,8 +25,8 @@
 | 段 | 中身 | 状態 |
 |---|---|---|
 | 1-a | テーブル `owner_articles`（`schema_2026-10-29.sql`）・RLS・`database_schema.sql` | ✅ 2026-10-29 本番適用 |
-| 1-b | サーバー `functions/api/article-meta.js`（任意の https 記事URL→題名・サイト名・日付。内部アドレス拒否・読む量と時間に上限・文字コード判別） | ⏳ |
-| 1-c | 載せる画面 `/my-articles`（noindex・導線なし）＝URL貼るだけ・📋ボタン・`?u=` 受け・整備チップ・自分の記事の直す／消す・みんカラ整備手帳URLの振り分け | ⏳ |
+| 1-b | サーバー `functions/api/article-meta.js`（任意の https 記事URL→題名・サイト名・日付。内部アドレス拒否・読む量と時間に上限・文字コード判別） | ✅ 2026-10-29（はてな・note・アメブロ・Shift_JIS のサイトで3項目とも取れた。note は日付を `</head>` 直後の JSON-LD に置く＝`<head>` に日付が無いときだけ `datePublished` を探して少し先まで読む） |
+| 1-c | 載せる画面 `/my-articles`（noindex・導線なし）＝URL貼るだけ・📋ボタン・`?u=` 受け・整備チップ・自分の記事の直す／消す・みんカラ整備手帳URLの振り分け | ✅ 2026-10-29 push（⏳ログイン後の流れは本番で実機確認待ち。`?u=`／`?url=`／`?text=` は文中の最初のURLを拾う＝段2の share_target もそのまま受けられる） |
 | 1-d | 車両ページの歩みに 📝（スイッチ `ARTICLES_ON_CAR_PAGE=false`・`?articles-preview` で表示）・整備の記事は「整備だけ」にも | ⏳ |
 | 1-e | みんなの整備手帳（`/maintenance`）に整備の記事を混ぜる | ⏳ |
 | 1-f | オーナーの更新情報・トップの帯に 📝（スイッチ `ARTICLES_IN_FEED=false`） | ⏳ |

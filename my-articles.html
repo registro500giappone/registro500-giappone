@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>オーナーの記事を載せる | Registro500 Giappone</title>
+  <meta name="description" content="ブログなど、よそで書いた自分の車の記事を、URLを貼るだけで車両ページに並べられます。">
+  <link rel="canonical" href="https://www.registro500.com/my-articles">
+  <meta property="og:title" content="オーナーの記事を載せる">
+  <meta property="og:description" content="ブログなど、よそで書いた自分の車の記事を、URLを貼るだけで車両ページに並べられます。">
+  <meta property="og:url" content="https://www.registro500.com/my-articles">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Registro500 Giappone">
+  <meta property="og:image" content="https://www.registro500.com/og/site-ja.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-27SHHC4JYH');
+  </script>
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
+  <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
+  <style>
+    :root {
+      --bg-main: #f5f0e6; --card-bg: #fffefb; --border-soft: #d6c9b0;
+      --shadow-soft: 0 2px 8px rgba(70,58,40,.10); --text-main: #2e2a24; --text-sub: #7a705f;
+      --accent: #1f5c3d; --accent-soft: #e7efe7; --danger: #a33a2a;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-main: #1a1714; --card-bg: #2b2721; --border-soft: #403a30;
+        --shadow-soft: 0 2px 10px rgba(0,0,0,.35); --text-main: #ece6d9; --text-sub: #a89e8c;
+        --accent: #7fb894; --accent-soft: #24382c; --danger: #e08a7a;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { font-size: 16px; max-width: 100%; overflow-x: hidden; }
+    body { font-family: var(--font-sans); margin: 0; padding: 20px 16px 60px; background: var(--bg-main); color: var(--text-main); line-height: 1.6; }
+    .page { max-width: 640px; margin: 0 auto; }
+    .back-link { display: inline-block; font-size: .85rem; color: var(--text-sub); text-decoration: none; margin-bottom: 12px; }
+    .back-link:hover { color: var(--accent); }
+    h1 { font-size: 1.35rem; margin: .2em 0 .6em; }
+    .lead { font-size: .88rem; color: var(--text-sub); margin: 0 0 12px; }
+    .lead.intro { line-height: 1.8; margin: -4px 0 16px; }
+    .hidden { display: none !important; }
+    .card { background: var(--card-bg); border: 1px solid var(--border-soft); border-radius: 12px; padding: 14px; margin-bottom: 14px; box-shadow: var(--shadow-soft); }
+    .card h2 { font-size: 1.05rem; margin: 0 0 10px; }
+    label.f, p.f { display: block; font-weight: 700; font-size: .88rem; margin: 14px 0 4px; }
+    label.f:first-child, p.f:first-child { margin-top: 0; }
+    .f small { font-weight: 400; color: var(--text-sub); margin-left: 4px; }
+    .note { font-size: .75rem; color: var(--text-sub); margin: 3px 0 0; font-weight: 400; }
+    input[type=text], input[type=email], input[type=date], input[type=number], select { width: 100%; font: inherit; font-size: 1rem; padding: 9px 10px; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--bg-main); color: var(--text-main); }
+    ::placeholder { color: #b8ae9c; opacity: 1; }
+    @media (prefers-color-scheme: dark) { ::placeholder { color: #6e6658; } }
+    .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { font: inherit; font-size: .85rem; padding: 7px 11px; border: 1px solid var(--border-soft); border-radius: 999px; background: var(--bg-main); color: var(--text-main); cursor: pointer; }
+    .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+    @media (prefers-color-scheme: dark) { .chip[aria-pressed="true"] { color: #10261a; } }
+    .chip.hint { cursor: default; background: var(--accent-soft); border-color: transparent; color: var(--text-sub); }
+    .link-btn { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-size: .85rem; cursor: pointer; }
+    .btn-main { display: block; width: 100%; text-align: center; background: var(--accent); color: #fff; border: 0; border-radius: 10px; padding: 12px; font-size: 1rem; font-weight: 700; text-decoration: none; cursor: pointer; font-family: inherit; }
+    .btn-main:disabled { opacity: .5; cursor: default; }
+    @media (prefers-color-scheme: dark) { .btn-main { color: #10261a; } }
+    .btn-sub { background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 6px 12px; font-size: .85rem; cursor: pointer; font-family: inherit; }
+    .btn-danger { color: var(--danger); border-color: var(--danger); }
+    .btn-wide { width: 100%; padding: 12px; font-size: 1rem; }
+    details.fold { border-top: 1px solid var(--border-soft); padding: 10px 0; }
+    details.fold:first-child { border-top: 0; }
+    details.fold summary { cursor: pointer; font-weight: 700; font-size: .9rem; color: var(--accent); list-style: none; display: flex; justify-content: space-between; gap: 8px; }
+    details.fold summary::-webkit-details-marker { display: none; }
+    details.fold summary small { font-weight: 400; color: var(--text-sub); }
+    details.fold[open] summary { margin-bottom: 8px; }
+    .tg { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+    .tg input { width: 22px; height: 22px; flex: none; accent-color: var(--accent); }
+    .msg { font-size: .88rem; margin: 10px 0 0; }
+    .msg.err { color: var(--danger); }
+    .msg.ok { color: var(--accent); }
+    .login-col { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+    #clearEmailBtn { align-self: flex-start; color: var(--text-sub); font-size: .78rem; }
+    .or-line { display: flex; align-items: center; gap: 8px; color: var(--text-sub); font-size: .78rem; }
+    .or-line span { flex: 1; height: 1px; background: var(--border-soft); }
+    .otp-code { font-size: 1.4rem !important; letter-spacing: 8px; text-align: center; }
+    .mine { border-top: 1px solid var(--border-soft); padding: 12px 0; display: flex; gap: 10px; }
+    .mine:first-child { border-top: 0; padding-top: 0; }
+    .mine img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; flex: none; }
+    .mine .bd { flex: 1; min-width: 0; }
+    .mine .dt { font-size: .75rem; color: var(--text-sub); }
+    .mine .nm { font-weight: 700; word-break: break-word; }
+    .mine .meta { font-size: .78rem; color: var(--text-sub); }
+    .mine .meta a, #mineLinks a, #topLinks a { color: var(--accent); }
+    .mine .acts { display: flex; gap: 8px; margin-top: 6px; }
+    .center { text-align: center; }
+    .row input[type=date] { width: auto; flex: 0 1 190px; }
+    .paste-row { display: flex; gap: 8px; }
+    .paste-row input { flex: 1; min-width: 0; }
+    .paste-row .btn-sub { flex: none; white-space: nowrap; }
+    .pv-site { font-size: .78rem; color: var(--text-sub); margin-top: 6px; word-break: break-all; }
+    .pv-site a { color: var(--accent); }
+    #areaBox { margin-top: 8px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <a href="/" class="back-link">&larr; トップに戻る</a>
+  <h1>📝 オーナーの記事を載せる</h1>
+  <p class="lead intro">ブログなど、よそで書いた自分の車の記事を、URLを貼るだけで車両ページの「この1台の歩み」に並べられます。題名と日付はリンク先から読みます（本文や写真は取り込みません）。</p>
+  <p class="note hidden" id="topLinks" style="margin:-6px 0 12px"></p>
+
+  <div id="stateLoading" class="lead">確認中…</div>
+
+  <div id="stateNoCar" class="card center hidden">
+    <p><strong>車両登録が必要です。</strong></p>
+    <p class="lead">記事は、登録済みのお車に紐づけて並べます。</p>
+    <a class="btn-main" href="/edit">車両を登録する</a>
+  </div>
+
+  <div id="stateForm" class="hidden">
+    <form id="form" novalidate>
+      <div class="card">
+        <h2 id="formTitle">記事のURLを貼る</h2>
+        <div id="carRow" class="hidden">
+          <label class="f" for="carSel">どの車の記事？</label>
+          <select id="carSel"></select>
+        </div>
+        <div id="pasteBox">
+          <div class="paste-row" style="margin-top:6px">
+            <input type="text" id="fUrl" inputmode="url" autocomplete="off" placeholder="https://…">
+            <button type="button" class="btn-sub" id="pasteBtn">📋 貼る</button>
+          </div>
+          <p class="note">コピーしたURLを「📋 貼る」で入れられます。みんカラの整備手帳の記事は、マイ整備手帳へ入れます。</p>
+          <button type="button" class="btn-main" id="readBtn" style="margin-top:10px">読み込む</button>
+        </div>
+
+        <div id="pvBox" class="hidden">
+          <label class="f" for="fTitle">題名</label>
+          <input type="text" id="fTitle" maxlength="120" autocomplete="off">
+          <p class="pv-site" id="pvSite"></p>
+          <p class="f">日付<small>記事を書いた日</small></p>
+          <div class="row">
+            <input type="date" id="fDate">
+            <span class="chip hint hidden" id="dateHint">日付を読めなかったので今日にしました</span>
+          </div>
+          <p class="f">整備の記事？<small>選ぶと、みんなの整備手帳にも並びます</small></p>
+          <div class="chips"><button type="button" class="chip" id="maintChip" aria-pressed="false">🔧 整備の記事</button></div>
+          <div id="areaBox" class="hidden">
+            <p class="note" style="margin-bottom:6px">どこの整備？（選ばなくても載せられます）</p>
+            <div class="chips" id="areaChips"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="pvActs" class="hidden">
+        <button type="submit" class="btn-main" id="saveBtn">載せる</button>
+        <button type="button" class="btn-sub" id="cancelBtn" style="margin-top:10px;width:100%;">やめる</button>
+      </div>
+      <p class="msg" id="msg" role="status"></p>
+    </form>
+
+    <div id="stateLogin" class="card center hidden" style="margin-top:14px">
+      <p>記事を載せるにはログインが必要です。<br><span class="note">貼ったURLはこのまま残ります。</span></p>
+      <div class="login-col">
+        <div id="otpStep1" class="login-col">
+          <input type="email" id="emailLoginInput" placeholder="登録したメールアドレス" autocomplete="email">
+          <button type="button" id="clearEmailBtn" class="link-btn hidden">別のアドレスを使う</button>
+          <button type="button" class="btn-main" id="emailLoginBtn">確認コードを送信</button>
+          <div class="or-line"><span></span>または<span></span></div>
+          <button type="button" class="btn-sub btn-wide" id="loginBtn">Googleでログイン（従来方式）</button>
+        </div>
+        <div id="otpStep2" class="login-col hidden">
+          <p class="msg ok">✅ <strong id="otpSentEmail"></strong> に6桁の確認コードを送信しました。届いたコードを入力してください。</p>
+          <input type="text" id="otpCodeInput" class="otp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+          <button type="button" class="btn-main" id="otpVerifyBtn">ログイン</button>
+          <button type="button" class="link-btn" id="otpResendBtn">確認コードを再送する</button>
+        </div>
+        <p id="otpErrorMsg" class="msg err hidden"></p>
+      </div>
+    </div>
+
+    <div class="card hidden" id="mineCard" style="margin-top:14px">
+      <h2>これまでの記事</h2>
+      <p class="note" id="mineLinks" style="margin:-4px 0 6px"></p>
+      <div id="mineList"><p class="lead">読み込み中…</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // 箇所チップ（マイ整備手帳と同じ8つ）
+  const AREAS = [
+    ['engine', '⚙️ エンジン'], ['fuel', '🔥 燃料・点火'], ['driveline', '🔗 駆動系'], ['suspension', '🛞 足回り・操舵'],
+    ['brake', '🛑 ブレーキ'], ['electric', '⚡ 電装'], ['consumable', '🛢 オイル・消耗品'], ['body', '🚗 ボディ・その他']
+  ];
+  const AREA_LABEL = Object.fromEntries(AREAS);
+  // みんカラの整備手帳の記事（/api/minkara-title と同じ形）＝マイ整備手帳へ振り分ける
+  const MK_RE = /^https:\/\/minkara\.carview\.co\.jp\/userid\/\d+\/car\/\d+\/\d+\/note\.aspx$/;
+  const URL_KEY = 'r500_article_url';
+
+  const $ = id => document.getElementById(id);
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function track(name, params) { try { if (typeof gtag === 'function') gtag('event', name, params || {}); } catch (e) {} }
+  function setMsg(text, kind) { const m = $('msg'); m.textContent = text || ''; m.className = 'msg' + (kind ? ' ' + kind : ''); }
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function fmtDate(s) { if (!s) return '日付待ち'; const [y, m, d] = s.split('-'); return y + '年' + Number(m) + '月' + Number(d) + '日'; }
+  // 失敗の理由を画面に出す（スマホでは開発ツールが見られないため）
+  function errText(e) {
+    if (!e) return '理由不明';
+    const m = String(e.message || e);
+    if (/Load failed|Failed to fetch|NetworkError/i.test(m)) return '通信が途切れました。もう一度押してください';
+    return m.slice(0, 80);
+  }
+
+  let currentUser = null;
+  let myCars = [];
+  let started = false;
+  let pv = null;           // 読み込んだ記事 { url, title, site_name, published_on, is_maintenance?, areas? }
+  let editing = null;      // 直している記事（owner_articles の行）
+  let pendingRead = false; // ログイン前に URL を受けた
+  let busy = false;
+
+  // 文の中から最初の URL を拾う（共有メニューは「題名 URL」の形で渡してくることがある）
+  function pickUrl(raw) {
+    const m = String(raw || '').match(/https?:\/\/[^\s<>"'）」]+/i);
+    return m ? m[0] : '';
+  }
+  function mkNormalize(raw) {
+    try {
+      const u = new URL(String(raw).trim().replace(/^http:\/\//i, 'https://'));
+      if (u.hostname !== 'minkara.carview.co.jp') return null;
+      const out = 'https://minkara.carview.co.jp' + u.pathname.replace(/^\/smart\//, '/');
+      return MK_RE.test(out) ? out : null;
+    } catch (e) { return null; }
+  }
+  function currentCarId() {
+    if (editing) return editing.car_id;
+    return myCars.length > 1 ? $('carSel').value : myCars[0].id;
+  }
+
+  // ── チップ ──
+  AREAS.forEach(([v, label]) => {
+    const b = el('button', 'chip', label);
+    b.type = 'button'; b.dataset.v = v; b.setAttribute('aria-pressed', 'false');
+    $('areaChips').appendChild(b);
+  });
+  $('areaChips').addEventListener('click', ev => {
+    const b = ev.target.closest('.chip'); if (!b) return;
+    b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+  });
+  function setMaint(on) {
+    $('maintChip').setAttribute('aria-pressed', on ? 'true' : 'false');
+    $('areaBox').classList.toggle('hidden', !on);
+  }
+  $('maintChip').addEventListener('click', () => setMaint($('maintChip').getAttribute('aria-pressed') !== 'true'));
+  function areasVal() { return [...$('areaChips').querySelectorAll('.chip[aria-pressed="true"]')].map(b => b.dataset.v); }
+  function setAreas(list) { $('areaChips').querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', (list || []).includes(b.dataset.v) ? 'true' : 'false')); }
+
+  // ── URL を受ける（?u= ・共有メニュー・📋ボタン・手で貼る） ──
+  (function () {
+    const q = new URLSearchParams(location.search);
+    let u = pickUrl(q.get('u')) || pickUrl(q.get('url')) || pickUrl(q.get('text')) || pickUrl(q.get('title'));
+    if (!u) { try { u = sessionStorage.getItem(URL_KEY) || ''; } catch (e) {} }
+    if (u) { $('fUrl').value = u; pendingRead = true; }
+  })();
+  function keepUrl(u) { try { if (u) sessionStorage.setItem(URL_KEY, u); else sessionStorage.removeItem(URL_KEY); } catch (e) {} }
+  $('fUrl').addEventListener('input', () => keepUrl($('fUrl').value.trim()));
+  $('fUrl').addEventListener('paste', () => setTimeout(() => { if (pickUrl($('fUrl').value)) read(); }, 0));
+  $('pasteBtn').addEventListener('click', async () => {
+    let t = '';
+    try { t = await navigator.clipboard.readText(); }
+    catch (e) {
+      setMsg('このブラウザでは「📋 貼る」が使えません。欄を長押しして貼り付けてください。', 'err');
+      $('fUrl').focus();
+      return;
+    }
+    const u = pickUrl(t);
+    if (!u) { setMsg('コピーした中にURLが見つかりませんでした。', 'err'); return; }
+    $('fUrl').value = u;
+    keepUrl(u);
+    read();
+  });
+  $('readBtn').addEventListener('click', () => read());
+
+  async function read() {
+    if (busy) return;
+    const raw = pickUrl($('fUrl').value) || $('fUrl').value.trim();
+    if (!raw) { setMsg('記事のURLを貼ってください。', 'err'); return; }
+    if (!/^https?:\/\//i.test(raw)) { setMsg('https:// で始まるURLを貼ってください。', 'err'); return; }
+    keepUrl(raw);
+    if (!currentUser) {
+      pendingRead = true;
+      $('stateLogin').classList.remove('hidden');
+      $('stateLogin').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    if (!myCars.length) return;
+    const mk = mkNormalize(raw);
+    if (mk) return readMinkara(mk);
+
+    busy = true; $('readBtn').disabled = true;
+    setMsg('題名と日付を読み込んでいます…');
+    let j = {};
+    try {
+      const { data: sess } = await supabaseClient.auth.getSession();
+      const token = sess && sess.session && sess.session.access_token;
+      const res = await fetch('/api/article-meta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ url: raw })
+      });
+      j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.success) {
+        setMsg(j.reason === 'bad_url' ? 'このURLは読み込めません（https の記事ページのURLを貼ってください）。' : '読み込みに失敗しました。もう一度押してください。', 'err');
+        return;
+      }
+      // もう載せてある記事なら、その行を直す画面にする
+      const { data: have } = await supabaseClient.from('owner_articles').select('*')
+        .eq('author_user_id', currentUser.id).eq('url', j.url).limit(1);
+      if (have && have.length) { startEdit(have[0]); setMsg('この記事はもう載せてあります。直すときは下で直して「直す」を押してください。', 'ok'); return; }
+    } catch (e) {
+      console.error('[my-articles] meta', e);
+      setMsg('読み込みに失敗しました（' + errText(e) + '）。', 'err');
+      return;
+    } finally {
+      busy = false; $('readBtn').disabled = false;
+    }
+    pv = { url: j.url, title: j.title, site_name: j.site_name, published_on: j.published_on };
+    showPreview();
+    const miss = [];
+    if (!j.title) miss.push('題名');
+    if (!j.published_on) miss.push('日付');
+    setMsg(miss.length ? miss.join('と') + 'を読めませんでした。確かめてから「載せる」を押してください。' : '読み込みました。よければ「載せる」を押してください。', miss.length ? 'err' : 'ok');
+    track('article_read', { ok: miss.length ? 0 : 1 });
+  }
+
+  function showPreview() {
+    $('pasteBox').classList.add('hidden');
+    $('pvBox').classList.remove('hidden');
+    $('pvActs').classList.remove('hidden');
+    $('formTitle').textContent = editing ? '記事を直す' : 'この記事を載せる';
+    $('saveBtn').textContent = editing ? '直す' : '載せる';
+    $('carRow').classList.toggle('hidden', myCars.length < 2 || !!editing);
+    $('fTitle').value = pv.title || '';
+    $('fDate').value = pv.published_on || ymd(new Date());
+    $('dateHint').classList.toggle('hidden', !!pv.published_on || !!editing);
+    const box = $('pvSite');
+    box.textContent = pv.site_name ? pv.site_name + ' の記事　' : '';
+    const a = el('a', null, '開いて確かめる ↗'); a.href = pv.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    box.appendChild(a);
+    setMaint(!!pv.is_maintenance);
+    setAreas(pv.areas || []);
+    $('form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!pv.title) $('fTitle').focus();
+  }
+  function resetForm() {
+    pv = null; editing = null;
+    $('fUrl').value = '';
+    keepUrl('');
+    $('pvBox').classList.add('hidden');
+    $('pvActs').classList.add('hidden');
+    $('pasteBox').classList.remove('hidden');
+    $('carRow').classList.toggle('hidden', myCars.length < 2);
+    $('formTitle').textContent = '記事のURLを貼る';
+  }
+  $('cancelBtn').addEventListener('click', () => { resetForm(); setMsg(''); });
+  $('fDate').addEventListener('change', () => $('dateHint').classList.add('hidden'));
+
+  function startEdit(row) {
+    editing = row;
+    pv = { url: row.url, title: row.title, site_name: row.site_name, published_on: row.published_on, is_maintenance: row.is_maintenance, areas: row.areas };
+    showPreview();
+    setMsg('');
+  }
+
+  // ── 載せる・直す ──
+  $('form').addEventListener('submit', ev => { ev.preventDefault(); save(); });
+  async function save() {
+    if (busy || !pv) return;
+    const title = $('fTitle').value.trim();
+    const date = $('fDate').value;
+    if (!title) { setMsg('題名を入れてください。', 'err'); $('fTitle').focus(); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { setMsg('日付を入れてください。', 'err'); return; }
+    const isMaint = $('maintChip').getAttribute('aria-pressed') === 'true';
+    const row = { title, published_on: date, is_maintenance: isMaint, areas: isMaint ? areasVal() : [] };
+    busy = true; $('saveBtn').disabled = true;
+    const wasEdit = !!editing;
+    const { error } = wasEdit
+      ? await supabaseClient.from('owner_articles').update(row).eq('id', editing.id)
+      : await supabaseClient.from('owner_articles').insert({ ...row, car_id: currentCarId(), url: pv.url, site_name: pv.site_name || null });
+    busy = false; $('saveBtn').disabled = false;
+    if (error) {
+      console.error('[my-articles] save', error);
+      setMsg(error.code === '23505' ? 'この記事はもう載せてあります。' : '保存できませんでした（' + errText(error) + '）。', 'err');
+      return;
+    }
+    track(wasEdit ? 'article_edit' : 'article_add', { maint: isMaint ? 1 : 0 });
+    resetForm();
+    setMsg(wasEdit ? '直しました。' : '載せました。車両ページの「この1台の歩み」に並びます。', 'ok');
+    loadMine();
+  }
+
+  // ── みんカラの整備手帳の記事 → マイ整備手帳へ（読み方は my-maintenance.html の一括と同じ） ──
+  async function readMinkara(url) {
+    busy = true; $('readBtn').disabled = true;
+    try {
+      const { data: have } = await supabaseClient.from('maint_records').select('id')
+        .eq('author_user_id', currentUser.id).eq('minkara_url', url).limit(1);
+      if (have && have.length) { resetForm(); setMsg('この記事はもうマイ整備手帳に載せてあります。', 'ok'); return; }
+      setMsg('みんカラの整備手帳の記事なので、マイ整備手帳へ入れています…');
+      let title = null, workDate = null;
+      try {
+        const { data: sess } = await supabaseClient.auth.getSession();
+        const token = sess && sess.session && sess.session.access_token;
+        const res = await fetch('/api/minkara-title', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ url })
+        });
+        const j = await res.json().catch(() => ({}));
+        if (res.ok && j.success && j.title) title = j.title;
+        if (res.ok && j.success && /^\d{4}-\d{2}-\d{2}$/.test(j.work_date || '')) workDate = j.work_date;
+      } catch (e) { console.error('[my-articles] minkara', e); }
+      const { error } = await supabaseClient.from('maint_records')
+        .insert({ car_id: currentCarId(), title: title || 'みんカラの記事', source: 'minkara', minkara_url: url, work_date: workDate, is_public: true });
+      if (error) { console.error('[my-articles] minkara insert', error); setMsg('保存できませんでした（' + errText(error) + '）。', 'err'); return; }
+      track('article_minkara', { dated: workDate ? 1 : 0 });
+      resetForm();
+      setMsg(workDate
+        ? 'マイ整備手帳に載せました（作業日 ' + fmtDate(workDate) + '）。'
+        : 'マイ整備手帳に載せました。作業日を読めなかったので、マイ整備手帳の「日付待ち」で作業日を入れてください。', 'ok');
+      const a = el('a', null, ' マイ整備手帳を開く →'); a.href = '/my-maintenance'; a.style.color = 'var(--accent)';
+      $('msg').appendChild(a);
+    } finally {
+      busy = false; $('readBtn').disabled = false;
+    }
+  }
+
+  // ── これまでの記事 ──
+  async function loadMine() {
+    const box = $('mineList');
+    const { data, error } = await supabaseClient.from('owner_articles')
+      .select('*').eq('author_user_id', currentUser.id)
+      .order('published_on', { ascending: false }).order('created_at', { ascending: false });
+    box.textContent = '';
+    if (error) { box.appendChild(el('p', 'lead', '読み込みに失敗しました。')); console.error(error); return; }
+    if (!data.length) { $('mineCard').classList.add('hidden'); $('topLinks').classList.add('hidden'); return; }
+    $('mineCard').classList.remove('hidden');
+    const carLabel = Object.fromEntries(myCars.map(c => [c.id, c.label.trim()]));
+    // 訪問者からの見え方を確かめる入口
+    // ⚠️ 車両ページは ARTICLES_ON_CAR_PAGE=false の間は ?articles-preview が要る
+    const links = $('mineLinks');
+    links.textContent = '';
+    const cars = [...new Set(data.filter(r => !r.is_hidden).map(r => r.car_id))];
+    cars.forEach(id => {
+      const a = el('a', null, (cars.length > 1 && carLabel[id] ? carLabel[id] + 'の' : '') + '車両ページの歩みで見る →');
+      a.href = '/detail?doc=' + encodeURIComponent(id) + '&articles-preview#history';
+      links.append(a, document.createTextNode('　'));
+    });
+    const top = $('topLinks');
+    top.textContent = '';
+    const jump = el('a', null, 'これまでの記事 ↓'); jump.href = '#mineCard';
+    top.append(jump, document.createTextNode('　'));
+    [...links.childNodes].forEach(n => top.appendChild(n.cloneNode(true)));
+    top.classList.remove('hidden');
+    data.forEach(r => {
+      const item = el('div', 'mine'); item.dataset.id = r.id;
+      const bd = el('div', 'bd');
+      bd.appendChild(el('div', 'dt', fmtDate(r.published_on) + (myCars.length > 1 && carLabel[r.car_id] ? '　' + carLabel[r.car_id] : '')));
+      const nm = el('div', 'nm');
+      const a = el('a', null, r.title); a.href = r.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.style.color = 'inherit';
+      nm.appendChild(a);
+      bd.appendChild(nm);
+      const meta = [];
+      if (r.site_name) meta.push(r.site_name);
+      if (r.is_maintenance) meta.push('🔧 整備の記事');
+      (r.areas || []).forEach(x => meta.push(AREA_LABEL[x]));
+      if (r.is_hidden) meta.push('🚫 管理人が伏せています（ほかの人には見えません）');
+      if (meta.length) bd.appendChild(el('div', 'meta', meta.join(' ・ ')));
+      const acts = el('div', 'acts');
+      const ed = el('button', 'btn-sub', '直す'); ed.type = 'button';
+      ed.addEventListener('click', () => startEdit(r));
+      const del = el('button', 'btn-sub btn-danger', '消す'); del.type = 'button';
+      let armed = false;
+      del.addEventListener('click', async () => {
+        if (!armed) { armed = true; del.textContent = 'もう一度押すと消します'; setTimeout(() => { armed = false; del.textContent = '消す'; }, 4000); return; }
+        const { error: e2 } = await supabaseClient.from('owner_articles').delete().eq('id', r.id);
+        if (e2) { setMsg('消せませんでした：' + e2.message, 'err'); return; }
+        if (editing && editing.id === r.id) resetForm();
+        track('article_delete');
+        loadMine();
+      });
+      acts.append(ed, del);
+      bd.appendChild(acts);
+      item.appendChild(bd);
+      box.appendChild(item);
+    });
+  }
+
+  // ── ログイン ──
+  async function handleAuth(session) {
+    currentUser = session && session.user ? session.user : null;
+    if (!currentUser) {
+      started = false;
+      $('stateLoading').classList.add('hidden');
+      $('stateForm').classList.remove('hidden');
+      $('mineCard').classList.add('hidden');
+      return;
+    }
+    if (started) return;
+    started = true;
+    try {
+      const { data, error } = await supabaseClient.from('cars')
+        .select('document_id, handle_name, model_display_a, model_display_b, model_display_c')
+        .eq('owner_user_id', currentUser.id);
+      if (error) throw error;
+      myCars = (data || []).map(c => ({
+        id: c.document_id,
+        label: (c.handle_name || '') + ' ' + (c.model_display_c || [c.model_display_a || '', c.model_display_b || ''].filter(Boolean).join(' '))
+      }));
+    } catch (err) {
+      console.error('[my-articles] cars', err);
+      started = false;
+      $('stateLoading').textContent = '読み込みに失敗しました。再読み込みしてください。';
+      return;
+    }
+    $('stateLoading').classList.add('hidden');
+    $('stateLogin').classList.add('hidden');
+    if (!myCars.length) { $('stateForm').classList.add('hidden'); $('stateNoCar').classList.remove('hidden'); return; }
+    const sel = $('carSel');
+    sel.textContent = '';
+    myCars.forEach(c => { const o = el('option', null, c.label.trim() || c.id); o.value = c.id; sel.appendChild(o); });
+    $('carRow').classList.toggle('hidden', myCars.length < 2);
+    $('stateForm').classList.remove('hidden');
+    loadMine();
+    if (pendingRead && $('fUrl').value.trim()) {
+      pendingRead = false;
+      // みんカラの記事は読んだらすぐ保存する＝2台以上なら先に車を選んでもらう
+      if (myCars.length > 1 && mkNormalize($('fUrl').value)) setMsg('どの車の記事かを選んで「読み込む」を押してください。', 'ok');
+      else read();
+    }
+  }
+  supabaseClient.auth.getSession().then(({ data }) => handleAuth(data && data.session)).catch(err => { console.error(err); handleAuth(null); });
+  supabaseClient.auth.onAuthStateChange((ev, session) => { if (ev === 'SIGNED_OUT' || ev === 'SIGNED_IN') handleAuth(session); });
+  $('loginBtn').addEventListener('click', () => {
+    supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href } });
+  });
+
+  // ── メールの確認コードでログイン（tools-edit.html と同じ流れ） ──
+  function showOtpError(msg) {
+    $('otpErrorMsg').textContent = msg || '';
+    $('otpErrorMsg').classList.toggle('hidden', !msg);
+  }
+  let otpEmail = '';
+  $('emailLoginBtn').addEventListener('click', async () => {
+    const email = $('emailLoginInput').value.trim();
+    if (!email) { showOtpError('メールアドレスを入力してください。'); return; }
+    const btn = $('emailLoginBtn');
+    btn.disabled = true; btn.textContent = '送信中…';
+    const { error } = await supabaseClient.auth.signInWithOtp({ email });
+    btn.disabled = false; btn.textContent = '確認コードを送信';
+    const sentBefore = !!error && /after [0-9]+ seconds/.test(String(error.message));
+    if (error && !sentBefore) { showOtpError(error.status === 429 ? '送信が続いたため一時的に止まっています。数分おいてからお試しください。' : '送信に失敗しました：' + error.message); return; }
+    otpEmail = email;
+    try { localStorage.setItem('r500_login_email', email); } catch (e) {}
+    $('otpSentEmail').textContent = email;
+    $('otpStep1').classList.add('hidden');
+    $('otpStep2').classList.remove('hidden');
+    showOtpError(sentBefore ? '確認コードは少し前に送信済みです。届いているメールの、いちばん新しいコードを入力してください。' : '');
+  });
+  $('otpVerifyBtn').addEventListener('click', async () => {
+    const code = $('otpCodeInput').value.trim();
+    if (!code) { showOtpError('確認コードを入力してください。'); return; }
+    const btn = $('otpVerifyBtn');
+    btn.disabled = true; btn.textContent = '確認中…';
+    const { error } = await supabaseClient.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
+    btn.disabled = false; btn.textContent = 'ログイン';
+    if (error) { showOtpError('コードが正しくないか、期限切れです。何度か送信した場合は、いちばん新しいメールのコードを入力してください。'); return; }
+    showOtpError('');
+  });
+  $('otpResendBtn').addEventListener('click', async () => {
+    if (!otpEmail) return;
+    const { error } = await supabaseClient.auth.signInWithOtp({ email: otpEmail });
+    showOtpError(error ? (error.status === 429 ? '再送は1分ほど間をあけてからお試しください。直前に届いたコードはそのまま使えます。' : '再送に失敗しました：' + error.message) : '確認コードを再送しました。');
+  });
+  (function () {
+    let saved = null;
+    try { saved = localStorage.getItem('r500_login_email'); } catch (e) {}
+    if (saved) { $('emailLoginInput').value = saved; $('clearEmailBtn').classList.remove('hidden'); }
+    $('clearEmailBtn').addEventListener('click', () => {
+      $('emailLoginInput').value = '';
+      $('clearEmailBtn').classList.add('hidden');
+      try { localStorage.removeItem('r500_login_email'); } catch (e) {}
+      $('emailLoginInput').focus();
+    });
+  })();
+
+})();
+</script>
+</body>
+</html>
