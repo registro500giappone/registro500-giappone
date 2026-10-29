@@ -78,6 +78,9 @@
     .btn-main { display: block; width: 100%; text-align: center; background: var(--accent); color: #fff; border: 0; border-radius: 10px; padding: 12px; font-size: 1rem; font-weight: 700; text-decoration: none; cursor: pointer; font-family: inherit; }
     .btn-main:disabled { opacity: .5; cursor: default; }
     @media (prefers-color-scheme: dark) { .btn-main { color: #10261a; } }
+    .mk-url-row { display: flex; gap: 6px; align-items: stretch; }
+    .mk-url-row input { flex: 1; min-width: 0; }
+    .mk-url-row .btn-sub { flex: none; white-space: nowrap; }
     .btn-sub { background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 6px 12px; font-size: .85rem; cursor: pointer; font-family: inherit; }
     .btn-danger { color: var(--danger); border-color: var(--danger); }
     .btn-wide { width: 100%; padding: 12px; font-size: 1rem; }
@@ -163,8 +166,11 @@
         <input type="text" id="fTitle" maxlength="80" placeholder="例：ドライブシャフト グリスアップ" autocomplete="off">
         <div id="mkEditRow" class="hidden">
           <label class="f" for="fMkUrl">みんカラの記事<small><a id="mkEditOpen" href="#" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">開いて確かめる ↗</a></small></label>
-          <input type="text" id="fMkUrl" inputmode="url" autocomplete="off" placeholder="https://minkara.carview.co.jp/userid/…/note.aspx">
-          <p class="note">違う記事を貼っていたら、ここで正しいURLに貼り替えられます（消して載せ直す必要はありません）。欄を空にして保存すると、みんカラとのつながりを外せます。</p>
+          <div class="mk-url-row">
+            <input type="text" id="fMkUrl" inputmode="url" autocomplete="off" placeholder="https://minkara.carview.co.jp/userid/…/note.aspx">
+            <button type="button" id="mkClear" class="btn-sub">消す</button>
+          </div>
+          <p class="note">違う記事を貼っていたら、ここで正しいURLに貼り替えられます（消して載せ直す必要はありません）。「消す」を押して保存すると、みんカラとのつながりを外せます。</p>
         </div>
         <label class="f" for="fComment">コメント<small>省略できます</small></label>
         <textarea id="fComment" maxlength="2000" placeholder="例：前回から約1,800km。異音はなかったが、車検前に見ておいた。"></textarea>
@@ -687,6 +693,7 @@
   function videoList() {
     return $('fVideos').value.split(/\s+/).map(s => s.trim()).filter(Boolean);
   }
+  $('mkClear').addEventListener('click', () => { $('fMkUrl').value = ''; $('fMkUrl').focus(); });
   $('form').addEventListener('submit', ev => { ev.preventDefault(); save(); });
 
   async function save() {
@@ -703,7 +710,7 @@
       if (!$('fMkUrl').value.trim()) mkDrop = true;
       else {
         mkUrl = mkNormalize($('fMkUrl').value);
-        if (!mkUrl) { setMsg('みんカラの記事URL（…/note.aspx で終わるもの）を入れてください。外すときは欄を空にしてください。', 'err'); $('fMkUrl').focus(); return; }
+        if (!mkUrl) { setMsg('みんカラの記事URL（…/note.aspx で終わるもの）を入れてください。外すときは「消す」を押してください。', 'err'); $('fMkUrl').focus(); return; }
       }
     }
     const costRaw = $('fCost').value.trim();
