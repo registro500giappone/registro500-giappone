@@ -83,8 +83,14 @@
   function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function track(name, params) { try { if (typeof gtag === 'function') gtag('event', name, params || {}); } catch (e) {} }
 
+  // 整備の記事（オーナーの記事のうち「🔧 整備の記事」にした行）も混ぜる。正本 owner-articles/HANDOFF.md
+  // 公開の準備が整うまで止めておく＝URL に ?articles-preview を付けたときだけ出す
+  const ARTICLES_ON_MAINT_LIST = false;
+  const articlesOn = ARTICLES_ON_MAINT_LIST || new URLSearchParams(location.search).has('articles-preview');
+
   let area = null;
-  let offset = 0;
+  let offset = 0;    // maint_records の読んだ位置
+  let aOffset = 0;   // owner_articles の読んだ位置（2つの表を日付順に混ぜるので位置は別々に持つ）
   let loading = false;
   let seq = 0;
   const carCache = {};
@@ -125,11 +131,34 @@
   }
 
   function reload() {
-    offset = 0;
+    offset = 0; aOffset = 0;
     $('list').textContent = '';
     $('list').appendChild(el('p', 'state', '読み込み中…'));
     $('moreBtn').classList.add('hidden');
     loadPage();
+  }
+
+  // 整備の記事の1行＝題名がそのまま記事へのリンク（本文・写真は持たない）
+  function renderArticle(a) {
+    if (MaintView.injectCss) MaintView.injectCss();
+    const wrap = el('div', 'mv-item');
+    const row = el('div', 'mv-row');
+    const txt = el('div');
+    txt.style.minWidth = '0';
+    const link = el('a', 'mv-title', '📝 ' + a.title + ' ↗');
+    if (/^https:\/\//.test(a.url || '')) link.href = a.url;
+    link.target = '_blank'; link.rel = 'noopener noreferrer nofollow ugc';
+    link.addEventListener('click', () => track('maint_open', { from: 'list', kind: 'article' }));
+    txt.appendChild(link);
+    txt.appendChild(el('div', 'mv-meta', (a.site_name ? a.site_name + ' の記事' : '記事')));
+    if ((a.areas || []).length) {
+      const box = el('div', 'mv-chips');
+      a.areas.forEach(v => { if (MaintView.AREA_LABEL[v]) box.appendChild(el('span', 'mv-chip', MaintView.AREA_LABEL[v])); });
+      txt.appendChild(box);
+    }
+    row.appendChild(txt);
+    wrap.appendChild(row);
+    return wrap;
   }
 
   async function loadPage() {
@@ -144,24 +173,40 @@
       .order('work_date', { ascending: false }).order('created_at', { ascending: true })
       .range(offset, offset + PAGE);
     if (area) q = q.contains('areas', [area]);
-    const { data, error } = await q;
+    // 整備の記事。伏せた行は本人にも RLS で返るので、ここでは明示的に外す
+    let qa = null;
+    if (articlesOn) {
+      qa = supabaseClient.from('owner_articles')
+        .select('id, car_id, title, url, site_name, published_on, areas, created_at')
+        .eq('is_maintenance', true).eq('is_hidden', false)
+        .order('published_on', { ascending: false }).order('created_at', { ascending: true })
+        .range(aOffset, aOffset + PAGE);
+      if (area) qa = qa.contains('areas', [area]);
+    }
+    const [res, resA] = await Promise.all([q, qa || Promise.resolve({ data: [] })]);
     if (my !== seq) { loading = false; return; }
-    if (offset === 0) $('list').textContent = '';
+    if (offset === 0 && aOffset === 0) $('list').textContent = '';
+    const error = res.error || resA.error;
     if (error) {
       console.error('[maintenance]', error);
       $('list').appendChild(el('p', 'state', '読み込みに失敗しました。再読み込みしてください。'));
       loading = false; return;
     }
-    const rows = data.slice(0, PAGE);
-    await loadCars([...new Set(rows.map(r => r.car_id))]);
+    // 2つの表を「日付の新しい順・同じ日は入力した順」で混ぜ、先頭から PAGE 件だけ出す。
+    // 各表は PAGE+1 件読んでいるので、混ぜた結果が PAGE を超えれば続きがある
+    const merged = res.data.map(r => ({ kind: 'maint', date: r.work_date, at: r.created_at, r }))
+      .concat((resA.data || []).map(r => ({ kind: 'article', date: r.published_on, at: r.created_at, r })))
+      .sort((x, y) => (x.date < y.date ? 1 : x.date > y.date ? -1 : (x.at < y.at ? -1 : x.at > y.at ? 1 : 0)));
+    const rows = merged.slice(0, PAGE);
+    await loadCars([...new Set(rows.map(x => x.r.car_id))]);
     if (my !== seq) { loading = false; return; }
-    if (offset === 0 && !rows.length) {
+    if (offset === 0 && aOffset === 0 && !rows.length) {
       $('list').appendChild(el('p', 'state', area ? 'この箇所の記録はまだありません。' : 'まだ記録がありません。'));
     }
-    rows.forEach(r => {
+    rows.forEach(({ kind, date, r }) => {
       const item = el('div', 'rec');
       const head = el('div', 'rec-head');
-      head.appendChild(document.createTextNode(MaintView.fmtDate(r.work_date) + '　'));
+      head.appendChild(document.createTextNode(MaintView.fmtDate(date) + '　'));
       const car = carCache[r.car_id];
       if (car) {
         const a = el('a', null, (car.name ? car.name + 'さん' : '') + (car.model ? '（' + car.model + '）' : ''));
@@ -169,11 +214,12 @@
         head.appendChild(a);
       }
       item.appendChild(head);
-      item.appendChild(MaintView.renderItem(r, { emoji: '🔧', onOpen: rec => track('maint_open', { from: 'list' }) }));
+      item.appendChild(kind === 'article' ? renderArticle(r)
+        : MaintView.renderItem(r, { emoji: '🔧', onOpen: rec => track('maint_open', { from: 'list' }) }));
       $('list').appendChild(item);
+      if (kind === 'article') aOffset++; else offset++;
     });
-    offset += rows.length;
-    $('moreBtn').classList.toggle('hidden', data.length <= PAGE);
+    $('moreBtn').classList.toggle('hidden', merged.length <= PAGE);
     loading = false;
   }
   $('moreBtn').addEventListener('click', loadPage);

@@ -183,5 +183,5 @@ a.mv-title { text-decoration: none; }
     return wrap;
   }
 
-  window.MaintView = { AREAS, AREA_LABEL, WORKER_LABEL, fmtDate, fmtKm, metaText, renderBody, renderItem, youtubeId, videoKind };
+  window.MaintView = { AREAS, AREA_LABEL, WORKER_LABEL, fmtDate, fmtKm, metaText, renderBody, renderItem, youtubeId, videoKind, injectCss };
 })();
