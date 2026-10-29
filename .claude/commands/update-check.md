@@ -10,7 +10,7 @@ Claude Code の新機能を調査し、このプロジェクトに有効な未�
 ## ステップ1: 最新情報を調査
 
 1. **第一情報源**: WebFetch で公式 changelog を読む
-   `https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md`
+   `https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md`（リリース日は `https://api.github.com/repos/anthropics/claude-code/releases`）
 2. 補助: WebSearch（検索語には**実行時点の年**を含める。過去の年をハードコードしない）
    - 例: "Claude Code changelog <今年> new features"
 3. 公式ドキュメントも必要に応じて確認する
@@ -19,7 +19,7 @@ Claude Code の新機能を調査し、このプロジェクトに有効な未�
 
 以下を読んで現在の設定状況を把握する：
 - `C:/Users/akayu/Documents/registro500-giappone/.claude/settings.json`
-- `.claude/agents/` 配下のエージェント定義（4ファイル）
+- `.claude/agents/` 配下のエージェント定義（全ファイル）
 - `.claude/commands/` 配下のスキル定義
 
 ## ステップ3: 差分分析
