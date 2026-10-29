@@ -59,6 +59,8 @@
     .rg-spec-grid dt { font-weight: 700; color: var(--rg-muted); background: rgba(148, 163, 184, 0.05); white-space: nowrap; position: relative; }
     
     .rg-gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    /* 幅375px級の端末で1列に落ちないよう、スマホは常に2列（2026-10-29） */
+    @media (max-width: 600px) { .rg-gallery-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; } }
     .rg-gallery-thumb { border-radius: 0.6rem; overflow: hidden; position: relative; padding-top: 100%; border: 1px solid var(--rg-border); background: #eee; }
     .rg-gallery-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
     
@@ -91,6 +93,10 @@
 
     /* オーナー情報行 */
     .rg-owner-row { display: flex; align-items: center; margin-top: 0.5rem; }
+    .rg-hero-sns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 0.75rem; }
+    .rg-hero-sns a { font-size: 0.8rem; font-weight: 600; padding: 4px 12px; border: 1px solid var(--rg-border); border-radius: 999px; color: var(--rg-accent); text-decoration: none; }
+    .rg-hero-sns a:hover { border-color: var(--rg-accent); }
+    .rg-hero-contact { margin-top: 0.85rem; }
     .rg-owner-name { font-weight: 700; }
     .rg-badge-pref { margin-left: auto; background: #f8fafc; color: var(--rg-accent); border: 1px solid var(--rg-accent-border); border-radius: 999px; padding: 0.2rem 0.75rem; font-size: 0.85rem; }
 
@@ -148,6 +154,11 @@
     .rg-history-item { border-bottom: 1px solid var(--rg-border); padding: 0.75rem 0; font-size: 0.92rem; line-height: 1.6; }
     .rg-history-item:last-child { border-bottom: none; }
     .rg-history-item a { color: var(--rg-accent); text-decoration: none; font-weight: 600; }
+    /* 「これからの予定」＝開催前のイベント参加表明。歩み（過去の出来事）の8行を押し出さないよう別枠にする（2026-10-29） */
+    .rg-upcoming { background: var(--rg-surface-sub); border-radius: 8px; padding: 0.35rem 0.85rem; margin-bottom: 0.75rem; }
+    .rg-upcoming-title { font-size: 0.78rem; font-weight: 700; color: var(--rg-muted); padding-top: 0.4rem; letter-spacing: 0.05em; }
+    .rg-upcoming .rg-history-item { padding: 0.5rem 0; font-size: 0.88rem; }
+    .rg-upcoming .rg-episodes-more { padding: 0.4rem; font-size: 0.82rem; }
     #episodesSection { --mv-accent: var(--rg-accent); --mv-muted: var(--rg-muted); }
     .rg-maint-seg, .rg-maint-areas { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
     .rg-maint-seg button, .rg-maint-areas button { font: inherit; font-size: 0.82rem; padding: 5px 12px; border: 1px solid var(--rg-border); border-radius: 999px; background: transparent; color: inherit; cursor: pointer; }
@@ -201,6 +212,11 @@
     }
     .eq-meta .sep { opacity: 0.5; }
 
+    .eq-fold > summary { list-style: none; cursor: pointer; text-align: center; padding: 0.7rem; border: 1px solid var(--rg-border); border-radius: 8px; font-size: 0.9rem; font-weight: 600; color: var(--rg-accent); }
+    .eq-fold > summary::-webkit-details-marker { display: none; }
+    .eq-fold[open] > summary { margin-bottom: 1rem; }
+    .eq-fold .eq-fold-close, .eq-fold[open] .eq-fold-open { display: none; }
+    .eq-fold[open] .eq-fold-close { display: inline; }
     .eq-cat { margin-bottom: 22px; }
     .eq-cat:last-child { margin-bottom: 0; }
     /* カテゴリ見出し。従来は 0.85rem・muted色で、明細行(0.9rem・通常色)より小さく薄く、
@@ -341,6 +357,9 @@
                 <span id="handleName" class="rg-owner-name" data-field="handle_name"></span>
                 <span id="prefecture" class="rg-badge-pref" data-field="prefecture"></span>
             </div>
+            <!-- SNS とオーナーへの連絡は写真の下に置く（最下部の「共有・連絡」まで1万px近くあったため・2026-10-29） -->
+            <div id="heroSns" class="rg-hero-sns" style="display:none;"></div>
+            <div id="heroContact" style="display:none;"><button class="btn-contact rg-hero-contact" onclick="openContactForm()">✉️ オーナーへメッセージを送る</button></div>
           </section>
           <section class="rg-card" id="gallerySection" style="display:none;"><div class="rg-gallery-grid" id="galleryGrid"></div></section>
         </div>
@@ -387,7 +406,6 @@
             <a id="episodesMoreLink" class="rg-episodes-more" style="display:none;" href="#">すべてのエピソードを見る →</a>
             <button id="addEpisodeBtn" class="rg-btn-add-episode" style="display:none;">＋ エピソードを追加</button>
           </section>
-          <section class="rg-card" id="snsSection" style="display:none;"><h2 class="rg-section-title">SNS</h2><dl class="rg-spec-grid" id="snsGrid"></dl></section>
           <section class="rg-card" id="equipmentSection" style="display:none;">
             <h2 class="rg-section-title">車載手帳</h2>
             <!-- いつ書かれ、いつ書き直された手帳なのか。装備の中身は年月で意味が変わる
@@ -399,7 +417,12 @@
             <!-- 車載マエストロの称号帯。一覧でチップを見て飛んできた先に称号が無いのを埋める（2026-08-05） -->
             <div id="equipmentMaestro" class="eq-maestro-band" style="display:none;"></div>
             <a id="equipmentBackLink" class="eq-back-link" href="/equipment" style="display:none;">← みんなの車載手帳へ戻る</a>
-            <div id="equipmentContent"></div>
+            <!-- 中身は畳んでおく＝ページで一番長い欄が下の欄（工具・連絡）を遠ざけていたため（2026-10-29 ユーザー決裁・要約は出さない）。
+                 #equipment-notebook で来たときと、歩みの「車載手帳を…」から来たときは開いて見せる。 -->
+            <details id="equipmentFold" class="eq-fold">
+              <summary><span class="eq-fold-open">手帳の中身を見る ▾</span><span class="eq-fold-close">閉じる ▴</span></summary>
+              <div id="equipmentContent"></div>
+            </details>
           </section>
           <section class="rg-card" id="paintSection" style="display:none;">
             <h2 class="rg-section-title">この車のお絵描き</h2>
@@ -530,8 +553,8 @@
       });
       if (gallery.innerHTML) document.getElementById('gallerySection').style.display = 'block';
 
-      const snsGrid = document.getElementById('snsGrid');
-      snsGrid.innerHTML = '';
+      const heroSns = document.getElementById('heroSns');
+      heroSns.innerHTML = '';
       const snsList = [
         {k:'x_twitter', l:'X', b:'https://x.com/'}, {k:'instagram', l:'Instagram', b:'https://instagram.com/'},
         {k:'youtube', l:'YouTube', b:'https://youtube.com/'}, {k:'minkara', l:'みんカラ', b:'https://minkara.carview.co.jp/userid/'},
@@ -545,9 +568,8 @@
           let url = isUrl ? raw : s.b + raw.replace('@','');
           url = safeUrl(url) || '#';
           if (url === '#') return;
-          const linkText = isUrl ? `${s.l} を開く ›` : raw;
-          snsGrid.innerHTML += `<dt data-field="${esc(s.k)}">${esc(s.l)}</dt><dd><a href="${esc(url)}" target="_blank" rel="noopener">${esc(linkText)}</a></dd>`;
-          document.getElementById('snsSection').style.display = 'block';
+          heroSns.innerHTML += `<a data-field="${esc(s.k)}" href="${esc(url)}" target="_blank" rel="noopener">${esc(s.l)} ↗</a>`;
+          heroSns.style.display = 'flex';
         }
       });
       const carLabel2 = car.car_type === '126' ? 'FIAT 126' : 'FIAT 500';
@@ -919,6 +941,7 @@
       // 一覧から来た人にだけ戻り道を出す（一般の訪問者には出さない＝ノイズにしない）
       if (location.hash === '#equipment-notebook') {
         document.getElementById('equipmentBackLink').style.display = 'inline-flex';
+        document.getElementById('equipmentFold').open = true;
       }
     }
 
@@ -993,7 +1016,10 @@
         if (addBtn) { addBtn.style.display = 'block'; addBtn.onclick = () => location.href = `/episode-edit?car=${currentCar.document_id}`; }
         scheduleBlanks(currentCar);
       } else {
-        if(currentCar.accept_inquiry !== false && !currentCar.is_sold) document.getElementById('contactArea').style.display = 'block';
+        if(currentCar.accept_inquiry !== false && !currentCar.is_sold) {
+          document.getElementById('contactArea').style.display = 'block';
+          document.getElementById('heroContact').style.display = 'block';
+        }
       }
       updateAcquisitionPrompt();
     }
@@ -1341,9 +1367,9 @@
       if (!list) return;
       const rows = rgHistoryFilter.mode === 'maint'
         ? rgHistoryRows.filter(r => isMaintRow(r) && (!rgHistoryFilter.area || rowAreas(r).includes(rgHistoryFilter.area)))
-        : rgHistoryRows;
+        : rgHistoryRows.filter(r => !r.future);
       const shown = rows.slice(0, limit);
-      let html = historyControlsHtml() + shown.map(r => r.html).join('');
+      let html = historyControlsHtml() + upcomingHtml() + shown.map(r => r.html).join('');
       if (rows.length > limit) {
         html += `<button type="button" id="historyMoreBtn" class="rg-episodes-more" style="width:100%;border:none;background:none;cursor:pointer;">もっと見る →</button>`;
       }
@@ -1362,6 +1388,20 @@
       });
       const moreBtn = document.getElementById('historyMoreBtn');
       if (moreBtn) moreBtn.onclick = () => renderHistoryRows(rows.length);
+      const upBtn = document.getElementById('upcomingMoreBtn');
+      if (upBtn) upBtn.onclick = () => { rgUpcomingAll = true; renderHistoryRows(limit); };
+    }
+
+    // これからの予定（開催前のイベント）＝近い順に2件まで・残りは開いて見る。「整備だけ」のときは出さない
+    let rgUpcomingAll = false;
+    function upcomingHtml() {
+      if (rgHistoryFilter.mode === 'maint') return '';
+      const up = rgHistoryRows.filter(r => r.future).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      if (!up.length) return '';
+      const shown = rgUpcomingAll ? up : up.slice(0, 2);
+      let html = `<div class="rg-upcoming"><div class="rg-upcoming-title">これからの予定</div>` + shown.map(r => r.html).join('');
+      if (up.length > shown.length) html += `<button type="button" id="upcomingMoreBtn" class="rg-episodes-more" style="width:100%;border:none;background:none;cursor:pointer;">ほかの予定も見る →</button>`;
+      return html + `</div>`;
     }
 
     async function fetchHistory(carDocId) {
@@ -1413,8 +1453,9 @@
             const slug = slugs[ev.id];
             const label = slug ? `<a href="/event/${encodeURIComponent(slug)}/">${name}</a>` : name;
             // 開催日が未来なら「参加予定」（参加表明の記録であって、まだ行っていない）
-            const verb = new Date(ev.event_date) > new Date() ? 'に参加予定' : 'に参加';
-            rows.push({ date: ev.event_date, kind: 'event', html: renderHistoryLine(ev.event_date, '🎪', `「${label}」${verb}`) });
+            const future = new Date(ev.event_date) > new Date();
+            const verb = future ? 'に参加予定' : 'に参加';
+            rows.push({ date: ev.event_date, kind: 'event', future, html: renderHistoryLine(ev.event_date, '🎪', `「${label}」${verb}`) });
           });
         }
       } catch (e) { /* イベント参加の取得失敗は無視 */ }
@@ -1423,9 +1464,9 @@
       const equipmentRows = (equipmentRes.status === 'fulfilled' && equipmentRes.value.data) || [];
       equipmentRows.forEach(rec => {
         if (!rec.created_at) return;
-        rows.push({ date: rec.created_at, kind: 'equipment', html: renderHistoryLine(rec.created_at, '🧰', '<a href="#equipment-notebook" onclick="var s=document.getElementById(\'equipmentSection\'); if(s) s.scrollIntoView({behavior:\'smooth\',block:\'start\'});">車載手帳をつくりました</a>') });
+        rows.push({ date: rec.created_at, kind: 'equipment', html: renderHistoryLine(rec.created_at, '🧰', '<a href="#equipment-notebook" onclick="var s=document.getElementById(\'equipmentSection\'), f=document.getElementById(\'equipmentFold\'); if(f) f.open=true; if(s) s.scrollIntoView({behavior:\'smooth\',block:\'start\'});">車載手帳をつくりました</a>') });
         if (rec.updated_at && (new Date(rec.updated_at) - new Date(rec.created_at)) / 86400000 >= 1) {
-          rows.push({ date: rec.updated_at, kind: 'equipment', html: renderHistoryLine(rec.updated_at, '🧰', '<a href="#equipment-notebook" onclick="var s=document.getElementById(\'equipmentSection\'); if(s) s.scrollIntoView({behavior:\'smooth\',block:\'start\'});">車載手帳を更新しました</a>') });
+          rows.push({ date: rec.updated_at, kind: 'equipment', html: renderHistoryLine(rec.updated_at, '🧰', '<a href="#equipment-notebook" onclick="var s=document.getElementById(\'equipmentSection\'), f=document.getElementById(\'equipmentFold\'); if(f) f.open=true; if(s) s.scrollIntoView({behavior:\'smooth\',block:\'start\'});">車載手帳を更新しました</a>') });
         }
       });
 
@@ -1609,7 +1650,7 @@
       if (col === 'photo_main') return shown(byId('photoMainContainer'));
       if (col.indexOf('photo_') === 0) return shown(byId('gallerySection')) || shown(byId('photoMainContainer'));
       if (col === 'highlights') return shown(byId('highlightsSection'));
-      if (['x_twitter', 'instagram', 'youtube', 'minkara', 'facebook', 'threads', 'blog_or_website'].indexOf(col) !== -1) return shown(byId('snsSection'));
+      if (['x_twitter', 'instagram', 'youtube', 'minkara', 'facebook', 'threads', 'blog_or_website'].indexOf(col) !== -1) return shown(byId('heroSns'));
       const el = [...document.querySelectorAll('[data-field]')].find(e => e.dataset.field.split(',').indexOf(col) !== -1);
       return shown(el) || shown(el && el.closest('section'));
     }
