@@ -82,7 +82,7 @@
     <p class="note">新しく登録された車は、トップページの新着でご覧いただけます。</p>
   </div>
 
-  <script src="activity-feed.js?v=2"></script>
+  <script src="activity-feed.js?v=3"></script>
   <script>
     const DAYS = 60;
     const PAGE_SIZE = 40;
@@ -114,14 +114,16 @@
     }
 
     function rowHtml(r) {
-      const { icon, what, quote, href, photo } = ActivityFeed.describe(r, 60);
+      const { icon, what, quote, href, photo, external } = ActivityFeed.describe(r, 60);
       const thumb = photo
         ? `<img class="thumb" src="${esc(photo)}" alt="" loading="lazy">`
         : `<span class="thumb blank">${icon}</span>`;
       const yearM = String(r.car.year || '').match(/\d{4}/);
       const carMeta = [r.car.car_type === '126' ? 'FIAT 126' : 'FIAT 500', yearM ? yearM[0] + '年' : ''].filter(Boolean).join(' · ');
 
-      return `<a class="item" href="${href}" data-kind="${r.kind}">
+      // よそのサイトの記事へ飛ぶ行は新しいタブ（リンクの評価は渡さない）
+      const ext = external ? ' target="_blank" rel="noopener noreferrer nofollow ugc"' : '';
+      return `<a class="item" href="${href}"${ext} data-kind="${r.kind}">
         ${thumb}
         <span class="body">
           <span class="what">${icon} ${what}</span>

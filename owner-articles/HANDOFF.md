@@ -29,7 +29,7 @@
 | 1-c | 載せる画面 `/my-articles`（noindex・導線なし）＝URL貼るだけ・📋ボタン・`?u=` 受け・整備チップ・自分の記事の直す／消す・みんカラ整備手帳URLの振り分け | ✅ 2026-10-29 push（⏳ログイン後の流れは本番で実機確認待ち。`?u=`／`?url=`／`?text=` は文中の最初のURLを拾う＝段2の share_target もそのまま受けられる） |
 | 1-d | 車両ページの歩みに 📝（スイッチ `ARTICLES_ON_CAR_PAGE=false`・`?articles-preview` で表示）・整備の記事は「整備だけ」にも | ✅ 2026-10-29（`detail.html` の `articleLineHtml`・`isMaintRow`。リンクは `nofollow ugc`。⚠️整備の記録も一緒に見るときは `?maint-preview` も要る＝両スイッチは別） |
 | 1-e | みんなの整備手帳（`/maintenance`）に整備の記事を混ぜる | ✅ 2026-10-29（スイッチ `ARTICLES_ON_MAINT_LIST=false`・`?articles-preview` で表示。2つの表を日付順に混ぜて20件ずつ＝読んだ位置は表ごとに別々に持つ。伏せた行は本人にも出さない。偽データ26件で順序・もっと見る・重複なしを確認） |
-| 1-f | オーナーの更新情報・トップの帯に 📝（スイッチ `ARTICLES_IN_FEED=false`） | ⏳ |
+| 1-f | オーナーの更新情報・トップの帯に 📝（スイッチ `ARTICLES_IN_FEED=false`） | ✅ 2026-10-29（`activity-feed.js` の種類 `article`・`?articles-preview` を付けたページでだけ出る＝一覧もトップの帯も。並びは**貼った日時**（`created_at`＝昔の記事を貼っても沈まない）。1台1日1行に畳み、1本なら記事へ直接（新しいタブ・`nofollow ugc`・サイト名を添える）、複数なら車ページの `#history`＝⚠️公開時は `ARTICLES_ON_CAR_PAGE` も一緒に入れる。キャッシュ避けで `?v=3`） |
 | 2 | 共有ボタン＝Android は manifest の `share_target`（**公開時に入れる**＝入れると共有メニューに出る＝導線になるため）／iPhone はショートカットの作り方（配布はユーザー） | ⏳ |
 | 3 | `py/send_digest.py` に「オーナーの記事」欄（スイッチ `ARTICLES_DIGEST_ON=False`）＋本人への「紹介しました」 | ⏳ |
 

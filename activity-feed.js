@@ -18,6 +18,9 @@
     { test: c => c === 'coil_name', label: 'コイル' },
     { test: c => c === 'year', label: '年式' }
   ];
+  // オーナーの記事（ブログなど外部記事へのリンク・/my-articles で載せる）。正本 owner-articles/HANDOFF.md
+  // 公開の準備が整うまで止めておく＝開いているページの URL に ?articles-preview を付けたときだけ出す（一覧・トップの帯とも）
+  const ARTICLES_IN_FEED = false;
   const PHOTO_COLS = ['photo_main', 'photo_front', 'photo_side', 'photo_rear', 'photo_interior', 'photo_engine', 'photo_steering_cluster'];
 
   function esc(s) {
@@ -36,7 +39,8 @@
   async function load(days) {
     const since = new Date(Date.now() - days * DAY_MS).toISOString();
     const sinceT = new Date(since).getTime();
-    const [carsRes, histRes, recRes, expRes, epiRes, partRes, slugsRes, toolRes] = await Promise.allSettled([
+    const articlesOn = ARTICLES_IN_FEED || new URLSearchParams(location.search).has('articles-preview');
+    const [carsRes, histRes, recRes, expRes, epiRes, partRes, slugsRes, toolRes, artRes] = await Promise.allSettled([
       supabaseClient.from('cars').select('document_id, handle_name, car_type, year, model_display_c, is_sold, created_at, ' + PHOTO_COLS.join(', ')),
       supabaseClient.from('car_history').select('car_id, fields, occurred_at').eq('kind', 'updated').gte('occurred_at', since),
       // 公開されていて、車に紐づき、名前を伏せていない手帳だけ
@@ -49,7 +53,11 @@
       supabaseClient.from('event_participants').select('event_id, car_id, created_at').not('car_id', 'is', null).gte('created_at', since),
       fetch('/event-slugs.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}),
       // おすすめ工具の紹介（2026-10-22）。伏せた投稿は出さない。「参考になった」は数を伏せる約束なので出さない
-      supabaseClient.from('owner_tools').select('car_id, name, created_at').eq('is_hidden', false).gte('created_at', since)
+      supabaseClient.from('owner_tools').select('car_id, name, created_at').eq('is_hidden', false).gte('created_at', since),
+      // オーナーの記事は「貼った日」で並べる（ブログの投稿日で並べると、昔の記事を貼ったときに一覧の奥へ沈む）。
+      // 伏せた行は本人にも RLS で返るので、ここで外す
+      articlesOn ? supabaseClient.from('owner_articles').select('car_id, title, url, site_name, created_at')
+        .eq('is_hidden', false).gte('created_at', since) : Promise.resolve({ data: [] })
     ]);
     const ok = r => (r.status === 'fulfilled' && r.value && !r.value.error && r.value.data) || [];
 
@@ -103,6 +111,9 @@
 
     ok(toolRes).forEach(t => add('tool', t.car_id, t.created_at, { texts: [t.name || ''] }));
 
+    // ids に記事のURLを持つ（1本だけの行は記事へ直接飛ばすため）。サイト名は1本目のもの＝1本の行でだけ使う
+    ok(artRes).forEach(a => add('article', a.car_id, a.created_at, { texts: [a.title || ''], ids: [a.url || ''], site: a.site_name || '' }));
+
     // イベント参加は開催名を引いてから。同じ日・同じイベントへの参加表明は1行にまとめ、
     // 「◯◯さんほか2人」と書く（1人ずつ並べると、募集中のイベントがあるだけで一覧が埋まる）
     const parts = ok(partRes);
@@ -136,7 +147,7 @@
   function describe(r, quoteLen) {
     const n = quoteLen || 60;
     const name = esc(r.car.handle_name || r.car.model_display_c || 'オーナー');
-    let icon = '✏️', what = '', quote = '', hash = '', href = null;
+    let icon = '✏️', what = '', quote = '', hash = '', href = null, external = false;
     if (r.kind === 'updated') {
       const labels = [];
       r.fields.forEach(col => {
@@ -165,6 +176,12 @@
       icon = '🔧'; what = `${name}さんがおすすめ工具・パーツを紹介`;
       quote = `「${esc(trim(r.texts.filter(Boolean).join('・'), n))}」`;
       hash = '#tools';  // 紹介した工具が並ぶ、その車ページの欄へ
+    } else if (r.kind === 'article') {
+      // 1本なら記事そのものへ（新しいタブ）。同じ日に何本も貼った行は車ページの歩みへ
+      const one = r.ids.length === 1 && /^https:\/\//.test(r.ids[0]);
+      icon = '📝'; what = `${name}さんがブログを更新` + (one && r.site ? `（${esc(r.site)}）` : '');
+      quote = `「${esc(trim(r.texts.filter(Boolean).join('・'), n))}」`;
+      if (one) { href = esc(r.ids[0]); external = true; } else hash = '#history';
     } else if (r.kind === 'event') {
       const others = r.cars.length - 1;
       icon = '🎪'; what = `${name}さん${others > 0 ? `ほか${others}人` : ''}が「${esc(r.texts[0])}」に参加表明`;
@@ -175,7 +192,7 @@
     // 写真を更新した行は、その写真を出す。それ以外は車の代表写真
     const updatedPhoto = r.fields.find(f => PHOTO_COLS.indexOf(f) !== -1 && r.car[f]);
     const photo = (updatedPhoto && r.car[updatedPhoto]) || r.car.photo_main || '';
-    return { icon, what, quote, href, photo };
+    return { icon, what, quote, href, photo, external };
   }
 
   window.ActivityFeed = { load, describe, jstDayKey, esc };
