@@ -116,7 +116,7 @@
     .mine .dt { font-size: .75rem; color: var(--text-sub); }
     .mine .nm { font-weight: 700; word-break: break-word; }
     .mine .meta { font-size: .78rem; color: var(--text-sub); }
-    .mine .meta a, #mineLinks a { color: var(--accent); }
+    .mine .meta a, #mineLinks a, #topLinks a { color: var(--accent); }
     .mine .acts { display: flex; gap: 8px; margin-top: 6px; }
     .center { text-align: center; }
     .mk-row { border-top: 1px solid var(--border-soft); padding: 10px 0; }
@@ -136,6 +136,7 @@
   <a href="/" class="back-link">&larr; トップに戻る</a>
   <h1>🛠️ マイ整備手帳</h1>
   <p class="lead intro">自分の車の整備を、写真とひとことで残しておく手帳です。タイトルだけでも保存できます。公開にした記録は、車両ページの「この1台の歩み」と <a href="/maintenance" style="color:var(--accent)">みんなの整備手帳</a> に並びます。</p>
+  <p class="note hidden" id="topLinks" style="margin:-6px 0 12px"></p>
 
   <div id="stateLoading" class="lead">確認中…</div>
 
@@ -155,6 +156,11 @@
         </div>
         <label class="f" for="fTitle">タイトル</label>
         <input type="text" id="fTitle" maxlength="80" placeholder="例：ドライブシャフト グリスアップ" autocomplete="off">
+        <div id="mkEditRow" class="hidden">
+          <label class="f" for="fMkUrl">みんカラの記事<small><a id="mkEditOpen" href="#" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">開いて確かめる ↗</a></small></label>
+          <input type="text" id="fMkUrl" inputmode="url" autocomplete="off" placeholder="https://minkara.carview.co.jp/userid/…/note.aspx">
+          <p class="note">違う記事を貼っていたら、ここで正しいURLに貼り替えられます（消して載せ直す必要はありません）。</p>
+        </div>
         <label class="f" for="fComment">コメント<small>省略できます</small></label>
         <textarea id="fComment" maxlength="2000" placeholder="例：前回から約1,800km。異音はなかったが、車検前に見ておいた。"></textarea>
         <div class="count"><span id="cmCount">0</span> / 2000</div>
@@ -645,6 +651,11 @@
     const videos = videoList();
     const badVideo = videos.find(u => !VIDEO_RE.test(u) || u.length > 500);
     if (badVideo) { setMsg('動画のリンクは YouTube・Instagram・X のURLだけ貼れます：' + badVideo, 'err'); $('videoFold').open = true; return; }
+    let mkUrl = null;
+    if (editing && editing.minkara_url) {
+      mkUrl = mkNormalize($('fMkUrl').value);
+      if (!mkUrl) { setMsg('みんカラの記事URL（…/note.aspx で終わるもの）を入れてください。', 'err'); $('fMkUrl').focus(); return; }
+    }
     const costRaw = $('fCost').value.trim();
     if (costRaw && !/^\d+$/.test(costRaw)) { setMsg('費用は数字だけで入れてください。', 'err'); $('costFold').open = true; return; }
     if (!currentUser) {
@@ -662,6 +673,7 @@
       odometer_km: $('fKm').value ? Number($('fKm').value) : null,
       areas: areasVal(), worker: workerVal(), is_public: $('fPublic').checked, video_urls: videos
     };
+    if (mkUrl) rec.minkara_url = mkUrl;
     try {
       let recordId;
       if (editing) {
@@ -735,11 +747,13 @@
     }
     track('maint_save', { photos: photos.length, edit: editing ? 1 : 0 });
     const wasMinkara = !!(editing && editing.source === 'minkara');
+    const backTo = editing && editing.id;
     clearDraft();
     resetForm();
     setMsg('保存しました。', 'ok');
-    loadMine();
+    await loadMine();
     if (wasMinkara) mkLoadPending();
+    if (backTo) scrollToMine(backTo, true);
   }
   $('retryBtn').addEventListener('click', () => {
     if (busy || !savedRecordId) return;
@@ -759,6 +773,7 @@
     setAreas([]); setWorker(null);
     $('cmCount').textContent = '0';
     $('costFold').open = false; $('videoFold').open = false;
+    $('mkEditRow').classList.add('hidden'); $('fMkUrl').value = '';
     $('formTitle').textContent = '整備を記録する';
     $('saveBtn').textContent = '保存する';
     $('cancelEdit').classList.add('hidden');
@@ -767,7 +782,14 @@
     renderPhotos();
     updatePrevKm();
   }
-  $('cancelEdit').addEventListener('click', () => { resetForm(); setMsg(''); loadDraft(); });
+  $('cancelEdit').addEventListener('click', () => { const backTo = editing && editing.id; resetForm(); setMsg(''); loadDraft(); if (backTo) scrollToMine(backTo); });
+  // 直し終えたら、一覧のその記録へ戻す（保存した直後は少しのあいだ色を付ける）
+  function scrollToMine(id, flash) {
+    const it = document.querySelector('.mine[data-id="' + id + '"]');
+    if (!it) return;
+    it.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (flash) { it.style.background = '#e8f0ea'; setTimeout(() => { it.style.background = ''; }, 1600); }
+  }
 
   // ── 直す ──
   async function startEdit(id) {
@@ -786,6 +808,10 @@
     $('fKm').value = editing.odometer_km != null ? String(editing.odometer_km) : '';
     setAreas(editing.areas); setWorker(editing.worker);
     $('fPublic').checked = !!editing.is_public;
+    if (editing.minkara_url) {
+      $('mkEditRow').classList.remove('hidden');
+      $('fMkUrl').value = editing.minkara_url; $('mkEditOpen').href = editing.minkara_url;
+    }
     $('fVideos').value = (editing.video_urls || []).join('\n'); $('videoFold').open = !!(editing.video_urls || []).length;
     const cost = co.data && co.data.cost_yen;
     $('fCost').value = cost != null ? String(cost) : ''; $('costFold').open = cost != null;
@@ -823,8 +849,15 @@
       links.append(a, document.createTextNode('　'));
     });
     if (cars.length) { const a = el('a', null, 'みんなの整備手帳で見る →'); a.href = '/maintenance'; links.appendChild(a); }
+    // ページ冒頭にも同じ近道を置く（一覧まで下りなくても確かめられるように）
+    const top = $('topLinks');
+    top.textContent = '';
+    const jump = el('a', null, 'これまでの記録 ↓'); jump.href = '#mineCard';
+    top.append(jump, document.createTextNode('　'));
+    [...links.childNodes].forEach(n => top.appendChild(n.cloneNode(true)));
+    top.classList.remove('hidden');
     data.forEach(r => {
-      const item = el('div', 'mine');
+      const item = el('div', 'mine'); item.dataset.id = r.id;
       const ps = (r.maint_photos || []).slice().sort((a, b) => a.sort_order - b.sort_order);
       if (ps.length) { const im = el('img'); im.src = ps[0].thumb_url || ps[0].url; im.alt = ''; im.loading = 'lazy'; item.appendChild(im); }
       const bd = el('div', 'bd');
