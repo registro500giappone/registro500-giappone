@@ -27,7 +27,7 @@
   gtag('config', 'G-27SHHC4JYH');
 </script>
 
-<script src="/wiring-journey-gate.js?v=7943ff7f"></script>
+<script src="/wiring-journey-gate.js?v=8c7d7b1c"></script>
 
 <style>
   /* ===== 配色＝「インデックス手帳」。クラフト紙の表紙に、各回が中紙として綴じてある
@@ -189,8 +189,8 @@
        理由＝次回だけ出すと、先行公開日と一般公開日の段差が「1週飛び」に見えた。
        ⚠️「読める」は人によって違う＝登録オーナーは1週先まで読める。未ログインの人に
           先行中の回の題名を見せてはいけない（目次でも症状索引でも同じ条件で絞る）。 */
-    function canRead(it, owner) {
-      return today >= it.public || (owner && today >= it.early);
+    function canRead(it, owner, admin) {
+      return admin || today >= it.public || (owner && today >= it.early);
     }
 
     /* 未ログインの人から見て「登録していれば今読めた回」が在るか＝ログインを勧める根拠。
@@ -207,10 +207,13 @@
 
     function render(q) {
       var owner = !!(q && q.owner);
+      var admin = !!(q && q.admin);   /* 管理人＝公開前の回まで全部並べる（2026-10-30 ユーザー指示） */
 
       /* 扉の下の小さな札。⛔総数は言わない＝全何回になるかは未定（2026-08-25 ユーザー指示） */
       var pills = '<span class="pill">登録オーナーに配信した後、翌週に一般公開します</span>';
-      if (hasEarly) {
+      if (admin) {
+        pills += '<span class="pill on">管理人として全回を表示中</span>';
+      } else if (hasEarly) {
         /* ログイン済みで車が紐づかない人には、そう言う＝同じボタンを出し続けると何度ログインしても戻ってくる（2026-10-30） */
         pills += owner ? '<span class="pill on">先行分も表示中</span>'
                : (q && q.signedIn)
@@ -225,10 +228,12 @@
       /* ===== 目次 ===== */
       var html = '';
       rows.forEach(function (it) {
-        if (!canRead(it, owner)) return;
+        if (!canRead(it, owner, admin)) return;
         var open = today >= it.public;
+        var pre = today < it.early;
         var no = it.side ? ('第' + it.of + '回 別冊') : ('第' + it.n + '回');
         var when = open ? '<span class="when">公開中</span>'
+                 : pre  ? '<span class="when early">公開前（' + it.early.slice(5).replace('-', '/') + '〜）</span>'
                         : '<span class="when early">登録オーナー先行</span>';
         html += '<li class="' + (it.side ? 'side' : '') + '">' +
                 '<div><div class="row">' +
@@ -244,7 +249,7 @@
         /* ⛔読める回だけ載せる。1本も読めない群はその行ごと出さない */
         /* ⚠️by[sl] の有無を先に見る＝journey-schedule.json の pending へ退避した回（置き先未定）は
            issues に居ないので by[sl] が無い。チェックを外すと canRead(undefined) で目次ごと落ちる。 */
-        var live = g[1].filter(function (sl) { return by[sl] && canRead(by[sl], owner); });
+        var live = g[1].filter(function (sl) { return by[sl] && canRead(by[sl], owner, admin); });
         if (!live.length) return;
         lines += g[0] + ' → ' + live.map(function (sl) {
           return '<a href="/wiring-journey-' + by[sl].slug + '.html">' + by[sl].short + '</a>';
@@ -259,7 +264,8 @@
     /* まず一般公開分だけを描き、資格が分かってから先行分を足す。
        ⚠️逆順にすると、資格の無い人の画面に一度出た題名が消える＝取り上げられたように見える。 */
     render(null);
-    if (hasEarly && window.JourneyGate) {
+    /* 先行分が無い週でも、ログインの痕跡がある端末では資格を見る＝管理人に公開前の回を並べるため */
+    if (window.JourneyGate && (hasEarly || window.JourneyGate.hasSession())) {
       window.JourneyGate.qualify().then(render);
       window.JourneyGate.watchAuth(render);
     }

@@ -12,6 +12,9 @@
   var SUPA_SRI = 'sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J';
 
   var PREVIEW = /[?&]preview=1/.test(location.search);
+  /* 管理人はログインしただけで ?preview=1 と同じ扱い（公開前の回も読める）。2026-10-30 ユーザー指示。
+     門番は本文を画面上で伏せているだけ＝元から ?preview=1 で誰でも外せるので、ここでの判定に秘密性は無い（config.js の ADMIN_EMAIL と同じ値） */
+  var ADMIN_EMAIL = 'registro500giappone@gmail.com';
 
   var J = window.JOURNEY || {};
   var state = J.state || 'open';
@@ -58,6 +61,7 @@
       return c.auth.getSession().then(function (r) {
         var session = r && r.data ? r.data.session : null;
         if (!session) return { signedIn: false, owner: false };
+        if (String(session.user.email || '').toLowerCase() === ADMIN_EMAIL) return { signedIn: true, owner: true, admin: true };
         /* ログイン中のメールアドレスで cars を紐づけてから資格を見る（index.html 等と同型）。
            紐づけ済みの人は 0 行更新で戻るだけ。失敗しても照会には進む。 */
         return Promise.resolve(c.rpc('link_owner_car'))
@@ -263,9 +267,16 @@
     var old = col.querySelector('.j-gate');
     if (old) old.remove();
 
-    var pass = PREVIEW || (state === 'open') || (state === 'early' && q && q.owner);
+    var pass = PREVIEW || (state === 'open') || (state === 'early' && q && q.owner) || !!(q && q.admin);
     if (pass) {
       document.documentElement.classList.remove('j-locked');
+      if (state === 'pre' && !col.querySelector('.j-early')) {
+        var a = document.createElement('p');
+        a.className = 'j-early';
+        a.innerHTML = '<b>公開前の回</b>です（管理人として表示中）。';
+        col.insertBefore(a, col.firstChild);
+        return;
+      }
       /* 先行中に読めている人には、なぜ読めているのかを本文の頭で1行言う */
       if (state === 'early' && !col.querySelector('.j-early')) {
         var s = document.createElement('p');
@@ -285,14 +296,30 @@
   function bootArticle() {
     if (state === 'open') return;               /* 公開ずみ＝門番は何もしない */
     if (PREVIEW) { renderArticle({ owner: true }); return; }
-    if (state === 'pre') { renderArticle(null); return; }  /* 認証を見るまでもない */
+    if (state === 'pre') {
+      renderArticle(null);
+      /* 公開前の回を開けるのは管理人だけ＝ログインの痕跡がある端末でだけ認証を見る（一般の人に supabase-js を読ませない） */
+      if (hasSession()) { qualify().then(function (q) { if (q.admin) renderArticle(q); }); }
+      return;
+    }
     renderArticle({ owner: false });            /* まず伏せる。判定がついたら開く */
     qualify().then(renderArticle);
     watchAuth(renderArticle);
   }
 
+  /* この端末に supabase のログイン情報が残っているか（読み込み前に分かる手がかり） */
+  function hasSession() {
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        if (/^sb-.+-auth-token$/.test(localStorage.key(i))) return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
   /* ---- 外に出す（目次ページが使う） ------------------------------------- */
   window.JourneyGate = {
+    hasSession: hasSession,
     qualify: qualify,
     openLogin: openLogin,
     watchAuth: watchAuth,
