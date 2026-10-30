@@ -62,6 +62,16 @@ _upsert_failed_batches = 0
 def batch_upsert(supabase, batch):
     """バッチでSupabaseにupsert"""
     global _upsert_failed_batches
+    # 同じバッチに同じ product_no が2件あると、Postgres が
+    # 「ON CONFLICT DO UPDATE command cannot affect row a second time」で
+    # バッチ丸ごと拒否する（2026-10-30 EuroItalia500 でショップ側のSKU重複が実際に出た）。
+    # 後に出た方を残して重複を落とす。
+    deduped = {}
+    for rec in batch:
+        deduped[rec.get("product_no")] = rec
+    if len(deduped) < len(batch):
+        print(f"  [WARN] バッチ内の product_no 重複 {len(batch) - len(deduped)}件を除外")
+    batch = list(deduped.values())
     try:
         supabase.table("parts").upsert(batch, on_conflict="product_no").execute()
         return True
