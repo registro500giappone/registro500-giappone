@@ -27,7 +27,7 @@
   gtag('config', 'G-27SHHC4JYH');
 </script>
 
-<script src="/wiring-journey-gate.js?v=a5d8d184"></script>
+<script src="/wiring-journey-gate.js?v=7943ff7f"></script>
 
 <style>
   /* ===== 配色＝「インデックス手帳」。クラフト紙の表紙に、各回が中紙として綴じてある
@@ -211,8 +211,12 @@
       /* 扉の下の小さな札。⛔総数は言わない＝全何回になるかは未定（2026-08-25 ユーザー指示） */
       var pills = '<span class="pill">登録オーナーに配信した後、翌週に一般公開します</span>';
       if (hasEarly) {
+        /* ログイン済みで車が紐づかない人には、そう言う＝同じボタンを出し続けると何度ログインしても戻ってくる（2026-10-30） */
         pills += owner ? '<span class="pill on">先行分も表示中</span>'
-                       : '<button type="button" class="pill act" id="idxLogin">ログインして先に読む</button>';
+               : (q && q.signedIn)
+                 ? '<span class="pill">ログイン中ですが、このアドレスで登録された車が見つかりません</span>' +
+                   '<button type="button" class="pill act" id="idxLogin">別のアドレスでログイン</button>'
+                 : '<button type="button" class="pill act" id="idxLogin">ログインして先に読む</button>';
       }
       document.getElementById('pills').innerHTML = pills;
       var lb = document.getElementById('idxLogin');

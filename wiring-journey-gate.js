@@ -188,6 +188,11 @@
 
   function openLogin() {
     var m = modal();
+    /* 開くたびに1段目へ戻す＝前回の2段目（使用済みのコード入り）のまま開くと、押しただけで「期限切れ」になる（2026-10-30 実地で発生） */
+    document.getElementById('jOtp1').hidden = false;
+    document.getElementById('jOtp2').hidden = true;
+    document.getElementById('jOtpCode').value = '';
+    document.getElementById('jOtpErr').hidden = true;
     m.style.display = 'flex';
     var inp = document.getElementById('jOtpEmail');
     var saved = localStorage.getItem('r500_login_email');
@@ -236,13 +241,17 @@
       : '';
     var when = J.pub ? 'どなたでも読めるようになるのは' + jaDate(J.pub) + 'です。'
                      : 'どなたでも読めるようになるまで、もうしばらくお待ちください。';
+    /* ログインは通ったが車が紐づかない人＝「ログインして読む」を出し続けると、何度ログインしても同じ画面に戻る */
+    var noCar = !!(q && q.signedIn && !q.owner);
     el.innerHTML =
       '<h2>' + kai + 'は、いま登録オーナーだけが読めます</h2>' +
       '<p>この連載は<b>登録オーナーが1週先に読めます</b>。' + when + '</p>' +
-      '<p>車を登録している方は、登録したメールアドレスでログインするとこのまま読めます。</p>' +
+      (noCar
+        ? '<p class="j-gate-note">ログインはできていますが、このメールアドレスで登録された車が見つかりませんでした。車の登録に使ったメールアドレスでログインし直してください。</p>'
+        : '<p>車を登録している方は、登録したメールアドレスでログインするとこのまま読めます。</p>') +
       why +
       '<p class="j-gate-act">' +
-        '<button type="button" class="j-btn" id="jGateLogin">ログインして読む</button>' +
+        '<button type="button" class="j-btn" id="jGateLogin">' + (noCar ? '別のアドレスでログイン' : 'ログインして読む') + '</button>' +
         '<a class="j-btn ghost" href="' + TOC + '">目次へ</a>' +
       '</p>';
     return el;
