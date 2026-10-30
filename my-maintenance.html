@@ -495,9 +495,9 @@
     const files = [...(ev.target.files || [])];
     ev.target.value = '';
     if (!files.length) return;
-    setMsg('写真を読み込んでいます…');
     const batch = [];
-    for (const f of files) {
+    for (const [n, f] of files.entries()) {
+      setMsg('写真を読み込んでいます（' + (n + 1) + ' / ' + files.length + '）…' + (isHeic(f) ? '　iPhoneの写真は変換に少し時間がかかります' : ''));
       try {
         const takenAt = await takenAtOf(f);           // 変換前に読む＝変換すると撮影日が消える
         const file = await toJpegIfHeic(f);
@@ -576,13 +576,22 @@
       canvas.toBlob(b => b ? resolve(b) : reject(new Error('画像の変換に失敗しました')), 'image/jpeg', quality);
     });
   }
+  // 送信は時間を切る＝SDK既定では電波が悪いと最大10分黙って再試行し、画面が固まって見える
+  function putWithTimeout(ref, blob, ms) {
+    const task = ref.put(blob, { contentType: 'image/jpeg' });
+    let timer;
+    return Promise.race([
+      task.then(r => { clearTimeout(timer); return r; }),
+      new Promise((_, reject) => { timer = setTimeout(() => { task.cancel(); reject(new Error('送信が時間切れになりました')); }, ms); })
+    ]);
+  }
   async function uploadOne(p, carId, recordId) {
     const img = await loadImage(p.file);
     const [big, small] = [await shrink(img, 1600, 0.85), await shrink(img, 400, 0.8)];
     const base = 'maint/' + carId + '/' + recordId + '/' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
     const r1 = storage.ref().child(base + '.jpg'), r2 = storage.ref().child(base + '_t.jpg');
-    await r1.put(big, { contentType: 'image/jpeg' });
-    await r2.put(small, { contentType: 'image/jpeg' });
+    await putWithTimeout(r1, big, 90000);
+    await putWithTimeout(r2, small, 45000);
     return { url: await r1.getDownloadURL(), thumb_url: await r2.getDownloadURL() };
   }
 
