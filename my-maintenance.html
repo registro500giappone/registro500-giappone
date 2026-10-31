@@ -111,6 +111,13 @@
     details.fold summary::-webkit-details-marker { display: none; }
     details.fold summary small { font-weight: 400; color: var(--text-sub); }
     details.fold[open] summary { margin-bottom: 8px; }
+    #mineFold summary { cursor: pointer; list-style: none; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    #mineFold summary::-webkit-details-marker { display: none; }
+    #mineFold summary h2 { margin: 0; }
+    #mineFold summary small { color: var(--accent); font-size: .82rem; white-space: nowrap; }
+    #mineFold summary small::after { content: '▼ 開く'; }
+    #mineFold[open] summary small::after { content: '▲ 畳む'; }
+    #mineFold[open] summary { margin-bottom: 10px; }
     .tg { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
     .tg input { width: 22px; height: 22px; flex: none; accent-color: var(--accent); }
     .tg-pub { justify-content: flex-start; gap: 8px; margin: 4px 2px 12px; font-size: .9rem; }
@@ -280,9 +287,11 @@
     </div>
 
     <div class="card hidden" id="mineCard" style="margin-top:14px">
-      <h2>これまでの記録</h2>
-      <p class="note" id="mineLinks" style="margin:-4px 0 6px"></p>
-      <div id="mineList"><p class="lead">読み込み中…</p></div>
+      <details id="mineFold">
+        <summary><h2>これまでの記録<span id="mineCount"></span></h2><small></small></summary>
+        <p class="note" id="mineLinks" style="margin:-4px 0 6px"></p>
+        <div id="mineList"><p class="lead">読み込み中…</p></div>
+      </details>
     </div>
   </div>
 </div>
@@ -937,6 +946,12 @@
   }
 
   // ── これまでの記録（自分が書いたもの・作業日の新しい順） ──
+  // 件数が増えると入力欄との往復が長くなるので畳める。開閉はこの端末で覚える（既定は畳む）
+  const MINE_OPEN_KEY = 'r500_maint_mine_open';
+  try { $('mineFold').open = localStorage.getItem(MINE_OPEN_KEY) === '1'; } catch (e) {}
+  $('mineFold').addEventListener('toggle', () => {
+    try { localStorage.setItem(MINE_OPEN_KEY, $('mineFold').open ? '1' : '0'); } catch (e) {}
+  });
   async function loadMine() {
     const box = $('mineList');
     const { data, error } = await mineScope(supabaseClient.from('maint_records')
@@ -946,6 +961,7 @@
     if (error) { box.appendChild(el('p', 'lead', '読み込みに失敗しました。')); console.error(error); return; }
     if (!data.length) { $('mineCard').classList.add('hidden'); return; }
     $('mineCard').classList.remove('hidden');
+    $('mineCount').textContent = '（' + data.length + '件）';
     const carLabel = Object.fromEntries(myCars.map(c => [c.id, c.label.trim()]));
     // 訪問者からの見え方を確かめる入口（車両ページの歩み・みんなの整備手帳）
     // ⚠️ 車両ページは MAINT_ON_CAR_PAGE=false の間は ?maint-preview が要る
@@ -962,6 +978,7 @@
     const top = $('topLinks');
     top.textContent = '';
     const jump = el('a', null, 'これまでの記録 ↓'); jump.href = '#mineCard';
+    jump.addEventListener('click', () => { $('mineFold').open = true; });
     top.append(jump, document.createTextNode('　'));
     [...links.childNodes].forEach(n => top.appendChild(n.cloneNode(true)));
     top.classList.remove('hidden');
