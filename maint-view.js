@@ -169,7 +169,7 @@ a.mv-title { text-decoration: none; }
   function shareButton(rec, onShare) {
     if (rec.is_public === false || !rec.work_date || !rec.id) return null;
     injectCss();
-    const b = el('button', 'mv-share', 'シェア'); b.type = 'button';
+    const b = el('button', 'mv-share', '🔗 シェア'); b.type = 'button';
     let timer = null;
     b.addEventListener('click', () => {
       const url = shareUrl(rec);
@@ -182,7 +182,7 @@ a.mv-title { text-decoration: none; }
         if (onShare) onShare(rec);
       }).catch(() => { b.textContent = 'コピー不可'; });
       clearTimeout(timer);
-      timer = setTimeout(() => { b.textContent = 'シェア'; }, 2000);
+      timer = setTimeout(() => { b.textContent = '🔗 シェア'; }, 2000);
     });
     return b;
   }
