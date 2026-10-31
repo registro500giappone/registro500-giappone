@@ -26,6 +26,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" integrity="sha384-HLJUgAQ2oo6rdMC4QW+Oz2qQfPOtu/lzncKG4sZiq8+2W9uOa3K0b3UGpckKqv7H" crossorigin="anonymous"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js" integrity="sha384-oFrOL1TiREYNET0lsYF3LjQuyi2gL7vhjH1X8vFr+umcmzAdPELopeSgbcrv4uRm" crossorigin="anonymous"></script>
   <script src="config.js"></script>
+  <script src="maint-view.js?v=20261031"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
   <style>
@@ -96,6 +97,12 @@
     .ph-ord .sp { margin-right: auto; }
     .ph-ord button { font: inherit; font-size: .8rem; padding: 4px 10px; border: 1px solid var(--border-soft); border-radius: 6px; background: var(--card-bg); color: var(--text-main); cursor: pointer; }
     .ph-ord button:disabled { opacity: .35; cursor: default; }
+    .vd { border-top: 1px solid var(--border-soft); padding: 10px 0; display: flex; flex-direction: column; gap: 6px; }
+    .vd:first-child { border-top: 0; padding-top: 0; }
+    .vd-url { display: flex; gap: 6px; }
+    .vd-url input { flex: 1; min-width: 0; }
+    .vd textarea { min-height: 64px; font-size: .9rem; }
+    .vd-del { font: inherit; font-size: .8rem; padding: 4px 10px; border: 1px solid var(--border-soft); border-radius: 6px; background: var(--card-bg); color: var(--text-main); cursor: pointer; flex: none; }
     .ph-st { font-size: .72rem; color: var(--text-sub); }
     .ph-st.err { color: var(--danger); }
     details.fold { border-top: 1px solid var(--border-soft); padding: 10px 0; }
@@ -126,7 +133,8 @@
     .mine .nm { font-weight: 700; word-break: break-word; }
     .mine .meta { font-size: .78rem; color: var(--text-sub); }
     .mine .meta a, #mineLinks a, #topLinks a { color: var(--accent); }
-    .mine .acts { display: flex; gap: 8px; margin-top: 6px; }
+    .mine .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+    .mine .acts .mv-share { margin-top: 0; padding: 6px 12px; font-size: .8rem; color: var(--accent); border-color: var(--border-soft); }
     .center { text-align: center; }
     .mk-row { border-top: 1px solid var(--border-soft); padding: 10px 0; }
     .mk-row:first-child { border-top: 0; }
@@ -217,7 +225,8 @@
         </details>
         <details class="fold" id="videoFold">
           <summary><span>＋ 動画のリンクを貼る</span><small>YouTube・Instagram・X</small></summary>
-          <textarea id="fVideos" placeholder="https://youtu.be/…&#10;1行に1本"></textarea>
+          <div id="videoList"></div>
+          <button type="button" class="btn-sub" id="videoAdd" style="margin-top:6px">＋ 動画をもう1本</button>
           <p class="note">YouTube・Instagram・X の投稿URLだけ貼れます。動画そのものはこのサイトに預かりません。</p>
         </details>
       </div>
@@ -345,7 +354,7 @@
   $('todayBtn').addEventListener('click', () => { $('fDate').value = ymd(new Date()); dateTouched = true; $('dateHint').classList.add('hidden'); updatePrevKm(); saveDraft(); });
   $('fKm').addEventListener('input', () => { $('fKm').value = $('fKm').value.replace(/[^0-9]/g, ''); saveDraft(); });
   $('fComment').addEventListener('input', () => { $('cmCount').textContent = $('fComment').value.length; });
-  ['fTitle', 'fComment', 'fCost', 'fVideos'].forEach(id => $(id).addEventListener('input', saveDraft));
+  ['fTitle', 'fComment', 'fCost'].forEach(id => $(id).addEventListener('input', saveDraft));
   $('fPublic').addEventListener('change', saveDraft);
   $('carSel').addEventListener('change', () => {
     updatePrevKm(); updateProxyBanner();
@@ -407,7 +416,7 @@
   function saveDraft() {
     if (editing) return;
     const d = { title: $('fTitle').value, comment: $('fComment').value, date: dateTouched ? $('fDate').value : '', km: $('fKm').value,
-      areas: areasVal(), worker: workerVal(), cost: $('fCost').value, videos: $('fVideos').value, pub: $('fPublic').checked };
+      areas: areasVal(), worker: workerVal(), cost: $('fCost').value, videos: videoRows(), pub: $('fPublic').checked };
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch (e) {}
   }
   function loadDraft() {
@@ -418,7 +427,9 @@
     if (d.date) { $('fDate').value = d.date; dateTouched = true; }
     $('fKm').value = d.km || ''; setAreas(d.areas); setWorker(d.worker);
     $('fCost').value = d.cost || ''; if (d.cost) $('costFold').open = true;
-    $('fVideos').value = d.videos || ''; if (d.videos) $('videoFold').open = true;
+    // 以前の下書きは「1行に1本」の文字列で持っていた
+    const dv = typeof d.videos === 'string' ? d.videos.split(/\s+/).filter(Boolean).map(url => ({ url, caption: '' })) : (d.videos || []);
+    setVideos(dv); if (dv.length) $('videoFold').open = true;
     $('fPublic').checked = d.pub !== false;
   }
   function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (e) {} }
@@ -702,10 +713,35 @@
     });
   })();
 
-  // ── 保存 ──
-  function videoList() {
-    return $('fVideos').value.split(/\s+/).map(s => s.trim()).filter(Boolean);
+  // ── 動画（1本ずつ URL と説明） ──
+  function addVideoRow(url, caption) {
+    const row = el('div', 'vd');
+    const line = el('div', 'vd-url');
+    const u = el('input', 'vd-u'); u.type = 'text'; u.inputMode = 'url'; u.placeholder = 'https://youtu.be/…'; u.autocomplete = 'off'; u.value = url || '';
+    const del = el('button', 'vd-del', '外す'); del.type = 'button';
+    del.addEventListener('click', () => { row.remove(); if (!$('videoList').children.length) addVideoRow(); saveDraft(); });
+    line.append(u, del);
+    const c = el('textarea', 'vd-c'); c.maxLength = 500; c.placeholder = 'この動画の説明（省略できます）'; c.value = caption || '';
+    u.addEventListener('input', saveDraft); c.addEventListener('input', saveDraft);
+    row.append(line, c);
+    $('videoList').appendChild(row);
+    return row;
   }
+  // URL も説明も空の行は無いものとして扱う
+  function videoRows() {
+    return [...$('videoList').querySelectorAll('.vd')]
+      .map(r => ({ url: r.querySelector('.vd-u').value.trim(), caption: r.querySelector('.vd-c').value.trim() }))
+      .filter(v => v.url || v.caption);
+  }
+  function setVideos(list) {
+    $('videoList').textContent = '';
+    (list || []).forEach(v => addVideoRow(v.url, v.caption));
+    if (!$('videoList').children.length) addVideoRow();
+  }
+  $('videoAdd').addEventListener('click', () => addVideoRow().querySelector('.vd-u').focus());
+  setVideos([]);
+
+  // ── 保存 ──
   $('mkClear').addEventListener('click', () => { $('fMkUrl').value = ''; $('fMkUrl').focus(); });
   $('form').addEventListener('submit', ev => { ev.preventDefault(); save(); });
 
@@ -714,9 +750,10 @@
     const title = $('fTitle').value.trim();
     if (!title) { setMsg('タイトルを入れてください。', 'err'); $('fTitle').focus(); return; }
     if (!$('fDate').value) { setMsg('日付を入れてください。', 'err'); return; }
-    const videos = videoList();
-    const badVideo = videos.find(u => !VIDEO_RE.test(u) || u.length > 500);
-    if (badVideo) { setMsg('動画のリンクは YouTube・Instagram・X のURLだけ貼れます：' + badVideo, 'err'); $('videoFold').open = true; return; }
+    const vrows = videoRows();
+    if (vrows.some(v => !v.url)) { setMsg('説明だけの動画があります。リンクを貼るか「外す」を押してください。', 'err'); $('videoFold').open = true; return; }
+    const badVideo = vrows.find(v => !VIDEO_RE.test(v.url) || v.url.length > 500);
+    if (badVideo) { setMsg('動画のリンクは YouTube・Instagram・X のURLだけ貼れます：' + badVideo.url, 'err'); $('videoFold').open = true; return; }
     let mkUrl = null, mkDrop = false;
     if (editing && editing.minkara_url) {
       // 空にしたら、みんカラとのつながりを外してこのサイトの記録として残す（2026-10-29）
@@ -741,7 +778,8 @@
     const rec = {
       title, comment: $('fComment').value.trim() || null, work_date: $('fDate').value,
       odometer_km: $('fKm').value ? Number($('fKm').value) : null,
-      areas: areasVal(), worker: workerVal(), is_public: $('fPublic').checked, video_urls: videos
+      areas: areasVal(), worker: workerVal(), is_public: $('fPublic').checked,
+      video_urls: vrows.map(v => v.url), video_captions: vrows.map(v => v.caption)
     };
     if (mkUrl) rec.minkara_url = mkUrl;
     if (mkDrop) { rec.minkara_url = null; rec.source = 'post'; }
@@ -843,7 +881,7 @@
     $('dateHint').classList.add('hidden');
     setAreas([]); setWorker(null);
     $('cmCount').textContent = '0';
-    $('costFold').open = false; $('videoFold').open = false;
+    $('costFold').open = false; $('videoFold').open = false; setVideos([]);
     $('mkEditRow').classList.add('hidden'); $('fMkUrl').value = '';
     $('formTitle').textContent = '整備を記録する';
     $('saveBtn').textContent = '保存する';
@@ -883,7 +921,8 @@
       $('mkEditRow').classList.remove('hidden');
       $('fMkUrl').value = editing.minkara_url; $('mkEditOpen').href = editing.minkara_url;
     }
-    $('fVideos').value = (editing.video_urls || []).join('\n'); $('videoFold').open = !!(editing.video_urls || []).length;
+    const vcaps = editing.video_captions || [];
+    setVideos((editing.video_urls || []).map((url, i) => ({ url, caption: vcaps[i] || '' }))); $('videoFold').open = !!(editing.video_urls || []).length;
     const cost = co.data && co.data.cost_yen;
     $('fCost').value = cost != null ? String(cost) : ''; $('costFold').open = cost != null;
     photos = (ph.data || []).map(row => ({ key: ++keySeq, row, caption: row.caption || '', state: 'saved' }));
@@ -962,6 +1001,9 @@
         mkLoadPending();
       });
       acts.append(ed, del);
+      // 公開している記録だけ（みんなの整備手帳でその1件を開くURL）
+      const sh = MaintView.shareButton(r, () => track('maint_share', { from: 'mine' }));
+      if (sh) acts.appendChild(sh);
       bd.appendChild(acts);
       item.appendChild(bd);
       box.appendChild(item);

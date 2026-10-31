@@ -1400,7 +1400,7 @@
       if (window.MaintView) return Promise.resolve();
       return new Promise((resolve, reject) => {
         const s = document.createElement('script');
-        s.src = 'maint-view.js?v=20261030'; s.onload = resolve; s.onerror = reject;
+        s.src = 'maint-view.js?v=20261031'; s.onload = resolve; s.onerror = reject;
         document.head.appendChild(s);
       });
     }
@@ -1408,7 +1408,7 @@
       await loadMaintView();
       // 作業日の無い行（みんカラの日付待ち）は歩みに出さない。非公開の行は RLS が本人にだけ返す
       const { data, error } = await supabaseClient.from('maint_records')
-        .select('id, title, comment, work_date, odometer_km, worker, areas, is_public, video_urls, source, minkara_url, created_at, maint_photos(url, thumb_url, caption, sort_order)')
+        .select('id, title, comment, work_date, odometer_km, worker, areas, is_public, video_urls, video_captions, source, minkara_url, created_at, maint_photos(url, thumb_url, caption, sort_order)')
         .eq('car_id', carDocId).not('work_date', 'is', null);
       if (error) throw error;
       return data || [];
