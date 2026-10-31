@@ -33,7 +33,7 @@ a.mv-title { text-decoration: none; }
 .mv-vid { display: flex; flex-direction: column; gap: 4px; }
 .mv-vcap { font-size: .88rem; white-space: pre-wrap; word-break: break-word; line-height: 1.7; margin: 0; }
 .mv-vcap a { color: var(--mv-accent, #1f5c3d); word-break: break-all; }
-.mv-share { display: inline-block; margin-top: 6px; background: none; border: 1px solid var(--mv-soft, #e7efe7); border-radius: 999px; padding: 3px 10px; font: inherit; font-size: .75rem; color: var(--mv-accent, #1f5c3d); cursor: pointer; }
+.mv-share { display: inline-block; margin-left: 6px; vertical-align: baseline; background: none; border: 1px solid var(--mv-soft, #e7efe7); border-radius: 999px; padding: 0 7px; font: inherit; font-size: .7rem; line-height: 1.6; color: var(--mv-accent, #1f5c3d); cursor: pointer; }
 .mv-close { background: none; border: 0; padding: 0; font: inherit; font-size: .85rem; color: var(--mv-muted, #7a705f); cursor: pointer; }
 `;
   let cssDone = false;
@@ -164,19 +164,25 @@ a.mv-title { text-decoration: none; }
       try { document.execCommand('copy') ? resolve() : reject(new Error('copy')); } catch (e) { reject(e); } finally { ta.remove(); }
     });
   }
-  // 「🔗 リンクをコピー」。他の人に見えない記録（非公開・日付待ち）には出さない＝貼られても開けないため
+  // 「シェア」。スマホでは共有シート、対応していない環境ではリンクをコピーする。
+  // 他の人に見えない記録（非公開・日付待ち）には出さない＝貼られても開けないため
   function shareButton(rec, onShare) {
     if (rec.is_public === false || !rec.work_date || !rec.id) return null;
     injectCss();
-    const b = el('button', 'mv-share', '🔗 リンクをコピー'); b.type = 'button';
+    const b = el('button', 'mv-share', 'シェア'); b.type = 'button';
     let timer = null;
     b.addEventListener('click', () => {
-      copyText(shareUrl(rec)).then(() => {
-        b.textContent = '✓ コピーしました';
+      const url = shareUrl(rec);
+      if (navigator.share) {
+        navigator.share({ title: rec.title, url }).then(() => { if (onShare) onShare(rec); }).catch(() => {});
+        return;
+      }
+      copyText(url).then(() => {
+        b.textContent = '✓ コピー';
         if (onShare) onShare(rec);
-      }).catch(() => { b.textContent = 'コピーできませんでした'; });
+      }).catch(() => { b.textContent = 'コピー不可'; });
       clearTimeout(timer);
-      timer = setTimeout(() => { b.textContent = '🔗 リンクをコピー'; }, 2000);
+      timer = setTimeout(() => { b.textContent = 'シェア'; }, 2000);
     });
     return b;
   }
@@ -200,10 +206,10 @@ a.mv-title { text-decoration: none; }
       a.href = rec.minkara_url; a.target = '_blank'; a.rel = 'noopener noreferrer';
       if (opts.onOpen) a.addEventListener('click', () => opts.onOpen(rec));
       txt.appendChild(a);
-      txt.appendChild(el('div', 'mv-meta', [metaText(rec), 'みんカラの記事'].filter(Boolean).join(' ・ ')));
-      if ((rec.areas || []).length) txt.appendChild(chips(rec));
+      const m0 = txt.appendChild(el('div', 'mv-meta', [metaText(rec), 'みんカラの記事'].filter(Boolean).join(' ・ ')));
       const sb0 = shareButton(rec, opts.onShare);
-      if (sb0) { txt.appendChild(el('div')).appendChild(sb0); }
+      if (sb0) m0.appendChild(sb0);
+      if ((rec.areas || []).length) txt.appendChild(chips(rec));
       row.appendChild(txt);
       wrap.appendChild(row);
       return wrap;
@@ -212,15 +218,15 @@ a.mv-title { text-decoration: none; }
     t.setAttribute('aria-expanded', 'false');
     txt.appendChild(t);
     const meta = metaText(rec);
-    if (meta) txt.appendChild(el('div', 'mv-meta', meta));
+    // シェアは添え書きの行末に置く＝行を増やさない
+    const sb = shareButton(rec, opts.onShare);
+    if (meta || sb) { const m = txt.appendChild(el('div', 'mv-meta', meta)); if (sb) m.appendChild(sb); }
     if ((rec.areas || []).length) txt.appendChild(chips(rec));
     if (rec.minkara_url) {
       const a = el('a', 'mv-mk', 'みんカラで読む ↗');
       a.href = rec.minkara_url; a.target = '_blank'; a.rel = 'noopener noreferrer';
       txt.appendChild(a);
     }
-    const sb = shareButton(rec, opts.onShare);
-    if (sb) txt.appendChild(el('div')).appendChild(sb);
     row.appendChild(txt);
     wrap.appendChild(row);
     let body = null;
