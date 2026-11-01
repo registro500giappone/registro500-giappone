@@ -260,6 +260,24 @@
       letter-spacing: 0.02em;
     }
     .menu-divider { height: 1px; background-color: var(--border-soft); margin: 4px 0; }
+    /* 見出しを押すと開閉する（全部開くとスマホで3画面ぶんになるため・2026-11-01）。
+       開いた見出しは端末に覚える＝常用者は次も同じ場所から使える。 */
+    .dropdown-content button.menu-group-heading {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      padding: 11px 16px; font-size: 0.82rem; font-weight: 700; color: var(--text-sub);
+      background-color: var(--bg-main);
+    }
+    .menu-group-heading::after { content: '▸'; font-size: 0.75rem; }
+    .menu-group-heading[aria-expanded="true"]::after { content: '▾'; }
+    .menu-group { display: none; }
+    .menu-group.open { display: block; }
+    .dropdown-content a small, .dropdown-content button small {
+      display: block; font-size: 0.72rem; font-weight: 400; color: var(--text-sub); margin-top: 1px;
+    }
+    /* ログイン中は「わたしの500」、未ログインは「はじめに」を先頭に出す（setSession が .is-member を付け外し） */
+    .dropdown .only-member { display: none !important; }
+    .dropdown.is-member .only-member { display: block !important; }
+    .dropdown.is-member .only-guest { display: none !important; }
 
     .mosaic-toggle-item { display: none !important; }
     @media (min-width: 1025px) { .mosaic-toggle-item { display: block !important; } }
@@ -593,43 +611,85 @@
             <div class="dropdown-content">
               <div id="menuUserInfo" style="padding: 8px 16px; font-size: 0.8rem; color: var(--text-sub); border-bottom: 1px solid var(--border-soft); display: none;"></div>
               <a href="/finder" class="menu-finder">🔍 やりたいことから探す…<small>例：ライトが点かない</small></a>
-              <div class="menu-group-heading">🔧 整備と道具</div>
-              <a href="/equipment">🧰 みんなの車載手帳</a>
-              <a href="/tools">🔧 みんなのおすすめ工具・パーツ</a>
-              <a href="/goods">📦 メンテナンスおすすめグッズ</a>
-              <a href="/parts-shops">🏪 パーツ調達ガイド</a>
-              <a href="/parts-guide" id="menuPartsBtn" style="display:none;">🔧 どっちが安いか比べ太郎</a>
-              <a href="wiring-preview">⚡ 配線図ビューア</a>
-              <a href="/wiring-journey">🧭 電装トラブルの旅手帳</a>
-              <!-- ?type=500 で早見帳のベース車体を初期選択させる（126サイト側は type=126 を渡す） -->
-              <a href="/torque?type=500">🔩 締め付けトルク早見帳</a>
-              <a href="/engine-simulator/">💭 エンジン妄想シミュレーター</a>
-              <a href="/engine-simulator/gearbox">⚙️ 駆動系妄想シミュレーター</a>
-              <div class="menu-group-heading">📖 読みもの・データ</div>
-              <a href="/stories?type=500">📖 マイ500ストーリー</a>
-              <a href="/garage-notes">📓 ガレージノート</a>
-              <a href="/owners-creation">✦ オーナーズ・オリジナル・クリエーション</a>
-              <!-- 壁紙ページの実体は my-wallpaper.html（拡張子なしURLへ寄る）。
-                   ⛔ /wallpaper にしない＝同名のディレクトリがありPagesの行き先が曖昧になる。 -->
-              <a href="/my-wallpaper">🖼️ マイ壁紙</a>
-              <!-- 壁紙と同じタイルを動かす画面。⛔ /screensaver.html と書かない＝拡張子なしURLへ寄せる。 -->
-              <a href="/screensaver">🎞️ スクリーンセーバー</a>
-              <a href="/paint-notebook/">🎨 お絵描き帳</a>
-              <a href="/paint-notebook/gallery">🖍️ みんなのお絵描き帳</a>
-              <a href="/stats">📊 統計データ</a>
-              <a href="/mappa">🗺️ Mappa（地図）</a>
-              <a href="/spot-guide">📍 出没スポット</a>
-              <div class="menu-group-heading">ℹ️ サイト情報</div>
-              <a href="/howto" data-updated="2026-10-22">初めての方へ<span class="news-badge page-badge" style="display:none;"></span></a>
-              <!-- お知らせの赤丸は checkNewsBadge() が news テーブルの最新日から動的に判定する。
-                   data-updated（静的な日付）を書くと二重管理になり実際の更新日とズレるため置かない。 -->
-              <a href="/news">お知らせ<span id="newsBadge" class="news-badge page-badge" style="display:none;"></span></a>
-              <a href="/support">☕ サイトを支援</a>
-              <a href="/policy" data-updated="2026-04-05">ポリシー<span class="news-badge page-badge" style="display:none;"></span></a>
-              <a href="126/" id="link126Site">🚗 126サイトへ</a>
+              <!-- メニューの並び（2026-11-01 見直し）：区分は「やりたいこと」で切り、各項目に一行の説明を付ける。
+                   見出しを押すと開閉（data-group が開閉状態の保存名・GA4 の menu_group）。
+                   ログイン中は「わたしの500」、未ログインは「はじめに」を先頭に出す（.only-member / .only-guest）。
+                   壁紙・スクリーンセーバー・お絵描き帳はログインなしでも使えるので、未ログイン時は「遊ぶ・飾る」側に出す
+                   （同じリンクを2か所に置いている＝片方を直したらもう片方も）。126 の index.html も同じ形。 -->
+              <div class="menu-section only-guest" data-group="start">
+                <a href="/howto" data-updated="2026-10-22">🔰 初めての方へ<span class="news-badge page-badge" style="display:none;"></span><small>このサイトでできること</small></a>
+                <button id="menuLoginBtn" onclick="openLoginModal()">🔑 ログイン<small>登録済みのオーナーはこちら</small></button>
+              </div>
+              <div class="menu-section only-member" data-group="mine">
+                <button type="button" class="menu-group-heading" data-default-open aria-expanded="false">🚗 わたしの500</button>
+                <div class="menu-group">
+                  <a href="/edit?type=500">🚗 マイガレージ<small>自分の車の登録・編集</small></a>
+                  <!-- 壁紙ページの実体は my-wallpaper.html（拡張子なしURLへ寄る）。
+                       ⛔ /wallpaper にしない＝同名のディレクトリがありPagesの行き先が曖昧になる。 -->
+                  <a href="/my-wallpaper">🖼️ マイ壁紙<small>登録車を並べた壁紙</small></a>
+                  <!-- 壁紙と同じタイルを動かす画面。⛔ /screensaver.html と書かない＝拡張子なしURLへ寄せる。 -->
+                  <a href="/screensaver">🎞️ スクリーンセーバー<small>登録車が流れる画面</small></a>
+                  <a href="/paint-notebook/">🎨 お絵描き帳<small>3Dの500に色を塗る</small></a>
+                </div>
+              </div>
+              <div class="menu-section" data-group="fix">
+                <button type="button" class="menu-group-heading" aria-expanded="false">🔍 調べる・直す</button>
+                <div class="menu-group">
+                  <a href="wiring-preview">⚡ 配線図ビューア<small>型式別の配線図</small></a>
+                  <a href="/wiring-journey">🧭 電装トラブルの旅手帳<small>症状から配線をたどる連載</small></a>
+                  <!-- ?type=500 で早見帳のベース車体を初期選択させる（126サイト側は type=126 を渡す） -->
+                  <a href="/torque?type=500">🔩 締め付けトルク早見帳<small>部位ごとの締め付けトルク</small></a>
+                </div>
+              </div>
+              <div class="menu-section" data-group="parts">
+                <button type="button" class="menu-group-heading" aria-expanded="false">🧰 道具とパーツ</button>
+                <div class="menu-group">
+                  <a href="/equipment">🧰 みんなの車載手帳<small>オーナーが車に積んでいる物</small></a>
+                  <a href="/tools">🔧 みんなのおすすめ工具・パーツ<small>オーナーの投稿</small></a>
+                  <a href="/goods">📦 メンテナンスおすすめグッズ<small>アンケートで選んだ定番品</small></a>
+                  <a href="/parts-shops">🏪 パーツ調達ガイド<small>国内・海外のショップ一覧</small></a>
+                  <a href="/parts-guide" id="menuPartsBtn" style="display:none;">💴 どっちが安いか比べ太郎<small>国内外のパーツ価格比較</small></a>
+                  <a href="/owners-creation">✦ オーナーズ・オリジナル・クリエーション<small>オーナー手作りの品</small></a>
+                </div>
+              </div>
+              <div class="menu-section" data-group="community">
+                <button type="button" class="menu-group-heading" aria-expanded="false">👥 みんなの500</button>
+                <div class="menu-group">
+                  <a href="/stories?type=500">📖 マイ500ストーリー<small>愛車にまつわる話</small></a>
+                  <a href="/garage-notes">📓 ガレージノート<small>送料・関税などの実体験</small></a>
+                  <a href="/event">📅 イベント<small>開催予定と記録</small></a>
+                  <a href="/videos">🎬 動画<small>整備・レストアなどの動画</small></a>
+                  <a href="/paint-notebook/gallery">🖍️ みんなのお絵描き帳<small>投稿された作品</small></a>
+                  <a href="/stats">📊 統計データ<small>登録車の集計</small></a>
+                  <a href="/mappa">🗺️ Mappa（地図）<small>オーナーの分布地図</small></a>
+                  <a href="/spot-guide">📍 出没スポット<small>オーナーが集まる場所</small></a>
+                </div>
+              </div>
+              <div class="menu-section" data-group="play">
+                <button type="button" class="menu-group-heading" aria-expanded="false">🎈 遊ぶ・飾る</button>
+                <div class="menu-group">
+                  <a href="/my-wallpaper" class="only-guest">🖼️ マイ壁紙<small>登録車を並べた壁紙</small></a>
+                  <a href="/screensaver" class="only-guest">🎞️ スクリーンセーバー<small>登録車が流れる画面</small></a>
+                  <a href="/paint-notebook/" class="only-guest">🎨 お絵描き帳<small>3Dの500に色を塗る</small></a>
+                  <a href="/engine-simulator/">💭 エンジン妄想シミュレーター<small>エンジンを組み替えて遊ぶ</small></a>
+                  <a href="/engine-simulator/gearbox">⚙️ 駆動系妄想シミュレーター<small>ギア比を組み替えて遊ぶ</small></a>
+                </div>
+              </div>
+              <div class="menu-section" data-group="site">
+                <button type="button" class="menu-group-heading" aria-expanded="false">ℹ️ サイトのこと</button>
+                <div class="menu-group">
+                  <a href="/howto" class="only-member" data-updated="2026-10-22">🔰 初めての方へ<span class="news-badge page-badge" style="display:none;"></span></a>
+                  <a href="/support">☕ サイトを支援</a>
+                  <a href="/policy" data-updated="2026-04-05">ポリシー<span class="news-badge page-badge" style="display:none;"></span></a>
+                  <a href="126/" id="link126Site">🚗 126サイトへ</a>
+                </div>
+              </div>
               <div class="menu-divider"></div>
+              <!-- お知らせは畳まない場所に置く（畳んだ中だと赤丸が見えない）。
+                   赤丸は checkNewsBadge() が news テーブルの最新日から動的に判定する。
+                   data-updated（静的な日付）を書くと二重管理になり実際の更新日とズレるため置かない。 -->
+              <a href="/news">📢 お知らせ<span id="newsBadge" class="news-badge page-badge" style="display:none;"></span></a>
               <button onclick="shareSite()">🔗 サイトをシェア</button>
-              <button id="menuLoginBtn" onclick="openLoginModal()">🔑 ログイン</button>
               <button id="menuLogoutBtn" onclick="logout()" style="display:none;">🚪 ログアウト</button>
             </div>
           </div>
@@ -813,8 +873,40 @@
         }
         document.addEventListener('click', function() { toggleDropdown(false); });
         document.addEventListener('keydown', function(e) { if (e.key === 'Escape') toggleDropdown(false); });
-        dropdown.querySelectorAll('.dropdown-content a, .dropdown-content button').forEach(function(el) {
-          el.addEventListener('click', function() { toggleDropdown(false); });
+        // 見出しの開閉。状態は {data-group: true/false} で端末に覚える（無ければ data-default-open の見出しだけ開く）
+        var OPEN_KEY = 'menu_open_groups';
+        var openState = {};
+        try { openState = JSON.parse(localStorage.getItem(OPEN_KEY) || '{}') || {}; } catch (_) {}
+        dropdown.querySelectorAll('.menu-group-heading').forEach(function(h) {
+          var key = h.closest('.menu-section').dataset.group;
+          function setOpen(isOpen) {
+            h.setAttribute('aria-expanded', isOpen);
+            h.nextElementSibling.classList.toggle('open', isOpen);
+          }
+          setOpen(key in openState ? !!openState[key] : h.hasAttribute('data-default-open'));
+          h.addEventListener('click', function(e) {
+            e.stopPropagation();  // メニュー全体を閉じない
+            var isOpen = h.getAttribute('aria-expanded') !== 'true';
+            setOpen(isOpen);
+            openState[key] = isOpen;
+            try { localStorage.setItem(OPEN_KEY, JSON.stringify(openState)); } catch (_) {}
+            try { gtag('event', 'menu_group_toggle', {menu_group: key, open: isOpen ? 1 : 0}); } catch (_) {}
+          });
+        });
+        // 項目のクリック：閉じる＋GA4 menu_click（どの区分の何が、ログイン中か否かで押されたか）
+        dropdown.querySelectorAll('.dropdown-content a, .dropdown-content button:not(.menu-group-heading)').forEach(function(el) {
+          el.addEventListener('click', function() {
+            toggleDropdown(false);
+            var sec = el.closest('.menu-section');
+            try {
+              gtag('event', 'menu_click', {
+                menu_item: el.getAttribute('href') || el.id || el.textContent.trim().slice(0, 40),
+                menu_group: sec ? sec.dataset.group : 'top',
+                member: dropdown.classList.contains('is-member') ? 1 : 0,
+                transport_type: 'beacon'
+              });
+            } catch (_) {}
+          });
         });
       }
     });
@@ -1291,6 +1383,9 @@ async function fetchCars() {
 
       const partsBtn = document.getElementById('menuPartsBtn');
       const headerLoginBtn = document.getElementById('headerLoginBtn');
+      // メニューの先頭を出し分ける（ログイン中＝わたしの500／未ログイン＝はじめに）
+      const menuDropdown = document.querySelector('.dropdown');
+      if (menuDropdown) menuDropdown.classList.toggle('is-member', !!user);
       if (user) {
         console.log("User logged in:", user.id);
         currentUser.uid = user.id;
