@@ -1289,6 +1289,9 @@ CREATE OR REPLACE FUNCTION public.handle_car_display_names()
  LANGUAGE plpgsql
  SET search_path TO 'public'
 AS $function$
+DECLARE
+  a text;
+  b text;
 BEGIN
   -- model_display_a の計算
   NEW.model_display_a := CASE WHEN NEW.model_select_a = 'その他' THEN NEW.model_text_a ELSE NEW.model_select_a END;
@@ -1298,10 +1301,16 @@ BEGIN
 
   -- model_display_c の合体 (A + B)
   -- model_display_b が '標準' / '不明' のときは車名の一部ではないので結合しない
+  -- A と B が重なるとき（同じ・片方の端にもう片方が丸ごと入る）は長いほうだけ
+  a := TRIM(COALESCE(NEW.model_display_a, ''));
+  b := TRIM(COALESCE(NEW.model_display_b, ''));
   NEW.model_display_c := CASE
-    WHEN NEW.model_display_b IS NULL OR NEW.model_display_b = '' OR NEW.model_display_b IN ('標準', '不明')
-    THEN TRIM(COALESCE(NEW.model_display_a, ''))
-    ELSE TRIM(COALESCE(NEW.model_display_a, '') || ' ' || NEW.model_display_b)
+    WHEN b = '' OR b IN ('標準', '不明') THEN a
+    WHEN a = '' THEN b
+    WHEN lower(a) = lower(b) THEN a
+    WHEN right(lower(a), length(b) + 1) = ' ' || lower(b) THEN a
+    WHEN left(lower(b), length(a) + 1) = lower(a) || ' ' THEN b
+    ELSE a || ' ' || b
   END;
 
   -- engine_display の計算
