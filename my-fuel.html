@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <title>給油の記録 | Registro500 Giappone</title>
-  <meta name="description" content="レシートとメーターを一緒に撮るだけで、給油と燃費を記録できます。">
+  <meta name="description" content="レシートとメーターを撮るだけで、給油と燃費を記録できます。">
   <link rel="canonical" href="https://www.registro500.com/my-fuel">
   <meta property="og:title" content="給油の記録">
-  <meta property="og:description" content="レシートとメーターを一緒に撮るだけで、給油と燃費を記録できます。">
+  <meta property="og:description" content="レシートとメーターを撮るだけで、給油と燃費を記録できます。">
   <meta property="og:url" content="https://www.registro500.com/my-fuel">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex">
@@ -85,13 +85,17 @@
     .file-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
     .shoot { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 96px; border: 2px dashed var(--accent); border-radius: 12px; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 1.05rem; cursor: pointer; text-align: center; padding: 10px; }
     .shoot small { font-weight: 400; font-size: .78rem; color: var(--text-sub); }
-    .shot { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
-    .shot img { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; flex: none; background: var(--border-soft); cursor: zoom-in; }
-    .shot img.big { width: 100%; height: auto; max-height: 70vh; object-fit: contain; cursor: zoom-out; }
-    .shot.big-on { flex-direction: column; align-items: stretch; }
-    .shot .st { font-size: .85rem; }
-    .shot .st.err { color: var(--danger); }
-    .shot .st.ok { color: var(--accent); }
+    .shots { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .shot { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 96px; }
+    .shot img { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; background: var(--border-soft); cursor: zoom-in; }
+    .shot.big { width: 100%; }
+    .shot.big img { width: 100%; height: auto; max-height: 70vh; object-fit: contain; cursor: zoom-out; }
+    .shot .cap { font-size: .72rem; color: var(--text-sub); text-align: center; }
+    .shot .cap.err { color: var(--danger); }
+    .st { font-size: .85rem; margin: 8px 0 0; }
+    .st:empty { display: none; }
+    .st.err { color: var(--danger); }
+    .st.ok { color: var(--accent); }
     details.fold { border-top: 1px solid var(--border-soft); padding: 10px 0 0; margin-top: 12px; }
     details.fold summary { cursor: pointer; font-weight: 700; font-size: .9rem; color: var(--accent); list-style: none; display: flex; justify-content: space-between; gap: 8px; }
     details.fold summary::-webkit-details-marker { display: none; }
@@ -127,7 +131,7 @@
 <div class="page">
   <a href="/" class="back-link">&larr; トップに戻る</a>
   <h1>⛽ 給油の記録</h1>
-  <p class="lead intro">レシートとメーターを1枚の写真に一緒に撮ると、日付・給油量・金額・走行距離を読み取って入れます。確かめて「保存する」を押すだけです。燃費は満タン法で数えます。</p>
+  <p class="lead intro">レシートとメーターを撮ると（1枚に入らなければ1枚ずつ）、日付・給油量・金額・走行距離を読み取って入れます。確かめて「保存する」を押すだけです。燃費は満タン法で数えます。</p>
 
   <div id="stateLoading" class="lead">確認中…</div>
 
@@ -168,14 +172,12 @@
           <p id="proxyBanner" class="proxy-banner hidden"></p>
         </div>
         <div id="shootRow">
-          <label class="shoot" for="fPhoto">📷 レシートとメーターを撮る<small>1枚に両方が入るように・針が数字に重なっていないときに</small></label>
-          <input type="file" id="fPhoto" class="file-hidden" accept="image/*,.heic,.heif,.HEIC,.HEIF">
-          <p class="note">写真は読み取りにだけ使い、保存しません（レシートの名前やカード番号は残りません）。</p>
+          <label class="shoot" for="fPhoto"><span id="shootLabel">📷 レシートとメーターを撮る</span><small>1枚に両方入れるか、入らなければ1枚ずつ（2枚まとめて選べます）</small></label>
+          <input type="file" id="fPhoto" class="file-hidden" multiple accept="image/*,.heic,.heif,.HEIC,.HEIF">
+          <p class="note">メーターは針が数字に重なっていないときに。写真は読み取りにだけ使い、保存しません（レシートの名前やカード番号は残りません）。</p>
         </div>
-        <div class="shot hidden" id="shot">
-          <img id="shotImg" alt="撮った写真" title="押すと大きくなります">
-          <span class="st" id="shotSt" role="status"></span>
-        </div>
+        <div class="shots hidden" id="shots"></div>
+        <p class="st" id="shotSt" role="status"></p>
       </div>
 
       <div class="card">
@@ -383,22 +385,35 @@
   const READ_ERR = {
     401: 'ログインが切れました。再読み込みしてからもう一度お試しください。',
     403: '車両を登録したアカウントでログインしてください。',
-    429: '今日の読み取りは上限（10回）に達しました。数字は手で入れて保存できます。'
+    429: '今日の読み取りは上限（20回）に達しました。数字は手で入れて保存できます。'
   };
-  $('shotImg').addEventListener('click', () => { $('shotImg').classList.toggle('big'); $('shot').classList.toggle('big-on'); });
+  // レシートとメーターが1枚に入らないときは1枚ずつ（2026-11-04 ユーザー指示）。
+  // 写真ごとに読み、読めた欄だけ埋める＝レシートの写真は日付・量・金額・油種、メーターの写真は距離だけが返る
+  let readSet = new Set();   // この記録で写真から読めた欄
+  let batchErr = null;
   $('fPhoto').addEventListener('change', async ev => {
-    const f = ev.target.files && ev.target.files[0];
+    const files = [...(ev.target.files || [])].slice(0, 4);
     ev.target.value = '';
-    if (!f || reading) return;
-    reading = true;
-    $('shot').classList.remove('hidden');
-    setShot(isHeic(f) ? '写真を変換しています（iPhoneの写真は少し時間がかかります）…' : '写真を読み込んでいます…');
+    if (!files.length || reading) return;
+    reading = true; batchErr = null;
+    $('shots').classList.remove('hidden');
+    try {
+      for (const [i, f] of files.entries()) await readOne(f, files.length > 1 ? '（' + (i + 1) + ' / ' + files.length + '枚目）' : '');
+    } finally { reading = false; }
+    summarize();
+  });
+  async function readOne(f, of) {
+    const box = el('div', 'shot'), img = el('img'), cap = el('span', 'cap', '読み取り中…');
+    img.alt = '撮った写真'; img.title = '押すと大きくなります';
+    img.addEventListener('click', () => box.classList.toggle('big'));
+    box.append(img, cap);
+    $('shots').appendChild(box);
+    setShot((isHeic(f) ? '写真を変換しています（iPhoneの写真は少し時間がかかります）…' : '写真を読み込んでいます…') + of);
     try {
       const file = await toJpegIfHeic(f);
-      const old = $('shotImg').src; if (old && old.startsWith('blob:')) URL.revokeObjectURL(old);
-      $('shotImg').src = URL.createObjectURL(file);
+      img.src = URL.createObjectURL(file);
       const b64 = shrinkB64(await loadImage(file));
-      setShot('読み取っています…');
+      setShot('読み取っています…' + of);
       const { data: sess } = await supabaseClient.auth.getSession();
       const token = sess && sess.session ? sess.session.access_token : '';
       const res = await fetch('/api/fuel-read', {
@@ -408,32 +423,43 @@
       });
       const out = await res.json().catch(() => ({}));
       if (!res.ok || !out.success) {
-        setShot(READ_ERR[res.status] || '読み取りに失敗しました。もう一度撮るか、数字を手で入れてください。', 'err');
+        cap.textContent = '読めませんでした'; cap.classList.add('err');
+        batchErr = READ_ERR[res.status] || batchErr;
         track('fuel_read', { result: 'error_' + res.status });
         return;
       }
-      applyReading(out.reading);
+      cap.textContent = applyReading(out.reading);
+      if (cap.textContent === '数字なし') cap.classList.add('err');
     } catch (err) {
       console.error('[my-fuel] read', err);
-      setShot(err.message && /HEIC/.test(err.message) ? err.message : '読み取りに失敗しました。もう一度撮るか、数字を手で入れてください。', 'err');
+      cap.textContent = '読めませんでした'; cap.classList.add('err');
+      if (err.message && /HEIC/.test(err.message)) batchErr = err.message;
       track('fuel_read', { result: 'error' });
-    } finally { reading = false; }
-  });
+    }
+  }
+  // 読めた値を欄に入れ、写真の下に出す短い名前（レシート／メーター）を返す
   function applyReading(r) {
     r = r || {};
-    const put = (id, v) => { if (v == null) return false; $(id).value = String(v); $(id).classList.add('read'); return true; };
-    const got = [];
-    const miss = [];
-    (put('fDate', r.date) ? got : miss).push('日付');
-    (put('fKm', r.odometer_km) ? got : miss).push('走行距離');
-    (put('fLiters', r.liters) ? got : miss).push('給油量');
-    if (put('fYen', r.total_yen)) got.push('金額');
-    if (r.fuel) { setFuel(r.fuel); got.push('油種'); }
+    const put = (key, id, v) => { if (v == null) return false; $(id).value = String(v); $(id).classList.add('read'); readSet.add(key); return true; };
+    const rc = [put('date', 'fDate', r.date), put('liters', 'fLiters', r.liters), put('yen', 'fYen', r.total_yen)].some(Boolean);
+    if (r.fuel) { setFuel(r.fuel); readSet.add('fuel'); }
+    const mt = put('km', 'fKm', r.odometer_km);
     check();
-    if (!got.length) setShot('数字を読み取れませんでした。レシートとメーターがはっきり写るように撮り直すか、手で入れてください。', 'err');
-    else if (miss.length) setShot('読み取りました。' + miss.join('・') + 'は読めなかったので、入れてください。', 'err');
-    else setShot('読み取りました。色の付いた欄を確かめて「保存する」を押してください。', 'ok');
-    track('fuel_read', { result: !got.length ? 'none' : miss.length ? 'partial' : 'ok' });
+    const kind = rc && mt ? 'both' : rc || r.fuel ? 'receipt' : mt ? 'meter' : 'none';
+    track('fuel_read', { result: kind });
+    return { both: 'レシートとメーター', receipt: 'レシート', meter: 'メーター', none: '数字なし' }[kind];
+  }
+  // 撮り終えたところで、足りない欄を案内する（距離と量が無いと燃費を数えられない）
+  function summarize() {
+    const need = [['km', '走行距離', 'メーター'], ['liters', '給油量', 'レシート']].filter(x => !readSet.has(x[0]));
+    if (!readSet.size) {
+      setShot(batchErr || '数字を読み取れませんでした。はっきり写るように撮り直すか、手で入れてください。', 'err');
+    } else if (need.length) {
+      setShot('あと' + need.map(x => x[1]).join('と') + 'が読めていません。' + need.map(x => x[2]).join('と') + 'の写真をもう1枚撮るか、手で入れてください。', 'err');
+    } else {
+      setShot('読み取りました。色の付いた欄を確かめて「保存する」を押してください。' + (readSet.has('date') ? '' : '（日付はレシートから読めなかったので今日のままです）'), 'ok');
+    }
+    $('shootLabel').textContent = need.length && readSet.size ? '📷 もう1枚撮る（' + need.map(x => x[2]).join('と') + '）' : '📷 撮り直す・もう1枚足す';
   }
 
   // ── 保存 ──
@@ -446,7 +472,10 @@
     $('fFull').checked = true; $('fPublic').checked = true; setFuel(null);
     ['fDate', 'fKm', 'fLiters', 'fYen'].forEach(id => $(id).classList.remove('read'));
     $('noteFold').open = false;
-    $('shot').classList.add('hidden'); $('shot').classList.remove('big-on'); $('shotImg').classList.remove('big');
+    $('shots').querySelectorAll('img').forEach(i => { if (i.src.startsWith('blob:')) URL.revokeObjectURL(i.src); });
+    $('shots').textContent = ''; $('shots').classList.add('hidden');
+    readSet = new Set(); setShot('');
+    $('shootLabel').textContent = '📷 レシートとメーターを撮る';
     $('formTitle').textContent = '給油を記録する';
     $('saveBtn').textContent = '保存する';
     $('cancelEdit').classList.add('hidden');
@@ -570,7 +599,7 @@
     $('formTitle').textContent = F.fmtDate(r.fill_date) + 'の給油を直す';
     $('saveBtn').textContent = '直して保存する';
     $('cancelEdit').classList.remove('hidden');
-    $('shootRow').classList.add('hidden'); $('shot').classList.add('hidden');
+    $('shootRow').classList.add('hidden'); $('shots').classList.add('hidden'); setShot('');
     $('carRow').classList.add('hidden');
     setMsg(''); check();
     window.scrollTo({ top: 0, behavior: 'smooth' });
