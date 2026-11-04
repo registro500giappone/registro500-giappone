@@ -301,6 +301,7 @@
         <summary><span id="mineRestCount"></span><small></small></summary>
         <div id="mineList"></div>
       </details>
+      <div id="mineBulk" class="hidden" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border-soft)"></div>
     </div>
   </div>
 </div>
@@ -1077,6 +1078,37 @@
       bd.appendChild(acts);
       item.appendChild(bd);
       (recentIds.has(r.id) ? box : rest).appendChild(item);
+    });
+    renderBulk(data, carLabel);
+  }
+
+  // 車を手放すときなどに、その車の記録をまとめて非公開にする（2026-11-04 ユーザー決裁＝まとめて消すは作らない）。
+  // 1件ずつ直せば公開に戻せる。確認のダイアログは出さず2度押し（お絵描き帳の削除と同じ）
+  function renderBulk(data, carLabel) {
+    const bulk = $('mineBulk');
+    bulk.textContent = '';
+    const cars = [...new Set(data.filter(r => r.is_public).map(r => r.car_id))];
+    bulk.classList.toggle('hidden', !cars.length);
+    if (!cars.length) return;
+    bulk.appendChild(el('p', 'note', '車を手放すときなどに、その車の記録をまとめて非公開にできます（自分にだけ見える状態になります。1件ずつ直せば公開に戻せます）。'));
+    cars.forEach(id => {
+      const b = el('button', 'link-btn', '🔒 ' + (cars.length > 1 && carLabel[id] ? carLabel[id] + 'の' : 'この車の') + '記録をすべて非公開にする');
+      b.type = 'button';
+      b.style.display = 'block'; b.style.margin = '6px 0';
+      b.addEventListener('click', async () => {
+        if (!b.dataset.sure) {
+          b.dataset.sure = '1'; const t = b.textContent; b.textContent = 'もう一度押すと非公開にします';
+          setTimeout(() => { if (b.isConnected && !b.disabled) { delete b.dataset.sure; b.textContent = t; } }, 4000);
+          return;
+        }
+        b.disabled = true; b.textContent = '非公開にしています…';
+        const { error } = await mineScope(supabaseClient.from('maint_records').update({ is_public: false }))
+          .eq('car_id', id).eq('is_public', true);
+        if (error) { console.error(error); b.disabled = false; delete b.dataset.sure; b.textContent = '非公開にできませんでした。もう一度お試しください'; return; }
+        track('maint_bulk_private');
+        loadMine();
+      });
+      bulk.appendChild(b);
     });
   }
 

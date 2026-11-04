@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-10-29 15:58 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-11-04 13:20 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -542,16 +542,20 @@ create table public.maint_records (
   video_urls text[] not null default '{}'::text[],
   created_at timestamp with time zone not null default now(),
   updated_at timestamp with time zone not null default now(),
-  digest_sent_at timestamp with time zone
+  digest_sent_at timestamp with time zone,
+  video_captions text[] not null default '{}'::text[],
+  tasks text[] not null default '{}'::text[]
 );
 alter table public.maint_records add constraint maint_records_pkey PRIMARY KEY (id);
-alter table public.maint_records add constraint maint_records_areas_check CHECK ((areas <@ ARRAY['engine'::text, 'fuel'::text, 'driveline'::text, 'suspension'::text, 'brake'::text, 'body'::text, 'electric'::text, 'consumable'::text]));
+alter table public.maint_records add constraint maint_records_areas_check CHECK ((areas <@ ARRAY['engine'::text, 'fuel'::text, 'driveline'::text, 'suspension'::text, 'brake'::text, 'body'::text, 'electric'::text, 'consumable'::text, 'accessory'::text]));
 alter table public.maint_records add constraint maint_records_comment_check CHECK (((comment IS NULL) OR (char_length(comment) <= 2000)));
 alter table public.maint_records add constraint maint_records_minkara_check CHECK (((source <> 'minkara'::text) OR (minkara_url IS NOT NULL)));
 alter table public.maint_records add constraint maint_records_minkara_url_check CHECK (((minkara_url IS NULL) OR ((minkara_url ~~ 'https://minkara.carview.co.jp/%'::text) AND (char_length(minkara_url) <= 500))));
 alter table public.maint_records add constraint maint_records_odometer_km_check CHECK (((odometer_km IS NULL) OR ((odometer_km >= 0) AND (odometer_km <= 999999))));
 alter table public.maint_records add constraint maint_records_source_check CHECK ((source = ANY (ARRAY['post'::text, 'minkara'::text])));
+alter table public.maint_records add constraint maint_records_tasks_check CHECK ((tasks <@ ARRAY['engine_oil'::text, 'gear_oil'::text]));
 alter table public.maint_records add constraint maint_records_title_check CHECK (((char_length(btrim(title)) >= 1) AND (char_length(btrim(title)) <= 80)));
+alter table public.maint_records add constraint maint_records_video_captions_check CHECK ((maint_video_captions_ok(video_captions) AND (cardinality(video_captions) <= cardinality(video_urls))));
 alter table public.maint_records add constraint maint_records_video_urls_check CHECK (maint_video_urls_ok(video_urls));
 alter table public.maint_records add constraint maint_records_work_date_check CHECK (((work_date IS NOT NULL) OR (source = 'minkara'::text)));
 alter table public.maint_records add constraint maint_records_worker_check CHECK (((worker IS NULL) OR (worker = ANY (ARRAY['diy'::text, 'shop'::text]))));
@@ -591,7 +595,7 @@ create table public.owner_articles (
 );
 alter table public.owner_articles add constraint owner_articles_pkey PRIMARY KEY (id);
 alter table public.owner_articles add constraint owner_articles_car_url_key UNIQUE (car_id, url);
-alter table public.owner_articles add constraint owner_articles_areas_check CHECK ((areas <@ ARRAY['engine'::text, 'fuel'::text, 'driveline'::text, 'suspension'::text, 'brake'::text, 'body'::text, 'electric'::text, 'consumable'::text]));
+alter table public.owner_articles add constraint owner_articles_areas_check CHECK ((areas <@ ARRAY['engine'::text, 'fuel'::text, 'driveline'::text, 'suspension'::text, 'brake'::text, 'body'::text, 'electric'::text, 'consumable'::text, 'accessory'::text]));
 alter table public.owner_articles add constraint owner_articles_site_name_check CHECK (((site_name IS NULL) OR (char_length(site_name) <= 60)));
 alter table public.owner_articles add constraint owner_articles_title_check CHECK (((char_length(btrim(title)) >= 1) AND (char_length(btrim(title)) <= 120)));
 alter table public.owner_articles add constraint owner_articles_url_check CHECK (((url ~~ 'https://%'::text) AND (char_length(url) <= 1000)));
@@ -940,6 +944,7 @@ CREATE INDEX idx_maint_photos_record ON public.maint_photos USING btree (record_
 CREATE INDEX idx_maint_records_car ON public.maint_records USING btree (car_id, work_date DESC, created_at);
 CREATE INDEX idx_maint_records_public ON public.maint_records USING btree (work_date DESC, created_at DESC) WHERE (is_public AND (work_date IS NOT NULL));
 CREATE INDEX maint_records_digest_idx ON public.maint_records USING btree (created_at) WHERE (digest_sent_at IS NULL);
+CREATE INDEX maint_records_tasks_idx ON public.maint_records USING gin (tasks);
 CREATE INDEX idx_news_target_car_type ON public.news USING btree (target_car_type);
 CREATE INDEX owner_articles_car_idx ON public.owner_articles USING btree (car_id, published_on DESC);
 CREATE INDEX owner_articles_new_idx ON public.owner_articles USING btree (created_at DESC) WHERE (NOT is_hidden);
@@ -1409,6 +1414,18 @@ begin
   end if;
   return new;
 end $function$
+;
+-- acl: =X/postgres postgres=X/postgres anon=X/postgres authenticated=X/postgres service_role=X/postgres
+
+CREATE OR REPLACE FUNCTION public.maint_video_captions_ok(c text[])
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(bool_and(x is not null and char_length(x) <= 500), true)
+  from unnest(c) as x
+$function$
 ;
 -- acl: =X/postgres postgres=X/postgres anon=X/postgres authenticated=X/postgres service_role=X/postgres
 

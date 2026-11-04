@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>みんなの整備手帳 | Registro500 Giappone</title>
-  <meta name="description" content="クラシックFIAT 500・126のオーナーが残した整備の記録を、新しい順に読めます。箇所で絞り込めます。">
+  <meta name="description" content="クラシックFIAT 500・126のオーナーが残した整備の記録を、新しい順に読めます。言葉・型式・箇所で探せます。">
   <link rel="canonical" href="https://www.registro500.com/maintenance">
   <meta property="og:title" content="みんなの整備手帳">
   <meta property="og:description" content="クラシックFIAT 500・126のオーナーが残した整備の記録を、新しい順に読めます。">
@@ -99,6 +99,7 @@
   const onShare = rec => track('maint_share', { from: 'list' });
 
   let area = null;
+  let task = null;   // オイル交換の印（maint_records.tasks）。箇所のプルダウンの下の段から選ぶ
   let model = null;
   let qText = '';
   let modelCarIds = null;   // 型式で絞るときの車の document_id（記録の表と車の表は外部キーでつながっていないので先に引く）
@@ -119,10 +120,14 @@
     ['126', '126', q => q.eq('car_type', '126')]
   ];
   const MODEL_BY = Object.fromEntries(MODELS.map(m => [m[0], m]));
+  // マイ整備手帳の TASKS と同じ（DB の check と同じ並び）
+  const TASKS = [['engine_oil', '🛢 エンジンオイル交換'], ['gear_oil', '⚙️ ミッションオイル交換']];
+  const TASK_LABEL = Object.fromEntries(TASKS);
 
   // 絞り込みは URL に載せる（?q=キャブ&model=F&area=brake で直接開ける・共有したリンクで同じ結果になる）
   const params = new URLSearchParams(location.search);
   if (params.get('area') && MaintView.AREA_LABEL[params.get('area')]) area = params.get('area');
+  if (params.get('task') && TASK_LABEL[params.get('task')]) { task = params.get('task'); area = null; }
   if (params.get('model') && MODEL_BY[params.get('model')]) model = params.get('model');
   qText = (params.get('q') || '').trim();
 
@@ -136,12 +141,17 @@
   }
   function syncUrl() {
     const u = new URL(location.href);
-    [['q', qText], ['model', model], ['area', area]].forEach(([k, v]) => { if (v) u.searchParams.set(k, v); else u.searchParams.delete(k); });
+    [['q', qText], ['model', model], ['area', area], ['task', task]].forEach(([k, v]) => { if (v) u.searchParams.set(k, v); else u.searchParams.delete(k); });
     history.replaceState(null, '', u);
   }
   function setupFilters() {
     fillSelect($('modelSel'), '型式：すべて', MODELS.map(m => [m[0], m[1]]), model);
     fillSelect($('areaSel'), '箇所：すべて', MaintView.AREAS, area);
+    // 箇所の下に「作業」の段＝オイル交換の印で絞る（箇所とは同時に選べない＝1つのプルダウン）
+    const og = el('optgroup'); og.label = '作業';
+    TASKS.forEach(([v, label]) => { const o = el('option', null, label); o.value = 'task:' + v; if (task === v) o.selected = true; og.appendChild(o); });
+    $('areaSel').appendChild(og);
+    $('areaSel').classList.toggle('on', !!(area || task));
     $('q').value = qText;
     $('modelSel').addEventListener('change', () => {
       model = $('modelSel').value || null; modelCarIds = null;
@@ -150,9 +160,11 @@
       syncUrl(); reload();
     });
     $('areaSel').addEventListener('change', () => {
-      area = $('areaSel').value || null;
-      $('areaSel').classList.toggle('on', !!area);
-      track('maint_area', { area: area || 'all' });
+      const v = $('areaSel').value || '';
+      task = v.startsWith('task:') ? v.slice(5) : null;
+      area = task ? null : (v || null);
+      $('areaSel').classList.toggle('on', !!(area || task));
+      track('maint_area', { area: task ? 'task:' + task : (area || 'all') });
       syncUrl(); reload();
     });
     // 打ち終わって少し待ってから探す（1文字ごとに読みに行かない）
@@ -278,11 +290,13 @@
       .order('work_date', { ascending: false }).order('created_at', { ascending: true })
       .range(offset, offset + PAGE);
     if (area) q = q.contains('areas', [area]);
+    if (task) q = q.contains('tasks', [task]);
     words.forEach(w => { q = q.or(`title.ilike.*${w}*,comment.ilike.*${w}*`); });
     if (model) q = q.in('car_id', modelCarIds.length ? modelCarIds : ['-']);
     // 整備の記事。伏せた行は本人にも RLS で返るので、ここでは明示的に外す
     let qa = null;
-    if (articlesOn) {
+    // 記事は印を持たないので、印で絞るときは混ぜない
+    if (articlesOn && !task) {
       qa = supabaseClient.from('owner_articles')
         .select('id, car_id, title, url, site_name, published_on, areas, created_at')
         .eq('is_maintenance', true).eq('is_hidden', false)
@@ -310,7 +324,7 @@
     await loadCars([...new Set(rows.map(x => x.r.car_id))]);
     if (my !== seq) { loading = false; return; }
     if (offset === 0 && aOffset === 0 && !rows.length) {
-      $('list').appendChild(el('p', 'state', (qText || model || area)
+      $('list').appendChild(el('p', 'state', (qText || model || area || task)
         ? '条件に合う記録はありません。言葉を短くするか、型式・箇所を「すべて」に戻してみてください。'
         : 'まだ記録がありません。'));
     }

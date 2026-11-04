@@ -355,6 +355,8 @@
           <button class="rg-menu-btn" type="button" aria-expanded="false" aria-haspopup="true" onclick="toggleOwnerMenu()">マイメニュー ▾</button>
           <ul class="rg-dropdown-menu">
             <li><h6 class="rg-dropdown-header">車両管理</h6></li>
+            <!-- 2026-10-29 ユーザー決裁：マイ整備手帳は車両管理の一番上。MAINT_ON_CAR_PAGE（または ?maint-preview）のときだけ出す -->
+            <li id="myMaintItem" style="display:none;"><a class="rg-dropdown-item" href="/my-maintenance" id="myMaintLink">🛠️ マイ整備手帳</a></li>
             <li><a class="rg-dropdown-item is-bold" href="#" id="editLink">✏️ この車両を編集</a></li>
             <li><a class="rg-dropdown-item" href="/episode-edit" id="addEpisodeLink">📖 ストーリーを追加</a></li>
             <!-- 2026-08-10 ユーザー確定: 自分の車載手帳を直す入口が /equipment の最下部（92%地点）
@@ -1076,6 +1078,11 @@
         document.getElementById('addEpisodeLink').href = `/episode-edit?car=${currentCar.document_id}`;
         document.getElementById('newCarLink').href = `/edit?mode=new&type=${carType}`;
         document.getElementById('carListLink').href = `/edit?type=${carType}`;
+        if (maintOn) {
+          document.getElementById('myMaintLink').href = `/my-maintenance?car=${encodeURIComponent(currentCar.document_id)}`;
+          document.getElementById('myMaintItem').style.display = '';
+        }
+        updateMaintAdd();
         const addBtn = document.getElementById('addEpisodeBtn');
         if (addBtn) { addBtn.style.display = 'block'; addBtn.onclick = () => location.href = `/episode-edit?car=${currentCar.document_id}`; }
         scheduleBlanks(currentCar);
@@ -1462,6 +1469,24 @@
       if (moreBtn) moreBtn.onclick = () => renderHistoryRows(rows.length);
       const upBtn = document.getElementById('upcomingMoreBtn');
       if (upBtn) upBtn.onclick = () => { rgUpcomingAll = true; renderHistoryRows(limit); };
+      updateMaintAdd();
+    }
+
+    // 歩み欄の下に持ち主だけ「＋ 整備を記録する」（2026-10-29 ユーザー決裁）。ログインの判定が歩みより後に来ることがあるので両方から呼ぶ
+    function updateMaintAdd() {
+      const list = document.getElementById('episodesList');
+      if (!list || !maintOn || !currentCar) return;
+      const isOwner = currentUser && currentCar.owner_user_id && currentCar.owner_user_id === currentUser.id;
+      let box = document.getElementById('maintAddBox');
+      if (!isOwner) { if (box) box.remove(); return; }
+      if (!box) {
+        box = document.createElement('div');
+        box.id = 'maintAddBox';
+        box.style.cssText = 'text-align:center;padding-top:0.75rem;';
+        box.innerHTML = `<a id="maintAddLink" style="display:inline-block;text-decoration:none;padding:0.55rem 1.2rem;border:1px solid var(--rg-accent);color:var(--rg-accent);border-radius:6px;font-size:0.9rem;font-weight:600;">＋ 整備を記録する</a>`;
+      }
+      box.querySelector('a').href = `/my-maintenance?car=${encodeURIComponent(currentCar.document_id)}`;
+      list.after(box);
     }
 
     // これからの予定（開催前のイベント）＝近い順に2件まで・残りは開いて見る。「整備手帳」のときは出さない
