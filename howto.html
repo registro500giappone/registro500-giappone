@@ -396,6 +396,28 @@
       <p><strong>これから 500 / 126 に乗ってみたい方にも。</strong>空冷 FIAT は、出先で止まることがあります。そのとき自分で対処できるかどうかは、<strong>何を積んでいるか</strong>で決まります。「みんなの車載手帳」には、先輩オーナーが実際に積んでいるものが<strong>なぜそれを積むのかという理由つき</strong>で並んでいます。手に入れる前に眺めておくと、心構えの準備になるかもしれません。</p>
     </div>
 
+    <!-- まだ車をお持ちでない方へ（Amici・週刊 Registro 便り）。⛔公開は整備手帳・給油の記録と同じ日（2026-11-04 ユーザー決裁）
+         ＝下のスクリプトの AMICI_ON が true のとき、または ?amici-preview のときだけ出す -->
+    <div id="amiciSection" hidden>
+      <hr class="rg-divider">
+      <div class="rg-section">
+        <div class="rg-section-header">
+          <span class="sh-icon">🤝</span>
+          <h2>まだ 500 / 126 をお持ちでない方へ</h2>
+        </div>
+        <p>「いつかは乗ってみたい」「いま探しているところ」という方へ。メールアドレスを登録していただくと、<strong>「週刊 Registro 便り」</strong>を週に1回お届けします。</p>
+        <ul class="rg-list">
+          <li><strong>新しく登録された車</strong>――いま日本で走っている 500 / 126 の実車と、オーナーそれぞれのこだわりが届きます。</li>
+          <li><strong>各地のイベント</strong>――実車を間近で見て、オーナーと直接話せる場所です。</li>
+          <li><strong>電装トラブルの旅手帳や、オーナーの整備の記録</strong>――手に入れたあと、どう付き合っていくのかが見えてきます。</li>
+        </ul>
+        <p>購入を考えはじめたら、<strong>実車を見て、オーナーの話を聞く</strong>のがいちばんの近道です。週に一度のお便りで、その入口をお届けします。</p>
+        <p>登録はメールアドレスだけ。届いた6桁の確認コードを入力すれば完了で、費用はかかりません。配信は、毎回のメールにあるリンクからいつでも止められます。</p>
+        <a href="/amici" class="rg-cta" id="ctaAmici">🤝 Amici（アミーチ）になる</a>
+        <p class="rg-cta-note">Amici はイタリア語で「仲間・友だち」。500 / 126 を手に入れたら、そのままオーナーとして登録できます。</p>
+      </div>
+    </div>
+
     <hr class="rg-divider">
 
     <!-- 参加のしかた -->
@@ -763,6 +785,16 @@
   </div>
 
   <script>
+    // 「まだ 500 / 126 をお持ちでない方へ」（Amici）の節。⛔整備手帳・給油の記録の公開と同じ日に true（2026-11-04 ユーザー決裁）
+    (function() {
+      const AMICI_ON = false;
+      if (!AMICI_ON && !new URLSearchParams(location.search).has('amici-preview')) return;
+      document.getElementById('amiciSection').hidden = false;
+      document.getElementById('ctaAmici').addEventListener('click', function() {
+        try { gtag('event', 'amici_cta', { from: 'howto' }); } catch (e) {}
+      });
+    })();
+
     (function() {
       const from = new URLSearchParams(window.location.search).get('from');
       if (from === '126') {

@@ -144,7 +144,8 @@ def main():
     # 本文（⛔時刻に依存する挨拶にしない＝Actions の schedule は数時間遅れることがある）
     subject = f"【週刊 Registro 便り】{today.month}月{today.day}日号"
     body = ("Registro500 / Registro126 Giappone の Amici の皆様\n\n"
-            "今週の新しい登録車・イベント・記事をお届けします。\n")
+            "今週の新しい登録車・イベント・記事をお届けします。\n"
+            "気になる車やイベントは、リンクから写真や詳しい内容をご覧ください。\n")
 
     def section(emoji, heading, list_url=None):
         s = f"\n■ {emoji} {heading}\n"
@@ -200,6 +201,11 @@ def main():
             via = f"・{a['site_name']}" if a.get("site_name") else ""
             body += f"・「{a['title']}」（{a['owner']}様{via}）\n　{a['url']}\n"
         body += more(len(articles))
+
+    # 未来のオーナーへの道筋（2026-11-04 ユーザー決裁＝興味の維持→購入→オーナー登録）。毎号の末尾に同じ一言
+    body += ("\n■ 🔑 500 / 126 を手に入れたら\n"
+             "オーナーとして登録すると、愛車のページができ、新着がある日の朝のお知らせに切り替わります。\n"
+             f"{SITE}/howto\n")
 
     # 送信者の表示（特定電子メール法）。配信停止リンクは send_personal が1人ずつ足す
     body += ("\n---------------------------------------------------------\n"
