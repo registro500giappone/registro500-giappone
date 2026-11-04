@@ -35,6 +35,10 @@ a.mv-title { text-decoration: none; }
 .mv-vcap { font-size: .88rem; white-space: pre-wrap; word-break: break-word; line-height: 1.7; margin: 0; }
 .mv-vcap a { color: var(--mv-accent, #1f5c3d); word-break: break-all; }
 .mv-share { display: inline-block; margin-left: 6px; vertical-align: baseline; background: none; border: 1px solid var(--mv-soft, #e7efe7); border-radius: 999px; padding: 0 7px; font: inherit; font-size: .7rem; line-height: 1.6; color: var(--mv-accent, #1f5c3d); cursor: pointer; }
+.mv-help { display: inline-block; margin-left: 6px; vertical-align: baseline; background: none; border: 1px solid var(--mv-accent, #1f5c3d); border-radius: 999px; padding: 0 7px; font: inherit; font-size: .7rem; line-height: 1.6; color: var(--mv-accent, #1f5c3d); cursor: pointer; }
+.mv-help.on { background: var(--mv-accent, #1f5c3d); color: #fff; }
+.mv-help-note { font-size: .7rem; color: var(--mv-muted, #7a705f); margin-left: 6px; }
+.mv-help-note a { color: var(--mv-accent, #1f5c3d); }
 .mv-close { background: none; border: 0; padding: 0; font: inherit; font-size: .85rem; color: var(--mv-muted, #7a705f); cursor: pointer; }
 `;
   let cssDone = false;
@@ -188,6 +192,87 @@ a.mv-title { text-decoration: none; }
     return b;
   }
 
+  // 「👍 参考になった」（2026-11-04 ユーザー決裁・おすすめ工具と同じ扱い）。
+  // ⛔数は画面に出さない＝記録の車の持ち主にだけ翌朝のメールで届く（py/send_digest.py の send_maint_helpful_notices）。
+  // 使うページが initHelpful(supabaseClient) を呼んだときだけ出る（呼ばないページ・スイッチが切れているページには出ない）。
+  let help = null;   // { client, myCars: null（未ログイン）| [document_id], pressed: Map(record_id → 行id) }
+  let helpReady = null;
+  function initHelpful(client, opts) {
+    if (helpReady) return helpReady;
+    opts = opts || {};
+    helpReady = (async () => {
+      const ctx = { client, myCars: null, pressed: new Map(), loginHref: opts.loginHref || '/my-maintenance', track: opts.track };
+      try {
+        const { data } = await client.auth.getSession();
+        const user = data && data.session && data.session.user;
+        if (user) {
+          const { data: cars } = await client.from('cars').select('document_id').eq('owner_user_id', user.id);
+          ctx.myCars = (cars || []).map(c => c.document_id);
+          if (ctx.myCars.length) {
+            const { data: h } = await client.from('maint_helpful').select('id, record_id').in('car_id', ctx.myCars);
+            (h || []).forEach(r => ctx.pressed.set(r.record_id, r.id));
+          }
+        }
+      } catch (e) { console.error('[maint helpful]', e); }
+      help = ctx;
+      return ctx;
+    })();
+    return helpReady;
+  }
+  // 添え書きの行に置く。準備が済むまでは空の枠だけ返し、済んだら中身を入れる
+  function helpfulSlot(rec) {
+    if (!helpReady || rec.is_public === false || !rec.work_date || !rec.id) return null;
+    const slot = el('span');
+    helpReady.then(ctx => fillHelpful(slot, rec, ctx));
+    return slot;
+  }
+  function fillHelpful(slot, rec, ctx) {
+    const tr = (n, p) => { try { if (ctx.track) ctx.track(n, p); } catch (e) {} };
+    if (ctx.myCars && (!ctx.myCars.length || ctx.myCars.indexOf(rec.car_id) !== -1)) return;  // 車の無い人・自分の記録には出さない
+    const b = el('button', 'mv-help', '👍 参考になった'); b.type = 'button';
+    const note = el('span', 'mv-help-note');
+    slot.append(b, note);
+    if (!ctx.myCars) {
+      b.addEventListener('click', () => {
+        tr('maint_helpful_guest');
+        b.remove();
+        note.textContent = '登録オーナーとしてログインすると押せます ';
+        const a = el('a', null, 'ログインする'); a.href = ctx.loginHref;
+        note.appendChild(a);
+      });
+      return;
+    }
+    const paint = () => {
+      const on = ctx.pressed.has(rec.id);
+      b.classList.toggle('on', on);
+      b.textContent = on ? '👍 参考になった ✓' : '👍 参考になった';
+      note.textContent = on ? '書いた方にお伝えします' : '';
+    };
+    b.addEventListener('click', async () => {
+      if (b.disabled) return;
+      b.disabled = true;
+      try {
+        if (ctx.pressed.has(rec.id)) {
+          const { error } = await ctx.client.from('maint_helpful').delete().eq('id', ctx.pressed.get(rec.id));
+          if (error) throw error;
+          ctx.pressed.delete(rec.id);
+          tr('maint_helpful', { action: 'remove' });
+        } else {
+          const { data, error } = await ctx.client.from('maint_helpful')
+            .insert({ record_id: rec.id, car_id: ctx.myCars[0] }).select('id').single();
+          if (error) throw error;
+          ctx.pressed.set(rec.id, data.id);
+          tr('maint_helpful', { action: 'add' });
+        }
+        paint();
+      } catch (e) {
+        console.error('[maint helpful]', e);
+        note.textContent = '保存できませんでした。時間をおいてもう一度お試しください。';
+      } finally { b.disabled = false; }
+    });
+    paint();
+  }
+
   // 一覧の1行（1枚目の写真＋タイトル＋添え書き）。タイトルを押すとその場で開閉する
   function renderItem(rec, opts) {
     injectCss();
@@ -210,6 +295,8 @@ a.mv-title { text-decoration: none; }
       const m0 = txt.appendChild(el('div', 'mv-meta', [metaText(rec), 'みんカラの記事'].filter(Boolean).join(' ・ ')));
       const sb0 = shareButton(rec, opts.onShare);
       if (sb0) m0.appendChild(sb0);
+      const hb0 = helpfulSlot(rec);
+      if (hb0) m0.appendChild(hb0);
       if ((rec.areas || []).length) txt.appendChild(chips(rec));
       row.appendChild(txt);
       wrap.appendChild(row);
@@ -221,7 +308,8 @@ a.mv-title { text-decoration: none; }
     const meta = metaText(rec);
     // シェアは添え書きの行末に置く＝行を増やさない
     const sb = shareButton(rec, opts.onShare);
-    if (meta || sb) { const m = txt.appendChild(el('div', 'mv-meta', meta)); if (sb) m.appendChild(sb); }
+    const hb = helpfulSlot(rec);
+    if (meta || sb || hb) { const m = txt.appendChild(el('div', 'mv-meta', meta)); if (sb) m.appendChild(sb); if (hb) m.appendChild(hb); }
     if ((rec.areas || []).length) txt.appendChild(chips(rec));
     if (rec.minkara_url) {
       const a = el('a', 'mv-mk', 'みんカラで読む ↗');
@@ -248,5 +336,5 @@ a.mv-title { text-decoration: none; }
     return wrap;
   }
 
-  window.MaintView = { AREAS, AREA_LABEL, WORKER_LABEL, fmtDate, fmtKm, metaText, renderBody, renderItem, shareButton, shareUrl, youtubeId, videoKind, injectCss };
+  window.MaintView = { AREAS, AREA_LABEL, WORKER_LABEL, fmtDate, fmtKm, metaText, renderBody, renderItem, shareButton, shareUrl, initHelpful, youtubeId, videoKind, injectCss };
 })();

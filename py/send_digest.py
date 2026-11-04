@@ -75,6 +75,10 @@ TOOLS_LIST_MAX = 10      # 1通に並べる件数の上限（手帳からの移�
 # 宛先は投稿者本人だけ（既に /tools を知っている人）なので、ページ公開前でも鳴らしてよい。
 METOO_NOTICE_ON = True
 
+# 整備の記録の「👍 参考になった」を、記録の車の持ち主にだけ知らせる（2026-11-04・工具の参考になったと同じ扱い）。
+# 数は画面に出さない。ボタンは整備手帳の公開スイッチと一緒にしか出ないので、公開前は押されず何も送らない。
+MAINT_HELPFUL_NOTICE_ON = True
+
 # オーナーの記事（ブログなど外部記事へのリンク・/my-articles で載せる）を載せるか（2026-10-29・owner-articles/HANDOFF.md §1-5）。
 # ⚠️ダイジェストは登録オーナー全員に届く＝載せた時点で実質公開。公開の判断をユーザーが出すまで False のまま。
 #    False の間は対象を読まず、印（digest_sent_at）も付けない＝True にした日から14日以内に貼られた分が載る。
@@ -623,6 +627,95 @@ def send_metoo_notices():
     log(f"わたしも使ってる・参考になった: {sent}通送信" + ("（DRY RUN＝管理者宛・記録なし）" if DRY_RUN else ""))
 
 
+def send_maint_helpful_notices():
+    """整備の記録に「👍 参考になった」が押された車の持ち主へ、1人1通の知らせを送る。
+    数は画面に出さない＝ここが唯一の届け先（工具の send_metoo_notices と同じ扱い）。
+    押した直後に取り消された組は行が消えているので知らせない。
+    非公開に戻した記録・自分の車どうし・売却済みの車・宛先の無い車には送らない。"""
+    if not MAINT_HELPFUL_NOTICE_ON:
+        return
+    now = datetime.now(timezone.utc)
+    window_start = (now - timedelta(days=WINDOW_DAYS)).isoformat().replace("+00:00", "Z")
+    presses = sb_select("maint_helpful", "record_id,car_id,created_at",
+                        {"created_at": f"gte.{window_start}"}, "order=created_at.asc")
+    if not presses:
+        log("整備の参考になった: 知らせる対象なし")
+        return
+    rec_ids = sorted({p["record_id"] for p in presses})
+    in_recs = ",".join(rec_ids)
+    done = {(r["record_id"], r["car_id"]) for r in sb_select(
+        "maint_helpful_notices", "record_id,car_id", {"record_id": f"in.({in_recs})"})}
+    presses = [p for p in presses if (p["record_id"], p["car_id"]) not in done]
+    if not presses:
+        log("整備の参考になった: 知らせる対象なし（すべて知らせ済み）")
+        return
+
+    recs = {r["id"]: r for r in sb_select(
+        "maint_records", "id,car_id,title,is_public", {"id": f"in.({in_recs})"})}
+    car_ids = sorted({p["car_id"] for p in presses} | {r["car_id"] for r in recs.values()})
+    in_cars = ",".join('"' + str(i) + '"' for i in car_ids)
+    cars = {c["document_id"]: c for c in sb_select(
+        "cars", "document_id,handle_name,model_display_c,owner_email,owner_user_id,is_sold",
+        {"document_id": f"in.({in_cars})"})}
+
+    by_mail = {}
+    for p in presses:
+        rec = recs.get(p["record_id"])
+        if not rec or not rec.get("is_public"):
+            continue                       # 消えた・非公開に戻した記録は知らせない（記録もしない＝14日で対象外になる）
+        owner, presser = cars.get(rec["car_id"]) or {}, cars.get(p["car_id"]) or {}
+        mail = str(owner.get("owner_email") or "").strip().lower()
+        same_owner = owner.get("owner_user_id") and owner.get("owner_user_id") == presser.get("owner_user_id")
+        entry = by_mail.setdefault(mail, {"name": owner.get("handle_name") or "オーナー", "items": [], "keys": []})
+        entry["keys"].append({"record_id": p["record_id"], "car_id": p["car_id"]})
+        if same_owner or owner.get("is_sold") or "@" not in mail:
+            continue                       # 送らないが記録はする（翌日以降も読み直さないため）
+        who = (presser.get("handle_name") or "オーナー") + "さん"
+        if presser.get("model_display_c"):
+            who += "（" + presser["model_display_c"] + "）"
+        entry["items"].append((rec["id"], rec["title"], who))
+
+    sent = 0
+    for mail, entry in by_mail.items():
+        if entry["items"]:
+            lines = []
+            for rid in dict.fromkeys(r for r, _, _ in entry["items"]):
+                title = next(t for r, t, _ in entry["items"] if r == rid)
+                lines.append("・" + title)
+                lines += [f"　　👍 参考になった ― {w}" for r, _, w in entry["items"] if r == rid]
+                lines.append(f"　　{SITE}/maintenance?r={rid}")
+            body = (
+                f"{entry['name']} さん\n\n"
+                "整備手帳に書いていただいた記録が、ほかのオーナーの参考になりました。\n\n"
+                + "\n".join(lines) + "\n\n"
+                "あなたの記録が、ほかのオーナーの役に立っています。ありがとうございます。\n\n"
+                f"みんなの整備手帳\n{SITE}/maintenance\n\n"
+                "――\n"
+                "このメールは、整備の記録に「参考になった」が押されたとき、翌朝にまとめて1通だけお送りしています。"
+                "「参考になった」の数はサイトには表示せず、このメールでだけお知らせしています。\n"
+                "Registro500 Giappone")
+            to = ADMIN_EMAIL if DRY_RUN else mail
+            try:
+                brevo_send({
+                    "replyTo": {"name": SENDER_NAME, "email": REPLY_TO_EMAIL},
+                    "to": [{"email": to}],
+                    "subject": ("[DRY RUN] " if DRY_RUN else "") + "【Registro500】あなたの整備の記録が、ほかのオーナーの参考になりました",
+                    "textContent": body,
+                    "htmlContent": text_to_html(body),
+                })
+                sent += 1
+            except Exception as e:
+                log(f"整備の参考になった: 送信エラー（{entry['name']}）: {e}")
+                continue                   # 記録しない＝翌朝もう一度
+        if DRY_RUN:
+            continue                       # 試運転は記録しない
+        try:
+            sb_upsert("maint_helpful_notices", entry["keys"], on_conflict="record_id,car_id", ignore_dup=True)
+        except Exception as e:
+            log(f"整備の参考になった: 記録エラー（{entry['name']}）: {e}")
+    log(f"整備の参考になった: {sent}通送信" + ("（DRY RUN＝管理者宛・記録なし）" if DRY_RUN else ""))
+
+
 if __name__ == "__main__":
     try:
         main()
@@ -640,3 +733,9 @@ if __name__ == "__main__":
         log(f"❌ わたしも使ってるの知らせでエラー: {err}")
         send_admin_alert("【要確認】わたしも使ってるの知らせ失敗",
                          f"send_digest.py の send_metoo_notices で例外が発生しました: {err}")
+    try:
+        send_maint_helpful_notices()
+    except Exception as err:
+        log(f"❌ 整備の参考になったの知らせでエラー: {err}")
+        send_admin_alert("【要確認】整備の参考になったの知らせ失敗",
+                         f"send_digest.py の send_maint_helpful_notices で例外が発生しました: {err}")

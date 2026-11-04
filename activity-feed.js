@@ -21,6 +21,9 @@
   // オーナーの記事（ブログなど外部記事へのリンク・/my-articles で載せる）。正本 owner-articles/HANDOFF.md
   // 公開の準備が整うまで止めておく＝開いているページの URL に ?articles-preview を付けたときだけ出す（一覧・トップの帯とも）
   const ARTICLES_IN_FEED = false;
+  // 整備の記録（/my-maintenance・2026-11-04 ユーザー決裁）。整備手帳の公開（detail.html の MAINT_ON_CAR_PAGE）と同時に true。
+  // それまでは開いているページの URL に ?maint-preview を付けたときだけ出す（一覧・トップの帯とも）
+  const MAINT_IN_FEED = false;
   const PHOTO_COLS = ['photo_main', 'photo_front', 'photo_side', 'photo_rear', 'photo_interior', 'photo_engine', 'photo_steering_cluster'];
 
   function esc(s) {
@@ -40,7 +43,8 @@
     const since = new Date(Date.now() - days * DAY_MS).toISOString();
     const sinceT = new Date(since).getTime();
     const articlesOn = ARTICLES_IN_FEED || new URLSearchParams(location.search).has('articles-preview');
-    const [carsRes, histRes, recRes, expRes, epiRes, partRes, slugsRes, toolRes, artRes] = await Promise.allSettled([
+    const maintOn = MAINT_IN_FEED || new URLSearchParams(location.search).has('maint-preview');
+    const [carsRes, histRes, recRes, expRes, epiRes, partRes, slugsRes, toolRes, artRes, maintRes] = await Promise.allSettled([
       supabaseClient.from('cars').select('document_id, handle_name, car_type, year, model_display_c, is_sold, created_at, ' + PHOTO_COLS.join(', ')),
       supabaseClient.from('car_history').select('car_id, fields, occurred_at').eq('kind', 'updated').gte('occurred_at', since),
       // 公開されていて、車に紐づき、名前を伏せていない手帳だけ
@@ -57,7 +61,11 @@
       // オーナーの記事は「貼った日」で並べる（ブログの投稿日で並べると、昔の記事を貼ったときに一覧の奥へ沈む）。
       // 伏せた行は本人にも RLS で返るので、ここで外す
       articlesOn ? supabaseClient.from('owner_articles').select('car_id, title, url, site_name, created_at')
-        .eq('is_hidden', false).gte('created_at', since) : Promise.resolve({ data: [] })
+        .eq('is_hidden', false).gte('created_at', since) : Promise.resolve({ data: [] }),
+      // 整備の記録は「書いた日」で並べる（新着）。まとめて移した日も1台1日1行に畳まれる。
+      // 非公開の行は本人には RLS で返るので、公開の条件は必ず付ける。作業日待ちの行は他人に見えないので出さない
+      maintOn ? supabaseClient.from('maint_records').select('id, car_id, title, created_at')
+        .eq('is_public', true).not('work_date', 'is', null).gte('created_at', since) : Promise.resolve({ data: [] })
     ]);
     const ok = r => (r.status === 'fulfilled' && r.value && !r.value.error && r.value.data) || [];
 
@@ -112,6 +120,8 @@
     ok(toolRes).forEach(t => add('tool', t.car_id, t.created_at, { texts: [t.name || ''] }));
 
     // ids に記事のURLを持つ（1本だけの行は記事へ直接飛ばすため）。サイト名は1本目のもの＝1本の行でだけ使う
+    ok(maintRes).forEach(m => add('maint', m.car_id, m.created_at, { texts: [m.title || ''], ids: [m.id] }));
+
     ok(artRes).forEach(a => add('article', a.car_id, a.created_at, { texts: [a.title || ''], ids: [a.url || ''], site: a.site_name || '' }));
 
     // イベント参加は開催名を引いてから。同じ日・同じイベントへの参加表明は1行にまとめ、
@@ -176,6 +186,12 @@
       icon = '🔧'; what = `${name}さんがおすすめ工具・パーツを紹介`;
       quote = `「${esc(trim(r.texts.filter(Boolean).join('・'), n))}」`;
       href = '/tools';  // 一覧の先頭へ（2026-10-29 ユーザー指示＝ついでにほかの紹介も見てほしい）
+    } else if (r.kind === 'maint') {
+      // 1件ならその記録を開く。同じ日に何件も書いた行は車ページの歩みへ
+      icon = '🛠️'; what = `${name}さんが整備を記録` + (r.ids.length > 1 ? `（${r.ids.length}件）` : '');
+      quote = `「${esc(trim(r.texts.filter(Boolean).join('・'), n))}」`;
+      if (r.ids.length === 1 && r.ids[0]) href = `/maintenance?r=${encodeURIComponent(r.ids[0])}`;
+      else hash = '#history';
     } else if (r.kind === 'article') {
       // 1本なら記事そのものへ（新しいタブ）。同じ日に何本も貼った行は車ページの歩みへ
       const one = r.ids.length === 1 && /^https:\/\//.test(r.ids[0]);

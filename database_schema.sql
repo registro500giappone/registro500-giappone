@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-11-04 14:52 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-11-04 17:51 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -549,6 +549,25 @@ alter table public.maint_costs add constraint maint_costs_cost_yen_check CHECK (
 alter table public.maint_costs add constraint maint_costs_record_id_fkey FOREIGN KEY (record_id) REFERENCES maint_records(id) ON DELETE CASCADE;
 alter table public.maint_costs enable row level security;
 
+create table public.maint_helpful (
+  id uuid not null default gen_random_uuid(),
+  record_id uuid not null,
+  car_id text not null,
+  created_at timestamp with time zone not null default now()
+);
+alter table public.maint_helpful add constraint maint_helpful_pkey PRIMARY KEY (id);
+alter table public.maint_helpful add constraint maint_helpful_record_id_car_id_key UNIQUE (record_id, car_id);
+alter table public.maint_helpful add constraint maint_helpful_record_id_fkey FOREIGN KEY (record_id) REFERENCES maint_records(id) ON DELETE CASCADE;
+alter table public.maint_helpful enable row level security;
+
+create table public.maint_helpful_notices (
+  record_id uuid not null,
+  car_id text not null,
+  notified_at timestamp with time zone not null default now()
+);
+alter table public.maint_helpful_notices add constraint maint_helpful_notices_pkey PRIMARY KEY (record_id, car_id);
+alter table public.maint_helpful_notices enable row level security;
+
 create table public.maint_photos (
   id uuid not null default gen_random_uuid(),
   record_id uuid not null,
@@ -982,6 +1001,7 @@ CREATE INDEX idx_favorite_spots_spot ON public.favorite_spots USING btree (spot_
 CREATE INDEX idx_fuel_read_log_user ON public.fuel_read_log USING btree (user_id, created_at DESC);
 CREATE INDEX idx_fuel_records_car ON public.fuel_records USING btree (car_id, fill_date DESC, odometer_km DESC);
 CREATE INDEX inquiry_log_sender_idx ON public.inquiry_log USING btree (sender_uid, created_at DESC);
+CREATE INDEX idx_maint_helpful_car ON public.maint_helpful USING btree (car_id);
 CREATE INDEX idx_maint_photos_record ON public.maint_photos USING btree (record_id, sort_order);
 CREATE INDEX idx_maint_records_car ON public.maint_records USING btree (car_id, work_date DESC, created_at);
 CREATE INDEX idx_maint_records_public ON public.maint_records USING btree (work_date DESC, created_at DESC) WHERE (is_public AND (work_date IS NOT NULL));
@@ -2156,6 +2176,16 @@ create policy maint_costs_own on public.maint_costs as permissive for ALL to aut
   with check ((is_admin() OR (EXISTS ( SELECT 1
    FROM maint_records r
   WHERE ((r.id = maint_costs.record_id) AND (r.author_user_id = auth.uid()))))));
+create policy maint_helpful_delete on public.maint_helpful as permissive for DELETE to authenticated
+  using ((is_admin() OR owns_car(car_id)));
+create policy maint_helpful_insert on public.maint_helpful as permissive for INSERT to authenticated
+  with check ((owns_car(car_id) AND (EXISTS ( SELECT 1
+   FROM maint_records m
+  WHERE ((m.id = maint_helpful.record_id) AND m.is_public AND (m.work_date IS NOT NULL)))) AND (NOT (EXISTS ( SELECT 1
+   FROM maint_records m
+  WHERE ((m.id = maint_helpful.record_id) AND owns_car(m.car_id)))))));
+create policy maint_helpful_read on public.maint_helpful as permissive for SELECT to authenticated
+  using ((is_admin() OR owns_car(car_id)));
 create policy maint_photos_read on public.maint_photos as permissive for SELECT to public
   using ((EXISTS ( SELECT 1
    FROM maint_records r

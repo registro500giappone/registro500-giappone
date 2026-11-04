@@ -26,7 +26,7 @@
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
-  <script src="maint-view.js?v=20261104"></script>
+  <script src="maint-view.js?v=20261104b"></script>
   <style>
     :root {
       --bg-main: #f5f0e6; --card-bg: #fffefb; --border-soft: #d6c9b0;
@@ -95,6 +95,8 @@
   const ARTICLES_ON_MAINT_LIST = false;
   const articlesOn = ARTICLES_ON_MAINT_LIST || new URLSearchParams(location.search).has('articles-preview');
 
+  // 「👍 参考になった」（数は出さない・書いた人に翌朝メール＝2026-11-04）。一覧を描く前に準備を始める
+  MaintView.initHelpful(supabaseClient, { track });
   const REC_SELECT = 'id, car_id, title, comment, work_date, odometer_km, worker, areas, video_urls, video_captions, source, minkara_url, created_at, maint_photos(url, thumb_url, caption, sort_order)';
   const onShare = rec => track('maint_share', { from: 'list' });
 
