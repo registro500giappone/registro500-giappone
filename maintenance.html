@@ -51,10 +51,10 @@
     h1 { font-size: 1.35rem; margin: .2em 0 .6em; }
     .lead { font-size: .88rem; color: var(--text-sub); margin: 0 0 14px; line-height: 1.8; }
     .lead a { color: var(--accent); }
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-    .chip { font: inherit; font-size: .82rem; padding: 6px 11px; border: 1px solid var(--border-soft); border-radius: 999px; background: var(--card-bg); color: var(--text-main); cursor: pointer; }
-    .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
-    @media (prefers-color-scheme: dark) { .chip[aria-pressed="true"] { color: #10261a; } }
+    .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .filters input, .filters select { font: inherit; font-size: 16px; width: 100%; min-width: 0; padding: 9px 11px; border: 1px solid var(--border-soft); border-radius: 10px; background: var(--card-bg); color: var(--text-main); }
+    .filters input { grid-column: 1 / -1; }
+    .filters select.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); color: var(--accent); font-weight: 700; }
     .card { background: var(--card-bg); border: 1px solid var(--border-soft); border-radius: 12px; padding: 4px 14px; box-shadow: var(--shadow-soft); }
     .rec { border-top: 1px solid var(--border-soft); padding: 12px 0; }
     .rec:first-child { border-top: 0; }
@@ -71,10 +71,14 @@
 <div class="page">
   <a href="/" class="back-link">&larr; トップに戻る</a>
   <h1>🛠️ みんなの整備手帳</h1>
-  <p class="lead">オーナーが残した整備の記録を、作業した日の新しい順に並べています。箇所で絞り込めます。<br>自分の車の記録は <a href="/my-maintenance">マイ整備手帳</a> から書けます。</p>
+  <p class="lead">オーナーが残した整備の記録を、作業した日の新しい順に並べています。言葉・型式・箇所で探せます。<br>自分の車の記録は <a href="/my-maintenance">マイ整備手帳</a> から書けます。</p>
 
   <div class="card shared hidden" id="sharedCard"><div class="shared-lb">共有された記録</div><div id="shared"></div></div>
-  <div class="chips" id="areaChips" role="group" aria-label="箇所で絞り込む"></div>
+  <div class="filters">
+    <input type="search" id="q" placeholder="🔍 キングピン、キャブ…" aria-label="言葉で探す" enterkeyhint="search">
+    <select id="modelSel" aria-label="型式で絞り込む"></select>
+    <select id="areaSel" aria-label="箇所で絞り込む"></select>
+  </div>
   <div class="card"><div id="list"><p class="state">読み込み中…</p></div></div>
   <button type="button" class="more hidden" id="moreBtn">もっと見る</button>
 </div>
@@ -95,31 +99,85 @@
   const onShare = rec => track('maint_share', { from: 'list' });
 
   let area = null;
+  let model = null;
+  let qText = '';
+  let modelCarIds = null;   // 型式で絞るときの車の document_id（記録の表と車の表は外部キーでつながっていないので先に引く）
   let offset = 0;    // maint_records の読んだ位置
   let aOffset = 0;   // owner_articles の読んだ位置（2つの表を日付順に混ぜるので位置は別々に持つ）
   let loading = false;
   let seq = 0;
   const carCache = {};
 
-  // 箇所チップ（?area=brake のように直接開くこともできる）
-  const initial = new URLSearchParams(location.search).get('area');
-  if (initial && MaintView.AREA_LABEL[initial]) area = initial;
-  function renderChips() {
-    const box = $('areaChips');
-    box.textContent = '';
-    [['', 'すべて']].concat(MaintView.AREAS).forEach(([v, label]) => {
-      const b = el('button', 'chip', label); b.type = 'button';
-      b.setAttribute('aria-pressed', (area || '') === v ? 'true' : 'false');
-      b.addEventListener('click', () => {
-        area = v || null;
-        const u = new URL(location.href);
-        if (area) u.searchParams.set('area', area); else u.searchParams.delete('area');
-        history.replaceState(null, '', u);
-        track('maint_area', { area: area || 'all' });
-        renderChips(); reload();
-      });
-      box.appendChild(b);
+  // 型式の選択肢＝cars の型式の持ち方に合わせて引く（その他の型式は「すべて」で出る）
+  const MODELS = [
+    ['D', '500 D', q => q.eq('model_display_a', 'Nuova500').eq('model_display_b', 'D')],
+    ['F', '500 F', q => q.eq('model_display_a', 'Nuova500').eq('model_display_b', 'F')],
+    ['L', '500 L', q => q.eq('model_display_a', 'Nuova500').eq('model_display_b', 'L')],
+    ['R', '500 R', q => q.eq('model_display_a', 'Nuova500').eq('model_display_b', 'R')],
+    ['G', 'ジャルディニエラ', q => q.eq('model_display_b', 'Giardiniera')],
+    ['abarth', 'アバルト', q => q.eq('model_display_a', 'FIAT ABARTH')],
+    ['126', '126', q => q.eq('car_type', '126')]
+  ];
+  const MODEL_BY = Object.fromEntries(MODELS.map(m => [m[0], m]));
+
+  // 絞り込みは URL に載せる（?q=キャブ&model=F&area=brake で直接開ける・共有したリンクで同じ結果になる）
+  const params = new URLSearchParams(location.search);
+  if (params.get('area') && MaintView.AREA_LABEL[params.get('area')]) area = params.get('area');
+  if (params.get('model') && MODEL_BY[params.get('model')]) model = params.get('model');
+  qText = (params.get('q') || '').trim();
+
+  function fillSelect(sel, head, items, cur) {
+    sel.textContent = '';
+    [['', head]].concat(items).forEach(([v, label]) => {
+      const o = el('option', null, label); o.value = v; if ((cur || '') === v) o.selected = true;
+      sel.appendChild(o);
     });
+    sel.classList.toggle('on', !!cur);
+  }
+  function syncUrl() {
+    const u = new URL(location.href);
+    [['q', qText], ['model', model], ['area', area]].forEach(([k, v]) => { if (v) u.searchParams.set(k, v); else u.searchParams.delete(k); });
+    history.replaceState(null, '', u);
+  }
+  function setupFilters() {
+    fillSelect($('modelSel'), '型式：すべて', MODELS.map(m => [m[0], m[1]]), model);
+    fillSelect($('areaSel'), '箇所：すべて', MaintView.AREAS, area);
+    $('q').value = qText;
+    $('modelSel').addEventListener('change', () => {
+      model = $('modelSel').value || null; modelCarIds = null;
+      $('modelSel').classList.toggle('on', !!model);
+      track('maint_model', { model: model || 'all' });
+      syncUrl(); reload();
+    });
+    $('areaSel').addEventListener('change', () => {
+      area = $('areaSel').value || null;
+      $('areaSel').classList.toggle('on', !!area);
+      track('maint_area', { area: area || 'all' });
+      syncUrl(); reload();
+    });
+    // 打ち終わって少し待ってから探す（1文字ごとに読みに行かない）
+    let timer = null;
+    const apply = () => {
+      clearTimeout(timer);
+      const v = $('q').value.trim();
+      if (v === qText) return;
+      qText = v;
+      if (v) track('maint_search', { q: v.slice(0, 40) });
+      syncUrl(); reload();
+    };
+    $('q').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(apply, 500); });
+    $('q').addEventListener('search', apply);
+    $('q').addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); apply(); $('q').blur(); } });
+  }
+
+  // ilike に渡す語＝PostgREST の or() を壊す記号とワイルドカードは外す。空白（全角も）で区切った語はすべて含むものを探す
+  function likeWords() { return qText.replace(/[,()%*\\:"]/g, ' ').split(/[\s　]+/).filter(Boolean).slice(0, 5); }
+
+  async function ensureModelCars() {
+    if (!model || modelCarIds) return;
+    const { data, error } = await MODEL_BY[model][2](supabaseClient.from('cars').select('document_id'));
+    if (error) throw error;
+    modelCarIds = (data || []).map(c => c.document_id);
   }
 
   async function loadCars(ids) {
@@ -205,6 +263,13 @@
     if (loading) return;
     loading = true;
     const my = ++seq;
+    try { await ensureModelCars(); } catch (e) {
+      console.error('[maintenance]', e);
+      if (my === seq) { $('list').textContent = ''; $('list').appendChild(el('p', 'state', '読み込みに失敗しました。再読み込みしてください。')); }
+      loading = false; return;
+    }
+    if (my !== seq) { loading = false; return; }
+    const words = likeWords();
     // 公開で作業日のある記録だけ（RLS でも同じ条件。ログイン中の本人の非公開分はここでは出さない）
     let q = supabaseClient.from('maint_records')
       .select(REC_SELECT)
@@ -213,6 +278,8 @@
       .order('work_date', { ascending: false }).order('created_at', { ascending: true })
       .range(offset, offset + PAGE);
     if (area) q = q.contains('areas', [area]);
+    words.forEach(w => { q = q.or(`title.ilike.*${w}*,comment.ilike.*${w}*`); });
+    if (model) q = q.in('car_id', modelCarIds.length ? modelCarIds : ['-']);
     // 整備の記事。伏せた行は本人にも RLS で返るので、ここでは明示的に外す
     let qa = null;
     if (articlesOn) {
@@ -222,6 +289,8 @@
         .order('published_on', { ascending: false }).order('created_at', { ascending: true })
         .range(aOffset, aOffset + PAGE);
       if (area) qa = qa.contains('areas', [area]);
+      words.forEach(w => { qa = qa.ilike('title', `%${w}%`); });
+      if (model) qa = qa.in('car_id', modelCarIds.length ? modelCarIds : ['-']);
     }
     const [res, resA] = await Promise.all([q, qa || Promise.resolve({ data: [] })]);
     if (my !== seq) { loading = false; return; }
@@ -241,7 +310,9 @@
     await loadCars([...new Set(rows.map(x => x.r.car_id))]);
     if (my !== seq) { loading = false; return; }
     if (offset === 0 && aOffset === 0 && !rows.length) {
-      $('list').appendChild(el('p', 'state', area ? 'この箇所の記録はまだありません。' : 'まだ記録がありません。'));
+      $('list').appendChild(el('p', 'state', (qText || model || area)
+        ? '条件に合う記録はありません。言葉を短くするか、型式・箇所を「すべて」に戻してみてください。'
+        : 'まだ記録がありません。'));
     }
     rows.forEach(({ kind, date, r }) => {
       const item = el('div', 'rec');
@@ -256,7 +327,7 @@
   }
   $('moreBtn').addEventListener('click', loadPage);
 
-  renderChips();
+  setupFilters();
   const sharedId = new URLSearchParams(location.search).get('r');
   if (sharedId && /^[0-9a-f-]{36}$/i.test(sharedId)) loadShared(sharedId).catch(e => console.error('[maintenance]', e));
   reload();
