@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-11-04 18:17 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-11-04 18:38 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -561,6 +561,15 @@ alter table public.mail_subscriptions add constraint mail_subscriptions_list_che
 alter table public.mail_subscriptions add constraint mail_subscriptions_source_check CHECK ((source = ANY (ARRAY['signup'::text, 'former_owner'::text, 'owner'::text])));
 alter table public.mail_subscriptions add constraint mail_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 alter table public.mail_subscriptions enable row level security;
+
+create table public.mail_weekly_sends (
+  sent_on date not null,
+  recipients integer not null,
+  items integer not null,
+  created_at timestamp with time zone not null default now()
+);
+alter table public.mail_weekly_sends add constraint mail_weekly_sends_pkey PRIMARY KEY (sent_on);
+alter table public.mail_weekly_sends enable row level security;
 
 create table public.maint_costs (
   record_id uuid not null,
@@ -2249,6 +2258,8 @@ create policy mail_subscriptions_read on public.mail_subscriptions as permissive
   using (((user_id = auth.uid()) OR is_admin()));
 create policy mail_subscriptions_update on public.mail_subscriptions as permissive for UPDATE to authenticated
   using (((user_id = auth.uid()) OR is_admin()));
+create policy mail_weekly_sends_admin on public.mail_weekly_sends as permissive for SELECT to authenticated
+  using (is_admin());
 create policy maint_costs_own on public.maint_costs as permissive for ALL to authenticated
   using ((is_admin() OR (EXISTS ( SELECT 1
    FROM maint_records r

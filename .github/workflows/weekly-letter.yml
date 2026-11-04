@@ -1,0 +1,41 @@
+name: 週刊 Registro 便り（毎週土曜 8:00 JST/手動）
+
+# 車をお持ちでない人（Amici）へのお知らせ。朝ダイジェスト（daily-digest.yml）とは別のワークフロー
+# ⛔daily-digest.yml の時刻は触らない。土曜は両方が同じ日に送る＝Brevo 無料枠（1日300通）の合計に注意（py/send_weekly.py が見張る）
+on:
+  schedule:
+    - cron: '0 23 * * 5'   # 金曜 23:00 UTC = 土曜 08:00 JST
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '試運転（管理者1人にだけ送り、送信の控えを残さない）'
+        type: boolean
+        default: true
+
+concurrency:
+  group: weekly-letter
+  cancel-in-progress: false
+
+jobs:
+  weekly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: .env 作成
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> py/.env
+          echo "SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}" >> py/.env
+          echo "BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}" >> py/.env
+
+      - name: 週刊 Registro 便り 配信
+        env:
+          WEEKLY_DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        run: python py/send_weekly.py
