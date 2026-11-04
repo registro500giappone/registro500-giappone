@@ -646,7 +646,7 @@ def send_metoo_notices():
                 lines += [f"　　{VERB[k]} ― {w}" for n, k, w in entry["items"] if n == name]
             kinds = {k for _, k, _ in entry["items"]}
             if kinds == {"helpful"}:
-                lead = "「みんなのおすすめ工具・パーツ」に書いていただいた紹介が、ほかのオーナーの参考になりました。"
+                lead = "「みんなのおすすめ工具・パーツ」でのあなたの紹介が、ほかのオーナーの参考になりました。"
                 subject = "【Registro500】あなたの紹介が、ほかのオーナーの参考になりました"
             elif kinds == {"metoo"}:
                 lead = ("「みんなのおすすめ工具・パーツ」で紹介していただいた物に、"
