@@ -231,6 +231,14 @@
       <h2>これまでの給油<span id="mineCount"></span></h2>
       <div id="mineList"><p class="lead">読み込み中…</p></div>
       <button type="button" class="btn-sub hidden" id="csvBtn" style="margin-top:12px;width:100%;">CSVで書き出す（表計算ソフト用）</button>
+      <label class="btn-sub" for="csvIn" style="display:block;text-align:center;margin-top:8px;">CSVから読み込んで登録する</label>
+      <input type="file" id="csvIn" accept=".csv,text/csv" class="hidden">
+      <div id="csvImp" class="hidden" style="margin-top:10px;">
+        <p class="msg" id="csvSt" role="status"></p>
+        <button type="button" class="btn-main" id="csvGo" style="margin-top:8px;"></button>
+        <button type="button" class="btn-sub" id="csvNo" style="margin-top:8px;width:100%;">やめる</button>
+      </div>
+      <p class="lead" style="font-size:.78rem;margin-top:6px;">書き出したCSVと同じ列（日付・走行距離・給油量は必須／油種・満タン・金額・公開・メモは任意）。同じ日・同じ走行距離の記録は飛ばします。</p>
     </div>
   </div>
 </div>
@@ -550,6 +558,97 @@
     renderMine(costs);
   }
   // CSV（古い順・金額と非公開の行も入る＝本人の控え）。Excel で文字化けしないよう頭に BOM を付ける
+  // ── CSV の読み込み（書き出したものと同じ列。見出しの名前で列を探すので、列の順や余分な列は問わない） ──
+  let csvRows = [];
+  function parseCsv(text) {
+    const rows = []; let row = [], f = '', q = false;
+    text = text.replace(/^﻿/, '');
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+      else if (c === '"') q = true;
+      else if (c === ',') { row.push(f); f = ''; }
+      else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(f); rows.push(row); row = []; f = ''; }
+      else f += c;
+    }
+    if (f !== '' || row.length) { row.push(f); rows.push(row); }
+    return rows.filter(r => r.some(x => x.trim() !== ''));
+  }
+  function csvDate(v) {
+    const m = String(v || '').trim().match(/^(\d{4})[-\/.年](\d{1,2})[-\/.月](\d{1,2})日?$/);
+    if (!m) return null;
+    const d = m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0');
+    return Number.isNaN(Date.parse(d + 'T00:00:00Z')) ? null : d;
+  }
+  $('csvIn').addEventListener('change', async () => {
+    const file = $('csvIn').files[0]; $('csvIn').value = '';
+    if (!file) return;
+    const buf = await file.arrayBuffer();
+    let text;
+    // Excel が日本語の Windows で保存した CSV は Shift_JIS のことがある
+    try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch (e) { text = new TextDecoder('shift_jis').decode(buf); }
+    const rows = parseCsv(text);
+    const head = (rows.shift() || []).map(h => h.trim());
+    const col = name => head.findIndex(h => h.includes(name));
+    const c = { date: col('日付'), km: col('走行距離'), l: col('給油量'), fuel: col('油種'), full: col('満タン'), yen: col('金額'), pub: col('公開'), note: col('メモ') };
+    $('csvImp').classList.remove('hidden');
+    if (c.date < 0 || c.km < 0 || c.l < 0) {
+      csvRows = []; $('csvGo').classList.add('hidden');
+      $('csvSt').className = 'msg err'; $('csvSt').textContent = '1行目に「日付」「走行距離」「給油量」の見出しが見つかりません。書き出したCSVと同じ見出しにしてください。';
+      return;
+    }
+    const have = new Set(recs.map(r => r.fill_date + '|' + r.odometer_km));
+    const FUEL_BY_LABEL = { 'レギュラー': 'regular', 'ハイオク': 'premium', '軽油': 'diesel', regular: 'regular', premium: 'premium', diesel: 'diesel' };
+    const bad = []; let dup = 0; csvRows = [];
+    rows.forEach((r, i) => {
+      const g = k => (c[k] >= 0 ? String(r[c[k]] || '').trim() : '');
+      const date = csvDate(g('date')), km = toNum(g('km')), liters = toNum(g('l')), yenRaw = g('yen').replace(/円/g, ''), yen = toNum(yenRaw);
+      if (!date || km == null || !Number.isInteger(km) || km < 0 || km > 999999 || liters == null || !(liters > 0 && liters <= 60)
+          || (yenRaw && (yen == null || !Number.isInteger(yen) || yen < 0 || yen > 1000000))) { bad.push(i + 2); return; }
+      const key = date + '|' + km;
+      if (have.has(key)) { dup++; return; }
+      have.add(key);
+      csvRows.push({
+        rec: { fill_date: date, odometer_km: km, liters: Math.round(liters * 100) / 100, fuel: FUEL_BY_LABEL[g('fuel')] || null,
+               full_tank: !/継ぎ足し|いいえ|false|^0$/i.test(g('full')), note: g('note').slice(0, 500) || null, is_public: !/非公開|false|^0$/i.test(g('pub')) },
+        yen: yenRaw ? yen : null
+      });
+    });
+    const parts = [csvRows.length + '件を登録できます。'];
+    if (dup) parts.push('すでにある記録' + dup + '件は飛ばします。');
+    if (bad.length) parts.push('読めない行が' + bad.length + '件あります（' + bad.slice(0, 5).join('・') + '行目' + (bad.length > 5 ? 'ほか' : '') + '）。');
+    $('csvSt').className = 'msg' + (bad.length ? ' err' : ''); $('csvSt').textContent = parts.join('');
+    $('csvGo').textContent = csvRows.length + '件を登録する';
+    $('csvGo').classList.toggle('hidden', !csvRows.length);
+  });
+  $('csvNo').addEventListener('click', () => { csvRows = []; $('csvImp').classList.add('hidden'); });
+  $('csvGo').addEventListener('click', async () => {
+    const carId = currentCarId();
+    if (!carId || !csvRows.length) return;
+    $('csvGo').disabled = true; $('csvSt').className = 'msg'; $('csvSt').textContent = '登録しています…';
+    let done = 0;
+    try {
+      for (let i = 0; i < csvRows.length; i += 100) {
+        const chunk = csvRows.slice(i, i + 100);
+        const { data, error } = await supabaseClient.from('fuel_records')
+          .insert(chunk.map(x => withAuthor(Object.assign({ car_id: carId }, x.rec), carId))).select('id, fill_date, odometer_km');
+        if (error) throw error;
+        const idBy = {}; (data || []).forEach(d => { idBy[d.fill_date + '|' + d.odometer_km] = d.id; });
+        const costs = chunk.filter(x => x.yen != null && idBy[x.rec.fill_date + '|' + x.rec.odometer_km])
+          .map(x => ({ record_id: idBy[x.rec.fill_date + '|' + x.rec.odometer_km], total_yen: x.yen }));
+        if (costs.length) { const { error: e2 } = await supabaseClient.from('fuel_costs').insert(costs); if (e2) throw e2; }
+        done += chunk.length;
+      }
+      track('fuel_csv_import', { rows: done });
+      csvRows = []; $('csvImp').classList.add('hidden');
+      setMsg(done + '件を登録しました。', 'ok');
+      loadMine();
+    } catch (e) {
+      $('csvSt').className = 'msg err';
+      $('csvSt').textContent = (done ? done + '件まで登録したところで' : '') + '止まりました：' + (e.message || e) + '（もう一度読み込むと、登録済みの行は飛ばします）';
+      loadMine();
+    } finally { $('csvGo').disabled = false; }
+  });
   $('csvBtn').addEventListener('click', () => {
     const carId = currentCarId();
     if (!recs.length || !carId) return;
