@@ -2,10 +2,10 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>給油の記録 | Registro500 Giappone</title>
+  <title>お手軽！給油の記録 | Registro500 Giappone</title>
   <meta name="description" content="レシートとメーターを撮るだけで、給油と燃費を記録できます。">
   <link rel="canonical" href="https://www.registro500.com/my-fuel">
-  <meta property="og:title" content="給油の記録">
+  <meta property="og:title" content="お手軽！給油の記録">
   <meta property="og:description" content="レシートとメーターを撮るだけで、給油と燃費を記録できます。">
   <meta property="og:url" content="https://www.registro500.com/my-fuel">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -130,7 +130,7 @@
 <body>
 <div class="page">
   <a href="/" class="back-link">&larr; トップに戻る</a>
-  <h1>⛽ 給油の記録</h1>
+  <h1>⛽ お手軽！給油の記録</h1>
   <p class="lead intro">レシートとメーターを撮ると（1枚に入らなければ1枚ずつ）、日付・給油量・金額・走行距離を読み取って入れます。確かめて「保存する」を押すだけです。燃費は満タン法で数えます。</p>
 
   <div id="stateLoading" class="lead">確認中…</div>
@@ -230,6 +230,7 @@
     <div class="card" id="mineCard" style="margin-top:14px">
       <h2>これまでの給油<span id="mineCount"></span></h2>
       <div id="mineList"><p class="lead">読み込み中…</p></div>
+      <button type="button" class="btn-sub hidden" id="csvBtn" style="margin-top:12px;width:100%;">CSVで書き出す（表計算ソフト用）</button>
     </div>
   </div>
 </div>
@@ -251,6 +252,7 @@
 
   let currentUser = null, isAdmin = false, myCars = [], started = false;
   let editing = null;      // 直している記録
+  let lastCosts = {};      // 一覧に出した金額（CSV に使う）
   let recs = [];           // 選んでいる車の自分の記録（前回との差の確認と一覧に使う）
   let reading = false;
 
@@ -543,13 +545,37 @@
       const { data: c } = await supabaseClient.from('fuel_costs').select('record_id, total_yen').in('record_id', recs.map(r => r.id));
       (c || []).forEach(x => { costs[x.record_id] = x.total_yen; });
     }
+    lastCosts = costs;
     check();
     renderMine(costs);
   }
+  // CSV（古い順・金額と非公開の行も入る＝本人の控え）。Excel で文字化けしないよう頭に BOM を付ける
+  $('csvBtn').addEventListener('click', () => {
+    const carId = currentCarId();
+    if (!recs.length || !carId) return;
+    const eco = F.economy(recs);
+    const q = v => { const t = v == null ? '' : String(v); return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+    const lines = [['日付', '走行距離(km)', '給油量(L)', '油種', '満タン', '金額(円)', '区間の距離(km)', '燃費(km/L)', '公開', 'メモ'].join(',')];
+    const sorted = recs.slice().sort((a, b) => a.fill_date !== b.fill_date ? (a.fill_date < b.fill_date ? -1 : 1) : a.odometer_km - b.odometer_km);
+    for (const r of sorted) {
+      const e = eco.byId[r.id];
+      lines.push([r.fill_date, r.odometer_km, Number(r.liters), r.fuel ? F.FUEL_LABEL[r.fuel] : '', r.full_tank ? '満タン' : '継ぎ足し',
+        lastCosts[r.id] != null ? lastCosts[r.id] : '', e ? e.km : '', e ? (e.suspect ? '記録漏れかも' : e.kmpl.toFixed(1)) : '',
+        r.is_public ? '公開' : '非公開', r.note || ''].map(q).join(','));
+    }
+    const blob = new Blob(['\ufeff' + lines.join('\r\n') + '\r\n'], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'fuel_' + carId + '_' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    track('fuel_csv', { rows: recs.length });
+  });
   function renderMine(costs) {
     const host = $('mineList');
     host.textContent = '';
     $('mineCount').textContent = recs.length ? '（' + recs.length + '件）' : '';
+    $('csvBtn').classList.toggle('hidden', !recs.length);
     if (!recs.length) { host.appendChild(el('p', 'lead', 'まだ記録はありません。')); return; }
     const eco = F.economy(recs);
     if (eco.avg != null) {
