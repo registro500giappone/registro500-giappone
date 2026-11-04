@@ -29,6 +29,9 @@ GAS の main.gs sendDailyDigest() からの移植。挙動は1:1で揃えてあ�
                  （2026-10-29 追加。ARTICLES_DIGEST_ON が True のときだけ。載せた記事の書き手には「紹介しました」を1通）
   - お知らせ      news.sent_at IS NULL                  かつ 14日以内（最大5件）
 
+宛先＝手放していない車の持ち主。mail_subscriptions（list=owner_digest）で配信を止めた人は除き、
+1人ずつ配信停止リンクを付けて送る（2026-11-04〜。それまでは BCC 一括）。
+
 送信に1通も成功しなかった場合はフラグを更新せず、次回実行で再送する。
 一部chunkだけ失敗した場合はフラグを立てる（同一メールの重複送信を避けるため）。
 
@@ -51,7 +54,7 @@ from datetime import datetime, timedelta, timezone
 from common import (cfg, require, supa_key, sb_select, sb_patch, sb_rpc, sb_upsert, brevo_send,
                     SENDER_EMAIL, SENDER_NAME, REPLY_TO_EMAIL, ADMIN_EMAIL, SITE)
 
-CHUNK_SIZE = 90          # Brevo の BCC 上限に合わせた main.gs と同じ値
+CHUNK_SIZE = 90          # 1回の呼び出しで送る人数（main.gs の BCC 上限の値を引き継ぐ・messageVersions の上限は2000人）
 WINDOW_DAYS = 14         # 取り残し救済窓（配信失敗しても14日以内は自動リカバリ）
 NEWS_LIMIT = 5           # main.gs の getUnsentNewsAll_ と同じ
 
@@ -126,6 +129,47 @@ def send_broadcast(bcc_list, subject, text_body):
         "trackOpens": True,
     }
     brevo_send(payload, timeout=60)   # 失敗は RuntimeError（HTTP コード＋本文の先頭）
+
+
+def unsub_footer(token):
+    """1人ずつの配信停止リンク（特定電子メール法＝毎回、停止の方法を書く）。"""
+    return ("\n\nこのお知らせが不要な方は、次のリンクから配信を止められます（ログイン不要）。\n"
+            f"{SITE}/unsubscribe?t={token}\n")
+
+
+def send_personal(chunk, subject, text_body):
+    """宛先ごとに停止リンクだけ違う本文を1回の呼び出しで送る（Brevo messageVersions）。
+    chunk は [(email, token), ...]。BCC 一括では人ごとのリンクを入れられないため（2026-11-04）。
+    Brevo の送信数の数え方は BCC と同じ＝1人1通。失敗は例外にする。"""
+    versions = []
+    for email, token in chunk:
+        text = text_body + unsub_footer(token)
+        versions.append({"to": [{"email": email}], "textContent": text, "htmlContent": text_to_html(text)})
+    payload = {
+        "sender": {"name": SENDER_NAME, "email": SENDER_EMAIL},
+        "replyTo": {"name": SENDER_NAME, "email": REPLY_TO_EMAIL},
+        "subject": subject,
+        "textContent": text_body,
+        "htmlContent": text_to_html(text_body),
+        "messageVersions": versions,
+        "trackClicks": True,
+        "trackOpens": True,
+    }
+    brevo_send(payload, timeout=60)
+
+
+def owner_digest_tokens(emails):
+    """宛先ごとの停止用の札を mail_subscriptions から引く（無い人には作る）。
+    戻り値は {email: token}。停止済みの人は入らない＝送らない。"""
+    if emails:
+        sb_upsert("mail_subscriptions",
+                  [{"list": "owner_digest", "email": e, "source": "owner"} for e in emails],
+                  on_conflict="list,email", ignore_dup=True)
+    rows = sb_select("mail_subscriptions", "email,unsub_token,unsubscribed_at",
+                     {"list": "eq.owner_digest"})
+    wanted = set(emails)
+    return {r["email"]: r["unsub_token"] for r in rows
+            if r["email"] in wanted and not r.get("unsubscribed_at")}
 
 
 def send_admin_alert(subject, body):
@@ -393,13 +437,29 @@ def main():
         for c in sb_select("cars", "owner_email", {"is_sold": "is.false"})
         if "@" in str(c.get("owner_email") or "")
     })
+    # 配信を止めた人を除き、残る人に停止用の札を付ける（2026-11-04・mail/schema_2026-11-04.sql）。
+    # 札が引けないと停止リンク無しで送ることになる＝送らずに止め、フラグ据え置きで翌朝に回す。
+    try:
+        tokens = owner_digest_tokens(recipients)
+    except Exception as e:
+        log(f"❌ 配信停止の札を引けませんでした: {e}")
+        send_admin_alert("【要確認】朝ダイジェスト送信中止",
+                         f"mail_subscriptions を読めなかったため送信を止めました: {e}")
+        raise SystemExit(1)
+    stopped = len(recipients) - len(tokens)
+    recipients = [(e, tokens[e]) for e in recipients if e in tokens]
 
     if DRY_RUN:
         log("---- DRY RUN: 実際の宛先には送りません ----")
         log(f"件名: {subject}")
-        log(f"本来の宛先数: {len(recipients)}人")
+        log(f"本来の宛先数: {len(recipients)}人（配信停止 {stopped}人）")
         log("---- 本文 ----\n" + body + "\n--------------")
-        send_broadcast([ADMIN_EMAIL], "[DRY RUN] " + subject, body)
+        # 管理人は車の持ち主でないことがある＝管理人にも札を作り、本番と同じ送り方（1人ずつの停止リンク）で試す
+        admin_token = tokens.get(ADMIN_EMAIL.lower()) or owner_digest_tokens([ADMIN_EMAIL.lower()]).get(ADMIN_EMAIL.lower())
+        if admin_token:
+            send_personal([(ADMIN_EMAIL, admin_token)], "[DRY RUN] " + subject, body)
+        else:
+            send_broadcast([ADMIN_EMAIL], "[DRY RUN] " + subject, body + unsub_footer("（試運転のため札なし）"))
         log(f"✅ DRY RUN: {ADMIN_EMAIL} にのみ送信しました。フラグは更新していません。")
         send_article_notices(new_articles)   # 試運転では管理者宛になる
         return
@@ -409,7 +469,7 @@ def main():
     for i in range(0, len(recipients), CHUNK_SIZE):
         chunk = recipients[i:i + CHUNK_SIZE]
         try:
-            send_broadcast(chunk, subject, body)
+            send_personal(chunk, subject, body)
             sent_chunks += 1
             time.sleep(1)
         except Exception as e:
@@ -474,7 +534,7 @@ def main():
     log(f"メール配信完了: お知らせ{len(news)}件、車両{len(new_cars)}台、"
         f"イベント{len(new_events)}件、ストーリー{len(new_episodes)}件、"
         f"車載手帳{len(new_notebooks)}冊、整備{len(maint_ids)}件、工具{len(new_tools)}件、記事{len(new_articles)}件"
-        f"（送信chunk {sent_chunks}成功/{failed_chunks}失敗、宛先{len(recipients)}人）")
+        f"（送信chunk {sent_chunks}成功/{failed_chunks}失敗、宛先{len(recipients)}人・配信停止{stopped}人）")
 
     # ダイジェストが届いたあとで、載せた記事の書き手へ。こちらの失敗はダイジェストの結果を変えない
     try:

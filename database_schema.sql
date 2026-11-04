@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-11-04 17:51 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-11-04 18:17 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -538,6 +538,29 @@ create table public.inquiry_log (
 );
 alter table public.inquiry_log add constraint inquiry_log_pkey PRIMARY KEY (id);
 alter table public.inquiry_log enable row level security;
+
+create table public.mail_subscriptions (
+  id uuid not null default gen_random_uuid(),
+  list text not null,
+  email text not null,
+  user_id uuid,
+  source text not null,
+  consented_at timestamp with time zone,
+  policy_version text,
+  unsubscribed_at timestamp with time zone,
+  unsub_token uuid not null default gen_random_uuid(),
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now()
+);
+alter table public.mail_subscriptions add constraint mail_subscriptions_pkey PRIMARY KEY (id);
+alter table public.mail_subscriptions add constraint mail_subscriptions_list_email_key UNIQUE (list, email);
+alter table public.mail_subscriptions add constraint mail_subscriptions_unsub_token_key UNIQUE (unsub_token);
+alter table public.mail_subscriptions add constraint mail_subscriptions_check CHECK (((list <> 'weekly'::text) OR ((user_id IS NOT NULL) AND (consented_at IS NOT NULL) AND (policy_version IS NOT NULL))));
+alter table public.mail_subscriptions add constraint mail_subscriptions_email_check CHECK (((email = lower(email)) AND (POSITION(('@'::text) IN (email)) > 1)));
+alter table public.mail_subscriptions add constraint mail_subscriptions_list_check CHECK ((list = ANY (ARRAY['weekly'::text, 'owner_digest'::text])));
+alter table public.mail_subscriptions add constraint mail_subscriptions_source_check CHECK ((source = ANY (ARRAY['signup'::text, 'former_owner'::text, 'owner'::text])));
+alter table public.mail_subscriptions add constraint mail_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+alter table public.mail_subscriptions enable row level security;
 
 create table public.maint_costs (
   record_id uuid not null,
@@ -1495,6 +1518,56 @@ $function$
 ;
 -- acl: postgres=X/postgres authenticated=X/postgres service_role=X/postgres
 
+CREATE OR REPLACE FUNCTION public.mail_subscriptions_guard()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  new.updated_at := now();
+  -- 送信スクリプト（service role）・管理人・停止の関数（mail_unsubscribe＝security definer）はそのまま通す
+  if auth.uid() is null or public.is_admin() or current_user not in ('authenticated', 'anon') then return new; end if;
+  if new.list <> 'weekly' then raise exception 'not allowed'; end if;
+  new.user_id := auth.uid();
+  new.email := lower(auth.jwt() ->> 'email');
+  if tg_op = 'INSERT' then
+    new.source := 'signup';
+    new.consented_at := now();
+    new.unsubscribed_at := null;
+    new.unsub_token := gen_random_uuid();
+    new.created_at := now();
+  else
+    new.id := old.id; new.list := old.list; new.created_at := old.created_at;
+    new.unsub_token := old.unsub_token; new.source := old.source;
+    if old.unsubscribed_at is not null and new.unsubscribed_at is null then
+      new.consented_at := now();
+    else
+      new.consented_at := old.consented_at;
+      new.policy_version := old.policy_version;
+    end if;
+  end if;
+  return new;
+end $function$
+;
+-- acl: =X/postgres postgres=X/postgres anon=X/postgres authenticated=X/postgres service_role=X/postgres
+
+CREATE OR REPLACE FUNCTION public.mail_unsubscribe(p_token uuid)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_list text;
+begin
+  update public.mail_subscriptions
+     set unsubscribed_at = coalesce(unsubscribed_at, now()), updated_at = now()
+   where unsub_token = p_token
+  returning list into v_list;
+  return v_list;
+end $function$
+;
+-- acl: postgres=X/postgres anon=X/postgres authenticated=X/postgres service_role=X/postgres
+
 CREATE OR REPLACE FUNCTION public.maint_photos_guard()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1979,6 +2052,7 @@ CREATE TRIGGER tr_set_doc_id BEFORE INSERT ON public.cars FOR EACH ROW EXECUTE F
 CREATE TRIGGER after_favorite_spot_change AFTER INSERT OR DELETE ON public.favorite_spots FOR EACH ROW EXECUTE FUNCTION update_spot_registration_count();
 CREATE TRIGGER before_insert_favorite_spots BEFORE INSERT ON public.favorite_spots FOR EACH ROW WHEN ((new.favorite_id IS NULL)) EXECUTE FUNCTION generate_favorite_id();
 CREATE TRIGGER fuel_records_guard BEFORE INSERT OR UPDATE ON public.fuel_records FOR EACH ROW EXECUTE FUNCTION fuel_records_guard();
+CREATE TRIGGER mail_subscriptions_guard BEFORE INSERT OR UPDATE ON public.mail_subscriptions FOR EACH ROW EXECUTE FUNCTION mail_subscriptions_guard();
 CREATE TRIGGER maint_photos_guard BEFORE UPDATE ON public.maint_photos FOR EACH ROW EXECUTE FUNCTION maint_photos_guard();
 CREATE TRIGGER maint_records_guard BEFORE INSERT OR UPDATE ON public.maint_records FOR EACH ROW EXECUTE FUNCTION maint_records_guard();
 CREATE TRIGGER owner_articles_guard BEFORE INSERT OR UPDATE ON public.owner_articles FOR EACH ROW EXECUTE FUNCTION owner_articles_guard();
@@ -2169,6 +2243,12 @@ create policy garage_notes_insert on public.garage_notes as permissive for INSER
   with check (((auth.uid() IS NOT NULL) AND (auth.uid() = user_id)));
 create policy garage_notes_select on public.garage_notes as permissive for SELECT to public
   using (true);
+create policy mail_subscriptions_insert on public.mail_subscriptions as permissive for INSERT to authenticated
+  with check (((list = 'weekly'::text) OR is_admin()));
+create policy mail_subscriptions_read on public.mail_subscriptions as permissive for SELECT to authenticated
+  using (((user_id = auth.uid()) OR is_admin()));
+create policy mail_subscriptions_update on public.mail_subscriptions as permissive for UPDATE to authenticated
+  using (((user_id = auth.uid()) OR is_admin()));
 create policy maint_costs_own on public.maint_costs as permissive for ALL to authenticated
   using ((is_admin() OR (EXISTS ( SELECT 1
    FROM maint_records r

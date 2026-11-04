@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>配信停止 | Registro500 Giappone</title>
+<!-- 札（?t=）を GA4 に送らない＝page_location から問い合わせ部分を外す -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH', { page_location: location.origin + location.pathname });
+</script>
+<style>
+  :root { --ink: #1f2937; --sub: #6b7280; --bg: #faf7f2; --card: #ffffff; --line: #e5e0d8; --accent: #c0392b; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink: #e5e7eb; --sub: #9ca3af; --bg: #16130f; --card: #221e19; --line: #3a342c; --accent: #e06c5e; }
+  }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; line-height: 1.8; }
+  main { max-width: 520px; margin: 0 auto; padding: 48px 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 28px 22px; }
+  h1 { font-size: 1.2rem; margin: 0 0 12px; }
+  p { margin: 0 0 12px; }
+  .sub { color: var(--sub); font-size: .9rem; }
+  button { background: var(--accent); color: #fff; border: none; border-radius: 8px;
+           padding: 12px 24px; font-size: 1rem; font-weight: 700; cursor: pointer; margin: 8px 0 4px; }
+  button:disabled { opacity: .5; cursor: default; }
+  a { color: var(--accent); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>お知らせメールの配信停止</h1>
+
+    <!-- メールソフトがリンクを先読みしても止まらないよう、ボタンを押したときだけ止める -->
+    <div id="ask" hidden>
+      <p>このリンクが届いたメールアドレスへの、Registro500 / Registro126 Giappone からのお知らせメールを止めます。</p>
+      <button id="go" type="button">配信を止める</button>
+    </div>
+
+    <div id="done" hidden>
+      <p id="doneText"></p>
+      <p class="sub">登録した車や記録はそのまま残ります。ログインや確認コードのメールは、これまでどおり届きます。</p>
+    </div>
+
+    <div id="bad" hidden>
+      <p>このリンクでは配信を止められませんでした。リンクが途中で切れているかもしれません。届いたメールのリンクをもう一度お試しください。</p>
+    </div>
+
+    <p class="sub">また受け取りたくなったときや、うまく止まらないときは
+      <a href="mailto:registro500giappone@gmail.com">registro500giappone@gmail.com</a> までご連絡ください。</p>
+    <p class="sub"><a href="/">トップページへ</a></p>
+  </div>
+</main>
+
+<script src="/config.js"></script>
+<script>
+(function () {
+  var token = new URLSearchParams(location.search).get('t') || '';
+  var show = function (id) { ['ask', 'done', 'bad'].forEach(function (k) { document.getElementById(k).hidden = (k !== id); }); };
+  var LABEL = { owner_digest: '新着情報のお知らせ（朝のメール）', weekly: '週1回のお知らせ' };
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)) { show('bad'); return; }
+  show('ask');
+
+  document.getElementById('go').addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true; btn.textContent = '止めています…';
+    fetch(SUPABASE_URL + '/rest/v1/rpc/mail_unsubscribe', {
+      method: 'POST',
+      headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_token: token })
+    }).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }).then(function (list) {
+      if (!list) { show('bad'); return; }
+      document.getElementById('doneText').textContent = (LABEL[list] || 'お知らせメール') + 'の配信を止めました。';
+      show('done');
+      try { gtag('event', 'mail_unsubscribe', { list: list }); } catch (e) {}
+    }).catch(function () {
+      btn.disabled = false; btn.textContent = '配信を止める';
+      alert('通信に失敗しました。少し時間をおいてもう一度お試しください。');
+    });
+  });
+})();
+</script>
+</body>
+</html>
