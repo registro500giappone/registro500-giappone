@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-11-04 13:20 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-11-04 14:52 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -470,6 +470,46 @@ alter table public.favorite_spots add constraint unique_owner_spot UNIQUE (owner
 alter table public.favorite_spots add constraint favorite_spots_spot_id_fkey FOREIGN KEY (spot_id) REFERENCES spots(spot_id) ON DELETE CASCADE;
 alter table public.favorite_spots enable row level security;
 
+create table public.fuel_costs (
+  record_id uuid not null,
+  total_yen integer not null,
+  updated_at timestamp with time zone not null default now()
+);
+alter table public.fuel_costs add constraint fuel_costs_pkey PRIMARY KEY (record_id);
+alter table public.fuel_costs add constraint fuel_costs_total_yen_check CHECK (((total_yen >= 0) AND (total_yen <= 1000000)));
+alter table public.fuel_costs add constraint fuel_costs_record_id_fkey FOREIGN KEY (record_id) REFERENCES fuel_records(id) ON DELETE CASCADE;
+alter table public.fuel_costs enable row level security;
+
+create table public.fuel_read_log (
+  id bigint generated always as identity not null,
+  user_id uuid not null,
+  created_at timestamp with time zone not null default now()
+);
+alter table public.fuel_read_log add constraint fuel_read_log_pkey PRIMARY KEY (id);
+alter table public.fuel_read_log enable row level security;
+
+create table public.fuel_records (
+  id uuid not null default gen_random_uuid(),
+  car_id text not null,
+  author_user_id uuid not null default auth.uid(),
+  fill_date date not null,
+  odometer_km integer not null,
+  liters numeric(5,2) not null,
+  fuel text,
+  full_tank boolean not null default true,
+  note text,
+  is_public boolean not null default true,
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now()
+);
+alter table public.fuel_records add constraint fuel_records_pkey PRIMARY KEY (id);
+alter table public.fuel_records add constraint fuel_records_fuel_check CHECK (((fuel IS NULL) OR (fuel = ANY (ARRAY['regular'::text, 'premium'::text, 'diesel'::text]))));
+alter table public.fuel_records add constraint fuel_records_liters_check CHECK (((liters > (0)::numeric) AND (liters <= (60)::numeric)));
+alter table public.fuel_records add constraint fuel_records_note_check CHECK (((note IS NULL) OR (char_length(note) <= 500)));
+alter table public.fuel_records add constraint fuel_records_odometer_km_check CHECK (((odometer_km >= 0) AND (odometer_km <= 999999)));
+alter table public.fuel_records add constraint fuel_records_author_user_id_fkey FOREIGN KEY (author_user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+alter table public.fuel_records enable row level security;
+
 create table public.garage_notes (
   id uuid not null default gen_random_uuid(),
   user_id uuid not null,
@@ -939,6 +979,8 @@ CREATE INDEX idx_events_target_car_type ON public.events USING btree (target_car
 CREATE INDEX idx_favorite_spots_favorite_id ON public.favorite_spots USING btree (favorite_id);
 CREATE INDEX idx_favorite_spots_owner ON public.favorite_spots USING btree (owner_document_id);
 CREATE INDEX idx_favorite_spots_spot ON public.favorite_spots USING btree (spot_id);
+CREATE INDEX idx_fuel_read_log_user ON public.fuel_read_log USING btree (user_id, created_at DESC);
+CREATE INDEX idx_fuel_records_car ON public.fuel_records USING btree (car_id, fill_date DESC, odometer_km DESC);
 CREATE INDEX inquiry_log_sender_idx ON public.inquiry_log USING btree (sender_uid, created_at DESC);
 CREATE INDEX idx_maint_photos_record ON public.maint_photos USING btree (record_id, sort_order);
 CREATE INDEX idx_maint_records_car ON public.maint_records USING btree (car_id, work_date DESC, created_at);
@@ -1168,6 +1210,63 @@ order by p.updated_at desc;
 $function$
 ;
 -- acl: postgres=X/postgres anon=X/postgres authenticated=X/postgres service_role=X/postgres
+
+CREATE OR REPLACE FUNCTION public.fuel_public_rows(p_car text)
+ RETURNS TABLE(id uuid, fill_date date, odometer_km integer, liters numeric, fuel text, full_tank boolean, sec_km integer, sec_liters numeric)
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r record;
+  last_odo integer := null;
+  sum_l numeric := 0;
+  d integer;
+begin
+  for r in select * from public.fuel_records f where f.car_id = p_car order by f.fill_date, f.odometer_km loop
+    sec_km := null; sec_liters := null;
+    if last_odo is not null then sum_l := sum_l + r.liters; end if;
+    if r.full_tank then
+      if last_odo is not null then
+        d := r.odometer_km - last_odo;
+        if d < 0 and d + 100000 <= 1500 then d := d + 100000; end if;
+        if d > 0 and sum_l > 0 then sec_km := d; sec_liters := sum_l; end if;
+      end if;
+      last_odo := r.odometer_km; sum_l := 0;
+    end if;
+    if r.is_public then
+      id := r.id; fill_date := r.fill_date; odometer_km := r.odometer_km; liters := r.liters;
+      fuel := r.fuel; full_tank := r.full_tank;
+      return next;
+    end if;
+  end loop;
+end $function$
+;
+-- acl: postgres=X/postgres anon=X/postgres authenticated=X/postgres service_role=X/postgres
+
+CREATE OR REPLACE FUNCTION public.fuel_records_guard()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if auth.uid() is null or public.is_admin() then
+    if tg_op = 'UPDATE' then new.updated_at := now(); end if;
+    return new;
+  end if;
+  new.updated_at := now();
+  if tg_op = 'INSERT' then
+    new.author_user_id := auth.uid();
+    new.created_at := now();
+  else
+    new.car_id := old.car_id;
+    new.author_user_id := old.author_user_id;
+    new.created_at := old.created_at;
+  end if;
+  return new;
+end $function$
+;
+-- acl: =X/postgres postgres=X/postgres anon=X/postgres authenticated=X/postgres service_role=X/postgres
 
 CREATE OR REPLACE FUNCTION public.generate_bookmark_id()
  RETURNS trigger
@@ -1859,6 +1958,7 @@ CREATE TRIGGER tr_lower_email BEFORE INSERT OR UPDATE ON public.cars FOR EACH RO
 CREATE TRIGGER tr_set_doc_id BEFORE INSERT ON public.cars FOR EACH ROW EXECUTE FUNCTION trigger_set_doc_id();
 CREATE TRIGGER after_favorite_spot_change AFTER INSERT OR DELETE ON public.favorite_spots FOR EACH ROW EXECUTE FUNCTION update_spot_registration_count();
 CREATE TRIGGER before_insert_favorite_spots BEFORE INSERT ON public.favorite_spots FOR EACH ROW WHEN ((new.favorite_id IS NULL)) EXECUTE FUNCTION generate_favorite_id();
+CREATE TRIGGER fuel_records_guard BEFORE INSERT OR UPDATE ON public.fuel_records FOR EACH ROW EXECUTE FUNCTION fuel_records_guard();
 CREATE TRIGGER maint_photos_guard BEFORE UPDATE ON public.maint_photos FOR EACH ROW EXECUTE FUNCTION maint_photos_guard();
 CREATE TRIGGER maint_records_guard BEFORE INSERT OR UPDATE ON public.maint_records FOR EACH ROW EXECUTE FUNCTION maint_records_guard();
 CREATE TRIGGER owner_articles_guard BEFORE INSERT OR UPDATE ON public.owner_articles FOR EACH ROW EXECUTE FUNCTION owner_articles_guard();
@@ -2025,6 +2125,22 @@ create policy favorite_spots_select_policy on public.favorite_spots as permissiv
 create policy favorite_spots_update_policy on public.favorite_spots as permissive for UPDATE to public
   using ((( SELECT auth.uid() AS uid) = owner_user_id))
   with check ((( SELECT auth.uid() AS uid) = owner_user_id));
+create policy fuel_costs_own on public.fuel_costs as permissive for ALL to authenticated
+  using ((is_admin() OR (EXISTS ( SELECT 1
+   FROM fuel_records r
+  WHERE ((r.id = fuel_costs.record_id) AND (r.author_user_id = auth.uid()))))))
+  with check ((is_admin() OR (EXISTS ( SELECT 1
+   FROM fuel_records r
+  WHERE ((r.id = fuel_costs.record_id) AND (r.author_user_id = auth.uid()))))));
+create policy fuel_records_delete on public.fuel_records as permissive for DELETE to authenticated
+  using ((is_admin() OR (author_user_id = auth.uid())));
+create policy fuel_records_insert on public.fuel_records as permissive for INSERT to authenticated
+  with check ((is_admin() OR (owns_car(car_id) AND (author_user_id = auth.uid()))));
+create policy fuel_records_read on public.fuel_records as permissive for SELECT to public
+  using ((is_public OR (author_user_id = auth.uid()) OR is_admin()));
+create policy fuel_records_update on public.fuel_records as permissive for UPDATE to authenticated
+  using ((is_admin() OR (author_user_id = auth.uid())))
+  with check ((is_admin() OR (author_user_id = auth.uid())));
 create policy garage_notes_delete on public.garage_notes as permissive for DELETE to public
   using (((auth.uid() = user_id) OR ((( SELECT users.email
    FROM auth.users

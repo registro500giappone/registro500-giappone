@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>給油の記録 | Registro500 Giappone</title>
+  <meta name="description" content="レシートとメーターを一緒に撮るだけで、給油と燃費を記録できます。">
+  <link rel="canonical" href="https://www.registro500.com/my-fuel">
+  <meta property="og:title" content="給油の記録">
+  <meta property="og:description" content="レシートとメーターを一緒に撮るだけで、給油と燃費を記録できます。">
+  <meta property="og:url" content="https://www.registro500.com/my-fuel">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Registro500 Giappone">
+  <meta property="og:image" content="https://www.registro500.com/og/site-ja.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-27SHHC4JYH');
+  </script>
+  <script src="config.js"></script>
+  <script src="fuel-view.js?v=20261104"></script>
+  <script src="fab-nav.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
+  <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
+  <style>
+    :root {
+      --bg-main: #f5f0e6; --card-bg: #fffefb; --border-soft: #d6c9b0;
+      --shadow-soft: 0 2px 8px rgba(70,58,40,.10); --text-main: #2e2a24; --text-sub: #7a705f;
+      --accent: #1f5c3d; --accent-soft: #e7efe7; --danger: #a33a2a; --warn: #92400e; --warn-bg: #fef3c7;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-main: #1a1714; --card-bg: #2b2721; --border-soft: #403a30;
+        --shadow-soft: 0 2px 10px rgba(0,0,0,.35); --text-main: #ece6d9; --text-sub: #a89e8c;
+        --accent: #7fb894; --accent-soft: #24382c; --danger: #e08a7a; --warn: #f3c37a; --warn-bg: #3a2e18;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { font-size: 16px; max-width: 100%; overflow-x: hidden; }
+    body { font-family: var(--font-sans); margin: 0; padding: 20px 16px 60px; background: var(--bg-main); color: var(--text-main); line-height: 1.6; }
+    .page { max-width: 640px; margin: 0 auto; }
+    .back-link { display: inline-block; font-size: .85rem; color: var(--text-sub); text-decoration: none; margin-bottom: 12px; }
+    .back-link:hover { color: var(--accent); }
+    h1 { font-size: 1.35rem; margin: .2em 0 .6em; }
+    .lead { font-size: .88rem; color: var(--text-sub); margin: 0 0 12px; }
+    .lead.intro { line-height: 1.8; margin: -4px 0 16px; }
+    .hidden { display: none !important; }
+    .card { background: var(--card-bg); border: 1px solid var(--border-soft); border-radius: 12px; padding: 14px; margin-bottom: 14px; box-shadow: var(--shadow-soft); }
+    .card h2 { font-size: 1.05rem; margin: 0 0 10px; }
+    label.f, p.f { display: block; font-weight: 700; font-size: .88rem; margin: 14px 0 4px; }
+    label.f:first-child, p.f:first-child { margin-top: 0; }
+    .f small { font-weight: 400; color: var(--text-sub); margin-left: 4px; }
+    .proxy-banner { margin: 6px 0 0; padding: 8px 10px; border-radius: 8px; background: #fef3c7; color: #92400e; font-size: .85rem; font-weight: 600; }
+    #carFilter { margin-bottom: 6px; }
+    .note { font-size: .75rem; color: var(--text-sub); margin: 3px 0 0; font-weight: 400; }
+    input[type=text], input[type=email], input[type=date], input[type=search], select, textarea { width: 100%; font: inherit; font-size: 1rem; padding: 9px 10px; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--bg-main); color: var(--text-main); }
+    ::placeholder { color: #b8ae9c; opacity: 1; }
+    @media (prefers-color-scheme: dark) { ::placeholder { color: #6e6658; } }
+    textarea { min-height: 70px; resize: vertical; }
+    .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .row input[type=date] { width: auto; flex: 0 1 190px; }
+    .unit { display: flex; align-items: center; gap: 6px; flex: 0 1 190px; }
+    .unit input { text-align: right; }
+    input.read { background: var(--accent-soft); }
+    input.flagged { border-color: var(--warn); }
+    .flag { font-size: .78rem; margin: 4px 0 0; padding: 4px 8px; border-radius: 6px; background: var(--warn-bg); color: var(--warn); font-weight: 600; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { font: inherit; font-size: .85rem; padding: 7px 11px; border: 1px solid var(--border-soft); border-radius: 999px; background: var(--bg-main); color: var(--text-main); cursor: pointer; }
+    .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+    @media (prefers-color-scheme: dark) { .chip[aria-pressed="true"] { color: #10261a; } }
+    .link-btn { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-size: .85rem; cursor: pointer; }
+    .btn-main { display: block; width: 100%; text-align: center; background: var(--accent); color: #fff; border: 0; border-radius: 10px; padding: 12px; font-size: 1rem; font-weight: 700; text-decoration: none; cursor: pointer; font-family: inherit; }
+    .btn-main:disabled { opacity: .5; cursor: default; }
+    @media (prefers-color-scheme: dark) { .btn-main { color: #10261a; } }
+    .btn-sub { background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 6px 12px; font-size: .85rem; cursor: pointer; font-family: inherit; }
+    .btn-danger { color: var(--danger); border-color: var(--danger); }
+    .btn-wide { width: 100%; padding: 12px; font-size: 1rem; }
+    .file-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+    .shoot { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 96px; border: 2px dashed var(--accent); border-radius: 12px; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 1.05rem; cursor: pointer; text-align: center; padding: 10px; }
+    .shoot small { font-weight: 400; font-size: .78rem; color: var(--text-sub); }
+    .shot { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+    .shot img { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; flex: none; background: var(--border-soft); cursor: zoom-in; }
+    .shot img.big { width: 100%; height: auto; max-height: 70vh; object-fit: contain; cursor: zoom-out; }
+    .shot.big-on { flex-direction: column; align-items: stretch; }
+    .shot .st { font-size: .85rem; }
+    .shot .st.err { color: var(--danger); }
+    .shot .st.ok { color: var(--accent); }
+    details.fold { border-top: 1px solid var(--border-soft); padding: 10px 0 0; margin-top: 12px; }
+    details.fold summary { cursor: pointer; font-weight: 700; font-size: .9rem; color: var(--accent); list-style: none; display: flex; justify-content: space-between; gap: 8px; }
+    details.fold summary::-webkit-details-marker { display: none; }
+    details.fold summary small { font-weight: 400; color: var(--text-sub); }
+    details.fold[open] summary { margin-bottom: 8px; }
+    .tg { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: .92rem; margin: 14px 0 0; }
+    .tg input { width: 20px; height: 20px; flex: none; accent-color: var(--accent); }
+    .tg-pub { margin: 4px 2px 12px; font-size: .9rem; }
+    .tg-pub input { width: 18px; height: 18px; }
+    .tg .note { display: inline; margin: 0 0 0 4px; }
+    .msg { font-size: .88rem; margin: 10px 0 0; }
+    .msg.err { color: var(--danger); }
+    .msg.ok { color: var(--accent); }
+    .login-col { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+    #clearEmailBtn { align-self: flex-start; color: var(--text-sub); font-size: .78rem; }
+    .or-line { display: flex; align-items: center; gap: 8px; color: var(--text-sub); font-size: .78rem; }
+    .or-line span { flex: 1; height: 1px; background: var(--border-soft); }
+    .otp-code { font-size: 1.4rem !important; letter-spacing: 8px; text-align: center; }
+    .center { text-align: center; }
+    .avg { font-size: .95rem; margin: 0 0 10px; }
+    .avg small { color: var(--text-sub); font-size: .78rem; margin-left: 4px; }
+    .mine { border-top: 1px solid var(--border-soft); padding: 10px 0; }
+    .mine:first-child { border-top: 0; padding-top: 0; }
+    .mine .dt { font-size: .78rem; color: var(--text-sub); }
+    .mine .dt .tag { margin-left: 8px; padding: 0 6px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); font-size: .7rem; font-weight: 700; }
+    .mine .bd { font-size: .92rem; }
+    .mine .bd .sus { color: var(--warn); }
+    .mine .nt { font-size: .8rem; color: var(--text-sub); word-break: break-word; }
+    .mine .acts { display: flex; gap: 8px; margin-top: 6px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <a href="/" class="back-link">&larr; トップに戻る</a>
+  <h1>⛽ 給油の記録</h1>
+  <p class="lead intro">レシートとメーターを1枚の写真に一緒に撮ると、日付・給油量・金額・走行距離を読み取って入れます。確かめて「保存する」を押すだけです。燃費は満タン法で数えます。</p>
+
+  <div id="stateLoading" class="lead">確認中…</div>
+
+  <div id="stateLogin" class="card center hidden">
+    <p>記録するにはログインが必要です。</p>
+    <div class="login-col">
+      <div id="otpStep1" class="login-col">
+        <input type="email" id="emailLoginInput" placeholder="登録したメールアドレス" autocomplete="email">
+        <button type="button" id="clearEmailBtn" class="link-btn hidden">別のアドレスを使う</button>
+        <button type="button" class="btn-main" id="emailLoginBtn">確認コードを送信</button>
+        <div class="or-line"><span></span>または<span></span></div>
+        <button type="button" class="btn-sub btn-wide" id="loginBtn">Googleでログイン（従来方式）</button>
+      </div>
+      <div id="otpStep2" class="login-col hidden">
+        <p class="msg ok">✅ <strong id="otpSentEmail"></strong> に6桁の確認コードを送信しました。届いたコードを入力してください。</p>
+        <input type="text" id="otpCodeInput" class="otp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+        <button type="button" class="btn-main" id="otpVerifyBtn">ログイン</button>
+        <button type="button" class="link-btn" id="otpResendBtn">確認コードを再送する</button>
+      </div>
+      <p id="otpErrorMsg" class="msg err hidden"></p>
+    </div>
+  </div>
+
+  <div id="stateNoCar" class="card center hidden">
+    <p><strong>車両登録が必要です。</strong></p>
+    <p class="lead">給油の記録は、登録済みのお車に紐づけて残します。</p>
+    <a class="btn-main" href="/edit">車両を登録する</a>
+  </div>
+
+  <div id="stateForm" class="hidden">
+    <form id="form" novalidate>
+      <div class="card">
+        <h2 id="formTitle">給油を記録する</h2>
+        <div id="carRow" class="hidden">
+          <label class="f" for="carSel">どの車？</label>
+          <input type="search" id="carFilter" class="hidden" placeholder="DOC番号・名前で絞り込む" autocomplete="off">
+          <select id="carSel"></select>
+          <p id="proxyBanner" class="proxy-banner hidden"></p>
+        </div>
+        <div id="shootRow">
+          <label class="shoot" for="fPhoto">📷 レシートとメーターを撮る<small>1枚に両方が入るように・針が数字に重なっていないときに</small></label>
+          <input type="file" id="fPhoto" class="file-hidden" accept="image/*,.heic,.heif,.HEIC,.HEIF">
+          <p class="note">写真は読み取りにだけ使い、保存しません（レシートの名前やカード番号は残りません）。</p>
+        </div>
+        <div class="shot hidden" id="shot">
+          <img id="shotImg" alt="撮った写真" title="押すと大きくなります">
+          <span class="st" id="shotSt" role="status"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <label class="f" for="fDate">給油した日</label>
+        <div class="row">
+          <input type="date" id="fDate">
+        </div>
+        <p class="flag hidden" id="flagDate"></p>
+        <label class="f" for="fKm">走行距離<small>メーターの数字</small></label>
+        <div class="row">
+          <div class="unit"><input type="text" id="fKm" inputmode="numeric" maxlength="7" autocomplete="off"><span>km</span></div>
+          <span class="note" id="prevKm"></span>
+        </div>
+        <p class="flag hidden" id="flagKm"></p>
+        <label class="f" for="fLiters">給油量</label>
+        <div class="row">
+          <div class="unit"><input type="text" id="fLiters" inputmode="decimal" maxlength="6" autocomplete="off"><span>L</span></div>
+        </div>
+        <p class="flag hidden" id="flagLiters"></p>
+        <p class="f">油種</p>
+        <div class="chips" id="fuelChips">
+          <button type="button" class="chip" data-v="regular" aria-pressed="false">レギュラー</button>
+          <button type="button" class="chip" data-v="premium" aria-pressed="false">ハイオク</button>
+          <button type="button" class="chip" data-v="diesel" aria-pressed="false">軽油</button>
+        </div>
+        <label class="tg" for="fFull">
+          <input type="checkbox" id="fFull" checked>
+          <span>満タンにした<span class="note">（継ぎ足しのときだけ外す）</span></span>
+        </label>
+        <label class="f" for="fYen">金額<small>🔒 ほかの人には見えません</small></label>
+        <div class="row">
+          <div class="unit"><input type="text" id="fYen" inputmode="numeric" maxlength="7" autocomplete="off"><span>円</span></div>
+        </div>
+        <details class="fold" id="noteFold">
+          <summary><span>＋ メモ</span><small>省略できます</small></summary>
+          <textarea id="fNote" maxlength="500" placeholder="例：高速で往復。エアコンなし。"></textarea>
+        </details>
+      </div>
+
+      <label class="tg tg-pub" for="fPublic">
+        <input type="checkbox" id="fPublic" checked>
+        <span>車両ページに公開する<span class="note">（金額は出ません）</span></span>
+      </label>
+
+      <button type="submit" class="btn-main" id="saveBtn">保存する</button>
+      <button type="button" class="btn-sub hidden" id="cancelEdit" style="margin-top:10px;width:100%;">直すのをやめる</button>
+      <p class="msg" id="msg" role="status"></p>
+    </form>
+
+    <div class="card" id="mineCard" style="margin-top:14px">
+      <h2>これまでの給油<span id="mineCount"></span></h2>
+      <div id="mineList"><p class="lead">読み込み中…</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const TANK_HINT_L = 25;      // 500・126 のタンクは約21L＝これを超えたら印
+  const KM_GAP_MAX = 1500;     // 前回からの距離がこれを超えたら印（読み違い・記録漏れ）
+  const F = window.FuelView;
+
+  const $ = id => document.getElementById(id);
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function track(name, params) { try { if (typeof gtag === 'function') gtag('event', name, params || {}); } catch (e) {} }
+  function setMsg(text, kind) { const m = $('msg'); m.textContent = text || ''; m.className = 'msg' + (kind ? ' ' + kind : ''); }
+  function setShot(text, kind) { const m = $('shotSt'); m.textContent = text || ''; m.className = 'st' + (kind ? ' ' + kind : ''); }
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function toNum(s) { s = String(s || '').replace(/[,，\s]/g, '').replace(/[０-９．]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)); return s === '' ? null : Number(s); }
+
+  let currentUser = null, isAdmin = false, myCars = [], started = false;
+  let editing = null;      // 直している記録
+  let recs = [];           // 選んでいる車の自分の記録（前回との差の確認と一覧に使う）
+  let reading = false;
+
+  function fuelVal() { const b = $('fuelChips').querySelector('.chip[aria-pressed="true"]'); return b ? b.dataset.v : null; }
+  function setFuel(v) { $('fuelChips').querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v ? 'true' : 'false')); }
+  $('fuelChips').addEventListener('click', ev => {
+    const b = ev.target.closest('.chip'); if (!b) return;
+    setFuel(b.getAttribute('aria-pressed') === 'true' ? null : b.dataset.v);
+  });
+
+  // ── 車の選択（マイ整備手帳と同じ。管理人は全車から選んで代わりに入力できる） ──
+  function proxyOwner(carId) {
+    if (!isAdmin) return null;
+    const c = myCars.find(x => x.id === carId);
+    return c && c.owner && c.owner !== currentUser.id ? c.owner : null;
+  }
+  function withAuthor(rec, carId) { const o = proxyOwner(carId); return o ? Object.assign({ author_user_id: o }, rec) : rec; }
+  function updateProxyBanner() {
+    const b = $('proxyBanner');
+    if (!isAdmin) { b.classList.add('hidden'); return; }
+    const id = currentCarId(), c = myCars.find(x => x.id === id);
+    if (!c || c.owner === currentUser.id) { b.classList.add('hidden'); return; }
+    b.textContent = c.owner
+      ? '🛡️ 管理人として「' + (c.label.trim() || c.id) + '」の持ち主の記録を代わりに入力しています（作者＝持ち主）'
+      : '🛡️ 「' + (c.label.trim() || c.id) + '」は持ち主がまだログインしていない車です＝作者は管理人になります';
+    b.classList.remove('hidden');
+  }
+  function fillCarSel(keep) {
+    const sel = $('carSel'), f = $('carFilter').value.trim().toLowerCase();
+    sel.textContent = '';
+    myCars.filter(c => !f || (c.id + ' ' + c.label).toLowerCase().includes(f))
+      .forEach(c => { const o = el('option', null, c.label.trim() || c.id); o.value = c.id; sel.appendChild(o); });
+    if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
+  }
+  $('carFilter').addEventListener('input', () => {
+    const before = $('carSel').value;
+    fillCarSel(before);
+    if ($('carSel').value !== before) $('carSel').dispatchEvent(new Event('change'));
+  });
+  function currentCarId() {
+    if (editing) return editing.car_id;
+    return myCars.length ? $('carSel').value : null;
+  }
+  $('carSel').addEventListener('change', () => { updateProxyBanner(); loadMine(); });
+
+  // ── 確かめる印（読み違い・記録漏れの見落とし防止。保存は止めない） ──
+  function flag(id, inputId, text) {
+    $(id).textContent = text || '';
+    $(id).classList.toggle('hidden', !text);
+    if (inputId) $(inputId).classList.toggle('flagged', !!text);
+  }
+  // 給油日がこの日より前の記録のうち、いちばん新しいもの（同じ日なら距離が小さいもの）
+  function prevRecord(date, km) {
+    let best = null;
+    for (const r of recs) {
+      if (editing && r.id === editing.id) continue;
+      if (r.fill_date > date || (r.fill_date === date && km != null && r.odometer_km >= km)) continue;
+      if (!best || r.fill_date > best.fill_date || (r.fill_date === best.fill_date && r.odometer_km > best.odometer_km)) best = r;
+    }
+    return best;
+  }
+  function check() {
+    const d = $('fDate').value;
+    if (d) {
+      const days = (new Date(d + 'T00:00:00') - new Date(ymd(new Date()) + 'T00:00:00')) / 86400000;
+      flag('flagDate', 'fDate', days > 0 ? '未来の日付になっています。' : days < -365 ? '1年以上前の日付です。年が合っているか確かめてください。' : '');
+    } else flag('flagDate', 'fDate', '');
+    const km = toNum($('fKm').value);
+    const prev = d ? prevRecord(d, km) : null;
+    $('prevKm').textContent = prev ? '前回 ' + F.fmtKm(prev.odometer_km) + '（' + F.fmtDate(prev.fill_date) + '）' : '';
+    if (km != null && Number.isFinite(km) && prev) {
+      const diff = F.diffKm(prev.odometer_km, km);
+      flag('flagKm', 'fKm', diff < 0 ? '前回より小さい数字です。読み違いがないか確かめてください。'
+        : diff > KM_GAP_MAX ? '前回から ' + F.fmtKm(diff) + '。数字が合っているか（間の給油の付け忘れがないか）確かめてください。' : '');
+    } else flag('flagKm', 'fKm', '');
+    const l = toNum($('fLiters').value);
+    flag('flagLiters', 'fLiters', l != null && l > TANK_HINT_L ? 'タンク（約21L）より多い量です。小数点の位置を確かめてください。' : '');
+  }
+  ['fDate', 'fKm', 'fLiters'].forEach(id => $(id).addEventListener('input', () => { $(id).classList.remove('read'); check(); }));
+
+  // ── 写真を読む ──
+  function isHeic(file) {
+    const n = (file.name || '').toLowerCase(), t = (file.type || '').toLowerCase();
+    return n.endsWith('.heic') || n.endsWith('.heif') || t === 'image/heic' || t === 'image/heif' || t === 'image/heic-sequence' || t === 'image/heif-sequence';
+  }
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src; s.onload = resolve; s.onerror = () => reject(new Error('script load failed'));
+      document.head.appendChild(s);
+    });
+  }
+  let heicLoading = null;
+  function ensureHeic2any() {
+    if (window.heic2any) return Promise.resolve();
+    if (!heicLoading) {
+      heicLoading = loadScript('https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js')
+        .catch(() => loadScript('https://unpkg.com/heic2any@0.0.4/dist/heic2any.min.js'))
+        .catch(() => { throw new Error('HEIC変換ライブラリを読み込めません（ネットワークを確認してください）'); });
+    }
+    return heicLoading;
+  }
+  async function toJpegIfHeic(file) {
+    if (!isHeic(file)) return file;
+    await ensureHeic2any();
+    let out;
+    try { out = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 }); }
+    catch (err) { throw new Error('HEICの変換に失敗しました。JPEGに変換してからお試しください。'); }
+    const blob = Array.isArray(out) ? out[0] : out;
+    if (!blob) throw new Error('HEIC変換の結果が空でした');
+    return new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+  }
+  function loadImage(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('画像の読み込みに失敗しました')); };
+      img.src = url;
+    });
+  }
+  // 長辺1000pxに縮めた JPEG の base64（読み取りの精度はこれで足りる＝2026-11-04 実物で確認）
+  function shrinkB64(img) {
+    let w = img.naturalWidth, h = img.naturalHeight;
+    const long = Math.max(w, h);
+    if (long > 1000) { const s = 1000 / long; w = Math.round(w * s); h = Math.round(h * s); }
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL('image/jpeg', 0.85).replace(/^data:image\/jpeg;base64,/, '');
+  }
+  const READ_ERR = {
+    401: 'ログインが切れました。再読み込みしてからもう一度お試しください。',
+    403: '車両を登録したアカウントでログインしてください。',
+    429: '今日の読み取りは上限（10回）に達しました。数字は手で入れて保存できます。'
+  };
+  $('shotImg').addEventListener('click', () => { $('shotImg').classList.toggle('big'); $('shot').classList.toggle('big-on'); });
+  $('fPhoto').addEventListener('change', async ev => {
+    const f = ev.target.files && ev.target.files[0];
+    ev.target.value = '';
+    if (!f || reading) return;
+    reading = true;
+    $('shot').classList.remove('hidden');
+    setShot(isHeic(f) ? '写真を変換しています（iPhoneの写真は少し時間がかかります）…' : '写真を読み込んでいます…');
+    try {
+      const file = await toJpegIfHeic(f);
+      const old = $('shotImg').src; if (old && old.startsWith('blob:')) URL.revokeObjectURL(old);
+      $('shotImg').src = URL.createObjectURL(file);
+      const b64 = shrinkB64(await loadImage(file));
+      setShot('読み取っています…');
+      const { data: sess } = await supabaseClient.auth.getSession();
+      const token = sess && sess.session ? sess.session.access_token : '';
+      const res = await fetch('/api/fuel-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ image: b64 })
+      });
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok || !out.success) {
+        setShot(READ_ERR[res.status] || '読み取りに失敗しました。もう一度撮るか、数字を手で入れてください。', 'err');
+        track('fuel_read', { result: 'error_' + res.status });
+        return;
+      }
+      applyReading(out.reading);
+    } catch (err) {
+      console.error('[my-fuel] read', err);
+      setShot(err.message && /HEIC/.test(err.message) ? err.message : '読み取りに失敗しました。もう一度撮るか、数字を手で入れてください。', 'err');
+      track('fuel_read', { result: 'error' });
+    } finally { reading = false; }
+  });
+  function applyReading(r) {
+    r = r || {};
+    const put = (id, v) => { if (v == null) return false; $(id).value = String(v); $(id).classList.add('read'); return true; };
+    const got = [];
+    const miss = [];
+    (put('fDate', r.date) ? got : miss).push('日付');
+    (put('fKm', r.odometer_km) ? got : miss).push('走行距離');
+    (put('fLiters', r.liters) ? got : miss).push('給油量');
+    if (put('fYen', r.total_yen)) got.push('金額');
+    if (r.fuel) { setFuel(r.fuel); got.push('油種'); }
+    check();
+    if (!got.length) setShot('数字を読み取れませんでした。レシートとメーターがはっきり写るように撮り直すか、手で入れてください。', 'err');
+    else if (miss.length) setShot('読み取りました。' + miss.join('・') + 'は読めなかったので、入れてください。', 'err');
+    else setShot('読み取りました。色の付いた欄を確かめて「保存する」を押してください。', 'ok');
+    track('fuel_read', { result: !got.length ? 'none' : miss.length ? 'partial' : 'ok' });
+  }
+
+  // ── 保存 ──
+  function resetForm() {
+    editing = null;
+    const keepCar = $('carSel').value, keepFilter = $('carFilter').value;  // reset() は車の選択まで初めに戻す
+    $('form').reset();
+    $('carFilter').value = keepFilter; $('carSel').value = keepCar;
+    $('fDate').value = ymd(new Date());
+    $('fFull').checked = true; $('fPublic').checked = true; setFuel(null);
+    ['fDate', 'fKm', 'fLiters', 'fYen'].forEach(id => $(id).classList.remove('read'));
+    $('noteFold').open = false;
+    $('shot').classList.add('hidden'); $('shot').classList.remove('big-on'); $('shotImg').classList.remove('big');
+    $('formTitle').textContent = '給油を記録する';
+    $('saveBtn').textContent = '保存する';
+    $('cancelEdit').classList.add('hidden');
+    $('shootRow').classList.remove('hidden');
+    $('carRow').classList.toggle('hidden', myCars.length < 2);
+    check();
+  }
+  $('cancelEdit').addEventListener('click', () => { resetForm(); setMsg(''); });
+
+  $('form').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const carId = currentCarId();
+    const date = $('fDate').value, km = toNum($('fKm').value), liters = toNum($('fLiters').value);
+    const yenRaw = $('fYen').value.trim(), yen = toNum(yenRaw);
+    if (!carId) { setMsg('車を選んでください。', 'err'); return; }
+    if (!date) { setMsg('給油した日を入れてください。', 'err'); return; }
+    if (km == null || !Number.isInteger(km) || km < 0 || km > 999999) { setMsg('走行距離を整数で入れてください。', 'err'); $('fKm').focus(); return; }
+    if (liters == null || !(liters > 0 && liters <= 60)) { setMsg('給油量を入れてください（例：16.18）。', 'err'); $('fLiters').focus(); return; }
+    if (yenRaw && (yen == null || !Number.isInteger(yen) || yen < 0 || yen > 1000000)) { setMsg('金額は整数の円で入れてください。', 'err'); $('fYen').focus(); return; }
+    const rec = {
+      fill_date: date, odometer_km: km, liters: Math.round(liters * 100) / 100, fuel: fuelVal(),
+      full_tank: $('fFull').checked, note: $('fNote').value.trim() || null, is_public: $('fPublic').checked
+    };
+    $('saveBtn').disabled = true; setMsg('保存しています…');
+    try {
+      let id;
+      if (editing) {
+        const { error } = await supabaseClient.from('fuel_records').update(rec).eq('id', editing.id);
+        if (error) throw error;
+        id = editing.id;
+      } else {
+        const { data, error } = await supabaseClient.from('fuel_records').insert(withAuthor(Object.assign({ car_id: carId }, rec), carId)).select('id').single();
+        if (error) throw error;
+        id = data.id;
+      }
+      if (yenRaw) {
+        const { error } = await supabaseClient.from('fuel_costs').upsert({ record_id: id, total_yen: yen, updated_at: new Date().toISOString() });
+        if (error) throw error;
+      } else if (editing) {
+        await supabaseClient.from('fuel_costs').delete().eq('record_id', id);
+      }
+      track('fuel_save', { mode: editing ? 'edit' : 'new', full_tank: rec.full_tank ? 1 : 0 });
+      const wasEdit = !!editing;
+      resetForm();
+      setMsg(wasEdit ? '直しました。' : '保存しました。', 'ok');
+      await loadMine();
+    } catch (err) {
+      console.error('[my-fuel] save', err);
+      setMsg('保存に失敗しました：' + (err.message || err), 'err');
+    } finally { $('saveBtn').disabled = false; }
+  });
+
+  // ── 自分の記録（選んでいる車だけ。管理人はその車の全部） ──
+  async function loadMine() {
+    const carId = currentCarId();
+    if (!carId) return;
+    let q = supabaseClient.from('fuel_records').select('*').eq('car_id', carId);
+    if (!isAdmin) q = q.eq('author_user_id', currentUser.id);
+    const { data, error } = await q;
+    if (carId !== currentCarId()) return;
+    if (error) { $('mineList').textContent = '読み込みに失敗しました。'; return; }
+    recs = data || [];
+    const costs = {};
+    if (recs.length) {
+      const { data: c } = await supabaseClient.from('fuel_costs').select('record_id, total_yen').in('record_id', recs.map(r => r.id));
+      (c || []).forEach(x => { costs[x.record_id] = x.total_yen; });
+    }
+    check();
+    renderMine(costs);
+  }
+  function renderMine(costs) {
+    const host = $('mineList');
+    host.textContent = '';
+    $('mineCount').textContent = recs.length ? '（' + recs.length + '件）' : '';
+    if (!recs.length) { host.appendChild(el('p', 'lead', 'まだ記録はありません。')); return; }
+    const eco = F.economy(recs);
+    if (eco.avg != null) {
+      const p = el('p', 'avg');
+      p.append('平均燃費 ', el('strong', null, F.fmtKmpl(eco.avg)), el('small', null, '（満タン法・' + eco.sections + '区間）'));
+      host.appendChild(p);
+    }
+    const sorted = recs.slice().sort((a, b) => a.fill_date !== b.fill_date ? (a.fill_date < b.fill_date ? 1 : -1) : b.odometer_km - a.odometer_km);
+    for (const r of sorted) {
+      const row = el('div', 'mine');
+      const dt = el('div', 'dt', F.fmtDate(r.fill_date));
+      if (!r.is_public) dt.appendChild(el('span', 'tag', '🔒 非公開'));
+      row.appendChild(dt);
+      const e = eco.byId[r.id];
+      const bd = el('div', 'bd', F.lineParts(r, e).join('　') + (costs[r.id] != null ? '　' + costs[r.id].toLocaleString('ja-JP') + '円' : ''));
+      if (e && e.suspect) bd.classList.add('sus');
+      row.appendChild(bd);
+      if (r.note) row.appendChild(el('div', 'nt', r.note));
+      const acts = el('div', 'acts');
+      const edit = el('button', 'btn-sub', '直す'); edit.type = 'button';
+      edit.addEventListener('click', () => startEdit(r, costs[r.id]));
+      const del = el('button', 'btn-sub btn-danger', '消す'); del.type = 'button';
+      // 2度押しで消す。2度目は0.8秒たってからだけ受け付ける（ダブルタップで消さない）
+      let armedAt = 0;
+      del.addEventListener('click', async () => {
+        const now = Date.now();
+        if (!armedAt) { armedAt = now; del.textContent = 'もう一度押すと消えます'; setTimeout(() => { armedAt = 0; del.textContent = '消す'; }, 5000); return; }
+        if (now - armedAt < 800) return;
+        del.disabled = true;
+        const { error } = await supabaseClient.from('fuel_records').delete().eq('id', r.id);
+        if (error) { del.disabled = false; setMsg('消せませんでした：' + error.message, 'err'); return; }
+        if (editing && editing.id === r.id) resetForm();
+        loadMine();
+      });
+      acts.append(edit, del);
+      row.appendChild(acts);
+      host.appendChild(row);
+    }
+  }
+  function startEdit(r, yen) {
+    editing = r;
+    $('fDate').value = r.fill_date; $('fKm').value = r.odometer_km; $('fLiters').value = Number(r.liters);
+    $('fYen').value = yen != null ? yen : ''; setFuel(r.fuel);
+    $('fFull').checked = r.full_tank; $('fPublic').checked = r.is_public;
+    $('fNote').value = r.note || ''; $('noteFold').open = !!r.note;
+    ['fDate', 'fKm', 'fLiters', 'fYen'].forEach(id => $(id).classList.remove('read'));
+    $('formTitle').textContent = F.fmtDate(r.fill_date) + 'の給油を直す';
+    $('saveBtn').textContent = '直して保存する';
+    $('cancelEdit').classList.remove('hidden');
+    $('shootRow').classList.add('hidden'); $('shot').classList.add('hidden');
+    $('carRow').classList.add('hidden');
+    setMsg(''); check();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── 認証 ──
+  async function handleAuth(session) {
+    currentUser = session && session.user ? session.user : null;
+    $('stateLoading').classList.add('hidden');
+    if (!currentUser) {
+      started = false;
+      $('stateForm').classList.add('hidden');
+      $('stateLogin').classList.remove('hidden');
+      return;
+    }
+    if (started) return;
+    started = true;
+    try {
+      isAdmin = typeof ADMIN_EMAIL !== 'undefined' && (currentUser.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      let q = supabaseClient.from('cars')
+        .select('document_id, handle_name, model_display_a, model_display_b, model_display_c, owner_user_id');
+      q = isAdmin ? q.order('document_id') : q.eq('owner_user_id', currentUser.id);
+      const { data, error } = await q;
+      if (error) throw error;
+      myCars = (data || []).map(c => ({
+        id: c.document_id, owner: c.owner_user_id || null,
+        label: (isAdmin ? c.document_id + ' ' : '') + (c.handle_name || '') + ' ' + (c.model_display_c || [c.model_display_a || '', c.model_display_b || ''].filter(Boolean).join(' '))
+      }));
+    } catch (err) {
+      console.error('[my-fuel] cars', err);
+      started = false;
+      $('stateLoading').textContent = '読み込みに失敗しました。再読み込みしてください。';
+      $('stateLoading').classList.remove('hidden');
+      return;
+    }
+    $('stateLogin').classList.add('hidden');
+    if (!myCars.length) { $('stateForm').classList.add('hidden'); $('stateNoCar').classList.remove('hidden'); return; }
+    // ?car=<DOC番号> で開いたらその車を選んでおく
+    const want = new URLSearchParams(location.search).get('car');
+    const mine = myCars.find(c => c.owner === currentUser.id);
+    $('carFilter').classList.toggle('hidden', !isAdmin);
+    fillCarSel(want || (mine && mine.id));
+    updateProxyBanner();
+    resetForm();
+    $('stateForm').classList.remove('hidden');
+    loadMine();
+  }
+  supabaseClient.auth.getSession().then(({ data }) => handleAuth(data && data.session)).catch(err => { console.error(err); handleAuth(null); });
+  supabaseClient.auth.onAuthStateChange((ev, session) => { if (ev === 'SIGNED_OUT' || ev === 'SIGNED_IN') handleAuth(session); });
+  $('loginBtn').addEventListener('click', () => {
+    supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href } });
+  });
+
+  // ── メールの確認コードでログイン（my-maintenance.html と同じ流れ） ──
+  function showOtpError(msg) {
+    $('otpErrorMsg').textContent = msg || '';
+    $('otpErrorMsg').classList.toggle('hidden', !msg);
+  }
+  let otpEmail = '';
+  $('emailLoginBtn').addEventListener('click', async () => {
+    const email = $('emailLoginInput').value.trim();
+    if (!email) { showOtpError('メールアドレスを入力してください。'); return; }
+    const btn = $('emailLoginBtn');
+    btn.disabled = true; btn.textContent = '送信中…';
+    const { error } = await supabaseClient.auth.signInWithOtp({ email });
+    btn.disabled = false; btn.textContent = '確認コードを送信';
+    const sentBefore = !!error && /after [0-9]+ seconds/.test(String(error.message));
+    if (error && !sentBefore) { showOtpError(error.status === 429 ? '送信が続いたため一時的に止まっています。数分おいてからお試しください。' : '送信に失敗しました：' + error.message); return; }
+    otpEmail = email;
+    try { localStorage.setItem('r500_login_email', email); } catch (e) {}
+    $('otpSentEmail').textContent = email;
+    $('otpStep1').classList.add('hidden');
+    $('otpStep2').classList.remove('hidden');
+    showOtpError(sentBefore ? '確認コードは少し前に送信済みです。届いているメールの、いちばん新しいコードを入力してください。' : '');
+  });
+  $('otpVerifyBtn').addEventListener('click', async () => {
+    const code = $('otpCodeInput').value.trim();
+    if (!code) { showOtpError('確認コードを入力してください。'); return; }
+    const btn = $('otpVerifyBtn');
+    btn.disabled = true; btn.textContent = '確認中…';
+    const { error } = await supabaseClient.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
+    btn.disabled = false; btn.textContent = 'ログイン';
+    if (error) { showOtpError('コードが正しくないか、期限切れです。何度か送信した場合は、いちばん新しいメールのコードを入力してください。'); return; }
+    showOtpError('');
+  });
+  $('otpResendBtn').addEventListener('click', async () => {
+    if (!otpEmail) return;
+    const { error } = await supabaseClient.auth.signInWithOtp({ email: otpEmail });
+    showOtpError(error ? (error.status === 429 ? '再送は1分ほど間をあけてからお試しください。直前に届いたコードはそのまま使えます。' : '再送に失敗しました：' + error.message) : '確認コードを再送しました。');
+  });
+  (function () {
+    let saved = null;
+    try { saved = localStorage.getItem('r500_login_email'); } catch (e) {}
+    if (saved) { $('emailLoginInput').value = saved; $('clearEmailBtn').classList.remove('hidden'); }
+    $('clearEmailBtn').addEventListener('click', () => {
+      $('emailLoginInput').value = '';
+      $('clearEmailBtn').classList.add('hidden');
+      try { localStorage.removeItem('r500_login_email'); } catch (e) {}
+      $('emailLoginInput').focus();
+    });
+  })();
+})();
+</script>
+<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "60f959409b1e4eb29308eeb53615812a"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
