@@ -369,6 +369,8 @@
             <li><h6 class="rg-dropdown-header">車両管理</h6></li>
             <!-- 2026-10-29 ユーザー決裁：マイ整備手帳は車両管理の一番上。MAINT_ON_CAR_PAGE（または ?maint-preview）のときだけ出す -->
             <li id="myMaintItem" style="display:none;"><a class="rg-dropdown-item" href="/my-maintenance" id="myMaintLink">🛠️ マイ整備手帳</a></li>
+            <!-- 2026-11-04 ユーザー決裁：給油はマイ整備手帳のすぐ下。FUEL_ON_CAR_PAGE（または ?fuel-preview）のときだけ出す -->
+            <li id="myFuelItem" style="display:none;"><a class="rg-dropdown-item" href="/my-fuel" id="myFuelLink">⛽ 給油を記録する</a></li>
             <li><a class="rg-dropdown-item is-bold" href="#" id="editLink">✏️ この車両を編集</a></li>
             <li><a class="rg-dropdown-item" href="/episode-edit" id="addEpisodeLink">📖 ストーリーを追加</a></li>
             <!-- 2026-08-10 ユーザー確定: 自分の車載手帳を直す入口が /equipment の最下部（92%地点）
@@ -1100,7 +1102,12 @@
           document.getElementById('myMaintLink').href = `/my-maintenance?car=${encodeURIComponent(currentCar.document_id)}`;
           document.getElementById('myMaintItem').style.display = '';
         }
+        if (fuelOn) {
+          document.getElementById('myFuelLink').href = `/my-fuel?car=${encodeURIComponent(currentCar.document_id)}`;
+          document.getElementById('myFuelItem').style.display = '';
+        }
         updateMaintAdd();
+        updateFuelAdd();
         const addBtn = document.getElementById('addEpisodeBtn');
         if (addBtn) { addBtn.style.display = 'block'; addBtn.onclick = () => location.href = `/episode-edit?car=${currentCar.document_id}`; }
         scheduleBlanks(currentCar);
@@ -1712,11 +1719,15 @@
     // ─── 給油の記録（/my-fuel・2026-11-04） ───
     // 公開の準備が整うまで止めておく＝URL に ?fuel-preview を付けたときだけ出す（止めている間は fuel-view.js も読まない）
     const FUEL_ON_CAR_PAGE = false;
+    const fuelOn = FUEL_ON_CAR_PAGE || params.has('fuel-preview');
+    let fuelLoaded = false;   // 記録が0件でも、持ち主には欄と「＋ 給油を記録する」を出すため
     async function loadFuel() {
-      if (!(FUEL_ON_CAR_PAGE || params.has('fuel-preview')) || !currentCar) return;
+      if (!fuelOn || !currentCar) return;
       // 公開の行だけが返る。燃費の区間は非公開の行も含めて DB が数える（間の給油が抜けて燃費が狂わないように）
       const { data, error } = await supabaseClient.rpc('fuel_public_rows', { p_car: currentCar.document_id });
-      if (error || !data || !data.length) return;
+      if (error) return;
+      fuelLoaded = true;
+      if (!data || !data.length) { updateFuelAdd(); return; }
       if (!window.FuelView) {
         await new Promise((resolve, reject) => {
           const s = document.createElement('script');
@@ -1726,6 +1737,26 @@
       }
       window.FuelView.renderCarSection(document.getElementById('fuelContent'), data);
       document.getElementById('fuelSection').style.display = 'block';
+      updateFuelAdd();
+    }
+    // 給油の欄の下に持ち主だけ「＋ 給油を記録する」（整備の「＋ 整備を記録する」と同じ形・2026-11-04 ユーザー決裁）
+    function updateFuelAdd() {
+      if (!fuelOn || !currentCar || !fuelLoaded) return;
+      const isOwner = currentUser && currentCar.owner_user_id && currentCar.owner_user_id === currentUser.id;
+      const sec = document.getElementById('fuelSection'), content = document.getElementById('fuelContent');
+      const empty = !content.querySelector('.fv-row');
+      let box = document.getElementById('fuelAddBox');
+      if (!isOwner) { if (box) box.remove(); if (empty) sec.style.display = 'none'; return; }
+      if (empty) content.innerHTML = '<p style="margin:0;color:var(--rg-muted);font-size:0.9rem;">まだ公開の給油の記録はありません。</p>';
+      if (!box) {
+        box = document.createElement('div');
+        box.id = 'fuelAddBox';
+        box.style.cssText = 'text-align:center;padding-top:0.75rem;';
+        box.innerHTML = `<a id="fuelAddLink" style="display:inline-block;text-decoration:none;padding:0.55rem 1.2rem;border:1px solid var(--rg-accent);color:var(--rg-accent);border-radius:6px;font-size:0.9rem;font-weight:600;">＋ 給油を記録する</a>`;
+      }
+      box.querySelector('a').href = `/my-fuel?car=${encodeURIComponent(currentCar.document_id)}`;
+      content.after(box);
+      sec.style.display = 'block';
     }
 
     // ─── このオーナーのおすすめ工具（/tools の投稿と「わたしも使ってる」・2026-10-22） ───
