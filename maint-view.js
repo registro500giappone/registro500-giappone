@@ -3,7 +3,8 @@
 (function () {
   const AREAS = [
     ['engine', '⚙️ エンジン'], ['fuel', '🔥 燃料・点火'], ['driveline', '🔗 駆動系'], ['suspension', '🛞 足回り・操舵'],
-    ['brake', '🛑 ブレーキ'], ['electric', '⚡ 電装'], ['consumable', '🛢 オイル・消耗品'], ['body', '🚗 ボディ・その他']
+    ['brake', '🛑 ブレーキ'], ['electric', '⚡ 電装'], ['consumable', '🛢 オイル・消耗品'], ['body', '🚗 ボディ・その他'],
+    ['accessory', '✨ アクセサリー']
   ];
   const AREA_LABEL = Object.fromEntries(AREAS);
   const WORKER_LABEL = { diy: 'DIY', shop: 'SHOP' };

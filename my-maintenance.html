@@ -26,7 +26,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" integrity="sha384-HLJUgAQ2oo6rdMC4QW+Oz2qQfPOtu/lzncKG4sZiq8+2W9uOa3K0b3UGpckKqv7H" crossorigin="anonymous"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js" integrity="sha384-oFrOL1TiREYNET0lsYF3LjQuyi2gL7vhjH1X8vFr+umcmzAdPELopeSgbcrv4uRm" crossorigin="anonymous"></script>
   <script src="config.js"></script>
-  <script src="maint-view.js?v=20261031"></script>
+  <script src="maint-view.js?v=20261104"></script>
   <script src="fab-nav.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
@@ -221,6 +221,8 @@
         </div>
         <p class="f">どこを触った？<small>いくつでも・選ばなくても保存できます</small></p>
         <div class="chips" id="areaChips"></div>
+        <p class="f">オイル交換をした？<small>した作業だけ選ぶ・交換の間隔を数えるのに使います</small></p>
+        <div class="chips" id="taskChips"></div>
         <p class="f">作業したのは<small>任意</small></p>
         <div class="chips" id="workerChips">
           <button type="button" class="chip" data-v="diy" aria-pressed="false">DIY（自分で）</button>
@@ -309,8 +311,12 @@
   // 箇所チップ（id と名前は torque-data.json の areas に合わせる＋電装・オイル消耗品）
   const AREAS = [
     ['engine', '⚙️ エンジン'], ['fuel', '🔥 燃料・点火'], ['driveline', '🔗 駆動系'], ['suspension', '🛞 足回り・操舵'],
-    ['brake', '🛑 ブレーキ'], ['electric', '⚡ 電装'], ['consumable', '🛢 オイル・消耗品'], ['body', '🚗 ボディ・その他']
+    ['brake', '🛑 ブレーキ'], ['electric', '⚡ 電装'], ['consumable', '🛢 オイル・消耗品'], ['body', '🚗 ボディ・その他'],
+    ['accessory', '✨ アクセサリー']
   ];
+  // 定番作業の印＝オイル交換を個別に数えるため（いずれ統計のアンケートの周期と突き合わせる）。DB の check と同じ並び
+  const TASKS = [['engine_oil', '🛢 エンジンオイル交換'], ['gear_oil', '⚙️ ミッションオイル交換']];
+  const TASK_LABEL = Object.fromEntries(TASKS);
   const AREA_LABEL = Object.fromEntries(AREAS);
   const WORKER_LABEL = { diy: 'DIY', shop: 'SHOP' };
   // DB の maint_video_urls_ok と同じ条件
@@ -345,6 +351,19 @@
     b.type = 'button'; b.dataset.v = v; b.setAttribute('aria-pressed', 'false');
     $('areaChips').appendChild(b);
   });
+  TASKS.forEach(([v, label]) => {
+    const b = el('button', 'chip', label);
+    b.type = 'button'; b.dataset.v = v; b.setAttribute('aria-pressed', 'false');
+    $('taskChips').appendChild(b);
+  });
+  $('taskChips').addEventListener('click', ev => {
+    const b = ev.target.closest('.chip'); if (!b) return;
+    const on = b.getAttribute('aria-pressed') !== 'true';
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    // オイル交換は箇所「オイル・消耗品」にも当たるので、付け忘れないよう一緒に押す（外すのは本人に任せる）
+    if (on) { const c = $('areaChips').querySelector('.chip[data-v="consumable"]'); if (c) c.setAttribute('aria-pressed', 'true'); }
+    saveDraft();
+  });
   $('areaChips').addEventListener('click', ev => {
     const b = ev.target.closest('.chip'); if (!b) return;
     b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
@@ -358,6 +377,8 @@
     saveDraft();
   });
   function areasVal() { return [...$('areaChips').querySelectorAll('.chip[aria-pressed="true"]')].map(b => b.dataset.v); }
+  function tasksVal() { return [...$('taskChips').querySelectorAll('.chip[aria-pressed="true"]')].map(b => b.dataset.v); }
+  function setTasks(list) { $('taskChips').querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', (list || []).includes(b.dataset.v) ? 'true' : 'false')); }
   function setAreas(list) { $('areaChips').querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', (list || []).includes(b.dataset.v) ? 'true' : 'false')); }
   function workerVal() { const b = $('workerChips').querySelector('.chip[aria-pressed="true"]'); return b ? b.dataset.v : null; }
   function setWorker(v) { $('workerChips').querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v ? 'true' : 'false')); }
@@ -430,7 +451,7 @@
   function saveDraft() {
     if (editing) return;
     const d = { title: $('fTitle').value, comment: $('fComment').value, date: dateTouched ? $('fDate').value : '', km: $('fKm').value,
-      areas: areasVal(), worker: workerVal(), cost: $('fCost').value, videos: videoRows(), pub: $('fPublic').checked };
+      areas: areasVal(), tasks: tasksVal(), worker: workerVal(), cost: $('fCost').value, videos: videoRows(), pub: $('fPublic').checked };
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch (e) {}
   }
   function loadDraft() {
@@ -439,7 +460,7 @@
     if (!d) return;
     $('fTitle').value = d.title || ''; $('fComment').value = d.comment || ''; $('cmCount').textContent = $('fComment').value.length;
     if (d.date) { $('fDate').value = d.date; dateTouched = true; }
-    $('fKm').value = d.km || ''; setAreas(d.areas); setWorker(d.worker);
+    $('fKm').value = d.km || ''; setAreas(d.areas); setTasks(d.tasks); setWorker(d.worker);
     $('fCost').value = d.cost || ''; if (d.cost) $('costFold').open = true;
     // 以前の下書きは「1行に1本」の文字列で持っていた
     const dv = typeof d.videos === 'string' ? d.videos.split(/\s+/).filter(Boolean).map(url => ({ url, caption: '' })) : (d.videos || []);
@@ -792,7 +813,7 @@
     const rec = {
       title, comment: $('fComment').value.trim() || null, work_date: $('fDate').value,
       odometer_km: $('fKm').value ? Number($('fKm').value) : null,
-      areas: areasVal(), worker: workerVal(), is_public: $('fPublic').checked,
+      areas: areasVal(), tasks: tasksVal(), worker: workerVal(), is_public: $('fPublic').checked,
       video_urls: vrows.map(v => v.url), video_captions: vrows.map(v => v.caption)
     };
     if (mkUrl) rec.minkara_url = mkUrl;
@@ -896,7 +917,7 @@
     $('fPublic').checked = true;
     $('fDate').value = ymd(new Date());
     $('dateHint').classList.add('hidden');
-    setAreas([]); setWorker(null);
+    setAreas([]); setTasks([]); setWorker(null);
     $('cmCount').textContent = '0';
     $('costFold').open = false; $('videoFold').open = false; setVideos([]);
     $('mkEditRow').classList.add('hidden'); $('fMkUrl').value = '';
@@ -933,7 +954,7 @@
     $('fComment').value = editing.comment || ''; $('cmCount').textContent = $('fComment').value.length;
     $('fDate').value = editing.work_date || ymd(new Date());
     $('fKm').value = editing.odometer_km != null ? String(editing.odometer_km) : '';
-    setAreas(editing.areas); setWorker(editing.worker);
+    setAreas(editing.areas); setTasks(editing.tasks); setWorker(editing.worker);
     $('fPublic').checked = !!editing.is_public;
     if (editing.minkara_url) {
       $('mkEditRow').classList.remove('hidden');
@@ -971,7 +992,7 @@
   async function loadMine() {
     const box = $('mineRecent'), rest = $('mineList');
     const { data, error } = await mineScope(supabaseClient.from('maint_records')
-      .select('id, car_id, title, work_date, odometer_km, worker, is_public, areas, source, minkara_url, created_at, maint_photos(thumb_url, url, sort_order)'))
+      .select('id, car_id, title, work_date, odometer_km, worker, is_public, areas, tasks, source, minkara_url, created_at, maint_photos(thumb_url, url, sort_order)'))
       .order('work_date', { ascending: false, nullsFirst: true }).order('created_at', { ascending: true });
     box.textContent = ''; rest.textContent = '';
     if (error) { box.appendChild(el('p', 'lead', '読み込みに失敗しました。')); console.error(error); return; }
@@ -1015,6 +1036,7 @@
       if (r.odometer_km != null) meta.push(fmtKm(r.odometer_km));
       if (r.worker) meta.push(WORKER_LABEL[r.worker]);
       if (ps.length) meta.push('写真' + ps.length + '枚');
+      (r.tasks || []).forEach(t => { if (TASK_LABEL[t]) meta.push(TASK_LABEL[t]); });
       (r.areas || []).forEach(a => meta.push(AREA_LABEL[a]));
       if (!r.is_public) meta.push('🔒 非公開');
       if (meta.length || r.minkara_url) {
