@@ -154,7 +154,9 @@
   async function join() {
     // メールアドレス・同意の日時・入口はサーバー側（mail_subscriptions_guard）が決める
     const { error } = await supabaseClient.from('mail_subscriptions')
-      .insert({ list: 'weekly', email: (user.email || '').toLowerCase(), source: 'signup', policy_version: POLICY_VERSION });
+      .insert({ list: 'weekly', email: (user.email || '').toLowerCase(), policy_version: POLICY_VERSION,
+                // 車を手放したときの問いかけメール（/amici?from=former）から来た人だけ入口を残す
+                source: new URLSearchParams(location.search).get('from') === 'former' ? 'former_owner' : 'signup' });
     if (error) { console.error('[amici] join', error); showErr('登録に失敗しました。少し時間をおいてお試しください。'); return; }
     try { gtag('event', 'amici_join'); } catch (e) {}
     await refresh();

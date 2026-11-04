@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-11-04 18:38 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-11-04 18:44 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -538,6 +538,15 @@ create table public.inquiry_log (
 );
 alter table public.inquiry_log add constraint inquiry_log_pkey PRIMARY KEY (id);
 alter table public.inquiry_log enable row level security;
+
+create table public.mail_former_asks (
+  email text not null,
+  car_id text,
+  asked_at timestamp with time zone not null default now()
+);
+alter table public.mail_former_asks add constraint mail_former_asks_pkey PRIMARY KEY (email);
+alter table public.mail_former_asks add constraint mail_former_asks_email_check CHECK ((email = lower(email)));
+alter table public.mail_former_asks enable row level security;
 
 create table public.mail_subscriptions (
   id uuid not null default gen_random_uuid(),
@@ -1540,7 +1549,7 @@ begin
   new.user_id := auth.uid();
   new.email := lower(auth.jwt() ->> 'email');
   if tg_op = 'INSERT' then
-    new.source := 'signup';
+    new.source := case when new.source = 'former_owner' then 'former_owner' else 'signup' end;
     new.consented_at := now();
     new.unsubscribed_at := null;
     new.unsub_token := gen_random_uuid();
@@ -2252,6 +2261,8 @@ create policy garage_notes_insert on public.garage_notes as permissive for INSER
   with check (((auth.uid() IS NOT NULL) AND (auth.uid() = user_id)));
 create policy garage_notes_select on public.garage_notes as permissive for SELECT to public
   using (true);
+create policy mail_former_asks_admin on public.mail_former_asks as permissive for SELECT to authenticated
+  using (is_admin());
 create policy mail_subscriptions_insert on public.mail_subscriptions as permissive for INSERT to authenticated
   with check (((list = 'weekly'::text) OR is_admin()));
 create policy mail_subscriptions_read on public.mail_subscriptions as permissive for SELECT to authenticated

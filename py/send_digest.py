@@ -82,6 +82,15 @@ METOO_NOTICE_ON = True
 # 数は画面に出さない。ボタンは整備手帳の公開スイッチと一緒にしか出ないので、公開前は押されず何も送らない。
 MAINT_HELPFUL_NOTICE_ON = True
 
+# 車をすべて手放した人に「お知らせだけ続けますか？」を1回だけ（2026-11-04・Amici の段5）。
+# ⚠️このメールは /amici（車なしでお知らせを受け取る登録画面）への案内＝入口と同じ＝入口を開ける日まで False。
+# 対象＝手放して FORMER_ASK_DAYS 日以内・いま手放していない車が1台も無い・まだ聞いていない・週刊にまだ登録していない人。
+# ⛔FORMER_ASK_SINCE より前に手放した人には聞かない（2026-11-04 ユーザー決裁「今回の対象者には送らない。新規の離脱者から」）。
+# 聞いたら mail_former_asks に1行＝二度と聞かない。返事が無ければそれきり（催促しない）。
+FORMER_ASK_ON = False
+FORMER_ASK_DAYS = 30
+FORMER_ASK_SINCE = datetime(2026, 11, 4, 15, 0, tzinfo=timezone.utc)   # 2026-11-05 0:00 JST
+
 # オーナーの記事（ブログなど外部記事へのリンク・/my-articles で載せる）を載せるか（2026-10-29・owner-articles/HANDOFF.md §1-5）。
 # ⚠️ダイジェストは登録オーナー全員に届く＝載せた時点で実質公開。公開の判断をユーザーが出すまで False のまま。
 #    False の間は対象を読まず、印（digest_sent_at）も付けない＝True にした日から14日以内に貼られた分が載る。
@@ -776,6 +785,57 @@ def send_maint_helpful_notices():
     log(f"整備の参考になった: {sent}通送信" + ("（DRY RUN＝管理者宛・記録なし）" if DRY_RUN else ""))
 
 
+def send_former_owner_asks():
+    if not FORMER_ASK_ON:
+        log("手放した人への問いかけ: スイッチ OFF")
+        return
+    since = max(datetime.now(timezone.utc) - timedelta(days=FORMER_ASK_DAYS), FORMER_ASK_SINCE)
+    sold = sb_select("cars", "document_id,handle_name,model_display_c,owner_email,sold_at",
+                     {"is_sold": "eq.true", "sold_at": f"gte.{since.isoformat().replace('+00:00', 'Z')}"},
+                     "order=sold_at.asc")
+    if not sold:
+        log("手放した人への問いかけ: 対象なし")
+        return
+    current = {str(c.get("owner_email") or "").strip().lower()
+               for c in sb_select("cars", "owner_email", {"is_sold": "is.false"})}
+    done = {r["email"] for r in sb_select("mail_former_asks", "email")}
+    done |= {r["email"] for r in sb_select("mail_subscriptions", "email", {"list": "eq.weekly"})}
+    targets = {}
+    for c in sold:   # 手放した日の古い順＝同じ人が2台なら最後に手放した車が残る
+        mail = str(c.get("owner_email") or "").strip().lower()
+        if "@" in mail and mail not in current and mail not in done:
+            targets[mail] = c
+    sent = 0
+    for mail, c in targets.items():
+        body = (f"{c.get('handle_name') or 'オーナー'} さん\n\n"
+                f"{c.get('model_display_c') or 'お車'}を手放されたと伺いました。"
+                "これまで Registro500 / Registro126 Giappone にご登録いただき、ありがとうございました。\n\n"
+                "車を手放されたため、「新着情報のお知らせ」はこれからはお届けしません。\n\n"
+                "車をお持ちでなくても、「週刊 Registro 便り」で、新しい登録車・イベント・記事のお知らせを"
+                "週に1回お届けできます。続けて受け取りたい方は、次のページでメールアドレスを入れ、"
+                "届いた確認コードを入力してください。\n"
+                f"{SITE}/amici?from=former\n\n"
+                "このご案内は1回だけお送りしています。何もしなければ、これ以降お知らせは届きません。\n\n"
+                "---------------------------------------------------------\n"
+                "Registro500 / Registro126 Giappone\n" + SITE + "/\n"
+                "お問い合わせ：registro500giappone@gmail.com")
+        to = ADMIN_EMAIL if DRY_RUN else mail
+        subject = ("[DRY RUN] " if DRY_RUN else "") + "【Registro500/126】これからもお知らせをお届けしましょうか"
+        try:
+            brevo_send({"replyTo": {"name": SENDER_NAME, "email": REPLY_TO_EMAIL},
+                        "to": [{"email": to}], "subject": subject,
+                        "textContent": body, "htmlContent": text_to_html(body)}, timeout=30)
+        except Exception as e:
+            log(f"手放した人への問いかけ 送信エラー（{c['document_id']}）: {e}")
+            continue
+        sent += 1
+        if DRY_RUN:
+            break   # 試運転は管理者に1通だけ・記録しない
+        sb_upsert("mail_former_asks", {"email": mail, "car_id": c["document_id"]},
+                  on_conflict="email", ignore_dup=True)
+    log(f"手放した人への問いかけ: {sent}通送信" + ("（DRY RUN＝管理者宛・記録なし）" if DRY_RUN else ""))
+
+
 if __name__ == "__main__":
     try:
         main()
@@ -799,3 +859,9 @@ if __name__ == "__main__":
         log(f"❌ 整備の参考になったの知らせでエラー: {err}")
         send_admin_alert("【要確認】整備の参考になったの知らせ失敗",
                          f"send_digest.py の send_maint_helpful_notices で例外が発生しました: {err}")
+    try:
+        send_former_owner_asks()
+    except Exception as err:
+        log(f"❌ 手放した人への問いかけでエラー: {err}")
+        send_admin_alert("【要確認】手放した人への問いかけ失敗",
+                         f"send_digest.py の send_former_owner_asks で例外が発生しました: {err}")
