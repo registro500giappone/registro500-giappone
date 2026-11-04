@@ -242,7 +242,7 @@ def main():
         new_events.append({"name": e["event_name"],
                            "date": f"{d.year}年{d.month}月{d.day}日（{'月火水木金土日'[d.weekday()]}）",
                            "url": f"{SITE}/event/{slug}/" if slug else f"{SITE}/event",
-                           "owner": e["owner_name"], "loc": e["location"], "db_id": e["id"]})
+                           "owner": e["owner_name"], "loc": " ".join(str(e["location"] or "").split()), "db_id": e["id"]})
 
     # 4. 新規ストーリー
     eps_raw = sb_select(
