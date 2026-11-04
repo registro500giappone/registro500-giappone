@@ -1392,7 +1392,7 @@
       if (a.is_hidden) sub.push('伏せています（あなたにだけ見えています）');
       return `${title} <span style="font-size:.78rem;color:var(--rg-muted);">（${sub.join('・')}）</span>`;
     }
-    // 「整備だけ」に入る行＝整備の記録と、整備の記事。箇所は両方の areas
+    // 「整備手帳」に入る行＝整備の記録と、整備の記事。箇所は両方の areas
     function isMaintRow(r) { return r.kind === 'maint' || (r.kind === 'article' && r.article.is_maintenance); }
     function rowAreas(r) { return (r.kind === 'maint' ? rgMaintRecs[r.id].areas : r.article.areas) || []; }
 
@@ -1414,12 +1414,12 @@
       return data || [];
     }
 
-    // 「すべて／🔧 整備だけ」。整備の記録がある車にだけ出す（数は出さない）
+    // 「すべて／🔧 整備手帳」。整備の記録がある車にだけ出す（数は出さない）
     function historyControlsHtml() {
       const maintRows = rgHistoryRows.filter(isMaintRow);
       if (!maintRows.length) return '';
       const on = m => rgHistoryFilter.mode === m ? 'true' : 'false';
-      let html = `<div class="rg-maint-seg"><button type="button" data-hmode="all" aria-pressed="${on('all')}">すべて</button><button type="button" data-hmode="maint" aria-pressed="${on('maint')}">🔧 整備だけ</button></div>`;
+      let html = `<div class="rg-maint-seg"><button type="button" data-hmode="all" aria-pressed="${on('all')}">すべて</button><button type="button" data-hmode="maint" aria-pressed="${on('maint')}">🔧 整備手帳</button></div>`;
       if (rgHistoryFilter.mode === 'maint') {
         const used = new Set();
         maintRows.forEach(r => rowAreas(r).forEach(a => used.add(a)));
@@ -1464,7 +1464,7 @@
       if (upBtn) upBtn.onclick = () => { rgUpcomingAll = true; renderHistoryRows(limit); };
     }
 
-    // これからの予定（開催前のイベント）＝近い順に2件まで・残りは開いて見る。「整備だけ」のときは出さない
+    // これからの予定（開催前のイベント）＝近い順に2件まで・残りは開いて見る。「整備手帳」のときは出さない
     let rgUpcomingAll = false;
     function upcomingHtml() {
       if (rgHistoryFilter.mode === 'maint') return '';
