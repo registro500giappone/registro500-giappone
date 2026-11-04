@@ -1083,7 +1083,8 @@
   }
 
   // 車を手放すときなどに、その車の記録をまとめて非公開にする（2026-11-04 ユーザー決裁＝まとめて消すは作らない）。
-  // 1件ずつ直せば公開に戻せる。確認のダイアログは出さず2度押し（お絵描き帳の削除と同じ）
+  // 1件ずつ直せば公開に戻せる。確認のダイアログは出さず2度押し（お絵描き帳の削除と同じ）。
+  // 2度目は1度目から0.8秒たってから＝指が続けて触れただけ（ダブルタップ）では実行しない
   function renderBulk(data, carLabel) {
     const bulk = $('mineBulk');
     bulk.textContent = '';
@@ -1096,8 +1097,9 @@
       b.type = 'button';
       b.style.display = 'block'; b.style.margin = '6px 0';
       b.addEventListener('click', async () => {
-        if (!b.dataset.sure) {
-          b.dataset.sure = '1'; const t = b.textContent; b.textContent = 'もう一度押すと非公開にします';
+        if (!b.dataset.sure || Date.now() - Number(b.dataset.sure) < 800) {
+          if (b.dataset.sure) return;
+          b.dataset.sure = String(Date.now()); const t = b.textContent; b.textContent = 'もう一度押すと非公開にします';
           setTimeout(() => { if (b.isConnected && !b.disabled) { delete b.dataset.sure; b.textContent = t; } }, 4000);
           return;
         }
