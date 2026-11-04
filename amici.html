@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Amici（アミーチ）になる | Registro500 Giappone</title>
+  <meta name="description" content="車をお持ちでなくても、週刊 Registro 便りで新しい登録車・イベント・記事のお知らせを週に1回お届けします。">
+  <link rel="canonical" href="https://www.registro500.com/amici">
+  <meta property="og:title" content="Amici（アミーチ）になる">
+  <meta property="og:description" content="車をお持ちでなくても、週刊 Registro 便りで新しい登録車・イベント・記事のお知らせを週に1回お届けします。">
+  <meta property="og:url" content="https://www.registro500.com/amici">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Registro500 Giappone">
+  <meta property="og:image" content="https://www.registro500.com/og/site-ja.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-27SHHC4JYH');
+  </script>
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
+  <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
+  <style>
+    :root { --ink: #1f2937; --sub: #6b7280; --bg: #faf7f2; --card: #ffffff; --line: #e5e0d8;
+            --accent: #c0392b; --ok-bg: #ecfdf5; --ok-ink: #065f46; --err-bg: #fef2f2; --err-ink: #991b1b; }
+    @media (prefers-color-scheme: dark) {
+      :root { --ink: #e5e7eb; --sub: #9ca3af; --bg: #16130f; --card: #221e19; --line: #3a342c;
+              --accent: #e06c5e; --ok-bg: #0f2a22; --ok-ink: #a7f3d0; --err-bg: #2c1515; --err-ink: #fecaca; }
+    }
+    body { margin: 0; background: var(--bg); color: var(--ink);
+           font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; line-height: 1.8; }
+    main { max-width: 560px; margin: 0 auto; padding: 40px 16px 56px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 26px 20px; }
+    h1 { font-size: 1.3rem; margin: 0 0 6px; }
+    .lead { margin: 0 0 18px; }
+    p { margin: 0 0 12px; }
+    .sub { color: var(--sub); font-size: .88rem; }
+    .col { display: flex; flex-direction: column; gap: 10px; }
+    input[type=email], input[type=text] { font-size: 1rem; padding: 11px 12px; border: 1px solid var(--line);
+           border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; }
+    .otp-code { letter-spacing: .4em; text-align: center; font-size: 1.3rem; }
+    .btn-main { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 12px 20px;
+           font-size: 1rem; font-weight: 700; cursor: pointer; }
+    .btn-sub { background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 8px;
+           padding: 10px 18px; font-size: .95rem; cursor: pointer; }
+    .link-btn { background: none; border: none; color: var(--accent); cursor: pointer; padding: 0; font-size: .9rem; text-align: left; }
+    button:disabled { opacity: .5; cursor: default; }
+    .msg { border-radius: 8px; padding: 10px 12px; font-size: .92rem; }
+    .msg.ok { background: var(--ok-bg); color: var(--ok-ink); }
+    .msg.err { background: var(--err-bg); color: var(--err-ink); }
+    a { color: var(--accent); }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>🤝 Amici（アミーチ）になる</h1>
+    <p class="lead">車をお持ちでなくても、「週刊 Registro 便り」で新しい登録車・イベント・記事のお知らせを週に1回お届けします。メールアドレスだけで登録でき、いつでも配信を止められます。</p>
+
+    <p id="stateLoading" class="sub">読み込み中…</p>
+
+    <!-- ログイン前：確認コードの入力が、本人確認と配信への同意を兼ねる -->
+    <div id="stateLogin" class="hidden">
+      <div id="otpStep1" class="col">
+        <input type="email" id="emailInput" autocomplete="email" placeholder="メールアドレス">
+        <button type="button" class="link-btn hidden" id="clearEmailBtn">別のアドレスを使う</button>
+        <button type="button" class="btn-main" id="sendBtn">確認コードを送信</button>
+      </div>
+      <div id="otpStep2" class="col hidden">
+        <p class="msg ok">✅ <strong id="otpSentEmail"></strong> に6桁の確認コードを送信しました。届いたコードを入力してください。</p>
+        <input type="text" id="codeInput" class="otp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+        <button type="button" class="btn-main" id="verifyBtn">登録する</button>
+        <button type="button" class="link-btn" id="resendBtn">確認コードを再送する</button>
+      </div>
+      <p class="sub" style="margin-top:14px">確認コードを入力すると、「週刊 Registro 便り」の配信に同意したものとして登録します。メールアドレスの扱いは<a href="/policy">プライバシーポリシー</a>をご覧ください。</p>
+    </div>
+
+    <!-- ログイン済み・未登録（ほかの画面でログインしてから来た人）＝ボタンで同意 -->
+    <div id="stateAsk" class="hidden col">
+      <p><strong class="who"></strong> で「週刊 Registro 便り」を受け取ります。</p>
+      <button type="button" class="btn-main" id="joinBtn">受け取る</button>
+      <p class="sub">メールアドレスの扱いは<a href="/policy">プライバシーポリシー</a>をご覧ください。</p>
+    </div>
+
+    <!-- 登録済み -->
+    <div id="stateOn" class="hidden col">
+      <p class="msg ok">🤝 Amici に登録しました。<strong class="who"></strong> に「週刊 Registro 便り」を週に1回お届けします。</p>
+      <p class="sub">配信は、毎回のメールにあるリンクか、下のボタンからいつでも止められます。</p>
+      <button type="button" class="btn-sub" id="stopBtn">配信を止める</button>
+    </div>
+
+    <!-- 停止中 -->
+    <div id="stateOff" class="hidden col">
+      <p><strong class="who"></strong> への「週刊 Registro 便り」は止まっています。</p>
+      <button type="button" class="btn-main" id="resumeBtn">また受け取る</button>
+    </div>
+
+    <!-- 手放していない車の持ち主＝朝の新着情報がすでに届く（週刊は一般公開版なので要らない） -->
+    <div id="stateOwner" class="hidden col">
+      <p>オーナーとしてご登録いただいている方には、「新着情報のお知らせ」を新着がある日の朝にお届けしています。週刊 Registro 便りの内容もそちらに含まれますので、あらためての登録は不要です。</p>
+      <p><a href="/">トップページへ</a></p>
+    </div>
+
+    <p id="errMsg" class="msg err hidden"></p>
+    <p class="sub hidden" id="logoutRow" style="margin-top:16px"><button type="button" class="link-btn" id="logoutBtn">別のメールアドレスで登録する（ログアウト）</button></p>
+  </div>
+</main>
+
+<script>
+(function () {
+  // 同意したポリシーの版＝policy.html の改定日。⏳入口を開ける日にポリシーへ週刊 Registro 便りの段落を足したら、その改定日に替える
+  const POLICY_VERSION = '2026-11-04';
+  const $ = id => document.getElementById(id);
+  const STATES = ['stateLoading', 'stateLogin', 'stateAsk', 'stateOn', 'stateOff', 'stateOwner'];
+  const show = id => STATES.forEach(k => $(k).classList.toggle('hidden', k !== id));
+  const showErr = msg => { $('errMsg').textContent = msg || ''; $('errMsg').classList.toggle('hidden', !msg); };
+  let user = null, row = null;
+  let joinOnLogin = false;   // この画面で確認コードを入れた＝その入力を同意として登録する
+
+  async function refresh() {
+    showErr('');
+    const { data: sess } = await supabaseClient.auth.getSession();
+    user = sess && sess.session ? sess.session.user : null;
+    $('logoutRow').classList.toggle('hidden', !user);
+    if (!user) { show('stateLogin'); return; }
+    document.querySelectorAll('.who').forEach(el => { el.textContent = user.email; });
+    try {
+      // owner_email は読めない列＝ほかの画面と同じく、まだ結び付いていない車をログインした人へ結んでから owner_user_id で見る
+      try { await supabaseClient.rpc('link_owner_car'); } catch (e) { console.error(e); }
+      const { data: cars, error: e1 } = await supabaseClient.from('cars').select('document_id')
+        .eq('is_sold', false).eq('owner_user_id', user.id).limit(1);
+      if (e1) throw e1;
+      if (cars && cars.length) { show('stateOwner'); return; }
+      const { data: rows, error: e2 } = await supabaseClient.from('mail_subscriptions')
+        .select('id, unsubscribed_at').eq('list', 'weekly').limit(1);
+      if (e2) throw e2;
+      row = rows && rows[0] || null;
+      if (!row && joinOnLogin) { joinOnLogin = false; await join(); return; }
+      show(!row ? 'stateAsk' : row.unsubscribed_at ? 'stateOff' : 'stateOn');
+    } catch (err) {
+      console.error('[amici]', err);
+      show(null);
+      showErr('読み込みに失敗しました。再読み込みしてください。');
+    }
+  }
+
+  async function join() {
+    // メールアドレス・同意の日時・入口はサーバー側（mail_subscriptions_guard）が決める
+    const { error } = await supabaseClient.from('mail_subscriptions')
+      .insert({ list: 'weekly', email: (user.email || '').toLowerCase(), source: 'signup', policy_version: POLICY_VERSION });
+    if (error) { console.error('[amici] join', error); showErr('登録に失敗しました。少し時間をおいてお試しください。'); return; }
+    try { gtag('event', 'amici_join'); } catch (e) {}
+    await refresh();
+  }
+
+  async function setStopped(stopped) {
+    const patch = stopped ? { unsubscribed_at: new Date().toISOString() }
+                          : { unsubscribed_at: null, policy_version: POLICY_VERSION };   // 再開＝同意の取り直し
+    const { error } = await supabaseClient.from('mail_subscriptions').update(patch).eq('id', row.id);
+    if (error) { console.error('[amici] update', error); showErr('うまくいきませんでした。少し時間をおいてお試しください。'); return; }
+    await refresh();
+  }
+
+  $('joinBtn').addEventListener('click', async e => { e.target.disabled = true; await join(); e.target.disabled = false; });
+  $('stopBtn').addEventListener('click', async e => { e.target.disabled = true; await setStopped(true); e.target.disabled = false; });
+  $('resumeBtn').addEventListener('click', async e => { e.target.disabled = true; await setStopped(false); e.target.disabled = false; });
+  $('logoutBtn').addEventListener('click', async () => { await supabaseClient.auth.signOut(); row = null; refresh(); });
+
+  // ── メールの確認コード（my-fuel.html と同じ流れ） ──
+  let otpEmail = '';
+  $('sendBtn').addEventListener('click', async () => {
+    const email = $('emailInput').value.trim();
+    if (!email) { showErr('メールアドレスを入力してください。'); return; }
+    const btn = $('sendBtn');
+    btn.disabled = true; btn.textContent = '送信中…';
+    const { error } = await supabaseClient.auth.signInWithOtp({ email });
+    btn.disabled = false; btn.textContent = '確認コードを送信';
+    const sentBefore = !!error && /after [0-9]+ seconds/.test(String(error.message));
+    if (error && !sentBefore) { showErr(error.status === 429 ? '送信が続いたため一時的に止まっています。数分おいてからお試しください。' : '送信に失敗しました：' + error.message); return; }
+    otpEmail = email;
+    try { localStorage.setItem('r500_login_email', email); } catch (e) {}
+    $('otpSentEmail').textContent = email;
+    $('otpStep1').classList.add('hidden');
+    $('otpStep2').classList.remove('hidden');
+    showErr(sentBefore ? '確認コードは少し前に送信済みです。届いているメールの、いちばん新しいコードを入力してください。' : '');
+  });
+  $('verifyBtn').addEventListener('click', async () => {
+    const code = $('codeInput').value.trim();
+    if (!code) { showErr('確認コードを入力してください。'); return; }
+    const btn = $('verifyBtn');
+    btn.disabled = true; btn.textContent = '確認中…';
+    joinOnLogin = true;
+    const { error } = await supabaseClient.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
+    btn.disabled = false; btn.textContent = '登録する';
+    if (error) { joinOnLogin = false; showErr('コードが正しくないか、期限切れです。何度か送信した場合は、いちばん新しいメールのコードを入力してください。'); return; }
+    await refresh();
+  });
+  $('resendBtn').addEventListener('click', async () => {
+    if (!otpEmail) return;
+    const { error } = await supabaseClient.auth.signInWithOtp({ email: otpEmail });
+    showErr(error ? (error.status === 429 ? '再送は1分ほど間をあけてからお試しください。直前に届いたコードはそのまま使えます。' : '再送に失敗しました：' + error.message) : '');
+  });
+  (function () {
+    let saved = null;
+    try { saved = localStorage.getItem('r500_login_email'); } catch (e) {}
+    if (saved) { $('emailInput').value = saved; $('clearEmailBtn').classList.remove('hidden'); }
+    $('clearEmailBtn').addEventListener('click', () => {
+      $('emailInput').value = '';
+      $('clearEmailBtn').classList.add('hidden');
+      try { localStorage.removeItem('r500_login_email'); } catch (e) {}
+      $('emailInput').focus();
+    });
+  })();
+
+  refresh();
+})();
+</script>
+<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "60f959409b1e4eb29308eeb53615812a"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
