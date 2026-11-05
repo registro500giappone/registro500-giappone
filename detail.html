@@ -1174,7 +1174,27 @@
       } catch(e) { alert(e.message || "通信エラー"); btn.disabled = false; btn.textContent = "送信する"; }
     };
 
-    function showQRCode() { openModal(`<div class="rg-modal-box" style="text-align:center;"><img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(location.href)}"><p class="rg-modal-note" style="margin-top:1rem;">カメラで読み取ってください</p></div>`); }
+    // QR はページの中で描く（外部の作成サービスへ URL を送らない・2026-11-05）。ライブラリは押したときだけ読む
+    let qrLib;
+    function loadQr() {
+      return qrLib ||= new Promise((ok, ng) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
+        s.integrity = 'sha384-8FWZA6BGMXhsfO+BLtrJK0We6gg5o1JyO8xQm6peWDEUs17ACA5ziE/NIAkl9z2k';
+        s.crossOrigin = 'anonymous';
+        s.onload = () => ok(window.qrcode); s.onerror = () => { qrLib = null; ng(new Error('qr')); };
+        document.head.appendChild(s);
+      });
+    }
+    async function showQRCode() {
+      openModal(`<div class="rg-modal-box" style="text-align:center;"><div id="qrBox" style="width:200px;height:200px;margin:0 auto;display:grid;place-items:center;background:#fff;">読み込んでいます…</div><p class="rg-modal-note" style="margin-top:1rem;">カメラで読み取ってください</p></div>`);
+      const box = document.getElementById('qrBox');
+      try {
+        const qr = (await loadQr())(0, 'M'); qr.addData(location.href); qr.make();
+        box.innerHTML = qr.createSvgTag({ cellSize: 5, margin: 4, scalable: true });
+        box.firstElementChild.style.cssText = 'width:100%;height:100%;';
+      } catch (e) { box.textContent = 'QRコードを表示できませんでした'; }
+    }
     function openModal(html) {
       const m = document.createElement('div'); m.className = 'rg-modal is-open';
       m.innerHTML = `<div class="rg-modal-wrap">${html}<button class="rg-modal-close" aria-label="閉じる">✕</button></div>`;
