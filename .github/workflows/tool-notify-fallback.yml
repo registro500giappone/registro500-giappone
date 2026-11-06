@@ -1,0 +1,25 @@
+name: おすすめ工具の新着通知（保険）
+
+# 新着は管理人PCの py/tool_pick.py --local が「購入リンク候補つき」で送る。
+# PCが動かず投稿から6時間たっても未通知の分だけ、ここで候補なしで送る（1件1回は admin_notified_at の印で守る）。
+on:
+  schedule:
+    - cron: '35 * * * *'   # 毎時35分（0分は混みやすい）
+  workflow_dispatch:
+
+jobs:
+  fallback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: py/.env を作る
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > py/.env
+          echo "SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}" >> py/.env
+          echo "BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}" >> py/.env
+      - name: 6時間たった未通知を送る
+        run: python py/tool_pick.py --fallback

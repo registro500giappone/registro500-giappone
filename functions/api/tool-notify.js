@@ -191,6 +191,18 @@ export async function onRequestPost({ request, env }) {
         && String(car.owner_email || "").toLowerCase() === String(user.email).toLowerCase()));
     if (!owns) return json({ success: false }, 403);
 
+    // 【2026-11-06】公式APIでぴったりの商品が見つからないときは、ここでは送らない。
+    // 管理人のローカルPC（py/tool_pick.py --local）が候補を探して「候補つき」で送る。
+    // PCが動いていなくても、6時間後に GitHub Actions（--fallback）が候補なしで送る。
+    let found;
+    try {
+      found = await findAmazon(env, tool.name);
+    } catch (e) {
+      console.error("Amazon 自動リンクのエラー:", e);
+      found = { reason: String(e.message || e) };
+    }
+    if (!found.url) return json({ success: true, deferred: true });
+
     // 先に印を付ける（空の行だけ）＝1件1回
     const claim = await fetch(
       `${base}/rest/v1/owner_tools?id=eq.${toolId}&admin_notified_at=is.null`, {
@@ -204,22 +216,16 @@ export async function onRequestPost({ request, env }) {
     // 購入リンクの自動付与（失敗しても通知は続ける）
     let amazonLine;
     try {
-      const found = await findAmazon(env, tool.name);
-      if (found.url) {
-        const put = await fetch(`${base}/rest/v1/owner_tools?id=eq.${toolId}&amazon_url=is.null`, {
-          method: "PATCH",
-          headers: { ...svc, "Content-Type": "application/json", Prefer: "return=minimal" },
-          body: JSON.stringify({ amazon_url: found.url }),
-        });
-        if (!put.ok) throw new Error(`amazon_url HTTP ${put.status}`);
-        amazonLine = `購入リンクを自動で付けました。
+      const put = await fetch(`${base}/rest/v1/owner_tools?id=eq.${toolId}&amazon_url=is.null`, {
+        method: "PATCH",
+        headers: { ...svc, "Content-Type": "application/json", Prefer: "return=minimal" },
+        body: JSON.stringify({ amazon_url: found.url }),
+      });
+      if (!put.ok) throw new Error(`amazon_url HTTP ${put.status}`);
+      amazonLine = `購入リンクを自動で付けました。
 　商品名: ${found.title}
 　リンク: ${found.url}
 違う商品だったら「リンクを外して」と指示してください。`;
-      } else {
-        amazonLine = `購入リンクは自動では付けていません（${found.reason}）。
-付けるときは「工具のリンクを付けて」と指示してください。`;
-      }
     } catch (e) {
       console.error("Amazon 自動リンクのエラー:", e);
       amazonLine = `購入リンクの自動付与でエラー（${e.message || e}）。
