@@ -352,12 +352,31 @@
       return [...acc];
     }
 
+    // 検索語の言い換え。単独の「ロック」「ラッチ」はブロック・クラッチに当たるため、ドアの錠前の語に読み替える。
+    // 手順カードの本文は日本語＋原語併記（serratura / Türschloss 等）なので原語も入れる。
+    const DOOR_LOCK = ['ドアロック','ドアラッチ','ドアキャッチ','serratura','Türschloss','door lock','door latch'];
+    const SEARCH_SYN = {
+      'ドアロック':DOOR_LOCK, 'ドアラッチ':DOOR_LOCK, 'ドアキャッチ':DOOR_LOCK, 'ロック':DOOR_LOCK, 'ラッチ':DOOR_LOCK,
+      'ドアノブ':['ドアノブ','ドアハンドル','maniglia','Türgriff','door handle'],
+      'ドアハンドル':['ドアノブ','ドアハンドル','maniglia','Türgriff','door handle']
+    };
+    function searchTerms(q){
+      return q.replace(/[%,"()\\]/g,' ').split(/[\s　]+/).filter(Boolean).map(w=>SEARCH_SYN[w]||[w]);
+    }
+    let searchBody = false;  // true＝題名で0件だったので本文まで広げて探している
+
     function buildQuery(forCount){
       let qy = sb.from('videos').select('id,youtube_id,title_ja,title_original,channel_name,duration_seconds,thumbnail_url,view_count,has_captions,embeddable,has_steps,source_tier,recommended_by_name', forCount?{count:'exact',head:true}:{});
       if(state.system){ const ids=systemCatIds(state.system); qy=qy.in('category_id', ids.length?ids:['00000000-0000-0000-0000-000000000000']); }
       if(currentIds!==null){ qy=qy.in('id', currentIds.length?currentIds:['00000000-0000-0000-0000-000000000000']); }
       if(state.channel){ qy=qy.eq('channel_name', state.channel); }
-      if(state.q){ const t=state.q.replace(/[%,]/g,' ').trim(); qy=qy.or(`title_ja.ilike.%${t}%,title_original.ilike.%${t}%`); }
+      if(state.q){
+        // 語ごとに AND。各語は言い換え（SEARCH_SYN）に広げて OR。題名で0件のときだけ手順・解説の本文（search_text）まで探す。
+        const cols = searchBody ? ['search_text'] : ['title_ja','title_original'];
+        searchTerms(state.q).forEach(group=>{
+          qy = qy.or(group.flatMap(w=>cols.map(c=>`${c}.ilike."%${w}%"`)).join(','));
+        });
+      }
       if(state.cc){ qy=qy.eq('has_captions',true); }
       return qy;
     }
@@ -507,9 +526,13 @@
 
       if(reset){
         currentIds = await resolveIdFilter();
-        const {count} = await buildQuery(true);
+        searchBody = false;
+        let {count} = await buildQuery(true);
+        if(!count && state.q){ searchBody = true; ({count} = await buildQuery(true)); }
         total = count||0;
-        document.getElementById('countLabel').textContent = total>0?`${total}本（実践How-to優先・信頼ソース順→人気順）`:'';
+        document.getElementById('countLabel').textContent = total>0
+          ? (searchBody ? `題名には無いため、手順・解説の中に「${state.q}」が出てくる動画 ${total}本` : `${total}本（実践How-to優先・信頼ソース順→人気順）`)
+          : '';
       }
 
       // 並び：①実践How-to(整備/レストア/チューニング=手を動かす系)を最上帯へ → ②見る系(走行/歴史/購入)等カテゴリ有り → ③未分類 → 各帯内は信頼チャンネル優先(source_tier昇順)→人気順
