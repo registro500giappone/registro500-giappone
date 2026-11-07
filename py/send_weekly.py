@@ -24,7 +24,7 @@ import time
 from datetime import datetime, timedelta, timezone
 
 from common import (cfg, require, supa_key, sb_select, sb_upsert, ADMIN_EMAIL, SITE)
-from send_digest import (log, send_personal, send_broadcast, send_admin_alert, unsub_footer, CHUNK_SIZE,
+from send_digest import (log, sama, send_personal, send_broadcast, send_admin_alert, unsub_footer, CHUNK_SIZE,
                          TOOLS_DIGEST_ON, MAINT_DIGEST_ON, ARTICLES_DIGEST_ON)
 
 WINDOW_DAYS = 7
@@ -160,15 +160,15 @@ def main():
     if cars:
         body += section("🚗", f"新しい仲間（{len(cars)}台）が登録されました")
         for c in cars[:LIST_MAX]:
-            body += (f"・{c.get('model_display_c') or 'FIAT 500'}（{c.get('handle_name') or 'オーナー'}様）\n"
+            body += (f"・{c.get('model_display_c') or 'FIAT 500'}（{sama(c.get('handle_name') or 'オーナー')}）\n"
                      f"　{SITE}/detail?doc={c['document_id']}\n")
         body += more(len(cars))
     if events:
         body += section("📅", f"これからのイベント（{len(events)}件）", "/event")
         for e in events[:LIST_MAX]:
             slug = slugs.get(e["id"])   # 個別ページがまだ無い登録直後のものは、見出しの一覧へ
-            body += (f"・{e['event_name']}（{e.get('owner_name') or ''}様）\n"
-                     f"　日時：{jp_date(e['event_date'])}　場所：{' '.join(str(e.get('location') or '').split())}\n")
+            body += (f"・{e['event_name']}（{sama(e.get('owner_name') or '')}）\n"
+                     f"　日時：{jp_date(e['event_date'])}\n")   # 場所は載せずサイトへ誘う（2026-11-07 ユーザー指示）
             if slug:
                 body += f"　{SITE}/event/{slug}/\n"
         body += more(len(events))
@@ -180,26 +180,26 @@ def main():
         body += section("📖", f"新しいストーリー（{len(eps)}件）が投稿されました", "/stories")
         for e in eps[:LIST_MAX]:
             owner = (ep_cars.get(e.get("car_id")) or {}).get("handle_name") or "オーナー"
-            body += f"・「{e.get('title') or '(無題)'}」（{owner}様）\n　{SITE}/episode?ep={e['id']}\n"
+            body += f"・「{e.get('title') or '(無題)'}」（{sama(owner)}）\n　{SITE}/episode?ep={e['id']}\n"
         body += more(len(eps))
     if tools:
         body += section("🔧", f"新しいおすすめ工具・パーツ（{len(tools)}件）が登録されました", "/tools")
         for t in tools[:LIST_MAX]:
-            body += f"・{t['name']}（{(tl_cars.get(t.get('car_id')) or {}).get('handle_name') or 'オーナー'}様）\n"
+            body += f"・{t['name']}（{sama((tl_cars.get(t.get('car_id')) or {}).get('handle_name') or 'オーナー')}）\n"
         body += more(len(tools))
     if maint:
         body += section("🛠️", f"新しい整備の記録（{sum(len(m['titles']) for m in maint)}件）が登録されました",
                         "/maintenance")
         for m in maint[:LIST_MAX]:
             names = "・".join(m["titles"][:3]) + (f" ほか{len(m['titles']) - 3}件" if len(m["titles"]) > 3 else "")
-            body += (f"・{m['car'].get('model_display_c') or 'FIAT 500'}（{m['car'].get('handle_name') or 'オーナー'}様）"
+            body += (f"・{m['car'].get('model_display_c') or 'FIAT 500'}（{sama(m['car'].get('handle_name') or 'オーナー')}）"
                      f"：{names}\n　{SITE}/detail?doc={m['doc']}#history\n")
         body += more(len(maint))
     if articles:
         body += section("✍️", f"オーナーの記事（{len(articles)}件）")
         for a in articles[:LIST_MAX]:
             via = f"・{a['site_name']}" if a.get("site_name") else ""
-            body += f"・「{a['title']}」（{a['owner']}様{via}）\n　{a['url']}\n"
+            body += f"・「{a['title']}」（{sama(a['owner'])}{via}）\n　{a['url']}\n"
         body += more(len(articles))
 
     # 未来のオーナーへの道筋（2026-11-04 ユーザー決裁＝興味の維持→購入→オーナー登録）。毎号の末尾に同じ一言

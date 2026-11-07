@@ -51,6 +51,7 @@ from datetime import datetime, timedelta, timezone
 
 # 設定（py/.env 優先・無ければ環境変数）・Supabase REST・Brevo は py/common.py に寄せた（2026-09-30）。
 # 差出人などの定数は main.gs と同一の値を common.py が持つ。
+from mail_html import text_to_html as _mail_html
 from common import (cfg, require, supa_key, sb_select, sb_patch, sb_rpc, sb_upsert, brevo_send,
                     SENDER_EMAIL, SENDER_NAME, REPLY_TO_EMAIL, ADMIN_EMAIL, SITE)
 
@@ -108,20 +109,19 @@ def log(msg):
 # =========================================================
 # Brevo（送信そのものは common.brevo_send）
 # =========================================================
+ADMIN_NAMES = ("管理者", "管理人")
+
+
+def sama(name):
+    """名前に「様」を付ける。管理者には付けない（2026-11-07 ユーザー指示）。"""
+    name = str(name or "").strip()
+    return name if name in ADMIN_NAMES else f"{name}様"
+
+
 def text_to_html(text):
-    """main.gs textToHtml_ の移植"""
-    escaped = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    linked = re.sub(
-        r'https?://[^\s<>"]+',
-        lambda m: f'<a href="{m.group(0)}" style="color:#c0392b;">{m.group(0)}</a>',
-        escaped,
-    )
-    body = linked.replace("\n", "<br>\n")
-    return (
-        '<!DOCTYPE html><html><body style="font-family:sans-serif;font-size:14px;'
-        'line-height:1.8;color:#333;max-width:600px;margin:0 auto;padding:20px;">'
-        + body + "</body></html>"
-    )
+    """テキスト本文の書き方を読み取って HTML 版を作る（2026-11-07 体裁を刷新＝py/mail_html.py）。
+    ⛔件名をメール本文の冒頭に題字として出さない＝メールアプリが件名を上に出すので二重になる（同日 ユーザー判断）"""
+    return _mail_html(text)
 
 
 def send_broadcast(bcc_list, subject, text_body):
@@ -390,19 +390,19 @@ def main():
     if new_cars:
         body += section("🚗", f"新しい仲間（{len(new_cars)}台）が登録されました")
         for c in new_cars:
-            body += f"・{c['model']}（{c['name']}様）\n　{SITE}/detail?doc={c['id']}\n"
+            body += f"・{c['model']}（{sama(c['name'])}）\n　{SITE}/detail?doc={c['id']}\n"
 
     if new_events:
         body += section("📅", f"新しいイベント（{len(new_events)}件）が登録されました", "/event")
         for e in new_events:
-            body += (f"・{e['name']}（{e['owner']}様）\n"
-                     f"　日時：{e['date']}　場所：{e['loc']}\n"
+            body += (f"・{e['name']}（{sama(e['owner'])}）\n"
+                     f"　日時：{e['date']}\n"   # 場所は載せずサイトへ誘う（2026-11-07 ユーザー指示）
                      f"　{e['url']}\n")
 
     if new_episodes:
         body += section("📖", f"新しいストーリー（{len(new_episodes)}件）が投稿されました", "/stories")
         for e in new_episodes:
-            body += f"・「{e['title']}」（{e['owner']}様）\n　{SITE}/episode?ep={e['id']}\n"
+            body += f"・「{e['title']}」（{sama(e['owner'])}）\n　{SITE}/episode?ep={e['id']}\n"
 
     if new_notebooks:
         body += section("🧰", f"新しい車載手帳（{len(new_notebooks)}冊）が登録されました", "/equipment")
@@ -415,13 +415,13 @@ def main():
                         "/maintenance")
         for m in new_maint:
             names = "・".join(m["titles"][:3]) + (f" ほか{len(m['titles']) - 3}件" if len(m["titles"]) > 3 else "")
-            body += f"・{m['model']}（{m['owner']}様）：{names}\n　{SITE}/detail?doc={m['doc']}#history\n"
+            body += f"・{m['model']}（{sama(m['owner'])}）：{names}\n　{SITE}/detail?doc={m['doc']}#history\n"
 
     if new_tools:
         # 個々の投稿ではなく一覧の先頭へ（2026-10-29 ユーザー指示＝ついでに全部見てほしい）
         body += section("🔧", f"新しいおすすめ工具・パーツ（{len(new_tools)}件）が登録されました", "/tools")
         for t in new_tools[:TOOLS_LIST_MAX]:
-            body += f"・{t['name']}（{t['owner']}様）\n"
+            body += f"・{t['name']}（{sama(t['owner'])}）\n"
         if len(new_tools) > TOOLS_LIST_MAX:
             body += f"・ほか{len(new_tools) - TOOLS_LIST_MAX}件\n"
 
@@ -430,7 +430,7 @@ def main():
         body += section("📝", f"オーナーの記事（{len(new_articles)}件）が登録されました", "/activity")
         for a in new_articles:
             via = f"・{a['site']}" if a["site"] else ""
-            body += f"・「{a['title']}」（{a['owner']}様{via}）\n　{a['url']}\n"
+            body += f"・「{a['title']}」（{sama(a['owner'])}{via}）\n　{a['url']}\n"
 
     if news:
         body += f"\n■ 📢 お知らせ（{len(news)}件）\n一覧：{SITE}/news\n"
