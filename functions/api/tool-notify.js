@@ -22,6 +22,8 @@
  *   任意: AMAZON_CLIENT_ID / AMAZON_CLIENT_SECRET（Creators API の認証情報＝py/.env の PAAPI_ACCESS_KEY / PAAPI_SECRET_KEY と同じ値）
  */
 
+import { textToHtml } from "../_lib/mail_html.js";
+
 const SENDER_EMAIL = "news@registro500.com";
 const SENDER_NAME = "Registro500 Giappone";
 const ADMIN_EMAIL = "registro500giappone@gmail.com";
@@ -255,6 +257,7 @@ ${amazonLine}
         to: [{ email: ADMIN_EMAIL }],
         subject,
         textContent: body,
+        htmlContent: textToHtml(body),
       }),
     });
     if (!send.ok) {

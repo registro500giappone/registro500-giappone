@@ -28,6 +28,7 @@ from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import require, supa_url, supa_key, sb_select, sb_upsert, _request, brevo_send  # noqa: E402
+from mail_html import text_to_html  # noqa: E402
 
 ADMIN_EMAIL = "registro500giappone@gmail.com"
 SITE = "https://www.registro500.com"
@@ -197,6 +198,7 @@ def send_mail(tool, car, amazon_block, dry):
         return
     brevo_send({
         "to": [{"email": ADMIN_EMAIL}], "subject": subject, "textContent": body,
+        "htmlContent": text_to_html(body),
         "trackClicks": False, "trackOpens": False,   # リンクを書き換えさせない（アフィのURLをそのまま）
     })
 

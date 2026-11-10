@@ -16,6 +16,8 @@
  *   SUPABASE_URL / SUPABASE_SECRET_KEY / BREVO_API_KEY
  */
 
+import { textToHtml } from "../_lib/mail_html.js";
+
 const SENDER_EMAIL = "news@registro500.com";
 const SENDER_NAME = "Registro500 Giappone";
 const SITE = "https://www.registro500.com";
@@ -105,6 +107,7 @@ Registro500 Giappone 運営事務局
         to: [{ email: to }],
         subject,
         textContent: body,
+        htmlContent: textToHtml(body),
       }),
     });
     if (!res.ok) throw new Error(`Brevo HTTP ${res.status} / ${await res.text()}`);
