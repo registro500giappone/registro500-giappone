@@ -169,7 +169,7 @@ PAGE_LABEL = {
     "/mappa": "マップ", "/parts-shops": "パーツ店", "/126/": "126姉妹サイト",
     "/spot-guide": "スポット案内", "/spot": "スポット", "/goods": "物販",
     "/stats": "統計", "/parts": "パーツ", "/news": "お知らせ", "/howto": "使い方",
-    "/support": "支援", "/garage-notes": "整備メモ", "/mypage": "マイページ",
+    "/support": "応援", "/garage-notes": "整備メモ", "/mypage": "マイページ",
 }
 REF_LABEL = {
     "www.registro500.com": "サイト内回遊", "(直接)": "直接・ブックマーク",
