@@ -362,6 +362,26 @@
   function safeName(s) {
     return String(s || '').replace(/[\\/:*?"<>|\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || '無題';
   }
+  // 整備手帳の読む用ドキュメントは年ごと（2026-11-11 ユーザー決裁＝整備がいちばん大事・写真を1枚も漏らさない）
+  const maintYear = r => (fmtDate(r.work_date) || '').slice(0, 4) || '日付なし';
+  const maintDocName = c => '整備手帳 ' + c.year + (c.of > 1 ? ' その' + c.no : '') + '（読む用）';
+  // 年ごとに、写真が DOC_IMG_MAX 枚を超えないよう日付順に区切る（1件の記録は分けない）。写真を多用する人は1年が数冊になる
+  function maintChunks(d) {
+    const nPhotos = new Map(); d.maint_photos.forEach(p => nPhotos.set(p.record_id, (nPhotos.get(p.record_id) || 0) + 1));
+    const byYear = {}; d.maint_records.forEach(r => (byYear[maintYear(r)] = byYear[maintYear(r)] || []).push(r));
+    const out = [];
+    Object.keys(byYear).sort().reverse().forEach(year => {
+      const list = byYear[year].slice().sort((a, b) => String(a.work_date || '') < String(b.work_date || '') ? -1 : 1);
+      const parts = []; let cur = null;
+      list.forEach(r => {
+        const n = nPhotos.get(r.id) || 0;
+        if (!cur || (cur.photos + n > DOC_IMG_MAX && cur.recs.length)) parts.push(cur = { recs: [], photos: 0 });
+        cur.recs.push(r); cur.photos += n;
+      });
+      parts.forEach((c, i) => out.push(Object.assign(c, { year, no: i + 1, of: parts.length })));
+    });
+    return out;
+  }
   const recDir = (date, title) => safeName((fmtDate(date) || '日付なし') + ' ' + (title || ''));
   function photoJobs(d) {
     const jobs = [], seen = new Set();
@@ -432,7 +452,9 @@
   const USAGE = { carry: '車に積む', garage: 'ガレージ', both: '両方' };
 
   // doc＝ドライブの「読む用」Google ドキュメント向け（img は 元URL→縮小版URL。ドキュメントに変換するとき Google が取り込む）
-  function buildDoc(d, img, light, doc) {
+  // part＝読む用ドキュメントの分け方：未指定＝全部／{ main: true }＝整備以外／{ chunk }＝整備のその年（その1…）だけ
+  function buildDoc(d, img, light, doc, part) {
+    part = part || {};
     // 軽い版は写真を入れない（2026-11-11 決裁＝見本を作るだけでも Wi-Fi で5分超）。写真の枠は出さず、説明文だけ残す。
     const im = (u, alt) => {
       if (!u) return '';
@@ -448,12 +470,13 @@
 
     d.cars.forEach(c => {
       const cid = c.document_id;
+      if (part.chunk && !d.maint_records.some(r => r.car_id === cid)) return;
       h.push('<section class="car"><h2>' + esc(carLabel(c)) + '</h2>');
       const ph = ['photo_main', 'photo_front', 'photo_side', 'photo_rear', 'photo_engine', 'photo_interior', 'photo_steering_cluster'].map(k => c[k]).filter(Boolean);
-      if (ph.length) h.push('<div class="grid">' + ph.map(u => im(u)).join('') + '</div>');
+      if (ph.length && !part.chunk) h.push('<div class="grid">' + ph.map(u => im(u)).join('') + '</div>');
       const rows = Object.keys(c).filter(k => !SKIP_CAR_COLS.test(k) && c[k] !== null && c[k] !== '' && typeof c[k] !== 'object')
         .map(k => '<tr><th>' + esc(k) + '</th><td>' + esc(c[k]) + '</td></tr>').join('');
-      if (rows) h.push('<details><summary>登録内容（全項目）</summary><table class="kv">' + rows + '</table></details>');
+      if (rows && !part.chunk) h.push('<details><summary>登録内容（全項目）</summary><table class="kv">' + rows + '</table></details>');
 
       const eps = d.car_episodes.filter(e => e.car_id === cid);
       if (eps.length) {
@@ -468,7 +491,12 @@
       }
 
       const ms = d.maint_records.filter(r => r.car_id === cid);
-      if (ms.length) {
+      if (part.main && ms.length) {
+        const cs = maintChunks(d).map(c => Object.assign(c, { n: c.recs.filter(r => r.car_id === cid).length })).filter(c => c.n);
+        h.push('<h3>整備手帳（' + ms.length + '件）</h3><p class="body">整備の記録は年ごとに分けて、同じフォルダに写真つきで入っています：' +
+          cs.map(c => '「' + esc(maintDocName(c)) + '」（' + c.n + '件）').join('、') + '</p>');
+      }
+      if (ms.length && !part.main) {
         h.push('<h3>整備手帳（' + ms.length + '件）</h3>');
         ms.forEach(r => {
           const cost = (d.maint_costs.find(x => x.record_id === r.id) || {}).cost_yen;
@@ -515,7 +543,7 @@
       }
 
       const ps = d.paint_posts.filter(p => String(p.car_doc) === String(cid));
-      if (ps.length) {
+      if (ps.length && !doc) {
         h.push('<h3>お絵描き帳（' + ps.length + '件）</h3><div class="grid">');
         ps.forEach(p => h.push('<figure>' + im(paintThumbUrl(p), p.comment) + '<figcaption>' + esc(fmtDate(p.created_at)) + ' ' + esc(p.comment || '') + '</figcaption></figure>'));
         h.push('</div>');
@@ -553,7 +581,7 @@
 
     return '<!DOCTYPE html>\n<html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
       '<meta name="robots" content="noindex"><title>わたしの記録（' + esc(stamp) + ' 保存）</title><style>' + DOC_CSS + '</style></head><body><main>' +
-      '<header><h1>わたしの記録</h1><p class="meta">Registro500 Giappone から ' + esc(stamp) + ' に保存。このファイル1つに、保存した時点の記録がすべて入っています。' +
+      '<header><h1>' + (part.chunk ? esc(maintDocName(part.chunk)) : 'わたしの記録') + '</h1><p class="meta">Registro500 Giappone から ' + esc(stamp) + ' に保存。' + (doc ? '' : 'このファイル1つに、保存した時点の記録がすべて入っています。') +
       (doc ? '写真は縮小して入れています。元の大きさの写真は、同じフォルダの「' + GDRIVE_PHOTOS + '」に記録ごとに分けて入っています。' : light ? 'これは文章と数字だけの版です（写真は「写真まるごと版」に入ります）。' : '') + '</p></header>' +
       h.join('\n') +
       '<footer class="meta">このファイルには、記録を戻すためのデータも入っています。サイトの記録が消えたときは、このファイルを管理人へ送ってください。</footer>' +
@@ -766,7 +794,7 @@
   // ドライブで消した写真は次の保存で送り直される（控えを守る側に倒す）。記録の題名を後で変えても、送り済みの写真は元のフォルダのまま。
   const GDRIVE_PHOTOS = '写真';
   const PHOTO_KEY = 'r500p';
-  const DOC_IMG_MAX = 300;
+  const DOC_IMG_MAX = 200; // 読む用ドキュメント1冊あたりの写真の上限（変換が重くなりすぎないため）。超える年は「その1・その2」に分ける
   const PHOTO_AUTO_MAX = 30; // これ以下なら保存のついでに送る。超えたら「過去の写真をまとめてバックアップ」ボタン（初回のまとめ送り）
   let gStop = false;
 
@@ -807,7 +835,7 @@
   async function drivePhotoPlan(folderId, d) {
     const photosId = await gSubFolder(folderId, GDRIVE_PHOTOS);
     const have = await gPhotoKeys();
-    const jobs = photoJobs(d).slice(0, PHOTO_CAP);
+    const jobs = photoJobs(d).filter(j => j.dir[0] !== 'お絵描き帳').slice(0, PHOTO_CAP); // お絵描き帳はドライブに送らない（ユーザー決裁）
     const todo = [];
     for (const j of jobs) { const h = await sha16(j.key); if (!have.has(h)) todo.push(Object.assign({ hash: h }, j)); }
     const mb = todo.reduce((s, j) => s + (j.maint ? MB_MAINT_ORIG : MB_ORIG), 0);
@@ -907,6 +935,58 @@
   $('drivePhotoBtn').addEventListener('click', drivePhotoAll);
   $('drivePhotoStop').addEventListener('click', () => { gStop = true; $('driveProgress').textContent = '止めています（送り中の写真が終わるまで少し待ちます）…'; });
 
+  // ── 読む用の Google ドキュメント：「わたしの記録（読む用）」＝整備以外／「整備手帳 2025（読む用）」…＝年ごとの整備（写真は全部）
+  // 縮小写真は Google が変換のときに取りに行く（利用者の通信はほぼ HTML だけ）。整備の年ドキュメントは中身の印 r500h が
+  // 変わったときだけ作り直す＝古い年は普段触らない。お絵描き帳は入れない（2026-11-11 ユーザー決裁＝不要）。
+  async function gDocs(folderId) {
+    const r = await gfetch(G_FILES + '?spaces=drive&pageSize=1000&fields=files(id,name,appProperties)&q=' +
+      encodeURIComponent("'" + folderId + "' in parents and mimeType='application/vnd.google-apps.document' and trashed=false"));
+    return r.files || [];
+  }
+  async function gDocUpload(folderId, id, name, html, props) {
+    const meta = id ? { name, appProperties: props } : { name, parents: [folderId], mimeType: 'application/vnd.google-apps.document', appProperties: props };
+    const b = 'r500' + Math.random().toString(36).slice(2);
+    const body = new Blob(['--' + b + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(meta) +
+      '\r\n--' + b + '\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n', html, '\r\n--' + b + '--\r\n']);
+    return gfetch((id ? G_UPLOAD + '/' + id : G_UPLOAD) + '?uploadType=multipart&fields=id', {
+      method: id ? 'PATCH' : 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + b }, body
+    });
+  }
+  async function driveReadDocs(folderId, d, prog) {
+    const strip = s => s.replace(/<footer[\s\S]*?<\/footer>/, '').replace(/<script type="application\/json"[\s\S]*?<\/script>/, '');
+    const pj = photoJobs(d).filter(j => j.dir[0] !== 'お絵描き帳');
+    const thumbOf = new Map(pj.map(j => [j.key, j.thumb]));
+    const existing = await gDocs(folderId);
+    const warn = [];
+    // 変換に失敗したら写真なしで作り直す（記録の文章は必ず残す）。そのときは画面で知らせる
+    async function put(name, mk, props) {
+      const id = (existing.find(f => f.name === name) || {}).id || null;
+      try { await gDocUpload(folderId, id, name, strip(mk(thumbOf)), props); }
+      catch (e) {
+        if (e && (e.status === 401 || e.reason === 'storageQuotaExceeded')) throw e;
+        console.warn('[my-backup] doc with photos', name, e);
+        await gDocUpload(folderId, id, name, strip(mk(new Map())), props);
+        warn.push(name);
+      }
+    }
+    prog('読む用のドキュメントを作っています…');
+    // 本体は整備を「どのドキュメントにあるか」の案内だけにする（区切りは maintChunks＝年ドキュメントと同じ数え方）
+    await put(GDRIVE_DOC, m => buildDoc(d, m, true, true, { main: true }), {});
+    const chunks = maintChunks(d);
+    const EMPTY = ['car_episodes', 'car_history', 'fuel_records', 'fuel_costs', 'equipment_records', 'owner_tools', 'owner_tool_users', 'owner_articles', 'paint_posts'];
+    for (const ch of chunks) {
+      const recs = ch.recs, ids = new Set(recs.map(r => r.id));
+      const dy = Object.assign({}, d, { maint_records: recs, maint_photos: d.maint_photos.filter(p => ids.has(p.record_id)), maint_costs: d.maint_costs.filter(c => ids.has(c.record_id)) });
+      EMPTY.forEach(k => { dy[k] = []; });
+      const sig = await sha16(JSON.stringify([recs, dy.maint_photos, dy.maint_costs, d.cars.map(carLabel)]));
+      const name = maintDocName(ch), cur = existing.find(f => f.name === name);
+      if (cur && cur.appProperties && cur.appProperties.r500h === sig) continue; // 変わっていない年はそのまま
+      prog(name.replace('（読む用）', '') + ' を作っています…（写真 ' + dy.maint_photos.length + '枚）');
+      await put(name, m => buildDoc(dy, m, true, true, { chunk: ch }), { r500h: sig });
+    }
+    return warn;
+  }
+
   async function driveSave(first) {
     if (gBusy || !gTokenClient) return;
     gBusy = true;
@@ -926,30 +1006,19 @@
       // ドライブは HTML をページとして見せられない（ソースが出る）＝読む用に Google ドキュメントも並べる
       // （戻すためのデータと「このファイルを送って」の一文は HTML の方だけ。ドキュメントは容量を使わない）
       prog('読む用のドキュメントを作っています…（写真が多いと少しかかります）');
-      // 読む用＝写真は縮小版を Google に取り込ませる（整備は thumb_url）。多すぎると変換が重いので DOC_IMG_MAX 枚まで
-      // （車両・ストーリー・工具を先に、整備は新しい順）。変換に失敗したら写真なしで作り直す。
-      const strip = s => s.replace(/<footer[\s\S]*?<\/footer>/, '').replace(/<script type="application\/json"[\s\S]*?<\/script>/, '');
-      const pj = photoJobs(d);
-      const thumbs = new Map(pj.filter(j => !j.maint).concat(pj.filter(j => j.maint).reverse()).slice(0, DOC_IMG_MAX).map(j => [j.key, j.thumb]));
-      try {
-        await gPut(folderId, GDRIVE_DOC, new Blob([strip(buildDoc(d, thumbs, true, true))], { type: 'text/html' }), 'text/html; charset=UTF-8', 'application/vnd.google-apps.document');
-      } catch (de) {
-        if (de && (de.status === 401 || de.reason === 'storageQuotaExceeded')) throw de;
-        console.warn('[my-backup] doc with photos', de);
-        await gPut(folderId, GDRIVE_DOC, new Blob([strip(buildDoc(d, new Map(), true, true))], { type: 'text/html' }), 'text/html; charset=UTF-8', 'application/vnd.google-apps.document');
-      }
+      const docWarn = await driveReadDocs(folderId, d, prog);
       setDriveState(Object.assign(driveState() || {}, { savedAt: Date.now() }));
       try { gtag('event', 'backup_saved', { how: 'drive', first: first ? 1 : 0 }); } catch (e) {}
       // 写真：新しいものが少しなら、このまま送る。多い（初回など）ときはボタンを出して本人に任せる
       // 文章はもう保存済み＝写真で失敗しても「文章は保存しました」と伝える
-      let photoNote = '', photoErr = false;
+      let photoNote = docWarn.length ? '（' + docWarn.join('・') + ' は写真を取り込めず、文章だけで作りました）' : '', photoErr = false;
       try {
         prog('写真を確かめています…');
         const plan = await drivePhotoPlan(folderId, d);
         if (plan.todo.length && plan.todo.length <= PHOTO_AUTO_MAX) {
           const r = await drivePhotoSend(plan, (n, all) => prog('新しい写真を送っています… ' + n + ' / ' + all));
           plan.done += r.sent; plan.todo = plan.todo.slice(r.sent + r.failed);
-          photoNote = '新しい写真 ' + r.sent + '枚も控えました。' + (r.failed ? '（' + r.failed + '枚は読み込めず送れませんでした）' : '');
+          photoNote += '新しい写真 ' + r.sent + '枚も控えました。' + (r.failed ? '（' + r.failed + '枚は読み込めず送れませんでした）' : '');
           try { gtag('event', 'backup_drive_photos', { sent: r.sent, failed: r.failed, stopped: 0, rest: 0, auto: 1 }); } catch (e) {}
           renderPhotoBox(null);
         } else {
@@ -960,7 +1029,7 @@
       } catch (pe) {
         console.warn('[my-backup] drive photos (auto)', pe);
         if (pe && pe.status === 401) gToken = null;
-        photoNote = '（写真）' + photoErrMsg(pe, pe && pe.sent); photoErr = true;
+        photoNote += '（写真）' + photoErrMsg(pe, pe && pe.sent); photoErr = true;
       }
       renderDrive();
       prog('');
