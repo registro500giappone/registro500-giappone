@@ -126,7 +126,7 @@
     <!-- Google ドライブ連携（GDRIVE_CLIENT_ID が空のうちは出さない）。正本の §1b -->
     <div class="card hidden" id="driveCard">
       <h2>☁️ おすすめ：Google ドライブに控える</h2>
-      <p class="note" style="margin:0 0 10px;">あなたの Google ドライブに「<strong>Registro500 の記録</strong>」というフォルダを作り、記録（文章と数字）を入れておきます。2回目からはボタン1つで<strong>同じファイルを新しくする</strong>だけなので、ファイルが増えていきません。</p>
+      <p class="note" style="margin:0 0 10px;">あなたの Google ドライブに「<strong>Registro500 の記録</strong>」というフォルダを作り、記録（文章と数字）と写真を入れておきます。写真は<strong>まだ送っていないものだけ</strong>を足していきます。2回目からはボタン1つで<strong>同じファイルを新しくする</strong>だけなので、ファイルが増えていきません。</p>
       <div id="driveOff">
         <button type="button" class="btn-main" id="driveConnect" disabled>Google ドライブとつないで保存する</button>
         <p class="note">Google の画面で、このサイトが<strong>自分で作ったファイルだけ</strong>を扱う許可を求めます（ドライブのほかのファイルは見えません）。</p>
@@ -134,6 +134,12 @@
       <div id="driveOn" class="hidden">
         <p class="msg ok" id="driveStatus"></p>
         <button type="button" class="btn-main" id="driveSave" disabled style="margin-top:10px;">ドライブに保存する</button>
+        <!-- 写真の差分送り（その2）。送っていない写真が多いときだけ出す＝初回のまとめ送り。途中でやめても次は続きから -->
+        <div id="drivePhotoBox" class="hidden" style="margin-top:14px;">
+          <p class="note" id="drivePhotoText" style="margin:0 0 8px;"></p>
+          <button type="button" class="btn-sub btn-wide" id="drivePhotoBtn">これまでの写真も控える</button>
+          <button type="button" class="link-btn hidden" id="drivePhotoStop" style="margin-top:8px;">いったん止める（次は続きから）</button>
+        </div>
         <p class="note" style="margin-top:10px;"><button type="button" class="link-btn" id="driveDisconnect">連携をやめる</button>（ドライブにある控えは消えません）</p>
       </div>
       <p class="st hidden" id="driveProgress"></p>
@@ -354,16 +360,17 @@
   }
   function photoJobs(d) {
     const jobs = [], seen = new Set();
-    const add = (key, src, maint) => {
+    // kind はドライブの写真のファイル名の頭に使う（PHOTO_KIND）
+    const add = (key, kind, src, maint) => {
       if (typeof key !== 'string' || !/^https:\/\//.test(key) || seen.has(key)) return;
-      seen.add(key); jobs.push({ key, src: src || key, maint: !!maint });
+      seen.add(key); jobs.push({ key, kind, src: src || key, maint: !!maint });
     };
     const PHOTO_COLS = ['photo_main', 'photo_front', 'photo_side', 'photo_rear', 'photo_engine', 'photo_interior', 'photo_steering_cluster'];
-    d.cars.forEach(c => PHOTO_COLS.forEach(k => add(c[k])));
-    d.car_episodes.forEach(e => { add(e.cover_url); (Array.isArray(e.photo_urls) ? e.photo_urls : []).forEach(p => add(typeof p === 'string' ? p : p && p.url)); });
-    d.maint_photos.forEach(p => add(p.url, p.url, true));
-    d.owner_tools.forEach(t => add(t.photo_url));
-    d.paint_posts.forEach(p => add(paintThumbUrl(p)));
+    d.cars.forEach(c => PHOTO_COLS.forEach(k => add(c[k], 'car')));
+    d.car_episodes.forEach(e => { add(e.cover_url, 'episode'); (Array.isArray(e.photo_urls) ? e.photo_urls : []).forEach(p => add(typeof p === 'string' ? p : p && p.url, 'episode')); });
+    d.maint_photos.forEach(p => add(p.url, 'maint', p.url, true));
+    d.owner_tools.forEach(t => add(t.photo_url, 'tool'));
+    d.paint_posts.forEach(p => add(paintThumbUrl(p), 'paint'));
     return jobs;
   }
 
@@ -645,8 +652,9 @@
     if (st) {
       const t = new Date(st.savedAt);
       const p2 = n => String(n).padStart(2, '0');
-      $('driveStatus').textContent = '✅ つないであります。最後にドライブへ保存：' + t.getFullYear() + '/' + p2(t.getMonth() + 1) + '/' + p2(t.getDate()) + ' ' + p2(t.getHours()) + ':' + p2(t.getMinutes());
-    }
+      $('driveStatus').textContent = '✅ つないであります。最後にドライブへ保存：' + (st.savedAt ? t.getFullYear() + '/' + p2(t.getMonth() + 1) + '/' + p2(t.getDate()) + ' ' + p2(t.getHours()) + ':' + p2(t.getMinutes()) : '—') +
+        (typeof st.photos === 'number' ? '（写真 ' + st.photos + '枚）' : '');
+    } else $('drivePhotoBox').classList.add('hidden');
   }
   function driveMsg(text, isErr) {
     $('driveErr').textContent = text || '';
@@ -732,6 +740,139 @@
     });
   }
 
+  // ── 写真（その2＝差分送り）。photos/ に元の写真をそのまま置き、元URLのハッシュを appProperties に持たせて見分ける
+  // ＝別の端末からでも「もう送った写真」が分かる。ドライブで消した写真は次の保存で送り直される（控えを守る側に倒す）。
+  const GDRIVE_PHOTOS = 'photos';
+  const PHOTO_AUTO_MAX = 30; // これ以下なら保存のついでに送る。超えたら「これまでの写真も控える」ボタン（初回のまとめ送り）
+  const PHOTO_KIND = { car: '車', episode: '歩み', maint: '整備', tool: '工具', paint: 'お絵描き' };
+  let gStop = false;
+
+  async function sha16(s) {
+    const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+    return Array.from(new Uint8Array(h).slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  async function gSubFolder(parentId, name) {
+    const id = await gFind("name='" + name + "' and '" + parentId + "' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false");
+    if (id) return id;
+    return (await gfetch(G_FILES + '?fields=id', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, parents: [parentId], mimeType: 'application/vnd.google-apps.folder' })
+    })).id;
+  }
+  async function gPhotoKeys(photosId) {
+    const keys = new Set(); let pt = '';
+    do {
+      const r = await gfetch(G_FILES + '?spaces=drive&pageSize=1000&fields=nextPageToken,files(appProperties)&q=' +
+        encodeURIComponent("'" + photosId + "' in parents and trashed=false") + (pt ? '&pageToken=' + encodeURIComponent(pt) : ''));
+      (r.files || []).forEach(f => f.appProperties && f.appProperties.r500k && keys.add(f.appProperties.r500k));
+      pt = r.nextPageToken || '';
+    } while (pt);
+    return keys;
+  }
+  // 送っていない写真の一覧と、およその大きさ
+  async function drivePhotoPlan(folderId, d) {
+    const photosId = await gSubFolder(folderId, GDRIVE_PHOTOS);
+    const have = await gPhotoKeys(photosId);
+    const jobs = photoJobs(d).slice(0, PHOTO_CAP);
+    const todo = [];
+    for (const j of jobs) { const h = await sha16(j.key); if (!have.has(h)) todo.push(Object.assign({ hash: h }, j)); }
+    const mb = todo.reduce((s, j) => s + (j.maint ? MB_MAINT_ORIG : MB_ORIG), 0);
+    return { photosId, todo, mb, done: jobs.length - todo.length, total: jobs.length };
+  }
+  // 空きが読めて、足りないときだけ false（読めなければ送ってみて、容量エラーで案内する）
+  async function driveHasRoom(mb) {
+    try {
+      const q = (await gfetch('https://www.googleapis.com/drive/v3/about?fields=storageQuota')).storageQuota || {};
+      if (!q.limit) return true; // 上限なし
+      return (Number(q.limit) - Number(q.usage || 0)) / 1048576 > mb * 1.2 + 5;
+    } catch (e) { console.warn('[my-backup] about', e); return true; }
+  }
+  async function drivePhotoSend(plan, onEach) {
+    let next = 0, sent = 0, failed = 0, fatal = null;
+    const list = plan.todo;
+    async function worker() {
+      while (next < list.length && !gStop && !fatal) {
+        const j = list[next++];
+        try {
+          const b = await getBlob(j.src);
+          const name = (PHOTO_KIND[j.kind] || '写真') + '_' + j.hash + '.' + (EXT[b.type] || 'jpg');
+          const meta = { name, parents: [plan.photosId], appProperties: { r500k: j.hash } };
+          const bd = 'r500' + Math.random().toString(36).slice(2);
+          const body = new Blob(['--' + bd + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(meta) +
+            '\r\n--' + bd + '\r\nContent-Type: ' + (b.type || 'image/jpeg') + '\r\n\r\n', b, '\r\n--' + bd + '--\r\n']);
+          await gfetch(G_UPLOAD + '?uploadType=multipart&fields=id', { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + bd }, body });
+          sent++;
+        } catch (e) {
+          // ドライブ側の失敗（確認切れ・容量）は全体を止める。写真の読み込み失敗はその1枚だけ飛ばす
+          if (e && (e.status === 401 || e.status === 403 || e.reason === 'storageQuotaExceeded')) fatal = e;
+          else { failed++; console.warn('[my-backup] drive photo', j.src, e); }
+        }
+        onEach(sent + failed, list.length);
+      }
+    }
+    await Promise.all([worker(), worker(), worker()]);
+    if (fatal) { fatal.sent = sent; throw fatal; }
+    return { sent, failed, stopped: gStop && sent + failed < list.length };
+  }
+  function renderPhotoBox(plan, note) {
+    const box = $('drivePhotoBox');
+    if (!plan || !plan.todo.length) { box.classList.add('hidden'); return; }
+    box.classList.remove('hidden');
+    $('drivePhotoText').innerHTML = (note ? esc(note) + '<br>' : '') +
+      'まだドライブに控えていない写真が <strong>' + plan.todo.length + '枚</strong>（およそ ' + Math.max(1, Math.round(plan.mb)) + 'MB）あります。' +
+      '<strong>Wi‑Fi につないだ状態</strong>で、時間に余裕のあるときにどうぞ（パソコンがおすすめです）。途中で止めても、次は続きから送ります。';
+  }
+  const photoErrMsg = (e, sent) => (sent ? '写真 ' + sent + '枚まで送りました。' : '') +
+    (e.status === 401 ? 'Google の確認が切れたため止まりました。もう一度押すと続きから送ります。'
+      : e.reason === 'storageQuotaExceeded' ? 'Google ドライブの空きが足りなくなりました。写真は下の「写真まるごと版」（パソコン）で保存してください。'
+      : 'ドライブに送れませんでした。もう一度押すと続きから送ります。（' + e.message + '）');
+
+  async function drivePhotoAll() {
+    if (gBusy || !gTokenClient) return;
+    gBusy = true; gStop = false;
+    const tokenP = getToken(); // ← await より前（ポップアップ）
+    $('driveConnect').disabled = $('driveSave').disabled = $('drivePhotoBtn').disabled = true;
+    $('drivePhotoStop').classList.remove('hidden');
+    driveMsg('');
+    const prog = t => { $('driveProgress').textContent = t; $('driveProgress').classList.toggle('hidden', !t); };
+    let plan = null;
+    try {
+      prog('Google の確認を待っています…');
+      await tokenP;
+      prog('写真を確かめています…');
+      const d = await collect(() => {});
+      plan = await drivePhotoPlan(await gFolder(), d);
+      if (!plan.todo.length) { renderPhotoBox(null); prog(''); driveMsg('写真はすべてドライブに控えてあります。', false); return; }
+      if (!(await driveHasRoom(plan.mb))) {
+        prog('');
+        driveMsg('Google ドライブの空きが足りないようです（写真はおよそ ' + Math.round(plan.mb) + 'MB）。文章と数字はドライブに、写真は下の「写真まるごと版」（パソコン）で保存してください。', true);
+        return;
+      }
+      const r = await drivePhotoSend(plan, (n, all) => prog('写真を送っています… ' + n + ' / ' + all));
+      const st = driveState() || {};
+      setDriveState(Object.assign(st, { photos: plan.done + r.sent }));
+      renderDrive();
+      prog('');
+      const rest = plan.todo.length - r.sent;
+      plan.todo = plan.todo.slice(r.sent + r.failed); plan.mb = plan.todo.reduce((s, j) => s + (j.maint ? MB_MAINT_ORIG : MB_ORIG), 0);
+      if (r.stopped) { renderPhotoBox(plan); driveMsg('写真 ' + r.sent + '枚を送って止めました。続きはまた押すと送ります。', false); }
+      else { renderPhotoBox(null); driveMsg('写真 ' + r.sent + '枚をドライブに控えました。' + (r.failed ? '（' + r.failed + '枚は読み込めず送れませんでした）' : '') , false); }
+      try { gtag('event', 'backup_drive_photos', { sent: r.sent, failed: r.failed, stopped: r.stopped ? 1 : 0, rest }); } catch (e) {}
+    } catch (err) {
+      console.error('[my-backup] drive photos', err);
+      prog('');
+      if (err && err.status === 401) gToken = null;
+      if (/popup_closed|access_denied/.test(String(err && err.message))) driveMsg('');
+      else driveMsg(photoErrMsg(err, err && err.sent), true);
+    } finally {
+      gBusy = false; gStop = false;
+      $('driveConnect').disabled = $('driveSave').disabled = $('drivePhotoBtn').disabled = false;
+      $('drivePhotoStop').classList.add('hidden');
+    }
+  }
+  $('drivePhotoBtn').addEventListener('click', drivePhotoAll);
+  $('drivePhotoStop').addEventListener('click', () => { gStop = true; $('driveProgress').textContent = '止めています（送り中の写真が終わるまで少し待ちます）…'; });
+
   async function driveSave(first) {
     if (gBusy || !gTokenClient) return;
     gBusy = true;
@@ -753,11 +894,33 @@
       prog('読む用のドキュメントを作っています…');
       const readHtml = html.replace(/<footer[\s\S]*?<\/footer>/, '').replace(/<script type="application\/json"[\s\S]*?<\/script>/, '');
       await gPut(folderId, GDRIVE_DOC, new Blob([readHtml], { type: 'text/html' }), 'text/html; charset=UTF-8', 'application/vnd.google-apps.document');
-      setDriveState({ savedAt: Date.now() });
+      setDriveState(Object.assign(driveState() || {}, { savedAt: Date.now() }));
+      try { gtag('event', 'backup_saved', { how: 'drive', first: first ? 1 : 0 }); } catch (e) {}
+      // 写真：新しいものが少しなら、このまま送る。多い（初回など）ときはボタンを出して本人に任せる
+      // 文章はもう保存済み＝写真で失敗しても「文章は保存しました」と伝える
+      let photoNote = '', photoErr = false;
+      try {
+        prog('写真を確かめています…');
+        const plan = await drivePhotoPlan(folderId, d);
+        if (plan.todo.length && plan.todo.length <= PHOTO_AUTO_MAX) {
+          const r = await drivePhotoSend(plan, (n, all) => prog('新しい写真を送っています… ' + n + ' / ' + all));
+          plan.done += r.sent; plan.todo = plan.todo.slice(r.sent + r.failed);
+          photoNote = '新しい写真 ' + r.sent + '枚も控えました。' + (r.failed ? '（' + r.failed + '枚は読み込めず送れませんでした）' : '');
+          try { gtag('event', 'backup_drive_photos', { sent: r.sent, failed: r.failed, stopped: 0, rest: 0, auto: 1 }); } catch (e) {}
+          renderPhotoBox(null);
+        } else {
+          plan.mb = plan.todo.reduce((s, j) => s + (j.maint ? MB_MAINT_ORIG : MB_ORIG), 0);
+          renderPhotoBox(plan);
+        }
+        setDriveState(Object.assign(driveState() || {}, { photos: plan.done }));
+      } catch (pe) {
+        console.warn('[my-backup] drive photos (auto)', pe);
+        if (pe && pe.status === 401) gToken = null;
+        photoNote = '（写真）' + photoErrMsg(pe, pe && pe.sent); photoErr = true;
+      }
       renderDrive();
       prog('');
-      driveMsg(first ? '保存しました。Google ドライブの「' + GDRIVE_FOLDER + '」フォルダに入っています（読むときは「' + GDRIVE_DOC + '」を開いてください）。次からは「ドライブに保存する」を押すだけで新しくなります。' : '保存しました。', false);
-      try { gtag('event', 'backup_saved', { how: 'drive', first: first ? 1 : 0 }); } catch (e) {}
+      driveMsg((first ? '保存しました。Google ドライブの「' + GDRIVE_FOLDER + '」フォルダに入っています（読むときは「' + GDRIVE_DOC + '」を開いてください）。次からは「ドライブに保存する」を押すだけで新しくなります。' : '保存しました。') + (photoNote ? ' ' + photoNote : ''), photoErr);
     } catch (err) {
       console.error('[my-backup] drive', err);
       prog('');
