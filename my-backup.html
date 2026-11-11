@@ -218,7 +218,7 @@
   }
   function carLabel(c) {
     const model = c.model_display_c || [c.model_display_a || '', c.model_display_b || ''].filter(Boolean).join(' ');
-    return [c.handle_name || '', model].filter(Boolean).join('　') + '（DOC_' + c.document_id + '）';
+    return [c.handle_name || '', model].filter(Boolean).join('　') + '（' + c.document_id + '）'; // document_id は「DOC_1」の形
   }
 
   // ── 取得（PostgREST の 1000 行上限を range で取り切る） ──
@@ -244,12 +244,14 @@
     return out;
   }
 
+  const CAR_COLS = 'document_id,handle_name,prefecture,model_select_a,model_text_a,model_select_b,model_text_b,year,body_color,length_cm,capacity,steering,engine_cc,engine_type_select,engine_type_text,ignition_type,ignition_sub_type,distribution_type,coil_name,plug_name,fuel_injection,carburetor_name,fuel_pump,electric_pump_name,generator,oil_cooler,transmission,synchro,joint,wheel,rim_diameter_in,rim_width_in,tire_type,tire_size,tire_brand_name,engine_oil,engine_oil_interval,transmission_oil,transmission_oil_interval,battery,highlights,x_twitter,instagram,youtube,minkara,facebook,threads,blog_or_website,photo_main,photo_front,photo_side,photo_rear,photo_engine,photo_interior,photo_steering_cluster,accept_inquiry,created_at,updated_at,model_display_a,model_display_b,model_display_c,engine_display,car_type,cooling_type,owner_user_id,is_sold,sold_at,sns_share_optout';
   async function collect(step) {
     const uid = currentUser.id;
     const carIds = myCars.map(c => c.document_id);
     const d = {};
     step('車両の情報');
-    d.cars = await fetchAll(() => supabaseClient.from('cars').select('*').eq('owner_user_id', uid).order('document_id'));
+    // ⚠️ cars は owner_email に列の読み取り権限が無い＝ select('*') は permission denied になる（2026-11-11 実機で発覚）。列を明示する。
+    d.cars = await fetchAll(() => supabaseClient.from('cars').select(CAR_COLS).eq('owner_user_id', uid).order('document_id'));
     d.car_episodes = await fetchIn('car_episodes', 'car_id', carIds, '*', q => q.order('episode_date', { ascending: true, nullsFirst: true }));
     d.car_history = await fetchIn('car_history', 'car_id', carIds, '*', q => q.order('occurred_at'));
     step('整備手帳');
@@ -486,7 +488,7 @@
 
   function fileName() {
     const type = myCars.some(c => c.car_type !== '126') ? '500' : '126';
-    return 'registro' + type + '_backup_DOC' + myCars.map(c => c.document_id).join('-') + '.html';
+    return 'registro' + type + '_backup_' + myCars.map(c => String(c.document_id).replace(/^DOC_/, '')).join('-') + '.html';
   }
 
   $('makeBtn').addEventListener('click', async () => {
@@ -519,7 +521,8 @@
     } catch (err) {
       console.error('[my-backup] build', err);
       $('progress').classList.add('hidden');
-      $('errText').textContent = 'ファイルを作れませんでした。電波のよい所でもう一度お試しください。（' + (err && err.message || err) + '）';
+      const net = /fetch|network|load failed/i.test(String(err && err.message || err));
+      $('errText').textContent = 'ファイルを作れませんでした。' + (net ? '電波のよい所でもう一度お試しください。' : 'お手数ですが、この画面を管理人へお知らせください。') + '（' + (err && err.message || err) + '）';
       $('errText').classList.remove('hidden');
     } finally {
       $('makeBtn').disabled = false;
