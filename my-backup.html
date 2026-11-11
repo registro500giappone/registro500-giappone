@@ -503,7 +503,8 @@
     const now = new Date();
     const stamp = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
     const priv = v => v === false ? ' <span class="tag">非公開</span>' : '';
-    const h = [];
+    const h = [], sh = [];
+    const storyCars = new Set(d.car_episodes.map(e => e.car_id)).size;
 
     d.cars.forEach(c => {
       const cid = c.document_id;
@@ -607,10 +608,11 @@
         h.push('</ul>');
       }
 
-      // ストーリーは車の節の最後（2026-11-11 ユーザー）
+      // ストーリーは全体の最後（車載手帳より後）にまとめる＝ここでは sh に貯める（2026-11-11 ユーザー）
       const eps = d.car_episodes.filter(e => e.car_id === cid);
       if (eps.length) {
-        h.push('<h3>ストーリー（' + eps.length + '件）</h3>');
+        const h = sh;
+        h.push('<h3>' + (storyCars > 1 ? esc(carLabel(c)) + ' の' : '') + 'ストーリー（' + eps.length + '件）</h3>');
         eps.forEach(e => {
           const pics = [e.cover_url].concat(Array.isArray(e.photo_urls) ? e.photo_urls.map(p => typeof p === 'string' ? p : p && p.url) : []).filter(Boolean);
           // ドキュメント：題名→日付の順・本文の改行を残す（消えて1つの塊になっていた＝2026-11-11 PDF）
@@ -668,6 +670,8 @@
       }
       h.push('</section>');
     });
+
+    if (sh.length) h.push('<section class="car"><h2>ストーリー</h2>' + sh.join('\n') + '</section>');
 
     const json = JSON.stringify({ format: 'registro500-owner-backup', version: 1, saved_at: now.toISOString(), user_id: currentUser.id, data: d })
       .replace(/</g, '\\u003c');
