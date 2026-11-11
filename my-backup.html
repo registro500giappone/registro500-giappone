@@ -536,7 +536,8 @@
     const share = isTouch() && navigator.canShare && navigator.canShare({ files: [built.file] });
     if (share) {
       try {
-        await navigator.share({ files: [built.file], title: 'わたしの記録' });
+        // title を渡すと iPhone の「ファイルに保存」で題名が別のテキストファイル（18バイト）として保存される＝渡さない
+        await navigator.share({ files: [built.file] });
         try { gtag('event', 'backup_saved', { how: 'share' }); } catch (e) {}
         return;
       } catch (e) {
