@@ -373,6 +373,8 @@
             <li id="myFuelItem" style="display:none;"><a class="rg-dropdown-item" href="/my-fuel" id="myFuelLink">⛽ 給油を記録する</a></li>
             <li><a class="rg-dropdown-item is-bold" href="#" id="editLink">✏️ この車両を編集</a></li>
             <li><a class="rg-dropdown-item" href="/episode-edit" id="addEpisodeLink">📖 ストーリーを追加</a></li>
+            <!-- 2026-11-11 ユーザー決裁：ブログ紹介はストーリーの下。ARTICLES_ON_CAR_PAGE（または ?articles-preview）のときだけ出す -->
+            <li id="myArticlesItem" style="display:none;"><a class="rg-dropdown-item" href="/my-articles">📝 ブログ記事を紹介する</a></li>
             <!-- 2026-08-10 ユーザー確定: 自分の車載手帳を直す入口が /equipment の最下部（92%地点）
                  にしか無く、オーナー本人が自分のデータに辿り着けなかったため、本人メニューに置く。
                  手帳は1ユーザー1件で、equipment-edit.html がログインユーザーの手帳を自動で開くので
@@ -381,6 +383,8 @@
             <li><a class="rg-dropdown-item" href="/edit?mode=new" id="newCarLink">➕ 2台目を登録する</a></li>
             <li><hr class="rg-dropdown-divider"></li>
             <li><a class="rg-dropdown-item is-muted" href="/edit" id="carListLink">🏠 管理車両一覧へ</a></li>
+            <!-- 2026-11-11 ユーザー決裁：バックアップは管理車両一覧の下（区切り線と削除の上）。BACKUP_ON_CAR_PAGE（または ?backup-preview）のときだけ出す -->
+            <li id="myBackupItem" style="display:none;"><a class="rg-dropdown-item" href="/my-backup">💾 記録をバックアップ</a></li>
             <li><hr class="rg-dropdown-divider"></li>
             <li><a class="rg-dropdown-item" href="#" id="deleteLink" style="color:#dc2626;" onclick="confirmDelete(); return false;">🗑️ この車両を削除</a></li>
           </ul>
@@ -1106,6 +1110,10 @@
           document.getElementById('myFuelLink').href = `/my-fuel?car=${encodeURIComponent(currentCar.document_id)}`;
           document.getElementById('myFuelItem').style.display = '';
         }
+        if (articlesOn) document.getElementById('myArticlesItem').style.display = '';
+        if (BACKUP_ON_CAR_PAGE || new URLSearchParams(location.search).has('backup-preview')) {
+          document.getElementById('myBackupItem').style.display = '';
+        }
         updateMaintAdd();
         updateFuelAdd();
         const addBtn = document.getElementById('addEpisodeBtn');
@@ -1435,6 +1443,8 @@
     // オーナーの記事（ブログなど外部記事へのリンク・/my-articles で載せる）。正本 owner-articles/HANDOFF.md
     // 公開の準備が整うまで止めておく＝URL に ?articles-preview を付けたときだけ出す
     const ARTICLES_ON_CAR_PAGE = false;
+    // わたしの記録をバックアップ（/my-backup）のマイメニュー入口。正本 registro500-notes/owner-backup/HANDOFF.md
+    const BACKUP_ON_CAR_PAGE = false;
     const articlesOn = ARTICLES_ON_CAR_PAGE || new URLSearchParams(location.search).has('articles-preview');
     function articleLineHtml(a) {
       const url = /^https:\/\//.test(a.url || '') ? a.url : '';
