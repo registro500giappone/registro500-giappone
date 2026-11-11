@@ -126,7 +126,7 @@
     <!-- Google ドライブ連携（GDRIVE_CLIENT_ID が空のうちは出さない）。正本の §1b -->
     <div class="card hidden" id="driveCard">
       <h2>☁️ おすすめ：Google ドライブにバックアップ</h2>
-      <p class="note" style="margin:0 0 10px;">あなたの Google ドライブに「<strong>Registro500 の記録</strong>」というフォルダを作り、記録と写真を入れておきます。<br>・読むときは「<strong>わたしの記録</strong>」を開きます（写真つき）。<br>・元の写真は「<strong>写真</strong>」フォルダに、記録ごとに分けて入ります（例：写真 → 整備 → 2024-05-03 オイル交換）。<br>・2回目からはボタン1つで記録を新しくし、<strong>まだ送っていない写真だけ</strong>を足します。</p>
+      <p class="note" style="margin:0 0 10px;">あなたの Google ドライブに「<strong>Registro500 の記録</strong>」というフォルダを作り、記録と写真を入れておきます。<br>・読むときは「<strong>マイガレージ・レポート</strong>」を開きます（写真つき）。<br>・元の写真は「<strong>写真</strong>」フォルダに、記録ごとに分けて入ります（例：写真 → 整備 → 2024-05-03 オイル交換）。<br>・2回目からはボタン1つで記録を新しくし、<strong>まだ送っていない写真だけ</strong>を足します。</p>
       <div id="driveOff">
         <button type="button" class="btn-main" id="driveConnect" disabled>Google ドライブとつないでバックアップ</button>
         <p class="note">Google の画面で、このサイトが<strong>自分で作ったファイルだけ</strong>を扱う許可を求めます（ドライブのほかのファイルは見えません）。</p>
@@ -447,6 +447,19 @@
   // ── 記録帳（保存されるファイル）を組み立てる ──
   const fmtDate = s => s ? String(s).slice(0, 10) : '';
   const yen = n => n == null ? '' : Number(n).toLocaleString('ja-JP') + '円';
+  // 車両の項目の表示名（detail.html の項目名に合わせた。cars に列を足したらここにも）
+  const CAR_LABEL = {
+    handle_name: 'ハンドルネーム', prefecture: '都道府県', model_select_a: '車名', model_text_a: '車名（入力）', model_select_b: 'モデル', model_text_b: 'モデル（入力）',
+    year: '年式', body_color: 'ボディカラー', length_cm: '全長(cm)', capacity: '乗車定員', steering: 'ハンドル', engine_cc: '排気量(cc)',
+    engine_type_select: 'エンジン形式', engine_type_text: 'エンジン形式（入力）', ignition_type: '点火形式', ignition_sub_type: '点火製品名', distribution_type: '配電',
+    coil_name: 'コイル', plug_name: 'プラグ', fuel_injection: '供給装置', carburetor_name: 'キャブ', fuel_pump: '燃料ポンプ', electric_pump_name: '電磁ポンプ名',
+    generator: '発電機', oil_cooler: 'オイルクーラー', transmission: 'ミッション', synchro: 'シンクロ', joint: 'ジョイント', wheel: 'ホイール',
+    rim_diameter_in: 'リム径(インチ)', rim_width_in: 'リム幅(インチ)', tire_type: 'タイヤ形式', tire_size: 'タイヤサイズ', tire_brand_name: 'タイヤメーカー',
+    engine_oil: 'エンジンオイル', engine_oil_interval: 'エンジンオイルの交換周期', transmission_oil: 'ミッションオイル', transmission_oil_interval: 'ミッションオイルの交換周期',
+    battery: 'バッテリー', highlights: 'こだわり・自慢', x_twitter: 'X', instagram: 'Instagram', youtube: 'YouTube', minkara: 'みんカラ', facebook: 'Facebook',
+    threads: 'Threads', blog_or_website: 'ブログ・サイト', accept_inquiry: 'お問い合わせを受け付ける', car_type: '車種区分', cooling_type: '冷却方式',
+    is_sold: '手放した', sold_at: '手放した日', sns_share_optout: 'SNS 掲載を断る'
+  };
   const SKIP_CAR_COLS = /^(id|document_id|owner_user_id|owner_email|photo_.*|created_at|updated_at)$/;
   const FREQ = { always: 'いつも積む', occasional: 'ときどき' };
   const WORKER = { diy: '自分で', shop: 'お店で' };
@@ -488,21 +501,11 @@
       h.push('<section class="car"><h2>' + esc(carLabel(c)) + '</h2>');
       const ph = ['photo_main', 'photo_front', 'photo_side', 'photo_rear', 'photo_engine', 'photo_interior', 'photo_steering_cluster'].map(k => c[k]).filter(Boolean);
       if (ph.length && !part.chunk) h.push(gallery(ph.map(u => ({ u }))));
-      const rows = Object.keys(c).filter(k => !SKIP_CAR_COLS.test(k) && c[k] !== null && c[k] !== '' && typeof c[k] !== 'object')
-        .map(k => '<tr><th>' + esc(k) + '</th><td>' + esc(c[k]) + '</td></tr>').join('');
-      if (rows && !part.chunk) h.push('<details><summary>登録内容（全項目）</summary><table class="kv">' + rows + '</table></details>');
+      // 項目名は表示名に（CAR_LABEL）。表示用に組み立てた列（model_display_* 等）は元の列と重なるので出さない
+      const rows = Object.keys(c).filter(k => !SKIP_CAR_COLS.test(k) && !/^(model_display_.|engine_display)$/.test(k) && c[k] !== null && c[k] !== '' && typeof c[k] !== 'object')
+        .map(k => '<tr><th width="30%" style="width:30%;">' + esc(CAR_LABEL[k] || k) + '</th><td>' + esc(c[k] === true ? 'はい' : c[k] === false ? 'いいえ' : c[k]) + '</td></tr>').join('');
+      if (rows && !part.chunk) h.push('<details><summary>登録内容（全項目）</summary><table class="kv" width="100%">' + rows + '</table></details>');
 
-      const eps = d.car_episodes.filter(e => e.car_id === cid);
-      if (eps.length) {
-        h.push('<h3>ストーリー（' + eps.length + '件）</h3>');
-        eps.forEach(e => {
-          const pics = [e.cover_url].concat(Array.isArray(e.photo_urls) ? e.photo_urls.map(p => typeof p === 'string' ? p : p && p.url) : []).filter(Boolean);
-          h.push('<article><div class="meta">' + esc(fmtDate(e.episode_date)) + (e.is_published === false ? ' <span class="tag">下書き</span>' : '') + '</div><h4>' + esc(e.title || '') + '</h4>' +
-            (e.content ? '<p class="body">' + esc(e.content) + '</p>' : '') +
-            gallery(pics.map(u => ({ u }))) +
-            (e.source_url ? '<p class="meta">出典：' + esc(e.source_label || e.source_url) + ' ' + esc(e.source_url) + '</p>' : '') + '</article>');
-        });
-      }
 
       const ms = d.maint_records.filter(r => r.car_id === cid);
       if (part.main && ms.length) {
@@ -576,6 +579,19 @@
         h.push('</ul>');
       }
 
+      // ストーリーは車の節の最後（2026-11-11 ユーザー）
+      const eps = d.car_episodes.filter(e => e.car_id === cid);
+      if (eps.length) {
+        h.push('<h3>ストーリー（' + eps.length + '件）</h3>');
+        eps.forEach(e => {
+          const pics = [e.cover_url].concat(Array.isArray(e.photo_urls) ? e.photo_urls.map(p => typeof p === 'string' ? p : p && p.url) : []).filter(Boolean);
+          h.push('<article><div class="meta">' + esc(fmtDate(e.episode_date)) + (e.is_published === false ? ' <span class="tag">下書き</span>' : '') + '</div><h4>' + esc(e.title || '') + '</h4>' +
+            (e.content ? '<p class="body">' + esc(e.content) + '</p>' : '') +
+            gallery(pics.map(u => ({ u }))) +
+            (e.source_url ? '<p class="meta">出典：' + esc(e.source_label || e.source_url) + ' ' + esc(e.source_url) + '</p>' : '') + '</article>');
+        });
+      }
+
       const ps = d.paint_posts.filter(p => String(p.car_doc) === String(cid));
       if (ps.length && !doc) {
         h.push('<h3>お絵描き帳（' + ps.length + '件）</h3><div class="grid">');
@@ -615,7 +631,7 @@
 
     return '<!DOCTYPE html>\n<html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
       '<meta name="robots" content="noindex"><title>わたしの記録（' + esc(stamp) + ' 保存）</title><style>' + DOC_CSS + '</style></head><body><main>' +
-      '<header><h1>' + (part.chunk ? esc(maintDocName(part.chunk)) : 'わたしの記録') + '</h1><p class="meta">Registro500 Giappone から ' + esc(stamp) + ' に保存。' + (doc ? '' : 'このファイル1つに、保存した時点の記録がすべて入っています。') +
+      '<header><h1>' + (part.chunk ? esc(maintDocName(part.chunk)) : esc(reportTitle())) + '</h1><p class="meta">Registro500 Giappone から ' + esc(stamp) + ' に保存。' + (doc ? '' : 'このファイル1つに、保存した時点の記録がすべて入っています。') +
       (doc ? '写真は縮小して入れています。元の大きさの写真は、同じフォルダの「' + GDRIVE_PHOTOS + '」に記録ごとに分けて入っています。' : light ? 'これは文章と数字だけの版です（写真は「写真まるごと版」に入ります）。' : '') + '</p></header>' +
       h.join('\n') +
       '<footer class="meta">このファイルには、記録を戻すためのデータも入っています。サイトの記録が消えたときは、このファイルを管理人へ送ってください。</footer>' +
@@ -717,7 +733,8 @@
   const GDRIVE_CLIENT_ID = '723005462978-6gbks6e96v0ur6dn9oe816hlaapp6orv.apps.googleusercontent.com'; // Google Cloud の OAuth クライアントID（公開値）。空のうちはドライブ欄を出さない
   const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
   const GDRIVE_FOLDER = 'Registro500 の記録';
-  const GDRIVE_DOC = 'わたしの記録';
+  // ドキュメントの題名＝「Registro500 マイガレージ・レポート」（126 だけのオーナーは Registro126）＝2026-11-11 ユーザー
+  const reportTitle = () => 'Registro' + (myCars.some(c => c.car_type !== '126') ? '500' : '126') + ' マイガレージ・レポート';
   const G_FILES = 'https://www.googleapis.com/drive/v3/files';
   const G_UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
   let gTokenClient = null, gToken = null, gTokenExp = 0, gPending = null, gBusy = false, driveInited = false;
@@ -1021,7 +1038,7 @@
     }
     prog('読む用のドキュメントを作っています…');
     // 本体は整備を「どのドキュメントにあるか」の案内だけにする（区切りは maintChunks＝年ドキュメントと同じ数え方）
-    await put(GDRIVE_DOC, m => buildDoc(d, m, true, true, { main: true }), {});
+    await put(reportTitle(), m => buildDoc(d, m, true, true, { main: true }), {});
     const chunks = maintChunks(d);
     const EMPTY = ['car_episodes', 'car_history', 'fuel_records', 'fuel_costs', 'equipment_records', 'owner_tools', 'owner_tool_users', 'owner_articles', 'paint_posts'];
     for (const ch of chunks) {
@@ -1083,7 +1100,7 @@
       }
       renderDrive();
       prog('');
-      driveMsg((first ? 'バックアップしました。Google ドライブの「' + GDRIVE_FOLDER + '」フォルダに入っています（読むときは「' + GDRIVE_DOC + '」を開いてください）。次からは「今の記録をバックアップ」を押すだけで新しくなります。' : '保存しました。') + (photoNote ? ' ' + photoNote : ''), photoErr);
+      driveMsg((first ? 'バックアップしました。Google ドライブの「' + GDRIVE_FOLDER + '」フォルダに入っています（読むときは「' + reportTitle() + '」を開いてください）。次からは「今の記録をバックアップ」を押すだけで新しくなります。' : '保存しました。') + (photoNote ? ' ' + photoNote : ''), photoErr);
     } catch (err) {
       console.error('[my-backup] drive', err);
       prog('');
