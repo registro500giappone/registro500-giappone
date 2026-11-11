@@ -124,8 +124,14 @@
     </div>
 
     <div class="card">
-      <p class="note" id="estimate" style="margin:0 0 10px;">写真の枚数を数えています…</p>
-      <button type="button" class="btn-main" id="makeBtn">ファイルを作る</button>
+      <h2>📱 軽い版（スマホ向け・ふだん用）</h2>
+      <p class="note" style="margin:0 0 10px;">文章と数字はすべて、写真は<strong>小さな見本</strong>で入ります。記録した日に気軽にどうぞ。</p>
+      <p class="note" id="estLight" style="margin:0 0 10px;">写真の枚数を数えています…</p>
+      <button type="button" class="btn-main" id="makeLight">軽い版を作る</button>
+      <h2 style="margin-top:22px;">💻 写真まるごと版（パソコン向け・年に1〜2回）</h2>
+      <p class="note" style="margin:0 0 10px;">文章と数字に加えて、<strong>写真を元の大きさのまま</strong>まとめた ZIP ファイルです。展開すると、ネットがなくても写真ごと読めます。</p>
+      <p class="note" id="estFull" style="margin:0 0 10px;"></p>
+      <button type="button" class="btn-sub btn-wide" id="makeFull">写真まるごと版を作る</button>
       <div id="progress" class="hidden">
         <div class="bar"><i id="barFill"></i></div>
         <div class="st" id="stText">準備中…</div>
@@ -140,7 +146,7 @@
 
     <p class="note">
       ・ファイルの中身は<strong>毎回すべて入り</strong>です。いちばん新しいファイルが1つあれば足ります。<strong>古いファイルは消して大丈夫です。</strong><br>
-      ・ファイル名は毎回同じです。保存のときに「置き換える」を選ぶと、古いものと入れ替わります。<br>
+      ・新しく保存したら、<strong>前のファイルは消して大丈夫です</strong>（iPhone は「ファイル」アプリで長押し →「削除」）。同じ名前だと「◯◯ 2」のように番号が付いて増えていきます。<br>
       ・連絡先などあなたの情報も入っています。ほかの人には渡さないでください。<br>
       ・万一サイトの記録が消えたときは、このファイルを管理人へ送っていただければ戻します（お問い合わせからご連絡ください）。
     </p>
@@ -190,26 +196,33 @@
   }
 
   // ── 作る前の見積もり（写真の枚数と通信量） ──
-  // 1枚の目安＝元の写真 約0.25MB（2026-11-11 実測の標本12枚＝0.1〜0.45MB）。
-  // 出来上がりは縮小しても base64 で 1.33 倍になるので、ほぼ同じ大きさ×枚数と見る。
-  const MB_PER_PHOTO = 0.3;
-  const WIFI_OVER = 100;   // これを超えたら Wi-Fi をすすめる（約30MB）
-  const PC_OVER = 400;     // これを超えたら PC をすすめる（スマホのメモリでは重い）
-  // 試験用：?photos=20 で埋め込む写真を先頭20枚に絞る（残りはリンクのまま）。管理人の約1,200枚をスマホで試すため。
+  // 実測 2026-11-11：元の写真＝1枚 0.1〜0.45MB（平均約0.25）／整備写真の縮小版 `_t.jpg`＝約33KB。
+  // 軽い版は整備写真だけ縮小版を取りに行き、どの写真も長辺320pxの見本（約20KB＋base64）にする。
+  const MB_ORIG = 0.3, MB_MAINT_ORIG = 0.2, MB_MAINT_THUMB = 0.035, MB_SAMPLE = 0.025;
+  const LIGHT_WIFI_MB = 30;  // 軽い版の通信がこれを超えたら Wi-Fi をすすめる
+  const FULL_PHONE_MB = 100; // 写真まるごと版がこれを超えたら、スマホでは作らないようすすめる
+  // 試験用：?photos=20 で扱う写真を先頭20枚に絞る（残りはリンクのまま）。オーナーには案内しない。
   const PHOTO_CAP = (() => { const v = parseInt(new URLSearchParams(location.search).get('photos'), 10); return v >= 0 ? v : Infinity; })();
   async function showEstimate() {
     try {
       const d = await collect(() => {});
-      const all = new Set(photoUrls(d)).size;
-      const n = Math.min(all, PHOTO_CAP);      const mb = Math.max(1, Math.round(n * MB_PER_PHOTO));
-      let t = '写真 ' + n + '枚・通信はおよそ ' + mb + 'MB、ファイルもほぼ同じ大きさになります。';
-      if (n > PC_OVER) t += '<br><strong>写真がとても多いため、パソコンで作ることをおすすめします</strong>（スマホでは途中で止まることがあります）。';
-      else if (n > WIFI_OVER) t += '<br><strong>写真が多いため、Wi‑Fi につながっているときに作ることをおすすめします。</strong>';
-      if (n < all) t += '<br>（試験：写真は ' + all + '枚中 ' + n + '枚だけ入れ、残りはリンクのままにします）';
-      $('estimate').innerHTML = t;
+      const jobs = photoJobs(d, true);
+      const all = jobs.length;
+      const use = jobs.slice(0, PHOTO_CAP);
+      const nm = use.filter(j => j.maint).length, no = use.length - nm;
+      const lightDl = Math.max(1, Math.round(no * MB_ORIG + nm * MB_MAINT_THUMB));
+      const lightFile = Math.max(1, Math.round(use.length * MB_SAMPLE + 0.5));
+      const full = Math.max(1, Math.round(no * MB_ORIG + nm * MB_MAINT_ORIG));
+      let t = '写真 ' + use.length + '枚・通信はおよそ ' + lightDl + 'MB、ファイルはおよそ ' + lightFile + 'MB です。';
+      if (lightDl > LIGHT_WIFI_MB) t += '<br><strong>Wi‑Fi につながっているときに作ることをおすすめします。</strong>';
+      if (use.length < all) t += '<br>（試験：写真は ' + all + '枚中 ' + use.length + '枚だけ入れ、残りはリンクのままにします）';
+      $('estLight').innerHTML = t;
+      let f = 'ZIP ファイルはおよそ ' + full + 'MB です。';
+      if (isTouch() && full > FULL_PHONE_MB) f += '<br><strong>大きいので、パソコンで作ることをおすすめします</strong>（スマホでは途中で止まることがあります）。';
+      $('estFull').innerHTML = f;
     } catch (e) {
       console.warn('[my-backup] estimate', e);
-      $('estimate').classList.add('hidden');
+      $('estLight').classList.add('hidden');
     }
   }
 
@@ -289,55 +302,105 @@
     return d;
   }
 
-  // ── 写真を縮小して data URL に（Firebase は本番ドメインに CORS を返す＝実測 2026-11-11） ──
-  const MAX_EDGE = 1200;
+  // ── 写真（Firebase は本番ドメインに CORS を返す＝実測 2026-11-11。*.pages.dev では通らない） ──
+  // 軽い版＝長辺320pxの見本を data URL で埋め込む／写真まるごと版＝元のファイルをそのまま ZIP の photos/ に入れる。
+  const SAMPLE_EDGE = 320, SAMPLE_Q = 0.6;
+  async function getBlob(url) {
+    const r = await fetch(url, { mode: 'cors', credentials: 'omit' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.blob();
+  }
   function loadImg(src) {
     return new Promise((ok, ng) => { const im = new Image(); im.onload = () => ok(im); im.onerror = ng; im.src = src; });
   }
-  async function shrink(url) {
-    const r = await fetch(url, { mode: 'cors', credentials: 'omit' });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const blob = await r.blob();
-    const objUrl = URL.createObjectURL(blob);
+  async function sample(url) {
+    const objUrl = URL.createObjectURL(await getBlob(url));
     try {
       const im = await loadImg(objUrl); // EXIF の向きは img が反映する
       const w0 = im.naturalWidth, h0 = im.naturalHeight;
-      const k = Math.min(1, MAX_EDGE / Math.max(w0, h0));
+      const k = Math.min(1, SAMPLE_EDGE / Math.max(w0, h0));
       const cv = document.createElement('canvas');
       cv.width = Math.max(1, Math.round(w0 * k)); cv.height = Math.max(1, Math.round(h0 * k));
       const ctx = cv.getContext('2d');
       ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
       ctx.drawImage(im, 0, 0, cv.width, cv.height);
-      return cv.toDataURL('image/jpeg', 0.8);
+      return cv.toDataURL('image/jpeg', SAMPLE_Q);
     } finally { URL.revokeObjectURL(objUrl); }
   }
-  async function shrinkAll(urls, onEach) {
-    const map = new Map(); let failed = 0, done = 0;
-    const list = [...new Set(urls.filter(Boolean))].slice(0, PHOTO_CAP);
-    let next = 0;
+  const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/heic': 'heic' };
+  // jobs: [{ key: 記録に入っている元URL, src: 取りに行くURL, maint }]
+  // 戻り値 map: key → 軽い版は data URL／まるごと版は "photos/0001.jpg"。files はまるごと版の中身。
+  async function fetchPhotos(jobs, light, onEach) {
+    const map = new Map(), files = []; let failed = 0, done = 0, next = 0;
+    const list = jobs.slice(0, PHOTO_CAP);
     async function worker() {
       while (next < list.length) {
-        const u = list[next++];
-        try { map.set(u, await shrink(u)); } catch (e) { failed++; console.warn('[my-backup] photo', u, e); }
+        const i = next++, j = list[i];
+        try {
+          if (light) map.set(j.key, await sample(j.src));
+          else {
+            const b = await getBlob(j.src);
+            const name = 'photos/' + String(i + 1).padStart(4, '0') + '.' + (EXT[b.type] || 'jpg');
+            files.push({ name, data: new Uint8Array(await b.arrayBuffer()) });
+            map.set(j.key, name);
+          }
+        } catch (e) { failed++; console.warn('[my-backup] photo', j.src, e); }
         onEach(++done, list.length);
       }
     }
     await Promise.all([worker(), worker(), worker(), worker()]);
-    return { map, failed, total: list.length };
+    files.sort((a, b) => a.name < b.name ? -1 : 1);
+    return { map, files, failed, total: list.length };
   }
 
   function paintThumbUrl(p) {
     return p.thumb_path ? SUPABASE_URL + '/storage/v1/object/public/paint-thumbs/' + p.thumb_path : '';
   }
-  function photoUrls(d) {
-    const u = [];
+  function photoJobs(d, light) {
+    const jobs = [], seen = new Set();
+    const add = (key, src, maint) => {
+      if (typeof key !== 'string' || !/^https:\/\//.test(key) || seen.has(key)) return;
+      seen.add(key); jobs.push({ key, src: src || key, maint: !!maint });
+    };
     const PHOTO_COLS = ['photo_main', 'photo_front', 'photo_side', 'photo_rear', 'photo_engine', 'photo_interior', 'photo_steering_cluster'];
-    d.cars.forEach(c => PHOTO_COLS.forEach(k => u.push(c[k])));
-    d.car_episodes.forEach(e => { u.push(e.cover_url); (Array.isArray(e.photo_urls) ? e.photo_urls : []).forEach(p => u.push(typeof p === 'string' ? p : p && p.url)); });
-    d.maint_photos.forEach(p => u.push(p.url));
-    d.owner_tools.forEach(t => u.push(t.photo_url));
-    d.paint_posts.forEach(p => u.push(paintThumbUrl(p)));
-    return u.filter(x => typeof x === 'string' && /^https:\/\//.test(x));
+    d.cars.forEach(c => PHOTO_COLS.forEach(k => add(c[k])));
+    d.car_episodes.forEach(e => { add(e.cover_url); (Array.isArray(e.photo_urls) ? e.photo_urls : []).forEach(p => add(typeof p === 'string' ? p : p && p.url)); });
+    // 整備写真は縮小版 `_t.jpg`（約33KB）が全件にある＝軽い版はそちらを取りに行く（管理人の1,200枚でも通信は約40MB）
+    d.maint_photos.forEach(p => add(p.url, light && p.thumb_url ? p.thumb_url : p.url, true));
+    d.owner_tools.forEach(t => add(t.photo_url));
+    d.paint_posts.forEach(p => add(paintThumbUrl(p)));
+    return jobs;
+  }
+
+  // ── ZIP（無圧縮＝JPEG はもともと圧縮済みで縮まない。外部ライブラリなし） ──
+  const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(u8) { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  function makeZip(files) {
+    const enc = new TextEncoder(), parts = [], central = [];
+    const now = new Date();
+    const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+    const dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+    let offset = 0;
+    for (const f of files) {
+      const name = enc.encode(f.name), crc = crc32(f.data), size = f.data.length;
+      const lh = new DataView(new ArrayBuffer(30));
+      lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+      lh.setUint16(10, dosTime, true); lh.setUint16(12, dosDate, true); lh.setUint32(14, crc, true);
+      lh.setUint32(18, size, true); lh.setUint32(22, size, true); lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+      parts.push(lh, name, f.data);
+      const ch = new DataView(new ArrayBuffer(46));
+      ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+      ch.setUint16(12, dosTime, true); ch.setUint16(14, dosDate, true); ch.setUint32(16, crc, true);
+      ch.setUint32(20, size, true); ch.setUint32(24, size, true); ch.setUint16(28, name.length, true);
+      ch.setUint32(42, offset, true);
+      central.push(ch, name);
+      offset += 30 + name.length + size;
+    }
+    const cdSize = central.reduce((s, p) => s + p.byteLength, 0);
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+    end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
+    return new Blob(parts.concat(central, [end]), { type: 'application/zip' });
   }
 
   // ── 記録帳（保存されるファイル）を組み立てる ──
@@ -349,7 +412,7 @@
   const FUEL = { regular: 'レギュラー', premium: 'ハイオク', diesel: '軽油' };
   const USAGE = { carry: '車に積む', garage: 'ガレージ', both: '両方' };
 
-  function buildDoc(d, img) {
+  function buildDoc(d, img, light) {
     const im = (u, alt) => {
       if (!u) return '';
       const src = img.get(u) || u;
@@ -466,7 +529,8 @@
 
     return '<!DOCTYPE html>\n<html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
       '<meta name="robots" content="noindex"><title>わたしの記録（' + esc(stamp) + ' 保存）</title><style>' + DOC_CSS + '</style></head><body><main>' +
-      '<header><h1>わたしの記録</h1><p class="meta">Registro500 Giappone から ' + esc(stamp) + ' に保存。このファイル1つに、保存した時点の記録がすべて入っています。</p></header>' +
+      '<header><h1>わたしの記録</h1><p class="meta">Registro500 Giappone から ' + esc(stamp) + ' に保存。このファイル1つに、保存した時点の記録がすべて入っています。' +
+      (light ? '写真は小さな見本です（元の大きさの写真は「写真まるごと版」に入ります）。' : '') + '</p></header>' +
       h.join('\n') +
       '<footer class="meta">このファイルには、記録を戻すためのデータも入っています。サイトの記録が消えたときは、このファイルを管理人へ送ってください。</footer>' +
       '</main><script type="application/json" id="registro-backup-data">' + json + '<\/script></body></html>';
@@ -486,13 +550,14 @@
     '@media print{body{background:#fff;color:#000}section.car{break-inside:auto;border:0;padding:0}details{display:block}article{break-inside:avoid}}'
   ].join('');
 
-  function fileName() {
+  function baseName() {
     const type = myCars.some(c => c.car_type !== '126') ? '500' : '126';
-    return 'registro' + type + '_backup_' + myCars.map(c => String(c.document_id).replace(/^DOC_/, '')).join('-') + '.html';
+    return 'registro' + type + '_backup_' + myCars.map(c => String(c.document_id).replace(/^DOC_/, '')).join('-');
   }
 
-  $('makeBtn').addEventListener('click', async () => {
-    $('makeBtn').disabled = true;
+  async function make(light) {
+    const btns = [$('makeLight'), $('makeFull')];
+    btns.forEach(b => b.disabled = true);
     $('errText').classList.add('hidden');
     $('ready').classList.add('hidden');
     $('progress').classList.remove('hidden');
@@ -500,24 +565,32 @@
     try {
       let n = 0;
       const d = await collect(t => setBar(0.05 * ++n, t + 'を読み込み中…'));
-      const urls = photoUrls(d);
-      const { map, failed, total } = await shrinkAll(urls, (done, all) => setBar(0.35 + 0.6 * done / all, '写真を小さくしています… ' + done + ' / ' + all));
+      const { map, files, failed, total } = await fetchPhotos(photoJobs(d, light), light,
+        (done, all) => setBar(0.35 + 0.6 * done / all, (light ? '写真の見本を作っています… ' : '写真を集めています… ') + done + ' / ' + all));
       setBar(0.97, 'ファイルを組み立てています…');
-      const html = buildDoc(d, map);
-      const name = fileName();
-      const file = new File([html], name, { type: 'text/html' });
+      const html = buildDoc(d, map, light);
+      let file, name;
+      if (light) {
+        name = baseName() + '.html';
+        file = new File([html], name, { type: 'text/html' });
+      } else {
+        name = baseName() + '_photos.zip';
+        const inner = baseName() + '.html';
+        file = new File([makeZip([{ name: inner, data: new TextEncoder().encode(html) }].concat(files))], name, { type: 'application/zip' });
+      }
+      if (built && built.url) URL.revokeObjectURL(built.url);
       built = { file, name, url: URL.createObjectURL(file) };
       setBar(1, '');
       $('progress').classList.add('hidden');
       const mb = (file.size / 1048576).toFixed(1);
-      $('readyText').textContent = '✅ できました（' + mb + 'MB・写真 ' + (total - failed) + '枚）。' + (failed ? '写真 ' + failed + '枚は入れられなかったため、リンクのまま入れています。' : '');
+      $('readyText').textContent = '✅ できました（' + mb + 'MB・写真 ' + (total - failed) + '枚）。' + (failed ? '写真 ' + failed + '枚は取り込めなかったため、リンクのまま入れています。' : '');
       const share = isTouch() && navigator.canShare && navigator.canShare({ files: [file] });
       $('saveBtn').textContent = share ? '保存する（保存先を選ぶ）' : 'ダウンロードする';
-      $('saveHint').textContent = share
+      $('saveHint').textContent = (share
         ? 'iPhone は「\"ファイル\"に保存」、Android は「ドライブ」などを選べます。自分宛てに LINE やメールで送っておく方法もあります。'
-        : 'ダウンロードしたファイルは、ダブルクリックするとブラウザで開けます。';
+        : (light ? 'ダウンロードしたファイルは、ダブルクリックするとブラウザで開けます。' : 'ダウンロードした ZIP を展開（右クリック →「すべて展開」）して、中の .html を開いてください。写真は photos フォルダに入っています。'));
       $('ready').classList.remove('hidden');
-      try { gtag('event', 'backup_build', { cars: myCars.length, photos: total, failed, size_mb: Number(mb) }); } catch (e) {}
+      try { gtag('event', 'backup_build', { kind: light ? 'light' : 'full', cars: myCars.length, photos: total, failed, size_mb: Number(mb) }); } catch (e) {}
     } catch (err) {
       console.error('[my-backup] build', err);
       $('progress').classList.add('hidden');
@@ -525,10 +598,11 @@
       $('errText').textContent = 'ファイルを作れませんでした。' + (net ? '電波のよい所でもう一度お試しください。' : 'お手数ですが、この画面を管理人へお知らせください。') + '（' + (err && err.message || err) + '）';
       $('errText').classList.remove('hidden');
     } finally {
-      $('makeBtn').disabled = false;
-      $('makeBtn').textContent = 'もう一度作る';
+      btns.forEach(b => b.disabled = false);
     }
-  });
+  }
+  $('makeLight').addEventListener('click', () => make(true));
+  $('makeFull').addEventListener('click', () => make(false));
 
   // 共有シートは「ボタンを押した直後」でないと開けないため、作るのと保存するのを2段に分けている
   $('saveBtn').addEventListener('click', async () => {
