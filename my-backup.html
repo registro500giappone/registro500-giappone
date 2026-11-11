@@ -468,9 +468,11 @@
       items = items.filter(x => x.u && (!doc || img.get(x.u)));
       if (!items.length) return '';
       if (!doc) return '<div class="grid">' + items.map(x => x.cap != null ? '<figure>' + im(x.u, x.cap) + (x.cap ? '<figcaption>' + esc(x.cap) + '</figcaption>' : '') + '</figure>' : im(x.u)).join('') + '</div>';
-      const cell = x => '<td style="width:50%;vertical-align:top;padding:4px;"><img src="' + esc(img.get(x.u)) + '" width="290" alt="">' + (x.cap ? '<p>' + esc(x.cap) + '</p>' : '') + '</td>';
+      // 1行3枚（2026-11-11 ユーザー＝2枚だと A4 1ページに4枚しか入らない）
+      const W = Math.floor(100 / DOC_COLS) + '%';
+      const cell = x => '<td style="width:' + W + ';vertical-align:top;padding:4px;">' + (x ? '<img src="' + esc(img.get(x.u)) + '" width="' + DOC_IMG_W + '" alt="">' + (x.cap ? '<p>' + esc(x.cap) + '</p>' : '') : '') + '</td>';
       let t = '<table style="width:100%;border-collapse:collapse;">';
-      for (let i = 0; i < items.length; i += 2) t += '<tr>' + cell(items[i]) + (items[i + 1] ? cell(items[i + 1]) : '<td style="width:50%;"></td>') + '</tr>';
+      for (let i = 0; i < items.length; i += DOC_COLS) { t += '<tr>'; for (let k = 0; k < DOC_COLS; k++) t += cell(items[i + k]); t += '</tr>'; }
       return t + '</table>';
     };
     const now = new Date();
@@ -804,7 +806,8 @@
   // ドライブで消した写真は次の保存で送り直される（控えを守る側に倒す）。記録の題名を後で変えても、送り済みの写真は元のフォルダのまま。
   const GDRIVE_PHOTOS = '写真';
   const PHOTO_KEY = 'r500p';
-  const DOC_LAYOUT = 2; // 読む用ドキュメントの見た目を変えたら上げる＝変わっていない冊も作り直される
+  const DOC_LAYOUT = 3; // 読む用ドキュメントの見た目を変えたら上げる＝変わっていない冊も作り直される
+  const DOC_COLS = 3, DOC_IMG_W = 190; // 読む用ドキュメントの写真＝1行の枚数と幅（px）
   const DOC_IMG_MAX = 200; // 読む用ドキュメント1冊あたりの写真の上限（変換が重くなりすぎないため）。超える年は「その1・その2」に分ける
   const PHOTO_AUTO_MAX = 30; // これ以下なら保存のついでに送る。超えたら「過去の写真をまとめてバックアップ」ボタン（初回のまとめ送り）
   let gStop = false;
