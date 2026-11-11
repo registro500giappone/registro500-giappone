@@ -126,7 +126,7 @@
     <!-- Google ドライブ連携（GDRIVE_CLIENT_ID が空のうちは出さない）。正本の §1b -->
     <div class="card hidden" id="driveCard">
       <h2>☁️ おすすめ：Google ドライブにバックアップ</h2>
-      <p class="note" style="margin:0 0 10px;">あなたの Google ドライブに「<strong>Registro500 の記録</strong>」というフォルダを作り、記録と写真を入れておきます。<br>・読むときは「<strong>わたしの記録（読む用）</strong>」を開きます（写真つき）。<br>・元の写真は「<strong>写真</strong>」フォルダに、記録ごとに分けて入ります（例：写真 → 整備 → 2024-05-03 オイル交換）。<br>・2回目からはボタン1つで記録を新しくし、<strong>まだ送っていない写真だけ</strong>を足します。</p>
+      <p class="note" style="margin:0 0 10px;">あなたの Google ドライブに「<strong>Registro500 の記録</strong>」というフォルダを作り、記録と写真を入れておきます。<br>・読むときは「<strong>わたしの記録</strong>」を開きます（写真つき）。<br>・元の写真は「<strong>写真</strong>」フォルダに、記録ごとに分けて入ります（例：写真 → 整備 → 2024-05-03 オイル交換）。<br>・2回目からはボタン1つで記録を新しくし、<strong>まだ送っていない写真だけ</strong>を足します。</p>
       <div id="driveOff">
         <button type="button" class="btn-main" id="driveConnect" disabled>Google ドライブとつないでバックアップ</button>
         <p class="note">Google の画面で、このサイトが<strong>自分で作ったファイルだけ</strong>を扱う許可を求めます（ドライブのほかのファイルは見えません）。</p>
@@ -366,7 +366,7 @@
   // 整備の部位（my-maintenance.html の AREAS と同じ。足したらここにも）
   const AREA_NAME = { engine: 'エンジン', fuel: '燃料・点火', driveline: '駆動系', suspension: '足回り・操舵', brake: 'ブレーキ', electric: '電装', consumable: 'オイル・消耗品', body: 'ボディ・その他', accessory: 'アクセサリー' };
   const maintYear = r => (fmtDate(r.work_date) || '').slice(0, 4) || '日付なし';
-  const maintDocName = c => '整備手帳 ' + c.year + (c.of > 1 ? ' その' + c.no : '') + '（読む用）';
+  const maintDocName = c => '整備手帳 ' + c.year + (c.of > 1 ? ' その' + c.no : '');
   // 年ごとに、写真が DOC_IMG_MAX 枚を超えないよう日付順に区切る（1件の記録は分けない）。写真を多用する人は1年が数冊になる
   function maintChunks(d) {
     const nPhotos = new Map(); d.maint_photos.forEach(p => nPhotos.set(p.record_id, (nPhotos.get(p.record_id) || 0) + 1));
@@ -717,7 +717,7 @@
   const GDRIVE_CLIENT_ID = '723005462978-6gbks6e96v0ur6dn9oe816hlaapp6orv.apps.googleusercontent.com'; // Google Cloud の OAuth クライアントID（公開値）。空のうちはドライブ欄を出さない
   const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
   const GDRIVE_FOLDER = 'Registro500 の記録';
-  const GDRIVE_DOC = 'わたしの記録（読む用）';
+  const GDRIVE_DOC = 'わたしの記録';
   const G_FILES = 'https://www.googleapis.com/drive/v3/files';
   const G_UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
   let gTokenClient = null, gToken = null, gTokenExp = 0, gPending = null, gBusy = false, driveInited = false;
@@ -1031,7 +1031,7 @@
       const sig = await sha16(JSON.stringify([DOC_LAYOUT, recs, dy.maint_photos, dy.maint_costs, d.cars.map(carLabel)]));
       const name = maintDocName(ch), cur = existing.find(f => f.name === name);
       if (cur && cur.appProperties && cur.appProperties.r500h === sig) continue; // 変わっていない年はそのまま
-      prog(name.replace('（読む用）', '') + ' を作っています…（写真 ' + dy.maint_photos.length + '枚）');
+      prog(name + ' を作っています…（写真 ' + dy.maint_photos.length + '枚）');
       await put(name, m => buildDoc(dy, m, true, true, { chunk: ch }), { r500h: sig });
     }
     return warn;
