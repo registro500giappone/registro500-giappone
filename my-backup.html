@@ -125,8 +125,8 @@
 
     <div class="card">
       <h2>📱 軽い版（スマホ向け・ふだん用）</h2>
-      <p class="note" style="margin:0 0 10px;">文章と数字はすべて、写真は<strong>小さな見本</strong>で入ります。記録した日に気軽にどうぞ。</p>
-      <p class="note" id="estLight" style="margin:0 0 10px;">写真の枚数を数えています…</p>
+      <p class="note" style="margin:0 0 10px;"><strong>文章と数字だけ</strong>を入れます（写真は入りません）。すぐにできて軽いので、記録した日に気軽にどうぞ。写真の元は、撮ったスマホの写真アプリにも残っています。</p>
+      <p class="note" id="estLight" style="margin:0 0 10px;"></p>
       <button type="button" class="btn-main" id="makeLight">軽い版を作る</button>
       <h2 style="margin-top:22px;">💻 写真まるごと版（パソコン向け・年に1〜2回）</h2>
       <p class="note" style="margin:0 0 10px;">文章と数字に加えて、<strong>写真を元の大きさのまま</strong>まとめた ZIP ファイルです。展開すると、ネットがなくても写真ごと読めます。</p>
@@ -197,27 +197,21 @@
 
   // ── 作る前の見積もり（写真の枚数と通信量） ──
   // 実測 2026-11-11：元の写真＝1枚 0.1〜0.45MB（平均約0.25）／整備写真の縮小版 `_t.jpg`＝約33KB。
-  // 軽い版は整備写真だけ縮小版を取りに行き、どの写真も長辺320pxの見本（約20KB＋base64）にする。
-  const MB_ORIG = 0.3, MB_MAINT_ORIG = 0.2, MB_MAINT_THUMB = 0.035, MB_SAMPLE = 0.025;
-  const LIGHT_WIFI_MB = 30;  // 軽い版の通信がこれを超えたら Wi-Fi をすすめる
+  const MB_ORIG = 0.3, MB_MAINT_ORIG = 0.2;
   const FULL_PHONE_MB = 100; // 写真まるごと版がこれを超えたら、スマホでは作らないようすすめる
   // 試験用：?photos=20 で扱う写真を先頭20枚に絞る（残りはリンクのまま）。オーナーには案内しない。
   const PHOTO_CAP = (() => { const v = parseInt(new URLSearchParams(location.search).get('photos'), 10); return v >= 0 ? v : Infinity; })();
   async function showEstimate() {
     try {
       const d = await collect(() => {});
-      const jobs = photoJobs(d, true);
+      const jobs = photoJobs(d);
       const all = jobs.length;
       const use = jobs.slice(0, PHOTO_CAP);
       const nm = use.filter(j => j.maint).length, no = use.length - nm;
-      const lightDl = Math.max(1, Math.round(no * MB_ORIG + nm * MB_MAINT_THUMB));
-      const lightFile = Math.max(1, Math.round(use.length * MB_SAMPLE + 0.5));
       const full = Math.max(1, Math.round(no * MB_ORIG + nm * MB_MAINT_ORIG));
-      let t = '写真 ' + use.length + '枚・通信はおよそ ' + lightDl + 'MB、ファイルはおよそ ' + lightFile + 'MB です。';
-      if (lightDl > LIGHT_WIFI_MB) t += '<br><strong>Wi‑Fi につながっているときに作ることをおすすめします。</strong>';
-      if (use.length < all) t += '<br>（試験：写真は ' + all + '枚中 ' + use.length + '枚だけ入れ、残りはリンクのままにします）';
-      $('estLight').innerHTML = t;
-      let f = 'ZIP ファイルはおよそ ' + full + 'MB です。';
+      $('estLight').textContent = '整備 ' + d.maint_records.length + '件・給油 ' + d.fuel_records.length + '件など。';
+      let f = '写真 ' + use.length + '枚・ZIP ファイルはおよそ ' + full + 'MB です。';
+      if (use.length < all) f += '<br>（試験：写真は ' + all + '枚中 ' + use.length + '枚だけ入れ、残りはリンクのままにします）';
       if (isTouch() && full > FULL_PHONE_MB) f += '<br><strong>大きいので、パソコンで作ることをおすすめします</strong>（スマホでは途中で止まることがあります）。';
       $('estFull').innerHTML = f;
     } catch (e) {
@@ -303,47 +297,26 @@
   }
 
   // ── 写真（Firebase は本番ドメインに CORS を返す＝実測 2026-11-11。*.pages.dev では通らない） ──
-  // 軽い版＝長辺320pxの見本を data URL で埋め込む／写真まるごと版＝元のファイルをそのまま ZIP の photos/ に入れる。
-  const SAMPLE_EDGE = 320, SAMPLE_Q = 0.6;
+  // 写真まるごと版＝元のファイルをそのまま ZIP の photos/ に入れる（軽い版は写真なし）。
   async function getBlob(url) {
     const r = await fetch(url, { mode: 'cors', credentials: 'omit' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.blob();
   }
-  function loadImg(src) {
-    return new Promise((ok, ng) => { const im = new Image(); im.onload = () => ok(im); im.onerror = ng; im.src = src; });
-  }
-  async function sample(url) {
-    const objUrl = URL.createObjectURL(await getBlob(url));
-    try {
-      const im = await loadImg(objUrl); // EXIF の向きは img が反映する
-      const w0 = im.naturalWidth, h0 = im.naturalHeight;
-      const k = Math.min(1, SAMPLE_EDGE / Math.max(w0, h0));
-      const cv = document.createElement('canvas');
-      cv.width = Math.max(1, Math.round(w0 * k)); cv.height = Math.max(1, Math.round(h0 * k));
-      const ctx = cv.getContext('2d');
-      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
-      ctx.drawImage(im, 0, 0, cv.width, cv.height);
-      return cv.toDataURL('image/jpeg', SAMPLE_Q);
-    } finally { URL.revokeObjectURL(objUrl); }
-  }
   const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/heic': 'heic' };
   // jobs: [{ key: 記録に入っている元URL, src: 取りに行くURL, maint }]
-  // 戻り値 map: key → 軽い版は data URL／まるごと版は "photos/0001.jpg"。files はまるごと版の中身。
-  async function fetchPhotos(jobs, light, onEach) {
+  // 戻り値 map: key → "photos/0001.jpg"。files は ZIP の中身。
+  async function fetchPhotos(jobs, onEach) {
     const map = new Map(), files = []; let failed = 0, done = 0, next = 0;
     const list = jobs.slice(0, PHOTO_CAP);
     async function worker() {
       while (next < list.length) {
         const i = next++, j = list[i];
         try {
-          if (light) map.set(j.key, await sample(j.src));
-          else {
-            const b = await getBlob(j.src);
-            const name = 'photos/' + String(i + 1).padStart(4, '0') + '.' + (EXT[b.type] || 'jpg');
-            files.push({ name, data: new Uint8Array(await b.arrayBuffer()) });
-            map.set(j.key, name);
-          }
+          const b = await getBlob(j.src);
+          const name = 'photos/' + String(i + 1).padStart(4, '0') + '.' + (EXT[b.type] || 'jpg');
+          files.push({ name, data: new Uint8Array(await b.arrayBuffer()) });
+          map.set(j.key, name);
         } catch (e) { failed++; console.warn('[my-backup] photo', j.src, e); }
         onEach(++done, list.length);
       }
@@ -356,7 +329,7 @@
   function paintThumbUrl(p) {
     return p.thumb_path ? SUPABASE_URL + '/storage/v1/object/public/paint-thumbs/' + p.thumb_path : '';
   }
-  function photoJobs(d, light) {
+  function photoJobs(d) {
     const jobs = [], seen = new Set();
     const add = (key, src, maint) => {
       if (typeof key !== 'string' || !/^https:\/\//.test(key) || seen.has(key)) return;
@@ -365,8 +338,7 @@
     const PHOTO_COLS = ['photo_main', 'photo_front', 'photo_side', 'photo_rear', 'photo_engine', 'photo_interior', 'photo_steering_cluster'];
     d.cars.forEach(c => PHOTO_COLS.forEach(k => add(c[k])));
     d.car_episodes.forEach(e => { add(e.cover_url); (Array.isArray(e.photo_urls) ? e.photo_urls : []).forEach(p => add(typeof p === 'string' ? p : p && p.url)); });
-    // 整備写真は縮小版 `_t.jpg`（約33KB）が全件にある＝軽い版はそちらを取りに行く（管理人の1,200枚でも通信は約40MB）
-    d.maint_photos.forEach(p => add(p.url, light && p.thumb_url ? p.thumb_url : p.url, true));
+    d.maint_photos.forEach(p => add(p.url, p.url, true));
     d.owner_tools.forEach(t => add(t.photo_url));
     d.paint_posts.forEach(p => add(paintThumbUrl(p)));
     return jobs;
@@ -413,8 +385,9 @@
   const USAGE = { carry: '車に積む', garage: 'ガレージ', both: '両方' };
 
   function buildDoc(d, img, light) {
+    // 軽い版は写真を入れない（2026-11-11 決裁＝見本を作るだけでも Wi-Fi で5分超）。写真の枠は出さず、説明文だけ残す。
     const im = (u, alt) => {
-      if (!u) return '';
+      if (!u || light) return '';
       const src = img.get(u) || u;
       return '<img src="' + esc(src) + '" alt="' + esc(alt || '') + '" loading="lazy">';
     };
@@ -457,6 +430,7 @@
             '<h4>' + esc(r.title || '') + '</h4>' +
             ((r.areas || []).length ? '<p class="meta">部位：' + esc(r.areas.join('、')) + '</p>' : '') +
             (r.comment ? '<p class="body">' + esc(r.comment) + '</p>' : '') +
+            (light && pics.length ? '<p class="meta">📷 写真 ' + pics.length + '枚</p>' : '') +
             (pics.length ? '<div class="grid">' + pics.map(p => '<figure>' + im(p.url, p.caption) + (p.caption ? '<figcaption>' + esc(p.caption) + '</figcaption>' : '') + '</figure>').join('') + '</div>' : '') +
             (vids ? '<ul class="meta">' + vids + '</ul>' : '') +
             (r.minkara_url ? '<p class="meta">みんカラ：' + esc(r.minkara_url) + '</p>' : '') + '</article>');
@@ -530,7 +504,7 @@
     return '<!DOCTYPE html>\n<html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
       '<meta name="robots" content="noindex"><title>わたしの記録（' + esc(stamp) + ' 保存）</title><style>' + DOC_CSS + '</style></head><body><main>' +
       '<header><h1>わたしの記録</h1><p class="meta">Registro500 Giappone から ' + esc(stamp) + ' に保存。このファイル1つに、保存した時点の記録がすべて入っています。' +
-      (light ? '写真は小さな見本です（元の大きさの写真は「写真まるごと版」に入ります）。' : '') + '</p></header>' +
+      (light ? 'これは文章と数字だけの版です（写真は「写真まるごと版」に入ります）。' : '') + '</p></header>' +
       h.join('\n') +
       '<footer class="meta">このファイルには、記録を戻すためのデータも入っています。サイトの記録が消えたときは、このファイルを管理人へ送ってください。</footer>' +
       '</main><script type="application/json" id="registro-backup-data">' + json + '<\/script></body></html>';
@@ -544,7 +518,7 @@
     'header{margin-bottom:20px}section.car{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:0 0 20px}',
     'article{padding:10px 0;border-bottom:1px dashed var(--line)}article:last-child{border-bottom:0}article.row{display:flex;gap:12px}.thumb{flex:0 0 96px}',
     '.meta{font-size:.82rem;color:var(--sub);word-break:break-all}.body{white-space:pre-wrap;margin:4px 0}.tag{font-size:.72rem;border:1px solid var(--sub);border-radius:4px;padding:0 4px;color:var(--sub)}',
-    '.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:8px 0}img{width:100%;height:auto;border-radius:6px;display:block}figure{margin:0}figcaption{font-size:.78rem;color:var(--sub)}',
+    '.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:8px 0}img{width:100%;height:auto;border-radius:6px;display:block}figure{margin:0}figcaption{font-size:.78rem;color:var(--sub)}.grid:empty,.thumb:empty{display:none}figure:not(:has(img)) figcaption::before{content:"📷 "}',
     'table{border-collapse:collapse;font-size:.85rem;width:100%}th,td{border:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}.scroll{overflow-x:auto}table.kv th{width:40%;font-weight:400;color:var(--sub)}',
     'details{margin:8px 0}summary{cursor:pointer;color:var(--accent)}footer{margin-top:24px}',
     '@media print{body{background:#fff;color:#000}section.car{break-inside:auto;border:0;padding:0}details{display:block}article{break-inside:avoid}}'
@@ -565,8 +539,8 @@
     try {
       let n = 0;
       const d = await collect(t => setBar(0.05 * ++n, t + 'を読み込み中…'));
-      const { map, files, failed, total } = await fetchPhotos(photoJobs(d, light), light,
-        (done, all) => setBar(0.35 + 0.6 * done / all, (light ? '写真の見本を作っています… ' : '写真を集めています… ') + done + ' / ' + all));
+      const { map, files, failed, total } = light ? { map: new Map(), files: [], failed: 0, total: 0 } : await fetchPhotos(photoJobs(d),
+        (done, all) => setBar(0.35 + 0.6 * done / all, '写真を集めています… ' + done + ' / ' + all));
       setBar(0.97, 'ファイルを組み立てています…');
       const html = buildDoc(d, map, light);
       let file, name;
@@ -583,7 +557,7 @@
       setBar(1, '');
       $('progress').classList.add('hidden');
       const mb = (file.size / 1048576).toFixed(1);
-      $('readyText').textContent = '✅ できました（' + mb + 'MB・写真 ' + (total - failed) + '枚）。' + (failed ? '写真 ' + failed + '枚は取り込めなかったため、リンクのまま入れています。' : '');
+      $('readyText').textContent = '✅ できました（' + mb + 'MB' + (light ? '' : '・写真 ' + (total - failed) + '枚') + '）。' + (failed ? '写真 ' + failed + '枚は取り込めなかったため、リンクのまま入れています。' : '');
       const share = isTouch() && navigator.canShare && navigator.canShare({ files: [file] });
       $('saveBtn').textContent = share ? '保存する（保存先を選ぶ）' : 'ダウンロードする';
       $('saveHint').textContent = (share
