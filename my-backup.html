@@ -335,7 +335,7 @@
   }
 
   // ── 写真（Firebase は本番ドメインに CORS を返す＝実測 2026-11-11。*.pages.dev では通らない） ──
-  // 写真まるごと版＝元のファイルをそのまま ZIP の photos/ に入れる（軽い版は写真なし）。
+  // 写真まるごと版＝元のファイルをそのまま ZIP の 写真/<種類>/<記録>/ に入れる（軽い版は写真なし）。
   async function getBlob(url) {
     const r = await fetch(url, { mode: 'cors', credentials: 'omit' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -343,18 +343,23 @@
   }
   const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/heic': 'heic' };
   // jobs: [{ key: 記録に入っている元URL, src: 取りに行くURL, maint }]
-  // 戻り値 map: key → "photos/0001.jpg"。files は ZIP の中身。
+  // 戻り値 map: key → "写真/整備/2025-05-01 題名/1 説明.jpg"（URL 用に各段を encodeURIComponent）。files は ZIP の中身。
   async function fetchPhotos(jobs, onEach) {
-    const map = new Map(), files = []; let failed = 0, done = 0, next = 0;
+    const map = new Map(), files = [], used = new Set(); let failed = 0, done = 0, next = 0;
     const list = jobs.slice(0, PHOTO_CAP);
     async function worker() {
       while (next < list.length) {
         const i = next++, j = list[i];
         try {
           const b = await getBlob(j.src);
-          const name = 'photos/' + String(i + 1).padStart(4, '0') + '.' + (EXT[b.type] || 'jpg');
+          // ドライブと同じ「写真/種類/記録/番号 説明」に分ける（番号だけの平らな photos/ では、どの記録の写真か分からない＝2026-11-11 実機）
+          const segs = [GDRIVE_PHOTOS].concat((j.dir || []).map(safeName));
+          const ext = '.' + (EXT[b.type] || 'jpg');
+          let base = segs.join('/') + '/' + safeName(j.name || String(i + 1)), name = base + ext;
+          for (let k = 2; used.has(name); k++) name = base + ' (' + k + ')' + ext;
+          used.add(name);
           files.push({ name, data: new Uint8Array(await b.arrayBuffer()) });
-          map.set(j.key, name);
+          map.set(j.key, name.split('/').map(encodeURIComponent).join('/'));
         } catch (e) { failed++; console.warn('[my-backup] photo', j.src, e); }
         onEach(++done, list.length);
       }
@@ -780,7 +785,7 @@
       $('saveBtn').textContent = share ? '保存する（保存先を選ぶ）' : 'ダウンロードする';
       $('saveHint').textContent = (share
         ? 'iPhone は「\"ファイル\"に保存」、Android は「ドライブ」などを選べます。自分宛てに LINE やメールで送っておく方法もあります。'
-        : (light ? 'ダウンロードしたファイルは、ダブルクリックするとブラウザで開けます。' : 'ダウンロードした ZIP を展開（右クリック →「すべて展開」）して、中の .html を開いてください。写真は photos フォルダに入っています。'));
+        : (light ? 'ダウンロードしたファイルは、ダブルクリックするとブラウザで開けます。' : 'ダウンロードした ZIP を展開（右クリック →「すべて展開」）して、中の .html を開いてください。写真は「写真」フォルダに、記録ごとに分けて入っています。'));
       $('ready').classList.remove('hidden');
       $('ready').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       try { gtag('event', 'backup_build', { kind: light ? 'light' : 'full', cars: myCars.length, photos: total, failed, size_mb: Number(mb), partial: omit.length }); } catch (e) {}
