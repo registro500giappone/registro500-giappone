@@ -196,7 +196,7 @@ def main():
                      f"：{names}\n　{SITE}/detail?doc={m['doc']}#history\n")
         body += more(len(maint))
     if articles:
-        body += section("✍️", f"オーナーの記事（{len(articles)}件）")
+        body += section("✍️", f"ブログ紹介（{len(articles)}件）")
         for a in articles[:LIST_MAX]:
             via = f"・{a['site_name']}" if a.get("site_name") else ""
             body += f"・「{a['title']}」（{sama(a['owner'])}{via}）\n　{a['url']}\n"

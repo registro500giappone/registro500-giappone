@@ -427,7 +427,7 @@ def main():
 
     if new_articles:
         # 題名の下に記事そのものへのURL。⛔閲覧数・件数の比較は出さない（owner-articles/HANDOFF.md §1-9）
-        body += section("📝", f"オーナーの記事（{len(new_articles)}件）が登録されました", "/activity")
+        body += section("📝", f"ブログ紹介（{len(new_articles)}件）が登録されました", "/activity")
         for a in new_articles:
             via = f"・{a['site']}" if a["site"] else ""
             body += f"・「{a['title']}」（{sama(a['owner'])}{via}）\n　{a['url']}\n"
@@ -568,7 +568,7 @@ def send_article_notices(articles):
         doc = entry["items"][0]["doc"]
         body = (
             f"{entry['name']} さん\n\n"
-            "登録オーナーのみなさんへのお知らせメールで、あなたの記事を「オーナーの記事」として紹介しました。\n\n"
+            "登録オーナーのみなさんへのお知らせメールで、あなたの記事を「ブログ紹介」の欄で紹介しました。\n\n"
             + lines + "\n\n"
             "車両ページの「この1台の歩み」にも並んでいます。\n"
             f"{SITE}/detail.html?doc={doc}#history\n\n"
