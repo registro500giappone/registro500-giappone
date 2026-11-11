@@ -167,6 +167,8 @@
       <p class="note" id="estFull" style="margin:0 0 10px;"></p>
       <button type="button" class="btn-sub btn-wide" id="makeFull">写真まるごと版を作る</button>
       </div>
+      <!-- 結果の箱は押したボタンの直下へ動かす（make()）＝下に置いたままだと軽い版の人には画面の外（2026-11-11 実機） -->
+      <div id="resultBox" style="margin-top:12px;">
       <div id="progress" class="hidden">
         <div class="bar"><i id="barFill"></i></div>
         <div class="st" id="stText">準備中…</div>
@@ -177,6 +179,7 @@
         <p class="note" id="saveHint"></p>
       </div>
       <p id="errText" class="msg err hidden"></p>
+      </div>
       </details>
     </div>
 
@@ -741,10 +744,12 @@
 
   async function make(light) {
     const btns = [$('makeLight'), $('makeFull')];
+    (light ? $('makeLight') : $('makeFull')).insertAdjacentElement('afterend', $('resultBox'));
     btns.forEach(b => b.disabled = true);
     $('errText').classList.add('hidden');
     $('ready').classList.add('hidden');
     $('progress').classList.remove('hidden');
+    $('progress').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     const setBar = (p, t) => { $('barFill').style.width = Math.round(p * 100) + '%'; if (t) $('stText').textContent = t; };
     try {
       let n = 0;
@@ -777,8 +782,7 @@
         ? 'iPhone は「\"ファイル\"に保存」、Android は「ドライブ」などを選べます。自分宛てに LINE やメールで送っておく方法もあります。'
         : (light ? 'ダウンロードしたファイルは、ダブルクリックするとブラウザで開けます。' : 'ダウンロードした ZIP を展開（右クリック →「すべて展開」）して、中の .html を開いてください。写真は photos フォルダに入っています。'));
       $('ready').classList.remove('hidden');
-      // 結果は写真まるごと版の下に出る＝軽い版を押した人の画面の外になる（2026-11-11 実機「何も出ない」）
-      $('ready').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      $('ready').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       try { gtag('event', 'backup_build', { kind: light ? 'light' : 'full', cars: myCars.length, photos: total, failed, size_mb: Number(mb), partial: omit.length }); } catch (e) {}
     } catch (err) {
       console.error('[my-backup] build', err);
@@ -786,7 +790,7 @@
       const net = /fetch|network|load failed/i.test(String(err && err.message || err));
       $('errText').textContent = 'ファイルを作れませんでした。' + (net ? '電波のよい所でもう一度お試しください。' : 'お手数ですが、この画面を管理人へお知らせください。') + '（' + (err && err.message || err) + '）';
       $('errText').classList.remove('hidden');
-      $('errText').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      $('errText').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } finally {
       btns.forEach(b => b.disabled = false);
     }
