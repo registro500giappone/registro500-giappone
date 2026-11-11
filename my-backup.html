@@ -363,6 +363,8 @@
     return String(s || '').replace(/[\\/:*?"<>|\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || '無題';
   }
   // 整備手帳の読む用ドキュメントは年ごと（2026-11-11 ユーザー決裁＝整備がいちばん大事・写真を1枚も漏らさない）
+  // 整備の部位（my-maintenance.html の AREAS と同じ。足したらここにも）
+  const AREA_NAME = { engine: 'エンジン', fuel: '燃料・点火', driveline: '駆動系', suspension: '足回り・操舵', brake: 'ブレーキ', electric: '電装', consumable: 'オイル・消耗品', body: 'ボディ・その他', accessory: 'アクセサリー' };
   const maintYear = r => (fmtDate(r.work_date) || '').slice(0, 4) || '日付なし';
   const maintDocName = c => '整備手帳 ' + c.year + (c.of > 1 ? ' その' + c.no : '') + '（読む用）';
   // 年ごとに、写真が DOC_IMG_MAX 枚を超えないよう日付順に区切る（1件の記録は分けない）。写真を多用する人は1年が数冊になる
@@ -514,16 +516,26 @@
           const cost = (d.maint_costs.find(x => x.record_id === r.id) || {}).cost_yen;
           const pics = d.maint_photos.filter(p => p.record_id === r.id);
           const vids = (r.video_urls || []).map((v, i) => '<li>' + esc(v) + ((r.video_captions || [])[i] ? '（' + esc(r.video_captions[i]) + '）' : '') + '</li>').join('');
-          h.push('<article><div class="meta">' + esc(fmtDate(r.work_date) || '日付なし') +
+          const head = '<div class="meta">' + esc(fmtDate(r.work_date) || '日付なし') +
             (r.odometer_km != null ? '・' + Number(r.odometer_km).toLocaleString('ja-JP') + 'km' : '') +
             (r.worker ? '・' + esc(WORKER[r.worker] || r.worker) : '') + (cost != null ? '・' + yen(cost) : '') + priv(r.is_public) + '</div>' +
             '<h4>' + esc(r.title || '') + '</h4>' +
-            ((r.areas || []).length ? '<p class="meta">部位：' + esc(r.areas.join('、')) + '</p>' : '') +
-            (r.comment ? '<p class="body">' + esc(r.comment) + '</p>' : '') +
-            (light && pics.length ? '<p class="meta">📷 写真 ' + pics.length + '枚' + (doc ? '（元の写真はドライブの「' + GDRIVE_PHOTOS + '」→「整備」の中の「' + esc(recDir(r.work_date, r.title)) + '」）' : '') + '</p>' : '') +
-            gallery(pics.map(p => ({ u: p.url, cap: p.caption || '' }))) +
-            (vids ? '<ul class="meta">' + vids + '</ul>' : '') +
-            (r.minkara_url ? '<p class="meta">みんカラ：' + esc(r.minkara_url) + '</p>' : '') + '</article>');
+            ((r.areas || []).length ? '<p class="meta">部位：' + esc(r.areas.map(a => AREA_NAME[a] || a).join('、')) + '</p>' : '') +
+            (r.comment ? '<p class="body">' + esc(r.comment) + '</p>' : '');
+          const tail = (vids ? '<ul class="meta">' + vids + '</ul>' : '') +
+            (r.minkara_url ? '<p class="meta">みんカラ：' + esc(r.minkara_url) + '</p>' : '');
+          if (doc) {
+            // 読む用ドキュメント：1件を1つの枠に（上の段＝日付・題名・本文、その下に「小さい写真｜説明」を縦に）
+            // 2026-11-11 ユーザー決裁 C 案＝横並びの表は説明の長さで段がそろわずバラバラに見えた
+            const rows = pics.filter(p => img.get(p.url)).map(p => '<tr><td style="width:' + DOC_IMG_W + 'px;vertical-align:top;padding:6px;border:1px solid #ccc;"><img src="' + esc(img.get(p.url)) + '" width="' + DOC_IMG_W + '" alt=""></td>' +
+              '<td style="vertical-align:top;padding:6px;border:1px solid #ccc;">' + esc(p.caption || '') + '</td></tr>').join('');
+            const where = pics.length ? '<p class="meta">📷 写真 ' + pics.length + '枚（元の写真はドライブの「' + GDRIVE_PHOTOS + '」→「整備」の中の「' + esc(recDir(r.work_date, r.title)) + '」）</p>' : '';
+            h.push('<table style="width:100%;border-collapse:collapse;margin:0 0 18px;"><tr><td colspan="2" style="padding:8px;border:1px solid #ccc;background:#f3f1ea;">' + head + tail + where + '</td></tr>' + rows + '</table>');
+            return;
+          }
+          h.push('<article>' + head +
+            (light && pics.length ? '<p class="meta">📷 写真 ' + pics.length + '枚</p>' : '') +
+            gallery(pics.map(p => ({ u: p.url, cap: p.caption || '' }))) + tail + '</article>');
         });
       }
 
@@ -806,8 +818,8 @@
   // ドライブで消した写真は次の保存で送り直される（控えを守る側に倒す）。記録の題名を後で変えても、送り済みの写真は元のフォルダのまま。
   const GDRIVE_PHOTOS = '写真';
   const PHOTO_KEY = 'r500p';
-  const DOC_LAYOUT = 3; // 読む用ドキュメントの見た目を変えたら上げる＝変わっていない冊も作り直される
-  const DOC_COLS = 3, DOC_IMG_W = 190; // 読む用ドキュメントの写真＝1行の枚数と幅（px）
+  const DOC_LAYOUT = 4; // 読む用ドキュメントの見た目を変えたら上げる＝変わっていない冊も作り直される
+  const DOC_COLS = 3, DOC_IMG_W = 150; // 読む用ドキュメントの写真＝1行の枚数と幅（px）
   const DOC_IMG_MAX = 200; // 読む用ドキュメント1冊あたりの写真の上限（変換が重くなりすぎないため）。超える年は「その1・その2」に分ける
   const PHOTO_AUTO_MAX = 30; // これ以下なら保存のついでに送る。超えたら「過去の写真をまとめてバックアップ」ボタン（初回のまとめ送り）
   let gStop = false;
