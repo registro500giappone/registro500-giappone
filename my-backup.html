@@ -533,7 +533,8 @@
             const P = 'style="margin:0;line-height:1.3;"';
             const meta = [fmtDate(r.work_date) || '日付なし', r.odometer_km != null ? Number(r.odometer_km).toLocaleString('ja-JP') + 'km' : '', r.worker ? WORKER[r.worker] || r.worker : '', cost != null ? yen(cost) : '', r.is_public === false ? '非公開' : '']
               .filter(Boolean).map(esc).join('・');
-            const sub = [(r.areas || []).length ? '部位：' + r.areas.map(a => AREA_NAME[a] || a).join('、') : '', pics.length ? '📷 ' + pics.length + '枚（元の写真＝「' + GDRIVE_PHOTOS + '」→「整備」→「' + recDir(r.work_date, r.title) + '」）' : '']
+            // 写真の枚数・元写真の場所の行は出さない（2026-11-11 ユーザー＝不要。場所は冒頭の説明で足りる）
+            const sub = [(r.areas || []).length ? '部位：' + r.areas.map(a => AREA_NAME[a] || a).join('、') : '']
               .filter(Boolean).map(esc).join('<br>');
             const box = '<p ' + P + '><b>' + esc(r.title || '') + '</b><br><span style="font-size:9pt;color:#555;">' + meta + (sub ? '<br>' + sub : '') + '</span></p>' +
               (r.comment ? '<p style="margin:4px 0 0;line-height:1.4;">' + esc(r.comment).replace(/\n/g, '<br>') + '</p>' : '') +
@@ -827,7 +828,7 @@
   // ドライブで消した写真は次の保存で送り直される（控えを守る側に倒す）。記録の題名を後で変えても、送り済みの写真は元のフォルダのまま。
   const GDRIVE_PHOTOS = '写真';
   const PHOTO_KEY = 'r500p';
-  const DOC_LAYOUT = 6; // 読む用ドキュメントの見た目を変えたら上げる＝変わっていない冊も作り直される
+  const DOC_LAYOUT = 7; // 読む用ドキュメントの見た目を変えたら上げる＝変わっていない冊も作り直される
   const DOC_COLS = 3, DOC_IMG_W = 150;
   const DOC_MAINT_W = 80; // 整備の縦リストの写真の幅（px）＝小さくして行を増やす（2026-11-11 ユーザー） // 読む用ドキュメントの写真＝1行の枚数と幅（px）
   const DOC_IMG_MAX = 200; // 読む用ドキュメント1冊あたりの写真の上限（変換が重くなりすぎないため）。超える年は「その1・その2」に分ける
