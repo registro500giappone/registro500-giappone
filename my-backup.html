@@ -777,6 +777,8 @@
         ? 'iPhone は「\"ファイル\"に保存」、Android は「ドライブ」などを選べます。自分宛てに LINE やメールで送っておく方法もあります。'
         : (light ? 'ダウンロードしたファイルは、ダブルクリックするとブラウザで開けます。' : 'ダウンロードした ZIP を展開（右クリック →「すべて展開」）して、中の .html を開いてください。写真は photos フォルダに入っています。'));
       $('ready').classList.remove('hidden');
+      // 結果は写真まるごと版の下に出る＝軽い版を押した人の画面の外になる（2026-11-11 実機「何も出ない」）
+      $('ready').scrollIntoView({ behavior: 'smooth', block: 'center' });
       try { gtag('event', 'backup_build', { kind: light ? 'light' : 'full', cars: myCars.length, photos: total, failed, size_mb: Number(mb), partial: omit.length }); } catch (e) {}
     } catch (err) {
       console.error('[my-backup] build', err);
@@ -784,6 +786,7 @@
       const net = /fetch|network|load failed/i.test(String(err && err.message || err));
       $('errText').textContent = 'ファイルを作れませんでした。' + (net ? '電波のよい所でもう一度お試しください。' : 'お手数ですが、この画面を管理人へお知らせください。') + '（' + (err && err.message || err) + '）';
       $('errText').classList.remove('hidden');
+      $('errText').scrollIntoView({ behavior: 'smooth', block: 'center' });
     } finally {
       btns.forEach(b => b.disabled = false);
     }
