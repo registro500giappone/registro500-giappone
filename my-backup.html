@@ -195,14 +195,17 @@
   const MB_PER_PHOTO = 0.3;
   const WIFI_OVER = 100;   // これを超えたら Wi-Fi をすすめる（約30MB）
   const PC_OVER = 400;     // これを超えたら PC をすすめる（スマホのメモリでは重い）
+  // 試験用：?photos=20 で埋め込む写真を先頭20枚に絞る（残りはリンクのまま）。管理人の約1,200枚をスマホで試すため。
+  const PHOTO_CAP = (() => { const v = parseInt(new URLSearchParams(location.search).get('photos'), 10); return v >= 0 ? v : Infinity; })();
   async function showEstimate() {
     try {
       const d = await collect(() => {});
-      const n = new Set(photoUrls(d)).size;
-      const mb = Math.max(1, Math.round(n * MB_PER_PHOTO));
+      const all = new Set(photoUrls(d)).size;
+      const n = Math.min(all, PHOTO_CAP);      const mb = Math.max(1, Math.round(n * MB_PER_PHOTO));
       let t = '写真 ' + n + '枚・通信はおよそ ' + mb + 'MB、ファイルもほぼ同じ大きさになります。';
       if (n > PC_OVER) t += '<br><strong>写真がとても多いため、パソコンで作ることをおすすめします</strong>（スマホでは途中で止まることがあります）。';
       else if (n > WIFI_OVER) t += '<br><strong>写真が多いため、Wi‑Fi につながっているときに作ることをおすすめします。</strong>';
+      if (n < all) t += '<br>（試験：写真は ' + all + '枚中 ' + n + '枚だけ入れ、残りはリンクのままにします）';
       $('estimate').innerHTML = t;
     } catch (e) {
       console.warn('[my-backup] estimate', e);
@@ -308,7 +311,7 @@
   }
   async function shrinkAll(urls, onEach) {
     const map = new Map(); let failed = 0, done = 0;
-    const list = [...new Set(urls.filter(Boolean))];
+    const list = [...new Set(urls.filter(Boolean))].slice(0, PHOTO_CAP);
     let next = 0;
     async function worker() {
       while (next < list.length) {
