@@ -120,7 +120,7 @@
         <li>車載手帳（メモ・経験談も）</li>
         <li>投稿した工具・パーツ、記事のリンク、お絵描き帳</li>
       </ul>
-      <p class="note">写真は小さくして入れます。ほかのオーナーの記録は入りません。</p>
+      <p class="note">ほかのオーナーの記録は入りません。</p>
     </div>
 
     <!-- Google ドライブ連携（GDRIVE_CLIENT_ID が空のうちは出さない）。正本の §1b -->
@@ -143,14 +143,17 @@
     <div class="card">
       <details id="dlBox" open>
       <summary style="font-weight:700;margin-bottom:10px;">ファイルをダウンロードして保存する</summary>
-      <h2>📱 軽い版（スマホ向け・ふだん用）</h2>
+      <h2>📄 軽い版</h2>
       <p class="note" style="margin:0 0 10px;"><strong>文章と数字だけ</strong>を入れます（写真は入りません）。すぐにできて軽いので、記録した日に気軽にどうぞ。写真の元は、撮ったスマホの写真アプリにも残っています。</p>
       <p class="note" id="estLight" style="margin:0 0 10px;"></p>
       <button type="button" class="btn-main" id="makeLight">軽い版を作る</button>
-      <h2 style="margin-top:22px;">💻 写真まるごと版（パソコン向け・年に1〜2回）</h2>
-      <p class="note" style="margin:0 0 10px;">文章と数字に加えて、<strong>写真を元の大きさのまま</strong>まとめた ZIP ファイルです。展開すると、ネットがなくても写真ごと読めます。</p>
+      <!-- 写真まるごと版はパソコンだけに出す（スマホでは重くて止まりやすい）＝ユーザー指示 2026-11-11 -->
+      <div id="fullBox">
+      <h2 style="margin-top:22px;">💻 写真まるごと版（パソコン向け）</h2>
+      <p class="note" style="margin:0 0 10px;">文章と数字に加えて、<strong>写真を元の大きさのまま</strong>まとめた ZIP ファイルです。展開すると、ネットがなくても写真ごと読めます。<br>写真が多いとファイルが大きくなり、作るのに時間がかかることがあります。<strong>Wi‑Fi につないだ状態</strong>でお試しください。</p>
       <p class="note" id="estFull" style="margin:0 0 10px;"></p>
       <button type="button" class="btn-sub btn-wide" id="makeFull">写真まるごと版を作る</button>
+      </div>
       <div id="progress" class="hidden">
         <div class="bar"><i id="barFill"></i></div>
         <div class="st" id="stText">準備中…</div>
@@ -212,6 +215,7 @@
     if (!myCars.length) { $('stateNoCar').classList.remove('hidden'); return; }
     $('carList').innerHTML = myCars.map(c => '<li><strong>' + esc(carLabel(c)) + '</strong></li>').join('');
     $('stateMain').classList.remove('hidden');
+    if (isTouch()) $('fullBox').classList.add('hidden');
     showEstimate();
     initDrive();
   }
@@ -219,7 +223,6 @@
   // ── 作る前の見積もり（写真の枚数と通信量） ──
   // 実測 2026-11-11：元の写真＝1枚 0.1〜0.45MB（平均約0.25）／整備写真の縮小版 `_t.jpg`＝約33KB。
   const MB_ORIG = 0.3, MB_MAINT_ORIG = 0.2;
-  const FULL_PHONE_MB = 100; // 写真まるごと版がこれを超えたら、スマホでは作らないようすすめる
   // 試験用：?photos=20 で扱う写真を先頭20枚に絞る（残りはリンクのまま）。オーナーには案内しない。
   const PHOTO_CAP = (() => { const v = parseInt(new URLSearchParams(location.search).get('photos'), 10); return v >= 0 ? v : Infinity; })();
   async function showEstimate() {
@@ -233,7 +236,6 @@
       $('estLight').textContent = '整備 ' + d.maint_records.length + '件・給油 ' + d.fuel_records.length + '件など。';
       let f = '写真 ' + use.length + '枚・ZIP ファイルはおよそ ' + full + 'MB です。';
       if (use.length < all) f += '<br>（試験：写真は ' + all + '枚中 ' + use.length + '枚だけ入れ、残りはリンクのままにします）';
-      if (isTouch() && full > FULL_PHONE_MB) f += '<br><strong>大きいので、パソコンで作ることをおすすめします</strong>（スマホでは途中で止まることがあります）。';
       $('estFull').innerHTML = f;
     } catch (e) {
       console.warn('[my-backup] estimate', e);
