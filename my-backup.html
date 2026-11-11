@@ -149,6 +149,13 @@
     <div class="card">
       <details id="dlBox" open>
       <summary style="font-weight:700;margin-bottom:10px;">ファイルをダウンロードして保存する</summary>
+      <!-- 項目の選択（§1b）＝人に渡す用途。ドライブは常に全部入り（ここの選択は効かない） -->
+      <details id="pickBox" style="margin:0 0 14px;">
+        <summary style="font-size:.9rem;">項目を選んで作る（人に渡すときなど）</summary>
+        <p class="note" style="margin:6px 0 8px;">外した項目は、ファイルの中に一切入りません。車両の登録内容はいつも入ります。</p>
+        <div id="pickList" style="display:grid;gap:6px;font-size:.9rem;"></div>
+        <p class="note" id="pickNote" style="margin:8px 0 0;">いまは全部入りです。</p>
+      </details>
       <h2>📄 軽い版</h2>
       <p class="note" style="margin:0 0 10px;"><strong>文章と数字だけ</strong>を入れます（写真は入りません）。すぐにできて軽いので、記録した日に気軽にどうぞ。写真は、パソコンで作る「写真まるごと版」に入ります。</p>
       <p class="note" id="estLight" style="margin:0 0 10px;"></p>
@@ -672,13 +679,14 @@
 
     if (sh.length) h.push('<section class="car"><h2>ストーリー</h2>' + sh.join('\n') + '</section>');
 
-    const json = JSON.stringify({ format: 'registro500-owner-backup', version: 1, saved_at: now.toISOString(), user_id: currentUser.id, data: d })
+    const json = JSON.stringify({ format: 'registro500-owner-backup', version: 1, saved_at: now.toISOString(), user_id: currentUser.id, omitted: part.omit || [], data: d })
       .replace(/</g, '\\u003c');
 
     return '<!DOCTYPE html>\n<html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
       '<meta name="robots" content="noindex"><title>わたしの記録（' + esc(stamp) + ' 保存）</title><style>' + DOC_CSS + '</style></head><body><main>' +
       '<header><h1>' + (part.chunk ? esc(maintDocName(part.chunk)) : esc(reportTitle())) + '</h1><p class="meta">Registro500 Giappone から ' + esc(stamp) + ' に保存。' + (doc ? '' : 'このファイル1つに、保存した時点の記録がすべて入っています。') +
-      (doc ? '写真は縮小して入れています。元の大きさの写真は、同じフォルダの「' + GDRIVE_PHOTOS + '」に記録ごとに分けて入っています。' : light ? 'これは文章と数字だけの版です（写真は「写真まるごと版」に入ります）。' : '') + '</p></header>' +
+      (doc ? '写真は縮小して入れています。元の大きさの写真は、同じフォルダの「' + GDRIVE_PHOTOS + '」に記録ごとに分けて入っています。' : light ? 'これは文章と数字だけの版です（写真は「写真まるごと版」に入ります）。' : '') + '</p>' +
+      (part.omit && part.omit.length ? '<p class="meta" style="color:#a33;font-weight:700;">⚠️ これは一部の項目だけのファイルです（外した項目：' + esc(part.omit.join('、')) + '）。</p>' : '') + '</header>' +
       h.join('\n') +
       '</main><script type="application/json" id="registro-backup-data">' + json + '<\/script></body></html>';
   }
@@ -702,6 +710,35 @@
     return 'registro' + type + '_backup_' + myCars.map(c => String(c.document_id).replace(/^DOC_/, '')).join('-');
   }
 
+  // ── 項目の選択（§1b・ダウンロードだけ）。外した項目は表（データ）ごと空にする＝本文にも同梱 JSON にも残らない ──
+  const PICK = [
+    { k: 'story', label: 'ストーリー・歩み', t: ['car_episodes', 'car_history'] },
+    { k: 'maint', label: '整備手帳', t: ['maint_records', 'maint_photos', 'maint_costs'] },
+    { k: 'fuel', label: '給油の記録', t: ['fuel_records', 'fuel_costs'] },
+    { k: 'cost', label: '費用（整備・給油の金額）', t: ['maint_costs', 'fuel_costs'] },
+    { k: 'equip', label: '車載手帳', t: ['equipment_records', 'equipment_entries', 'equipment_custom_items', 'equipment_experiences', 'equipment_entry_history', 'equipment_category_status', 'equipment_items_ref'] },
+    { k: 'tools', label: '工具・パーツ・記事', t: ['owner_tools', 'owner_tool_users', 'owner_tool_users_ref', 'owner_articles'] },
+    { k: 'paint', label: 'お絵描き帳', t: ['paint_posts'] }
+  ];
+  function pickOmitted() {
+    return PICK.filter(p => { const el = document.getElementById('pick_' + p.k); return el && !el.checked; });
+  }
+  function applyPick(d, omit) {
+    if (!omit.length) return d;
+    const o = Object.assign({}, d);
+    omit.forEach(p => p.t.forEach(t => { o[t] = []; }));
+    return o;
+  }
+  (function initPick() {
+    const box = $('pickList');
+    box.innerHTML = PICK.map(p => '<label style="display:flex;gap:8px;align-items:center;"><input type="checkbox" id="pick_' + p.k + '" checked> ' + esc(p.label) + '</label>').join('');
+    box.addEventListener('change', () => {
+      const om = pickOmitted();
+      $('pickNote').textContent = om.length ? '外す項目：' + om.map(p => p.label).join('、') + '（ファイルの冒頭にも書きます）' : 'いまは全部入りです。';
+      $('ready').classList.add('hidden');
+    });
+  })();
+
   async function make(light) {
     const btns = [$('makeLight'), $('makeFull')];
     btns.forEach(b => b.disabled = true);
@@ -711,18 +748,21 @@
     const setBar = (p, t) => { $('barFill').style.width = Math.round(p * 100) + '%'; if (t) $('stText').textContent = t; };
     try {
       let n = 0;
-      const d = await collect(t => setBar(0.05 * ++n, t + 'を読み込み中…'));
+      const omit = pickOmitted();
+      const d = applyPick(await collect(t => setBar(0.05 * ++n, t + 'を読み込み中…')), omit);
       const { map, files, failed, total } = light ? { map: new Map(), files: [], failed: 0, total: 0 } : await fetchPhotos(photoJobs(d),
         (done, all) => setBar(0.35 + 0.6 * done / all, '写真を集めています… ' + done + ' / ' + all));
       setBar(0.97, 'ファイルを組み立てています…');
-      const html = buildDoc(d, map, light);
+      const html = buildDoc(d, map, light, false, { omit: omit.map(p => p.label) });
       let file, name;
+      // 一部だけのファイルは名前を分ける＝日付なしの全部入りを置き換えてしまわないように（§1-4）
+      const sfx = omit.length ? '_partial' : '';
       if (light) {
-        name = baseName() + '.html';
+        name = baseName() + sfx + '.html';
         file = new File([html], name, { type: 'text/html' });
       } else {
-        name = baseName() + '_photos.zip';
-        const inner = baseName() + '.html';
+        name = baseName() + sfx + '_photos.zip';
+        const inner = baseName() + sfx + '.html';
         file = new File([makeZip([{ name: inner, data: new TextEncoder().encode(html) }].concat(files))], name, { type: 'application/zip' });
       }
       if (built && built.url) URL.revokeObjectURL(built.url);
@@ -737,7 +777,7 @@
         ? 'iPhone は「\"ファイル\"に保存」、Android は「ドライブ」などを選べます。自分宛てに LINE やメールで送っておく方法もあります。'
         : (light ? 'ダウンロードしたファイルは、ダブルクリックするとブラウザで開けます。' : 'ダウンロードした ZIP を展開（右クリック →「すべて展開」）して、中の .html を開いてください。写真は photos フォルダに入っています。'));
       $('ready').classList.remove('hidden');
-      try { gtag('event', 'backup_build', { kind: light ? 'light' : 'full', cars: myCars.length, photos: total, failed, size_mb: Number(mb) }); } catch (e) {}
+      try { gtag('event', 'backup_build', { kind: light ? 'light' : 'full', cars: myCars.length, photos: total, failed, size_mb: Number(mb), partial: omit.length }); } catch (e) {}
     } catch (err) {
       console.error('[my-backup] build', err);
       $('progress').classList.add('hidden');
