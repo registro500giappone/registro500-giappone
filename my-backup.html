@@ -123,7 +123,26 @@
       <p class="note">写真は小さくして入れます。ほかのオーナーの記録は入りません。</p>
     </div>
 
+    <!-- Google ドライブ連携（GDRIVE_CLIENT_ID が空のうちは出さない）。正本の §1b -->
+    <div class="card hidden" id="driveCard">
+      <h2>☁️ おすすめ：Google ドライブに控える</h2>
+      <p class="note" style="margin:0 0 10px;">あなたの Google ドライブに「<strong>Registro500 の記録</strong>」というフォルダを作り、記録（文章と数字）を入れておきます。2回目からはボタン1つで<strong>同じファイルを新しくする</strong>だけなので、ファイルが増えていきません。</p>
+      <div id="driveOff">
+        <button type="button" class="btn-main" id="driveConnect" disabled>Google ドライブとつないで保存する</button>
+        <p class="note">Google の画面で、このサイトが<strong>自分で作ったファイルだけ</strong>を扱う許可を求めます（ドライブのほかのファイルは見えません）。</p>
+      </div>
+      <div id="driveOn" class="hidden">
+        <p class="msg ok" id="driveStatus"></p>
+        <button type="button" class="btn-main" id="driveSave" disabled style="margin-top:10px;">ドライブに保存する</button>
+        <p class="note" style="margin-top:10px;"><button type="button" class="link-btn" id="driveDisconnect">連携をやめる</button>（ドライブにある控えは消えません）</p>
+      </div>
+      <p class="st hidden" id="driveProgress"></p>
+      <p id="driveErr" class="msg err hidden"></p>
+    </div>
+
     <div class="card">
+      <details id="dlBox" open>
+      <summary style="font-weight:700;margin-bottom:10px;">ファイルをダウンロードして保存する</summary>
       <h2>📱 軽い版（スマホ向け・ふだん用）</h2>
       <p class="note" style="margin:0 0 10px;"><strong>文章と数字だけ</strong>を入れます（写真は入りません）。すぐにできて軽いので、記録した日に気軽にどうぞ。写真の元は、撮ったスマホの写真アプリにも残っています。</p>
       <p class="note" id="estLight" style="margin:0 0 10px;"></p>
@@ -142,6 +161,7 @@
         <p class="note" id="saveHint"></p>
       </div>
       <p id="errText" class="msg err hidden"></p>
+      </details>
     </div>
 
     <p class="note">
@@ -193,6 +213,7 @@
     $('carList').innerHTML = myCars.map(c => '<li><strong>' + esc(carLabel(c)) + '</strong></li>').join('');
     $('stateMain').classList.remove('hidden');
     showEstimate();
+    initDrive();
   }
 
   // ── 作る前の見積もり（写真の枚数と通信量） ──
@@ -597,6 +618,161 @@
     a.href = built.url; a.download = built.name;
     document.body.appendChild(a); a.click(); a.remove();
     try { gtag('event', 'backup_saved', { how: 'download' }); } catch (e) {}
+  });
+
+  // ── Google ドライブ連携（その1＝文章と数字の HTML を毎回同じファイルへ上書き） ──
+  // 方式A＝ブラウザだけ（Google Identity Services のトークン）。運営は鍵を持たない・スコープは drive.file だけ
+  // ＝このサイトが作ったファイルしか見えない。消した記録はドライブ側では消さない（上書きのみ）。
+  const GDRIVE_CLIENT_ID = ''; // Google Cloud の OAuth クライアントID（公開値）。空のうちはドライブ欄を出さない
+  const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+  const GDRIVE_FOLDER = 'Registro500 の記録';
+  const G_FILES = 'https://www.googleapis.com/drive/v3/files';
+  const G_UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
+  let gTokenClient = null, gToken = null, gTokenExp = 0, gPending = null, gBusy = false, driveInited = false;
+
+  // 「つないだ」「最後に保存した日」は端末ごとの控え（消えても、次に押せば Google の画面が出るだけ）
+  const driveKey = () => 'r500_gdrive_' + currentUser.id;
+  function driveState() { try { return JSON.parse(localStorage.getItem(driveKey()) || 'null'); } catch (e) { return null; } }
+  function setDriveState(s) { try { s ? localStorage.setItem(driveKey(), JSON.stringify(s)) : localStorage.removeItem(driveKey()); } catch (e) {} }
+
+  function renderDrive() {
+    const st = driveState();
+    $('driveOff').classList.toggle('hidden', !!st);
+    $('driveOn').classList.toggle('hidden', !st);
+    if (st) {
+      const t = new Date(st.savedAt);
+      const p2 = n => String(n).padStart(2, '0');
+      $('driveStatus').textContent = '✅ つないであります。最後にドライブへ保存：' + t.getFullYear() + '/' + p2(t.getMonth() + 1) + '/' + p2(t.getDate()) + ' ' + p2(t.getHours()) + ':' + p2(t.getMinutes());
+    }
+  }
+  function driveMsg(text, isErr) {
+    $('driveErr').textContent = text || '';
+    $('driveErr').classList.toggle('hidden', !text);
+    $('driveErr').classList.toggle('err', !!isErr);
+    $('driveErr').classList.toggle('ok', !isErr);
+  }
+
+  function initDrive() {
+    if (!GDRIVE_CLIENT_ID || driveInited) return;
+    driveInited = true;
+    $('driveCard').classList.remove('hidden');
+    $('dlBox').open = false;
+    renderDrive();
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.async = true;
+    s.onload = () => {
+      gTokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GDRIVE_CLIENT_ID,
+        scope: GDRIVE_SCOPE,
+        callback: r => {
+          const p = gPending; gPending = null;
+          if (!p) return;
+          if (r.error) return p.reject(new Error(r.error));
+          if (!google.accounts.oauth2.hasGrantedAllScopes(r, GDRIVE_SCOPE)) return p.reject(new Error('not_granted'));
+          gToken = r.access_token;
+          gTokenExp = Date.now() + (Number(r.expires_in) - 120) * 1000;
+          p.resolve(gToken);
+        },
+        error_callback: e => { const p = gPending; gPending = null; if (p) p.reject(new Error(e && e.type || 'popup_error')); }
+      });
+      $('driveConnect').disabled = false;
+      $('driveSave').disabled = false;
+    };
+    s.onerror = () => driveMsg('Google の部品を読み込めませんでした。電波のよい所で再読み込みしてください。', true);
+    document.head.appendChild(s);
+  }
+
+  // ポップアップはタップの直後でないと開けない＝クリック処理の中で、await より前に呼ぶ
+  function getToken() {
+    if (gToken && Date.now() < gTokenExp) return Promise.resolve(gToken);
+    return new Promise((resolve, reject) => {
+      gPending = { resolve, reject };
+      gTokenClient.requestAccessToken({ prompt: '' });
+    });
+  }
+
+  async function gfetch(url, opt) {
+    opt = opt || {};
+    const res = await fetch(url, Object.assign({}, opt, { headers: Object.assign({ Authorization: 'Bearer ' + gToken }, opt.headers || {}) }));
+    if (!res.ok) {
+      let j = null; try { j = await res.json(); } catch (e) {}
+      const er = j && j.error && j.error.errors && j.error.errors[0];
+      const err = new Error('drive ' + res.status + (er && er.reason ? ' ' + er.reason : ''));
+      err.status = res.status; err.reason = er && er.reason;
+      throw err;
+    }
+    return res.json();
+  }
+  // drive.file なので、検索で見えるのはこのサイトが作ったものだけ。別の端末からでも同じフォルダ・ファイルに行き着く
+  async function gFind(q) {
+    const r = await gfetch(G_FILES + '?spaces=drive&pageSize=1&orderBy=createdTime&fields=files(id)&q=' + encodeURIComponent(q));
+    return r.files && r.files[0] ? r.files[0].id : null;
+  }
+  async function gFolder() {
+    const id = await gFind("name='" + GDRIVE_FOLDER + "' and mimeType='application/vnd.google-apps.folder' and trashed=false");
+    if (id) return id;
+    return (await gfetch(G_FILES + '?fields=id', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: GDRIVE_FOLDER, mimeType: 'application/vnd.google-apps.folder' })
+    })).id;
+  }
+  async function gPut(folderId, name, blob, mime) {
+    const id = await gFind("name='" + name + "' and '" + folderId + "' in parents and trashed=false");
+    const meta = id ? { name } : { name, parents: [folderId] };
+    const b = 'r500' + Math.random().toString(36).slice(2);
+    const body = new Blob(['--' + b + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(meta) +
+      '\r\n--' + b + '\r\nContent-Type: ' + mime + '\r\n\r\n', blob, '\r\n--' + b + '--\r\n']);
+    return gfetch((id ? G_UPLOAD + '/' + id : G_UPLOAD) + '?uploadType=multipart&fields=id', {
+      method: id ? 'PATCH' : 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + b }, body
+    });
+  }
+
+  async function driveSave(first) {
+    if (gBusy || !gTokenClient) return;
+    gBusy = true;
+    const tokenP = getToken(); // ← await より前（ポップアップ）
+    $('driveConnect').disabled = $('driveSave').disabled = true;
+    driveMsg('');
+    const prog = t => { $('driveProgress').textContent = t; $('driveProgress').classList.toggle('hidden', !t); };
+    try {
+      prog('Google の確認を待っています…');
+      await tokenP;
+      prog('記録を読み込んでいます…');
+      const d = await collect(() => {});
+      const html = buildDoc(d, new Map(), true);
+      prog('ドライブへ送っています…');
+      const folderId = await gFolder();
+      await gPut(folderId, baseName() + '.html', new Blob([html], { type: 'text/html' }), 'text/html; charset=UTF-8');
+      setDriveState({ savedAt: Date.now() });
+      renderDrive();
+      prog('');
+      driveMsg(first ? '保存しました。Google ドライブの「' + GDRIVE_FOLDER + '」フォルダに入っています。次からは「ドライブに保存する」を押すだけで新しくなります。' : '保存しました。', false);
+      try { gtag('event', 'backup_saved', { how: 'drive', first: first ? 1 : 0 }); } catch (e) {}
+    } catch (err) {
+      console.error('[my-backup] drive', err);
+      prog('');
+      const m = String(err && err.message || err);
+      if (err && err.status === 401) { gToken = null; driveMsg('Google の確認が切れました。もう一度押してください。', true); }
+      else if (err && err.reason === 'storageQuotaExceeded') driveMsg('Google ドライブの空きが足りないため保存できませんでした。下の「ファイルをダウンロードして保存する」をお使いください。', true);
+      else if (/popup_closed|access_denied/.test(m)) driveMsg('');
+      else if (/popup_failed_to_open/.test(m)) driveMsg('Google の画面を開けませんでした。ポップアップを許可するか、ホーム画面のアイコンからではなく Safari／Chrome でこのページを開いてお試しください。', true);
+      else if (/not_granted/.test(m)) driveMsg('ファイルを扱う許可にチェックが入っていなかったため、保存できませんでした。もう一度押して、許可にチェックを入れてください。', true);
+      else driveMsg('ドライブに保存できませんでした。電波のよい所でもう一度お試しください。（' + m + '）', true);
+    } finally {
+      gBusy = false;
+      $('driveConnect').disabled = $('driveSave').disabled = false;
+    }
+  }
+  $('driveConnect').addEventListener('click', () => driveSave(true));
+  $('driveSave').addEventListener('click', () => driveSave(false));
+  $('driveDisconnect').addEventListener('click', () => {
+    if (gToken && window.google) { try { google.accounts.oauth2.revoke(gToken, () => {}); } catch (e) {} }
+    gToken = null; gTokenExp = 0;
+    setDriveState(null);
+    renderDrive();
+    driveMsg('連携をやめました。ドライブにある控えはそのまま残っています（不要なら Google ドライブで削除してください）。', false);
+    try { gtag('event', 'backup_drive_off'); } catch (e) {}
   });
 
   supabaseClient.auth.getSession().then(({ data }) => handleAuth(data && data.session)).catch(err => { console.error(err); handleAuth(null); });
