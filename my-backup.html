@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>わたしの記録を保存 | Registro500 Giappone</title>
+  <meta name="description" content="愛車の記録・整備・給油・車載手帳を、1つのファイルにして手元に保存できます。">
+  <link rel="canonical" href="https://www.registro500.com/my-backup">
+  <meta property="og:title" content="わたしの記録を保存">
+  <meta property="og:description" content="愛車の記録・整備・給油・車載手帳を、1つのファイルにして手元に保存できます。">
+  <meta property="og:url" content="https://www.registro500.com/my-backup">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Registro500 Giappone">
+  <meta property="og:image" content="https://www.registro500.com/og/site-ja.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-27SHHC4JYH');
+  </script>
+  <script src="config.js"></script>
+  <script src="fab-nav.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
+  <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
+  <style>
+    :root {
+      --bg-main: #f5f0e6; --card-bg: #fffefb; --border-soft: #d6c9b0;
+      --shadow-soft: 0 2px 8px rgba(70,58,40,.10); --text-main: #2e2a24; --text-sub: #7a705f;
+      --accent: #1f5c3d; --accent-soft: #e7efe7; --danger: #a33a2a;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-main: #1a1714; --card-bg: #2b2721; --border-soft: #403a30;
+        --shadow-soft: 0 2px 10px rgba(0,0,0,.35); --text-main: #ece6d9; --text-sub: #a89e8c;
+        --accent: #7fb894; --accent-soft: #24382c; --danger: #e08a7a;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { font-size: 16px; max-width: 100%; overflow-x: hidden; }
+    body { font-family: var(--font-sans); margin: 0; padding: 20px 16px 60px; background: var(--bg-main); color: var(--text-main); line-height: 1.6; }
+    .page { max-width: 640px; margin: 0 auto; }
+    .back-link { display: inline-block; font-size: .85rem; color: var(--text-sub); text-decoration: none; margin-bottom: 12px; }
+    h1 { font-size: 1.35rem; margin: .2em 0 .6em; }
+    .lead { font-size: .88rem; color: var(--text-sub); margin: 0 0 12px; }
+    .lead.intro { line-height: 1.8; margin: -4px 0 16px; }
+    .hidden { display: none !important; }
+    .card { background: var(--card-bg); border: 1px solid var(--border-soft); border-radius: 12px; padding: 14px; margin-bottom: 14px; box-shadow: var(--shadow-soft); }
+    .card h2 { font-size: 1.05rem; margin: 0 0 10px; }
+    .center { text-align: center; }
+    input[type=text], input[type=email] { width: 100%; font: inherit; font-size: 1rem; padding: 9px 10px; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--bg-main); color: var(--text-main); }
+    .btn-main { display: block; width: 100%; text-align: center; background: var(--accent); color: #fff; border: 0; border-radius: 10px; padding: 12px; font-size: 1rem; font-weight: 700; text-decoration: none; cursor: pointer; font-family: inherit; }
+    .btn-main:disabled { opacity: .5; cursor: default; }
+    @media (prefers-color-scheme: dark) { .btn-main { color: #10261a; } }
+    .btn-sub { background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 6px 12px; font-size: .85rem; cursor: pointer; font-family: inherit; }
+    .btn-wide { width: 100%; padding: 12px; font-size: 1rem; }
+    .link-btn { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-size: .85rem; cursor: pointer; }
+    .msg { font-size: .88rem; margin: 10px 0 0; }
+    .msg.err { color: var(--danger); }
+    .msg.ok { color: var(--accent); }
+    .login-col { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+    #clearEmailBtn { align-self: flex-start; color: var(--text-sub); font-size: .78rem; }
+    .or-line { display: flex; align-items: center; gap: 8px; color: var(--text-sub); font-size: .78rem; }
+    .or-line span { flex: 1; height: 1px; background: var(--border-soft); }
+    .otp-code { font-size: 1.4rem !important; letter-spacing: 8px; text-align: center; }
+    ul.inc { margin: 0 0 4px; padding-left: 1.2em; font-size: .9rem; }
+    ul.inc li { margin: 2px 0; }
+    .bar { height: 8px; border-radius: 4px; background: var(--accent-soft); overflow: hidden; margin: 10px 0 4px; }
+    .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+    .st { font-size: .85rem; color: var(--text-sub); }
+    .note { font-size: .82rem; color: var(--text-sub); margin: 10px 0 0; line-height: 1.7; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <a href="/" class="back-link">&larr; トップに戻る</a>
+  <h1>💾 わたしの記録を保存</h1>
+  <p class="lead intro">愛車の記録・整備・給油・車載手帳などを、<strong>1つのファイル</strong>にまとめて手元に保存します。保存したファイルはブラウザで開くだけで読めます（ネットにつながっていなくても読めます）。</p>
+
+  <div id="stateLoading" class="lead">確認中…</div>
+
+  <div id="stateLogin" class="card center hidden">
+    <p>保存するにはログインが必要です。</p>
+    <div class="login-col">
+      <div id="otpStep1" class="login-col">
+        <input type="email" id="emailLoginInput" placeholder="登録したメールアドレス" autocomplete="email">
+        <button type="button" id="clearEmailBtn" class="link-btn hidden">別のアドレスを使う</button>
+        <button type="button" class="btn-main" id="emailLoginBtn">確認コードを送信</button>
+        <div class="or-line"><span></span>または<span></span></div>
+        <button type="button" class="btn-sub btn-wide" id="loginBtn">Googleでログイン（従来方式）</button>
+      </div>
+      <div id="otpStep2" class="login-col hidden">
+        <p class="msg ok">✅ <strong id="otpSentEmail"></strong> に6桁の確認コードを送信しました。届いたコードを入力してください。</p>
+        <input type="text" id="otpCodeInput" class="otp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+        <button type="button" class="btn-main" id="otpVerifyBtn">ログイン</button>
+        <button type="button" class="link-btn" id="otpResendBtn">確認コードを再送する</button>
+      </div>
+      <p id="otpErrorMsg" class="msg err hidden"></p>
+    </div>
+  </div>
+
+  <div id="stateNoCar" class="card center hidden">
+    <p><strong>このアカウントには、登録済みのお車が見つかりませんでした。</strong></p>
+    <p class="lead">別のメールアドレスで登録した場合は、そのアドレスでログインし直してください。</p>
+  </div>
+
+  <div id="stateMain" class="hidden">
+    <div class="card">
+      <h2>ファイルに入るもの</h2>
+      <ul class="inc" id="carList"></ul>
+      <ul class="inc">
+        <li>車両の情報・写真・ストーリー</li>
+        <li>整備手帳（非公開の記録・費用・写真も）</li>
+        <li>給油の記録（費用も）</li>
+        <li>車載手帳（メモ・経験談も）</li>
+        <li>投稿した工具・パーツ、記事のリンク、お絵描き帳</li>
+      </ul>
+      <p class="note">写真は小さくして入れます。ほかのオーナーの記録は入りません。</p>
+    </div>
+
+    <div class="card">
+      <button type="button" class="btn-main" id="makeBtn">ファイルを作る</button>
+      <div id="progress" class="hidden">
+        <div class="bar"><i id="barFill"></i></div>
+        <div class="st" id="stText">準備中…</div>
+      </div>
+      <div id="ready" class="hidden">
+        <p class="msg ok" id="readyText"></p>
+        <button type="button" class="btn-main" id="saveBtn" style="margin-top:10px;">保存する</button>
+        <p class="note" id="saveHint"></p>
+      </div>
+      <p id="errText" class="msg err hidden"></p>
+    </div>
+
+    <p class="note">
+      ・ファイルの中身は<strong>毎回すべて入り</strong>です。いちばん新しいファイルが1つあれば足ります。<strong>古いファイルは消して大丈夫です。</strong><br>
+      ・ファイル名は毎回同じです。保存のときに「置き換える」を選ぶと、古いものと入れ替わります。<br>
+      ・連絡先などあなたの情報も入っています。ほかの人には渡さないでください。<br>
+      ・万一サイトの記録が消えたときは、このファイルを管理人へ送っていただければ戻します（お問い合わせからご連絡ください）。
+    </p>
+  </div>
+</div>
+
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  let currentUser = null, started = false, myCars = [];
+  let built = null; // { file, name, url }
+
+  const isTouch = () => (navigator.maxTouchPoints || 0) > 0 && /iPhone|iPad|Android|Mobile/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  async function handleAuth(session) {
+    currentUser = session && session.user ? session.user : null;
+    $('stateLoading').classList.add('hidden');
+    if (!currentUser) {
+      started = false;
+      $('stateMain').classList.add('hidden');
+      $('stateLogin').classList.remove('hidden');
+      return;
+    }
+    if (started) return;
+    started = true;
+    try {
+      // メールだけで紐づいていた旧データを本人に結びつけてから数える（取りこぼし防止）
+      try { await supabaseClient.rpc('link_owner_car'); } catch (e) { console.warn('[my-backup] link_owner_car', e); }
+      // 管理者でも「自分の車だけ」（このページは本人の記録を残すためのもの）
+      const { data, error } = await supabaseClient.from('cars')
+        .select('document_id, handle_name, model_display_a, model_display_b, model_display_c, car_type')
+        .eq('owner_user_id', currentUser.id).order('document_id');
+      if (error) throw error;
+      myCars = data || [];
+    } catch (err) {
+      console.error('[my-backup] cars', err);
+      started = false;
+      $('stateLoading').textContent = '読み込みに失敗しました。再読み込みしてください。';
+      $('stateLoading').classList.remove('hidden');
+      return;
+    }
+    $('stateLogin').classList.add('hidden');
+    if (!myCars.length) { $('stateNoCar').classList.remove('hidden'); return; }
+    $('carList').innerHTML = myCars.map(c => '<li><strong>' + esc(carLabel(c)) + '</strong></li>').join('');
+    $('stateMain').classList.remove('hidden');
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  }
+  function carLabel(c) {
+    const model = c.model_display_c || [c.model_display_a || '', c.model_display_b || ''].filter(Boolean).join(' ');
+    return [c.handle_name || '', model].filter(Boolean).join('　') + '（DOC_' + c.document_id + '）';
+  }
+
+  // ── 取得（PostgREST の 1000 行上限を range で取り切る） ──
+  async function fetchAll(build) {
+    const out = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await build().range(from, from + 999);
+      if (error) throw error;
+      out.push(...(data || []));
+      if (!data || data.length < 1000) break;
+    }
+    return out;
+  }
+  async function fetchIn(table, col, ids, select, extra) {
+    const out = [];
+    for (let i = 0; i < ids.length; i += 100) {
+      const chunk = ids.slice(i, i + 100);
+      out.push(...await fetchAll(() => {
+        let q = supabaseClient.from(table).select(select || '*').in(col, chunk);
+        return extra ? extra(q) : q;
+      }));
+    }
+    return out;
+  }
+
+  async function collect(step) {
+    const uid = currentUser.id;
+    const carIds = myCars.map(c => c.document_id);
+    const d = {};
+    step('車両の情報');
+    d.cars = await fetchAll(() => supabaseClient.from('cars').select('*').eq('owner_user_id', uid).order('document_id'));
+    d.car_episodes = await fetchIn('car_episodes', 'car_id', carIds, '*', q => q.order('episode_date', { ascending: true, nullsFirst: true }));
+    d.car_history = await fetchIn('car_history', 'car_id', carIds, '*', q => q.order('occurred_at'));
+    step('整備手帳');
+    d.maint_records = await fetchAll(() => supabaseClient.from('maint_records').select('*').eq('author_user_id', uid).order('work_date', { ascending: true, nullsFirst: true }));
+    const mIds = d.maint_records.map(r => r.id);
+    d.maint_photos = mIds.length ? await fetchIn('maint_photos', 'record_id', mIds, '*', q => q.order('sort_order')) : [];
+    d.maint_costs = mIds.length ? await fetchIn('maint_costs', 'record_id', mIds) : [];
+    step('給油の記録');
+    d.fuel_records = await fetchAll(() => supabaseClient.from('fuel_records').select('*').eq('author_user_id', uid).order('fill_date'));
+    const fIds = d.fuel_records.map(r => r.id);
+    d.fuel_costs = fIds.length ? await fetchIn('fuel_costs', 'record_id', fIds) : [];
+    step('車載手帳');
+    d.equipment_records = await fetchAll(() => supabaseClient.from('equipment_records').select('*').eq('user_id', uid));
+    const eIds = d.equipment_records.map(r => r.id);
+    for (const t of ['equipment_entries', 'equipment_custom_items', 'equipment_experiences', 'equipment_entry_history', 'equipment_category_status']) {
+      d[t] = eIds.length ? await fetchIn(t, 'record_id', eIds) : [];
+    }
+    const itemIds = [...new Set(d.equipment_entries.map(e => e.item_id).filter(v => v != null))];
+    d.equipment_items_ref = itemIds.length ? await fetchIn('equipment_items', 'id', itemIds, 'id, code, category, name') : [];
+    step('工具・パーツ・記事');
+    d.owner_tools = await fetchIn('owner_tools', 'car_id', carIds, '*', q => q.order('created_at'));
+    d.owner_tool_users = await fetchIn('owner_tool_users', 'car_id', carIds);
+    const otIds = [...new Set(d.owner_tool_users.map(r => r.tool_id))];
+    d.owner_tool_users_ref = otIds.length ? await fetchIn('owner_tools', 'id', otIds, 'id, name, category') : [];
+    d.owner_articles = await fetchIn('owner_articles', 'car_id', carIds, '*', q => q.order('published_on', { ascending: true, nullsFirst: true }));
+    step('お絵描き帳');
+    d.paint_posts = [];
+    for (const c of myCars) {
+      try {
+        const { data, error } = await supabaseClient.rpc('paint_posts_list', { p_car_type: null, p_car_doc: c.document_id, p_limit: 200, p_before: null });
+        if (error) throw error;
+        (data || []).forEach(p => d.paint_posts.push(Object.assign({ car_doc: c.document_id }, p)));
+      } catch (e) { console.warn('[my-backup] paint', c.document_id, e); }
+    }
+    return d;
+  }
+
+  // ── 写真を縮小して data URL に（Firebase は本番ドメインに CORS を返す＝実測 2026-11-11） ──
+  const MAX_EDGE = 1200;
+  function loadImg(src) {
+    return new Promise((ok, ng) => { const im = new Image(); im.onload = () => ok(im); im.onerror = ng; im.src = src; });
+  }
+  async function shrink(url) {
+    const r = await fetch(url, { mode: 'cors', credentials: 'omit' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const blob = await r.blob();
+    const objUrl = URL.createObjectURL(blob);
+    try {
+      const im = await loadImg(objUrl); // EXIF の向きは img が反映する
+      const w0 = im.naturalWidth, h0 = im.naturalHeight;
+      const k = Math.min(1, MAX_EDGE / Math.max(w0, h0));
+      const cv = document.createElement('canvas');
+      cv.width = Math.max(1, Math.round(w0 * k)); cv.height = Math.max(1, Math.round(h0 * k));
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.drawImage(im, 0, 0, cv.width, cv.height);
+      return cv.toDataURL('image/jpeg', 0.8);
+    } finally { URL.revokeObjectURL(objUrl); }
+  }
+  async function shrinkAll(urls, onEach) {
+    const map = new Map(); let failed = 0, done = 0;
+    const list = [...new Set(urls.filter(Boolean))];
+    let next = 0;
+    async function worker() {
+      while (next < list.length) {
+        const u = list[next++];
+        try { map.set(u, await shrink(u)); } catch (e) { failed++; console.warn('[my-backup] photo', u, e); }
+        onEach(++done, list.length);
+      }
+    }
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    return { map, failed, total: list.length };
+  }
+
+  function paintThumbUrl(p) {
+    return p.thumb_path ? SUPABASE_URL + '/storage/v1/object/public/paint-thumbs/' + p.thumb_path : '';
+  }
+  function photoUrls(d) {
+    const u = [];
+    const PHOTO_COLS = ['photo_main', 'photo_front', 'photo_side', 'photo_rear', 'photo_engine', 'photo_interior', 'photo_steering_cluster'];
+    d.cars.forEach(c => PHOTO_COLS.forEach(k => u.push(c[k])));
+    d.car_episodes.forEach(e => { u.push(e.cover_url); (Array.isArray(e.photo_urls) ? e.photo_urls : []).forEach(p => u.push(typeof p === 'string' ? p : p && p.url)); });
+    d.maint_photos.forEach(p => u.push(p.url));
+    d.owner_tools.forEach(t => u.push(t.photo_url));
+    d.paint_posts.forEach(p => u.push(paintThumbUrl(p)));
+    return u.filter(x => typeof x === 'string' && /^https:\/\//.test(x));
+  }
+
+  // ── 記録帳（保存されるファイル）を組み立てる ──
+  const fmtDate = s => s ? String(s).slice(0, 10) : '';
+  const yen = n => n == null ? '' : Number(n).toLocaleString('ja-JP') + '円';
+  const SKIP_CAR_COLS = /^(id|document_id|owner_user_id|owner_email|photo_.*|created_at|updated_at)$/;
+  const FREQ = { always: 'いつも積む', occasional: 'ときどき' };
+  const WORKER = { diy: '自分で', shop: 'お店で' };
+  const FUEL = { regular: 'レギュラー', premium: 'ハイオク', diesel: '軽油' };
+  const USAGE = { carry: '車に積む', garage: 'ガレージ', both: '両方' };
+
+  function buildDoc(d, img) {
+    const im = (u, alt) => {
+      if (!u) return '';
+      const src = img.get(u) || u;
+      return '<img src="' + esc(src) + '" alt="' + esc(alt || '') + '" loading="lazy">';
+    };
+    const now = new Date();
+    const stamp = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    const priv = v => v === false ? ' <span class="tag">非公開</span>' : '';
+    const h = [];
+
+    d.cars.forEach(c => {
+      const cid = c.document_id;
+      h.push('<section class="car"><h2>' + esc(carLabel(c)) + '</h2>');
+      const ph = ['photo_main', 'photo_front', 'photo_side', 'photo_rear', 'photo_engine', 'photo_interior', 'photo_steering_cluster'].map(k => c[k]).filter(Boolean);
+      if (ph.length) h.push('<div class="grid">' + ph.map(u => im(u)).join('') + '</div>');
+      const rows = Object.keys(c).filter(k => !SKIP_CAR_COLS.test(k) && c[k] !== null && c[k] !== '' && typeof c[k] !== 'object')
+        .map(k => '<tr><th>' + esc(k) + '</th><td>' + esc(c[k]) + '</td></tr>').join('');
+      if (rows) h.push('<details><summary>登録内容（全項目）</summary><table class="kv">' + rows + '</table></details>');
+
+      const eps = d.car_episodes.filter(e => e.car_id === cid);
+      if (eps.length) {
+        h.push('<h3>ストーリー（' + eps.length + '件）</h3>');
+        eps.forEach(e => {
+          const pics = [e.cover_url].concat(Array.isArray(e.photo_urls) ? e.photo_urls.map(p => typeof p === 'string' ? p : p && p.url) : []).filter(Boolean);
+          h.push('<article><div class="meta">' + esc(fmtDate(e.episode_date)) + (e.is_published === false ? ' <span class="tag">下書き</span>' : '') + '</div><h4>' + esc(e.title || '') + '</h4>' +
+            (e.content ? '<p class="body">' + esc(e.content) + '</p>' : '') +
+            (pics.length ? '<div class="grid">' + pics.map(u => im(u)).join('') + '</div>' : '') +
+            (e.source_url ? '<p class="meta">出典：' + esc(e.source_label || e.source_url) + ' ' + esc(e.source_url) + '</p>' : '') + '</article>');
+        });
+      }
+
+      const ms = d.maint_records.filter(r => r.car_id === cid);
+      if (ms.length) {
+        h.push('<h3>整備手帳（' + ms.length + '件）</h3>');
+        ms.forEach(r => {
+          const cost = (d.maint_costs.find(x => x.record_id === r.id) || {}).cost_yen;
+          const pics = d.maint_photos.filter(p => p.record_id === r.id);
+          const vids = (r.video_urls || []).map((v, i) => '<li>' + esc(v) + ((r.video_captions || [])[i] ? '（' + esc(r.video_captions[i]) + '）' : '') + '</li>').join('');
+          h.push('<article><div class="meta">' + esc(fmtDate(r.work_date) || '日付なし') +
+            (r.odometer_km != null ? '・' + Number(r.odometer_km).toLocaleString('ja-JP') + 'km' : '') +
+            (r.worker ? '・' + esc(WORKER[r.worker] || r.worker) : '') + (cost != null ? '・' + yen(cost) : '') + priv(r.is_public) + '</div>' +
+            '<h4>' + esc(r.title || '') + '</h4>' +
+            ((r.areas || []).length ? '<p class="meta">部位：' + esc(r.areas.join('、')) + '</p>' : '') +
+            (r.comment ? '<p class="body">' + esc(r.comment) + '</p>' : '') +
+            (pics.length ? '<div class="grid">' + pics.map(p => '<figure>' + im(p.url, p.caption) + (p.caption ? '<figcaption>' + esc(p.caption) + '</figcaption>' : '') + '</figure>').join('') + '</div>' : '') +
+            (vids ? '<ul class="meta">' + vids + '</ul>' : '') +
+            (r.minkara_url ? '<p class="meta">みんカラ：' + esc(r.minkara_url) + '</p>' : '') + '</article>');
+        });
+      }
+
+      const fs = d.fuel_records.filter(r => r.car_id === cid);
+      if (fs.length) {
+        h.push('<h3>給油の記録（' + fs.length + '件）</h3><div class="scroll"><table class="list"><tr><th>日付</th><th>走行距離</th><th>給油量</th><th>種類</th><th>満タン</th><th>金額</th><th>メモ</th></tr>');
+        fs.forEach(r => {
+          const cost = (d.fuel_costs.find(x => x.record_id === r.id) || {}).total_yen;
+          h.push('<tr><td>' + esc(fmtDate(r.fill_date)) + priv(r.is_public) + '</td><td>' + (r.odometer_km != null ? esc(Number(r.odometer_km).toLocaleString('ja-JP')) + 'km' : '') + '</td><td>' + (r.liters != null ? esc(r.liters) + 'L' : '') +
+            '</td><td>' + esc(FUEL[r.fuel] || r.fuel || '') + '</td><td>' + (r.full_tank ? '○' : '') + '</td><td>' + yen(cost) + '</td><td>' + esc(r.note || '') + '</td></tr>');
+        });
+        h.push('</table></div>');
+      }
+
+      const ts = d.owner_tools.filter(t => t.car_id === cid);
+      if (ts.length) {
+        h.push('<h3>投稿した工具・パーツ（' + ts.length + '件）</h3>');
+        ts.forEach(t => h.push('<article class="row">' + (t.photo_url ? '<div class="thumb">' + im(t.photo_url, t.name) + '</div>' : '') + '<div><h4>' + esc(t.name || '') + (t.is_hidden ? ' <span class="tag">非表示</span>' : '') + '</h4><p class="meta">' +
+          esc([t.category, USAGE[t.usage] || t.usage, fmtDate(t.created_at)].filter(Boolean).join('・')) + '</p>' + (t.comment ? '<p class="body">' + esc(t.comment) + '</p>' : '') + '</div></article>'));
+      }
+      const mt = d.owner_tool_users.filter(u => u.car_id === cid).map(u => (d.owner_tool_users_ref.find(t => t.id === u.tool_id) || {}).name).filter(Boolean);
+      if (mt.length) h.push('<h3>「わたしも使ってる」を押した工具・パーツ</h3><p class="body">' + esc(mt.join('、')) + '</p>');
+
+      const as = d.owner_articles.filter(a => a.car_id === cid);
+      if (as.length) {
+        h.push('<h3>記事のリンク（' + as.length + '件）</h3><ul>');
+        as.forEach(a => h.push('<li>' + esc(fmtDate(a.published_on)) + ' ' + esc(a.title || a.url) + (a.site_name ? '（' + esc(a.site_name) + '）' : '') + '<br><span class="meta">' + esc(a.url) + '</span></li>'));
+        h.push('</ul>');
+      }
+
+      const ps = d.paint_posts.filter(p => String(p.car_doc) === String(cid));
+      if (ps.length) {
+        h.push('<h3>お絵描き帳（' + ps.length + '件）</h3><div class="grid">');
+        ps.forEach(p => h.push('<figure>' + im(paintThumbUrl(p), p.comment) + '<figcaption>' + esc(fmtDate(p.created_at)) + ' ' + esc(p.comment || '') + '</figcaption></figure>'));
+        h.push('</div>');
+      }
+      h.push('</section>');
+    });
+
+    // 車載手帳（1人1冊）
+    d.equipment_records.forEach(rec => {
+      h.push('<section class="car"><h2>車載手帳' + priv(rec.is_public) + '</h2>');
+      const ents = d.equipment_entries.filter(e => e.record_id === rec.id).map(e => Object.assign({ item: d.equipment_items_ref.find(i => i.id === e.item_id) || {} }, e));
+      const byCat = {};
+      ents.forEach(e => { const k = e.item.category || 'その他'; (byCat[k] = byCat[k] || []).push(e); });
+      Object.keys(byCat).forEach(cat => {
+        h.push('<h3>' + esc(cat) + '</h3><ul>');
+        byCat[cat].forEach(e => h.push('<li>' + esc(e.item.name || ('項目 ' + e.item_id)) + (e.frequency ? '（' + esc(FREQ[e.frequency] || e.frequency) + '）' : '') + (e.note ? '<br><span class="body">' + esc(e.note) + '</span>' : '') + '</li>'));
+        h.push('</ul>');
+      });
+      const cus = d.equipment_custom_items.filter(c => c.record_id === rec.id);
+      if (cus.length) {
+        h.push('<h3>自分で足した項目</h3><ul>');
+        cus.forEach(c => h.push('<li>' + esc(c.name) + (c.category ? '［' + esc(c.category) + '］' : '') + (c.frequency ? '（' + esc(FREQ[c.frequency] || c.frequency) + '）' : '') + (c.reason ? '<br><span class="body">' + esc(c.reason) + '</span>' : '') + '</li>'));
+        h.push('</ul>');
+      }
+      const exs = d.equipment_experiences.filter(x => x.record_id === rec.id);
+      if (exs.length) {
+        h.push('<h3>経験談</h3>');
+        exs.forEach(x => h.push('<article><div class="meta">' + esc(fmtDate(x.created_at)) + '</div><p class="body">' + esc(x.body) + '</p></article>'));
+      }
+      h.push('</section>');
+    });
+
+    const json = JSON.stringify({ format: 'registro500-owner-backup', version: 1, saved_at: now.toISOString(), user_id: currentUser.id, data: d })
+      .replace(/</g, '\\u003c');
+
+    return '<!DOCTYPE html>\n<html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
+      '<meta name="robots" content="noindex"><title>わたしの記録（' + esc(stamp) + ' 保存）</title><style>' + DOC_CSS + '</style></head><body><main>' +
+      '<header><h1>わたしの記録</h1><p class="meta">Registro500 Giappone から ' + esc(stamp) + ' に保存。このファイル1つに、保存した時点の記録がすべて入っています。</p></header>' +
+      h.join('\n') +
+      '<footer class="meta">このファイルには、記録を戻すためのデータも入っています。サイトの記録が消えたときは、このファイルを管理人へ送ってください。</footer>' +
+      '</main><script type="application/json" id="registro-backup-data">' + json + '<\/script></body></html>';
+  }
+
+  const DOC_CSS = [
+    ':root{--bg:#f5f0e6;--card:#fffefb;--line:#d6c9b0;--text:#2e2a24;--sub:#7a705f;--accent:#1f5c3d}',
+    '@media (prefers-color-scheme:dark){:root{--bg:#1a1714;--card:#2b2721;--line:#403a30;--text:#ece6d9;--sub:#a89e8c;--accent:#7fb894}}',
+    '*{box-sizing:border-box}body{margin:0;padding:20px 16px 60px;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Hiragino Sans","Yu Gothic UI",sans-serif;line-height:1.7}',
+    'main{max-width:760px;margin:0 auto}h1{font-size:1.5rem;margin:0}h2{font-size:1.25rem;margin:0 0 12px;color:var(--accent)}h3{font-size:1.05rem;margin:24px 0 8px;border-bottom:1px solid var(--line);padding-bottom:4px}h4{margin:2px 0 6px;font-size:1rem}',
+    'header{margin-bottom:20px}section.car{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:0 0 20px}',
+    'article{padding:10px 0;border-bottom:1px dashed var(--line)}article:last-child{border-bottom:0}article.row{display:flex;gap:12px}.thumb{flex:0 0 96px}',
+    '.meta{font-size:.82rem;color:var(--sub);word-break:break-all}.body{white-space:pre-wrap;margin:4px 0}.tag{font-size:.72rem;border:1px solid var(--sub);border-radius:4px;padding:0 4px;color:var(--sub)}',
+    '.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:8px 0}img{width:100%;height:auto;border-radius:6px;display:block}figure{margin:0}figcaption{font-size:.78rem;color:var(--sub)}',
+    'table{border-collapse:collapse;font-size:.85rem;width:100%}th,td{border:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}.scroll{overflow-x:auto}table.kv th{width:40%;font-weight:400;color:var(--sub)}',
+    'details{margin:8px 0}summary{cursor:pointer;color:var(--accent)}footer{margin-top:24px}',
+    '@media print{body{background:#fff;color:#000}section.car{break-inside:auto;border:0;padding:0}details{display:block}article{break-inside:avoid}}'
+  ].join('');
+
+  function fileName() {
+    const type = myCars.some(c => c.car_type !== '126') ? '500' : '126';
+    return 'registro' + type + '_backup_DOC' + myCars.map(c => c.document_id).join('-') + '.html';
+  }
+
+  $('makeBtn').addEventListener('click', async () => {
+    $('makeBtn').disabled = true;
+    $('errText').classList.add('hidden');
+    $('ready').classList.add('hidden');
+    $('progress').classList.remove('hidden');
+    const setBar = (p, t) => { $('barFill').style.width = Math.round(p * 100) + '%'; if (t) $('stText').textContent = t; };
+    try {
+      let n = 0;
+      const d = await collect(t => setBar(0.05 * ++n, t + 'を読み込み中…'));
+      const urls = photoUrls(d);
+      const { map, failed, total } = await shrinkAll(urls, (done, all) => setBar(0.35 + 0.6 * done / all, '写真を小さくしています… ' + done + ' / ' + all));
+      setBar(0.97, 'ファイルを組み立てています…');
+      const html = buildDoc(d, map);
+      const name = fileName();
+      const file = new File([html], name, { type: 'text/html' });
+      built = { file, name, url: URL.createObjectURL(file) };
+      setBar(1, '');
+      $('progress').classList.add('hidden');
+      const mb = (file.size / 1048576).toFixed(1);
+      $('readyText').textContent = '✅ できました（' + mb + 'MB・写真 ' + (total - failed) + '枚）。' + (failed ? '写真 ' + failed + '枚は入れられなかったため、リンクのまま入れています。' : '');
+      const share = isTouch() && navigator.canShare && navigator.canShare({ files: [file] });
+      $('saveBtn').textContent = share ? '保存する（保存先を選ぶ）' : 'ダウンロードする';
+      $('saveHint').textContent = share
+        ? 'iPhone は「\"ファイル\"に保存」、Android は「ドライブ」などを選べます。自分宛てに LINE やメールで送っておく方法もあります。'
+        : 'ダウンロードしたファイルは、ダブルクリックするとブラウザで開けます。';
+      $('ready').classList.remove('hidden');
+      try { gtag('event', 'backup_build', { cars: myCars.length, photos: total, failed, size_mb: Number(mb) }); } catch (e) {}
+    } catch (err) {
+      console.error('[my-backup] build', err);
+      $('progress').classList.add('hidden');
+      $('errText').textContent = 'ファイルを作れませんでした。電波のよい所でもう一度お試しください。（' + (err && err.message || err) + '）';
+      $('errText').classList.remove('hidden');
+    } finally {
+      $('makeBtn').disabled = false;
+      $('makeBtn').textContent = 'もう一度作る';
+    }
+  });
+
+  // 共有シートは「ボタンを押した直後」でないと開けないため、作るのと保存するのを2段に分けている
+  $('saveBtn').addEventListener('click', async () => {
+    if (!built) return;
+    const share = isTouch() && navigator.canShare && navigator.canShare({ files: [built.file] });
+    if (share) {
+      try {
+        await navigator.share({ files: [built.file], title: 'わたしの記録' });
+        try { gtag('event', 'backup_saved', { how: 'share' }); } catch (e) {}
+        return;
+      } catch (e) {
+        if (e && e.name === 'AbortError') return; // 本人がやめた
+        console.warn('[my-backup] share', e);
+      }
+    }
+    const a = document.createElement('a');
+    a.href = built.url; a.download = built.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    try { gtag('event', 'backup_saved', { how: 'download' }); } catch (e) {}
+  });
+
+  supabaseClient.auth.getSession().then(({ data }) => handleAuth(data && data.session)).catch(err => { console.error(err); handleAuth(null); });
+  supabaseClient.auth.onAuthStateChange((ev, session) => { if (ev === 'SIGNED_OUT' || ev === 'SIGNED_IN') handleAuth(session); });
+  $('loginBtn').addEventListener('click', () => {
+    supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href } });
+  });
+
+  // ── メールの確認コードでログイン（my-fuel.html と同じ流れ） ──
+  function showOtpError(msg) {
+    $('otpErrorMsg').textContent = msg || '';
+    $('otpErrorMsg').classList.toggle('hidden', !msg);
+  }
+  let otpEmail = '';
+  $('emailLoginBtn').addEventListener('click', async () => {
+    const email = $('emailLoginInput').value.trim();
+    if (!email) { showOtpError('メールアドレスを入力してください。'); return; }
+    const btn = $('emailLoginBtn');
+    btn.disabled = true; btn.textContent = '送信中…';
+    const { error } = await supabaseClient.auth.signInWithOtp({ email });
+    btn.disabled = false; btn.textContent = '確認コードを送信';
+    const sentBefore = !!error && /after [0-9]+ seconds/.test(String(error.message));
+    if (error && !sentBefore) { showOtpError(error.status === 429 ? '送信が続いたため一時的に止まっています。数分おいてからお試しください。' : '送信に失敗しました：' + error.message); return; }
+    otpEmail = email;
+    try { localStorage.setItem('r500_login_email', email); } catch (e) {}
+    $('otpSentEmail').textContent = email;
+    $('otpStep1').classList.add('hidden');
+    $('otpStep2').classList.remove('hidden');
+    showOtpError(sentBefore ? '確認コードは少し前に送信済みです。届いているメールの、いちばん新しいコードを入力してください。' : '');
+  });
+  $('otpVerifyBtn').addEventListener('click', async () => {
+    const code = $('otpCodeInput').value.trim();
+    if (!code) { showOtpError('確認コードを入力してください。'); return; }
+    const btn = $('otpVerifyBtn');
+    btn.disabled = true; btn.textContent = '確認中…';
+    const { error } = await supabaseClient.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
+    btn.disabled = false; btn.textContent = 'ログイン';
+    if (error) { showOtpError('コードが正しくないか、期限切れです。何度か送信した場合は、いちばん新しいメールのコードを入力してください。'); return; }
+    showOtpError('');
+  });
+  $('otpResendBtn').addEventListener('click', async () => {
+    if (!otpEmail) return;
+    const { error } = await supabaseClient.auth.signInWithOtp({ email: otpEmail });
+    showOtpError(error ? (error.status === 429 ? '再送は1分ほど間をあけてからお試しください。直前に届いたコードはそのまま使えます。' : '再送に失敗しました：' + error.message) : '確認コードを再送しました。');
+  });
+  (function () {
+    let saved = null;
+    try { saved = localStorage.getItem('r500_login_email'); } catch (e) {}
+    if (saved) { $('emailLoginInput').value = saved; $('clearEmailBtn').classList.remove('hidden'); }
+    $('clearEmailBtn').addEventListener('click', () => {
+      $('emailLoginInput').value = '';
+      $('clearEmailBtn').classList.add('hidden');
+      try { localStorage.removeItem('r500_login_email'); } catch (e) {}
+      $('emailLoginInput').focus();
+    });
+  })();
+})();
+</script>
+<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "60f959409b1e4eb29308eeb53615812a"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
