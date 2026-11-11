@@ -78,7 +78,7 @@
 </head>
 <body>
 <div class="page">
-  <a href="/" class="back-link">&larr; トップに戻る</a>
+  <a href="/" class="back-link" id="backLink">&larr; トップに戻る</a>
   <h1>💾 わたしの記録を保存</h1>
   <p class="lead intro">愛車の記録・整備・給油・車載手帳などを、<strong>1つのファイル</strong>にまとめて手元に保存します。保存したファイルはブラウザで開くだけで読めます（ネットにつながっていなくても読めます）。</p>
 
@@ -126,7 +126,7 @@
     <!-- Google ドライブ連携（GDRIVE_CLIENT_ID が空のうちは出さない）。正本の §1b -->
     <div class="card hidden" id="driveCard">
       <h2>☁️ おすすめ：Google ドライブにバックアップ</h2>
-      <p class="note" style="margin:0 0 10px;">あなたの Google ドライブに「<strong>Registro500 の記録</strong>」というフォルダを作り、記録と写真を入れておきます。<br>・読むときは「<strong>マイガレージ・ノート</strong>」を開きます（写真つき）。<br>・元の写真は「<strong>写真</strong>」フォルダに、記録ごとに分けて入ります（例：写真 → 整備 → 2024-05-03 オイル交換）。<br>・2回目からはボタン1つで記録を新しくし、<strong>まだ送っていない写真だけ</strong>を足します。</p>
+      <p class="note" style="margin:0 0 10px;">あなたの Google ドライブに「<strong>Registro500／126 の記録</strong>」というフォルダを作り、記録と写真を入れておきます。<br>・読むときは「<strong>マイガレージ・ノート</strong>」を開きます（写真つき）。<br>・元の写真は「<strong>写真</strong>」フォルダに、記録ごとに分けて入ります（例：写真 → 整備 → 2024-05-03 オイル交換）。<br>・2回目からはボタン1つで記録を新しくし、<strong>まだ送っていない写真だけ</strong>を足します。</p>
       <div id="driveOff">
         <button type="button" class="btn-main" id="driveConnect" disabled>Google ドライブとつないでバックアップ</button>
         <p class="note">Google の画面で、このサイトが<strong>自分で作ったファイルだけ</strong>を扱う許可を求めます（ドライブのほかのファイルは見えません）。</p>
@@ -227,6 +227,7 @@
       return;
     }
     $('stateLogin').classList.add('hidden');
+    if (siteNum() === '126' && myCars.length) { $('backLink').href = '/126/'; document.title = 'わたしの記録を保存 | Registro126 Giappone'; }
     if (!myCars.length) { $('stateNoCar').classList.remove('hidden'); return; }
     $('carList').innerHTML = myCars.map(c => '<li><strong>' + esc(carLabel(c)) + '</strong></li>').join('');
     $('stateMain').classList.remove('hidden');
@@ -261,6 +262,10 @@
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   }
+  // 500 が1台でもあれば 500、126 だけのオーナーは 126（題名・ファイル名・見出し・戻り先で共通）
+  const siteNum = () => (myCars.some(c => c.car_type !== '126') ? '500' : '126');
+  const siteName = () => 'Registro' + siteNum();
+
   function carLabel(c) {
     const model = c.model_display_c || [c.model_display_a || '', c.model_display_b || ''].filter(Boolean).join(' ');
     return [c.handle_name || '', model].filter(Boolean).join('　') + '（' + c.document_id + '）'; // document_id は「DOC_1」の形
@@ -692,7 +697,7 @@
 
     return '<!DOCTYPE html>\n<html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
       '<meta name="robots" content="noindex"><title>わたしの記録（' + esc(stamp) + ' 保存）</title><style>' + DOC_CSS + '</style></head><body><main>' +
-      '<header><h1>' + (part.chunk ? esc(maintDocName(part.chunk)) : esc(reportTitle())) + '</h1><p class="meta">Registro500 Giappone から ' + esc(stamp) + ' に保存。' + (doc || (part.omit && part.omit.length) ? '' : 'このファイル1つに、保存した時点の記録がすべて入っています。') +
+      '<header><h1>' + (part.chunk ? esc(maintDocName(part.chunk)) : esc(reportTitle())) + '</h1><p class="meta">' + siteName() + ' Giappone から ' + esc(stamp) + ' に保存。' + (doc || (part.omit && part.omit.length) ? '' : 'このファイル1つに、保存した時点の記録がすべて入っています。') +
       (doc ? '写真は縮小して入れています。元の大きさの写真は、同じフォルダの「' + GDRIVE_PHOTOS + '」に記録ごとに分けて入っています。' : light ? 'これは文章と数字だけの版です（写真は「写真まるごと版」に入ります）。' : '') + '</p>' +
       (part.omit && part.omit.length ? '<p class="meta" style="color:#a33;font-weight:700;">⚠️ これは一部の項目だけのファイルです（外した項目：' + esc(part.omit.join('、')) + '）。</p>' : '') + '</header>' +
       h.join('\n') +
@@ -714,8 +719,7 @@
   ].join('');
 
   function baseName() {
-    const type = myCars.some(c => c.car_type !== '126') ? '500' : '126';
-    return 'registro' + type + '_backup_' + myCars.map(c => String(c.document_id).replace(/^DOC_/, '')).join('-');
+    return 'registro' + siteNum() + '_backup_' + myCars.map(c => String(c.document_id).replace(/^DOC_/, '')).join('-');
   }
 
   // ── 項目の選択（§1b・ダウンロードだけ）。外した項目は表（データ）ごと空にする＝本文にも同梱 JSON にも残らない ──
@@ -829,9 +833,10 @@
   // ＝このサイトが作ったファイルしか見えない。消した記録はドライブ側では消さない（上書きのみ）。
   const GDRIVE_CLIENT_ID = '723005462978-6gbks6e96v0ur6dn9oe816hlaapp6orv.apps.googleusercontent.com'; // Google Cloud の OAuth クライアントID（公開値）。空のうちはドライブ欄を出さない
   const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
-  const GDRIVE_FOLDER = 'Registro500 の記録';
+  // 500/126 共通の名前に固定（車種で変えると、あとで別の車種を登録したとき別フォルダができる＝2026-11-11 ユーザー決裁A）。半角 / はPC同期で置換されるので全角／
+  const GDRIVE_FOLDER = 'Registro500／126 の記録';
   // ドキュメントの題名＝「Registro500 マイガレージ・ノート」（126 だけのオーナーは Registro126）＝2026-11-11 ユーザー
-  const reportTitle = () => 'Registro' + (myCars.some(c => c.car_type !== '126') ? '500' : '126') + ' マイガレージ・ノート';
+  const reportTitle = () => siteName() + ' マイガレージ・ノート';
   const G_FILES = 'https://www.googleapis.com/drive/v3/files';
   const G_UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
   let gTokenClient = null, gToken = null, gTokenExp = 0, gPending = null, gBusy = false, driveInited = false;
