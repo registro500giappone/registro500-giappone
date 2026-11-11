@@ -628,6 +628,7 @@
   const GDRIVE_CLIENT_ID = '723005462978-6gbks6e96v0ur6dn9oe816hlaapp6orv.apps.googleusercontent.com'; // Google Cloud の OAuth クライアントID（公開値）。空のうちはドライブ欄を出さない
   const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
   const GDRIVE_FOLDER = 'Registro500 の記録';
+  const GDRIVE_DOC = 'わたしの記録（読む用）';
   const G_FILES = 'https://www.googleapis.com/drive/v3/files';
   const G_UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
   let gTokenClient = null, gToken = null, gTokenExp = 0, gPending = null, gBusy = false, driveInited = false;
@@ -719,9 +720,10 @@
       body: JSON.stringify({ name: GDRIVE_FOLDER, mimeType: 'application/vnd.google-apps.folder' })
     })).id;
   }
-  async function gPut(folderId, name, blob, mime) {
-    const id = await gFind("name='" + name + "' and '" + folderId + "' in parents and trashed=false");
-    const meta = id ? { name } : { name, parents: [folderId] };
+  // asMime を渡すと Google ドキュメント等に変換して置く（更新でも同じ HTML を送れば変換し直される）
+  async function gPut(folderId, name, blob, mime, asMime) {
+    const id = await gFind("name='" + name + "' and '" + folderId + "' in parents and trashed=false" + (asMime ? " and mimeType='" + asMime + "'" : ''));
+    const meta = id ? { name } : Object.assign({ name, parents: [folderId] }, asMime ? { mimeType: asMime } : {});
     const b = 'r500' + Math.random().toString(36).slice(2);
     const body = new Blob(['--' + b + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(meta) +
       '\r\n--' + b + '\r\nContent-Type: ' + mime + '\r\n\r\n', blob, '\r\n--' + b + '--\r\n']);
@@ -746,10 +748,15 @@
       prog('ドライブへ送っています…');
       const folderId = await gFolder();
       await gPut(folderId, baseName() + '.html', new Blob([html], { type: 'text/html' }), 'text/html; charset=UTF-8');
+      // ドライブは HTML をページとして見せられない（ソースが出る）＝読む用に Google ドキュメントも並べる
+      // （戻すためのデータと「このファイルを送って」の一文は HTML の方だけ。ドキュメントは容量を使わない）
+      prog('読む用のドキュメントを作っています…');
+      const readHtml = html.replace(/<footer[\s\S]*?<\/footer>/, '').replace(/<script type="application\/json"[\s\S]*?<\/script>/, '');
+      await gPut(folderId, GDRIVE_DOC, new Blob([readHtml], { type: 'text/html' }), 'text/html; charset=UTF-8', 'application/vnd.google-apps.document');
       setDriveState({ savedAt: Date.now() });
       renderDrive();
       prog('');
-      driveMsg(first ? '保存しました。Google ドライブの「' + GDRIVE_FOLDER + '」フォルダに入っています。次からは「ドライブに保存する」を押すだけで新しくなります。' : '保存しました。', false);
+      driveMsg(first ? '保存しました。Google ドライブの「' + GDRIVE_FOLDER + '」フォルダに入っています（読むときは「' + GDRIVE_DOC + '」を開いてください）。次からは「ドライブに保存する」を押すだけで新しくなります。' : '保存しました。', false);
       try { gtag('event', 'backup_saved', { how: 'drive', first: first ? 1 : 0 }); } catch (e) {}
     } catch (err) {
       console.error('[my-backup] drive', err);
