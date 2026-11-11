@@ -124,6 +124,7 @@
     </div>
 
     <div class="card">
+      <p class="note" id="estimate" style="margin:0 0 10px;">写真の枚数を数えています…</p>
       <button type="button" class="btn-main" id="makeBtn">ファイルを作る</button>
       <div id="progress" class="hidden">
         <div class="bar"><i id="barFill"></i></div>
@@ -185,6 +186,28 @@
     if (!myCars.length) { $('stateNoCar').classList.remove('hidden'); return; }
     $('carList').innerHTML = myCars.map(c => '<li><strong>' + esc(carLabel(c)) + '</strong></li>').join('');
     $('stateMain').classList.remove('hidden');
+    showEstimate();
+  }
+
+  // ── 作る前の見積もり（写真の枚数と通信量） ──
+  // 1枚の目安＝元の写真 約0.25MB（2026-11-11 実測の標本12枚＝0.1〜0.45MB）。
+  // 出来上がりは縮小しても base64 で 1.33 倍になるので、ほぼ同じ大きさ×枚数と見る。
+  const MB_PER_PHOTO = 0.3;
+  const WIFI_OVER = 100;   // これを超えたら Wi-Fi をすすめる（約30MB）
+  const PC_OVER = 400;     // これを超えたら PC をすすめる（スマホのメモリでは重い）
+  async function showEstimate() {
+    try {
+      const d = await collect(() => {});
+      const n = new Set(photoUrls(d)).size;
+      const mb = Math.max(1, Math.round(n * MB_PER_PHOTO));
+      let t = '写真 ' + n + '枚・通信はおよそ ' + mb + 'MB、ファイルもほぼ同じ大きさになります。';
+      if (n > PC_OVER) t += '<br><strong>写真がとても多いため、パソコンで作ることをおすすめします</strong>（スマホでは途中で止まることがあります）。';
+      else if (n > WIFI_OVER) t += '<br><strong>写真が多いため、Wi‑Fi につながっているときに作ることをおすすめします。</strong>';
+      $('estimate').innerHTML = t;
+    } catch (e) {
+      console.warn('[my-backup] estimate', e);
+      $('estimate').classList.add('hidden');
+    }
   }
 
   function esc(s) {
