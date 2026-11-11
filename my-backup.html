@@ -463,6 +463,16 @@
       const src = img.get(u) || u;
       return '<img src="' + esc(src) + '" alt="' + esc(alt || '') + '" loading="lazy">';
     };
+    // 写真の並び。読む用ドキュメントでは表にする（figure は Google ドキュメントへの変換でほどけ、写真と説明が段違いになる＝2026-11-11 実機）
+    const gallery = items => {
+      items = items.filter(x => x.u && (!doc || img.get(x.u)));
+      if (!items.length) return '';
+      if (!doc) return '<div class="grid">' + items.map(x => x.cap != null ? '<figure>' + im(x.u, x.cap) + (x.cap ? '<figcaption>' + esc(x.cap) + '</figcaption>' : '') + '</figure>' : im(x.u)).join('') + '</div>';
+      const cell = x => '<td style="width:50%;vertical-align:top;padding:4px;"><img src="' + esc(img.get(x.u)) + '" width="290" alt="">' + (x.cap ? '<p>' + esc(x.cap) + '</p>' : '') + '</td>';
+      let t = '<table style="width:100%;border-collapse:collapse;">';
+      for (let i = 0; i < items.length; i += 2) t += '<tr>' + cell(items[i]) + (items[i + 1] ? cell(items[i + 1]) : '<td style="width:50%;"></td>') + '</tr>';
+      return t + '</table>';
+    };
     const now = new Date();
     const stamp = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
     const priv = v => v === false ? ' <span class="tag">非公開</span>' : '';
@@ -473,7 +483,7 @@
       if (part.chunk && !d.maint_records.some(r => r.car_id === cid)) return;
       h.push('<section class="car"><h2>' + esc(carLabel(c)) + '</h2>');
       const ph = ['photo_main', 'photo_front', 'photo_side', 'photo_rear', 'photo_engine', 'photo_interior', 'photo_steering_cluster'].map(k => c[k]).filter(Boolean);
-      if (ph.length && !part.chunk) h.push('<div class="grid">' + ph.map(u => im(u)).join('') + '</div>');
+      if (ph.length && !part.chunk) h.push(gallery(ph.map(u => ({ u }))));
       const rows = Object.keys(c).filter(k => !SKIP_CAR_COLS.test(k) && c[k] !== null && c[k] !== '' && typeof c[k] !== 'object')
         .map(k => '<tr><th>' + esc(k) + '</th><td>' + esc(c[k]) + '</td></tr>').join('');
       if (rows && !part.chunk) h.push('<details><summary>登録内容（全項目）</summary><table class="kv">' + rows + '</table></details>');
@@ -485,7 +495,7 @@
           const pics = [e.cover_url].concat(Array.isArray(e.photo_urls) ? e.photo_urls.map(p => typeof p === 'string' ? p : p && p.url) : []).filter(Boolean);
           h.push('<article><div class="meta">' + esc(fmtDate(e.episode_date)) + (e.is_published === false ? ' <span class="tag">下書き</span>' : '') + '</div><h4>' + esc(e.title || '') + '</h4>' +
             (e.content ? '<p class="body">' + esc(e.content) + '</p>' : '') +
-            (pics.length ? '<div class="grid">' + pics.map(u => im(u)).join('') + '</div>' : '') +
+            gallery(pics.map(u => ({ u }))) +
             (e.source_url ? '<p class="meta">出典：' + esc(e.source_label || e.source_url) + ' ' + esc(e.source_url) + '</p>' : '') + '</article>');
         });
       }
@@ -509,7 +519,7 @@
             ((r.areas || []).length ? '<p class="meta">部位：' + esc(r.areas.join('、')) + '</p>' : '') +
             (r.comment ? '<p class="body">' + esc(r.comment) + '</p>' : '') +
             (light && pics.length ? '<p class="meta">📷 写真 ' + pics.length + '枚' + (doc ? '（元の写真はドライブの「' + GDRIVE_PHOTOS + '」→「整備」の中の「' + esc(recDir(r.work_date, r.title)) + '」）' : '') + '</p>' : '') +
-            (pics.length ? '<div class="grid">' + pics.map(p => '<figure>' + im(p.url, p.caption) + (p.caption ? '<figcaption>' + esc(p.caption) + '</figcaption>' : '') + '</figure>').join('') + '</div>' : '') +
+            gallery(pics.map(p => ({ u: p.url, cap: p.caption || '' }))) +
             (vids ? '<ul class="meta">' + vids + '</ul>' : '') +
             (r.minkara_url ? '<p class="meta">みんカラ：' + esc(r.minkara_url) + '</p>' : '') + '</article>');
         });
@@ -794,6 +804,7 @@
   // ドライブで消した写真は次の保存で送り直される（控えを守る側に倒す）。記録の題名を後で変えても、送り済みの写真は元のフォルダのまま。
   const GDRIVE_PHOTOS = '写真';
   const PHOTO_KEY = 'r500p';
+  const DOC_LAYOUT = 2; // 読む用ドキュメントの見た目を変えたら上げる＝変わっていない冊も作り直される
   const DOC_IMG_MAX = 200; // 読む用ドキュメント1冊あたりの写真の上限（変換が重くなりすぎないため）。超える年は「その1・その2」に分ける
   const PHOTO_AUTO_MAX = 30; // これ以下なら保存のついでに送る。超えたら「過去の写真をまとめてバックアップ」ボタン（初回のまとめ送り）
   let gStop = false;
@@ -978,7 +989,7 @@
       const recs = ch.recs, ids = new Set(recs.map(r => r.id));
       const dy = Object.assign({}, d, { maint_records: recs, maint_photos: d.maint_photos.filter(p => ids.has(p.record_id)), maint_costs: d.maint_costs.filter(c => ids.has(c.record_id)) });
       EMPTY.forEach(k => { dy[k] = []; });
-      const sig = await sha16(JSON.stringify([recs, dy.maint_photos, dy.maint_costs, d.cars.map(carLabel)]));
+      const sig = await sha16(JSON.stringify([DOC_LAYOUT, recs, dy.maint_photos, dy.maint_costs, d.cars.map(carLabel)]));
       const name = maintDocName(ch), cur = existing.find(f => f.name === name);
       if (cur && cur.appProperties && cur.appProperties.r500h === sig) continue; // 変わっていない年はそのまま
       prog(name.replace('（読む用）', '') + ' を作っています…（写真 ' + dy.maint_photos.length + '枚）');
