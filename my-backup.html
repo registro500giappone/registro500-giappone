@@ -470,6 +470,15 @@
   // part＝読む用ドキュメントの分け方：未指定＝全部／{ main: true }＝整備以外／{ chunk }＝整備のその年（その1…）だけ
   function buildDoc(d, img, light, doc, part) {
     part = part || {};
+    // 読む用ドキュメントの部品（Google の変換は class を拾わないので style を直書き。改行は <br> にしないと消えて1つの塊になる＝2026-11-11 PDF）
+    const T = s => doc ? esc(s).replace(/\r?\n/g, '<br>') : esc(s);
+    const P = 'style="margin:0;line-height:1.4;"';
+    const SM = 'font-size:9pt;color:#555;';
+    const TD = 'vertical-align:top;padding:3px 6px;border:1px solid #ccc;';
+    const NB = 'vertical-align:top;padding:2px 4px 2px 0;border:none;';
+    const TBL = '<table width="100%" style="width:100%;border-collapse:collapse;margin:0 0 6pt;">';
+    // 見出し＋小さい行（題名＝13pt 太字・日付など＝9pt）を1つの段落に
+    const ttl = (t, sub) => '<p style="margin:8pt 0 2pt;line-height:1.3;"><b style="font-size:12pt;">' + esc(t || '') + '</b>' + (sub ? '<br><span style="' + SM + '">' + sub + '</span>' : '') + '</p>';
     // 軽い版は写真を入れない（2026-11-11 決裁＝見本を作るだけでも Wi-Fi で5分超）。写真の枠は出さず、説明文だけ残す。
     const im = (u, alt) => {
       if (!u) return '';
@@ -483,10 +492,11 @@
       items = items.filter(x => x.u && (!doc || img.get(x.u)));
       if (!items.length) return '';
       if (!doc) return '<div class="grid">' + items.map(x => x.cap != null ? '<figure>' + im(x.u, x.cap) + (x.cap ? '<figcaption>' + esc(x.cap) + '</figcaption>' : '') + '</figure>' : im(x.u)).join('') + '</div>';
-      // 1行3枚（2026-11-11 ユーザー＝2枚だと A4 1ページに4枚しか入らない）
+      // 1行4枚（2026-11-11 PDF＝3枚では縦に長く空きマスも目立った）
       const W = Math.floor(100 / DOC_COLS) + '%';
-      const cell = x => '<td style="width:' + W + ';vertical-align:top;padding:4px;">' + (x ? '<img src="' + esc(img.get(x.u)) + '" width="' + DOC_IMG_W + '" alt="">' + (x.cap ? '<p>' + esc(x.cap) + '</p>' : '') : '') + '</td>';
-      let t = '<table width="100%" style="width:100%;border-collapse:collapse;">';
+      // 枠線なし（空いたマスの枠が目立って間延びした＝2026-11-11 PDF）
+      const cell = x => '<td style="width:' + W + ';' + NB + '">' + (x ? '<img src="' + esc(img.get(x.u)) + '" width="' + DOC_IMG_W + '" alt="">' + (x.cap ? '<p style="margin:0;line-height:1.3;font-size:9pt;">' + esc(x.cap) + '</p>' : '') : '') + '</td>';
+      let t = '<table width="100%" border="0" style="width:100%;border-collapse:collapse;border:none;margin:0 0 6pt;">';
       for (let i = 0; i < items.length; i += DOC_COLS) { t += '<tr>'; for (let k = 0; k < DOC_COLS; k++) t += cell(items[i + k]); t += '</tr>'; }
       return t + '</table>';
     };
@@ -504,14 +514,26 @@
       // 項目名は表示名に（CAR_LABEL）。表示用に組み立てた列（model_display_* 等）は元の列と重なるので出さない
       const rows = Object.keys(c).filter(k => !SKIP_CAR_COLS.test(k) && !/^(model_display_.|engine_display)$/.test(k) && c[k] !== null && c[k] !== '' && typeof c[k] !== 'object')
         .map(k => '<tr><th width="30%" style="width:30%;">' + esc(CAR_LABEL[k] || k) + '</th><td>' + esc(c[k] === true ? 'はい' : c[k] === false ? 'いいえ' : c[k]) + '</td></tr>').join('');
-      if (rows && !part.chunk) h.push('<details><summary>登録内容（全項目）</summary><table class="kv" width="100%">' + rows + '</table></details>');
+      if (rows && !part.chunk && doc) {
+        // ドキュメントは「項目｜値｜項目｜値」の2組並び（短い値）＋長い値は1行まるごと＝縦の長さを半分に（2026-11-11 PDF＝2ページ近く続いた）
+        const kv = Object.keys(c).filter(k => !SKIP_CAR_COLS.test(k) && !/^(model_display_.|engine_display)$/.test(k) && c[k] !== null && c[k] !== '' && typeof c[k] !== 'object')
+          .map(k => ({ l: CAR_LABEL[k] || k, v: String(c[k] === true ? 'はい' : c[k] === false ? 'いいえ' : c[k]) }));
+        const th = x => '<td style="width:17%;' + TD + 'background:#f3f1ea;font-size:8.5pt;color:#555;">' + esc(x.l) + '</td>';
+        const tv = (x, span) => '<td' + (span ? ' colspan="3"' : '') + ' style="' + (span ? '' : 'width:33%;') + TD + 'font-size:9pt;">' + T(x.v) + '</td>';
+        const long = kv.filter(x => x.v.length > 22 || /\n/.test(x.v)), short = kv.filter(x => !long.includes(x));
+        let t = '<h3>登録内容（全項目）</h3>' + TBL;
+        for (let i = 0; i < short.length; i += 2) t += '<tr>' + th(short[i]) + tv(short[i]) + (short[i + 1] ? th(short[i + 1]) + tv(short[i + 1]) : '<td style="' + TD + '"></td><td style="' + TD + '"></td>') + '</tr>';
+        long.forEach(x => { t += '<tr>' + th(x) + tv(x, true) + '</tr>'; });
+        h.push(t + '</table>');
+      } else if (rows && !part.chunk) h.push('<details><summary>登録内容（全項目）</summary><table class="kv" width="100%">' + rows + '</table></details>');
 
 
       const ms = d.maint_records.filter(r => r.car_id === cid);
       if (part.main && ms.length) {
         const cs = maintChunks(d).map(c => Object.assign(c, { n: c.recs.filter(r => r.car_id === cid).length })).filter(c => c.n);
-        h.push('<h3>整備手帳（' + ms.length + '件）</h3><p class="body">整備の記録は年ごとに分けて、同じフォルダに写真つきで入っています：' +
-          cs.map(c => '「' + esc(maintDocName(c)) + '」（' + c.n + '件）').join('、') + '</p>');
+        // 冊の名前は1行に1冊（読点でつなぐと「整備手帳 / 2025」が行の端で割れた＝2026-11-11 PDF）
+        h.push('<h3>整備手帳（' + ms.length + '件）</h3><p ' + P + '>整備の記録は年ごとに分けて、同じフォルダに写真つきで入っています。' +
+          cs.map(c => '<br>・「' + esc(maintDocName(c)) + '」' + c.n + '件').join('') + '</p>');
       }
       if (ms.length && !part.main) {
         h.push('<h3>整備手帳（' + ms.length + '件）</h3>');
@@ -554,23 +576,29 @@
 
       const fs = d.fuel_records.filter(r => r.car_id === cid);
       if (fs.length) {
-        h.push('<h3>給油の記録（' + fs.length + '件）</h3><div class="scroll"><table class="list"><tr><th>日付</th><th>走行距離</th><th>給油量</th><th>種類</th><th>満タン</th><th>金額</th><th>メモ</th></tr>');
+        // ドキュメントでは div で包まない（変換で表の上に空の段落ができた＝2026-11-11 PDF）・文字は 9pt
+        const fd = doc ? ' style="' + TD + 'font-size:9pt;"' : '', fh = doc ? ' style="' + TD + 'font-size:8.5pt;color:#555;background:#f3f1ea;"' : '';
+        h.push('<h3>給油の記録（' + fs.length + '件）</h3>' + (doc ? TBL : '<div class="scroll"><table class="list">') + '<tr>' + ['日付', '走行距離', '給油量', '種類', '満タン', '金額', 'メモ'].map(x => '<th' + fh + '>' + x + '</th>').join('') + '</tr>');
         fs.forEach(r => {
           const cost = (d.fuel_costs.find(x => x.record_id === r.id) || {}).total_yen;
-          h.push('<tr><td>' + esc(fmtDate(r.fill_date)) + priv(r.is_public) + '</td><td>' + (r.odometer_km != null ? esc(Number(r.odometer_km).toLocaleString('ja-JP')) + 'km' : '') + '</td><td>' + (r.liters != null ? esc(r.liters) + 'L' : '') +
-            '</td><td>' + esc(FUEL[r.fuel] || r.fuel || '') + '</td><td>' + (r.full_tank ? '○' : '') + '</td><td>' + yen(cost) + '</td><td>' + esc(r.note || '') + '</td></tr>');
+          h.push('<tr><td' + fd + '>' + esc(fmtDate(r.fill_date)) + (doc ? (r.is_public === false ? '（非公開）' : '') : priv(r.is_public)) + '</td><td' + fd + '>' + (r.odometer_km != null ? esc(Number(r.odometer_km).toLocaleString('ja-JP')) + 'km' : '') + '</td><td' + fd + '>' + (r.liters != null ? esc(r.liters) + 'L' : '') +
+            '</td><td' + fd + '>' + esc(FUEL[r.fuel] || r.fuel || '') + '</td><td' + fd + '>' + (r.full_tank ? '○' : '') + '</td><td' + fd + '>' + yen(cost) + '</td><td' + fd + '>' + T(r.note || '') + '</td></tr>');
         });
-        h.push('</table></div>');
+        h.push(doc ? '</table>' : '</table></div>');
       }
 
       const ts = d.owner_tools.filter(t => t.car_id === cid);
       if (ts.length) {
         h.push('<h3>投稿した工具・パーツ（' + ts.length + '件）</h3>');
-        ts.forEach(t => h.push('<article class="row">' + (t.photo_url ? '<div class="thumb">' + im(t.photo_url, t.name) + '</div>' : '') + '<div><h4>' + esc(t.name || '') + (t.is_hidden ? ' <span class="tag">非表示</span>' : '') + '</h4><p class="meta">' +
+        // ドキュメントは整備と同じ「小さい写真｜名前・説明」の行（写真が 220px で大きすぎた＝2026-11-11 PDF）
+        if (doc) h.push(TBL + ts.map(t => '<tr>' + (t.photo_url && img.get(t.photo_url) ? '<td style="width:' + DOC_MAINT_W + 'px;' + NB + '"><img src="' + esc(img.get(t.photo_url)) + '" width="' + DOC_MAINT_W + '" alt=""></td>' : '<td style="width:' + DOC_MAINT_W + 'px;' + NB + '"></td>') +
+          '<td style="' + NB + '"><p ' + P + '><b>' + esc(t.name || '') + '</b>' + (t.is_hidden ? '（非表示）' : '') + '<br><span style="' + SM + '">' + esc([t.category, USAGE[t.usage] || t.usage, fmtDate(t.created_at)].filter(Boolean).join('・')) + '</span>' +
+          (t.comment ? '<br>' + T(t.comment) : '') + '</p></td></tr>').join('') + '</table>');
+        else ts.forEach(t => h.push('<article class="row">' + (t.photo_url ? '<div class="thumb">' + im(t.photo_url, t.name) + '</div>' : '') + '<div><h4>' + esc(t.name || '') + (t.is_hidden ? ' <span class="tag">非表示</span>' : '') + '</h4><p class="meta">' +
           esc([t.category, USAGE[t.usage] || t.usage, fmtDate(t.created_at)].filter(Boolean).join('・')) + '</p>' + (t.comment ? '<p class="body">' + esc(t.comment) + '</p>' : '') + '</div></article>'));
       }
       const mt = d.owner_tool_users.filter(u => u.car_id === cid).map(u => (d.owner_tool_users_ref.find(t => t.id === u.tool_id) || {}).name).filter(Boolean);
-      if (mt.length) h.push('<h3>「わたしも使ってる」を押した工具・パーツ</h3><p class="body">' + esc(mt.join('、')) + '</p>');
+      if (mt.length) h.push('<h3>「わたしも使ってる」を押した工具・パーツ</h3>' + (doc ? '<p ' + P + '>' + mt.map(x => '・' + esc(x)).join('<br>') + '</p>' : '<p class="body">' + esc(mt.join('、')) + '</p>'));
 
       const as = d.owner_articles.filter(a => a.car_id === cid);
       if (as.length) {
@@ -585,6 +613,13 @@
         h.push('<h3>ストーリー（' + eps.length + '件）</h3>');
         eps.forEach(e => {
           const pics = [e.cover_url].concat(Array.isArray(e.photo_urls) ? e.photo_urls.map(p => typeof p === 'string' ? p : p && p.url) : []).filter(Boolean);
+          // ドキュメント：題名→日付の順・本文の改行を残す（消えて1つの塊になっていた＝2026-11-11 PDF）
+          if (doc) {
+            h.push(ttl(e.title, esc(fmtDate(e.episode_date)) + (e.is_published === false ? '・下書き' : '')) +
+              (e.content ? '<p style="margin:0 0 6pt;line-height:1.6;">' + T(e.content) + '</p>' : '') + gallery(pics.map(u => ({ u }))) +
+              (e.source_url ? '<p style="margin:0 0 6pt;' + SM + '">出典：' + esc(e.source_label || e.source_url) + ' ' + esc(e.source_url) + '</p>' : ''));
+            return;
+          }
           h.push('<article><div class="meta">' + esc(fmtDate(e.episode_date)) + (e.is_published === false ? ' <span class="tag">下書き</span>' : '') + '</div><h4>' + esc(e.title || '') + '</h4>' +
             (e.content ? '<p class="body">' + esc(e.content) + '</p>' : '') +
             gallery(pics.map(u => ({ u }))) +
@@ -603,11 +638,19 @@
 
     // 車載手帳（1人1冊）
     d.equipment_records.forEach(rec => {
-      h.push('<section class="car"><h2>車載手帳' + priv(rec.is_public) + '</h2>');
+      h.push('<section class="car"><h2>車載手帳' + priv(rec.is_public) + '</h2>' + (doc ? '<p style="margin:0 0 4pt;' + SM + '">とくに書いていない項目は「いつも積む」。</p>' : ''));
       const ents = d.equipment_entries.filter(e => e.record_id === rec.id).map(e => Object.assign({ item: d.equipment_items_ref.find(i => i.id === e.item_id) || {} }, e));
       const byCat = {};
       ents.forEach(e => { const k = e.item.category || 'その他'; (byCat[k] = byCat[k] || []).push(e); });
       Object.keys(byCat).forEach(cat => {
+        // ドキュメントは2段組（箇条書きだと1項目1行で2ページ近く続いた＝2026-11-11 PDF）
+        if (doc) {
+          const li = e => '<p style="margin:0 0 2pt;line-height:1.35;">・' + esc(e.item.name || ('項目 ' + e.item_id)) + (e.frequency && e.frequency !== 'always' ? '<span style="' + SM + '">（' + esc(FREQ[e.frequency] || e.frequency) + '）</span>' : '') +
+            (e.note ? '<br><span style="' + SM + '">' + T(e.note) + '</span>' : '') + '</p>';
+          const xs = byCat[cat], half = Math.ceil(xs.length / 2);
+          h.push('<h3>' + esc(cat) + '</h3>' + TBL + '<tr><td style="width:50%;' + NB + '">' + xs.slice(0, half).map(li).join('') + '</td><td style="width:50%;' + NB + '">' + xs.slice(half).map(li).join('') + '</td></tr></table>');
+          return;
+        }
         h.push('<h3>' + esc(cat) + '</h3><ul>');
         byCat[cat].forEach(e => h.push('<li>' + esc(e.item.name || ('項目 ' + e.item_id)) + (e.frequency ? '（' + esc(FREQ[e.frequency] || e.frequency) + '）' : '') + (e.note ? '<br><span class="body">' + esc(e.note) + '</span>' : '') + '</li>'));
         h.push('</ul>');
@@ -615,13 +658,13 @@
       const cus = d.equipment_custom_items.filter(c => c.record_id === rec.id);
       if (cus.length) {
         h.push('<h3>自分で足した項目</h3><ul>');
-        cus.forEach(c => h.push('<li>' + esc(c.name) + (c.category ? '［' + esc(c.category) + '］' : '') + (c.frequency ? '（' + esc(FREQ[c.frequency] || c.frequency) + '）' : '') + (c.reason ? '<br><span class="body">' + esc(c.reason) + '</span>' : '') + '</li>'));
+        cus.forEach(c => h.push('<li>' + esc(c.name) + (c.category ? '［' + esc(c.category) + '］' : '') + (c.frequency ? '（' + esc(FREQ[c.frequency] || c.frequency) + '）' : '') + (c.reason ? '<br><span class="body">' + T(c.reason) + '</span>' : '') + '</li>'));
         h.push('</ul>');
       }
       const exs = d.equipment_experiences.filter(x => x.record_id === rec.id);
       if (exs.length) {
         h.push('<h3>経験談</h3>');
-        exs.forEach(x => h.push('<article><div class="meta">' + esc(fmtDate(x.created_at)) + '</div><p class="body">' + esc(x.body) + '</p></article>'));
+        exs.forEach(x => h.push('<article><div class="meta">' + esc(fmtDate(x.created_at)) + '</div><p class="body">' + T(x.body) + '</p></article>'));
       }
       h.push('</section>');
     });
@@ -851,10 +894,10 @@
     h1: 'font-size:22pt;font-weight:bold;color:#1f5c3d;margin:0 0 2pt;',
     lead: 'font-size:9pt;color:#777;margin:0 0 12pt;line-height:1.4;',
     h2: 'font-size:16pt;font-weight:bold;color:#1f5c3d;margin:16pt 0 6pt;padding-bottom:3pt;border-bottom:2px solid #1f5c3d;',
-    h3: 'font-size:12.5pt;font-weight:bold;color:#222;margin:12pt 0 6pt;'
+    h3: 'font-size:12pt;font-weight:bold;color:#222;margin:10pt 0 4pt;'
   };
-  const DOC_LAYOUT = 9; // 読む用ドキュメントの見た目を変えたら上げる＝変わっていない冊も作り直される
-  const DOC_COLS = 3, DOC_IMG_W = 150;
+  const DOC_LAYOUT = 10; // 読む用ドキュメントの見た目を変えたら上げる＝変わっていない冊も作り直される
+  const DOC_COLS = 4, DOC_IMG_W = 120;
   const DOC_MAINT_W = 80; // 整備の縦リストの写真の幅（px）＝小さくして行を増やす（2026-11-11 ユーザー） // 読む用ドキュメントの写真＝1行の枚数と幅（px）
   const DOC_IMG_MAX = 200; // 読む用ドキュメント1冊あたりの写真の上限（変換が重くなりすぎないため）。超える年は「その1・その2」に分ける
   const PHOTO_AUTO_MAX = 30; // これ以下なら保存のついでに送る。超えたら「過去の写真をまとめてバックアップ」ボタン（初回のまとめ送り）
