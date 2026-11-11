@@ -1187,8 +1187,11 @@
         if (plan.todo.length && plan.todo.length <= PHOTO_AUTO_MAX) {
           const r = await drivePhotoSend(plan, (n, all) => prog('新しい写真を送っています… ' + n + ' / ' + all));
           plan.done += r.sent; plan.todo = plan.todo.slice(r.sent + r.failed);
-          photoNote += '新しい写真 ' + r.sent + '枚も控えました。' + (r.failed ? '（' + r.failed + '枚は読み込めず送れませんでした）' : '');
+          photoNote += 'あわせて新しい写真を ' + r.sent + '枚控えました。' + (r.failed ? '（' + r.failed + '枚は読み込めず送れませんでした）' : '');
           try { gtag('event', 'backup_drive_photos', { sent: r.sent, failed: r.failed, stopped: 0, rest: 0, auto: 1 }); } catch (e) {}
+          renderPhotoBox(null);
+        } else if (!plan.todo.length) {
+          photoNote += '新しい写真はありません（すべて控えてあります）。';
           renderPhotoBox(null);
         } else {
           plan.mb = plan.todo.reduce((s, j) => s + (j.maint ? MB_MAINT_ORIG : MB_ORIG), 0);
