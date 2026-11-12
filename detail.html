@@ -625,7 +625,14 @@
       document.querySelectorAll('.js-auto-hide').forEach(dl => {
         const dts = dl.querySelectorAll('dt'), dds = dl.querySelectorAll('dd');
         dts.forEach((dt, i) => { if(!dds[i].textContent.trim()) { dt.style.display = 'none'; dds[i].style.display = 'none'; } });
+        // 欄がすべて空の区画は、見出しだけの空のカードになるのでカードごと隠す（2026-11-12・未完成に見えるため）
+        const card = dl.closest('section');
+        if (card) card.style.display = [...dds].some(dd => dd.style.display !== 'none') ? '' : 'none';
       });
+      // 区画が1つも残らなければ「スペック」の見出しを隠す（囲みごと隠すと、本人向けの「まだ書かれていない欄」まで消える）
+      const specGroup = document.getElementById('specGroup');
+      const specTitle = specGroup?.querySelector('.spec-group-title');
+      if (specTitle) specTitle.style.display = [...specGroup.querySelectorAll('.js-auto-hide')].some(dl => dl.closest('section')?.style.display !== 'none') ? '' : 'none';
 
       if (car.highlights) { document.getElementById('highlightsSection').style.display = 'block'; document.getElementById('val_Highlights').textContent = car.highlights; }
 
