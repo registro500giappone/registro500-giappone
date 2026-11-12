@@ -178,6 +178,7 @@
       cursor: pointer; white-space: nowrap; transition: all 0.2s ease;
     }
     .view-toggle-btn:hover { background-color: var(--bg-main); color: var(--accent); }
+    .search-toggle { display: none; }
 
     @media (max-width: 767px) {
       .sort-area { 
@@ -189,7 +190,11 @@
         gap: 8px;
       }
       
-      /* 1行目: 検索窓 (全幅) */
+      /* 検索窓は畳んでおき、🔍 で開く（開くと2段目の上に全幅で出る）。何か打ってある間は開いたまま */
+      .sort-area:not(.search-open) .search-box { display: none; }
+      .search-toggle { display: inline-flex; flex: 0 0 auto; font-size: 0.9rem; padding: 6px 10px; }
+      .sort-area.search-open .search-toggle { border-color: var(--accent); color: var(--accent); }
+      /* 開いたとき: 検索窓 (全幅) */
       .search-box { 
         order: 1; 
         width: 100%; 
@@ -613,6 +618,8 @@
               <option value="status_priority" id="sortStatusOption" style="display:none;">面識ステータス順</option>
             </select>
             <button id="viewToggleBtn" class="view-toggle-btn" onclick="toggleViewMode()">📋 リスト表示</button>
+            <!-- スマホだけ：検索欄を畳んで🔍にする（2026-11-12 ユーザー指示「検索でまるまる1行使う必要ない」） -->
+            <button type="button" id="searchToggle" class="view-toggle-btn search-toggle" aria-label="名前や車種で検索" aria-expanded="false">🔍</button>
           </div>
 
           <div class="dropdown">
@@ -1614,6 +1621,19 @@ async function fetchCars() {
     }
 
     document.getElementById('searchInput').addEventListener('input', applySearchFilter);
+    // スマホの🔍：押すと検索欄を開いてすぐ打てるように。空のまま離れたら畳む（打ってある間は開いたまま＝絞り込み中が見える）
+    (() => {
+      const area = document.querySelector('.sort-area'), input = document.getElementById('searchInput'), btn = document.getElementById('searchToggle');
+      if (!area || !input || !btn) return;
+      const set = open => { area.classList.toggle('search-open', open); btn.setAttribute('aria-expanded', String(open)); };
+      btn.addEventListener('mousedown', e => e.preventDefault());   // 押した瞬間に入力欄の blur で畳まれないように
+      btn.addEventListener('click', () => {
+        if (area.classList.contains('search-open') && !input.value.trim()) { set(false); return; }
+        set(true); input.focus();
+      });
+      input.addEventListener('blur', () => { if (!input.value.trim()) set(false); });
+      if (input.value.trim()) set(true);   // 戻るボタンで文字が残っていたとき
+    })();
     document.getElementById('sortSelect').addEventListener('change', e => renderCars(e.target.value));
 
     let viewMode = 'card'; // 'card', 'list', 'mosaic'
