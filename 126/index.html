@@ -127,6 +127,12 @@
     .page-subtitle { margin: 0; font-size: 0.85rem; font-weight: 500; color: var(--text-main); line-height: 1.4; }
     .page-meta { margin: 0; font-size: 0.85rem; color: var(--accent); font-weight: 600; }
     .goal-pill { margin-right: 6px; }
+    /* 未ログインの人だけに出す登録の入口（2026-11-12 ユーザー承認・外部の提案「ファーストビューに登録ボタンを」） */
+    .join-top { align-self: flex-start; display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin-top: 4px; padding: 6px 14px; border: 1.5px solid var(--accent); border-radius: 999px; background: var(--card-bg); color: var(--accent); font-size: 0.85rem; font-weight: 700; text-decoration: none; }
+    .join-top small { font-size: 0.72rem; font-weight: 500; color: var(--text-sub); }
+    .join-top:hover { background: var(--accent); color: var(--card-bg); }
+    .join-top:hover small { color: inherit; }
+    .join-top[hidden] { display: none; }
 
     /* ===== 右側操作エリア ===== */
     .page-header-right { display: flex; flex-direction: column; gap: 12px; }
@@ -541,6 +547,9 @@
         <div class="brand-text-group">
           <p class="page-subtitle">日本のクラシック FIAT 126 のオンラインガレージ♪</p>
           <p class="page-meta"><span class="goal-pill">めざせ126台！</span> 現在 <span id="carCountValue">-</span>台</p>
+          <!-- ⛔ /edit?mode=new 直行にしない＝ログアウト中の既存オーナーが新規登録画面に落ちる（メニューの入口と同じ行き先）。ログイン中は出さない -->
+          <a href="/edit?type=126" class="join-top" id="joinTop" onclick="window.gtag && gtag('event','join_cta_click',{where:'top_126'})">🚗 愛車を登録する<small>無料・写真1枚から・パスワードなし</small></a>
+          <script>(function(){for(var i=0;i<localStorage.length;i++){if(/^sb-.*-auth-token$/.test(localStorage.key(i)||'')){document.getElementById('joinTop').hidden=true;break;}}})();</script>
         </div>
       </div>
 
@@ -1318,6 +1327,7 @@ async function fetchCars() {
     }
 
     async function setSession(user) {
+      document.getElementById('joinTop')?.toggleAttribute('hidden', !!user);
       const loginBtn = document.getElementById('menuLoginBtn');
       const logoutBtn = document.getElementById('menuLogoutBtn');
       const userInfo = document.getElementById('menuUserInfo');
