@@ -220,7 +220,7 @@ export async function onRequestPost({ request, env }) {
 金額　　: ${yen(amount)}
 名前　　: ${name || "—"}
 メール　: ${email || "—"}
-照合　　: ${describeOwner(owner)}
+照合　　: ${account === "312" ? "（Registro500 側の登録との照合・312 の登録は未照合）" : ""}${describeOwner(owner)}
 
 Stripe　: ${link}
 `;
