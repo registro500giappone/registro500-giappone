@@ -1,4 +1,4 @@
-name: マイ壁紙 スプライト再生成（毎日03:40 JST/手動）
+name: マイ壁紙 スプライト・一覧用の小さな写真 再生成（毎日03:40 JST/手動）
 
 # 壁紙（オールタイル）は 169台の写真を1枚に焼いたスプライトから組み立てる。
 # ⭐ 焼き直しが要るのは「新規登録・写真の差し替え・SNS掲載設定の変更・色の書き換え」のとき。
@@ -52,18 +52,24 @@ jobs:
       - name: 変化があればスプライトを焼き直す
         run: python py/build_wallpaper_sprite.py
 
+      # トップの車一覧（500・126）の小さな写真＝足りない分だけ焼き、使われなくなった分を消す（2026-11-12）。
+      # 焼けていない写真はページ側が元のURLで出すので、ここが失敗してもトップは壊れない＝壁紙のコミットは止めない。
+      - name: 一覧用の小さな写真を焼く
+        continue-on-error: true
+        run: python py/build_card_thumbs.py
+
       - name: 差分があればコミット
         # ⛔ git add -A は使わない（関係ないファイルを巻き込まないため・ファイル名を明示する）
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add wallpaper/dist/sprite.webp wallpaper/dist/manifest.json
+          git add wallpaper/dist/sprite.webp wallpaper/dist/manifest.json card-thumbs
           if git diff --cached --quiet; then
             echo "タイルの変更なし — スキップ"
           else
             # ⚠️⛔[skip ci] にしない＝Cloudflare Pages も同じ文言でビルドを止めるため、
             #   焼き直しても本番に出ない。[skip actions] は Actions だけがスキップする。
-            git commit -m "chore(wallpaper): タイルのスプライトを再生成 [skip actions]"
+            git commit -m "chore(wallpaper): タイルのスプライト・一覧用の小さな写真を再生成 [skip actions]"
             ok=0
             for n in 1 2 3; do
               if git push; then ok=1; break; fi

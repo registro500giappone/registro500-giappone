@@ -916,6 +916,29 @@
   </script>
   <script>
     let carsData = [];
+
+    // 一覧のカードは小さな写真（card-thumbs/・py/build_card_thumbs.py が毎朝焼く）を出す（2026-11-12）。
+    // 元の写真は1枚130〜400KBで、灰色のカードが数秒並んでいた。対応表に無い写真（焼く前の新しい登録など）は元のURLのまま。
+    let CARD_THUMBS = null;
+    function cardImg(url) {
+      const t = url && CARD_THUMBS && CARD_THUMBS[url];
+      return t ? '/card-thumbs/' + t : (url || NO_IMAGE_URL);
+    }
+    // 小さな写真が読めなければ元の写真へ、元の写真も駄目なら No Image へ
+    function cardImgErr(img) {
+      const orig = img.dataset.orig;
+      if (orig && img.getAttribute('src') !== orig && img.getAttribute('src').startsWith('/card-thumbs/')) img.src = orig;
+      else { img.onerror = null; img.src = NO_IMAGE_URL; }
+    }
+    // 対応表が描画より後に届いたとき（端末に控えた一覧で先に描いた場合）は、まだ読み終えていない写真だけ差し替える
+    fetch('/card-thumbs/map.json').then(r => r.ok ? r.json() : null).then(m => {
+      if (!m) return;
+      CARD_THUMBS = m;
+      document.querySelectorAll('img.car-image[data-orig]').forEach(img => {
+        const t = cardImg(img.dataset.orig);
+        if (t.startsWith('/card-thumbs/') && img.getAttribute('src') !== t && !img.complete) img.src = t;
+      });
+    }).catch(() => {});
     const CACHE_KEY = 'registro500_local_data';
     let lastFetchTime = 0;
 
@@ -1540,7 +1563,7 @@ async function fetchCars() {
           ${updateBadgeHtml}
           <a href="/detail?doc=${encodeURIComponent(car.DocumentID)}" class="car-link" title="${esc('【' + (car.Prefecture||'-') + '】 ' + car.HandleName + ' / ' + car.Model_DisplayC)}">
             <div class="car-image-wrap">
-              <img src="${esc(car.PhotoMain || NO_IMAGE_URL)}" class="car-image" loading="lazy" onerror="this.src=NO_IMAGE_URL">
+              <img src="${esc(cardImg(car.PhotoMain))}" data-orig="${esc(car.PhotoMain || '')}" class="car-image" loading="lazy" onerror="cardImgErr(this)">
             </div>
             <div class="car-main">
               <div class="car-meta-row">
