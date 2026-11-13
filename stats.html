@@ -258,19 +258,14 @@
     const btn126 = document.getElementById('btn126');
     btn500.className = 'car-type-btn' + (type === '500' ? ' active-500' : '');
     btn126.className = 'car-type-btn' + (type === '126' ? ' active-126' : '');
-    document.getElementById('mapLink').href = type === '126' ? '/mappa?type=126' : '/mappa';
-    document.getElementById('garageLink').href = type === '126' ? '/126/' : '/';
-    if (type === '126') {
-      document.getElementById('pageTitle').textContent = 'Registro126 Statistics';
-      document.getElementById('backLink').href = '/126/';
-      document.title = '統計データ | Registro126 Giappone';
-      document.body.classList.add('mode-126');
-    } else {
-      document.getElementById('pageTitle').textContent = 'Registro500 Statistics';
-      document.getElementById('backLink').href = '/';
-      document.title = '統計データ | Registro500 Giappone';
-      document.body.classList.remove('mode-126');
-    }
+    const is126 = RG.car.is126(type);
+    const site = RG.car.siteName(type);
+    document.getElementById('mapLink').href = is126 ? '/mappa?type=126' : '/mappa';
+    document.getElementById('garageLink').href = RG.car.home(type);
+    document.getElementById('backLink').href = RG.car.home(type);
+    document.getElementById('pageTitle').textContent = site + ' Statistics';
+    document.title = '統計データ | ' + site + ' Giappone';
+    document.body.classList.toggle('mode-126', is126);
   }
 
   function switchCarType(type) {
