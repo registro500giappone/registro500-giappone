@@ -3,6 +3,12 @@ name: クロール FD Ricambi（週2回）
 on:
   workflow_dispatch:  # 手動実行のみ（GitHub Actions IPがfdricambi.comにブロックされるため自動スケジュール停止）
 
+# AI翻訳（ai_marathon_final_v9.py）を呼ぶ6本は同じグループで順番に走らせる（同じ行の二重翻訳＝Gemini の無駄を防ぐ）。
+# 時刻は変えない。同時刻に重なるのは最大2本＝待ちは1本まで（GitHub は待ちを1本しか持たず、3本目が来ると待ちの方が取り消される）。
+concurrency:
+  group: parts-translate
+  cancel-in-progress: false
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'  # 2026-06-02のNode 24強制移行を先取り
 
