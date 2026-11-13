@@ -31,6 +31,7 @@ import fnmatch
 import json
 import os
 import re
+import subprocess
 import sys
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -57,6 +58,24 @@ ESC_DEF = re.compile(r"function\s+esc(?:ape|apeHtml)?\s*\(|(?:const|let|var)\s+e
 ESC_MAX = 31
 ADMIN_MAIL = "registro500giappone@gmail.com"
 MAIL_MAX = 17
+# ⑤ 公開キーの食い違い＝config.js 以外に直書きされた sb_publishable_ が config.js の値と違えば NG
+#    （キーを替えたとき、直書きの残り（イベント雛形の生成物・wiring-journey-gate.js など）の直し忘れを止める）
+PUB_KEY = re.compile(r"sb_publishable_[A-Za-z0-9_-]+")
+# ⑥ supabase-js を CDN から読む <script> に integrity（SRI）が無ければ NG
+SB_SCRIPT = re.compile(r"<script[^>]*supabase-js@[^>]*>", re.I)
+
+
+def config_key():
+    m = PUB_KEY.search(open(os.path.join(BASE, "config.js"), encoding="utf-8").read())
+    return m.group(0) if m else None
+
+
+def bad_keys(text, key):
+    return sorted({k for k in PUB_KEY.findall(text) if k != key})
+
+
+def sri_missing(text):
+    return [s for s in SB_SCRIPT.findall(text) if "integrity=" not in s]
 # ② 内部リンク切れ（SCAN_DIRS の HTML の href/src）。開き引用符と同じ引用符で閉じた値だけを見る＝
 #    JS で文字列をつなぐ途中（l.href = '/wiring-img/' + x など＝閉じ引用符の後に + が続くもの）は拾わない。
 LINK = re.compile(r"""(?:href|src)\s*=\s*(["'])([^"']*)\1(?!\s*\+)""")
@@ -124,14 +143,26 @@ def link_ok(rel, u, redirects):
     return False
 
 
+def tracked_files():
+    """git 管理下のファイル（.gitignore の手元専用ファイル＝indexsub.html などは配信されないので見ない）。git が無ければ None。"""
+    try:
+        out = subprocess.run(["git", "-C", BASE, "ls-files", "-z"], capture_output=True, check=True).stdout
+        return set(out.decode("utf-8").split("\0"))
+    except Exception:
+        return None
+
+
 def served_texts():
-    """配信される全テキスト（① ③ ④ の走査対象）。"""
+    """配信される全テキスト（① ③ ④ ⑤ ⑥ の走査対象）。"""
+    tracked = tracked_files()
     for root, dirs, files in os.walk(BASE):
         dirs[:] = [d for d in dirs if not (os.path.relpath(os.path.join(root, d), BASE) in LEAK_SKIP_DIRS or d.startswith("."))]
         for n in files:
             if n.endswith(LEAK_EXT) or n == "_redirects" or n == "_headers":
                 full = os.path.join(root, n)
-                yield os.path.relpath(full, BASE).replace(os.sep, "/"), full
+                rel = os.path.relpath(full, BASE).replace(os.sep, "/")
+                if tracked is None or rel in tracked:
+                    yield rel, full
 
 
 def selftest():
@@ -160,6 +191,10 @@ def selftest():
         ("noindex あり", has_noindex('<meta name="robots" content="noindex, nofollow">'), True),
         ("noindex なし", has_noindex('<meta name="robots" content="index, follow">'), False),
         ("robots 以外の noindex は拾わない", has_noindex('<meta name="description" content="noindex の話">'), False),
+        ("違う公開キーを拾う", bad_keys("k='sb_publishable_OLD1'; j='sb_publishable_NEW2'", "sb_publishable_NEW2"), ["sb_publishable_OLD1"]),
+        ("同じ公開キーは通る", bad_keys("k='sb_publishable_NEW2'", "sb_publishable_NEW2"), []),
+        ("SRI なしを拾う", len(sri_missing('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0"></script>')), 1),
+        ("SRI ありは通る", len(sri_missing('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-x" crossorigin="anonymous"></script>')), 0),
     ]
     for name, got, want in cases:
         if got != want:
@@ -193,12 +228,22 @@ def main():
 
     # ① 開発メモの名前／③ esc の定義の数／④ 管理人アドレスの直書きの数（配信される全テキスト）
     n_esc = n_mail = 0
+    key = config_key()
+    if not key:
+        ng.append(("config.js", "公開キー sb_publishable_ が読めない"))
     for rel, full in served_texts():
         t = open(full, encoding="utf-8", errors="replace").read()
         hit = find_leak(t)
         if hit:
             line = t[:t.index(hit)].count("\n") + 1
             ng.append((f"{rel}:{line}", f"開発メモの名前「{hit}」＝公開ファイルに書かない（コメントでも View Source で読まれる）"))
+        # ⑤ 公開キーの食い違い／⑥ supabase-js の SRI
+        if key:
+            for k in bad_keys(t, key):
+                ng.append((rel, f"公開キー「{k[:24]}…」が config.js と違う＝config.js の値にそろえる"))
+        if rel.endswith(".html"):
+            for s in sri_missing(t):
+                ng.append((rel, "supabase-js の読み込みに integrity（SRI）が無い＝イベント雛形（py/gen_event_pages.py）と同じ integrity を付ける"))
         if rel.endswith((".html", ".js")):
             n_esc += len(ESC_DEF.findall(t))
         n_mail += t.count(ADMIN_MAIL)
