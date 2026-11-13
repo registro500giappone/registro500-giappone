@@ -62,7 +62,7 @@ NEWS_LIMIT = 5           # main.gs の getUnsentNewsAll_ と同じ
 # マイ整備手帳の記録を載せるか（2026-10-29 ユーザー決裁「載せたい。1台1日1行でいい」）。
 # 整備手帳はまだ導線なし＝公開の判断をユーザーが出すまで False。False の間は対象を読まず、印も付けない。
 # 公開前から有る記録は digest_sent_at を埋めてある（maint-notebook/digest_2026-10-29.sql）＝入れた日に過去分は流れない。
-MAINT_DIGEST_ON = False
+MAINT_DIGEST_ON = True
 MAINT_LIST_MAX = 10      # 1通に並べる行（台×日）の上限。超えた分は印を付けず翌朝へ
 
 # おすすめ工具（/tools）の新着をダイジェストに載せるか（2026-10-07）。
@@ -88,7 +88,7 @@ MAINT_HELPFUL_NOTICE_ON = True
 # 対象＝手放して FORMER_ASK_DAYS 日以内・いま手放していない車が1台も無い・まだ聞いていない・週刊にまだ登録していない人。
 # ⛔FORMER_ASK_SINCE より前に手放した人には聞かない（2026-11-04 ユーザー決裁「今回の対象者には送らない。新規の離脱者から」）。
 # 聞いたら mail_former_asks に1行＝二度と聞かない。返事が無ければそれきり（催促しない）。
-FORMER_ASK_ON = False
+FORMER_ASK_ON = True
 FORMER_ASK_DAYS = 30
 FORMER_ASK_SINCE = datetime(2026, 11, 4, 15, 0, tzinfo=timezone.utc)   # 2026-11-05 0:00 JST
 
@@ -96,7 +96,7 @@ FORMER_ASK_SINCE = datetime(2026, 11, 4, 15, 0, tzinfo=timezone.utc)   # 2026-11
 # ⚠️ダイジェストは登録オーナー全員に届く＝載せた時点で実質公開。公開の判断をユーザーが出すまで False のまま。
 #    False の間は対象を読まず、印（digest_sent_at）も付けない＝True にした日から14日以内に貼られた分が載る。
 # 載せた記事の書き手には、同じ朝に「あなたの記事を紹介しました」を1人1通（工具の「わたしも使ってる」と同じ形）。
-ARTICLES_DIGEST_ON = False
+ARTICLES_DIGEST_ON = True
 ARTICLES_LIST_MAX = 10   # 1通に並べる件数の上限（超えた分は印を付けず翌朝に回す＝「ほか◯件」だと一度も紹介されないまま終わる）
 
 DRY_RUN = str(cfg("DIGEST_DRY_RUN", "")).strip().lower() in ("1", "true", "yes")

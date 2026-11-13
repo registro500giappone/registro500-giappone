@@ -20,10 +20,10 @@
   ];
   // オーナーの記事（ブログなど外部記事へのリンク・/my-articles で載せる）。正本 owner-articles/HANDOFF.md
   // 公開の準備が整うまで止めておく＝開いているページの URL に ?articles-preview を付けたときだけ出す（一覧・トップの帯とも）
-  const ARTICLES_IN_FEED = false;
+  const ARTICLES_IN_FEED = true;
   // 整備の記録（/my-maintenance・2026-11-04 ユーザー決裁）。整備手帳の公開（detail.html の MAINT_ON_CAR_PAGE）と同時に true。
   // それまでは開いているページの URL に ?maint-preview を付けたときだけ出す（一覧・トップの帯とも）
-  const MAINT_IN_FEED = false;
+  const MAINT_IN_FEED = true;
   const PHOTO_COLS = ['photo_main', 'photo_front', 'photo_side', 'photo_rear', 'photo_interior', 'photo_engine', 'photo_steering_cluster'];
 
   function esc(s) {
