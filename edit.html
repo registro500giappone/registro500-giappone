@@ -17,6 +17,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" integrity="sha384-HLJUgAQ2oo6rdMC4QW+Oz2qQfPOtu/lzncKG4sZiq8+2W9uOa3K0b3UGpckKqv7H" crossorigin="anonymous"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js" integrity="sha384-oFrOL1TiREYNET0lsYF3LjQuyi2gL7vhjH1X8vFr+umcmzAdPELopeSgbcrv4uRm" crossorigin="anonymous"></script>
   <script src="config.js"></script>
+  <script src="rg-car.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
 
@@ -673,8 +674,7 @@
 
       async function detectUserCars(email) {
         try {
-          const params = new URLSearchParams(window.location.search);
-          const carType = params.get('type') || '500';
+          const carType = RG.car.type();
           const { data: cars, error } = await supabaseClient
             .from('cars')
             .select('document_id, handle_name, model_display_c')
@@ -722,7 +722,7 @@
         const docId = document.getElementById('DocumentID').value;
         const carType = document.getElementById('CarType').value;
         if (docId) window.location.href = `/detail?doc=${docId}`;
-        else window.location.href = (carType === '126') ? '/126/' : 'index.html';
+        else window.location.href = RG.car.is126(carType) ? RG.car.home(carType) : 'index.html';
       };
 
       function fillForm(data) {
@@ -1059,12 +1059,10 @@
       }
 
       // URLパラメータから車両タイプを取得して設定
-      const urlParams = new URLSearchParams(window.location.search);
-      const typeParam = urlParams.get('type');
-      if (typeParam === '126' || typeParam === '500') {
-        document.getElementById('CarType').value = typeParam;
-        document.getElementById('CarTypeDisplay').textContent = `FIAT ${typeParam}`;
-      }
+      // ?type= が無い・想定外の値は 500（hidden の初期値と同じ）
+      const typeParam = RG.car.type();
+      document.getElementById('CarType').value = typeParam;
+      document.getElementById('CarTypeDisplay').textContent = RG.car.label(typeParam);
 
       // 126サイト用のUI切り替え。
       // URLに ?type=126 が無い入口（メール・ブックマーク等）から既存の126車両を開く経路があるため、
@@ -1072,17 +1070,18 @@
       // 選択肢を差し替えると選択済みの値が消えるので、必ず値をセットする前に呼ぶこと。
       let is126Applied = false;
       function applyCarTypeUi() {
-        if (document.getElementById('CarType').value !== '126' || is126Applied) return;
+        const carType = document.getElementById('CarType').value;
+        if (!RG.car.is126(carType) || is126Applied) return;
         is126Applied = true;
-        document.getElementById('CarTypeDisplay').textContent = 'FIAT 126';
+        document.getElementById('CarTypeDisplay').textContent = RG.car.label(carType);
         // タイトル
         document.title = 'マイガレージ - Registro126 Giappone';
         // ヘッダーロゴ
         const logoImg = document.querySelector('.rg-header-logo img');
-        if (logoImg) { logoImg.src = 'logo_horizontal126.png'; logoImg.alt = 'Registro126'; }
+        if (logoImg) { logoImg.src = RG.car.logo(carType); logoImg.alt = RG.car.siteName(carType); }
         // 「ガレージに戻る」リンク
         const backLink = document.querySelector('.rg-back-link a');
-        if (backLink) backLink.href = '/126/';
+        if (backLink) backLink.href = RG.car.home(carType);
         // ModelSelectB を126用に差し替え（500専用の選択肢を非表示・126用を追加）。
         // 126はモデル名自体が世代を表すため、ここに入れる区分は無い。「標準」のままでよい。
         const selB = document.getElementById('ModelSelectB');

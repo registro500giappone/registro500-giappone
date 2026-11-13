@@ -27,6 +27,7 @@
   <script src="equipment-maestro.js"></script>
   <!-- 「この車の立ち位置」の集計で使う正規化関数（stats.html と共有） -->
   <script src="stats-core.js"></script>
+  <script src="rg-car.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>  
 
@@ -575,8 +576,8 @@
     }
 
     function updateOGP(car) {
-      const siteName = car.car_type === '126' ? 'Registro126' : 'Registro500';
-      const carLabel = car.car_type === '126' ? 'FIAT 126' : 'FIAT 500';
+      const siteName = RG.car.siteName(car);
+      const carLabel = RG.car.label(car);
       const prefix = car.is_sold ? '【過去所有】' : '';
       const title = prefix + (car.handle_name || '') + 'さんの' + (car.model_display_c || carLabel) + ' - ' + siteName;
       const desc = (car.handle_name || '') + 'さんの' + (car.model_display_c || carLabel) + '。車両スペック・写真を公開中。';
@@ -594,7 +595,7 @@
       document.getElementById('loading').style.display = 'none'; document.getElementById('content').style.display = 'block';
       // 過去所有表示（class付与のみ。titleはupdateOGPで処理）
       if (car.is_sold) document.body.classList.add('is-sold-page');
-      const carTypeDisplay = car.car_type === '126' ? 'FIAT 126' : 'FIAT 500';
+      const carTypeDisplay = RG.car.label(car);
       document.getElementById('carType').textContent = carTypeDisplay;
       document.getElementById('year').textContent = car.year ? car.year + '年' : '';
       document.getElementById('modelMain').textContent = (car.model_display_c || '').replace(/\(\d{4}\)/, '');
@@ -603,11 +604,11 @@
       document.getElementById('photoMain').src = car.photo_main || NO_IMAGE_URL;
 
       // 126車の場合: 戻るリンクとロゴを切り替え
-      if (car.car_type === '126') {
+      if (RG.car.is126(car)) {
         const backLink = document.querySelector('.rg-back-link a');
-        if (backLink) backLink.href = '/126/';
+        if (backLink) backLink.href = RG.car.home(car);
         const logoImg = document.querySelector('.rg-header-logo img');
-        if (logoImg) { logoImg.src = 'logo_horizontal126.png'; logoImg.alt = 'Registro126'; }
+        if (logoImg) { logoImg.src = RG.car.logo(car); logoImg.alt = RG.car.siteName(car); }
       }
 
       const map = {
@@ -669,7 +670,7 @@
           heroSns.style.display = 'flex';
         }
       });
-      const carLabel2 = car.car_type === '126' ? 'FIAT 126' : 'FIAT 500';
+      const carLabel2 = RG.car.label(car);
       document.getElementById('shareX').href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(car.handle_name + 'さんの' + carLabel2)}&url=${encodeURIComponent(location.href)}`;
       document.getElementById('shareLINE').href = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(location.href)}`;
       fetchEpisodes(car.document_id);
@@ -781,7 +782,7 @@
            </div>`);
       });
       if (rows.length === 0) return;
-      const carLabel = car.car_type === '126' ? 'FIAT 126' : 'FIAT 500';
+      const carLabel = RG.car.label(car);
       document.getElementById('standingLead').textContent =
         `登録されている${carLabel} ${population.length}台と、この車を項目ごとに比べたものです。`;
       document.getElementById('standingRows').innerHTML = rows.join('');
@@ -897,7 +898,7 @@
            </div>`);
       });
       if (rows.length === 0) return;
-      const carLabel = car.car_type === '126' ? 'FIAT 126' : 'FIAT 500';
+      const carLabel = RG.car.label(car);
       document.getElementById('blanksLead').textContent =
         `この車でまだ空いている欄です。ほかの${carLabel}のオーナーが同じ欄にどう書いているかを、例として3つずつ並べました。`;
       document.getElementById('blanksRows').innerHTML = rows.join('');
@@ -1730,7 +1731,7 @@
       const grid = document.getElementById('paintGrid');
       grid.innerHTML = '';
       data.forEach(p => {
-        const note = (p.car_type === '126' ? '/paint-notebook/126' : '/paint-notebook/') + '#' + p.design;
+        const note = (RG.car.is126(p) ?'/paint-notebook/126' : '/paint-notebook/') + '#' + p.design;
         const d = new Date(p.created_at);
         const el = document.createElement('div'); el.className = 'paint-item';
         el.innerHTML = `<a href="${esc(note)}"><img loading="lazy" alt="お絵描き" src="${esc(SUPABASE_URL + '/storage/v1/object/public/paint-thumbs/' + p.thumb_path)}"></a>
