@@ -19,6 +19,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
+  <script src="rg-car.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
 <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
   
@@ -97,11 +98,11 @@
     }
 
   // URLパラメータで500/126を切り替え
-  const urlCarType = new URLSearchParams(window.location.search).get('type') || '500';
-  if (urlCarType === '126') {
-    document.getElementById('newsBackLink').href = '/126/';
-    document.getElementById('newsLogo').src = 'logo_horizontal126.png';
-    document.getElementById('newsLogo').alt = 'Registro126';
+  const urlCarType = RG.car.type();
+  if (RG.car.is126(urlCarType)) {
+    document.getElementById('newsBackLink').href = RG.car.home(urlCarType);
+    document.getElementById('newsLogo').src = RG.car.logo(urlCarType);
+    document.getElementById('newsLogo').alt = RG.car.siteName(urlCarType);
     document.title = 'お知らせ - Registro126 Giappone';
   }
 

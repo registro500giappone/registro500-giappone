@@ -24,6 +24,7 @@
     <link rel="stylesheet" href="style.css">
 
     <script src="config.js"></script>
+    <script src="rg-car.js"></script>
     <script src="stats-core.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
     <script>
@@ -153,13 +154,13 @@
       return s.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
-    const urlCarType = new URLSearchParams(window.location.search).get('type') || '500';
+    const urlCarType = RG.car.type();
     const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-    if (urlCarType === '126') {
+    if (RG.car.is126(urlCarType)) {
       document.body.classList.add('type-126');
       document.getElementById('pageTitle').textContent = 'REGISTRO126 MAPPA';
-      document.getElementById('backLink').href = '/126/';
+      document.getElementById('backLink').href = RG.car.home(urlCarType);
       document.title = 'Registro126 - Mappa';
       document.getElementById('btn126').classList.add('active-126');
     } else {

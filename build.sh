@@ -26,7 +26,8 @@ find . -name '*.html' -not -path './.git/*' -print0 \
   | xargs -0 sed -i -E \
       -e "s|(href=\"[./]*style\.css)\"|\1?v=${VERSION}\"|g" \
       -e "s|(src=\"/?fab-nav\.js)\"|\1?v=${VERSION}\"|g" \
-      -e "s|(src=\"/?rg-join-cta\.js)\"|\1?v=${VERSION}\"|g"
+      -e "s|(src=\"/?rg-join-cta\.js)\"|\1?v=${VERSION}\"|g" \
+      -e "s|(src=\"/?rg-car\.js)\"|\1?v=${VERSION}\"|g"
 
 echo "==========================================="
 echo "  CACHE_VERSION -> ${VERSION}"
