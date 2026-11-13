@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """公開HTMLの <head> 検品（GA4タグ・canonical・og:image・noindex の消し忘れ）
+＋（2026-11-13）開発メモ名の混入・内部リンク切れ・esc の定義数・管理人アドレスの直書き数
 
 なぜ要るか（2026-09-06）:
   マイ壁紙とスクリーンセーバーを公開した際、2本とも GA4 タグが入っておらず、
@@ -44,6 +45,22 @@ SCAN_DIRS = ["", "126", "en", "it", "engine-simulator", "paint-notebook"]
 
 MEASUREMENT_ID = "G-27SHHC4JYH"  # 正本＝reference_ga4_property。他のIDが混ざっていたら誤り
 
+# ── 2026-11-13 追加（リファクタリング計画 S2-6＝以後の作業の安全網）──
+# ① 開発メモの名前を公開ファイルに書かない（HTML/JS のコメント・JSON の note も View Source で読まれる＝4度再発）。
+#    repo 自体が PUBLIC なので、走査は配信される全テキスト（py/・.github/ など配信しない所は除く）。
+LEAK = re.compile(r"registro\d*-notes|MEMORY(?:_[\w-]+)?\.md|growth-strategy|plate-ledger")
+LEAK_EXT = (".html", ".js", ".json", ".css", ".xml", ".txt", ".webmanifest")
+LEAK_SKIP_DIRS = {".git", ".github", ".claude", "py", "node_modules", "functions"}
+# ③④ は「増えていないか」を見る天井。減ったら下の数字を下げる（下げ忘れは注意で出す）。
+#    共通部品（rg-util.js の RG.esc・管理人アドレスの1か所化）へ寄せるほど減る＝増えるのは逆行。
+ESC_DEF = re.compile(r"function\s+esc(?:ape|apeHtml)?\s*\(|(?:const|let|var)\s+esc(?:ape|apeHtml)?\s*=")
+ESC_MAX = 31
+ADMIN_MAIL = "registro500giappone@gmail.com"
+MAIL_MAX = 17
+# ② 内部リンク切れ（SCAN_DIRS の HTML の href/src）。開き引用符と同じ引用符で閉じた値だけを見る＝
+#    JS で文字列をつなぐ途中（l.href = '/wiring-img/' + x など＝閉じ引用符の後に + が続くもの）は拾わない。
+LINK = re.compile(r"""(?:href|src)\s*=\s*(["'])([^"']*)\1(?!\s*\+)""")
+
 
 # ───────────────────────── 検出（self-test の対象） ─────────────────────────
 def find_ga4(text):
@@ -72,10 +89,67 @@ def has_noindex(text):
     return False
 
 
+def find_leak(text):
+    m = LEAK.search(text)
+    return m.group(0) if m else None
+
+
+def link_target(u):
+    """検査するリンクなら正規化した値、外部・動的・空なら None。"""
+    u = u.split("#")[0].split("?")[0].strip()
+    if not u or re.match(r"^[a-z][a-z0-9+.-]*:|^//", u, re.I):
+        return None
+    if any(c in u for c in "$({}+[<>`\\ ") or u.startswith(("/api/", "/cdn-cgi/")):
+        return None
+    return u
+
+
+def load_redirects():
+    p = os.path.join(BASE, "_redirects")
+    if not os.path.exists(p):
+        return []
+    return [l.split()[0] for l in open(p, encoding="utf-8") if l.strip() and not l.lstrip().startswith("#")]
+
+
+def link_ok(rel, u, redirects):
+    base = os.path.dirname(rel)
+    p = os.path.normpath(os.path.join(BASE, u.lstrip("/")) if u.startswith("/") else os.path.join(BASE, base, u))
+    for c in (p, p + ".html", os.path.join(p, "index.html")):
+        if os.path.isfile(c):
+            return True
+    path = "/" + os.path.relpath(p, BASE).replace(os.sep, "/")
+    for r in redirects:
+        if r == path or (r.endswith("*") and path.startswith(r[:-1])) or (r.endswith("/") and path + "/" == r):
+            return True
+    return False
+
+
+def served_texts():
+    """配信される全テキスト（① ③ ④ の走査対象）。"""
+    for root, dirs, files in os.walk(BASE):
+        dirs[:] = [d for d in dirs if not (os.path.relpath(os.path.join(root, d), BASE) in LEAK_SKIP_DIRS or d.startswith("."))]
+        for n in files:
+            if n.endswith(LEAK_EXT) or n == "_redirects" or n == "_headers":
+                full = os.path.join(root, n)
+                yield os.path.relpath(full, BASE).replace(os.sep, "/"), full
+
+
 def selftest():
     """検出器が壊れたまま静かに通ることを防ぐ。何も検出しない検品は無害に見える。"""
     ok = True
     cases = [
+        ("開発メモ名を拾う", find_leak("// 正本 registro500-notes/owner-backup/HANDOFF.md"), "registro500-notes"),
+        ("台帳ファイル名を拾う", find_leak('"note": "MEMORY_watchlist.md を見る"'), "MEMORY_watchlist.md"),
+        ("ふつうの文は拾わない", find_leak("<p>整備の記録</p>"), None),
+        ("esc の定義を数える", len(ESC_DEF.findall("const esc = s => s; function escapeHtml(s){}")), 2),
+        ("esc の呼び出しは数えない", len(ESC_DEF.findall("x = esc(a) + escapeHtml(b)")), 0),
+        ("外部リンクは見ない", link_target("https://example.com/a"), None),
+        ("JS でつなぐ値は見ない", link_target("/car/${id}"), None),
+        ("内部リンクは見る", link_target("/tools?q=1#x"), "/tools"),
+        ("あるページは通る", link_ok("index.html", "/tools", []), True),
+        ("無いページは落ちる", link_ok("index.html", "/no-such-page-xyz", []), False),
+        ("JS でつなぐ途中は拾わない", LINK.findall("l.href = '/wiring-img/' + t + '.webp';"), []),
+        ("_redirects の * で通る", link_ok("index.html", "/car/12", ["/car/*"]), True),
         ("GA4あり", find_ga4('<script src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH">'), "G-27SHHC4JYH"),
         ("GA4なし", find_ga4("<head><title>x</title></head>"), None),
         ("config だけでは数えない", find_ga4("gtag('config', 'G-27SHHC4JYH');"), None),
@@ -114,7 +188,28 @@ def targets():
 
 def main():
     ignore = load_ignore()
+    redirects = load_redirects()
     ng, warn, skipped, draft, checked = [], [], [], [], 0
+
+    # ① 開発メモの名前／③ esc の定義の数／④ 管理人アドレスの直書きの数（配信される全テキスト）
+    n_esc = n_mail = 0
+    for rel, full in served_texts():
+        t = open(full, encoding="utf-8", errors="replace").read()
+        hit = find_leak(t)
+        if hit:
+            line = t[:t.index(hit)].count("\n") + 1
+            ng.append((f"{rel}:{line}", f"開発メモの名前「{hit}」＝公開ファイルに書かない（コメントでも View Source で読まれる）"))
+        if rel.endswith((".html", ".js")):
+            n_esc += len(ESC_DEF.findall(t))
+        n_mail += t.count(ADMIN_MAIL)
+    if n_esc > ESC_MAX:
+        ng.append(("（全体）", f"esc の定義が {n_esc} か所（天井 {ESC_MAX}）＝新しく書かず共通の RG.esc を使う"))
+    elif n_esc < ESC_MAX:
+        warn.append(("（全体）", f"esc の定義が {n_esc} か所に減った＝check_pages.py の ESC_MAX を {n_esc} に下げる"))
+    if n_mail > MAIL_MAX:
+        ng.append(("（全体）", f"管理人アドレスの直書きが {n_mail} か所（天井 {MAIL_MAX}）＝増やさない"))
+    elif n_mail < MAIL_MAX:
+        warn.append(("（全体）", f"管理人アドレスの直書きが {n_mail} か所に減った＝MAIL_MAX を {n_mail} に下げる"))
 
     for rel in targets():
         pat = next((p for p in ignore if fnmatch.fnmatch(rel, p)), None)
@@ -124,6 +219,15 @@ def main():
 
         text = open(os.path.join(BASE, rel), encoding="utf-8", errors="replace").read()
         checked += 1
+
+        # ② 内部リンク切れ（noindex のページも見る＝リンク切れは公開前でも直す）
+        seen = set()
+        for _, raw in LINK.findall(text):
+            u = link_target(raw)
+            if u and u not in seen:
+                seen.add(u)
+                if not link_ok(rel, u, redirects):
+                    ng.append((rel, f"内部リンク切れ「{raw}」"))
 
         # GA4 は noindex のページにも要る。noindex は「検索に出さない」であって
         # 「人が来ない」ではない（edit.html のようにログイン後の主要画面もこちら）。
@@ -158,7 +262,7 @@ def main():
         print("\n[NG]")
         for rel, msg in ng:
             print(f"  ✗ {rel}: {msg}")
-        print(f"\nNG {len(ng)} 件。公開ページには他ページと同じ gtag スニペットを "
+        print(f"\nNG {len(ng)} 件。GA4 の NG は、他ページと同じ gtag スニペットを "
               f"canonical の直後に置く（測定ID {MEASUREMENT_ID}）。")
         return 1
     print("\nNG なし。")
