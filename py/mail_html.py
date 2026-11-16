@@ -13,7 +13,7 @@
   【題名】                      → 太字の小見出し（お知らせ）
   -----（区切り線）以降          → フッター（小さく灰色）
 写真は載せない（2026-11-07 ユーザー決定）。ヘッダーは 500・126 の縦型ロゴを横に並べる（同日 ユーザー指示）。
-ロゴはメール用に縮めた mail/logo*-mail.png（約8KB）。画像を止めているアプリでは alt の文字が出る。
+ロゴはメール用に縮めた mail/logo*-mail-v2.png（背景を焼き込み済）（約8KB）。画像を止めているアプリでは alt の文字が出る。
 Gmail は <style> を落とすことがあるので、スタイルはすべてタグに直接書く。
 ⚠️ Cloudflare Functions 用の JS 版が functions/_lib/mail_html.js にある（登録のお礼・工具の新着通知）。
    決まりや配色を変えたら両方を直す（2026-11-10 にバイト単位で同じ出力を確認済み）。
@@ -64,8 +64,8 @@ def _paragraph(lines):
 SITE_URL = "https://www.registro500.com"
 # ヘッダーのロゴ（左から）。(画像URL, alt, リンク先)
 LOGOS = [
-    (f"{SITE_URL}/mail/logo500-mail.png", "Registro500 Giappone", f"{SITE_URL}/"),
-    (f"{SITE_URL}/mail/logo126-mail.png", "Registro126 Giappone", f"{SITE_URL}/126/"),
+    (f"{SITE_URL}/mail/logo500-mail-v2.png", "Registro500 Giappone", f"{SITE_URL}/"),
+    (f"{SITE_URL}/mail/logo126-mail-v2.png", "Registro126 Giappone", f"{SITE_URL}/126/"),
 ]
 LOGO_W = 150   # 1つの表示幅（px）＝スマホでも2つ横に並ぶ
 

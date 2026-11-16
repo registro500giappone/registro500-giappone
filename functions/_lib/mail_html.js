@@ -31,8 +31,8 @@ const DIVIDER_RE = /^-{10,}$/;
 
 const SITE_URL = "https://www.registro500.com";
 const LOGOS = [
-  [`${SITE_URL}/mail/logo500-mail.png`, "Registro500 Giappone", `${SITE_URL}/`],
-  [`${SITE_URL}/mail/logo126-mail.png`, "Registro126 Giappone", `${SITE_URL}/126/`],
+  [`${SITE_URL}/mail/logo500-mail-v2.png`, "Registro500 Giappone", `${SITE_URL}/`],
+  [`${SITE_URL}/mail/logo126-mail-v2.png`, "Registro126 Giappone", `${SITE_URL}/126/`],
 ];
 const LOGO_W = 150;
 
