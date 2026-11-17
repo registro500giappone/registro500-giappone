@@ -63,7 +63,9 @@
     .more { display: block; width: 100%; margin-top: 14px; font: inherit; font-size: .9rem; padding: 10px; border: 1px solid var(--accent); border-radius: 10px; background: transparent; color: var(--accent); cursor: pointer; }
     .state { font-size: .88rem; color: var(--text-sub); padding: 14px 0; }
     .shared { margin-bottom: 14px; }
-    .shared-lb { font-size: .78rem; font-weight: 700; color: var(--accent); padding-top: 10px; }
+    /* ?r= で開いた記録＝一覧の中で開いて、少しのあいだ色を付ける */
+    .rec.hit { scroll-margin-top: 12px; animation: recHit 2.4s ease-out; }
+    @keyframes recHit { 0%, 40% { background: var(--accent-soft); } 100% { background: transparent; } }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -73,7 +75,7 @@
   <h1>🛠️ みんなの整備手帳</h1>
   <p class="lead">オーナーが残した整備の記録を、作業した日の新しい順に並べています。言葉・型式・箇所で探せます。<br>自分の車の記録は <a href="/my-maintenance">マイ整備手帳</a> から書けます。</p>
 
-  <div class="card shared hidden" id="sharedCard"><div class="shared-lb">共有された記録</div><div id="shared"></div></div>
+  <div class="card shared hidden" id="sharedCard"><div id="shared"></div></div>
   <div class="filters">
     <input type="search" id="q" placeholder="🔍 キングピン、キャブ…" aria-label="言葉で探す" enterkeyhint="search">
     <select id="modelSel" aria-label="型式で絞り込む"></select>
@@ -253,7 +255,33 @@
     return head;
   }
 
-  // ?r=<記録id>＝「シェア」で共有された1件。一覧の上に開いた状態で出す
+  // ?r=<記録id>＝更新情報・シェア・「参考になった」のメールから来た1件。
+  // 一覧の中でその記録を開いて見せる（見つかるまで続きを読む・HIT_MAX_PAGES まで）。
+  // 見つからないとき（古すぎる）だけ一覧の上に開いた状態で出す。見出しは付けない（誰かが共有したと誤解させないため）
+  const HIT_MAX_PAGES = 10;
+  let hitId = null, hitPages = 0;
+  async function targetVisible(id) {
+    const { data, error } = await supabaseClient.from('maint_records').select('id')
+      .eq('id', id).eq('is_public', true).not('work_date', 'is', null).maybeSingle();
+    return !error && !!data;
+  }
+  // 一覧を描いたあとに呼ぶ。見つけたら開いてそこへ送る／まだなら続きを読む／諦めたら上に出す
+  function seekHit(hasMore) {
+    if (!hitId) return;
+    const item = $('list').querySelector('.rec[data-rid="' + hitId + '"]');
+    if (item) {
+      hitId = null;
+      const it = item.querySelector('.mv-item');
+      if (it && it.open) it.open();
+      item.classList.add('hit');
+      item.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      track('maint_shared_view', { where: 'list' });
+      return;
+    }
+    if (hasMore && ++hitPages < HIT_MAX_PAGES) { loadPage(); return; }
+    const id = hitId; hitId = null;
+    loadShared(id).catch(e => console.error('[maintenance]', e));
+  }
   // 非公開・消された記録は RLS で返らない＝見られない旨だけ出す
   async function loadShared(id) {
     $('sharedCard').classList.remove('hidden');
@@ -271,7 +299,7 @@
     item.appendChild(it);
     $('shared').appendChild(item);
     if (it.open) it.open();
-    track('maint_shared_view');
+    track('maint_shared_view', { where: 'top' });
   }
 
   async function loadPage() {
@@ -333,6 +361,7 @@
     }
     rows.forEach(({ kind, date, r }) => {
       const item = el('div', 'rec');
+      if (kind === 'maint') item.dataset.rid = r.id;
       item.appendChild(recHead(date, r.car_id));
       item.appendChild(kind === 'article' ? renderArticle(r)
         : MaintView.renderItem(r, { emoji: '🔧', onOpen: rec => track('maint_open', { from: 'list' }), onShare }));
@@ -341,13 +370,22 @@
     });
     $('moreBtn').classList.toggle('hidden', merged.length <= PAGE);
     loading = false;
+    seekHit(merged.length > PAGE);
   }
   $('moreBtn').addEventListener('click', loadPage);
 
-  setupFilters();
   const sharedId = new URLSearchParams(location.search).get('r');
-  if (sharedId && /^[0-9a-f-]{36}$/i.test(sharedId)) loadShared(sharedId).catch(e => console.error('[maintenance]', e));
-  reload();
+  const hasShared = !!(sharedId && /^[0-9a-f-]{36}$/i.test(sharedId));
+  // 記録を指して来たときは絞り込みを外す（条件でその記録が一覧から落ちないように）
+  if (hasShared) { qText = ''; model = null; area = null; task = null; syncUrl(); }
+  setupFilters();
+  if (hasShared) {
+    // 見られない記録なら一覧をたどらず、その旨だけ上に出す
+    targetVisible(sharedId).then(ok => {
+      if (ok) { hitId = sharedId; reload(); }
+      else { loadShared(sharedId).catch(e => console.error('[maintenance]', e)); reload(); }
+    });
+  } else reload();
 })();
 </script>
 </body>
