@@ -25,19 +25,21 @@ import { Webhook } from "npm:standardwebhooks@1.0.0";
 
 const BRAND_HEADER = "Registro500/126 Giappone";
 const SITE_URL = "https://www.registro500.com";
-// 見出しのロゴ（ほかのメール＝py/mail_html.py・functions/_lib/mail_html.js と同じ画像・背景を焼き込み済）。
-// 画像を止めているアプリでは alt の文字が出る。ログインのメールなのでリンクは付けない。
+// ほかのメール（py/mail_html.py・functions/_lib/mail_html.js）と同じ外枠＝クリームの地にロゴ（画像の背景も同じ色で焼き込み済）・白いカードに本文・下にフッター。
+// 画像を止めているアプリでは alt の文字が出る。ログインのメールなのでロゴにリンクは付けない。
+const C = { bg: "#f5f0e6", card: "#fffefb", border: "#d6c9b0", text: "#2e2a24", sub: "#7a705f", accent: "#1f5c3d" };
+const FONT = "-apple-system,BlinkMacSystemFont,Hiragino Sans,Hiragino Kaku Gothic ProN,Meiryo,sans-serif";
 const LOGOS: [string, string][] = [
   [`${SITE_URL}/mail/logo500-mail-v2.png`, "Registro500 Giappone"],
   [`${SITE_URL}/mail/logo126-mail-v2.png`, "Registro126 Giappone"],
 ];
-const LOGO_HEADER =
-  `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 16px;"><tr>` +
+const LOGO_ROW =
+  `<tr><td align="center" style="padding:4px 4px 16px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>` +
   LOGOS.map(([src, alt]) =>
     `<td align="center" style="padding:0 8px;"><img src="${src}" width="150" alt="${alt}" ` +
-    `style="display:block;width:150px;max-width:100%;height:auto;border:0;font-size:14px;font-weight:bold;color:#9b2a2a;"></td>`
+    `style="display:block;width:150px;max-width:100%;height:auto;border:0;font-size:14px;font-weight:bold;color:${C.accent};"></td>`
   ).join("") +
-  `</tr></table>`;
+  `</tr></table></td></tr>`;
 
 interface EmailData {
   token: string;
@@ -86,15 +88,22 @@ function buildContent(actionType: string, token: string): { subject: string; htm
 // 過去の事故教訓: style属性内のシングルクォート・HTMLコメント・rgba/box-shadowは使わない。
 function buildHtml(lead: string, sub: string, token: string, notice: string): string {
   return (
-    `<div style="font-family:sans-serif;color:#333;max-width:480px;margin:0 auto;padding:20px 16px;">` +
-    LOGO_HEADER +
-    `<p style="font-size:15px;line-height:1.7;margin:0 0 4px;">${lead}</p>` +
-    `<p style="font-size:13px;line-height:1.7;color:#666;margin:0 0 20px;">${sub}</p>` +
-    `<p style="font-size:28px;font-weight:bold;letter-spacing:4px;color:#2856a8;margin:0 0 8px;">${token}</p>` +
-    `<p style="font-size:12px;color:#999;margin:0 0 20px;">このコードは一定時間（およそ1時間）のみ有効です。</p>` +
-    `<p style="font-size:11px;line-height:1.7;color:#888;margin:16px 0 0;">${notice}</p>` +
-    `<p style="font-size:11px;color:#aaa;margin:20px 0 0;">${BRAND_HEADER}　${SITE_URL}</p>` +
-    `</div>`
+    `<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">` +
+    `<meta name="viewport" content="width=device-width,initial-scale=1">` +
+    `<meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light">` +
+    `</head><body style="margin:0;padding:0;background:${C.bg};">` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.bg};"><tr><td align="center" style="padding:20px 10px;">` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;font-family:${FONT};">` +
+    LOGO_ROW +
+    `<tr><td style="background:${C.card};border:1px solid ${C.border};border-radius:12px;padding:26px 22px;">` +
+    `<p style="margin:0 0 6px;font-size:15px;line-height:1.8;color:${C.text};">${lead}</p>` +
+    `<p style="margin:0 0 18px;font-size:13px;line-height:1.8;color:${C.sub};">${sub}</p>` +
+    `<p style="margin:0 0 8px;padding:16px 0;background:${C.bg};border-radius:8px;text-align:center;font-size:32px;font-weight:bold;letter-spacing:8px;color:${C.accent};font-family:Menlo,Consolas,monospace;">${token}</p>` +
+    `<p style="margin:0;font-size:12px;color:${C.sub};text-align:center;">このコードは一定時間（およそ1時間）のみ有効です。</p>` +
+    `<p style="margin:20px 0 0;padding-top:14px;border-top:1px solid ${C.border};font-size:11px;line-height:1.8;color:${C.sub};">${notice}</p>` +
+    `</td></tr>` +
+    `<tr><td style="padding:18px 8px 8px;font-size:12px;line-height:1.7;color:${C.sub};text-align:center;">${BRAND_HEADER}<br>${SITE_URL}</td></tr>` +
+    `</table></td></tr></table></body></html>`
   );
 }
 
