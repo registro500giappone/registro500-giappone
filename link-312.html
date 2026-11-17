@@ -2,13 +2,13 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>アカウントをつなぐ | Registro500 Giappone</title>
-  <meta name="description" content="Registro500 のアカウントを兄弟サイトのアカウントとつなぎます。">
+  <title>アカウントをつなぐ | Registro500・Registro126 Giappone</title>
+  <meta name="description" content="Registro500・Registro126 のアカウントを兄弟サイトのアカウントとつなぎます。">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex">
   <meta name="referrer" content="no-referrer">
   <link rel="icon" href="/favicon.ico">
-  <!-- 兄弟サイト（Registro312／Registro Scorpione）の「Registro500 とつなぐ」からだけ来るページ。⛔このサイトの中からリンクしない -->
+  <!-- 兄弟サイト（Registro312／Registro Scorpione）の「アカウントをつなぐ」からだけ来るページ。⛔このサイトの中からリンクしない -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -38,7 +38,9 @@
 </head>
 <body>
 <main>
-  <h1>Registro500 のアカウントをつなぐ</h1>
+  <h1>Registro500・Registro126 のアカウントをつなぐ</h1>
+  <!-- 126 のオーナーにとってサイトは Registro126＝両方の名前を出す（2026-11-17 ユーザー「推奨案で」） -->
+  <p class="sub">Registro500 と Registro126 は同じアカウントです。どちらに登録した方も、ここからつなげます。</p>
   <div id="view"><p class="sub">読み込んでいます…</p></div>
 </main>
 <script>
@@ -61,7 +63,7 @@
     if (AUDS.includes(u.origin)) back = u;
   } catch (e) { /* 戻り先なし */ }
   if (!back) {
-    put(h('div', { class: 'card' }, h('p', {}, 'このページは、兄弟サイトの「Registro500 とつなぐ」から開きます。'), h('a', { class: 'btn', href: '/' }, 'Registro500 のトップへ')));
+    put(h('div', { class: 'card' }, h('p', {}, 'このページは、兄弟サイトのマイガレージの「アカウントをつなぐ」から開きます。'), h('a', { class: 'btn', href: '/' }, 'Registro500 のトップへ')));
     return;
   }
   const sister = back.origin === 'https://registroscorpione.com' || back.port === '8732' ? 'Registro Scorpione' : 'Registro312';
@@ -89,14 +91,14 @@
       const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
       e.target.disabled = false;
       const sentBefore = !!error && /after [0-9]+ seconds/.test(String(error.message));
-      if (error && !sentBefore) { $err.textContent = /not found|Signups not allowed/i.test(error.message) ? 'このアドレスでは Registro500 に登録がありません。ふだん Registro500 に入るときのアドレス（または Google）で入ってください。' : '送れませんでした。少しおいてからもう一度お試しください。'; return; }
+      if (error && !sentBefore) { $err.textContent = /not found|Signups not allowed/i.test(error.message) ? 'このアドレスでは Registro500・Registro126 に登録がありません。ふだん Registro500・Registro126 に入るときのアドレス（または Google）で入ってください。' : '送れませんでした。少しおいてからもう一度お試しください。'; return; }
       sentTo = email;
       try { localStorage.setItem('r500_login_email', email); } catch (e2) {}
       step1.hidden = true; step2.hidden = false; $err.textContent = '';
       $code.focus();
     } }, '確認コードを送る'));
     put(
-      h('p', {}, `${sister} とつなぐために、ふだん Registro500 に入るときの方法でログインしてください。`),
+      h('p', {}, `${sister} とつなぐために、ふだん Registro500・Registro126 に入るときの方法でログインしてください。`),
       h('div', { class: 'card' },
         h('button', { class: 'btn primary', onclick: () => sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href } }) }, 'Google でログイン'),
         h('p', { class: 'sub', style: 'margin:16px 0 4px' }, 'または、メールに届くコードで'),
@@ -118,9 +120,9 @@
     const $err = h('p', { class: 'err', role: 'alert' });
     put(
       h('div', { class: 'card' },
-        h('p', {}, h('strong', {}, `${cars[0].handle_name || ''} さん`), 'の Registro500 のアカウントを、', h('strong', {}, sister), ' のアカウントとつなぎますか？'),
+        h('p', {}, h('strong', {}, `${cars[0].handle_name || ''} さん`), 'の Registro500・Registro126 のアカウントを、', h('strong', {}, sister), ' のアカウントとつなぎますか？'),
         h('ul', { class: 'cars' }, ...cars.map(c => h('li', {}, `${c.model_display_c || (c.car_type === '126' ? 'FIAT 126' : 'FIAT 500')}${c.year ? '（' + c.year + '年）' : ''}`))),
-        h('p', { class: 'sub' }, `つなぐと、${sister} のマイガレージにこの車が、Registro500 のあなたの車のページに ${sister} の車が並びます（どちらも、あなたにだけ見えます）。${sister} に渡るのはハンドルネームと都道府県だけで、メールアドレスは渡りません。いつでも外せます。`),
+        h('p', { class: 'sub' }, `つなぐと、${sister} のマイガレージにこの車が、Registro500・Registro126 のあなたの車のページに ${sister} の車が並びます（どちらも、あなたにだけ見えます）。${sister} に渡るのはハンドルネームと都道府県だけで、メールアドレスは渡りません。いつでも外せます。`),
         other),
       h('button', { class: 'btn primary', onclick: async (e) => {
         e.target.disabled = true; $err.textContent = '';
