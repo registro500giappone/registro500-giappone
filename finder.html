@@ -15,6 +15,7 @@
 </script>
 <link rel="icon" href="/icon-192.png">
 <script src="/config.js"></script>
+  <script src="/rg-util.js"></script>
 <style>
 /* 共通CSSは読み込まない。この画面は色を1枚で完結させる＝サイト全体の配色に手を触れないため。 */
 :root{
@@ -71,6 +72,7 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.02em}
 
 <script>
 (function(){
+  const esc = RG.esc;
   // ============================================================
   // 辞書：ページごとに「こう言われたらここ」の言い換えを持つ。
   // ⭐言い換えを足すときは kw に1語足すだけ。外れた言葉は GA4 の finder_miss に溜まる。
@@ -281,7 +283,6 @@ h1{font-size:20px;margin:0 0 4px;color:var(--deep);letter-spacing:.02em}
   // ============================================================
   // 描画
   // ============================================================
-  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   // 126サイトのメニューから来たとき（?type=126）は、126向けのページを優先して開く。
   var FROM126 = new URLSearchParams(location.search).get('type') === '126';
   if (FROM126) document.getElementById('back').href = '/126/';

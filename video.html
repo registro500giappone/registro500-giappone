@@ -26,6 +26,7 @@
   <link rel="stylesheet" href="style.css">
 
   <script src="config.js"></script>
+  <script src="/rg-util.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
 
@@ -340,6 +341,7 @@
 
   <script>
   (function(){
+    const esc = RG.esc;
     const sb = supabaseClient;
     const NOIMG = (typeof NO_IMAGE_URL !== 'undefined') ? NO_IMAGE_URL : 'https://placehold.co/600x338?text=No+Image';
     const ytId = new URLSearchParams(location.search).get('id');
@@ -348,7 +350,6 @@
     function track(name, params){ try{ if(typeof gtag==='function') gtag('event', name, params||{}); }catch(e){} }
     function videoParams(v){ return v ? { video_id:v.youtube_id, video_title:(v.title_ja||v.title_original||'').slice(0,100), channel:v.channel_name||'' } : {}; }
 
-    function esc(s){return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
     function fmtViews(n){ n=n||0; if(n>=10000)return Math.round(n/1000)/10+'万回'; return n.toLocaleString()+'回'; }
     function fmtDate(s){ if(!s)return''; const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s); return m?`${m[1]}年${+m[2]}月${+m[3]}日`:''; }
 

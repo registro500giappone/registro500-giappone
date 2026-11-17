@@ -25,6 +25,7 @@
   <link rel="stylesheet" href="style.css">
 
   <script src="config.js"></script>
+  <script src="/rg-util.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
 
@@ -233,6 +234,7 @@
 
   <script>
   (function(){
+    const esc = RG.esc;
     const PAGE = 10;
     const sb = supabaseClient;
     const NOIMG = (typeof NO_IMAGE_URL !== 'undefined') ? NO_IMAGE_URL : 'https://placehold.co/600x338?text=No+Image';
@@ -268,7 +270,6 @@
     let sysCounts = {};       // system.key -> 件数
     let currentIds = null;    // フィルタで絞ったid集合（null=制限なし）
 
-    function esc(s){return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
     function normVeh(v){ if(v==='126')return 'fiat-126'; if(v==='500')return 'fiat-500'; return v; }
     function fmtDur(sec){ if(!sec&&sec!==0)return''; const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60; return h>0?`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${m}:${String(s).padStart(2,'0')}`; }
     function fmtViews(n){ n=n||0; if(n>=10000)return Math.round(n/1000)/10+'万回'; return n.toLocaleString()+'回'; }

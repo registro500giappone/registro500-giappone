@@ -12,6 +12,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" integrity="sha384-HLJUgAQ2oo6rdMC4QW+Oz2qQfPOtu/lzncKG4sZiq8+2W9uOa3K0b3UGpckKqv7H" crossorigin="anonymous"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js" integrity="sha384-oFrOL1TiREYNET0lsYF3LjQuyi2gL7vhjH1X8vFr+umcmzAdPELopeSgbcrv4uRm" crossorigin="anonymous"></script>
   <script src="config.js"></script>
+  <script src="/rg-util.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
   <style>
@@ -206,6 +207,7 @@
 
   <script>
   (function() {
+    const esc = RG.esc;
     if (firebase.apps.length === 0) firebase.initializeApp(FIREBASE_CONFIG);
     const storage = firebase.storage();
 
@@ -220,10 +222,6 @@
     const DRAFT_KEY = `epEdit_draft_${carId || 'nocar'}_${epId || 'new'}`;
     let initialized = false;
 
-    function esc(s) {
-      if (!s) return '';
-      return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
 
     // ── 日付セレクトの初期化（冪等: 既に生成済みならスキップ）──
     function initDateSelects() {
