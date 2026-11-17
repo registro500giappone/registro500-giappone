@@ -12,6 +12,7 @@
  *     beforeGoogle:  Google へ飛ぶ直前に呼ぶ（下書きの保存など）
  *     redirectTo:    Google から戻る先（既定は今の URL）
  *     verifyLabel:   コード確認ボタンの文言（既定「ログイン」）
+ *     emailPlaceholder: メール欄の見本文字（既定「登録したメールアドレス」）
  *     beforeVerify:  コードを確かめる直前に呼ぶ
  *     onVerifyFail:  コードが通らなかったときに呼ぶ
  *     onVerified:    コードが通った直後に呼ぶ
@@ -85,8 +86,16 @@
     box.innerHTML = html(google);
     var q = function (name) { return box.querySelector('[data-rgl="' + name + '"]'); };
     var show = function (name, on) { q(name).classList.toggle('rgl-hidden', !on); };
-    var showError = function (msg) { q('error').textContent = msg || ''; show('error', !!msg); };
+    // ok=true のときは同じ枠を「うまくいった」の色で出す（再送の成功）
+    var showError = function (msg, ok) {
+      var el = q('error');
+      el.textContent = msg || '';
+      el.classList.toggle('rgl-ok', !!ok);
+      el.classList.toggle('rgl-err', !ok);
+      show('error', !!msg);
+    };
     q('verify').textContent = verifyLabel;
+    if (o.emailPlaceholder) q('email').placeholder = o.emailPlaceholder;
 
     var otpEmail = '';
 
@@ -139,7 +148,7 @@
       if (!otpEmail) return;
       var res = await sb.auth.signInWithOtp({ email: otpEmail });
       var error = res.error;
-      showError(error ? (error.status === 429 ? '再送は1分ほど間をあけてからお試しください。直前に届いたコードはそのまま使えます。' : '再送に失敗しました：' + error.message) : '確認コードを再送しました。');
+      showError(error ? (error.status === 429 ? '再送は1分ほど間をあけてからお試しください。直前に届いたコードはそのまま使えます。' : '再送に失敗しました：' + error.message) : '確認コードを再送しました。', !error);
     });
 
     var saved = null;

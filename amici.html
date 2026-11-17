@@ -24,6 +24,7 @@
     gtag('config', 'G-27SHHC4JYH');
   </script>
   <script src="config.js"></script>
+  <script src="/rg-login.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
   <style>
@@ -46,7 +47,6 @@
     .col { display: flex; flex-direction: column; gap: 10px; }
     input[type=email], input[type=text] { font-size: 1rem; padding: 11px 12px; border: 1px solid var(--line);
            border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; }
-    .otp-code { letter-spacing: .4em; text-align: center; font-size: 1.3rem; }
     .btn-main { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 12px 20px;
            font-size: 1rem; font-weight: 700; cursor: pointer; }
     .btn-sub { background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 8px;
@@ -58,6 +58,14 @@
     .msg.err { background: var(--err-bg); color: var(--err-ink); }
     a { color: var(--accent); }
     .hidden { display: none !important; }
+    /* ログイン欄（rg-login.js）を今の見た目に合わせる上書き */
+    #rgLogin .rgl-main { border-radius: 8px; padding: 12px 20px; font-family: revert; color: #fff; }
+    #rgLogin .rgl-link { font: revert; font-size: .9rem; color: var(--accent); text-align: left; }
+    #rgLogin .rgl-clear { align-self: stretch; }
+    #rgLogin .rgl-code { font-size: 1rem !important; letter-spacing: .4em; }
+    #rgLogin .rgl-msg { margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; font-size: .92rem; }
+    #rgLogin .rgl-ok { background: var(--ok-bg); color: var(--ok-ink); }
+    #rgLogin .rgl-err { background: var(--err-bg); color: var(--err-ink); }
   </style>
 </head>
 <body>
@@ -76,17 +84,7 @@
 
     <!-- ログイン前：確認コードの入力が、本人確認と配信への同意を兼ねる -->
     <div id="stateLogin" class="hidden">
-      <div id="otpStep1" class="col">
-        <input type="email" id="emailInput" autocomplete="email" placeholder="メールアドレス">
-        <button type="button" class="link-btn hidden" id="clearEmailBtn">別のアドレスを使う</button>
-        <button type="button" class="btn-main" id="sendBtn">確認コードを送信</button>
-      </div>
-      <div id="otpStep2" class="col hidden">
-        <p class="msg ok">✅ <strong id="otpSentEmail"></strong> に6桁の確認コードを送信しました。届いたコードを入力してください。</p>
-        <input type="text" id="codeInput" class="otp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
-        <button type="button" class="btn-main" id="verifyBtn">登録する</button>
-        <button type="button" class="link-btn" id="resendBtn">確認コードを再送する</button>
-      </div>
+      <div id="rgLogin"></div>
       <p class="sub" style="margin-top:14px">確認コードを入力すると、「週刊 Registro 便り」の配信に同意したものとして登録します。メールアドレスの扱いは<a href="/policy">プライバシーポリシー</a>をご覧ください。</p>
     </div>
 
@@ -185,51 +183,11 @@
   $('resumeBtn').addEventListener('click', async e => { e.target.disabled = true; await setStopped(false); e.target.disabled = false; });
   $('logoutBtn').addEventListener('click', async () => { await supabaseClient.auth.signOut(); row = null; refresh(); });
 
-  // ── メールの確認コード（my-fuel.html と同じ流れ） ──
-  let otpEmail = '';
-  $('sendBtn').addEventListener('click', async () => {
-    const email = $('emailInput').value.trim();
-    if (!email) { showErr('メールアドレスを入力してください。'); return; }
-    const btn = $('sendBtn');
-    btn.disabled = true; btn.textContent = '送信中…';
-    const { error } = await supabaseClient.auth.signInWithOtp({ email });
-    btn.disabled = false; btn.textContent = '確認コードを送信';
-    const sentBefore = !!error && /after [0-9]+ seconds/.test(String(error.message));
-    if (error && !sentBefore) { showErr(error.status === 429 ? '送信が続いたため一時的に止まっています。数分おいてからお試しください。' : '送信に失敗しました：' + error.message); return; }
-    otpEmail = email;
-    try { localStorage.setItem('r500_login_email', email); } catch (e) {}
-    $('otpSentEmail').textContent = email;
-    $('otpStep1').classList.add('hidden');
-    $('otpStep2').classList.remove('hidden');
-    showErr(sentBefore ? '確認コードは少し前に送信済みです。届いているメールの、いちばん新しいコードを入力してください。' : '');
-  });
-  $('verifyBtn').addEventListener('click', async () => {
-    const code = $('codeInput').value.trim();
-    if (!code) { showErr('確認コードを入力してください。'); return; }
-    const btn = $('verifyBtn');
-    btn.disabled = true; btn.textContent = '確認中…';
-    joinOnLogin = true;
-    const { error } = await supabaseClient.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
-    btn.disabled = false; btn.textContent = '登録する';
-    if (error) { joinOnLogin = false; showErr('コードが正しくないか、期限切れです。何度か送信した場合は、いちばん新しいメールのコードを入力してください。'); return; }
-    await refresh();
-  });
-  $('resendBtn').addEventListener('click', async () => {
-    if (!otpEmail) return;
-    const { error } = await supabaseClient.auth.signInWithOtp({ email: otpEmail });
-    showErr(error ? (error.status === 429 ? '再送は1分ほど間をあけてからお試しください。直前に届いたコードはそのまま使えます。' : '再送に失敗しました：' + error.message) : '');
-  });
-  (function () {
-    let saved = null;
-    try { saved = localStorage.getItem('r500_login_email'); } catch (e) {}
-    if (saved) { $('emailInput').value = saved; $('clearEmailBtn').classList.remove('hidden'); }
-    $('clearEmailBtn').addEventListener('click', () => {
-      $('emailInput').value = '';
-      $('clearEmailBtn').classList.add('hidden');
-      try { localStorage.removeItem('r500_login_email'); } catch (e) {}
-      $('emailInput').focus();
-    });
-  })();
+  // ── ログイン欄（メールの確認コード）は共通の rg-login.js。確認コードを入れた＝その入力を同意として登録する ──
+  RG.login.mount('rgLogin', { sb: supabaseClient, google: false, verifyLabel: '登録する', emailPlaceholder: 'メールアドレス',
+    beforeVerify: function () { joinOnLogin = true; },
+    onVerifyFail: function () { joinOnLogin = false; },
+    onVerified: refresh });
 
   refresh();
 })();
