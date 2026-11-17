@@ -219,8 +219,9 @@
         </div>
         <p class="f">どこを触った？<small>いくつでも・選ばなくても保存できます</small></p>
         <div class="chips" id="areaChips"></div>
-        <p class="f">オイル交換をした？<small>した作業だけ選ぶ・交換の間隔を数えるのに使います</small></p>
+        <p class="f">定期のメンテナンスをした？<small>した作業だけ選ぶ・前回からの間隔を数えるのに使います</small></p>
         <div class="chips" id="taskChips"></div>
+        <div id="taskPrev"></div>
         <p class="f">作業したのは<small>任意</small></p>
         <div class="chips" id="workerChips">
           <button type="button" class="chip" data-v="diy" aria-pressed="false">DIY（自分で）</button>
@@ -298,9 +299,28 @@
     ['brake', '🛑 ブレーキ'], ['electric', '⚡ 電装'], ['consumable', '🛢 オイル・消耗品'], ['body', '🚗 ボディ・その他'],
     ['accessory', '✨ アクセサリー']
   ];
-  // 定番作業の印＝オイル交換を個別に数えるため（いずれ統計のアンケートの周期と突き合わせる）。DB の check と同じ並び
-  const TASKS = [['engine_oil', '🛢 エンジンオイル交換'], ['gear_oil', '⚙️ ミッションオイル交換']];
+  // 定期のメンテナンスの印＝作業ごとに前回からの間隔を数えるため（いずれ統計のアンケートの周期と突き合わせる）。DB の check と同じ並び
+  const TASKS = [['engine_oil', '🛢 エンジンオイル交換'], ['gear_oil', '⚙️ ミッションオイル交換'],
+    ['kingpin_grease', '🔩 キングピン グリスアップ'], ['driveshaft_grease', '🔗 ドライブシャフト グリスアップ']];
   const TASK_LABEL = Object.fromEntries(TASKS);
+  // 印を押したときに一緒に点ける箇所（付け忘れ防止・外すのは本人に任せる）
+  const TASK_AREA = { engine_oil: 'consumable', gear_oil: 'consumable', kingpin_grease: 'suspension', driveshaft_grease: 'driveline' };
+  // 前回から今回までの間隔（距離は両方に入っているときだけ）
+  function monthsBetween(a, b) {
+    const [y1, m1, d1] = a.split('-').map(Number), [y2, m2, d2] = b.split('-').map(Number);
+    return (y2 - y1) * 12 + (m2 - m1) - (d2 < d1 ? 1 : 0);
+  }
+  function fmtSpan(prevDate, prevKm, curDate, curKm) {
+    const out = [];
+    if (prevKm != null && curKm != null && curKm >= prevKm) out.push(fmtKm(curKm - prevKm));
+    if (prevDate && curDate && curDate >= prevDate) {
+      const mo = monthsBetween(prevDate, curDate);
+      if (mo >= 12) out.push(Math.floor(mo / 12) + '年' + (mo % 12 ? (mo % 12) + 'か月' : ''));
+      else if (mo >= 1) out.push(mo + 'か月');
+      else out.push(Math.round((new Date(curDate) - new Date(prevDate)) / 86400000) + '日');
+    }
+    return out.join('・');
+  }
   const AREA_LABEL = Object.fromEntries(AREAS);
   const WORKER_LABEL = { diy: 'DIY', shop: 'SHOP' };
   // DB の maint_video_urls_ok と同じ条件
@@ -344,8 +364,9 @@
     const b = ev.target.closest('.chip'); if (!b) return;
     const on = b.getAttribute('aria-pressed') !== 'true';
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
-    // オイル交換は箇所「オイル・消耗品」にも当たるので、付け忘れないよう一緒に押す（外すのは本人に任せる）
-    if (on) { const c = $('areaChips').querySelector('.chip[data-v="consumable"]'); if (c) c.setAttribute('aria-pressed', 'true'); }
+    // 作業ごとに当たる箇所（オイル＝オイル・消耗品／キングピン＝足回り／ドライブシャフト＝駆動系）も一緒に押す（外すのは本人に任せる）
+    if (on) { const c = $('areaChips').querySelector('.chip[data-v="' + TASK_AREA[b.dataset.v] + '"]'); if (c) c.setAttribute('aria-pressed', 'true'); }
+    updateTaskPrev();
     saveDraft();
   });
   $('areaChips').addEventListener('click', ev => {
@@ -371,7 +392,7 @@
   $('fDate').value = ymd(new Date());
   $('fDate').addEventListener('change', () => { dateTouched = true; $('dateHint').classList.add('hidden'); updatePrevKm(); saveDraft(); });
   $('todayBtn').addEventListener('click', () => { $('fDate').value = ymd(new Date()); dateTouched = true; $('dateHint').classList.add('hidden'); updatePrevKm(); saveDraft(); });
-  $('fKm').addEventListener('input', () => { $('fKm').value = $('fKm').value.replace(/[^0-9]/g, ''); saveDraft(); });
+  $('fKm').addEventListener('input', () => { $('fKm').value = $('fKm').value.replace(/[^0-9]/g, ''); renderTaskPrev(); saveDraft(); });
   $('fComment').addEventListener('input', () => { $('cmCount').textContent = $('fComment').value.length; });
   ['fTitle', 'fComment', 'fCost'].forEach(id => $(id).addEventListener('input', saveDraft));
   $('fPublic').addEventListener('change', saveDraft);
@@ -385,6 +406,7 @@
   let prevSeq = 0;
   async function updatePrevKm() {
     const seq = ++prevSeq;
+    updateTaskPrev();
     $('prevKm').textContent = '';
     const carId = currentCarId(), d = $('fDate').value;
     if (!carId || !d) return;
@@ -394,6 +416,39 @@
     const { data } = await q;
     if (seq !== prevSeq || !data || !data.length) return;
     $('prevKm').textContent = '前回の記録は ' + fmtKm(data[0].odometer_km);
+  }
+  // 定期のメンテナンス：押した作業ごとに「前回の同じ作業」を引き、今回までの間隔を出す（作業日が一つ前のもの・直している記録は除く）
+  let taskPrevSeq = 0, taskPrevData = {};
+  async function updateTaskPrev() {
+    const seq = ++taskPrevSeq;
+    const carId = currentCarId(), d = $('fDate').value, list = tasksVal();
+    if (!carId || !d || !list.length) { taskPrevData = {}; renderTaskPrev(); return; }
+    const res = await Promise.all(list.map(t => {
+      let q = supabaseClient.from('maint_records').select('work_date, odometer_km')
+        .eq('car_id', carId).contains('tasks', [t]).lt('work_date', d);
+      if (editing && editing.id) q = q.neq('id', editing.id);
+      return q.order('work_date', { ascending: false }).order('created_at', { ascending: false }).limit(1);
+    }));
+    if (seq !== taskPrevSeq) return;
+    taskPrevData = {};
+    list.forEach((t, i) => { taskPrevData[t] = (res[i].data && res[i].data[0]) || null; });
+    renderTaskPrev();
+  }
+  function renderTaskPrev() {
+    const box = $('taskPrev'); box.textContent = '';
+    const d = $('fDate').value, km = $('fKm').value ? Number($('fKm').value) : null;
+    tasksVal().forEach(t => {
+      if (!(t in taskPrevData)) return;
+      const p = taskPrevData[t];
+      let s = TASK_LABEL[t] + '：';
+      if (!p) s += 'この車でははじめての記録です';
+      else {
+        s += '前回 ' + fmtDate(p.work_date) + (p.odometer_km != null ? '・' + fmtKm(p.odometer_km) : '');
+        const span = fmtSpan(p.work_date, p.odometer_km, d, km);
+        if (span) s += ' → 今回まで ' + span;
+      }
+      box.appendChild(el('p', 'note', s));
+    });
   }
   // 管理人の代理入力：作者をその車の持ち主にする（本人があとで直す・消すため）。持ち主が未ログインの車は管理人のまま
   function proxyOwner(carId) {
@@ -938,6 +993,15 @@
     $('mineFold').classList.toggle('hidden', !restN);
     $('mineRestCount').textContent = (recentIds.size ? 'ほかの記録' : '記録の一覧') + '（' + restN + '件）';
     const carLabel = Object.fromEntries(myCars.map(c => [c.id, c.label.trim()]));
+    // 定期のメンテナンスの間隔＝同じ車・同じ作業の一つ前の記録から（作業日の古い順にたどる）
+    const spanOf = {};
+    const lastOf = {};
+    data.filter(r => r.work_date).slice().sort((a, b) => a.work_date < b.work_date ? -1 : a.work_date > b.work_date ? 1 : (a.created_at < b.created_at ? -1 : 1))
+      .forEach(r => (r.tasks || []).forEach(t => {
+        const k = r.car_id + '|' + t, p = lastOf[k];
+        if (p && p.work_date < r.work_date) { const s = fmtSpan(p.work_date, p.odometer_km, r.work_date, r.odometer_km); if (s) spanOf[r.id + '|' + t] = s; }
+        lastOf[k] = r;
+      }));
     // 訪問者からの見え方を確かめる入口（車両ページの歩み・みんなの整備手帳）
     // ⚠️ 車両ページは MAINT_ON_CAR_PAGE=false の間は ?maint-preview が要る
     const links = $('mineLinks');
@@ -969,7 +1033,7 @@
       if (r.odometer_km != null) meta.push(fmtKm(r.odometer_km));
       if (r.worker) meta.push(WORKER_LABEL[r.worker]);
       if (ps.length) meta.push('写真' + ps.length + '枚');
-      (r.tasks || []).forEach(t => { if (TASK_LABEL[t]) meta.push(TASK_LABEL[t]); });
+      (r.tasks || []).forEach(t => { if (TASK_LABEL[t]) meta.push(TASK_LABEL[t] + (spanOf[r.id + '|' + t] ? '（前回から ' + spanOf[r.id + '|' + t] + '）' : '')); });
       (r.areas || []).forEach(a => meta.push(AREA_LABEL[a]));
       if (!r.is_public) meta.push('🔒 非公開');
       if (meta.length || r.minkara_url) {

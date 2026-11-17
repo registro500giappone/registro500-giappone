@@ -669,7 +669,7 @@ alter table public.maint_records add constraint maint_records_minkara_check CHEC
 alter table public.maint_records add constraint maint_records_minkara_url_check CHECK (((minkara_url IS NULL) OR ((minkara_url ~~ 'https://minkara.carview.co.jp/%'::text) AND (char_length(minkara_url) <= 500))));
 alter table public.maint_records add constraint maint_records_odometer_km_check CHECK (((odometer_km IS NULL) OR ((odometer_km >= 0) AND (odometer_km <= 999999))));
 alter table public.maint_records add constraint maint_records_source_check CHECK ((source = ANY (ARRAY['post'::text, 'minkara'::text])));
-alter table public.maint_records add constraint maint_records_tasks_check CHECK ((tasks <@ ARRAY['engine_oil'::text, 'gear_oil'::text]));
+alter table public.maint_records add constraint maint_records_tasks_check CHECK ((tasks <@ ARRAY['engine_oil'::text, 'gear_oil'::text, 'kingpin_grease'::text, 'driveshaft_grease'::text]));
 alter table public.maint_records add constraint maint_records_title_check CHECK (((char_length(btrim(title)) >= 1) AND (char_length(btrim(title)) <= 80)));
 alter table public.maint_records add constraint maint_records_video_captions_check CHECK ((maint_video_captions_ok(video_captions) AND (cardinality(video_captions) <= cardinality(video_urls))));
 alter table public.maint_records add constraint maint_records_video_urls_check CHECK (maint_video_urls_ok(video_urls));
