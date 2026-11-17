@@ -507,6 +507,14 @@
             <div id="paintGrid" class="paint-grid"></div>
             <a class="rg-episodes-more" href="/paint-notebook/gallery">みんなのお絵描き帳を見る →</a>
           </section>
+          <!-- つないだ兄弟サイト（Registro312・Registro Scorpione）の車。本人が見ているときだけ＝ほかの人には出さない（2026-11-17 ユーザー決裁・DB-AUTH §8-2 段取り6）。SISTER_ON_CAR_PAGE（または ?sister-preview）のときだけ -->
+          <section class="rg-card" id="sisterSection" style="display:none;">
+            <h2 class="rg-section-title">つないでいる Registro312／Scorpione の車</h2>
+            <p style="margin:0 0 0.6rem;color:var(--rg-muted);font-size:0.82rem;">あなたにだけ見えています（ほかの人には出ません）。</p>
+            <div id="sisterCars"></div>
+            <div style="text-align:right;margin-top:0.6rem;"><button type="button" id="sisterUnlinkBtn" style="background:none;border:0;color:var(--rg-muted);font-size:0.8rem;text-decoration:underline;cursor:pointer;">つながりを外す</button></div>
+            <p id="sisterErr" style="display:none;margin:0.4rem 0 0;color:#c62828;font-size:0.82rem;text-align:right;"></p>
+          </section>
           <section class="rg-card" id="shareSection"><h2 class="rg-section-title">共有・連絡</h2>
             <div class="rg-action-row"><button class="rg-btn rg-btn-dark" onclick="showQRCode()">QR表示</button><a id="shareX" class="rg-btn rg-btn-black" target="_blank">Xでシェア</a><a id="shareLINE" class="rg-btn" style="background:#06C755;color:#fff;" target="_blank">LINEで送る</a></div>
             <div id="contactArea" style="display:none;"><button class="btn-contact" onclick="openContactForm()">オーナーへメッセージを送る</button></div>
@@ -1134,6 +1142,7 @@
         }
       }
       updateAcquisitionPrompt();
+      updateSister();
     }
 
     // 入手ストーリー未記入プロンプト（オーナー本人のみ表示）
@@ -1798,6 +1807,80 @@
       content.after(box);
       sec.style.display = 'block';
     }
+
+    // ─── つないだ兄弟サイトの車（Registro312・Registro Scorpione・2026-11-17 DB-AUTH §8-2 段取り6） ───
+    // 本人が自分の車両ページを見ているときだけ、312 の classic-cars に「つないだ車は？」と尋ねる（公開している車だけが返る）。
+    // 証明＝/api/sister-assert（用途 ask・5分・1回きり）。答えが無い・遅い・0台のときは欄を出さない。
+    // 312 の公開の日にオン（それまでは ?sister-preview のときだけ）。
+    const SISTER_ON_CAR_PAGE = false;
+    const sisterOn = SISTER_ON_CAR_PAGE || new URLSearchParams(location.search).has('sister-preview');
+    const SISTER_FN = 'https://gorlwdckzskbzacwsuyo.supabase.co/functions/v1/classic-cars';
+    const SISTER_CACHE = 'rg-sister-cars';   // 同じタブで車両ページを行き来するたびに尋ねないよう10分だけ覚える
+    let sisterAsked = '';
+    async function sisterCall(use, extra) {
+      const t = (await supabaseClient.auth.getSession()).data.session?.access_token;
+      if (!t) throw new Error('login');
+      const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 5000);
+      try {
+        const a = await fetch('/api/sister-assert', { method: 'POST', signal: ctl.signal,
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t },
+          body: JSON.stringify({ use, aud: 'classic-cars' }) });
+        const pj = a.ok ? await a.json() : null;
+        if (!pj || !pj.proof) throw new Error('assert ' + a.status);
+        const r = await fetch(SISTER_FN, { method: 'POST', signal: ctl.signal,
+          headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ proof: pj.proof, ...extra }) });
+        if (!r.ok) throw new Error('classic-cars ' + r.status);
+        return await r.json();
+      } finally { clearTimeout(timer); }
+    }
+    function sisterCacheGet(uid) {
+      try {
+        const c = JSON.parse(sessionStorage.getItem(SISTER_CACHE) || 'null');
+        return c && c.uid === uid && Date.now() - c.at < 10 * 60 * 1000 ? c.cars : null;
+      } catch (e) { return null; }
+    }
+    function sisterCacheSet(uid, cars) {
+      try { if (cars) sessionStorage.setItem(SISTER_CACHE, JSON.stringify({ uid, at: Date.now(), cars })); else sessionStorage.removeItem(SISTER_CACHE); } catch (e) {}
+    }
+    async function updateSister() {
+      const sec = document.getElementById('sisterSection');
+      const isOwner = currentUser && currentCar && currentCar.owner_user_id && currentCar.owner_user_id === currentUser.id;
+      if (!sisterOn || !isOwner) { sec.style.display = 'none'; return; }
+      const key = currentUser.id + '/' + currentCar.document_id;
+      if (sisterAsked === key) return;   // ログインの知らせは何度も来る＝1回だけ尋ねる
+      sisterAsked = key;
+      let cars = sisterCacheGet(currentUser.id);
+      if (!cars) {
+        try { cars = (await sisterCall('ask')).cars || []; sisterCacheSet(currentUser.id, cars); }
+        catch (e) { console.warn('つないだ車の確認:', e.message); return; }
+      }
+      if (!cars.length) { sec.style.display = 'none'; return; }
+      const site = { FIAT: 'Registro312', ABARTH: 'Registro Scorpione' };
+      document.getElementById('sisterCars').innerHTML = cars.map(c => {
+        const url = /^https:\/\/(registro312\.com|registroscorpione\.com)\/car\//.test(c.url || '') ? c.url : '';
+        if (!url) return '';
+        const name = esc(c.display_name || (c.brand === 'ABARTH' ? 'ABARTH' : 'FIAT 500'));
+        const year = c.first_reg_year ? `<small style="color:var(--rg-muted);">（${esc(String(c.first_reg_year))}年）</small>` : '';
+        return `<a href="${esc(url)}" target="_blank" rel="noopener" style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;padding:0.6rem 0;border-top:1px solid var(--rg-border);text-decoration:none;color:var(--rg-text);">
+          <span><strong>${name}</strong>${year}<br><small style="color:var(--rg-muted);">${esc(site[c.brand] || 'Registro312')}</small></span>
+          <span style="color:var(--rg-accent);white-space:nowrap;">開く ↗</span></a>`;
+      }).join('');
+      sec.style.display = 'block';
+    }
+    document.getElementById('sisterUnlinkBtn').onclick = async (e) => {
+      if (!confirm('Registro312／Registro Scorpione とのつながりを外します。\nどちらのサイトの車や記録も消えません。外したあとも、312 のマイガレージからまたつなげます。\n外しますか？')) return;
+      const btn = e.target, err = document.getElementById('sisterErr');
+      btn.disabled = true; err.style.display = 'none';
+      try {
+        await sisterCall('unlink', { unlink: true });
+        sisterCacheSet(currentUser.id, null);
+        document.getElementById('sisterSection').style.display = 'none';
+      } catch (x) {
+        btn.disabled = false;
+        err.textContent = '外せませんでした。少しおいてから、もう一度押してください。';
+        err.style.display = 'block';
+      }
+    };
 
     // ─── このオーナーのおすすめ工具（/tools の投稿と「わたしも使ってる」・2026-10-22） ───
     // /tools の公開（2026-10-22）と同時に true。止めたいときは false に戻す。

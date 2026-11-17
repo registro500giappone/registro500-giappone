@@ -6,7 +6,8 @@
  *
  * 要求: Authorization: Bearer <500 のアクセストークン>、本文 { use, aud }
  *   use = "link"：312 につなぐ（aud＝戻り先のサイトの origin・期限30分＝312 の登録が終わるまで持つため）
- *   use = "ask" ：500 のマイガレージから 312 に「つないだ車は？」と尋ねる（aud＝"classic-cars"・期限5分）
+ *   use = "ask" ：500 の車両ページ（本人だけ）から 312 に「つないだ車は？」と尋ねる（aud＝"classic-cars"・期限5分）
+ *   use = "unlink"：500 の側から 312 とのつながりを外す（aud＝"classic-cars"・期限5分）
  * 返す: { proof }  proof ＝ base64url(中身の JSON) + "." + base64url(Ed25519 の署名)
  *   中身 ＝ { iss:"registro500", sub:<500 のアカウント ID>, aud, use, iat, exp, jti, hn?, pref? }
  *   hn・pref（ハンドルネーム・都道府県）は link のときだけ＝312 の登録画面で最初から入れておくため（車両ページで公開している値）
@@ -15,7 +16,7 @@
  *   - メールアドレスは証明に入れない（312 に写さない）
  *   - 秘密鍵は Pages の環境変数 SISTER_SIGN_KEY（PKCS8 の base64）だけ。312 は公開鍵しか持たない＝312 が漏れても証明は作れない
  *   - 本人の確認は 500 の公開キーで /auth/v1/user（service キーは使わない）。ハンドルネームも本人のトークンで読む（RLS の範囲）
- *   - use と aud を取り違えさせない（ask の証明ではつなげない・link の証明では尋ねられない＝312 側でも確かめる）
+ *   - use と aud を取り違えさせない（ask の証明ではつなげない・外せない／link の証明では尋ねられない＝312 側でも確かめる）
  *
  * 必要な環境変数: SISTER_SIGN_KEY（SUPABASE_URL は無ければ本番の値）
  */
@@ -33,7 +34,7 @@ export const LINK_AUDS = [
   "https://classic-link.registro-scorpione.pages.dev",
 ];
 const SUPABASE_URL = "https://ttlttclfovuzafvghvaq.supabase.co";
-const TTL = { link: 30 * 60, ask: 5 * 60 };
+const TTL = { link: 30 * 60, ask: 5 * 60, unlink: 5 * 60 };
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -71,7 +72,7 @@ export async function onRequestPost({ request, env }) {
   const use = req && req.use;
   const aud = req && req.aud;
   if (use === "link") { if (!LINK_AUDS.includes(aud)) return json({ error: "bad_aud" }, 400); }
-  else if (use === "ask") { if (aud !== "classic-cars") return json({ error: "bad_aud" }, 400); }
+  else if (use === "ask" || use === "unlink") { if (aud !== "classic-cars") return json({ error: "bad_aud" }, 400); }
   else return json({ error: "bad_use" }, 400);
 
   const auth = request.headers.get("authorization") || "";
