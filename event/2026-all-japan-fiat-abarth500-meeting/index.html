@@ -120,15 +120,21 @@
   .join-hint { margin:0 0 12px; font-size:.9rem; color:var(--sub); }
   .join-hint a { color:var(--accent); }
 
-  /* ログインモーダル（video.htmlと同じメールOTPコード方式。配色だけこのページの変数に合わせる） */
+  /* ログインモーダルの枠（中のログイン欄は共通の rg-login.js。配色だけこのページの変数に合わせる） */
   #loginModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:10000;
                  align-items:center; justify-content:center; padding:16px; }
   #loginModal .box { background:var(--card-bg); color:var(--text-main); padding:26px 22px; border-radius:16px;
                        max-width:340px; width:100%; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.25); }
   #loginModal input { padding:11px; border:1px solid var(--line); border-radius:8px; font-size:15px;
                         width:100%; background:var(--bg-main); color:var(--text-main); }
-  #loginModal .pri { padding:12px; border:0; border-radius:8px; background:var(--accent); color:#fff;
-                       font-weight:700; cursor:pointer; width:100%; font-size:.95rem; }
+  /* ログイン欄（rg-login.js）を今の見た目に合わせる上書き */
+  #rgLogin .rgl-main { border-radius:8px; font:revert; font-size:.95rem; font-weight:700; color:#fff; }
+  #rgLogin .rgl-link { font:revert; font-size:13px; padding:1px 6px; }
+  #rgLogin .rgl-clear { font-size:12px; color:var(--sub); padding:0; }
+  #rgLogin .rgl-code { font-size:22px!important; }
+  #rgLogin .rgl-msg { font-size:13px; margin:0; }
+  #rgLogin [data-rgl="error"] { text-align:center; margin:-2px 0 0; }
+  #rgLogin .rgl-ok { color:#2e7d32; }
 </style>
 </head>
 <body>
@@ -167,28 +173,17 @@
   <a class="back-bottom" href="/event">← イベント一覧へ戻る</a>
 </div>
 
-<!-- ログインモーダル（メールOTPコード方式・video.htmlと共通の認証方式） -->
+<!-- ログインモーダル（メールの確認コード方式。中のログイン欄は共通の rg-login.js） -->
 <div id="loginModal">
   <div class="box">
     <h3 style="margin-top:0;">ログイン</h3>
     <p style="font-size:13px;color:var(--sub);margin:0 0 16px;">登録したメールアドレスにコードを送ってログインします</p>
-    <div id="otpStep1" style="display:flex;flex-direction:column;gap:10px;text-align:left;">
-      <input type="email" id="emailLoginInput" placeholder="登録したメールアドレス" autocomplete="email">
-      <button type="button" id="clearEmailBtn" onclick="clearLoginEmail()" style="display:none;background:none;border:0;color:var(--sub);font-size:12px;cursor:pointer;align-self:flex-start;padding:0;">別のアドレスを使う</button>
-      <button id="emailLoginBtn" class="pri" onclick="sendOtpCode()">確認コードを送信</button>
-    </div>
-    <div id="otpStep2" style="display:none;flex-direction:column;gap:10px;text-align:left;">
-      <p style="font-size:13px;color:#2e7d32;margin:0;">✅ <span id="otpSentEmail" style="font-weight:700;"></span> に6桁の確認コードを送信しました。届いたコードを入力してください。</p>
-      <input type="text" id="otpCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"
-             style="font-size:22px;letter-spacing:8px;text-align:center;">
-      <button id="otpVerifyBtn" class="pri" onclick="verifyOtpCode()">ログイン</button>
-      <button onclick="resendOtpCode()" style="background:none;border:0;color:var(--accent);cursor:pointer;font-size:13px;">確認コードを再送する</button>
-    </div>
-    <p id="otpErrorMsg" style="display:none;font-size:13px;color:#c62828;margin:8px 0 0;"></p>
+    <div id="rgLogin"></div>
     <button onclick="closeLoginModal()" style="margin-top:16px;background:none;border:0;color:var(--sub);cursor:pointer;font-size:13px;">閉じる</button>
   </div>
 </div>
 <script src="/fab-nav.js" defer></script>
+<script src="/rg-login.js"></script>
 <script>
 // 「あと何日」「終了しました」は今日を基準に変わる。6時間おきの生成で焼き込むと
 // 日付をまたいだ瞬間に嘘になるので、表示時に出す。
@@ -234,62 +229,17 @@ let currentUser = null;
 let myCarId = null;
 let myCarHandle = null;
 
-// ── ログインモーダル（video.htmlと同じメールOTPコード方式）──
-let otpEmail = '';
+// ── ログインモーダルを開く・閉じる。中のログイン欄（メールの確認コード）は共通の rg-login.js ──
+let loginUi = null;
 function openLoginModal(){
+  // 成功 → onAuthStateChange が参加ボタンを更新。モーダルを閉じる
+  if (!loginUi) loginUi = RG.login.mount('rgLogin', { sb: supabaseClient, google: false, onVerified: closeLoginModal });
+  loginUi.loadSaved();
   const m = document.getElementById('loginModal'); if (m) m.style.display = 'flex';
-  const inp = document.getElementById('emailLoginInput'), cb = document.getElementById('clearEmailBtn');
-  const saved = localStorage.getItem('r500_login_email');
-  if (saved && inp) { inp.value = saved; if (cb) cb.style.display = 'block'; }
-}
-function clearLoginEmail(){
-  const inp = document.getElementById('emailLoginInput'), cb = document.getElementById('clearEmailBtn');
-  if (inp) { inp.value = ''; inp.focus(); }
-  localStorage.removeItem('r500_login_email');
-  if (cb) cb.style.display = 'none';
 }
 function closeLoginModal(){
   const m = document.getElementById('loginModal'); if (m) m.style.display = 'none';
-  const s1 = document.getElementById('otpStep1'), s2 = document.getElementById('otpStep2');
-  if (s1) s1.style.display = 'flex'; if (s2) s2.style.display = 'none';
-  showOtpError('');
-}
-function showOtpError(msg){
-  const el = document.getElementById('otpErrorMsg'); if (!el) return;
-  if (!msg) { el.style.display = 'none'; return; }
-  el.textContent = msg; el.style.display = 'block';
-}
-async function sendOtpCode(){
-  const email = document.getElementById('emailLoginInput').value.trim();
-  if (!email) { alert('メールアドレスを入力してください'); return; }
-  const btn = document.getElementById('emailLoginBtn');
-  btn.disabled = true; btn.textContent = '送信中…';
-  const { error } = await supabaseClient.auth.signInWithOtp({ email });
-  btn.disabled = false; btn.textContent = '確認コードを送信';
-  const sentBefore = !!error && /after [0-9]+ seconds/.test(String(error.message));  // 1分以内に同じアドレスへ送信済み＝届いたコードがそのまま使える（2026-10-02 ここで止まってコード入力へ進めなかった）
-  if (error && !sentBefore) { showOtpError(error.status === 429 ? '送信が続いたため一時的に止まっています。数分おいてからお試しください。' : '送信に失敗しました：' + error.message); return; }
-  otpEmail = email;
-  localStorage.setItem('r500_login_email', email);
-  document.getElementById('otpSentEmail').textContent = email;
-  document.getElementById('otpStep1').style.display = 'none';
-  document.getElementById('otpStep2').style.display = 'flex';
-  showOtpError(sentBefore ? '確認コードは少し前に送信済みです。届いているメールの、いちばん新しいコードを入力してください。' : '');
-}
-async function verifyOtpCode(){
-  const code = document.getElementById('otpCodeInput').value.trim();
-  if (!code) { alert('確認コードを入力してください'); return; }
-  const btn = document.getElementById('otpVerifyBtn');
-  btn.disabled = true; btn.textContent = '確認中…';
-  const { error } = await supabaseClient.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
-  btn.disabled = false; btn.textContent = 'ログイン';
-  if (error) { showOtpError('コードが正しくないか、期限切れです。何度か送信した場合は、いちばん新しいメールのコードを入力してください。'); return; }
-  closeLoginModal();  // 成功 → onAuthStateChange が参加ボタンを更新
-}
-async function resendOtpCode(){
-  if (!otpEmail) return;
-  const { error } = await supabaseClient.auth.signInWithOtp({ email: otpEmail });
-  showOtpError(error ? (error.status === 429 ? '再送は1分ほど間をあけてからお試しください。直前に届いたコードはそのまま使えます。' : '再送に失敗しました：' + error.message) : '');
-  if (!error) alert('確認コードを再送しました。');
+  if (loginUi) loginUi.reset();
 }
 
 // ── 参加表明。event_participants は匿名読み取り可（一覧ページと同じ扱い）──
