@@ -57,6 +57,7 @@
 
   <script src="../config.js"></script>
   <script src="/rg-util.js"></script>
+  <script src="/rg-login.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>
     // ⛔ログインの記録（localStorage の sb-*）をこちらから消さない。以前の「7日以上前に期限切れなら消す」は、
@@ -460,6 +461,19 @@
 
 
     /* ダークモード */
+    /* ログインモーダルの入力欄と、ログイン欄（rg-login.js）を今の見た目に合わせる上書き */
+    #loginModal input { padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 15px; }
+    #rgLogin .rgl-main { border-radius: 8px; font: revert; font-weight: 700; color: #fff; }
+    #rgLogin .rgl-sub { border: 1px solid #ccc; background: #fff; color: revert; font: revert; }
+    #rgLogin .rgl-link { font: revert; font-size: 13px; padding: 1px 6px; }
+    #rgLogin .rgl-clear { font-size: 12px; color: #888; padding: 0; }
+    #rgLogin .rgl-or { color: #aaa; font-size: 12px; margin: 4px 0; }
+    #rgLogin .rgl-or span { background: #e0e0e0; }
+    #rgLogin .rgl-code { font-size: 22px !important; }
+    #rgLogin .rgl-msg { font-size: 13px; margin: 0; }
+    #rgLogin [data-rgl="error"] { text-align: center; margin: -2px 0 0; }
+    #rgLogin .rgl-ok { color: #2e7d32; }
+    #rgLogin .rgl-err { color: #c62828; }
     @media (prefers-color-scheme: dark) {
       :root {
         --bg-main: #1a1714;
@@ -648,33 +662,8 @@
             <div style="background:#fff;padding:28px 24px;border-radius:16px;max-width:340px;width:90%;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.2);">
               <h3 style="margin-top:0;">ログイン</h3>
               <p style="font-size:13px;color:var(--text-sub);margin:0 0 16px;">登録したメールアドレスでログインできます</p>
-              <!-- ステップ1: メールアドレス入力 -->
-              <div id="otpStep1" style="display:flex;flex-direction:column;gap:10px;text-align:left;">
-                <input type="email" id="emailLoginInput" placeholder="登録したメールアドレス" autocomplete="email"
-                       style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:15px;">
-                <button type="button" id="clearEmailBtn" onclick="clearLoginEmail()" style="display:none;background:none;border:0;color:#888;font-size:12px;cursor:pointer;align-self:flex-start;padding:0;">別のアドレスを使う</button>
-                <button id="emailLoginBtn" onclick="sendOtpCode()"
-                        style="padding:12px;border:0;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;">
-                  確認コードを送信
-                </button>
-                <div style="display:flex;align-items:center;gap:8px;color:#aaa;font-size:12px;margin:4px 0;">
-                  <span style="flex:1;height:1px;background:#e0e0e0;"></span>または<span style="flex:1;height:1px;background:#e0e0e0;"></span>
-                </div>
-                <button class="btn-google" onclick="loginWithGoogle()"
-                        style="padding:12px;border:1px solid #ccc;border-radius:8px;background:#fff;cursor:pointer;">Googleでログイン（従来方式）</button>
-              </div>
-              <!-- ステップ2: 確認コード入力 -->
-              <div id="otpStep2" style="display:none;flex-direction:column;gap:10px;text-align:left;">
-                <p style="font-size:13px;color:#2e7d32;margin:0;">✅ <span id="otpSentEmail" style="font-weight:700;"></span> に6桁の確認コードを送信しました。届いたコードを入力してください。</p>
-                <input type="text" id="otpCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"
-                       style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:22px;letter-spacing:8px;text-align:center;">
-                <button id="otpVerifyBtn" onclick="verifyOtpCode()"
-                        style="padding:12px;border:0;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;">
-                  ログイン
-                </button>
-                <button onclick="resendOtpCode()" style="background:none;border:0;color:var(--accent);cursor:pointer;font-size:13px;">確認コードを再送する</button>
-              </div>
-              <p id="otpErrorMsg" style="display:none;font-size:13px;color:#c62828;margin:8px 0 0;"></p>
+              <!-- ログイン欄（メールの確認コード／Google）は共通の rg-login.js が描く -->
+              <div id="rgLogin"></div>
               <button onclick="closeLoginModal()" style="margin-top:16px;background:none;border:0;color:#888;cursor:pointer;font-size:13px;">閉じる</button>
             </div>
           </div>
@@ -1226,76 +1215,18 @@ async function fetchCars() {
       }
     }
 
-    // ログイン処理
-    async function loginWithGoogle() {
-      const { error } = await supabaseClient.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: window.location.href }
-      });
-      if (error) {
-        console.error("Login failed:", error);
-        alert("ログインに失敗しました: " + error.message);
-      }
-    }
-
-    // ログインモーダル（メールOTPコード／Google選択）
-    let otpEmail = '';
+    // ログインモーダルを開く・閉じる。中のログイン欄（メールの確認コード／Google）は共通の rg-login.js。
+    let loginUi = null;
     function openLoginModal() {
+      // 成功 → onAuthStateChange がログイン処理を実行。モーダルを閉じる
+      if (!loginUi) loginUi = RG.login.mount('rgLogin', { sb: supabaseClient, onVerified: closeLoginModal });
+      if (loginUi) loginUi.loadSaved();
       const m = document.getElementById('loginModal'); if (m) m.style.display = 'flex';
-      // 前回ログインメールのプリフィル
-      const inp = document.getElementById('emailLoginInput'), cb = document.getElementById('clearEmailBtn');
-      const saved = localStorage.getItem('r500_login_email');
-      if (saved && inp) { inp.value = saved; if (cb) cb.style.display = 'block'; }
-    }
-    // 共用端末配慮：プリフィルされたメールをクリア
-    function clearLoginEmail() {
-      const inp = document.getElementById('emailLoginInput'), cb = document.getElementById('clearEmailBtn');
-      if (inp) { inp.value = ''; inp.focus(); }
-      localStorage.removeItem('r500_login_email');
-      if (cb) cb.style.display = 'none';
     }
     function closeLoginModal() {
       const m = document.getElementById('loginModal'); if (m) m.style.display = 'none';
-      const s1 = document.getElementById('otpStep1'), s2 = document.getElementById('otpStep2');
-      if (s1) s1.style.display = 'flex'; if (s2) s2.style.display = 'none';
-      const err = document.getElementById('otpErrorMsg'); if (err) err.style.display = 'none';
-    }
-    function showOtpError(msg) {
-      const el = document.getElementById('otpErrorMsg'); if (!el) return;
-      if (!msg) { el.style.display = 'none'; return; }
-      el.textContent = msg; el.style.display = 'block';
-    }
-    async function sendOtpCode() {
-      const email = document.getElementById('emailLoginInput').value.trim();
-      if (!email) { alert('メールアドレスを入力してください'); return; }
-      const btn = document.getElementById('emailLoginBtn');
-      btn.disabled = true; btn.textContent = '送信中…';
-      const { error } = await supabaseClient.auth.signInWithOtp({ email });
-      btn.disabled = false; btn.textContent = '確認コードを送信';
-      const sentBefore = !!error && /after [0-9]+ seconds/.test(String(error.message));  // 1分以内に同じアドレスへ送信済み＝届いたコードがそのまま使える（2026-10-02 ここで止まってコード入力へ進めなかった）
-      if (error && !sentBefore) { showOtpError(error.status === 429 ? '送信が続いたため一時的に止まっています。数分おいてからお試しください。' : '送信に失敗しました：' + error.message); return; }
-      otpEmail = email;
-      localStorage.setItem('r500_login_email', email);
-      document.getElementById('otpSentEmail').textContent = email;
-      document.getElementById('otpStep1').style.display = 'none';
-      document.getElementById('otpStep2').style.display = 'flex';
-      showOtpError(sentBefore ? '確認コードは少し前に送信済みです。届いているメールの、いちばん新しいコードを入力してください。' : '');
-    }
-    async function verifyOtpCode() {
-      const code = document.getElementById('otpCodeInput').value.trim();
-      if (!code) { alert('確認コードを入力してください'); return; }
-      const btn = document.getElementById('otpVerifyBtn');
-      btn.disabled = true; btn.textContent = '確認中…';
-      const { error } = await supabaseClient.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
-      btn.disabled = false; btn.textContent = 'ログイン';
-      if (error) { showOtpError('コードが正しくないか、期限切れです。何度か送信した場合は、いちばん新しいメールのコードを入力してください。'); return; }
-      closeLoginModal();
-    }
-    async function resendOtpCode() {
-      if (!otpEmail) return;
-      const { error } = await supabaseClient.auth.signInWithOtp({ email: otpEmail });
-      showOtpError(error ? (error.status === 429 ? '再送は1分ほど間をあけてからお試しください。直前に届いたコードはそのまま使えます。' : '再送に失敗しました：' + error.message) : '');
-      if (!error) alert('確認コードを再送しました。');
+      // 次回開いたときのためメール入力の段に戻す
+      if (loginUi) loginUi.reset();
     }
 
     // ログアウト処理
