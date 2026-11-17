@@ -62,7 +62,7 @@ LEAK_SKIP_DIRS = {".git", ".github", ".claude", "py", "node_modules", "functions
 ESC_DEF = re.compile(r"function\s+esc(?:ape|apeHtml)?\s*\(|(?:const|let|var)\s+esc(?:ape|apeHtml)?\s*=(?!\s*RG\.esc\b)")
 ESC_MAX = 30
 ADMIN_MAIL = "registro500giappone@gmail.com"
-MAIL_MAX = 17
+MAIL_MAX = 15
 # ⑤ 公開キーの食い違い＝config.js 以外に直書きされた sb_publishable_ が config.js の値と違えば NG
 #    （キーを替えたとき、直書きの残り（イベント雛形の生成物・wiring-journey-gate.js など）の直し忘れを止める）
 PUB_KEY = re.compile(r"sb_publishable_[A-Za-z0-9_-]+")
