@@ -386,6 +386,8 @@
             <li><a class="rg-dropdown-item is-muted" href="/edit" id="carListLink">🏠 管理車両一覧へ</a></li>
             <!-- 2026-11-11 ユーザー決裁：バックアップは管理車両一覧の下（区切り線と削除の上）。BACKUP_ON_CAR_PAGE（または ?backup-preview）のときだけ出す -->
             <li id="myBackupItem" style="display:none;"><a class="rg-dropdown-item" href="/my-backup">💾 記録をバックアップ</a></li>
+            <!-- 2026-11-17 ユーザー指示：マイメニューにもログアウト（削除の区切り線の上＝削除を末尾に孤立させたまま） -->
+            <li><a class="rg-dropdown-item is-muted" href="#" onclick="ownerLogout(); return false;">🚪 ログアウト</a></li>
             <li><hr class="rg-dropdown-divider"></li>
             <li><a class="rg-dropdown-item" href="#" id="deleteLink" style="color:#dc2626;" onclick="confirmDelete(); return false;">🗑️ この車両を削除</a></li>
           </ul>
@@ -1292,6 +1294,15 @@
     }
     document.addEventListener('click', function(e) { if (!e.target.closest('.rg-dropdown')) toggleOwnerMenu(true); });
     document.addEventListener('keydown', function(e) { if (e.key === 'Escape') toggleOwnerMenu(true); });
+
+    // ログアウト（トップの logout() と同じ動き）。この端末だけ（'global' だとほかの端末のログインまで切れる）。
+    // signOut を待たずにセッションを消して同じ車両ページを開き直す＝マイメニューが消えた状態で表示される。
+    function ownerLogout() {
+      supabaseClient.auth.signOut({ scope: 'local' }).catch(() => {});
+      Object.keys(localStorage).forEach(key => { if (key.startsWith('sb-')) localStorage.removeItem(key); });
+      sessionStorage.clear();
+      location.reload();
+    }
 
     // 車両削除機能
     window.confirmDelete = function() {
