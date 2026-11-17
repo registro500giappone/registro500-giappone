@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>アカウントをつなぐ | Registro500 Giappone</title>
+  <meta name="description" content="Registro500 のアカウントを兄弟サイトのアカウントとつなぎます。">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" href="/favicon.ico">
+  <!-- 兄弟サイト（Registro312／Registro Scorpione）の「Registro500 とつなぐ」からだけ来るページ。⛔このサイトの中からリンクしない -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-27SHHC4JYH');
+  </script>
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
+  <style>
+    :root { --bg: #f6f4ef; --card: #fff; --ink: #222; --sub: #666; --line: #ddd; --accent: #b3261e; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #17171a; --card: #222226; --ink: #eee; --sub: #aaa; --line: #3a3a40; --accent: #ff8a80; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; line-height: 1.7; }
+    main { max-width: 520px; margin: 0 auto; padding: 32px 16px 64px; }
+    h1 { font-size: 1.3rem; margin: 0 0 16px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin: 16px 0; }
+    .sub { color: var(--sub); font-size: .9rem; }
+    .btn { display: block; width: 100%; padding: 12px; margin: 10px 0 0; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font-size: 1rem; cursor: pointer; text-align: center; text-decoration: none; }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+    .btn:disabled { opacity: .6; cursor: default; }
+    input { width: 100%; padding: 10px; font-size: 1rem; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); }
+    .err { color: var(--accent); font-size: .9rem; min-height: 1.2em; }
+    ul.cars { padding-left: 1.2em; margin: 8px 0; }
+    .linkish { background: none; border: 0; color: var(--sub); text-decoration: underline; cursor: pointer; padding: 0; font-size: .9rem; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Registro500 のアカウントをつなぐ</h1>
+  <div id="view"><p class="sub">読み込んでいます…</p></div>
+</main>
+<script>
+(() => {
+  // 戻り先＝兄弟サイト（functions/api/sister-assert.js の LINK_AUDS と同じ一覧）
+  const AUDS = ['https://registro312.com', 'https://registroscorpione.com', 'http://localhost:8731', 'http://localhost:8732'];
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const $view = document.getElementById('view');
+  const h = (tag, attrs = {}, ...kids) => {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) { if (k.startsWith('on')) el[k] = v; else el.setAttribute(k, v); }
+    el.append(...kids.filter(k => k != null));
+    return el;
+  };
+  const put = (...kids) => $view.replaceChildren(...kids);
+
+  let back = null;
+  try {
+    const u = new URL(new URLSearchParams(location.search).get('back') || '');
+    if (AUDS.includes(u.origin)) back = u;
+  } catch (e) { /* 戻り先なし */ }
+  if (!back) {
+    put(h('div', { class: 'card' }, h('p', {}, 'このページは、兄弟サイトの「Registro500 とつなぐ」から開きます。'), h('a', { class: 'btn', href: '/' }, 'Registro500 のトップへ')));
+    return;
+  }
+  const sister = back.origin === 'https://registroscorpione.com' || back.port === '8732' ? 'Registro Scorpione' : 'Registro312';
+  const backTo = (frag) => { back.hash = 'classic=' + frag; location.replace(back.href); };
+
+  // ── ログインしていない＝ふだんの入り方（Google かメールのコード）
+  function loginView() {
+    const $err = h('p', { class: 'err', role: 'alert' });
+    const $email = h('input', { type: 'email', autocomplete: 'email', placeholder: 'メールアドレス', 'aria-label': 'メールアドレス' });
+    try { $email.value = localStorage.getItem('r500_login_email') || ''; } catch (e) {}
+    let sentTo = '';
+    const $code = h('input', { inputmode: 'numeric', autocomplete: 'one-time-code', placeholder: '確認コード', 'aria-label': '確認コード' });
+    const step2 = h('div', { hidden: '' }, h('p', { class: 'sub' }, '届いたメールの確認コードを入れてください。'), $code,
+      h('button', { class: 'btn primary', onclick: async (e) => {
+        if (!$code.value.trim()) return;
+        e.target.disabled = true;
+        const { error } = await sb.auth.verifyOtp({ email: sentTo, token: $code.value.trim(), type: 'email' });
+        e.target.disabled = false;
+        if (error) $err.textContent = 'コードが正しくないか、期限切れです。いちばん新しいメールのコードを入れてください。';
+      } }, 'ログイン'));
+    const step1 = h('div', {}, $email, h('button', { class: 'btn', onclick: async (e) => {
+      const email = $email.value.trim();
+      if (!email) { $err.textContent = 'メールアドレスを入れてください。'; return; }
+      e.target.disabled = true;
+      const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+      e.target.disabled = false;
+      const sentBefore = !!error && /after [0-9]+ seconds/.test(String(error.message));
+      if (error && !sentBefore) { $err.textContent = /not found|Signups not allowed/i.test(error.message) ? 'このアドレスでは Registro500 に登録がありません。ふだん Registro500 に入るときのアドレス（または Google）で入ってください。' : '送れませんでした。少しおいてからもう一度お試しください。'; return; }
+      sentTo = email;
+      try { localStorage.setItem('r500_login_email', email); } catch (e2) {}
+      step1.hidden = true; step2.hidden = false; $err.textContent = '';
+      $code.focus();
+    } }, '確認コードを送る'));
+    put(
+      h('p', {}, `${sister} とつなぐために、ふだん Registro500 に入るときの方法でログインしてください。`),
+      h('div', { class: 'card' },
+        h('button', { class: 'btn primary', onclick: () => sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href } }) }, 'Google でログイン'),
+        h('p', { class: 'sub', style: 'margin:16px 0 4px' }, 'または、メールに届くコードで'),
+        step1, step2, $err),
+      h('button', { class: 'btn', onclick: () => backTo('no') }, `つながずに ${sister} へ戻る`));
+  }
+
+  // ── ログイン中＝「つなぎますか？」
+  async function askView(user) {
+    try { await sb.rpc('link_owner_car'); } catch (e) { /* 車の結び付けはマイガレージでもできる */ }
+    const { data: cars } = await sb.from('cars').select('handle_name, model_display_c, year, car_type').eq('owner_user_id', user.id).order('created_at');
+    const other = h('p', { class: 'sub' }, `ログイン中：${user.email || ''}　`,
+      h('button', { class: 'linkish', onclick: async () => { await sb.auth.signOut(); loginView(); } }, '別のアカウントでログインする'));
+    if (!cars || !cars.length) {
+      put(h('div', { class: 'card' }, h('p', {}, 'このアカウントには、登録した車がありません。'), other),
+        h('button', { class: 'btn', onclick: () => backTo('no') }, `${sister} へ戻る`));
+      return;
+    }
+    const $err = h('p', { class: 'err', role: 'alert' });
+    put(
+      h('div', { class: 'card' },
+        h('p', {}, h('strong', {}, `${cars[0].handle_name || ''} さん`), 'の Registro500 のアカウントを、', h('strong', {}, sister), ' のアカウントとつなぎますか？'),
+        h('ul', { class: 'cars' }, ...cars.map(c => h('li', {}, `${c.model_display_c || (c.car_type === '126' ? 'FIAT 126' : 'FIAT 500')}${c.year ? '（' + c.year + '年）' : ''}`))),
+        h('p', { class: 'sub' }, `つなぐと、${sister} のマイガレージにこの車が、Registro500 のあなたの車のページに ${sister} の車が並びます（どちらも、あなたにだけ見えます）。${sister} に渡るのはハンドルネームと都道府県だけで、メールアドレスは渡りません。いつでも外せます。`),
+        other),
+      h('button', { class: 'btn primary', onclick: async (e) => {
+        e.target.disabled = true; $err.textContent = '';
+        try {
+          const t = (await sb.auth.getSession()).data.session?.access_token;
+          const r = await fetch('/api/sister-assert', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify({ use: 'link', aud: back.origin }) });
+          const j = r.ok ? await r.json() : null;
+          if (!j || !j.proof) throw new Error(String(r.status));
+          if (typeof gtag === 'function') gtag('event', 'sister_link', { sister });
+          backTo(j.proof);
+        } catch (err) {
+          e.target.disabled = false;
+          $err.textContent = 'つなげませんでした。少しおいてから、もう一度押してください。';
+        }
+      } }, 'つなぐ'),
+      h('button', { class: 'btn', onclick: () => backTo('no') }, 'つながない'),
+      $err);
+  }
+
+  let shown = null;
+  sb.auth.onAuthStateChange((ev, s) => {
+    const uid = s?.user?.id || null;
+    if (uid === shown && ev !== 'INITIAL_SESSION') return;
+    shown = uid;
+    // コールバックの中で supabase を待つと認証の鍵で止まる（edit.html と同じ）＝外へ出してから
+    setTimeout(() => { if (s?.user) askView(s.user); else loginView(); }, 0);
+  });
+})();
+</script>
+</body>
+</html>
