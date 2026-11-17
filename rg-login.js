@@ -18,6 +18,8 @@
  *     onVerified:    コードが通った直後に呼ぶ
  *   })
  *
+ *   戻り値は { reset(), loadSaved() }。モーダルに入れるページは、閉じるときに reset()、開くときに loadSaved() を呼ぶ。
+ *
  *   ログイン後の画面の切り替えは、これまでどおり各ページの onAuthStateChange が受け持つ。
  *   ログアウトとメールアドレスの変更（type:'email_change'）はここに入れない。
  *
@@ -151,9 +153,12 @@
       showError(error ? (error.status === 429 ? '再送は1分ほど間をあけてからお試しください。直前に届いたコードはそのまま使えます。' : '再送に失敗しました：' + error.message) : '確認コードを再送しました。', !error);
     });
 
-    var saved = null;
-    try { saved = localStorage.getItem(EMAIL_KEY); } catch (e) {}
-    if (saved) { q('email').value = saved; show('clear', true); }
+    var loadSaved = function () {
+      var saved = null;
+      try { saved = localStorage.getItem(EMAIL_KEY); } catch (e) {}
+      if (saved) { q('email').value = saved; show('clear', true); }
+    };
+    loadSaved();
     q('clear').addEventListener('click', function () {
       q('email').value = '';
       show('clear', false);
@@ -163,7 +168,9 @@
 
     return {
       // コード入力の段からメール入力の段へ戻す（ログアウト後にもう一度出すとき用）
-      reset: function () { otpEmail = ''; q('code').value = ''; show('step2', false); show('step1', true); showError(''); }
+      reset: function () { otpEmail = ''; q('code').value = ''; show('step2', false); show('step1', true); showError(''); },
+      // 保存済みのアドレスを読み直す（モーダルを開くたびに呼ぶページ用）
+      loadSaved: loadSaved
     };
   }
 
