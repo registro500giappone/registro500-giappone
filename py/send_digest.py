@@ -629,10 +629,10 @@ def send_article_notices(articles):
             f"{SITE}/my-articles\n\n"
             "---------------------------------------------------------\n"
             "このメールは、記事がお知らせメールに載った日に1通だけお送りしています。\n"
-            "Registro500 Giappone")
+            "Registro500 / Registro126 Giappone")
         to = ADMIN_EMAIL if DRY_RUN else mail
         try:
-            send_notice(to, ("[DRY RUN] " if DRY_RUN else "") + "【Registro500】あなたの記事を紹介しました", body, token)
+            send_notice(to, ("[DRY RUN] " if DRY_RUN else "") + "【Registro500/126】あなたの記事を紹介しました", body, token)
             sent += 1
         except Exception as e:
             log(f"記事を紹介した知らせ: 送信エラー（{entry['name']}）: {e}")
@@ -703,14 +703,14 @@ def send_metoo_notices():
             kinds = {k for _, k, _ in entry["items"]}
             if kinds == {"helpful"}:
                 lead = "「みんなのおすすめ工具・パーツ」でのあなたの紹介が、ほかのオーナーの参考になりました。"
-                subject = "【Registro500】あなたの紹介が、ほかのオーナーの参考になりました"
+                subject = "【Registro500/126】あなたの紹介が、ほかのオーナーの参考になりました"
             elif kinds == {"metoo"}:
                 lead = ("「みんなのおすすめ工具・パーツ」で紹介していただいた物に、"
                         "ほかのオーナーから「🔧 わたしも使ってる」が届きました。")
-                subject = "【Registro500】あなたの紹介した物を、ほかのオーナーも使っています"
+                subject = "【Registro500/126】あなたの紹介した物を、ほかのオーナーも使っています"
             else:
                 lead = "「みんなのおすすめ工具・パーツ」に、ほかのオーナーから声が届きました。"
-                subject = "【Registro500】あなたの紹介に、ほかのオーナーから声が届きました"
+                subject = "【Registro500/126】あなたの紹介に、ほかのオーナーから声が届きました"
             body = (
                 f"{entry['name']}さん\n\n" + lead + "\n\n"
                 + "\n".join(lines) + "\n\n"
@@ -720,7 +720,7 @@ def send_metoo_notices():
                 "このメールは、紹介に「わたしも使ってる」「参考になった」が押されたとき、"
                 "翌朝にまとめて1通だけお送りしています。"
                 "「参考になった」の数はサイトには表示せず、このメールでだけお知らせしています。\n"
-                "Registro500 Giappone")
+                "Registro500 / Registro126 Giappone")
             to = ADMIN_EMAIL if DRY_RUN else mail
             try:
                 send_notice(to, ("[DRY RUN] " if DRY_RUN else "") + subject, body, tok[1])
@@ -803,10 +803,10 @@ def send_maint_helpful_notices():
                 "---------------------------------------------------------\n"
                 "このメールは、整備の記録に「参考になった」が押されたとき、翌朝にまとめて1通だけお送りしています。"
                 "「参考になった」の数はサイトには表示せず、このメールでだけお知らせしています。\n"
-                "Registro500 Giappone")
+                "Registro500 / Registro126 Giappone")
             to = ADMIN_EMAIL if DRY_RUN else mail
             try:
-                send_notice(to, ("[DRY RUN] " if DRY_RUN else "") + "【Registro500】あなたの整備の記録が、ほかのオーナーの参考になりました",
+                send_notice(to, ("[DRY RUN] " if DRY_RUN else "") + "【Registro500/126】あなたの整備の記録が、ほかのオーナーの参考になりました",
                             body, tok[1])
                 sent += 1
             except Exception as e:
