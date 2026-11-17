@@ -25,6 +25,19 @@ import { Webhook } from "npm:standardwebhooks@1.0.0";
 
 const BRAND_HEADER = "Registro500/126 Giappone";
 const SITE_URL = "https://www.registro500.com";
+// 見出しのロゴ（ほかのメール＝py/mail_html.py・functions/_lib/mail_html.js と同じ画像・背景を焼き込み済）。
+// 画像を止めているアプリでは alt の文字が出る。ログインのメールなのでリンクは付けない。
+const LOGOS: [string, string][] = [
+  [`${SITE_URL}/mail/logo500-mail-v2.png`, "Registro500 Giappone"],
+  [`${SITE_URL}/mail/logo126-mail-v2.png`, "Registro126 Giappone"],
+];
+const LOGO_HEADER =
+  `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 16px;"><tr>` +
+  LOGOS.map(([src, alt]) =>
+    `<td align="center" style="padding:0 8px;"><img src="${src}" width="150" alt="${alt}" ` +
+    `style="display:block;width:150px;max-width:100%;height:auto;border:0;font-size:14px;font-weight:bold;color:#9b2a2a;"></td>`
+  ).join("") +
+  `</tr></table>`;
 
 interface EmailData {
   token: string;
@@ -74,7 +87,7 @@ function buildContent(actionType: string, token: string): { subject: string; htm
 function buildHtml(lead: string, sub: string, token: string, notice: string): string {
   return (
     `<div style="font-family:sans-serif;color:#333;max-width:480px;margin:0 auto;padding:20px 16px;">` +
-    `<p style="font-size:13px;font-weight:bold;color:#9b2a2a;margin:0 0 16px;">${BRAND_HEADER}</p>` +
+    LOGO_HEADER +
     `<p style="font-size:15px;line-height:1.7;margin:0 0 4px;">${lead}</p>` +
     `<p style="font-size:13px;line-height:1.7;color:#666;margin:0 0 20px;">${sub}</p>` +
     `<p style="font-size:28px;font-weight:bold;letter-spacing:4px;color:#2856a8;margin:0 0 8px;">${token}</p>` +
