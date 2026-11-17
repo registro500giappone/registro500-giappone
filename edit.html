@@ -1107,8 +1107,9 @@
       // ログイン欄は共通の rg-login.js が描く（成功すると上の onAuthStateChange が覆いを隠して読み込む）。
       // 覆いを隠す判定は上で先に仕掛けてある＝rg-login.js が読めなくても、ログイン済みの人は通れる。
       // メールアドレスの変更（下の email_change）は別物＝ここには入れない。
+      let rgLogin = null;
       if (window.RG && RG.login) {
-        RG.login.mount('rgLogin', { sb: supabaseClient, emailPlaceholder: 'メールアドレス' });
+        rgLogin = RG.login.mount('rgLogin', { sb: supabaseClient, emailPlaceholder: 'メールアドレス' });
         const gNote = document.createElement('p');
         gNote.className = 'login-gnote';
         gNote.textContent = 'Googleアカウントをお使いの方はこちらが簡単です';
@@ -1116,7 +1117,7 @@
       } else {
         document.getElementById('rgLogin').innerHTML = '<p class="login-error">ログイン欄を読み込めませんでした。通信の状態を確かめて、もう一度お試しください。</p><button type="button" class="login-reload" onclick="location.reload()">ページを読み込み直す</button>';
       }
-      document.getElementById('logoutBtn').onclick = () => supabaseClient.auth.signOut().then(() => { overlay.classList.remove('hidden'); document.getElementById('pageLoading').style.display = 'none'; });
+      document.getElementById('logoutBtn').onclick = () => supabaseClient.auth.signOut().then(() => { if (rgLogin) rgLogin.reset(); overlay.classList.remove('hidden'); document.getElementById('pageLoading').style.display = 'none'; });
 
       // ── メールアドレス変更（案2: auth email と owner_email を新メールに統一） ──
       (function() {
