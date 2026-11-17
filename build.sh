@@ -28,7 +28,8 @@ find . -name '*.html' -not -path './.git/*' -print0 \
       -e "s|(src=\"/?fab-nav\.js)\"|\1?v=${VERSION}\"|g" \
       -e "s|(src=\"/?rg-join-cta\.js)\"|\1?v=${VERSION}\"|g" \
       -e "s|(src=\"/?rg-car\.js)\"|\1?v=${VERSION}\"|g" \
-      -e "s|(src=\"/?rg-util\.js)\"|\1?v=${VERSION}\"|g"
+      -e "s|(src=\"/?rg-util\.js)\"|\1?v=${VERSION}\"|g" \
+      -e "s|(src=\"/?rg-login\.js)\"|\1?v=${VERSION}\"|g"
 
 echo "==========================================="
 echo "  CACHE_VERSION -> ${VERSION}"
