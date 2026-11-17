@@ -60,7 +60,7 @@ LEAK_SKIP_DIRS = {".git", ".github", ".claude", "py", "node_modules", "functions
 # ③④ は「増えていないか」を見る天井。減ったら下の数字を下げる（下げ忘れは注意で出す）。
 #    共通部品（rg-util.js の RG.esc・管理人アドレスの1か所化）へ寄せるほど減る＝増えるのは逆行。
 ESC_DEF = re.compile(r"function\s+esc(?:ape|apeHtml)?\s*\(|(?:const|let|var)\s+esc(?:ape|apeHtml)?\s*=(?!\s*RG\.esc\b)")
-ESC_MAX = 10
+ESC_MAX = 8
 ADMIN_MAIL = "registro500giappone@gmail.com"
 MAIL_MAX = 15
 # ⑤ 公開キーの食い違い＝config.js 以外に直書きされた sb_publishable_ が config.js の値と違えば NG
