@@ -29,9 +29,6 @@ export const LINK_AUDS = [
   "https://registroscorpione.com",
   "http://localhost:8731",
   "http://localhost:8732",
-  // プレビュー（スマホでの通し用・2026-11-17）＝⛔本番に出す前に外す
-  "https://classic-link.registro312.pages.dev",
-  "https://classic-link.registro-scorpione.pages.dev",
 ];
 const SUPABASE_URL = "https://ttlttclfovuzafvghvaq.supabase.co";
 const TTL = { link: 30 * 60, ask: 5 * 60, unlink: 5 * 60 };
