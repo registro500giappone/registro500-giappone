@@ -2,6 +2,7 @@
 // 一覧ページとトップの帯（500・126）の両方がこれを使う＝帯の1件は必ず一覧の1行目と同じものになる。
 // 前提：グローバルに supabaseClient があること。
 (function () {
+  const esc = RG.esc;
   const DAY_MS = 24 * 60 * 60 * 1000;
 
   // detail.html の「この1台の歩み」と同じ対応表。更新された列から「（写真・こだわり）」を作る。
@@ -26,9 +27,6 @@
   const MAINT_IN_FEED = true;
   const PHOTO_COLS = ['photo_main', 'photo_front', 'photo_side', 'photo_rear', 'photo_interior', 'photo_engine', 'photo_steering_cluster'];
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  }
   function jstDayKey(d) {
     const j = new Date(new Date(d).getTime() + 9 * 60 * 60 * 1000);
     return `${j.getUTCFullYear()}-${String(j.getUTCMonth() + 1).padStart(2, '0')}-${String(j.getUTCDate()).padStart(2, '0')}`;

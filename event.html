@@ -25,6 +25,7 @@
   <link rel="stylesheet" href="style.css">
   
   <script src="config.js"></script>
+  <script src="/rg-util.js"></script>
   <!-- Supabase Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>
@@ -457,6 +458,7 @@
 
 
 <script>
+  const esc = RG.esc;
   const CACHE_KEY_EVENTS = 'registro500_event_data_v4';
   let currentUser = null;
   let myCarId = null;
@@ -1035,11 +1037,6 @@ window.submitEvent = async () => {
     if (code === '23505') return 'すでに登録済みです。ページを再読み込みしてください。';
     if (e instanceof TypeError) return '通信できませんでした。電波の良い場所で、もう一度お試しください。';
     return fallback + (code ? `（コード: ${code}）` : '');
-  }
-
-  function esc(s) {
-    if(!s) return '';
-    return s.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
 
   // href に入れてよいのは http(s) だけ（投稿画面は type="url" しか見ておらず javascript: が通る）

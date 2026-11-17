@@ -21,6 +21,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
+  <script src="/rg-util.js"></script>
   <!-- 左下「一つ前に戻る」（ホーム画面起動時のみ）／右下「先頭へ」の浮かぶボタン -->
   <script src="fab-nav.js" defer></script>
   <!-- 車載マエストロの判定基準とシール意匠の正本（equipment-edit.html / equipment.html と共有） -->
@@ -527,6 +528,7 @@
    </main>
 
   <script>
+    const esc = RG.esc;
     const params = new URLSearchParams(window.location.search);
     // 新しい並び（段B・段C）の試作。確かめ終えたら true 固定にする（2026-10-29）
     const LAYOUT_V2 = params.has('layout-preview');
@@ -550,10 +552,6 @@
     const docId = params.get('doc');
     let currentUser = null, currentCar = null, currentEpisodes = null;
 
-    function esc(s) {
-      if (!s) return '';
-      return s.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-    }
     function safeUrl(url) {
       if (!url) return '';
       if (/^https?:\/\//i.test(url)) return url;

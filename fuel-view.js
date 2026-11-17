@@ -1,6 +1,7 @@
 // 給油の記録の燃費と表示 — /my-fuel と車両ページ（detail.html）で共有する
 // 燃費は保存しない＝表示のたびに満タン法で数える（満タン〜次の満タンの距離 ÷ その間に入れた量の合計。継ぎ足しも合計に入れる）
 (function () {
+  const esc = RG.esc;
   const FUEL_LABEL = { regular: 'レギュラー', premium: 'ハイオク', diesel: '軽油' };
   const SUSPECT_KMPL = 30;   // これを超える区間は記録漏れか継ぎ足しの付け忘れ＝平均から外す（実物で 146km/L が出た）
   const ODO_WRAP = 100000;   // メーターは5桁＝10万kmで一周する
@@ -43,7 +44,6 @@
   function fmtKm(n) { return Number(n).toLocaleString('ja-JP') + 'km'; }
   function fmtL(n) { return Number(n).toFixed(2).replace(/\.?0+$/, '') + 'L'; }
   function fmtKmpl(n) { return n.toFixed(1) + 'km/L'; }
-  function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
   // 1件ぶんの文字（日付以外）。e は economy().byId の値
   function lineParts(r, e) {
