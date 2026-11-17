@@ -159,7 +159,26 @@ export function textToHtml(text, logos = LOGOS) {
   const foot = [...footer];
   while (foot.length && !foot[0].trim()) foot.shift();
   while (foot.length && !foot[foot.length - 1].trim()) foot.pop();
-  const footHtml = foot.map(linkify).join("<br>");
+  // 配信停止の URL はむき出しにせず短いリンクに・1行ずつ div（<br> つなぎだと iPhone の Gmail が空行を挟んだ）
+  // ＝py/mail_html.py と同じ（2026-11-17）
+  const parts = [];
+  for (let k = 0; k < foot.length; k++) {
+    const l = foot[k];
+    const nxt = k + 1 < foot.length ? foot[k + 1].match(URL_ONLY_RE) : null;
+    if (l.includes("次のリンクから配信を止められます") && nxt && nxt[1].includes("/unsubscribe")) {
+      const at = l.indexOf("次のリンクから配信を止められます");
+      const head = l.slice(0, at), tail = l.slice(at + "次のリンクから配信を止められます".length);
+      parts.push(["unsub", esc(head, false) + '<span style="white-space:nowrap;">'
+        + link(nxt[1], "こちらから配信を止められます", "text-decoration:underline;") + esc(tail, false) + "</span>"]);
+      k++;
+      continue;
+    }
+    const m = l.match(URL_ONLY_RE);
+    if (m && m[1].includes("/unsubscribe")) parts.push(["unsub", link(m[1], "配信を止める", "text-decoration:underline;white-space:nowrap;")]);
+    else parts.push(["line", l.trim() ? linkify(l) : ""]);
+  }
+  const footHtml = parts.map(([kind, p]) => kind === "unsub" ? `<div style="margin-top:10px;">${p}</div>`
+    : (p ? `<div>${p}</div>` : '<div style="height:10px;line-height:10px;font-size:0;">&nbsp;</div>')).join("");
 
   return '<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">'
     + '<meta name="viewport" content="width=device-width,initial-scale=1">'

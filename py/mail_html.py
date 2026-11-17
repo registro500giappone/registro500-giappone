@@ -201,7 +201,33 @@ def text_to_html(text, logos=None):
         foot_lines.pop(0)
     while foot_lines and not foot_lines[-1].strip():
         foot_lines.pop()
-    foot_html = "<br>".join(_linkify(l) for l in foot_lines)
+    # 配信停止の URL（札入りの長い文字列）はむき出しにしない（2026-11-17 ユーザー指摘・312 と同じ）。
+    # 「…次のリンクから配信を止められます（ログイン不要）。」＋URL の2行は、1行にまとめて「こちらから配信を止められます」をリンクにする
+    foot_parts, k = [], 0
+    while k < len(foot_lines):
+        l = foot_lines[k]
+        nxt = URL_ONLY_RE.match(foot_lines[k + 1]) if k + 1 < len(foot_lines) else None
+        if "次のリンクから配信を止められます" in l and nxt and "/unsubscribe" in nxt.group(1):
+            head, tail = l.split("次のリンクから配信を止められます", 1)
+            # リンクと後ろの「（ログイン不要）。」は1塊＝途中で折り返さない（「止められま／す」「（ロ／グイン不要）」で切れた・11-17）
+            foot_parts.append(("unsub", html.escape(head, quote=False)
+                               + '<span style="white-space:nowrap;">'
+                               + _link(nxt.group(1), "こちらから配信を止められます", "text-decoration:underline;")
+                               + html.escape(tail, quote=False) + "</span>"))
+            k += 2
+            continue
+        m = URL_ONLY_RE.match(l)
+        if m and "/unsubscribe" in m.group(1):
+            foot_parts.append(("unsub", _link(m.group(1), "配信を止める", "text-decoration:underline;white-space:nowrap;")))
+        else:
+            foot_parts.append(("line", _linkify(l) if l.strip() else ""))
+        k += 1
+    # 1行ずつ div にする（<br> つなぎだと iPhone の Gmail が勝手に空行を挟んだ・11-17）。停止の案内は少し離して最後に
+    # ⚠️ functions/_lib/mail_html.js も同じにする
+    foot_html = "".join(
+        f'<div style="margin-top:10px;">{p}</div>' if kind == "unsub"
+        else (f'<div>{p}</div>' if p else '<div style="height:10px;line-height:10px;font-size:0;">&nbsp;</div>')
+        for kind, p in foot_parts)
 
     return (
         '<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">'

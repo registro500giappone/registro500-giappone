@@ -52,7 +52,7 @@ from datetime import datetime, timedelta, timezone
 # 設定（py/.env 優先・無ければ環境変数）・Supabase REST・Brevo は py/common.py に寄せた（2026-09-30）。
 # 差出人などの定数は main.gs と同一の値を common.py が持つ。
 from mail_html import text_to_html as _mail_html
-from common import (cfg, require, supa_key, sb_select, sb_patch, sb_rpc, sb_upsert, brevo_send,
+from common import (cfg, require, supa_key, sb_select, sb_patch, sb_rpc, sb_upsert, brevo_send, supa_url, _request,
                     SENDER_EMAIL, SENDER_NAME, REPLY_TO_EMAIL, ADMIN_EMAIL, SITE)
 
 CHUNK_SIZE = 90          # 1回の呼び出しで送る人数（main.gs の BCC 上限の値を引き継ぐ・messageVersions の上限は2000人）
@@ -141,41 +141,85 @@ def send_broadcast(bcc_list, subject, text_body):
 
 
 def unsub_footer(token):
-    """1人ずつの配信停止リンク（特定電子メール法＝毎回、停止の方法を書く）。"""
-    return ("\n\nこのお知らせが不要な方は、次のリンクから配信を止められます（ログイン不要）。\n"
+    """1人ずつの配信停止リンク（特定電子メール法＝毎回、停止の方法を書く）。
+    区切り線より後のフッターに続けて置く＝空行を挟まない（2026-11-17・HTML 版では「こちらから配信を止められます」の1行になる）"""
+    return ("\nこのお知らせが不要な方は、次のリンクから配信を止められます（ログイン不要）。\n"
             f"{SITE}/unsubscribe?t={token}\n")
 
 
+def unsub_headers(token):
+    """Gmail などの「登録解除」ボタンの行き先を自分たちの停止にする（RFC 8058 のワンクリック・2026-11-17）。
+    付けないと Brevo が自動で自分の停止リンクを付け、押されると news@ からのメールが Brevo 側で全部止まる
+    （312 で実測。登録のお礼・手放した人への問いかけなども届かなくなる）。札が無い試運転では付けない"""
+    if not re.fullmatch(r"[0-9a-fA-F-]{36}", str(token or "")):
+        return {}
+    return {"headers": {"List-Unsubscribe": f"<{SITE}/api/unsubscribe?t={token}>",
+                        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click"}}
+
+
 def send_personal(chunk, subject, text_body):
-    """宛先ごとに停止リンクだけ違う本文を1回の呼び出しで送る（Brevo messageVersions）。
-    chunk は [(email, token), ...]。BCC 一括では人ごとのリンクを入れられないため（2026-11-04）。
-    Brevo の送信数の数え方は BCC と同じ＝1人1通。失敗は例外にする。"""
-    versions = []
+    """宛先ごとに停止リンクと停止ヘッダーの違う本文を1通ずつ送る。chunk は [(email, token), ...]。
+    2026-11-17 に messageVersions（1回の呼び出しでまとめて）から1通ずつへ＝messageVersions はヘッダーを宛先ごとに
+    変えられないため。Brevo の送信数の数え方は同じ＝1人1通。1人も送れなければ例外にする。"""
+    ok, errors = 0, []
     for email, token in chunk:
         text = text_body + unsub_footer(token)
-        versions.append({"to": [{"email": email}], "textContent": text, "htmlContent": text_to_html(text)})
-    payload = {
-        "sender": {"name": SENDER_NAME, "email": SENDER_EMAIL},
+        try:
+            brevo_send({
+                "sender": {"name": SENDER_NAME, "email": SENDER_EMAIL},
+                "replyTo": {"name": SENDER_NAME, "email": REPLY_TO_EMAIL},
+                "to": [{"email": email}],
+                "subject": subject,
+                "textContent": text,
+                "htmlContent": text_to_html(text),
+                **unsub_headers(token),
+                "trackClicks": True,
+                "trackOpens": True,
+            }, timeout=60)
+            ok += 1
+        except Exception as e:
+            errors.append(str(e))
+    if errors:
+        log(f"一部送れませんでした {len(errors)}/{len(chunk)}: {errors[0]}")
+        if not ok:
+            raise RuntimeError(errors[0])
+
+
+def send_notice(to, subject, body, token=None):
+    """反応のお知らせを1通送る。token（owner_notice の札）があれば停止リンクと停止ヘッダーを付ける"""
+    if token:
+        body = body + unsub_footer(token)
+    brevo_send({
         "replyTo": {"name": SENDER_NAME, "email": REPLY_TO_EMAIL},
+        "to": [{"email": to}],
         "subject": subject,
-        "textContent": text_body,
-        "htmlContent": text_to_html(text_body),
-        "messageVersions": versions,
-        "trackClicks": True,
-        "trackOpens": True,
-    }
-    brevo_send(payload, timeout=60)
+        "textContent": body,
+        "htmlContent": text_to_html(body),
+        **unsub_headers(token),
+    })
 
 
-def owner_digest_tokens(emails):
+def notice_token(mail):
+    """反応のお知らせ（わたしも使ってる・参考になった・記事を紹介した）の停止の札（2026-11-17〜）。
+    戻り値は (送ってよいか, 札)。止めた人には送らない（記録はする＝溜めない）。試運転は管理人宛てなので札を作らない"""
+    if DRY_RUN:
+        return True, None
+    t = owner_digest_tokens([mail], "owner_notice")
+    if mail not in t:
+        log("反応のお知らせを止めている人を飛ばしました")
+    return mail in t, t.get(mail)
+
+
+def owner_digest_tokens(emails, lst="owner_digest"):
     """宛先ごとの停止用の札を mail_subscriptions から引く（無い人には作る）。
-    戻り値は {email: token}。停止済みの人は入らない＝送らない。"""
+    戻り値は {email: token}。停止済みの人は入らない＝送らない。
+    lst＝owner_digest（朝の新着情報）／owner_notice（反応のお知らせ・2026-11-17〜）"""
     if emails:
         sb_upsert("mail_subscriptions",
-                  [{"list": "owner_digest", "email": e, "source": "owner"} for e in emails],
+                  [{"list": lst, "email": e, "source": "owner"} for e in emails],
                   on_conflict="list,email", ignore_dup=True)
     rows = sb_select("mail_subscriptions", "email,unsub_token,unsubscribed_at",
-                     {"list": "eq.owner_digest"})
+                     {"list": f"eq.{lst}"})
     wanted = set(emails)
     return {r["email"]: r["unsub_token"] for r in rows
             if r["email"] in wanted and not r.get("unsubscribed_at")}
@@ -206,6 +250,11 @@ def main():
     today_utc = now.strftime("%Y-%m-%d")
 
     log(f"sendDailyDigest 開始: {now.isoformat()}" + ("  ★DRY RUN★" if DRY_RUN else ""))
+    try:
+        sweep_brevo_blocks()               # 送る前に＝止めたばかりの人に送らない
+    except Exception as e:
+        log(f"❌ 停止リストの見回り: {e}")
+        send_admin_alert("【要確認】500 の停止リストの見回りの失敗", str(e))
 
     # 1. 未送信お知らせ
     news = sb_select("news", "id,title,content",
@@ -438,6 +487,7 @@ def main():
             body += f"\n【{n['title']}】\n{n['content']}\n"
 
     body += ("\n---------------------------------------------------------\n"
+             "このメールは、新着があった日の朝だけ、愛車を登録したオーナーの皆様にお送りしています。\n"
              "Registro500 / Registro126 Giappone\n" + SITE + "/")
 
     # 7. 宛先（is_sold=true のオーナーは除外）
@@ -564,28 +614,25 @@ def send_article_notices(articles):
             by_mail.setdefault(a["mail"], {"name": a["owner"], "items": []})["items"].append(a)
     sent = 0
     for mail, entry in by_mail.items():
+        ok, token = notice_token(mail)
+        if not ok:
+            continue
         lines = "\n".join(f"・「{a['title']}」\n　{a['url']}" for a in entry["items"])
         doc = entry["items"][0]["doc"]
         body = (
-            f"{entry['name']} さん\n\n"
+            f"{entry['name']}さん\n\n"
             "登録オーナーのみなさんへのお知らせメールで、あなたの記事を「ブログ紹介」の欄で紹介しました。\n\n"
             + lines + "\n\n"
             "車両ページの「この1台の歩み」にも並んでいます。\n"
-            f"{SITE}/detail.html?doc={doc}#history\n\n"
+            f"{SITE}/detail?doc={doc}#history\n\n"
             "新しい記事を書いたときも、URLを貼るだけで同じように紹介されます。\n"
             f"{SITE}/my-articles\n\n"
-            "――\n"
+            "---------------------------------------------------------\n"
             "このメールは、記事がお知らせメールに載った日に1通だけお送りしています。\n"
             "Registro500 Giappone")
         to = ADMIN_EMAIL if DRY_RUN else mail
         try:
-            brevo_send({
-                "replyTo": {"name": SENDER_NAME, "email": REPLY_TO_EMAIL},
-                "to": [{"email": to}],
-                "subject": ("[DRY RUN] " if DRY_RUN else "") + "【Registro500】あなたの記事を紹介しました",
-                "textContent": body,
-                "htmlContent": text_to_html(body),
-            })
+            send_notice(to, ("[DRY RUN] " if DRY_RUN else "") + "【Registro500】あなたの記事を紹介しました", body, token)
             sent += 1
         except Exception as e:
             log(f"記事を紹介した知らせ: 送信エラー（{entry['name']}）: {e}")
@@ -648,7 +695,7 @@ def send_metoo_notices():
     VERB = {"metoo": "🔧 わたしも使ってる", "helpful": "👍 参考になった"}
     sent = 0
     for mail, entry in by_mail.items():
-        if entry["items"]:
+        if entry["items"] and (tok := notice_token(mail))[0]:
             lines = []
             for name in dict.fromkeys(n for n, _, _ in entry["items"]):
                 lines.append("・" + name)
@@ -665,24 +712,18 @@ def send_metoo_notices():
                 lead = "「みんなのおすすめ工具・パーツ」に、ほかのオーナーから声が届きました。"
                 subject = "【Registro500】あなたの紹介に、ほかのオーナーから声が届きました"
             body = (
-                f"{entry['name']} さん\n\n" + lead + "\n\n"
+                f"{entry['name']}さん\n\n" + lead + "\n\n"
                 + "\n".join(lines) + "\n\n"
-                "あなたの紹介が、ほかのオーナーの役に立っています。ありがとうございます。\n\n"
-                f"みんなのおすすめ工具・パーツ\n{SITE}/tools\n\n"
-                "――\n"
+                "ありがとうございます。\n\n"
+                f"ほかのオーナーのおすすめ工具・パーツも見る\n{SITE}/tools\n\n"
+                "---------------------------------------------------------\n"
                 "このメールは、紹介に「わたしも使ってる」「参考になった」が押されたとき、"
                 "翌朝にまとめて1通だけお送りしています。"
                 "「参考になった」の数はサイトには表示せず、このメールでだけお知らせしています。\n"
                 "Registro500 Giappone")
             to = ADMIN_EMAIL if DRY_RUN else mail
             try:
-                brevo_send({
-                    "replyTo": {"name": SENDER_NAME, "email": REPLY_TO_EMAIL},
-                    "to": [{"email": to}],
-                    "subject": ("[DRY RUN] " if DRY_RUN else "") + subject,
-                    "textContent": body,
-                    "htmlContent": text_to_html(body),
-                })
+                send_notice(to, ("[DRY RUN] " if DRY_RUN else "") + subject, body, tok[1])
                 sent += 1
             except Exception as e:
                 log(f"わたしも使ってる・参考になった: 送信エラー（{entry['name']}）: {e}")
@@ -746,7 +787,7 @@ def send_maint_helpful_notices():
 
     sent = 0
     for mail, entry in by_mail.items():
-        if entry["items"]:
+        if entry["items"] and (tok := notice_token(mail))[0]:
             lines = []
             for rid in dict.fromkeys(r for r, _, _ in entry["items"]):
                 title = next(t for r, t, _ in entry["items"] if r == rid)
@@ -754,24 +795,19 @@ def send_maint_helpful_notices():
                 lines += [f"　　👍 参考になった ― {w}" for r, _, w in entry["items"] if r == rid]
                 lines.append(f"　　{SITE}/maintenance?r={rid}")
             body = (
-                f"{entry['name']} さん\n\n"
+                f"{entry['name']}さん\n\n"
                 "整備手帳に書いていただいた記録が、ほかのオーナーの参考になりました。\n\n"
                 + "\n".join(lines) + "\n\n"
-                "あなたの記録が、ほかのオーナーの役に立っています。ありがとうございます。\n\n"
-                f"みんなの整備手帳\n{SITE}/maintenance\n\n"
-                "――\n"
+                "ありがとうございます。\n\n"
+                f"ほかのオーナーの整備手帳も見る\n{SITE}/maintenance\n\n"
+                "---------------------------------------------------------\n"
                 "このメールは、整備の記録に「参考になった」が押されたとき、翌朝にまとめて1通だけお送りしています。"
                 "「参考になった」の数はサイトには表示せず、このメールでだけお知らせしています。\n"
                 "Registro500 Giappone")
             to = ADMIN_EMAIL if DRY_RUN else mail
             try:
-                brevo_send({
-                    "replyTo": {"name": SENDER_NAME, "email": REPLY_TO_EMAIL},
-                    "to": [{"email": to}],
-                    "subject": ("[DRY RUN] " if DRY_RUN else "") + "【Registro500】あなたの整備の記録が、ほかのオーナーの参考になりました",
-                    "textContent": body,
-                    "htmlContent": text_to_html(body),
-                })
+                send_notice(to, ("[DRY RUN] " if DRY_RUN else "") + "【Registro500】あなたの整備の記録が、ほかのオーナーの参考になりました",
+                            body, tok[1])
                 sent += 1
             except Exception as e:
                 log(f"整備の参考になった: 送信エラー（{entry['name']}）: {e}")
@@ -807,7 +843,7 @@ def send_former_owner_asks():
             targets[mail] = c
     sent = 0
     for mail, c in targets.items():
-        body = (f"{c.get('handle_name') or 'オーナー'} さん\n\n"
+        body = (f"{c.get('handle_name') or 'オーナー'}さん\n\n"
                 f"{c.get('model_display_c') or 'お車'}を手放されたと伺いました。"
                 "これまで Registro500 / Registro126 Giappone にご登録いただき、ありがとうございました。\n\n"
                 "車を手放されたため、「新着情報のお知らせ」はこれからはお届けしません。\n\n"
@@ -834,6 +870,68 @@ def send_former_owner_asks():
         sb_upsert("mail_former_asks", {"email": mail, "car_id": c["document_id"]},
                   on_conflict="email", ignore_dup=True)
     log(f"手放した人への問いかけ: {sent}通送信" + ("（DRY RUN＝管理者宛・記録なし）" if DRY_RUN else ""))
+
+
+# =========================================================
+# Brevo の停止リストの見回り（2026-11-17〜・312 と同じ）
+# =========================================================
+def brevo_api(method, path):
+    req = urllib.request.Request("https://api.brevo.com/v3" + path, method=method,
+                                 headers={"api-key": cfg("BREVO_API_KEY"), "Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            txt = r.read().decode()
+            return json.loads(txt) if txt else None
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"Brevo {method} {path.split('?')[0]} → {e.code}: {e.read().decode()[:300]}")
+
+
+def sweep_brevo_blocks():
+    """Gmail などの「登録解除」で Brevo の停止リストに載った人（unsubscribedViaEmail）を、こちらの停止に移す。
+    ①お知らせ（朝の新着・反応のお知らせ・週刊便り）をこちらの DB で止める＝本人の「止めたい」を守る
+    ②Brevo の停止リストから外す＝登録のお礼・問い合わせの返事など、本人の操作で出るメールは届くように戻す
+    ③管理人に知らせる。自前の停止ヘッダーを付けたので本来は載らないはず＝載ったら Brevo の自動の停止が使われたということ
+    確認コード（auth@）で押された人は、Brevo の停止を外すだけ（ログインできるように）"""
+    rows, offset = [], 0
+    while True:
+        got = (brevo_api("GET", f"/smtp/blockedContacts?limit=100&offset={offset}") or {}).get("contacts", [])
+        rows += got
+        offset += 100
+        if len(got) < 100:
+            break
+    hits = [r for r in rows if (r.get("reason") or {}).get("code") == "unsubscribedViaEmail"]
+    if not hits:
+        log("停止リストの見回り: 該当なし")
+        return
+    done = []
+    for r in hits:
+        email = str(r.get("email") or "").strip().lower()
+        sender_addr = str(r.get("senderEmail") or "")
+        # GAS の時代（〜2026-08）の朝ダイジェストは registro500giappone@gmail.com から出ていた＝同じお知らせとして扱う
+        # （その送信元の停止は news@ に移ったあと効いていない＝こちらの DB で止めて本人の意思を守る）
+        if not (sender_addr.endswith("@registro500.com") or sender_addr.lower() == ADMIN_EMAIL.lower()) or "@" not in email:
+            done.append(f"・{email}（送信元 {sender_addr}）＝500 の送信元ではないので触っていません")
+            continue
+        if DRY_RUN:
+            done.append(f"・{email}（送信元 {sender_addr}）＝試運転なので何もしていません")
+            continue
+        if not sender_addr.startswith("auth@"):
+            sb_upsert("mail_subscriptions", [{"list": l, "email": email, "source": "owner"}
+                                             for l in ("owner_digest", "owner_notice")],
+                      on_conflict="list,email", ignore_dup=True)
+            _request("PATCH", f"{supa_url()}/rest/v1/mail_subscriptions?email=eq.{urllib.parse.quote(email)}"
+                              "&unsubscribed_at=is.null",
+                     {"unsubscribed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")},
+                     headers={"Prefer": "return=minimal"})
+        brevo_api("DELETE", "/smtp/blockedContacts/" + urllib.parse.quote(email))
+        done.append(f"・{email}（送信元 {sender_addr}）＝"
+                    + ("確認コードのメールで押された＝Brevo の停止だけ外しました（ログインできるように）"
+                       if sender_addr.startswith("auth@") else "お知らせをこちらで止め、Brevo の停止は外しました"))
+    log(f"停止リストの見回り: {len(hits)}件")
+    send_admin_alert("【確認】500 のメールの「登録解除」が押されました",
+                     "Gmail などの「登録解除」で Brevo の停止リストに載った人がいたので、次のとおり処理しました。\n\n"
+                     + "\n".join(done) + "\n\nお知らせメールには自前の停止ヘッダーを付けているので、本来ここには載りません。"
+                     "続くようなら Brevo が自前のヘッダーを使っていない可能性があります。")
 
 
 if __name__ == "__main__":
