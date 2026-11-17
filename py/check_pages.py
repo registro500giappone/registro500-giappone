@@ -28,6 +28,11 @@
   python py/check_pages.py --selftest # 検出そのものが壊れていないかの自己テスト
 """
 import fnmatch
+import sys
+
+# Windows の端末（cp932）でも NG の印を出せるようにする
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 import json
 import os
 import re
