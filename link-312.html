@@ -44,7 +44,8 @@
 <script>
 (() => {
   // 戻り先＝兄弟サイト（functions/api/sister-assert.js の LINK_AUDS と同じ一覧）
-  const AUDS = ['https://registro312.com', 'https://registroscorpione.com', 'http://localhost:8731', 'http://localhost:8732'];
+  const AUDS = ['https://registro312.com', 'https://registroscorpione.com', 'http://localhost:8731', 'http://localhost:8732',
+    'https://classic-link.registro312.pages.dev', 'https://classic-link.registro-scorpione.pages.dev'];  // プレビュー（通し用）＝⛔本番に出す前に外す
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const $view = document.getElementById('view');
   const h = (tag, attrs = {}, ...kids) => {
@@ -64,7 +65,7 @@
     put(h('div', { class: 'card' }, h('p', {}, 'このページは、兄弟サイトの「Registro500 とつなぐ」から開きます。'), h('a', { class: 'btn', href: '/' }, 'Registro500 のトップへ')));
     return;
   }
-  const sister = back.origin === 'https://registroscorpione.com' || back.port === '8732' ? 'Registro Scorpione' : 'Registro312';
+  const sister = back.origin === 'https://registroscorpione.com' || back.port === '8732' || back.hostname.endsWith('registro-scorpione.pages.dev') ? 'Registro Scorpione' : 'Registro312';
   const backTo = (frag) => { back.hash = 'classic=' + frag; location.replace(back.href); };
 
   // ── ログインしていない＝ふだんの入り方（Google かメールのコード）

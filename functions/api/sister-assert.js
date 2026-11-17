@@ -17,7 +17,7 @@
  *   - 本人の確認は 500 の公開キーで /auth/v1/user（service キーは使わない）。ハンドルネームも本人のトークンで読む（RLS の範囲）
  *   - use と aud を取り違えさせない（ask の証明ではつなげない・link の証明では尋ねられない＝312 側でも確かめる）
  *
- * 必要な環境変数: SUPABASE_URL / SISTER_SIGN_KEY
+ * 必要な環境変数: SISTER_SIGN_KEY（SUPABASE_URL は無ければ本番の値）
  */
 
 // 公開キー（config.js と同じ・誰に見られてもよい種類）
@@ -28,7 +28,11 @@ export const LINK_AUDS = [
   "https://registroscorpione.com",
   "http://localhost:8731",
   "http://localhost:8732",
+  // プレビュー（スマホでの通し用・2026-11-17）＝⛔本番に出す前に外す
+  "https://classic-link.registro312.pages.dev",
+  "https://classic-link.registro-scorpione.pages.dev",
 ];
+const SUPABASE_URL = "https://ttlttclfovuzafvghvaq.supabase.co";
 const TTL = { link: 30 * 60, ask: 5 * 60 };
 
 function json(data, status = 200) {
@@ -61,7 +65,7 @@ export async function makeProof(claims, keyB64) {
 }
 
 export async function onRequestPost({ request, env }) {
-  if (!env.SISTER_SIGN_KEY || !env.SUPABASE_URL) return json({ error: "not_ready" }, 503);
+  if (!env.SISTER_SIGN_KEY) return json({ error: "not_ready" }, 503);
   let req;
   try { req = await request.json(); } catch { return json({ error: "bad_request" }, 400); }
   const use = req && req.use;
@@ -73,7 +77,7 @@ export async function onRequestPost({ request, env }) {
   const auth = request.headers.get("authorization") || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
   if (!token) return json({ error: "login" }, 401);
-  const base = env.SUPABASE_URL.replace(/\/$/, "");
+  const base = (env.SUPABASE_URL || SUPABASE_URL).replace(/\/$/, "");
   const asUser = { apikey: PUBLISHABLE_KEY, Authorization: `Bearer ${token}` };
 
   let user;
