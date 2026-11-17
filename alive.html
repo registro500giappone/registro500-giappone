@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>今も乗っていますか | Registro500 Giappone</title>
+<!-- 札（?t=）を GA4 に送らない＝page_location から問い合わせ部分を外す -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-27SHHC4JYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-27SHHC4JYH', { page_location: location.origin + location.pathname });
+</script>
+<style>
+  :root { --ink: #1f2937; --sub: #6b7280; --bg: #faf7f2; --card: #ffffff; --line: #e5e0d8; --accent: #c0392b; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink: #e5e7eb; --sub: #9ca3af; --bg: #16130f; --card: #221e19; --line: #3a342c; --accent: #e06c5e; }
+  }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; line-height: 1.8; }
+  main { max-width: 520px; margin: 0 auto; padding: 48px 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 28px 22px; }
+  h1 { font-size: 1.2rem; margin: 0 0 12px; }
+  p { margin: 0 0 12px; }
+  .sub { color: var(--sub); font-size: .9rem; }
+  button { background: var(--accent); color: #fff; border: none; border-radius: 8px;
+           padding: 12px 24px; font-size: 1rem; font-weight: 700; cursor: pointer; margin: 8px 0 4px; }
+  button:disabled { opacity: .5; cursor: default; }
+  a { color: var(--accent); }
+    .btns { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 4px; }
+  .btns button { margin: 0; }
+  button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  .model { font-weight: 700; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>年に一度のご確認</h1>
+
+    <!-- メールソフトがリンクを先読みしても決まらないよう、ボタンを押したときだけ記録する -->
+    <div id="ask" hidden>
+      <p>Registro500 / Registro126 Giappone にご登録いただいている車は、今もお手元にありますか？</p>
+      <div class="btns">
+        <button id="keep" type="button">今も乗っています</button>
+        <button id="sold" type="button" class="ghost">手放しました</button>
+      </div>
+      <p class="sub">ログインは要りません。お返事がなくても、車両ページや記録はそのまま残ります。</p>
+    </div>
+
+    <div id="confirmSold" hidden>
+      <p>「手放した」として記録します。車両ページは【過去所有】の印が付いて残り、写真や記録は消えません。</p>
+      <div class="btns">
+        <button id="soldGo" type="button">手放したと記録する</button>
+        <button id="soldBack" type="button" class="ghost">戻る</button>
+      </div>
+    </div>
+
+    <div id="done" hidden>
+      <p id="doneText"></p>
+      <p id="doneSub" class="sub"></p>
+      <p id="amici" class="sub" hidden>車をお持ちでなくても、新しい登録車やイベントのお知らせを週に1回お届けできます。
+        <a href="/amici?from=former">週刊 Registro 便りを受け取る</a></p>
+    </div>
+
+    <div id="bad" hidden>
+      <p>このリンクでは記録できませんでした。リンクが途中で切れているか、期限が過ぎているかもしれません。</p>
+    </div>
+
+    <p class="sub">間違えて押したときや、ご質問は
+      <a href="mailto:registro500giappone@gmail.com">registro500giappone@gmail.com</a> までご連絡ください。</p>
+    <p class="sub"><a href="/">トップページへ</a></p>
+  </div>
+</main>
+
+<script src="/config.js"></script>
+<script>
+(function () {
+  var token = new URLSearchParams(location.search).get('t') || '';
+  var ids = ['ask', 'confirmSold', 'done', 'bad'];
+  var show = function (id) { ids.forEach(function (k) { document.getElementById(k).hidden = (k !== id); }); };
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)) { show('bad'); return; }
+  show('ask');
+
+  var finish = function (r) {
+    var model = r.model || 'お車';
+    var text = document.getElementById('doneText'), sub = document.getElementById('doneSub');
+    if (r.answer === 'keep') {
+      text.textContent = (r.already ? 'すでにお返事をいただいています。' : 'ありがとうございます。') + model + 'を今も乗っていらっしゃると記録しました。';
+      sub.textContent = 'ほかは何も変わりません。これからも楽しいカーライフを。';
+    } else {
+      text.textContent = (r.already ? 'すでにお返事をいただいています。' : 'ありがとうございました。') + model + 'を手放したと記録しました。';
+      sub.textContent = '車両ページは【過去所有】の印が付いて残ります。写真や記録は消えません。';
+      document.getElementById('amici').hidden = !(r.answer === 'sold' && !r.already && r.other_cars === 0);
+    }
+    show('done');
+  };
+
+  var send = function (answer, btn) {
+    var label = btn.textContent;
+    btn.disabled = true; btn.textContent = '記録しています…';
+    fetch(SUPABASE_URL + '/rest/v1/rpc/liveness_answer', {
+      method: 'POST',
+      headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_token: token, p_answer: answer })
+    }).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }).then(function (r) {
+      if (!r) { show('bad'); return; }
+      finish(r);
+      try { gtag('event', 'liveness_answer', { answer: r.answer }); } catch (e) {}
+    }).catch(function () {
+      btn.disabled = false; btn.textContent = label;
+      alert('通信に失敗しました。少し時間をおいてもう一度お試しください。');
+    });
+  };
+
+  document.getElementById('keep').addEventListener('click', function () { send('keep', this); });
+  document.getElementById('sold').addEventListener('click', function () { show('confirmSold'); });
+  document.getElementById('soldBack').addEventListener('click', function () { show('ask'); });
+  document.getElementById('soldGo').addEventListener('click', function () { send('sold', this); });
+})();
+</script>
+</body>
+</html>

@@ -44,6 +44,7 @@ import os
 import re
 import sys
 import time
+import uuid
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -91,6 +92,14 @@ MAINT_HELPFUL_NOTICE_ON = True
 FORMER_ASK_ON = True
 FORMER_ASK_DAYS = 30
 FORMER_ASK_SINCE = datetime(2026, 11, 4, 15, 0, tzinfo=timezone.utc)   # 2026-11-05 0:00 JST
+
+# 年に一度の「今も乗っていますか？」（2026-11-17・mail/liveness_2026-11-17.sql）。
+# 1年動きのなかった車のオーナーにだけ、1台につき年1回。返事は /alive のボタン1つ（ログインなし）。催促はしない。
+# 答えがなくても何も消さない・公開の表示も変えない。⛔最後に確認した日・答えのない回数を公開ページに出さない。
+# ⚠️新しい種類のメール＝policy にも書いてから送る。配信開始は 2027年1月（ユーザー決裁）＝その日まで False。
+# 動きの記録（liveness_sync）は False の間も毎朝回す（セッションは消えるので、残しておかないと1年後に分からない）。
+LIVENESS_ON = False
+LIVENESS_DAILY_MAX = 10   # 1日に聞く台数の上限＝初日にまとめて出さず、古い登録から順に回す
 
 # オーナーの記事（ブログなど外部記事へのリンク・/my-articles で載せる）を載せるか（2026-10-29・owner-articles/HANDOFF.md §1-5）。
 # ⚠️ダイジェストは登録オーナー全員に届く＝載せた時点で実質公開。公開の判断をユーザーが出すまで False のまま。
@@ -872,6 +881,61 @@ def send_former_owner_asks():
     log(f"手放した人への問いかけ: {sent}通送信" + ("（DRY RUN＝管理者宛・記録なし）" if DRY_RUN else ""))
 
 
+def send_liveness_asks():
+    """年に一度の「今も乗っていますか？」。動きの記録は毎朝・聞くのはスイッチ ON のときだけ"""
+    if not DRY_RUN:
+        n = sb_rpc("liveness_sync")
+        log(f"生存確認: 動きの記録を {n} 台ぶん更新")
+    if not LIVENESS_ON:
+        log("生存確認: スイッチ OFF")
+        return
+    rows = sb_rpc("liveness_targets", {"p_limit": LIVENESS_DAILY_MAX}) or []
+    if not rows:
+        log("生存確認: 対象なし")
+        return
+    by_mail = {}
+    for r in rows:   # 同じ人の車が同じ日に重なったら1通にまとめる
+        by_mail.setdefault(r["owner_email"], []).append(r)
+    now = datetime.now(timezone.utc)
+    sent = 0
+    for mail, cars in by_mail.items():
+        tokens = {c["car_id"]: str(uuid.uuid4()) for c in cars}
+        name = cars[0].get("handle_name") or "オーナー"
+        lines = "\n".join(f"・{c['model']}\n  {SITE}/alive?t={tokens[c['car_id']]}" for c in cars)
+        what = cars[0]["model"] if len(cars) == 1 else "ご登録の車"
+        body = (f"{name}さん\n\n"
+                f"Registro500 / Registro126 Giappone にご登録いただいている{what}について、年に一度のご確認です。\n"
+                "この1年、サイトへのログインや車両情報の更新がなかった方にだけお送りしています。\n\n"
+                "いまの様子を、次のページのボタン1つで教えてください（ログインは要りません）。\n\n"
+                f"{lines}\n\n"
+                "・今も乗っている → 「今も乗っています」を押してください。ほかは何も変わりません。\n"
+                "・手放した → 「手放しました」を押すと、車両ページは【過去所有】の印が付いて残ります（写真や記録は消えません）。\n\n"
+                "このご確認は年に一度だけです。お返事がなくても、車両ページや記録はそのまま残ります。\n\n"
+                "---------------------------------------------------------\n"
+                "Registro500 / Registro126 Giappone\n" + SITE + "/\n"
+                "お問い合わせ：registro500giappone@gmail.com")
+        to = ADMIN_EMAIL if DRY_RUN else mail
+        subject = (("[DRY RUN] " if DRY_RUN else "") + "【Registro500/126】" + what
+                   + "は今もお手元にありますか（年に一度のご確認）")
+        try:
+            brevo_send({"replyTo": {"name": SENDER_NAME, "email": REPLY_TO_EMAIL},
+                        "to": [{"email": to}], "subject": subject,
+                        "textContent": body, "htmlContent": text_to_html(body)}, timeout=30)
+        except Exception as e:
+            log(f"生存確認 送信エラー（{', '.join(tokens)}）: {e}")
+            continue          # 記録しない＝翌朝また対象に入る
+        sent += 1
+        if DRY_RUN:
+            break             # 試運転は管理者に1通だけ・記録しない（札も効かない）
+        sb_upsert("car_liveness",
+                  [{"car_id": c["car_id"], "asked_at": now.isoformat().replace("+00:00", "Z"),
+                    "token": tokens[c["car_id"]], "answer": None, "answered_at": None,
+                    "missed": int(c.get("missed") or 0) + 1,
+                    "updated_at": now.isoformat().replace("+00:00", "Z")} for c in cars],
+                  on_conflict="car_id")
+    log(f"生存確認: {sent}通送信（{len(rows)}台）" + ("（DRY RUN＝管理者宛・記録なし）" if DRY_RUN else ""))
+
+
 # =========================================================
 # Brevo の停止リストの見回り（2026-11-17〜・312 と同じ）
 # =========================================================
@@ -963,3 +1027,9 @@ if __name__ == "__main__":
         log(f"❌ 手放した人への問いかけでエラー: {err}")
         send_admin_alert("【要確認】手放した人への問いかけ失敗",
                          f"send_digest.py の send_former_owner_asks で例外が発生しました: {err}")
+    try:
+        send_liveness_asks()
+    except Exception as err:
+        log(f"❌ 生存確認でエラー: {err}")
+        send_admin_alert("【要確認】生存確認（今も乗っていますか）の失敗",
+                         f"send_digest.py の send_liveness_asks で例外が発生しました: {err}")

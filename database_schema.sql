@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-11-04 18:44 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-11-17 15:57 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -48,6 +48,22 @@ create table public.car_history (
 );
 alter table public.car_history add constraint car_history_pkey PRIMARY KEY (id);
 alter table public.car_history enable row level security;
+
+create table public.car_liveness (
+  car_id text not null,
+  last_seen_at timestamp with time zone,
+  asked_at timestamp with time zone,
+  token uuid,
+  answer text,
+  answered_at timestamp with time zone,
+  missed integer not null default 0,
+  updated_at timestamp with time zone not null default now()
+);
+alter table public.car_liveness add constraint car_liveness_pkey PRIMARY KEY (car_id);
+alter table public.car_liveness add constraint car_liveness_token_key UNIQUE (token);
+alter table public.car_liveness add constraint car_liveness_answer_check CHECK ((answer = ANY (ARRAY['keep'::text, 'sold'::text])));
+alter table public.car_liveness enable row level security;
+comment on table public.car_liveness is '年1回の生存確認。⛔非公開（RLS・ポリシーなし）。公開ページに出さない。';
 
 create table public.cars (
   id uuid not null default gen_random_uuid(),
@@ -566,7 +582,7 @@ alter table public.mail_subscriptions add constraint mail_subscriptions_list_ema
 alter table public.mail_subscriptions add constraint mail_subscriptions_unsub_token_key UNIQUE (unsub_token);
 alter table public.mail_subscriptions add constraint mail_subscriptions_check CHECK (((list <> 'weekly'::text) OR ((user_id IS NOT NULL) AND (consented_at IS NOT NULL) AND (policy_version IS NOT NULL))));
 alter table public.mail_subscriptions add constraint mail_subscriptions_email_check CHECK (((email = lower(email)) AND (POSITION(('@'::text) IN (email)) > 1)));
-alter table public.mail_subscriptions add constraint mail_subscriptions_list_check CHECK ((list = ANY (ARRAY['weekly'::text, 'owner_digest'::text])));
+alter table public.mail_subscriptions add constraint mail_subscriptions_list_check CHECK ((list = ANY (ARRAY['weekly'::text, 'owner_digest'::text, 'owner_notice'::text])));
 alter table public.mail_subscriptions add constraint mail_subscriptions_source_check CHECK ((source = ANY (ARRAY['signup'::text, 'former_owner'::text, 'owner'::text])));
 alter table public.mail_subscriptions add constraint mail_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 alter table public.mail_subscriptions enable row level security;
@@ -701,6 +717,18 @@ alter table public.owner_articles add constraint owner_articles_title_check CHEC
 alter table public.owner_articles add constraint owner_articles_url_check CHECK (((url ~~ 'https://%'::text) AND (char_length(url) <= 1000)));
 alter table public.owner_articles add constraint owner_articles_author_user_id_fkey FOREIGN KEY (author_user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 alter table public.owner_articles enable row level security;
+
+create table public.owner_tool_amazon_picks (
+  tool_id uuid not null,
+  token text not null,
+  candidates jsonb not null default '[]'::jsonb,
+  searched_at timestamp with time zone not null default now(),
+  picked_index integer,
+  picked_at timestamp with time zone
+);
+alter table public.owner_tool_amazon_picks add constraint owner_tool_amazon_picks_pkey PRIMARY KEY (tool_id);
+alter table public.owner_tool_amazon_picks add constraint owner_tool_amazon_picks_tool_id_fkey FOREIGN KEY (tool_id) REFERENCES owner_tools(id) ON DELETE CASCADE;
+alter table public.owner_tool_amazon_picks enable row level security;
 
 create table public.owner_tool_helpful (
   id uuid not null default gen_random_uuid(),
@@ -961,7 +989,8 @@ create table public.videos (
   is_howto boolean not null default false,
   recommended_by_name text,
   steps_ja jsonb,
-  has_steps boolean default (steps_ja IS NOT NULL)
+  has_steps boolean default (steps_ja IS NOT NULL),
+  search_text text default ((((((COALESCE(title_ja, ''::text) || ' '::text) || COALESCE(title_original, ''::text)) || ' '::text) || COALESCE(description_ja, ''::text)) || ' '::text) || COALESCE((steps_ja)::text, ''::text))
 );
 alter table public.videos add constraint videos_pkey PRIMARY KEY (id);
 alter table public.videos add constraint videos_youtube_id_key UNIQUE (youtube_id);
@@ -1535,6 +1564,113 @@ end;
 $function$
 ;
 -- acl: postgres=X/postgres authenticated=X/postgres service_role=X/postgres
+
+CREATE OR REPLACE FUNCTION public.liveness_answer(p_token uuid, p_answer text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r public.car_liveness%rowtype;
+  c public.cars%rowtype;
+  others integer;
+begin
+  if p_answer not in ('keep', 'sold') then return null; end if;
+  select * into r from public.car_liveness
+   where token = p_token and asked_at > now() - interval '400 days' for update;
+  if not found then return null; end if;
+  select * into c from public.cars where document_id = r.car_id;
+  if not found then return null; end if;
+
+  if r.answer is not null then
+    return jsonb_build_object('model', c.model_display_c, 'answer', r.answer, 'already', true);
+  end if;
+
+  update public.car_liveness
+     set answer = p_answer, answered_at = now(), missed = 0,
+         last_seen_at = case when p_answer = 'keep' then now() else last_seen_at end,
+         updated_at = now()
+   where car_id = r.car_id;
+
+  if p_answer = 'sold' and not c.is_sold then
+    update public.cars set is_sold = true, sold_at = now() where document_id = r.car_id;
+  end if;
+
+  select count(*) into others from public.cars
+   where lower(owner_email) = lower(c.owner_email) and not is_sold;
+
+  if p_answer = 'sold' and others = 0 and c.owner_email like '%@%' then
+    insert into public.mail_former_asks (email, car_id) values (lower(c.owner_email), r.car_id)
+    on conflict (email) do nothing;
+  end if;
+
+  return jsonb_build_object('model', c.model_display_c, 'answer', p_answer, 'already', false,
+                            'other_cars', others);
+end $function$
+;
+-- acl: postgres=X/postgres anon=X/postgres authenticated=X/postgres service_role=X/postgres
+
+CREATE OR REPLACE FUNCTION public.liveness_sync()
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'auth', 'pg_temp'
+AS $function$
+declare n integer;
+begin
+  with owner_of as (
+    select c.document_id as car_id,
+           coalesce(c.owner_user_id,
+                    (select u.id from auth.users u where lower(u.email) = lower(c.owner_email) limit 1)) as user_id,
+           c.last_update_date
+      from public.cars c
+     where not c.is_sold
+  ),
+  seen as (
+    select o.car_id,
+           greatest(
+             o.last_update_date,
+             (select u.last_sign_in_at from auth.users u where u.id = o.user_id),
+             (select max(greatest(s.created_at, s.updated_at, s.refreshed_at::timestamptz))
+                from auth.sessions s where s.user_id = o.user_id),
+             (select (max(d.login_date) + 1)::timestamptz from public.daily_logins d where d.user_id = o.user_id)
+           ) as t
+      from owner_of o
+  )
+  insert into public.car_liveness as l (car_id, last_seen_at)
+  select car_id, t from seen where t is not null
+  on conflict (car_id) do update
+     set last_seen_at = greatest(l.last_seen_at, excluded.last_seen_at),
+         missed = case when l.asked_at is not null and excluded.last_seen_at > l.asked_at then 0 else l.missed end,
+         updated_at = now()
+   where l.last_seen_at is distinct from greatest(l.last_seen_at, excluded.last_seen_at);
+  get diagnostics n = row_count;
+  return n;
+end $function$
+;
+-- acl: postgres=X/postgres service_role=X/postgres
+
+CREATE OR REPLACE FUNCTION public.liveness_targets(p_limit integer DEFAULT 10)
+ RETURNS TABLE(car_id text, owner_email text, handle_name text, model text, registered_at timestamp with time zone, missed integer)
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select c.document_id, lower(c.owner_email), c.handle_name, coalesce(c.model_display_c, 'お車'), c.created_at,
+         coalesce(l.missed, 0)
+    from public.cars c
+    left join public.car_liveness l on l.car_id = c.document_id
+   where not c.is_sold
+     and c.owner_email like '%@%'
+     and c.created_at < now() - interval '365 days'
+     and coalesce(l.last_seen_at, c.created_at) < now() - interval '365 days'
+     and (l.asked_at is null or l.asked_at < now() - interval '365 days')
+   order by c.created_at asc
+   limit greatest(p_limit, 0)
+$function$
+;
+-- acl: postgres=X/postgres service_role=X/postgres
 
 CREATE OR REPLACE FUNCTION public.mail_subscriptions_guard()
  RETURNS trigger
