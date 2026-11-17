@@ -20,6 +20,7 @@
   <script src="rg-car.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-NFPmVbJvc91cC9zbheWJA+qZKj0Kod2IEMvGnxVKB5A7wLgRNA6Aobu8neZmQ19J" crossorigin="anonymous"></script>
   <script>const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);</script>
+  <script src="/rg-login.js"></script>
 
   <style>
     :root { --rg-primary-red: #e11d48; }
@@ -78,6 +79,22 @@
     #loginOverlay { position: fixed; inset: 0; background: rgba(245, 240, 230, 0.98); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     #loginOverlay.hidden { display: none; }
     .btn-google { background: #4285F4; color: white; border: none; border-radius: 999px; padding: 12px 24px; font-weight: bold; cursor: pointer; }
+    /* ログイン欄（共通の rg-login.js）をこのカードの見た目に合わせる上書き */
+    #rgLogin { max-width: 320px; margin: 0 auto; text-align: left; }
+    #rgLogin input { padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 15px; }
+    #rgLogin .rgl-main, #rgLogin .login-reload { width: 100%; padding: 12px; border: 0; border-radius: 8px; background: var(--rg-accent); color: #fff; font: revert; font-weight: 700; cursor: pointer; }
+    #rgLogin .rgl-sub { border: 1px solid #ccc; background: #fff; color: #333; font: revert; }
+    #rgLogin .rgl-link { color: var(--rg-accent); font: revert; font-size: 13px; padding: 1px 6px; }
+    #rgLogin .rgl-clear { color: #888; font-size: 12px; padding: 0; }
+    #rgLogin .rgl-or { color: #aaa; font-size: 12px; margin: 4px 0; }
+    #rgLogin .rgl-or span { background: #e0e0e0; }
+    #rgLogin .rgl-code { font-size: 22px !important; }
+    #rgLogin .rgl-msg { font-size: 13px; margin: 0; }
+    #rgLogin [data-rgl="error"] { margin: 8px 0 0; }
+    #rgLogin .rgl-ok { color: #2e7d32; }
+    #rgLogin .rgl-err, #rgLogin .login-error { color: #c62828; }
+    #rgLogin .login-error { font-size: 13px; margin: 0 0 10px; }
+    #rgLogin .login-gnote { font-size: 12px; color: #888; margin: 2px 0 0; }
     
     .car-select-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border: 1px solid var(--rg-border); border-radius: 8px; margin-bottom: 10px; cursor: pointer; background: white; transition: 0.2s; }
     .car-select-item:hover { background: var(--rg-accent-soft); border-color: var(--rg-accent); }
@@ -102,7 +119,7 @@
       .risk-note { background: #2d1a1e; border-color: #5c2830; }
       .opt-section { background: #2b2721; }
       /* アクセント塗り潰しボタンは暗地で淡緑になるため、文字は白ではなく濃色にする */
-      #emailLoginBtn, #otpVerifyBtn, #emailChangeSendBtn, #emailChangeVerifyBtn { color: #1a1714 !important; }
+      #rgLogin .rgl-main, #rgLogin .login-reload, #emailChangeSendBtn, #emailChangeVerifyBtn { color: #1a1714 !important; }
     }
 
     /* ─── ナンバーマスキングモーダル ─── */
@@ -142,36 +159,8 @@
       <!-- 狭い画面で「必要で／す。」のように文の途中で折れないよう、まとまりごとに inline-block で包む -->
       <p><span style="display:inline-block;">マイガレージを利用するには</span><span style="display:inline-block;">ログインが必要です。</span></p>
       <p style="font-size:13px;color:var(--rg-muted);margin-top:-6px;"><span style="display:inline-block;">初めての方も、</span><span style="display:inline-block;">メールアドレスを入れれば</span><span style="display:inline-block;">そのまま登録に進めます。</span></p>
-      <div style="display:flex;flex-direction:column;gap:10px;max-width:320px;margin:0 auto;text-align:left;">
-        <!-- ステップ1: メールアドレス入力 -->
-        <div id="otpStep1" style="display:flex;flex-direction:column;gap:10px;">
-          <input type="email" id="emailLoginInput" placeholder="メールアドレス" autocomplete="email"
-                 style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:15px;">
-          <button type="button" id="clearEmailBtn" style="display:none;background:none;border:0;color:#888;font-size:12px;cursor:pointer;align-self:flex-start;padding:0;">別のアドレスを使う</button>
-          <button id="emailLoginBtn"
-                  style="padding:12px;border:0;border-radius:8px;background:var(--rg-accent);color:#fff;font-weight:700;cursor:pointer;">
-            確認コードを送信
-          </button>
-          <div style="display:flex;align-items:center;gap:8px;color:#aaa;font-size:12px;margin:4px 0;">
-            <span style="flex:1;height:1px;background:#e0e0e0;"></span>または<span style="flex:1;height:1px;background:#e0e0e0;"></span>
-          </div>
-          <button class="btn-google" id="googleLoginBtn"
-                  style="padding:12px;border:1px solid #ccc;border-radius:8px;background:#fff;color:#333;font-weight:normal;cursor:pointer;">Googleでログイン（従来方式）</button>
-          <p style="font-size:12px;color:#888;margin:2px 0 0;">Googleアカウントをお使いの方はこちらが簡単です</p>
-        </div>
-        <!-- ステップ2: 確認コード入力 -->
-        <div id="otpStep2" style="display:none;flex-direction:column;gap:10px;">
-          <p style="font-size:13px;color:#2e7d32;margin:0;">✅ <span id="otpSentEmail" style="font-weight:700;"></span> に6桁の確認コードを送信しました。届いたコードを入力してください。</p>
-          <input type="text" id="otpCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"
-                 style="padding:12px;border:1px solid #ccc;border-radius:8px;font-size:22px;letter-spacing:8px;text-align:center;">
-          <button id="otpVerifyBtn"
-                  style="padding:12px;border:0;border-radius:8px;background:var(--rg-accent);color:#fff;font-weight:700;cursor:pointer;">
-            ログイン
-          </button>
-          <button id="otpResendBtn" style="background:none;border:0;color:var(--rg-accent);cursor:pointer;font-size:13px;">確認コードを再送する</button>
-        </div>
-        <p id="otpErrorMsg" style="display:none;font-size:13px;color:#c62828;margin:8px 0 0;"></p>
-      </div>
+      <!-- ログイン欄（メールの確認コード＋Google）は共通の rg-login.js が描く -->
+      <div id="rgLogin"></div>
     </div>
   </div>
 
@@ -1115,63 +1104,18 @@
       applyCarTypeUi();
       updateModelOptions();
 
-      document.getElementById('googleLoginBtn').onclick = () => supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
-
-      // ── メールOTPコードログイン ──
-      let otpEmail = '';
-      const showOtpError = (msg) => {
-        const el = document.getElementById('otpErrorMsg'); if (!el) return;
-        if (!msg) { el.style.display = 'none'; return; }
-        el.textContent = msg; el.style.display = 'block';
-      };
-      document.getElementById('emailLoginBtn').onclick = async () => {
-        const email = document.getElementById('emailLoginInput').value.trim();
-        if (!email) { alert('メールアドレスを入力してください'); return; }
-        const btn = document.getElementById('emailLoginBtn');
-        btn.disabled = true; btn.textContent = '送信中…';
-        const { error } = await supabaseClient.auth.signInWithOtp({ email });
-        btn.disabled = false; btn.textContent = '確認コードを送信';
-        const sentBefore = !!error && /after [0-9]+ seconds/.test(String(error.message));  // 1分以内に同じアドレスへ送信済み＝届いたコードがそのまま使える（2026-10-02 ここで止まってコード入力へ進めなかった）
-        if (error && !sentBefore) { showOtpError(error.status === 429 ? '送信が続いたため一時的に止まっています。数分おいてからお試しください。' : '送信に失敗しました：' + error.message); return; }
-        otpEmail = email;
-        localStorage.setItem('r500_login_email', email);
-        document.getElementById('otpSentEmail').textContent = email;
-        document.getElementById('otpStep1').style.display = 'none';
-        document.getElementById('otpStep2').style.display = 'flex';
-        showOtpError(sentBefore ? '確認コードは少し前に送信済みです。届いているメールの、いちばん新しいコードを入力してください。' : '');
-      };
-      document.getElementById('otpVerifyBtn').onclick = async () => {
-        const code = document.getElementById('otpCodeInput').value.trim();
-        if (!code) { alert('確認コードを入力してください'); return; }
-        const btn = document.getElementById('otpVerifyBtn');
-        btn.disabled = true; btn.textContent = '確認中…';
-        const { error } = await supabaseClient.auth.verifyOtp({ email: otpEmail, token: code, type: 'email' });
-        btn.disabled = false; btn.textContent = 'ログイン';
-        if (error) { showOtpError('コードが正しくないか、期限切れです。何度か送信した場合は、いちばん新しいメールのコードを入力してください。'); return; }
-        // 成功 → onAuthStateChange がログイン処理を実行（overlayを隠す）
-      };
-      document.getElementById('otpResendBtn').onclick = async () => {
-        if (!otpEmail) return;
-        const { error } = await supabaseClient.auth.signInWithOtp({ email: otpEmail });
-        showOtpError(error ? (error.status === 429 ? '再送は1分ほど間をあけてからお試しください。直前に届いたコードはそのまま使えます。' : '再送に失敗しました：' + error.message) : '');
-        if (!error) alert('確認コードを再送しました。');
-      };
-      // ── 前回ログインメールのプリフィル（共用端末配慮の「別のアドレスを使う」付き） ──
-      (function() {
-        const emailInput = document.getElementById('emailLoginInput');
-        const clearBtn = document.getElementById('clearEmailBtn');
-        const saved = localStorage.getItem('r500_login_email');
-        if (saved && emailInput) {
-          emailInput.value = saved;
-          if (clearBtn) clearBtn.style.display = 'block';
-        }
-        if (clearBtn) clearBtn.onclick = () => {
-          emailInput.value = '';
-          localStorage.removeItem('r500_login_email');
-          clearBtn.style.display = 'none';
-          emailInput.focus();
-        };
-      })();
+      // ログイン欄は共通の rg-login.js が描く（成功すると上の onAuthStateChange が覆いを隠して読み込む）。
+      // 覆いを隠す判定は上で先に仕掛けてある＝rg-login.js が読めなくても、ログイン済みの人は通れる。
+      // メールアドレスの変更（下の email_change）は別物＝ここには入れない。
+      if (window.RG && RG.login) {
+        RG.login.mount('rgLogin', { sb: supabaseClient, emailPlaceholder: 'メールアドレス' });
+        const gNote = document.createElement('p');
+        gNote.className = 'login-gnote';
+        gNote.textContent = 'Googleアカウントをお使いの方はこちらが簡単です';
+        document.querySelector('#rgLogin [data-rgl="step1"]').appendChild(gNote);
+      } else {
+        document.getElementById('rgLogin').innerHTML = '<p class="login-error">ログイン欄を読み込めませんでした。通信の状態を確かめて、もう一度お試しください。</p><button type="button" class="login-reload" onclick="location.reload()">ページを読み込み直す</button>';
+      }
       document.getElementById('logoutBtn').onclick = () => supabaseClient.auth.signOut().then(() => { overlay.classList.remove('hidden'); document.getElementById('pageLoading').style.display = 'none'; });
 
       // ── メールアドレス変更（案2: auth email と owner_email を新メールに統一） ──
