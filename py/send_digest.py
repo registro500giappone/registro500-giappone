@@ -100,6 +100,8 @@ FORMER_ASK_SINCE = datetime(2026, 11, 4, 15, 0, tzinfo=timezone.utc)   # 2026-11
 # 動きの記録（liveness_sync）は False の間も毎朝回す（セッションは消えるので、残しておかないと1年後に分からない）。
 LIVENESS_ON = False
 LIVENESS_DAILY_MAX = 10   # 1日に聞く台数の上限＝初日にまとめて出さず、古い登録から順に回す
+# 開始の時期を管理人に知らせる：この日以降、スイッチが OFF の間は毎週月曜の朝に管理人へ1通（ON にすれば止まる）
+LIVENESS_REMIND_FROM = datetime(2027, 1, 3, 15, 0, tzinfo=timezone.utc)   # 2027-01-04（月）0:00 JST
 
 # オーナーの記事（ブログなど外部記事へのリンク・/my-articles で載せる）を載せるか（2026-10-29・owner-articles/HANDOFF.md §1-5）。
 # ⚠️ダイジェストは登録オーナー全員に届く＝載せた時点で実質公開。公開の判断をユーザーが出すまで False のまま。
@@ -888,6 +890,16 @@ def send_liveness_asks():
         log(f"生存確認: 動きの記録を {n} 台ぶん更新")
     if not LIVENESS_ON:
         log("生存確認: スイッチ OFF")
+        now_jst = datetime.now(timezone(timedelta(hours=9)))
+        if datetime.now(timezone.utc) >= LIVENESS_REMIND_FROM and now_jst.weekday() == 0 and not DRY_RUN:
+            send_admin_alert("【開始の時期です】年に一度の「今も乗っていますか？」の確認",
+                             "2027年1月に始めると決めた確認メールが、まだ止まったままです（毎週月曜にお知らせします）。\n\n"
+                             "Claude に「生存確認を始めて」と伝えれば、次の順で進めます。\n"
+                             "1. policy.html に1行を足し、お知らせを1本出す（下書きは用意済み）\n"
+                             "2. 管理人宛てに試し送り（DIGEST_DRY_RUN=1）\n"
+                             "3. py/send_digest.py の LIVENESS_ON を True にして push\n\n"
+                             "やめる・延ばす場合も Claude に伝えてください（このお知らせも止めます）。")
+            log("生存確認: 開始の時期を管理人に知らせました")
         return
     rows = sb_rpc("liveness_targets", {"p_limit": LIVENESS_DAILY_MAX}) or []
     if not rows:
