@@ -98,6 +98,10 @@
     .paste-row { display: flex; gap: 8px; }
     .paste-row input { flex: 1; min-width: 0; }
     .paste-row .btn-sub { flex: none; white-space: nowrap; }
+    /* 愛車のページの URL とコピーを1行の箱に（車両ページの共有の欄と同じ見た目） */
+    .prof-url-row { display: flex; align-items: stretch; border: 1px solid var(--accent); border-radius: 8px; overflow: hidden; }
+    .prof-url-row .prof-url { flex: 1; min-width: 0; padding: 10px 12px; font-size: .92rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .prof-url-row button { flex: none; border: 0; border-left: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: .85rem; padding: 0 16px; cursor: pointer; font-family: inherit; white-space: nowrap; }
     .pv-site { font-size: .78rem; color: var(--text-sub); margin-top: 6px; word-break: break-all; }
     .pv-site a { color: var(--accent); }
     #areaBox { margin-top: 8px; }
@@ -168,12 +172,9 @@
 
     <div class="card hidden" id="profCard" style="margin-top:14px">
       <h2>愛車のページを SNS のプロフィールに貼る</h2>
-      <p class="note">SNS のプロフィールに貼っておくと、見た人がこの車のページを開けます。</p>
+      <p class="note">Instagram や X のプロフィールに貼っておくと、見た人がこの車のページを開けます。</p>
       <div id="profList"></div>
-      <ul class="note" style="margin:8px 0 0;padding-left:1.2em;">
-        <li>Instagram：プロフィールを編集 →「リンク」→「外部リンクを追加」に貼る</li>
-        <li>X：プロフィールを編集 →「ウェブサイト」に貼る</li>
-      </ul>
+      <p class="note" style="margin:8px 0 0;">Instagram＝プロフィールを編集 →「リンク」→「外部リンクを追加」<br>X＝プロフィールを編集 →「ウェブサイト」</p>
     </div>
 
     <div class="card hidden" id="mineCard" style="margin-top:14px">
@@ -464,19 +465,23 @@
     const list = $('profList');
     list.textContent = '';
     myCars.forEach(c => {
-      const url = location.origin + '/detail?doc=' + encodeURIComponent(c.id);
+      // 短い URL（/car/<番号> → functions/car/[no].js が /detail?doc= へ転送）
+      const url = /^DOC_[1-9][0-9]*$/.test(c.id) ? location.origin + '/car/' + c.id.slice(4)
+                                                 : location.origin + '/detail?doc=' + encodeURIComponent(c.id);
       const row = el('div'); row.style.margin = '8px 0';
       if (myCars.length > 1) row.appendChild(el('div', 'note', c.label.trim()));
-      const u = el('div', null, url); u.style.cssText = 'font-size:.85rem;overflow-wrap:anywhere;margin:2px 0 6px;';
-      const label = '📋 愛車のページのURLをコピー';
-      const b = el('button', 'btn-sub', label); b.type = 'button';
+      const box = el('div', 'prof-url-row');
+      const u = el('span', 'prof-url', url.replace(/^https?:\/\/(www\.)?/, ''));
+      const label = 'コピー';
+      const b = el('button', null, label); b.type = 'button';
       let timer;
       b.addEventListener('click', async () => {
-        try { await navigator.clipboard.writeText(url); b.textContent = '✓ コピーしました'; track('profile_link_copy', { from: 'mine' }); }
+        try { await navigator.clipboard.writeText(url); b.textContent = '✓ コピー済'; track('profile_link_copy', { from: 'mine' }); }
         catch (e) { b.textContent = 'コピーできませんでした'; }
         clearTimeout(timer); timer = setTimeout(() => { b.textContent = label; }, 2000);
       });
-      row.append(u, b);
+      box.append(u, b);
+      row.append(box);
       list.appendChild(row);
     });
     $('profCard').classList.remove('hidden');
