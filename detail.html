@@ -144,14 +144,26 @@
     .rg-btn-black:hover { opacity: 0.85; }
     .rg-action-row { display: flex; gap: 0.5rem; }
     .rg-action-row .rg-btn { padding: 10px 6px; font-size: 0.85rem; white-space: nowrap; border-radius: 8px; }
-    /* SNS のプロフィールに貼る（持ち主だけ）＝共有ボタンの下に区切り線で分け、URL とコピーを1行の箱に */
+    /* 共有・連絡＝送ると相手に届くカードの見本 → 送る手段4つ → 持ち主にだけ「プロフィールに貼る」／ほかの人にだけ「メッセージ」。
+       見本は functions/detail.js が X・LINE に渡すカードの形（写真は左右を地色 #e3dac4 で足した 1200×630）に合わせる */
+    .share-preview-label { margin: 0 0 0.45rem; font-size: 0.82rem; font-weight: 700; color: var(--rg-muted); }
+    .share-card { border: 1px solid var(--rg-border); border-radius: 14px; overflow: hidden; background: var(--rg-surface-sub); }
+    .share-card-img { aspect-ratio: 1200 / 630; background: #e3dac4; display: flex; justify-content: center; }
+    .share-card-img img { height: 100%; width: auto; max-width: 100%; object-fit: contain; display: block; }
+    .share-card-text { padding: 9px 12px 11px; display: grid; gap: 1px; }
+    .share-card-text .t { font-weight: 700; font-size: 0.9rem; line-height: 1.4; }
+    .share-card-text .d { font-size: 0.8rem; color: var(--rg-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .share-card-text .u { font-size: 0.78rem; color: var(--rg-muted); }
+    .share-send { margin-top: 0.8rem; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+    .share-send .rg-btn { padding: 10px 6px; font-size: 0.85rem; white-space: nowrap; border-radius: 8px; font-family: inherit; }
+    .rg-btn-copy { background: var(--rg-accent-soft); color: var(--rg-accent); border: 1px solid var(--rg-accent-border); }
+    .share-xnote { margin: 0.45rem 0 0; font-size: 0.78rem; color: var(--rg-muted); line-height: 1.6; }
+    /* 下の段（持ち主＝プロフィールに貼る／ほかの人＝メッセージ）は区切り線で分ける */
     .prof-link { margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid var(--rg-border); }
     .prof-link h3 { font-size: 0.95rem; margin: 0 0 0.3rem; }
     .prof-link .prof-note { margin: 0 0 0.6rem; color: var(--rg-muted); font-size: 0.82rem; line-height: 1.6; }
-    .prof-url-row { display: flex; align-items: stretch; border: 1px solid var(--rg-accent-border); border-radius: 8px; overflow: hidden; background: var(--rg-surface-sub); }
-    .prof-url-row .prof-url { flex: 1; min-width: 0; padding: 10px 12px; font-size: 0.92rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .prof-url-row button { flex: none; border: 0; border-left: 1px solid var(--rg-accent-border); background: var(--rg-accent-soft); color: var(--rg-accent); font-weight: 700; font-size: 0.85rem; padding: 0 16px; cursor: pointer; font-family: inherit; white-space: nowrap; }
     .prof-link .prof-how { margin: 0.6rem 0 0; color: var(--rg-muted); font-size: 0.78rem; line-height: 1.7; }
+    #contactArea .btn-contact { margin-top: 0; }
 
     /* モーダル内コンテンツ */
     .rg-modal-box { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 25px 50px rgba(0,0,0,0.25); }
@@ -527,8 +539,14 @@
             <p id="sisterErr" style="display:none;margin:0.4rem 0 0;color:#c62828;font-size:0.82rem;text-align:right;"></p>
           </section>
           <section class="rg-card" id="shareSection"><h2 class="rg-section-title">共有・連絡</h2>
-            <div class="rg-action-row"><button class="rg-btn rg-btn-dark" onclick="showQRCode()">QR表示</button><a id="shareX" class="rg-btn rg-btn-black" target="_blank">Xでシェア</a><a id="shareLINE" class="rg-btn" style="background:#06C755;color:#fff;" target="_blank">LINEで送る</a></div>
-            <div id="contactArea" style="display:none;"><button class="btn-contact" onclick="openContactForm()">オーナーへメッセージを送る</button></div>
+            <p class="share-preview-label">LINE で送るとこう届きます</p>
+            <div class="share-card">
+              <div class="share-card-img"><img id="shareCardImg" alt="" loading="lazy"></div>
+              <div class="share-card-text"><span class="t" id="shareCardTitle"></span><span class="d" id="shareCardDesc"></span><span class="u" id="shareCardUrl"></span></div>
+            </div>
+            <div class="share-send"><a id="shareX" class="rg-btn rg-btn-black" target="_blank" rel="noopener">X</a><a id="shareLINE" class="rg-btn" style="background:#06C755;color:#fff;" target="_blank" rel="noopener">LINE</a><button type="button" class="rg-btn rg-btn-dark" onclick="showQRCode()">QR</button><button type="button" class="rg-btn rg-btn-copy" id="shareCopy">コピー</button></div>
+            <p class="share-xnote">X では写真と registro500.com だけのカードになります。文章は X の画面で書き足せます。</p>
+            <div id="contactArea" class="prof-link" style="display:none;"><button class="btn-contact" onclick="openContactForm()">オーナーへメッセージを送る</button></div>
             <div id="profLink" class="prof-link" style="display:none;"></div>
           </section>
         </div>
@@ -594,15 +612,24 @@
       }
     }
 
-    function updateOGP(car) {
+    // ページの題名とカードの文。ページの題名はサイトがオーナーを紹介する声＝「◯◯さんの」。カードは誰が送っても同じ＝「さん」を付けない見出しの形。
+    // 組み立ては functions/detail.js の headFor() と同じ（どちらかを変えたらもう片方も）。共有欄の見本カード（fillShare）もこれを使う
+    function cardText(car) {
       const siteName = RG.car.siteName(car);
-      const carLabel = RG.car.label(car);
       const prefix = car.is_sold ? '【過去所有】' : '';
-      const title = prefix + (car.handle_name || '') + 'さんの' + (car.model_display_c || carLabel) + ' - ' + siteName;
-      const desc = (car.handle_name || '') + 'さんの' + (car.model_display_c || carLabel) + '。車両スペック・写真を公開中。';
+      const model = car.model_display_c || RG.car.label(car);
+      const title = prefix + (car.handle_name || '') + 'さんの' + model + ' - ' + siteName;
+      const cardTitle = prefix + model + (car.year ? '・' + car.year + '年式' : '') + (car.handle_name ? '｜' + car.handle_name : '');
+      const where = [car.body_color, car.prefecture].map(v => String(v || '').trim()).filter(Boolean).join('・');
+      const desc = (where ? where + '。' : '') + '全国のクラシックFIAT ' + (RG.car.is126(car) ? '126' : '500') + 'が集まる ' + siteName + ' Giappone の登録車両です。';
+      return { title, cardTitle, desc };
+    }
+
+    function updateOGP(car) {
+      const { title, cardTitle, desc } = cardText(car);
       document.title = title;
       const setMeta = (attr, key, val) => { const el = document.querySelector(`meta[${attr}="${key}"]`); if (el) el.setAttribute('content', val); };
-      setMeta('property', 'og:title', title);
+      setMeta('property', 'og:title', cardTitle);
       setMeta('property', 'og:description', desc);
       setMeta('name', 'description', desc);
       if (car.photo_main) setMeta('property', 'og:image', car.photo_main);
@@ -689,9 +716,7 @@
           heroSns.style.display = 'flex';
         }
       });
-      const carLabel2 = RG.car.label(car);
-      document.getElementById('shareX').href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(car.handle_name + 'さんの' + carLabel2)}&url=${encodeURIComponent(carShortUrl(car.document_id))}`;
-      document.getElementById('shareLINE').href = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(carShortUrl(car.document_id))}`;
+      fillShare(car, false); // 持ち主かどうかは updateOwnerUI() で決まり次第そちらで描き直す
       fetchEpisodes(car.document_id);
       fetchEquipmentNotebook(car.document_id);
       scheduleStanding(car);
@@ -1146,8 +1171,10 @@
         const addBtn = document.getElementById('addEpisodeBtn');
         if (addBtn) { addBtn.style.display = 'block'; addBtn.onclick = () => location.href = `/episode-edit?car=${currentCar.document_id}`; }
         scheduleBlanks(currentCar);
+        fillShare(currentCar, true);
         renderProfLink();
       } else {
+        fillShare(currentCar, false);
         document.getElementById('profLink').style.display = 'none';
         if(currentCar.accept_inquiry !== false && !currentCar.is_sold) {
           document.getElementById('contactArea').style.display = 'block';
@@ -1158,22 +1185,41 @@
       updateSister();
     }
 
-    // 愛車のページを SNS のプロフィールに貼る（持ち主にだけ・URL をコピーするだけ＝知らせない・記録しない）
+    // 共有欄＝見本カード・X の下書き・コピー
+    // カードはページに1つ＝誰が送っても同じ。X は見出しを出さない（写真とドメインだけ）ので、何の車かは下書きの文で伝える＝送る人で分ける
+    let shareCopyTimer;
+    function fillShare(car, isOwner) {
+      const url = carShortUrl(car.document_id);
+      const { cardTitle, desc } = cardText(car);
+      const img = document.getElementById('shareCardImg');
+      // 表紙の写真が無い車は雛形のカード画像（head の og:image）がそのまま届く
+      const fallback = (document.querySelector('meta[property="og:image"]') || {}).content || '/og/site-ja.png';
+      const src = car.photo_main ? (safeUrl(car.photo_main) || fallback) : fallback;
+      if (img.getAttribute('src') !== src) img.src = src;
+      document.getElementById('shareCardTitle').textContent = cardTitle;
+      document.getElementById('shareCardDesc').textContent = desc;
+      document.getElementById('shareCardUrl').textContent = url.replace(/^https?:\/\/(www\.)?/, '');
+      const model = car.model_display_c || RG.car.label(car);
+      const yr = car.year ? `（${car.year}年式）` : '';
+      const mine = isOwner && !car.is_sold;
+      const text = mine ? `愛車の ${model}${yr}のページです` : `${car.handle_name ? car.handle_name + 'さんの ' : ''}${model}${yr}`;
+      document.getElementById('shareX').href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+      document.getElementById('shareLINE').href = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}`;
+      const btn = document.getElementById('shareCopy');
+      btn.onclick = async () => {
+        // URL をコピーするだけ＝知らせない・記録しない（GA4 の数だけ）。持ち主の分は以前の「プロフィールに貼る」のコピーと同じ名前で数える
+        try { await navigator.clipboard.writeText(url); btn.textContent = '✓ 済'; if (typeof gtag === 'function') gtag('event', isOwner ? 'profile_link_copy' : 'car_link_copy', { from: 'car' }); }
+        catch (e) { btn.textContent = '失敗'; }
+        clearTimeout(shareCopyTimer); shareCopyTimer = setTimeout(() => { btn.textContent = 'コピー'; }, 2000);
+      };
+    }
+
+    // 愛車のページを SNS のプロフィールに貼る（持ち主にだけ・手順の案内だけ＝URL は上の「コピー」で写す）
     function renderProfLink() {
       const box = document.getElementById('profLink');
-      const url = carShortUrl(currentCar.document_id);
-      const label = 'コピー';
       box.innerHTML = `<h3>SNS のプロフィールに貼る</h3>
-        <p class="prof-note">Instagram や X のプロフィールに貼っておくと、見た人がこの車のページを開けます。</p>
-        <div class="prof-url-row"><span class="prof-url">${esc(url.replace(/^https?:\/\/(www\.)?/, ''))}</span><button type="button" id="profLinkBtn">${label}</button></div>
+        <p class="prof-note">上の「コピー」で写した URL をプロフィールに貼っておくと、見た人がこの車のページを開けます。</p>
         <p class="prof-how">Instagram＝プロフィールを編集 →「リンク」→「外部リンクを追加」<br>X＝プロフィールを編集 →「ウェブサイト」</p>`;
-      const btn = document.getElementById('profLinkBtn');
-      let timer;
-      btn.onclick = async () => {
-        try { await navigator.clipboard.writeText(url); btn.textContent = '✓ コピー済'; if (typeof gtag === 'function') gtag('event', 'profile_link_copy', { from: 'car' }); }
-        catch (e) { btn.textContent = 'コピーできませんでした'; }
-        clearTimeout(timer); timer = setTimeout(() => { btn.textContent = label; }, 2000);
-      };
       box.style.display = 'block';
     }
 
