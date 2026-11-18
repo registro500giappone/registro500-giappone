@@ -58,6 +58,12 @@ jobs:
         continue-on-error: true
         run: python py/build_card_thumbs.py
 
+      # SNS カードの写真（/og-car/<番号>.jpg）を全車ぶん先に変換しておく（2026-11-19）。
+      # 初回の変換は約3秒かかり X が待たない＝写真なしのカードになるため。何も書かないのでコミットには関係しない。
+      - name: SNS カードの写真を先に作っておく
+        continue-on-error: true
+        run: python py/warm_og_cards.py
+
       - name: 差分があればコミット
         # ⛔ git add -A は使わない（関係ないファイルを巻き込まないため・ファイル名を明示する）
         run: |

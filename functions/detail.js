@@ -45,20 +45,27 @@ async function loadCar(env, doc) {
   return rows[0] || null;
 }
 
-export async function onRequestGet({ request, env, next }) {
+export async function onRequestGet({ request, env, next, waitUntil }) {
   const page = await next();
   const doc = new URL(request.url).searchParams.get("doc") || "";
-  return withCarHead(page, env, doc);
+  const bot = CARD_BOT_RE.test(request.headers.get("user-agent") || "");
+  return withCarHead(page, env, doc, bot ? waitUntil : null);
 }
 
+// SNS のリンクの下見をするクローラーだけ（検索エンジンは含めない）。
+// LINE はアプリ内ブラウザの UA にも「Line」が入るので、下見の「line-poker」だけで見分ける。
+export const CARD_BOT_RE = /Twitterbot|facebookexternalhit|Facebot|line-poker|Slackbot|Discordbot|WhatsApp|TelegramBot|LinkedInBot|Pinterestbot|SkypeUriPreview|Iframely|Embedly/i;
+
 // functions/car/[no].js も使う（カード用クローラーには /car/<番号> で転送せずにこれを返す）
-export async function withCarHead(page, env, doc) {
+// waitUntil があれば、カードの写真の変換を裏で先に始める（初回は約3秒かかり X が待たないため。毎晩の py/warm_og_cards.py の補い）
+export async function withCarHead(page, env, doc, waitUntil) {
   if (!DOC_RE.test(doc) || !page.ok || !(page.headers.get("content-type") || "").includes("text/html")) return page;
   let car = null;
   try { car = await loadCar(env, doc); } catch { car = null; }
   if (!car) return page;
 
   const m = headFor(car, doc);
+  if (waitUntil && m.image) waitUntil(fetch(m.image).then(r => r.arrayBuffer()).catch(() => {}));
   const set = v => ({ element(el) { el.setAttribute("content", v); } });
   let rw = new HTMLRewriter()
     .on("title", { element(el) { el.setInnerContent(m.title); } })

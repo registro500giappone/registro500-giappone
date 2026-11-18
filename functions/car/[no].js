@@ -3,23 +3,18 @@
 // 番号は cars.document_id の DOC_ の後ろ（500・126 で共通の通し番号）。数字でなければ素通し＝通常の 404。
 // 【2026-11-19】X は転送（301）の先からカードを作らなかった＝カード用のクローラーにだけ、転送せずに
 //   その車の head に書き換えた /detail をそのまま返す（人は従来どおり 301。人に返すと相対パスが /car/ 基準で壊れる）。
-import { withCarHead } from "../detail.js";
+// 見分けるクローラーの一覧は detail.js の CARD_BOT_RE（検索エンジンは含めない＝検索は従来どおり 301 で /detail に集める）。
+import { withCarHead, CARD_BOT_RE } from "../detail.js";
 
-// SNS のリンクの下見をするクローラーだけ（検索エンジンは含めない＝検索は従来どおり 301 で /detail に集める）。
-// LINE はアプリ内ブラウザの UA にも「Line」が入るので、下見の「line-poker」だけで見分ける。
-const CARD_BOT_RE = /Twitterbot|facebookexternalhit|Facebot|line-poker|Slackbot|Discordbot|WhatsApp|TelegramBot|LinkedInBot|Pinterestbot|SkypeUriPreview|Iframely|Embedly/i;
-
-export async function onRequest({ params, request, env, next }) {
+export async function onRequest({ params, request, env, next, waitUntil }) {
   const no = String(params.no || '');
   if (!/^[1-9][0-9]{0,5}$/.test(no)) return next();
   const dest = new URL('/detail?doc=DOC_' + no, request.url);
   const ua = request.headers.get('user-agent') || '';
-  // X がどう取りに来るかの確認用（Cloudflare の Pages → Functions のリアルタイムログで見る）
-  console.log('car', request.method, no, ua);
   if ((request.method === 'GET' || request.method === 'HEAD') && CARD_BOT_RE.test(ua)) {
     try {
       const page = await env.ASSETS.fetch(new URL('/detail', request.url));
-      const res = await withCarHead(page, env, 'DOC_' + no);
+      const res = await withCarHead(page, env, 'DOC_' + no, waitUntil);
       return request.method === 'HEAD' ? new Response(null, res) : res;
     } catch { /* 下の 301 へ */ }
   }
