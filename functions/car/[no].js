@@ -13,10 +13,14 @@ export async function onRequest({ params, request, env, next }) {
   const no = String(params.no || '');
   if (!/^[1-9][0-9]{0,5}$/.test(no)) return next();
   const dest = new URL('/detail?doc=DOC_' + no, request.url);
-  if (request.method === 'GET' && CARD_BOT_RE.test(request.headers.get('user-agent') || '')) {
+  const ua = request.headers.get('user-agent') || '';
+  // X がどう取りに来るかの確認用（Cloudflare の Pages → Functions のリアルタイムログで見る）
+  console.log('car', request.method, no, ua);
+  if ((request.method === 'GET' || request.method === 'HEAD') && CARD_BOT_RE.test(ua)) {
     try {
       const page = await env.ASSETS.fetch(new URL('/detail', request.url));
-      return await withCarHead(page, env, 'DOC_' + no);
+      const res = await withCarHead(page, env, 'DOC_' + no);
+      return request.method === 'HEAD' ? new Response(null, res) : res;
     } catch { /* 下の 301 へ */ }
   }
   return Response.redirect(dest.toString(), 301);
