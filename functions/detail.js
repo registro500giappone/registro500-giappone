@@ -27,10 +27,10 @@ export function headFor(car, doc) {
   const desc = `${where ? where + "。" : ""}全国のクラシックFIAT ${is126 ? "126" : "500"}が集まる ${site} Giappone の登録車両です。`;
   const url = `https://www.registro500.com/detail?doc=${doc}`;
   // 表紙の写真（正方形）を上下は切らず、左右をサイトの地色で埋めて 1200×630 に（Cloudflare の画像変換・fit=pad）。
-  // 地色 #e3dac4（og/site-ja.png と同じ）。
+  // 地色 #e3dac4（og/site-ja.png と同じ）。作るのは functions/og-car/[file].js（短い URL＝X が中身をほどいて壊さない）。
   // 変換は registro500.com の Images → Transformations で有効化し、Sources に Firebase の置き場所だけを許可して動く。
   const image = /^https:\/\/firebasestorage\.googleapis\.com\//.test(car.photo_main || "")
-    ? `https://www.registro500.com/cdn-cgi/image/width=1200,height=630,fit=pad,background=%23e3dac4,format=jpeg/${car.photo_main}`
+    ? `https://www.registro500.com/og-car/${doc.slice(4)}.jpg`
     : null;
   return { title, cardTitle, desc, url, image };
 }
