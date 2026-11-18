@@ -1,8 +1,23 @@
 // 短い車両ページの URL /car/<番号> → /detail?doc=DOC_<番号>（2026-11-18）
 // SNS のプロフィール・共有・QR に出す URL を短くするため。ページ本体は /detail のまま（相対パスの CSS・JS を壊さない）。
 // 番号は cars.document_id の DOC_ の後ろ（500・126 で共通の通し番号）。数字でなければ素通し＝通常の 404。
-export function onRequest({ params, request, next }) {
+// 【2026-11-19】X は転送（301）の先からカードを作らなかった＝カード用のクローラーにだけ、転送せずに
+//   その車の head に書き換えた /detail をそのまま返す（人は従来どおり 301。人に返すと相対パスが /car/ 基準で壊れる）。
+import { withCarHead } from "../detail.js";
+
+// SNS のリンクの下見をするクローラーだけ（検索エンジンは含めない＝検索は従来どおり 301 で /detail に集める）。
+// LINE はアプリ内ブラウザの UA にも「Line」が入るので、下見の「line-poker」だけで見分ける。
+const CARD_BOT_RE = /Twitterbot|facebookexternalhit|Facebot|line-poker|Slackbot|Discordbot|WhatsApp|TelegramBot|LinkedInBot|Pinterestbot|SkypeUriPreview|Iframely|Embedly/i;
+
+export async function onRequest({ params, request, env, next }) {
   const no = String(params.no || '');
   if (!/^[1-9][0-9]{0,5}$/.test(no)) return next();
-  return Response.redirect(new URL('/detail?doc=DOC_' + no, request.url).toString(), 301);
+  const dest = new URL('/detail?doc=DOC_' + no, request.url);
+  if (request.method === 'GET' && CARD_BOT_RE.test(request.headers.get('user-agent') || '')) {
+    try {
+      const page = await env.ASSETS.fetch(new URL('/detail', request.url));
+      return await withCarHead(page, env, 'DOC_' + no);
+    } catch { /* 下の 301 へ */ }
+  }
+  return Response.redirect(dest.toString(), 301);
 }

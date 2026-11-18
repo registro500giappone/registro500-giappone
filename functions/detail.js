@@ -48,6 +48,11 @@ async function loadCar(env, doc) {
 export async function onRequestGet({ request, env, next }) {
   const page = await next();
   const doc = new URL(request.url).searchParams.get("doc") || "";
+  return withCarHead(page, env, doc);
+}
+
+// functions/car/[no].js も使う（カード用クローラーには /car/<番号> で転送せずにこれを返す）
+export async function withCarHead(page, env, doc) {
   if (!DOC_RE.test(doc) || !page.ok || !(page.headers.get("content-type") || "").includes("text/html")) return page;
   let car = null;
   try { car = await loadCar(env, doc); } catch { car = null; }
