@@ -143,11 +143,9 @@
           <label class="f" for="fTitle">題名</label>
           <input type="text" id="fTitle" maxlength="120" autocomplete="off">
           <p class="pv-site" id="pvSite"></p>
-          <p class="hint hidden" id="igHint" style="margin:4px 0 0;font-size:.78rem;color:var(--text-sub);">Instagram からは題名を読めません。あとで見返して分かる一言に直せます。</p>
           <p class="f">日付<small>投稿した日</small></p>
           <div class="row">
             <input type="date" id="fDate">
-            <span class="chip hint hidden" id="dateHint">日付を読めなかったので今日にしました</span>
           </div>
           <p class="f">整備のこと？<small>選ぶと、みんなの整備手帳にも並びます</small></p>
           <div class="chips"><button type="button" class="chip" id="maintChip" aria-pressed="false">🔧 整備のこと</button></div>
@@ -315,7 +313,8 @@
       if (have && have.length) { startEdit(have[0]); setMsg('この投稿はもう載せてあります。直すときは下で直して「直す」を押してください。', 'ok'); return; }
       pv = { url: ig, title: 'Instagramの投稿', site_name: 'Instagram', published_on: null };
       showPreview();
-      setMsg('Instagram からは題名と日付を読めません。題名と投稿した日を直してから「載せる」を押してください。', 'ok');
+      // 読めなかった旨はここ1か所で伝える（欄ごとには出さない）
+      setMsg('Instagram からは題名と日付を読めないので、仮の題名と今日の日付を入れました。あとで見返して分かる題名と、投稿した日に直してから「載せる」を押してください。', 'ok');
       track('article_read', { ok: 0, ig: 1 });
       return;
     }
@@ -350,9 +349,9 @@
     pv = { url: j.url, title: j.title, site_name: j.site_name, published_on: j.published_on };
     showPreview();
     const miss = [];
-    if (!j.title) miss.push('題名');
-    if (!j.published_on) miss.push('日付');
-    setMsg(miss.length ? miss.join('と') + 'を読めませんでした。確かめてから「載せる」を押してください。' : '読み込みました。よければ「載せる」を押してください。', miss.length ? 'err' : 'ok');
+    if (!j.title) miss.push('題名を読めませんでした');
+    if (!j.published_on) miss.push('日付を読めなかったので今日にしました');
+    setMsg(miss.length ? miss.join('。') + '。確かめてから「載せる」を押してください。' : '読み込みました。よければ「載せる」を押してください。', miss.length ? 'err' : 'ok');
     track('article_read', { ok: miss.length ? 0 : 1 });
   }
 
@@ -366,8 +365,6 @@
     $('carRow').classList.toggle('hidden', myCars.length < 2 || !!editing);
     $('fTitle').value = pv.title || '';
     $('fDate').value = pv.published_on || ymd(new Date());
-    $('dateHint').classList.toggle('hidden', !!pv.published_on || !!editing);
-    $('igHint').classList.toggle('hidden', !ig || !!editing);
     const box = $('pvSite');
     box.textContent = ig ? 'Instagram の投稿　' : pv.site_name ? pv.site_name + ' の記事　' : '';
     const a = el('a', null, '開いて確かめる ↗'); a.href = pv.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
@@ -388,7 +385,6 @@
     $('formTitle').textContent = '投稿を愛車の歩みに残す';
   }
   $('cancelBtn').addEventListener('click', () => { resetForm(); setMsg(''); });
-  $('fDate').addEventListener('change', () => $('dateHint').classList.add('hidden'));
 
   function startEdit(row) {
     editing = row;
