@@ -966,7 +966,7 @@
   // ── これまでの記録（自分が書いたもの・作業日の新しい順） ──
   // 件数が増えると入力欄との往復が長くなるので、上に「日付待ち・作業中」だけ常に出し、残りは畳む。開閉はこの端末で覚える（既定は畳む）
   // 作業中＝この端末で足した・直した・みんカラから読み込んだ記録。みんカラの記事は作業日が自動で入るので「日付待ち」では拾えない。
-  // 写真の説明を1枚ずつ貼る途中で保留することがあるので、ページを開き直しても残し、本人が「仕上がった」を押すまで上に置く
+  // 写真の説明を1枚ずつ貼る途中で保留することがあるので、ページを開き直しても残し、本人が「書き終えた」を押すまで上に置く（画面の呼び名は「書きかけ」。コード上は wip のまま）
   const WIP_KEY = 'r500_maint_wip';
   function wipIds() { try { return new Set(JSON.parse(localStorage.getItem(WIP_KEY) || '[]')); } catch (e) { return new Set(); } }
   function wipSet(ids) { try { localStorage.setItem(WIP_KEY, JSON.stringify([...ids])); } catch (e) {} }
@@ -1026,7 +1026,7 @@
       if (ps.length) { const im = el('img'); im.src = ps[0].thumb_url || ps[0].url; im.alt = ''; im.loading = 'lazy'; item.appendChild(im); }
       const bd = el('div', 'bd');
       const dt = el('div', 'dt', fmtDate(r.work_date) + (myCars.length > 1 && carLabel[r.car_id] ? '　' + carLabel[r.car_id] : ''));
-      if (wip.has(r.id)) dt.appendChild(el('span', 'wip', '作業中'));
+      if (wip.has(r.id)) dt.appendChild(el('span', 'wip', '書きかけ'));
       bd.appendChild(dt);
       bd.appendChild(el('div', 'nm', r.title));
       const meta = [];
@@ -1061,8 +1061,9 @@
       });
       acts.append(ed, del);
       if (wip.has(r.id)) {
-        const done = el('button', 'btn-sub', '✓ 仕上がった'); done.type = 'button';
-        done.title = '作業中の印を外し、作業日の順の位置へ戻します';
+        // 「作業中／仕上がった」だと整備そのものの状態と読まれた（2026-11-18 オーナーの問い合わせ）＝記録を書く途中の印だと分かる呼び名に
+        const done = el('button', 'btn-sub', '✓ 書き終えた'); done.type = 'button';
+        done.title = '「書きかけ」の印を外し、作業日の順の位置へ戻します（公開の見え方は変わりません）';
         done.addEventListener('click', () => { wipDel(r.id); loadMine(); });
         acts.appendChild(done);
       }
