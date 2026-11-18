@@ -375,8 +375,8 @@
             <li id="myFuelItem" style="display:none;"><a class="rg-dropdown-item" href="/my-fuel" id="myFuelLink">⛽ 給油を記録する</a></li>
             <li><a class="rg-dropdown-item is-bold" href="#" id="editLink">✏️ この車両を編集</a></li>
             <li><a class="rg-dropdown-item" href="/episode-edit" id="addEpisodeLink">📖 ストーリーを追加</a></li>
-            <!-- 2026-11-11 ユーザー決裁：ブログ紹介はストーリーの下。ARTICLES_ON_CAR_PAGE（または ?articles-preview）のときだけ出す -->
-            <li id="myArticlesItem" style="display:none;"><a class="rg-dropdown-item" href="/my-articles">📝 ブログ記事を紹介する</a></li>
+            <!-- 2026-11-11 ユーザー決裁：ブログ・SNSとつなぐはストーリーの下。ARTICLES_ON_CAR_PAGE（または ?articles-preview）のときだけ出す -->
+            <li id="myArticlesItem" style="display:none;"><a class="rg-dropdown-item" href="/my-articles">📝 ブログ・SNSとつなぐ</a></li>
             <!-- 2026-08-10 ユーザー確定: 自分の車載手帳を直す入口が /equipment の最下部（92%地点）
                  にしか無く、オーナー本人が自分のデータに辿り着けなかったため、本人メニューに置く。
                  手帳は1ユーザー1件で、equipment-edit.html がログインユーザーの手帳を自動で開くので
@@ -521,6 +521,7 @@
           <section class="rg-card" id="shareSection"><h2 class="rg-section-title">共有・連絡</h2>
             <div class="rg-action-row"><button class="rg-btn rg-btn-dark" onclick="showQRCode()">QR表示</button><a id="shareX" class="rg-btn rg-btn-black" target="_blank">Xでシェア</a><a id="shareLINE" class="rg-btn" style="background:#06C755;color:#fff;" target="_blank">LINEで送る</a></div>
             <div id="contactArea" style="display:none;"><button class="btn-contact" onclick="openContactForm()">オーナーへメッセージを送る</button></div>
+            <div id="profLink" style="display:none;margin-top:1rem;"></div>
           </section>
         </div>
       </div>
@@ -1135,7 +1136,9 @@
         const addBtn = document.getElementById('addEpisodeBtn');
         if (addBtn) { addBtn.style.display = 'block'; addBtn.onclick = () => location.href = `/episode-edit?car=${currentCar.document_id}`; }
         scheduleBlanks(currentCar);
+        renderProfLink();
       } else {
+        document.getElementById('profLink').style.display = 'none';
         if(currentCar.accept_inquiry !== false && !currentCar.is_sold) {
           document.getElementById('contactArea').style.display = 'block';
           document.getElementById('heroContact').style.display = 'block';
@@ -1143,6 +1146,28 @@
       }
       updateAcquisitionPrompt();
       updateSister();
+    }
+
+    // 愛車のページを SNS のプロフィールに貼る（持ち主にだけ・URL をコピーするだけ＝知らせない・記録しない）
+    function renderProfLink() {
+      const box = document.getElementById('profLink');
+      const url = location.origin + '/detail?doc=' + encodeURIComponent(currentCar.document_id);
+      const label = '📋 愛車のページのURLをコピー';
+      box.innerHTML = `<h3 style="font-size:0.95rem;margin:0 0 0.4rem;">SNS のプロフィールに貼る</h3>
+        <p style="margin:0 0 0.4rem;color:var(--rg-muted);font-size:0.82rem;">SNS のプロフィールに貼っておくと、見た人がこの車のページを開けます。</p>
+        <p style="margin:0 0 0.5rem;font-size:0.85rem;overflow-wrap:anywhere;">${esc(url)}</p>
+        <button type="button" class="rg-btn" id="profLinkBtn">${label}</button>
+        <ul style="margin:0.5rem 0 0;padding-left:1.2rem;color:var(--rg-muted);font-size:0.8rem;">
+          <li>Instagram：プロフィールを編集 →「リンク」→「外部リンクを追加」に貼る</li>
+          <li>X：プロフィールを編集 →「ウェブサイト」に貼る</li></ul>`;
+      const btn = document.getElementById('profLinkBtn');
+      let timer;
+      btn.onclick = async () => {
+        try { await navigator.clipboard.writeText(url); btn.textContent = '✓ コピーしました'; if (typeof gtag === 'function') gtag('event', 'profile_link_copy', { from: 'car' }); }
+        catch (e) { btn.textContent = 'コピーできませんでした'; }
+        clearTimeout(timer); timer = setTimeout(() => { btn.textContent = label; }, 2000);
+      };
+      box.style.display = 'block';
     }
 
     // 入手ストーリー未記入プロンプト（オーナー本人のみ表示）
@@ -1466,16 +1491,17 @@
     let rgMaintRecs = {};
     let rgHistoryFilter = { mode: 'all', area: null };
 
-    // オーナーの記事（ブログなど外部記事へのリンク・/my-articles で載せる）。正本 owner-articles/HANDOFF.md
+    // ブログ・SNSとつなぐ（つないだ投稿＝ブログ・動画・Instagram へのリンク・/my-articles で載せる）。正本 owner-articles/HANDOFF.md
     // 公開の準備が整うまで止めておく＝URL に ?articles-preview を付けたときだけ出す
     const ARTICLES_ON_CAR_PAGE = true;
+    const isIgUrl = u => /^https:\/\/(www\.)?instagram\.com\//i.test(u || '');
     // わたしの記録をバックアップ（/my-backup）のマイメニュー入口。
     const BACKUP_ON_CAR_PAGE = true;
     const articlesOn = ARTICLES_ON_CAR_PAGE || new URLSearchParams(location.search).has('articles-preview');
     function articleLineHtml(a) {
       const url = /^https:\/\//.test(a.url || '') ? a.url : '';
       const title = url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer nofollow ugc">${esc(a.title)}</a>` : esc(a.title);
-      const sub = [a.site_name ? `${esc(a.site_name)} の記事` : '記事'];
+      const sub = [isIgUrl(url) ? 'Instagram の投稿' : a.site_name ? `${esc(a.site_name)} の記事` : '記事'];
       if (a.is_maintenance) sub.push('🔧 整備');
       if (a.is_hidden) sub.push('伏せています（あなたにだけ見えています）');
       return `${title} <span style="font-size:.78rem;color:var(--rg-muted);">（${sub.join('・')}）</span>`;
@@ -1668,11 +1694,11 @@
           html: `<div class="rg-history-item"><div class="rg-episode-date">${esc(dateLabel)}</div><div data-mid="${esc(m.id)}"></div></div>` });
       });
 
-      // ⑥ オーナーの記事。並びは記事の日付（書いた日）
+      // ⑥ つないだ投稿。並びは投稿の日付（書いた日）
       const articles = (articleRes.status === 'fulfilled' && articleRes.value) || [];
       articles.forEach(a => {
         rows.push({ date: a.published_on, created: a.created_at, kind: 'article', id: a.id, article: a,
-          html: renderHistoryLine(a.published_on, '📝', articleLineHtml(a)) });
+          html: renderHistoryLine(a.published_on, isIgUrl(a.url) ? '📷' : '📝', articleLineHtml(a)) });
       });
 
       // 新しい順に並べ、同じ日の「更新」は1行に畳み、登録日と同日の「更新」は出さない

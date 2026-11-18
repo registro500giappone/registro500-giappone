@@ -19,7 +19,7 @@
     { test: c => c === 'coil_name', label: 'コイル' },
     { test: c => c === 'year', label: '年式' }
   ];
-  // オーナーの記事（ブログなど外部記事へのリンク・/my-articles で載せる）。正本 owner-articles/HANDOFF.md
+  // つないだ投稿（ブログ・動画・Instagram へのリンク・/my-articles で載せる）。正本 owner-articles/HANDOFF.md
   // 公開の準備が整うまで止めておく＝開いているページの URL に ?articles-preview を付けたときだけ出す（一覧・トップの帯とも）
   const ARTICLES_IN_FEED = true;
   // 整備の記録（/my-maintenance・2026-11-04 ユーザー決裁）。整備手帳の公開（detail.html の MAINT_ON_CAR_PAGE）と同時に true。
@@ -56,7 +56,7 @@
       fetch('/event-slugs.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}),
       // おすすめ工具の紹介（2026-10-22）。伏せた投稿は出さない。「参考になった」は数を伏せる約束なので出さない
       supabaseClient.from('owner_tools').select('car_id, name, created_at').eq('is_hidden', false).gte('created_at', since),
-      // オーナーの記事は「貼った日」で並べる（ブログの投稿日で並べると、昔の記事を貼ったときに一覧の奥へ沈む）。
+      // つないだ投稿は「貼った日」で並べる（ブログの投稿日で並べると、昔の記事を貼ったときに一覧の奥へ沈む）。
       // 伏せた行は本人にも RLS で返るので、ここで外す
       articlesOn ? supabaseClient.from('owner_articles').select('car_id, title, url, site_name, created_at')
         .eq('is_hidden', false).gte('created_at', since) : Promise.resolve({ data: [] }),
@@ -193,7 +193,9 @@
     } else if (r.kind === 'article') {
       // 1本なら記事そのものへ（新しいタブ）。同じ日に何本も貼った行は車ページの歩みへ
       const one = r.ids.length === 1 && /^https:\/\//.test(r.ids[0]);
-      icon = '📝'; what = `${name}さんがブログを更新` + (one && r.site ? `（${esc(r.site)}）` : '');
+      const allIg = r.ids.every(u => /^https:\/\/(www\.)?instagram\.com\//i.test(u || ''));
+      icon = allIg ? '📷' : '📝';
+      what = allIg ? `${name}さんがInstagramの投稿をつなぎました` : `${name}さんがブログを更新` + (one && r.site ? `（${esc(r.site)}）` : '');
       quote = `「${esc(trim(r.texts.filter(Boolean).join('・'), n))}」`;
       if (one) { href = esc(r.ids[0]); external = true; } else hash = '#history';
     } else if (r.kind === 'event') {

@@ -1,7 +1,7 @@
 /**
- * オーナーの記事（ブログなど）の題名・サイト名・日付を読む — POST /api/article-meta
+ * つないだ投稿（ブログなど）の題名・サイト名・日付を読む — POST /api/article-meta
  *
- * 「オーナーの記事」の載せる画面（/my-articles）から { url } を1本ずつ送ってくる。
+ * 「ブログ・SNSとつなぐ」の画面（/my-articles）から { url } を1本ずつ送ってくる。
  * 返すのは <head> の中にある3つだけ:
  *   題名     og:title → twitter:title → <title>
  *   サイト名 og:site_name → ドメイン（www. を外す）

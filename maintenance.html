@@ -92,7 +92,7 @@
   function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function track(name, params) { try { if (typeof gtag === 'function') gtag('event', name, params || {}); } catch (e) {} }
 
-  // 整備の記事（オーナーの記事のうち「🔧 整備の記事」にした行）も混ぜる。正本 owner-articles/HANDOFF.md
+  // 整備の投稿（つないだ投稿のうち「🔧 整備のこと」にした行）も混ぜる。正本 owner-articles/HANDOFF.md
   // 公開の準備が整うまで止めておく＝URL に ?articles-preview を付けたときだけ出す
   const ARTICLES_ON_MAINT_LIST = true;
   const articlesOn = ARTICLES_ON_MAINT_LIST || new URLSearchParams(location.search).has('articles-preview');
@@ -226,12 +226,13 @@
     const row = el('div', 'mv-row');
     const txt = el('div');
     txt.style.minWidth = '0';
-    const link = el('a', 'mv-title', '📝 ' + a.title + ' ↗');
+    const ig = /^https:\/\/(www\.)?instagram\.com\//i.test(a.url || '');
+    const link = el('a', 'mv-title', (ig ? '📷 ' : '📝 ') + a.title + ' ↗');
     if (/^https:\/\//.test(a.url || '')) link.href = a.url;
     link.target = '_blank'; link.rel = 'noopener noreferrer nofollow ugc';
     link.addEventListener('click', () => track('maint_open', { from: 'list', kind: 'article' }));
     txt.appendChild(link);
-    txt.appendChild(el('div', 'mv-meta', (a.site_name ? a.site_name + ' の記事' : '記事')));
+    txt.appendChild(el('div', 'mv-meta', ig ? 'Instagram の投稿' : (a.site_name ? a.site_name + ' の記事' : '記事')));
     if ((a.areas || []).length) {
       const box = el('div', 'mv-chips');
       a.areas.forEach(v => { if (MaintView.AREA_LABEL[v]) box.appendChild(el('span', 'mv-chip', MaintView.AREA_LABEL[v])); });

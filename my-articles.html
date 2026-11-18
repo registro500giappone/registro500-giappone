@@ -2,11 +2,11 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>ブログ記事を紹介する | Registro500 Giappone</title>
-  <meta name="description" content="ブログなど、よそで書いた自分の車の記事を、URLを貼るだけで車両ページに並べられます。">
+  <title>ブログ・SNSとつなぐ | Registro500 Giappone</title>
+  <meta name="description" content="愛車のページを SNS のプロフィールに貼ったり、ブログ・YouTube・Instagram の投稿を1本ずつ愛車の歩みに残したりできます。">
   <link rel="canonical" href="https://www.registro500.com/my-articles">
-  <meta property="og:title" content="ブログ記事を紹介する">
-  <meta property="og:description" content="ブログなど、よそで書いた自分の車の記事を、URLを貼るだけで車両ページに並べられます。">
+  <meta property="og:title" content="ブログ・SNSとつなぐ">
+  <meta property="og:description" content="愛車のページを SNS のプロフィールに貼ったり、ブログ・YouTube・Instagram の投稿を1本ずつ愛車の歩みに残したりできます。">
   <meta property="og:url" content="https://www.registro500.com/my-articles">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex">
@@ -106,24 +106,24 @@
 <body>
 <div class="page">
   <a href="/" class="back-link">&larr; トップに戻る</a>
-  <h1>📝 ブログ記事を紹介する</h1>
-  <p class="lead intro">ブログなど、よそで書いた自分の車の記事を、URLを貼るだけで車両ページの「この1台の歩み」に並べられます。題名と日付はリンク先から読みます（本文や写真は取り込みません）。</p>
+  <h1>📝 ブログ・SNSとつなぐ</h1>
+  <p class="lead intro">愛車のページを SNS のプロフィールに貼ったり、ブログ・YouTube・Instagram の投稿を1本ずつ、車両ページの「この1台の歩み」に残したりできます。題名と日付はリンク先から読みます（本文や写真は取り込みません）。</p>
   <p class="note hidden" id="topLinks" style="margin:-6px 0 12px"></p>
 
   <div id="stateLoading" class="lead">確認中…</div>
 
   <div id="stateNoCar" class="card center hidden">
     <p><strong>車両登録が必要です。</strong></p>
-    <p class="lead">記事は、登録済みのお車に紐づけて並べます。</p>
+    <p class="lead">投稿は、登録済みのお車に紐づけて並べます。</p>
     <a class="btn-main" href="/edit">車両を登録する</a>
   </div>
 
   <div id="stateForm" class="hidden">
     <form id="form" novalidate>
       <div class="card">
-        <h2 id="formTitle">記事のURLを貼る</h2>
+        <h2 id="formTitle">投稿を愛車の歩みに残す</h2>
         <div id="carRow" class="hidden">
-          <label class="f" for="carSel">どの車の記事？</label>
+          <label class="f" for="carSel">どの車の投稿？</label>
           <select id="carSel"></select>
         </div>
         <div id="pasteBox">
@@ -131,7 +131,7 @@
             <input type="text" id="fUrl" inputmode="url" autocomplete="off" placeholder="https://…">
             <button type="button" class="btn-sub" id="pasteBtn">📋 貼る</button>
           </div>
-          <p class="note">コピーしたURLを「📋 貼る」で入れられます。みんカラの整備手帳の記事は、マイ整備手帳へ入れます。</p>
+          <p class="note">ブログ・note・YouTube・Instagram・みんカラなど、ご自身の投稿のURLを1本ずつ貼れます。コピーしたURLは「📋 貼る」で入れられます。みんカラの整備手帳の記事は、マイ整備手帳へ入れます。</p>
           <button type="button" class="btn-main" id="readBtn" style="margin-top:10px">読み込む</button>
         </div>
 
@@ -139,13 +139,14 @@
           <label class="f" for="fTitle">題名</label>
           <input type="text" id="fTitle" maxlength="120" autocomplete="off">
           <p class="pv-site" id="pvSite"></p>
-          <p class="f">日付<small>記事を書いた日</small></p>
+          <p class="hint hidden" id="igHint" style="margin:4px 0 0;font-size:.78rem;color:var(--text-sub);">Instagram からは題名を読めません。あとで見返して分かる一言に直せます。</p>
+          <p class="f">日付<small>投稿した日</small></p>
           <div class="row">
             <input type="date" id="fDate">
             <span class="chip hint hidden" id="dateHint">日付を読めなかったので今日にしました</span>
           </div>
-          <p class="f">整備の記事？<small>選ぶと、みんなの整備手帳にも並びます</small></p>
-          <div class="chips"><button type="button" class="chip" id="maintChip" aria-pressed="false">🔧 整備の記事</button></div>
+          <p class="f">整備のこと？<small>選ぶと、みんなの整備手帳にも並びます</small></p>
+          <div class="chips"><button type="button" class="chip" id="maintChip" aria-pressed="false">🔧 整備のこと</button></div>
           <div id="areaBox" class="hidden">
             <p class="note" style="margin-bottom:6px">どこの整備？（選ばなくても載せられます）</p>
             <div class="chips" id="areaChips"></div>
@@ -161,12 +162,22 @@
     </form>
 
     <div id="stateLogin" class="card center hidden" style="margin-top:14px">
-      <p>記事を載せるにはログインが必要です。<br><span class="note">貼ったURLはこのまま残ります。</span></p>
+      <p>投稿をつなぐにはログインが必要です。<br><span class="note">貼ったURLはこのまま残ります。</span></p>
       <div id="rgLogin"></div>
     </div>
 
+    <div class="card hidden" id="profCard" style="margin-top:14px">
+      <h2>愛車のページを SNS のプロフィールに貼る</h2>
+      <p class="note">SNS のプロフィールに貼っておくと、見た人がこの車のページを開けます。</p>
+      <div id="profList"></div>
+      <ul class="note" style="margin:8px 0 0;padding-left:1.2em;">
+        <li>Instagram：プロフィールを編集 →「リンク」→「外部リンクを追加」に貼る</li>
+        <li>X：プロフィールを編集 →「ウェブサイト」に貼る</li>
+      </ul>
+    </div>
+
     <div class="card hidden" id="mineCard" style="margin-top:14px">
-      <h2>これまでの記事</h2>
+      <h2>これまでにつないだ投稿</h2>
       <p class="note" id="mineLinks" style="margin:-4px 0 6px"></p>
       <div id="mineList"><p class="lead">読み込み中…</p></div>
     </div>
@@ -222,6 +233,16 @@
       return MK_RE.test(out) ? out : null;
     } catch (e) { return null; }
   }
+  // Instagram の投稿（/p/ /reel/ /tv/）を見分けて整える。読みに行かない（ログインの壁で読めない）＝題名は本人が直す
+  function igPost(raw) {
+    try {
+      const u = new URL(String(raw).trim().replace(/^http:\/\//i, 'https://'));
+      if (!/^(www\.|m\.)?instagram\.com$/i.test(u.hostname)) return null;
+      const m = u.pathname.match(/^\/(?:[A-Za-z0-9._]+\/)?(p|reels?|tv)\/([A-Za-z0-9_-]+)/);
+      return m ? 'https://www.instagram.com/' + (m[1] === 'reels' ? 'reel' : m[1]) + '/' + m[2] + '/' : null;
+    } catch (e) { return null; }
+  }
+  const isIg = u => /^https:\/\/(www\.)?instagram\.com\//i.test(u || '');
   function currentCarId() {
     if (editing) return editing.car_id;
     return myCars.length > 1 ? $('carSel').value : myCars[0].id;
@@ -274,7 +295,7 @@
   async function read() {
     if (busy) return;
     const raw = pickUrl($('fUrl').value) || $('fUrl').value.trim();
-    if (!raw) { setMsg('記事のURLを貼ってください。', 'err'); return; }
+    if (!raw) { setMsg('投稿のURLを貼ってください。', 'err'); return; }
     if (!/^https?:\/\//i.test(raw)) { setMsg('https:// で始まるURLを貼ってください。', 'err'); return; }
     keepUrl(raw);
     if (!currentUser) {
@@ -286,6 +307,17 @@
     if (!myCars.length) return;
     const mk = mkNormalize(raw);
     if (mk) return readMinkara(mk);
+    const ig = igPost(raw);
+    if (ig) {
+      const { data: have } = await supabaseClient.from('owner_articles').select('*')
+        .eq('author_user_id', currentUser.id).eq('url', ig).limit(1);
+      if (have && have.length) { startEdit(have[0]); setMsg('この投稿はもう載せてあります。直すときは下で直して「直す」を押してください。', 'ok'); return; }
+      pv = { url: ig, title: 'Instagramの投稿', site_name: 'Instagram', published_on: null };
+      showPreview();
+      setMsg('Instagram からは題名と日付を読めません。題名と投稿した日を直してから「載せる」を押してください。', 'ok');
+      track('article_read', { ok: 0, ig: 1 });
+      return;
+    }
 
     busy = true; $('readBtn').disabled = true;
     setMsg('題名と日付を読み込んでいます…');
@@ -306,7 +338,7 @@
       // もう載せてある記事なら、その行を直す画面にする
       const { data: have } = await supabaseClient.from('owner_articles').select('*')
         .eq('author_user_id', currentUser.id).eq('url', j.url).limit(1);
-      if (have && have.length) { startEdit(have[0]); setMsg('この記事はもう載せてあります。直すときは下で直して「直す」を押してください。', 'ok'); return; }
+      if (have && have.length) { startEdit(have[0]); setMsg('この投稿はもう載せてあります。直すときは下で直して「直す」を押してください。', 'ok'); return; }
     } catch (e) {
       console.error('[my-articles] meta', e);
       setMsg('読み込みに失敗しました（' + errText(e) + '）。', 'err');
@@ -327,14 +359,16 @@
     $('pasteBox').classList.add('hidden');
     $('pvBox').classList.remove('hidden');
     $('pvActs').classList.remove('hidden');
-    $('formTitle').textContent = editing ? '記事を直す' : 'この記事を載せる';
+    const ig = isIg(pv.url);
+    $('formTitle').textContent = editing ? '投稿を直す' : 'この投稿を歩みに残す';
     $('saveBtn').textContent = editing ? '直す' : '載せる';
     $('carRow').classList.toggle('hidden', myCars.length < 2 || !!editing);
     $('fTitle').value = pv.title || '';
     $('fDate').value = pv.published_on || ymd(new Date());
     $('dateHint').classList.toggle('hidden', !!pv.published_on || !!editing);
+    $('igHint').classList.toggle('hidden', !ig || !!editing);
     const box = $('pvSite');
-    box.textContent = pv.site_name ? pv.site_name + ' の記事　' : '';
+    box.textContent = ig ? 'Instagram の投稿　' : pv.site_name ? pv.site_name + ' の記事　' : '';
     const a = el('a', null, '開いて確かめる ↗'); a.href = pv.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
     box.appendChild(a);
     setMaint(!!pv.is_maintenance);
@@ -350,7 +384,7 @@
     $('pvActs').classList.add('hidden');
     $('pasteBox').classList.remove('hidden');
     $('carRow').classList.toggle('hidden', myCars.length < 2);
-    $('formTitle').textContent = '記事のURLを貼る';
+    $('formTitle').textContent = '投稿を愛車の歩みに残す';
   }
   $('cancelBtn').addEventListener('click', () => { resetForm(); setMsg(''); });
   $('fDate').addEventListener('change', () => $('dateHint').classList.add('hidden'));
@@ -380,10 +414,10 @@
     busy = false; $('saveBtn').disabled = false;
     if (error) {
       console.error('[my-articles] save', error);
-      setMsg(error.code === '23505' ? 'この記事はもう載せてあります。' : '保存できませんでした（' + errText(error) + '）。', 'err');
+      setMsg(error.code === '23505' ? 'この投稿はもう載せてあります。' : '保存できませんでした（' + errText(error) + '）。', 'err');
       return;
     }
-    track(wasEdit ? 'article_edit' : 'article_add', { maint: isMaint ? 1 : 0 });
+    track(wasEdit ? 'article_edit' : 'article_add', { maint: isMaint ? 1 : 0, ig: isIg(pv.url) ? 1 : 0 });
     resetForm();
     setMsg(wasEdit ? '直しました。' : '載せました。車両ページの「この1台の歩み」に並びます。', 'ok');
     loadMine();
@@ -425,7 +459,30 @@
     }
   }
 
-  // ── これまでの記事 ──
+  // ── 愛車のページを SNS のプロフィールに貼る（URL をコピーするだけ＝知らせない・記録しない） ──
+  function renderProf() {
+    const list = $('profList');
+    list.textContent = '';
+    myCars.forEach(c => {
+      const url = location.origin + '/detail?doc=' + encodeURIComponent(c.id);
+      const row = el('div'); row.style.margin = '8px 0';
+      if (myCars.length > 1) row.appendChild(el('div', 'note', c.label.trim()));
+      const u = el('div', null, url); u.style.cssText = 'font-size:.85rem;overflow-wrap:anywhere;margin:2px 0 6px;';
+      const label = '📋 愛車のページのURLをコピー';
+      const b = el('button', 'btn-sub', label); b.type = 'button';
+      let timer;
+      b.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(url); b.textContent = '✓ コピーしました'; track('profile_link_copy', { from: 'mine' }); }
+        catch (e) { b.textContent = 'コピーできませんでした'; }
+        clearTimeout(timer); timer = setTimeout(() => { b.textContent = label; }, 2000);
+      });
+      row.append(u, b);
+      list.appendChild(row);
+    });
+    $('profCard').classList.remove('hidden');
+  }
+
+  // ── これまでにつないだ投稿 ──
   async function loadMine() {
     const box = $('mineList');
     const { data, error } = await supabaseClient.from('owner_articles')
@@ -448,7 +505,7 @@
     });
     const top = $('topLinks');
     top.textContent = '';
-    const jump = el('a', null, 'これまでの記事 ↓'); jump.href = '#mineCard';
+    const jump = el('a', null, 'これまでにつないだ投稿 ↓'); jump.href = '#mineCard';
     top.append(jump, document.createTextNode('　'));
     [...links.childNodes].forEach(n => top.appendChild(n.cloneNode(true)));
     top.classList.remove('hidden');
@@ -457,12 +514,13 @@
       const bd = el('div', 'bd');
       bd.appendChild(el('div', 'dt', fmtDate(r.published_on) + (myCars.length > 1 && carLabel[r.car_id] ? '　' + carLabel[r.car_id] : '')));
       const nm = el('div', 'nm');
-      const a = el('a', null, r.title); a.href = r.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.style.color = 'inherit';
+      const a = el('a', null, (isIg(r.url) ? '📷 ' : '') + r.title); a.href = r.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.style.color = 'inherit';
       nm.appendChild(a);
       bd.appendChild(nm);
       const meta = [];
-      if (r.site_name) meta.push(r.site_name);
-      if (r.is_maintenance) meta.push('🔧 整備の記事');
+      if (isIg(r.url)) meta.push('Instagram の投稿');
+      else if (r.site_name) meta.push(r.site_name);
+      if (r.is_maintenance) meta.push('🔧 整備');
       (r.areas || []).forEach(x => meta.push(AREA_LABEL[x]));
       if (r.is_hidden) meta.push('🚫 管理人が伏せています（ほかの人には見えません）');
       if (meta.length) bd.appendChild(el('div', 'meta', meta.join(' ・ ')));
@@ -494,6 +552,7 @@
       $('stateLoading').classList.add('hidden');
       $('stateForm').classList.remove('hidden');
       $('mineCard').classList.add('hidden');
+      $('profCard').classList.add('hidden');
       return;
     }
     if (started) return;
@@ -521,6 +580,7 @@
     myCars.forEach(c => { const o = el('option', null, c.label.trim() || c.id); o.value = c.id; sel.appendChild(o); });
     $('carRow').classList.toggle('hidden', myCars.length < 2);
     $('stateForm').classList.remove('hidden');
+    renderProf();
     loadMine();
     if (pendingRead && $('fUrl').value.trim()) {
       pendingRead = false;

@@ -5,7 +5,7 @@
 車をお持ちでない人（Amici＝/amici で登録した人）へ、その週の新着をまとめて送る。
 朝のダイジェスト（send_digest.py・オーナー向け）の一般公開版:
   - ⛔オーナー先行のものは載せない（旅手帳は一般公開になった回だけ・先行公開の告知の news も除く）
-  - 公開前の機能（整備の記録・オーナーの記事）は send_digest.py のスイッチにそろえる＝入れたら両方に載る
+  - 公開前の機能（整備の記録・ブログ・SNSとつなぐ）は send_digest.py のスイッチにそろえる＝入れたら両方に載る
 
 集め方は「直近7日に登録・作成されたもの」。ダイジェストの送信済みの印（notification_sent など）は
 ダイジェストのものなので、ここでは読むだけで触らない。
@@ -25,7 +25,7 @@ from datetime import datetime, timedelta, timezone
 
 from common import (cfg, require, supa_key, sb_select, sb_upsert, ADMIN_EMAIL, SITE)
 from send_digest import (log, sama, send_personal, send_broadcast, send_admin_alert, unsub_footer, CHUNK_SIZE,
-                         TOOLS_DIGEST_ON, MAINT_DIGEST_ON, ARTICLES_DIGEST_ON)
+                         TOOLS_DIGEST_ON, MAINT_DIGEST_ON, ARTICLES_DIGEST_ON, is_ig)
 
 WINDOW_DAYS = 7
 EVENT_AHEAD_DAYS = 14    # 登録が古くても、2週間以内に開かれるイベントは載せる
@@ -127,11 +127,12 @@ def main():
                 groups.setdefault(r["car_id"], {"car": car, "titles": []})["titles"].append(r["title"])
         maint = [dict(g, doc=k) for k, g in groups.items()]
 
-    # 8. オーナーの記事（スイッチ連動・手放された車は載せない）
+    # 8. つないだ投稿（スイッチ連動・手放された車と Instagram の投稿は載せない＝send_digest.is_ig）
     articles = []
     if ARTICLES_DIGEST_ON:
         ar = sb_select("owner_articles", "car_id,title,url,site_name",
                        {"is_hidden": "eq.false", "created_at": f"gte.{since}"}, "order=created_at.asc")
+        ar = [r for r in ar if not is_ig(r.get("url"))]
         ar_cars = car_map({r["car_id"] for r in ar})
         articles = [dict(r, owner=ar_cars[r["car_id"]].get("handle_name") or "オーナー")
                     for r in ar if r["car_id"] in ar_cars and not ar_cars[r["car_id"]].get("is_sold")]
@@ -196,7 +197,7 @@ def main():
                      f"：{names}\n　{SITE}/detail?doc={m['doc']}#history\n")
         body += more(len(maint))
     if articles:
-        body += section("📝", f"ブログ紹介（{len(articles)}件）が登録されました", "/activity")
+        body += section("📝", f"ブログ・動画が{len(articles)}件つながりました", "/activity")
         for a in articles[:LIST_MAX]:
             via = f"・{a['site_name']}" if a.get("site_name") else ""
             body += f"・「{a['title']}」（{sama(a['owner'])}{via}）\n　{a['url']}\n"

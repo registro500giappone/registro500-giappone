@@ -25,7 +25,7 @@ GAS の main.gs sendDailyDigest() からの移植。挙動は1:1で揃えてあ�
                  （2026-10-07 追加。TOOLS_DIGEST_ON が True のときだけ。オフの間はフラグも立てない）
   - マイ整備手帳  maint_records.digest_sent_at IS NULL かつ is_public かつ 作業日あり かつ 14日以内（1台1日1行）
                  （2026-10-29 追加。MAINT_DIGEST_ON が True のときだけ）
-  - オーナーの記事 owner_articles.digest_sent_at IS NULL かつ is_hidden = false かつ 14日以内（貼った日）
+  - つないだ投稿 owner_articles.digest_sent_at IS NULL かつ is_hidden = false かつ 14日以内（貼った日）
                  （2026-10-29 追加。ARTICLES_DIGEST_ON が True のときだけ。載せた記事の書き手には「紹介しました」を1通）
   - お知らせ      news.sent_at IS NULL                  かつ 14日以内（最大5件）
 
@@ -103,12 +103,18 @@ LIVENESS_DAILY_MAX = 10   # 1日に聞く台数の上限＝初日にまとめて
 # 開始の時期を管理人に知らせる：この日以降、スイッチが OFF の間は毎週月曜の朝に管理人へ1通（ON にすれば止まる）
 LIVENESS_REMIND_FROM = datetime(2027, 1, 3, 15, 0, tzinfo=timezone.utc)   # 2027-01-04（月）0:00 JST
 
-# オーナーの記事（ブログなど外部記事へのリンク・/my-articles で載せる）を載せるか（2026-10-29・owner-articles/HANDOFF.md §1-5）。
+# ブログ・SNSとつなぐ（つないだ投稿＝ブログ・動画などへのリンク・/my-articles で載せる）を載せるか（2026-10-29・owner-articles/HANDOFF.md §1-5）。
 # ⚠️ダイジェストは登録オーナー全員に届く＝載せた時点で実質公開。公開の判断をユーザーが出すまで False のまま。
 #    False の間は対象を読まず、印（digest_sent_at）も付けない＝True にした日から14日以内に貼られた分が載る。
 # 載せた記事の書き手には、同じ朝に「あなたの記事を紹介しました」を1人1通（工具の「わたしも使ってる」と同じ形）。
 ARTICLES_DIGEST_ON = True
 ARTICLES_LIST_MAX = 10   # 1通に並べる件数の上限（超えた分は印を付けず翌朝に回す＝「ほか◯件」だと一度も紹介されないまま終わる）
+
+
+def is_ig(url) -> bool:
+    """Instagram の投稿か。朝の便・週刊便りには載せない（2026-11-18 ユーザー決裁＝題名とリンクしか出せず受け手に中身がない／
+    本人は全員にメールで届くと思っていない／投稿は頻繁でメールの枠に先に当たる）。車両ページの歩みと更新情報には出る。"""
+    return bool(re.match(r"^https://(www\.)?instagram\.com/", url or "", re.I))
 
 DRY_RUN = str(cfg("DIGEST_DRY_RUN", "")).strip().lower() in ("1", "true", "yes")
 
@@ -390,8 +396,9 @@ def main():
                       "owner": (tl_car_map.get(r["car_id"]) or {}).get("handle_name") or "オーナー"}
                      for r in tl_raw]
 
-    # 5c. オーナーの記事（2026-10-29 追加・ARTICLES_DIGEST_ON のときだけ）
+    # 5c. つないだ投稿（2026-10-29 追加・ARTICLES_DIGEST_ON のときだけ）
     #     手放された車の記事は載せない（更新情報と同じ）＝印も付けず、14日で対象から外れる
+    #     Instagram の投稿も載せない（is_ig）＝印も付けず、14日で対象から外れる
     new_articles = []
     if ARTICLES_DIGEST_ON:
         ar_raw = sb_select(
@@ -399,6 +406,7 @@ def main():
             {"digest_sent_at": "is.null", "is_hidden": "eq.false",
              "created_at": f"gte.{window_start}"},
             "order=created_at.asc")
+        ar_raw = [r for r in ar_raw if not is_ig(r.get("url"))]
         ar_car_map = {}
         if ar_raw:
             in_list = ",".join('"' + str(i) + '"' for i in sorted({r["car_id"] for r in ar_raw}))
@@ -487,7 +495,7 @@ def main():
 
     if new_articles:
         # 題名の下に記事そのものへのURL。⛔閲覧数・件数の比較は出さない（owner-articles/HANDOFF.md §1-9）
-        body += section("📝", f"ブログ紹介（{len(new_articles)}件）が登録されました", "/activity")
+        body += section("📝", f"ブログ・動画が{len(new_articles)}件つながりました", "/activity")
         for a in new_articles:
             via = f"・{a['site']}" if a["site"] else ""
             body += f"・「{a['title']}」（{sama(a['owner'])}{via}）\n　{a['url']}\n"
@@ -616,7 +624,7 @@ def main():
 
 
 def send_article_notices(articles):
-    """ダイジェストに載せたオーナーの記事の書き手へ、「あなたの記事を紹介しました」を1人1通。
+    """ダイジェストに載せたつないだ投稿の書き手へ、「あなたの記事を紹介しました」を1人1通。
     ダイジェストと同じ朝に1回だけ（印は digest_sent_at＝ダイジェスト側で付く）。送れなくても再送はしない
     ＝同じ記事の紹介を二度知らせないほうを取る。宛先の無い人・前の持ち主には送らない。"""
     by_mail = {}
@@ -632,7 +640,7 @@ def send_article_notices(articles):
         doc = entry["items"][0]["doc"]
         body = (
             f"{entry['name']}さん\n\n"
-            "登録オーナーのみなさんへのお知らせメールで、あなたの記事を「ブログ紹介」の欄で紹介しました。\n\n"
+            "登録オーナーのみなさんへのお知らせメールで、あなたの記事を「ブログ・動画」の欄で紹介しました。\n\n"
             + lines + "\n\n"
             "車両ページの「この1台の歩み」にも並んでいます。\n"
             f"{SITE}/detail?doc={doc}#history\n\n"
