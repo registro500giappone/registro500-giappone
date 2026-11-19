@@ -1948,7 +1948,9 @@
         const url = /^https:\/\/(registro312\.com|registroscorpione\.com)\/car\//.test(c.url || '') ? c.url : '';
         if (!url) return '';
         const name = esc(c.display_name || (c.brand === 'ABARTH' ? 'ABARTH' : 'FIAT 500'));
-        const year = c.first_reg_year ? `<small style="color:var(--rg-muted);">（${esc(String(c.first_reg_year))}年）</small>` : '';
+        // 手放した車も並べ、「手放した車」と添える（2026-11-19 ユーザー決裁＝案A・312 のマイガレージで 500 の車を出すときと同じ書き方）
+        const meta = [c.first_reg_year ? esc(String(c.first_reg_year)) + '年' : '', c.is_sold ? '手放した車' : ''].filter(Boolean).join('・');
+        const year = meta ? `<small style="color:var(--rg-muted);">（${meta}）</small>` : '';
         return `<a href="${esc(url)}" target="_blank" rel="noopener" style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;padding:0.6rem 0;border-top:1px solid var(--rg-border);text-decoration:none;color:var(--rg-text);">
           <span><strong>${name}</strong>${year}<br><small style="color:var(--rg-muted);">${esc(site[c.brand] || 'Registro312')}</small></span>
           <span style="color:var(--rg-accent);white-space:nowrap;">開く ↗</span></a>`;
