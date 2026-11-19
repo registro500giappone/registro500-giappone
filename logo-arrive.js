@@ -10,8 +10,8 @@
     'logo_vertical126.png':   { cut: 'y', at: 53.76, car: [10.5, 89.5], dir: 1,  org: '78.4% 52.5%' },
     'logo_horizontal126.png': { cut: 'x', at: 40.49, car: [0.8, 39.0],  dir: 1,  org: '33.6% 96%' },
     // 1周年のお祝いロゴ（いつものロゴの下に帯を足した＝高さの%だけ換算）。band＝帯の上端（%）＝そこから下は車と一緒に走らせない
-    'logo_vertical_1st-v3.png':   { cut: 'y', at: 40.60, car: [12.6, 87.4], dir: -1, org: '23.1% 39.7%' },
-    'logo_horizontal_1st-v3.png': { cut: 'x', at: 39.25, band: 64.66, car: [0.8, 37.8], dir: -1, org: '5.9% 59.2%' }
+    'logo_vertical_1st-v4.png':   { cut: 'y', at: 40.60, car: [12.6, 87.4], dir: -1, org: '23.1% 39.7%' },
+    'logo_horizontal_1st-v4.png': { cut: 'x', at: 39.25, band: 64.66, car: [0.8, 37.8], dir: -1, org: '5.9% 59.2%' }
   };
   var KEY = 'logoArrived';
   // T_GO＝発進まで（止まった姿を一瞬見せる）・T_OUT＝画面の外へ出た瞬間（ここで反対側へ回す）
