@@ -8,7 +8,10 @@
     'logo_vertical.png':      { cut: 'y', at: 54.73, car: [12.6, 87.4], dir: -1, org: '23.1% 53.5%' },
     'logo_horizontal.png':    { cut: 'x', at: 39.25, car: [0.8, 37.8],  dir: -1, org: '5.9% 96%' },
     'logo_vertical126.png':   { cut: 'y', at: 53.76, car: [10.5, 89.5], dir: 1,  org: '78.4% 52.5%' },
-    'logo_horizontal126.png': { cut: 'x', at: 40.49, car: [0.8, 39.0],  dir: 1,  org: '33.6% 96%' }
+    'logo_horizontal126.png': { cut: 'x', at: 40.49, car: [0.8, 39.0],  dir: 1,  org: '33.6% 96%' },
+    // 1周年のお祝いロゴ（左右・右に広げた分を元の値から換算）
+    'logo_vertical_1st.png':   { cut: 'y', at: 54.73, car: [24.5, 75.5], dir: -1, org: '31.7% 53.5%' },
+    'logo_horizontal_1st.png': { cut: 'x', at: 32.48, car: [0.7, 31.3],  dir: -1, org: '4.9% 96%' }
   };
   var KEY = 'logoArrived';
   // T_GO＝発進まで（止まった姿を一瞬見せる）・T_OUT＝画面の外へ出た瞬間（ここで反対側へ回す）
