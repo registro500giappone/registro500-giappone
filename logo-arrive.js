@@ -8,10 +8,7 @@
     'logo_vertical.png':      { cut: 'y', at: 54.73, car: [12.6, 87.4], dir: -1, org: '23.1% 53.5%' },
     'logo_horizontal.png':    { cut: 'x', at: 39.25, car: [0.8, 37.8],  dir: -1, org: '5.9% 96%' },
     'logo_vertical126.png':   { cut: 'y', at: 53.76, car: [10.5, 89.5], dir: 1,  org: '78.4% 52.5%' },
-    'logo_horizontal126.png': { cut: 'x', at: 40.49, car: [0.8, 39.0],  dir: 1,  org: '33.6% 96%' },
-    // 1周年のお祝いロゴ（いつものロゴの下に帯を足した＝高さの%だけ換算）。band＝帯の上端（%）＝そこから下は車と一緒に走らせない
-    'logo_vertical_1st-v4.png':   { cut: 'y', at: 40.60, car: [12.6, 87.4], dir: -1, org: '23.1% 39.7%' },
-    'logo_horizontal_1st-v4.png': { cut: 'x', at: 39.25, band: 64.66, car: [0.8, 37.8], dir: -1, org: '5.9% 59.2%' }
+    'logo_horizontal126.png': { cut: 'x', at: 40.49, car: [0.8, 39.0],  dir: 1,  org: '33.6% 96%' }
   };
   var KEY = 'logoArrived';
   // T_GO＝発進まで（止まった姿を一瞬見せる）・T_OUT＝画面の外へ出た瞬間（ここで反対側へ回す）
@@ -30,10 +27,6 @@
 
   var carClip = L.cut === 'y' ? 'inset(0 0 ' + (100 - L.at) + '% 0)' : 'inset(0 ' + (100 - L.at) + '% 0 0)';
   var txtClip = L.cut === 'y' ? 'inset(' + L.at + '% 0 0 0)' : 'inset(0 0 0 ' + L.at + '%)';
-  if (L.cut === 'x' && L.band) {   // 車の下まで伸びる帯は文字の側に残す（車＝左上の四角・文字＝その残りのL字）
-    carClip = 'inset(0 ' + (100 - L.at) + '% ' + (100 - L.band) + '% 0)';
-    txtClip = 'polygon(' + L.at + '% 0, 100% 0, 100% 100%, 0 100%, 0 ' + L.band + '%, ' + L.at + '% ' + L.band + '%)';
-  }
 
   // 同じ画像を2枚重ね、片方を車・片方を文字に切り抜く（新しい画像は使わない）
   var wrap = document.createElement('span');

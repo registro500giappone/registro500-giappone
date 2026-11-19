@@ -119,16 +119,6 @@
     .page-subtitle { margin: 0; font-size: 0.85rem; font-weight: 500; color: var(--text-main); line-height: 1.4; }
     .page-meta { margin: 0; font-size: 0.85rem; color: var(--accent); font-weight: 600; }
     .goal-pill { margin-right: 6px; }
-    /* 1周年の前の週だけ出す札（金地に紺＝明暗どちらのモードでも読める） */
-    .anniv-soon { align-self: center; margin: 0 0 2px; padding: 3px 14px; border-radius: 999px; background: #deaa28; color: #243b5a; font-size: 0.88rem; font-weight: 800; letter-spacing: 0.02em; }
-    .anniv-soon[hidden] { display: none; }
-    /* お祝いロゴは下に「祝 1周年」の帯がある分だけ縦に長い＝車と文字がいつもと同じ大きさになる高さ */
-    .logo-mobile.anniv { height: 146px; }
-    @media (min-width: 1025px) {
-      .anniv-soon { align-self: flex-start; }
-      /* PC も横幅はいつものロゴと同じ（＝車と文字は同じ大きさ）・帯の分だけ縦に伸びる */
-      .logo-pc.anniv { height: auto; width: 587px; }
-    }
     /* 未ログインの人だけに出す登録の入口（2026-11-12 ユーザー承認・外部の提案「ファーストビューに登録ボタンを」） */
     .join-top { align-self: flex-start; display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin-top: 4px; padding: 6px 14px; border: 1.5px solid var(--accent); border-radius: 999px; background: var(--card-bg); color: var(--accent); font-size: 0.85rem; font-weight: 700; text-decoration: none; }
     .join-top small { font-size: 0.72rem; font-weight: 500; color: var(--text-sub); }
@@ -597,25 +587,8 @@
       <div class="header-brand-block">
         <img src="logo_vertical.png" class="logo-mobile" alt="Registro500">
         <img src="logo_horizontal.png" class="logo-pc" alt="Registro500">
-        <script>
-          // 1周年（2026-11-25）：前の日までは「もうすぐ」の札・当日から1週間（12/2まで）はお祝いのロゴ。日本時間で判定し、期間が過ぎたら何もしない。
-          // 期間外に見た目を確かめるときは ?anniv=soon / ?anniv=logo
-          (function () {
-            var now = Date.now(), T = Date.parse('2026-11-25T00:00:00+09:00'), END = Date.parse('2026-12-03T00:00:00+09:00');
-            var q = (location.search.match(/[?&]anniv=(\w+)/) || [])[1];
-            if (q === 'logo' || (!q && now >= T && now < END)) {
-              var m = document.querySelector('.logo-mobile'), p = document.querySelector('.logo-pc');
-              m.src = 'logo_vertical_1st-v4.png'; p.src = 'logo_horizontal_1st-v4.png';
-              m.alt = p.alt = 'Registro500 祝1周年';
-              m.className += ' anniv'; p.className += ' anniv';
-            }
-            window.annivSoonDays = (q === 'soon' || (!q && now < T)) ? Math.max(1, Math.ceil((T - now) / 864e5)) : 0;
-          })();
-        </script>
         <script src="/logo-arrive.js"></script>
         <div class="brand-text-group">
-          <p class="anniv-soon" id="annivSoon" hidden></p>
-          <script>(function(){var n=window.annivSoonDays,e=document.getElementById('annivSoon');if(!n||!e)return;e.textContent=n===1?'🎉 いよいよ明日、1周年！':'🎉 もうすぐ1周年！ あと'+n+'日';e.hidden=false;})();</script>
           <p class="page-subtitle">日本のクラシック FIAT 500 のオンラインガレージ♪</p>
           <p class="page-meta"><span class="goal-pill">めざせ500台！</span> 現在 <span id="carCountValue">-</span>台</p>
           <!-- ⛔ /edit?mode=new 直行にしない＝ログアウト中の既存オーナーが新規登録画面に落ちる（メニューの入口と同じ行き先）。ログイン中は出さない -->
