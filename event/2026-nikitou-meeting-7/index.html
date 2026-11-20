@@ -107,6 +107,22 @@
   a.name:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
   @media (prefers-color-scheme: dark) { .name { background:#1a1714; } }
   .muted { color:var(--sub); font-size:.9rem; }
+
+  /* 参加者の連絡欄（参加表明した人と管理人にだけ出す。読めるのもその人たちだけ＝RLS） */
+  .board { margin-top:18px; padding-top:14px; border-top:1px solid var(--line); }
+  .board h2 { font-size:1rem; margin:0 0 .3em; }
+  .board-note { margin:0 0 10px; font-size:.82rem; }
+  .msg { background:var(--bg-main); border:1px solid var(--line); border-radius:10px; padding:9px 12px; margin:0 0 8px; }
+  .msg-head { display:flex; gap:8px; align-items:baseline; font-size:.8rem; color:var(--sub); }
+  .msg-head b { color:var(--accent); font-size:.88rem; }
+  .msg-del { margin-left:auto; background:none; border:0; padding:0; color:var(--sub); font-size:.78rem;
+              cursor:pointer; text-decoration:underline; font-family:inherit; }
+  .msg-body { white-space:pre-wrap; overflow-wrap:anywhere; font-size:.93rem; margin-top:3px; }
+  .board textarea { display:block; width:100%; box-sizing:border-box; margin-top:12px; border:1px solid var(--line);
+                     border-radius:10px; padding:10px; font-family:inherit; font-size:16px; line-height:1.6;
+                     background:var(--bg-main); color:inherit; resize:vertical; }
+  .board-check { display:flex; gap:7px; align-items:center; font-size:.9rem; margin:9px 0 10px; cursor:pointer; }
+  @media (prefers-color-scheme: dark) { .msg, .board textarea { background:#1a1714; } }
   .foot { margin-top:20px; font-size:.8rem; color:var(--sub); }
   .back-bottom { display:block; text-align:center; margin:18px 0 0; padding:12px;
                   color:var(--accent); text-decoration:none; font-size:.92rem; }
@@ -163,6 +179,16 @@
         <button type="button" class="btn-join" id="joinBtn" style="display:none;">✋ 参加する</button>
         <p class="join-hint" id="joinHint" style="display:none;"></p>
         <div id="participants" class="muted">読み込み中…</div>
+      </div>
+      <p class="join-hint" id="boardHint" style="display:none;">参加者の連絡欄は、参加表明した人がログインすると表示されます。<a href="#" onclick="openLoginModal();return false;">ログインする</a></p>
+      <div class="board" id="board" hidden>
+        <h2>参加者の連絡欄</h2>
+        <p class="muted board-note">参加表明した人だけが読み書きできます。ほかの人には見えません。</p>
+        <div id="boardList"></div>
+        <textarea id="boardText" rows="3" maxlength="500" placeholder="参加者のみなさんへの連絡を書く"></textarea>
+        <label class="board-check"><input type="checkbox" id="boardNotify" checked> 参加者にメールで知らせる</label>
+        <button type="button" class="btn-join" id="boardSend" onclick="sendBoard()">書き込む</button>
+        <p class="muted board-note" id="boardResult">メールには書いた文がそのまま載ります。メールに返信しても届かないので、返信はここに書いてください。</p>
       </div>
       <button type="button" class="btn btn-share" id="shareBtn" onclick="shareThisEvent()">このイベントを共有する</button>
       <p class="foot">掲載: 管理人／内容が変わることがあります。お出かけ前に最新の告知をご確認ください。</p>
@@ -312,8 +338,123 @@ async function refreshParticipants(){
       }
     }
     updateJoinButton(list);
+    refreshBoard(list);
   } catch (err) {
     box.textContent = '参加者の読み込みに失敗しました。';
+  }
+}
+
+// ── 参加者の連絡欄。読めるのは参加表明した人と管理人だけ（event_messages の RLS）。
+//    書き込みは /api/event-message が行い、選べば参加者へメールも送る（Resend）。──
+let boardRows = [];
+let boardScrolled = false;
+// 管理人かどうかは DB に聞く（このページは config.js を読んでいないので、アドレスを持っていない）
+let boardAdminFor = null, boardAdmin = false;
+async function boardIsAdmin(){
+  if (!currentUser) return false;
+  if (boardAdminFor !== currentUser.id) {
+    const { data } = await supabaseClient.rpc('is_admin');
+    boardAdmin = data === true; boardAdminFor = currentUser.id;
+  }
+  return boardAdmin;
+}
+function boardTime(iso){
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+async function refreshBoard(rows){
+  boardRows = rows;
+  const box = document.getElementById('board');
+  const hint = document.getElementById('boardHint');
+  const admin = await boardIsAdmin().catch(() => false);
+  const joined = !!(currentUser && myCarId && rows.some((r) => r.car_id === myCarId));
+  if (!joined && !admin) {
+    box.hidden = true;
+    // メールの「連絡欄を開く」から来たのにログインしていない人へだけ、理由を伝える
+    hint.style.display = (location.hash === '#board' && !currentUser) ? 'block' : 'none';
+    return;
+  }
+  hint.style.display = 'none';
+  box.hidden = false;
+  const list = document.getElementById('boardList');
+  const { data, error } = await supabaseClient.from('event_messages')
+    .select('id, car_id, handle_name, body, created_at').eq('event_id', EVENT_ID)
+    .order('created_at', { ascending: true }).order('id', { ascending: true });
+  if (error) { console.error(error); list.textContent = '連絡欄の読み込みに失敗しました。'; return; }
+  list.innerHTML = '';
+  if (!data || data.length === 0) {
+    const p = document.createElement('p');
+    p.className = 'muted'; p.style.margin = '0 0 8px';
+    p.textContent = 'まだ書き込みはありません。';
+    list.appendChild(p);
+  }
+  for (const m of (data || [])) {
+    const item = document.createElement('div'); item.className = 'msg';
+    const head = document.createElement('div'); head.className = 'msg-head';
+    const who = document.createElement('b'); who.textContent = m.handle_name;
+    const at = document.createElement('span'); at.textContent = boardTime(m.created_at);
+    head.appendChild(who); head.appendChild(at);
+    if (admin || (myCarId && m.car_id === myCarId)) {
+      const del = document.createElement('button');
+      del.type = 'button'; del.className = 'msg-del'; del.textContent = '消す';
+      del.onclick = () => deleteBoard(m.id);
+      head.appendChild(del);
+    }
+    const body = document.createElement('div'); body.className = 'msg-body'; body.textContent = m.body;
+    item.appendChild(head); item.appendChild(body);
+    list.appendChild(item);
+  }
+  if (location.hash === '#board' && !boardScrolled) { boardScrolled = true; box.scrollIntoView({ block: 'start' }); }
+}
+async function deleteBoard(id){
+  if (!confirm('この書き込みを消しますか？（送ったメールは取り消せません）')) return;
+  const { error } = await supabaseClient.from('event_messages').delete().eq('id', id);
+  if (error) { console.error(error); alert('消せませんでした。ログインし直してから、もう一度お試しください。'); return; }
+  refreshBoard(boardRows);
+}
+async function sendBoard(){
+  const ta = document.getElementById('boardText');
+  const btn = document.getElementById('boardSend');
+  const out = document.getElementById('boardResult');
+  const text = ta.value.trim();
+  if (!text) { ta.focus(); return; }
+  btn.disabled = true; btn.textContent = '送っています…';
+  try {
+    const { data: s } = await supabaseClient.auth.getSession();
+    const token = s && s.session ? s.session.access_token : '';
+    if (!token) { alert('ログインが切れています。ログインし直してください。'); return; }
+    const res = await fetch('/api/event-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ eventId: EVENT_ID, body: text, notify: document.getElementById('boardNotify').checked })
+    });
+    const r = await res.json().catch(() => ({}));
+    if (!r.success) {
+      const why = {
+        login: 'ログインが切れています。ログインし直してください。',
+        not_participant: '参加表明した人だけが書き込めます。',
+        too_many: '短い時間に書き込みが続いています。少し時間をおいてください。',
+        too_long: '500文字までで書いてください。'
+      }[r.error] || '書き込めませんでした。少し時間をおいて、もう一度お試しください。';
+      alert(why);
+      return;
+    }
+    ta.value = '';
+    out.textContent = '書き込みました。' + ({
+      sent: r.mailed + '人にメールで知らせました。',
+      cap: '今日はメールの上限に達したため、メールは送っていません。',
+      off: 'メールは送っていません（準備中）。',
+      failed: 'メールは送れませんでした。',
+      nobody: 'メールの宛先はありませんでした。'
+    }[r.mail] || '');
+    try { gtag('event', 'event_board_post', { mail: r.mail }); } catch (e) {}
+    await refreshBoard(boardRows);
+  } catch (e) {
+    console.error(e);
+    alert('通信できませんでした。電波の良い場所で、もう一度お試しください。');
+  } finally {
+    btn.disabled = false; btn.textContent = '書き込む';
   }
 }
 
