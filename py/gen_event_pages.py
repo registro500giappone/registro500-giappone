@@ -572,7 +572,10 @@ async function refreshParticipants(){{
   const head = document.getElementById('joinHead');
   try {{
     const {{ data: rows, error }} = await supabaseClient.from('event_participants')
-      .select('car_id, handle_name').eq('event_id', EVENT_ID);
+      .select('car_id, handle_name').eq('event_id', EVENT_ID)
+      // 並びは参加表明した順。指定しないと索引の順＝登録番号の文字順
+      // （DOC_1, DOC_10, DOC_102 …）で返ってくる（2026-11-20 実測）。
+      .order('created_at', {{ ascending: true }}).order('id', {{ ascending: true }});
     if (error) throw error;
     const list = rows || [];
     if (list.length === 0) {{

@@ -604,7 +604,8 @@
           TargetCarType:target_car_type,
           Participants:event_participants(
             OwnerID:car_id,
-            HandleName:handle_name
+            HandleName:handle_name,
+            CreatedAt:created_at
           )
         `)
         .order('event_date', { ascending: true });
@@ -738,8 +739,10 @@
     div.className = 'event-card' + (isPast ? ' past' : '');
     div.id = 'event-' + ev.EventID; // パーマリンク用ID
 
-    // 有効な参加者のみ抽出
-    const participants = (ev.Participants || []).filter(p => p.OwnerID && p.HandleName && p.OwnerID !== 'undefined');
+    // 有効な参加者のみ抽出。並びは参加表明した順（指定しないと登録番号の文字順で
+    // 返ってくる・2026-11-20 実測）。古いキャッシュには CreatedAt が無いので、その間は元の順のまま。
+    const participants = (ev.Participants || []).filter(p => p.OwnerID && p.HandleName && p.OwnerID !== 'undefined')
+      .sort((a, b) => String(a.CreatedAt || '').localeCompare(String(b.CreatedAt || '')));
     const isJoined = participants.some(p => p.OwnerID === myCarId);
     
     let namesHtml = participants.length === 0 ? "参加表明オーナーはまだいません" : participants.map(p => {
