@@ -435,18 +435,24 @@ def render(ev, slug, start, end) -> str:
 <div class="page">
   <article class="card">
     <div class="hero" id="hero" data-last-day="{last_day}">
+      <div id="heroDate">
       <div class="hero-y">{start.year}年</div>
       <div class="hero-d">{start.month}月{start.day}日<span class="wd">（{weekday}）</span></div>
       {f'<div class="hero-sub">{e(end_str)}</div>' if end_str else ''}
       {f'<div class="hero-sub">{e(time_str)}</div>' if time_str else ''}
+      </div>
       <div class="hero-cd" id="countdown" hidden></div>
     </div>
     <div class="body">
-      <h1>{e(name)}{badge}</h1>
+      <h1 id="evName">{e(name)}{badge}</h1>
+      <div id="evRows">
 {rows_html}
 {map_html}
-      {f'<div class="desc">{desc_html}</div>' if desc_html else ''}
+      </div>
+      <div id="evDesc">{f'<div class="desc">{desc_html}</div>' if desc_html else ''}</div>
+      <div id="evLink">
 {link_html}
+      </div>
       <div class="join">
         <h2 id="joinHead">参加予定</h2>
         <button type="button" class="btn-join" id="joinBtn" style="display:none;">✋ 参加する</button>
@@ -475,23 +481,99 @@ def render(ev, slug, start, end) -> str:
 <script>
 // 「あと何日」「終了しました」は今日を基準に変わる。6時間おきの生成で焼き込むと
 // 日付をまたいだ瞬間に嘘になるので、表示時に出す。
-var rgIsPast = (function () {{
+function rgCountdown() {{
   var hero = document.getElementById('hero');
   var cd = document.getElementById('countdown');
   var p = hero.dataset.lastDay.split('-');
   var last = new Date(+p[0], +p[1] - 1, +p[2]);   // 開催最終日のローカル(JST)0時
   var today = new Date(); today.setHours(0, 0, 0, 0);
   var days = Math.round((last - today) / 86400000);
-  if (days < 0) {{ hero.classList.add('past'); cd.textContent = '終了しました'; }}
+  hero.classList.toggle('past', days < 0);
+  if (days < 0) {{ cd.textContent = '終了しました'; }}
   else if (days === 0) {{ cd.textContent = '本日開催'; }}
   else if (days === 1) {{ cd.textContent = '明日開催'; }}
   else {{ cd.textContent = 'あと' + days + '日'; }}
   cd.hidden = false;
   return days < 0;
-}})();
+}}
+var rgIsPast = rgCountdown();
 
 const EVENT_ID = {json.dumps(ev['id'])};
-const EVENT_NAME = {json.dumps(name, ensure_ascii=False)};
+var EVENT_NAME = {json.dumps(name, ensure_ascii=False)};
+
+// ── 本文はDBの最新で上書きする（2026-11-21 ユーザー決裁「修正が入れば即時反映が基本」）──
+// このHTMLは共有カード（LINE・X）と検索のために6時間おきに作り直す静的ページで、
+// 書き込まれた本文はその時点のもの。主催者が編集画面で直しても次の生成まで古いまま＝
+// 「保存したのに反映されない」と困惑させる。そこで開くたびにDBを読み、名前・日時・場所・
+// 費用・説明・URLを置き換える（参加表明の顔ぶれと同じハイブリッド）。
+// 書き出す形は Python 側の render() と同じにそろえる（片方だけ直すと見た目がずれる）。
+// ⚠️ここは Python の f-string の中＝JSの正規表現・文字列のバックスラッシュは二重に書く（一重だと改行に化けて JS が止まる）。
+function rgEsc(s) {{
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {{
+    return {{ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;' }}[c];
+  }});
+}}
+function rgJst(ts) {{   // DBのタイムスタンプ → JSTの年月日時分（Python の to_jst と同じ）
+  if (!ts) return null;
+  var d = new Date(ts); if (isNaN(d)) return null;
+  var j = new Date(d.getTime() + 9 * 3600000);
+  return {{ y: j.getUTCFullYear(), m: j.getUTCMonth() + 1, d: j.getUTCDate(), w: '日月火水木金土'[j.getUTCDay()],
+           hh: j.getUTCHours(), mm: j.getUTCMinutes() }};
+}}
+function rgPad(n) {{ return (n < 10 ? '0' : '') + n; }}
+async function refreshFromDb() {{
+  try {{
+    const {{ data: ev, error }} = await supabaseClient.from('events')
+      .select('event_name, event_date, event_date_end, location, fee, url, description, target_car_type')
+      .eq('id', EVENT_ID).maybeSingle();
+    if (error || !ev) return;   // 読めなければ書き込み済みの内容のまま
+    const s = rgJst(ev.event_date); if (!s) return;
+    const en = rgJst(ev.event_date_end);
+    const hasTime = !(s.hh === 0 && s.mm === 0);   // JST 00:00 ちょうど＝開催時刻の入力なし
+    let hero = '<div class="hero-y">' + s.y + '年</div>'
+      + '<div class="hero-d">' + s.m + '月' + s.d + '日<span class="wd">（' + s.w + '）</span></div>';
+    if (en && !(en.y === s.y && en.m === s.m && en.d === s.d))
+      hero += '<div class="hero-sub">' + rgEsc('〜 ' + en.m + '月' + en.d + '日（' + en.w + '）') + '</div>';
+    if (hasTime) hero += '<div class="hero-sub">' + rgPad(s.hh) + ':' + rgPad(s.mm) + '〜</div>';
+    document.getElementById('heroDate').innerHTML = hero;
+    const last = en || s;
+    document.getElementById('hero').dataset.lastDay = last.y + '-' + rgPad(last.m) + '-' + rgPad(last.d);
+    rgIsPast = rgCountdown();
+
+    const badge = ev.target_car_type === '500' ? '<span class="badge b500">500</span>'
+      : ev.target_car_type === '126' ? '<span class="badge b126">126</span>' : '';
+    EVENT_NAME = ev.event_name || 'イベント';
+    document.getElementById('evName').innerHTML = rgEsc(EVENT_NAME) + badge;
+
+    let rows = '';
+    [['開催場所', ev.location], ['費用', ev.fee]].forEach(function (kv) {{
+      if (kv[1]) rows += '<div class="row"><span class="lbl">' + rgEsc(kv[0]) + '</span><div class="val">'
+        + rgEsc(kv[1]).replace(/\\n/g, '<br>') + '</div></div>';
+    }});
+    const loc = (ev.location || '').split('\\n').map(function (x) {{ return x.trim(); }}).filter(Boolean);
+    if (loc.length) rows += '<a class="btn btn-map" href="https://www.google.com/maps/search/?api=1&amp;query='
+      + encodeURIComponent(loc.join(' ')) + '" target="_blank" rel="noopener">Googleマップで開く</a>';
+    document.getElementById('evRows').innerHTML = rows;
+
+    let desc = '';
+    if (ev.description) {{
+      desc = rgEsc(ev.description).replace(/\\n/g, '<br>')
+        .replace(/(https?:\\/\\/[^\\s<]+)/g, '<a href="$1" target="_blank" rel="noopener nofollow">$1</a>');
+      desc = '<div class="desc">' + desc + '</div>';
+    }}
+    document.getElementById('evDesc').innerHTML = desc;
+
+    let link = '';
+    if (ev.url && /^https?:\\/\\//i.test(ev.url)) {{   // http(s) 以外は href に書き出さない
+      let host = '';
+      try {{ host = new URL(ev.url).host.replace('www.', ''); }} catch (e) {{}}
+      link = '<a class="btn btn-ext" href="' + rgEsc(ev.url) + '" target="_blank" rel="noopener nofollow">詳しい情報を見る</a>'
+        + '<p class="ext-host">' + rgEsc(host) + '</p>';
+    }}
+    document.getElementById('evLink').innerHTML = link;
+  }} catch (e) {{ /* 失敗しても書き込み済みの内容が見えているので何もしない */ }}
+}}
+refreshFromDb();
 
 // 共有。スマホでは共有シート（LINE等が並ぶ）、対応していない環境ではリンクをコピーする。
 // alert を出さずボタンの文字で結果を伝える＝押した指の近くで完結し、閉じる操作が要らない。
