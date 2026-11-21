@@ -147,19 +147,25 @@
 <div class="page">
   <article class="card">
     <div class="hero" id="hero" data-last-day="2026-04-19">
+      <div id="heroDate">
       <div class="hero-y">2026年</div>
       <div class="hero-d">4月18日<span class="wd">（土）</span></div>
       <div class="hero-sub">〜 4月19日（日）</div>
       
+      </div>
       <div class="hero-cd" id="countdown" hidden></div>
     </div>
     <div class="body">
-      <h1>2026 Historic &amp; classic car meeting in Sendai</h1>
+      <h1 id="evName">2026 Historic &amp; classic car meeting in Sendai</h1>
+      <div id="evRows">
       <div class="row"><span class="lbl">開催場所</span><div class="val">勾当台公園　仮説広場<br>宮城県仙台市青葉区本町３丁目</div></div>
     <a class="btn btn-map" href="https://www.google.com/maps/search/?api=1&amp;query=%E5%8B%BE%E5%BD%93%E5%8F%B0%E5%85%AC%E5%9C%92%E3%80%80%E4%BB%AE%E8%AA%AC%E5%BA%83%E5%A0%B4%20%E5%AE%AE%E5%9F%8E%E7%9C%8C%E4%BB%99%E5%8F%B0%E5%B8%82%E9%9D%92%E8%91%89%E5%8C%BA%E6%9C%AC%E7%94%BA%EF%BC%93%E4%B8%81%E7%9B%AE" target="_blank" rel="noopener">Googleマップで開く</a>
-      <div class="desc">2/5時点で公式サイトには未掲載<br>応募締め切り　2/27（金）</div>
+      </div>
+      <div id="evDesc"><div class="desc">2/5時点で公式サイトには未掲載<br>応募締め切り　2/27（金）</div></div>
+      <div id="evLink">
     <a class="btn btn-ext" href="http://www.hccs.jp/" target="_blank" rel="noopener nofollow">詳しい情報を見る</a>
     <p class="ext-host">hccs.jp</p>
+      </div>
       <div class="join">
         <h2 id="joinHead">参加予定</h2>
         <button type="button" class="btn-join" id="joinBtn" style="display:none;">✋ 参加する</button>
@@ -189,23 +195,99 @@
 <script>
 // 「あと何日」「終了しました」は今日を基準に変わる。6時間おきの生成で焼き込むと
 // 日付をまたいだ瞬間に嘘になるので、表示時に出す。
-var rgIsPast = (function () {
+function rgCountdown() {
   var hero = document.getElementById('hero');
   var cd = document.getElementById('countdown');
   var p = hero.dataset.lastDay.split('-');
   var last = new Date(+p[0], +p[1] - 1, +p[2]);   // 開催最終日のローカル(JST)0時
   var today = new Date(); today.setHours(0, 0, 0, 0);
   var days = Math.round((last - today) / 86400000);
-  if (days < 0) { hero.classList.add('past'); cd.textContent = '終了しました'; }
+  hero.classList.toggle('past', days < 0);
+  if (days < 0) { cd.textContent = '終了しました'; }
   else if (days === 0) { cd.textContent = '本日開催'; }
   else if (days === 1) { cd.textContent = '明日開催'; }
   else { cd.textContent = 'あと' + days + '日'; }
   cd.hidden = false;
   return days < 0;
-})();
+}
+var rgIsPast = rgCountdown();
 
 const EVENT_ID = "EVT_1770295396880";
-const EVENT_NAME = "2026 Historic & classic car meeting in Sendai";
+var EVENT_NAME = "2026 Historic & classic car meeting in Sendai";
+
+// ── 本文はDBの最新で上書きする（2026-11-21 ユーザー決裁「修正が入れば即時反映が基本」）──
+// このHTMLは共有カード（LINE・X）と検索のために6時間おきに作り直す静的ページで、
+// 書き込まれた本文はその時点のもの。主催者が編集画面で直しても次の生成まで古いまま＝
+// 「保存したのに反映されない」と困惑させる。そこで開くたびにDBを読み、名前・日時・場所・
+// 費用・説明・URLを置き換える（参加表明の顔ぶれと同じハイブリッド）。
+// 書き出す形は Python 側の render() と同じにそろえる（片方だけ直すと見た目がずれる）。
+// ⚠️ここは Python の f-string の中＝JSの正規表現・文字列のバックスラッシュは二重に書く（一重だと改行に化けて JS が止まる）。
+function rgEsc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;' }[c];
+  });
+}
+function rgJst(ts) {   // DBのタイムスタンプ → JSTの年月日時分（Python の to_jst と同じ）
+  if (!ts) return null;
+  var d = new Date(ts); if (isNaN(d)) return null;
+  var j = new Date(d.getTime() + 9 * 3600000);
+  return { y: j.getUTCFullYear(), m: j.getUTCMonth() + 1, d: j.getUTCDate(), w: '日月火水木金土'[j.getUTCDay()],
+           hh: j.getUTCHours(), mm: j.getUTCMinutes() };
+}
+function rgPad(n) { return (n < 10 ? '0' : '') + n; }
+async function refreshFromDb() {
+  try {
+    const { data: ev, error } = await supabaseClient.from('events')
+      .select('event_name, event_date, event_date_end, location, fee, url, description, target_car_type')
+      .eq('id', EVENT_ID).maybeSingle();
+    if (error || !ev) return;   // 読めなければ書き込み済みの内容のまま
+    const s = rgJst(ev.event_date); if (!s) return;
+    const en = rgJst(ev.event_date_end);
+    const hasTime = !(s.hh === 0 && s.mm === 0);   // JST 00:00 ちょうど＝開催時刻の入力なし
+    let hero = '<div class="hero-y">' + s.y + '年</div>'
+      + '<div class="hero-d">' + s.m + '月' + s.d + '日<span class="wd">（' + s.w + '）</span></div>';
+    if (en && !(en.y === s.y && en.m === s.m && en.d === s.d))
+      hero += '<div class="hero-sub">' + rgEsc('〜 ' + en.m + '月' + en.d + '日（' + en.w + '）') + '</div>';
+    if (hasTime) hero += '<div class="hero-sub">' + rgPad(s.hh) + ':' + rgPad(s.mm) + '〜</div>';
+    document.getElementById('heroDate').innerHTML = hero;
+    const last = en || s;
+    document.getElementById('hero').dataset.lastDay = last.y + '-' + rgPad(last.m) + '-' + rgPad(last.d);
+    rgIsPast = rgCountdown();
+
+    const badge = ev.target_car_type === '500' ? '<span class="badge b500">500</span>'
+      : ev.target_car_type === '126' ? '<span class="badge b126">126</span>' : '';
+    EVENT_NAME = ev.event_name || 'イベント';
+    document.getElementById('evName').innerHTML = rgEsc(EVENT_NAME) + badge;
+
+    let rows = '';
+    [['開催場所', ev.location], ['費用', ev.fee]].forEach(function (kv) {
+      if (kv[1]) rows += '<div class="row"><span class="lbl">' + rgEsc(kv[0]) + '</span><div class="val">'
+        + rgEsc(kv[1]).replace(/\n/g, '<br>') + '</div></div>';
+    });
+    const loc = (ev.location || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean);
+    if (loc.length) rows += '<a class="btn btn-map" href="https://www.google.com/maps/search/?api=1&amp;query='
+      + encodeURIComponent(loc.join(' ')) + '" target="_blank" rel="noopener">Googleマップで開く</a>';
+    document.getElementById('evRows').innerHTML = rows;
+
+    let desc = '';
+    if (ev.description) {
+      desc = rgEsc(ev.description).replace(/\n/g, '<br>')
+        .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener nofollow">$1</a>');
+      desc = '<div class="desc">' + desc + '</div>';
+    }
+    document.getElementById('evDesc').innerHTML = desc;
+
+    let link = '';
+    if (ev.url && /^https?:\/\//i.test(ev.url)) {   // http(s) 以外は href に書き出さない
+      let host = '';
+      try { host = new URL(ev.url).host.replace('www.', ''); } catch (e) {}
+      link = '<a class="btn btn-ext" href="' + rgEsc(ev.url) + '" target="_blank" rel="noopener nofollow">詳しい情報を見る</a>'
+        + '<p class="ext-host">' + rgEsc(host) + '</p>';
+    }
+    document.getElementById('evLink').innerHTML = link;
+  } catch (e) { /* 失敗しても書き込み済みの内容が見えているので何もしない */ }
+}
+refreshFromDb();
 
 // 共有。スマホでは共有シート（LINE等が並ぶ）、対応していない環境ではリンクをコピーする。
 // alert を出さずボタンの文字で結果を伝える＝押した指の近くで完結し、閉じる操作が要らない。
