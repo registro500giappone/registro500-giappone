@@ -479,10 +479,11 @@ def render(ev, slug, start, end) -> str:
         <p class="join-hint" id="joinHint" style="display:none;"></p>
         <div id="participants" class="muted">読み込み中…</div>
       </div>
-      <div class="join member-video" id="memberVideo" style="display:none;"></div>
-      <script src="/event-member.js?v=1"></script>
       <button type="button" class="btn btn-share" id="shareBtn" onclick="shareThisEvent()">このイベントを共有する</button>
       <p class="foot">掲載: {e(ev.get('owner_name'))}／内容が変わることがあります。お出かけ前に最新の告知をご確認ください。</p>
+      <!-- 参加者の共有スペースは公開の情報と混ざらないよう、カードのいちばん下に置く -->
+      <div class="join member-video" id="memberVideo" style="display:none;"></div>
+      <script src="/event-member.js?v=1"></script>
     </div>
   </article>
 {cta_html}
@@ -519,6 +520,8 @@ function rgCountdown() {{
   return days < 0;
 }}
 var rgIsPast = rgCountdown();
+// 終わったイベントでは「ページを」共有すると明示する（下の参加者の共有スペースの写真・動画を共有するボタンに見えないように）
+if (rgIsPast) {{ const sb = document.getElementById('shareBtn'); if (sb) sb.textContent = 'このイベントのページを共有する'; }}
 
 const EVENT_ID = {json.dumps(ev['id'])};
 var EVENT_NAME = {json.dumps(name, ensure_ascii=False)};
