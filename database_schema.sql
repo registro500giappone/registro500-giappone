@@ -1,5 +1,5 @@
 -- database_schema.sql ―― 本番 Supabase（public スキーマ）の写し
--- 生成: 2026-11-24 12:55 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
+-- 生成: 2026-11-24 13:00 JST  by py/dump_schema.py（DB 関数 schema_snapshot() の出力）
 -- ⚠️ 手で編集しない。スキーマを変えたら migration を当ててから再生成する。
 -- ⚠️ そのまま流して復元する用途ではない（依存順・GRANT・storage/auth スキーマは含まない）。読むための資料。
 
@@ -374,13 +374,28 @@ alter table public.event_discovery_log add constraint event_discovery_log_url_ke
 alter table public.event_discovery_log enable row level security;
 comment on table public.event_discovery_log is 'イベント探索の送信済みURL台帳。週次メールで一度出した候補の再掲を防ぐためだけに使う。公開しない（service_roleのみ）。';
 
+create table public.event_member_photos (
+  id bigint generated always as identity not null,
+  event_id text not null,
+  car_id text,
+  handle_name text,
+  path text not null,
+  created_at timestamp with time zone not null default now()
+);
+alter table public.event_member_photos add constraint event_member_photos_pkey PRIMARY KEY (id);
+alter table public.event_member_photos add constraint event_member_photos_path_key UNIQUE (path);
+alter table public.event_member_photos enable row level security;
+
 create table public.event_member_videos (
   id bigint generated always as identity not null,
   event_id text not null,
   title text,
   youtube_id text not null,
   sort integer not null default 0,
-  created_at timestamp with time zone not null default now()
+  created_at timestamp with time zone not null default now(),
+  car_id text,
+  handle_name text,
+  vertical boolean not null default false
 );
 alter table public.event_member_videos add constraint event_member_videos_pkey PRIMARY KEY (id);
 alter table public.event_member_videos add constraint event_member_videos_youtube_id_check CHECK ((youtube_id ~ '^[A-Za-z0-9_-]{11}$'::text));
@@ -1098,6 +1113,7 @@ CREATE INDEX idx_equipment_stop_modes_sort ON public.equipment_stop_modes USING 
 CREATE INDEX idx_equipment_task_items_item ON public.equipment_task_items USING btree (item_id);
 CREATE INDEX idx_equipment_tasks_sort ON public.equipment_tasks USING btree (sort_order);
 CREATE INDEX idx_event_discovery_log_sent_at ON public.event_discovery_log USING btree (sent_at DESC);
+CREATE INDEX event_member_photos_event_idx ON public.event_member_photos USING btree (event_id, created_at);
 CREATE INDEX event_member_videos_event_idx ON public.event_member_videos USING btree (event_id);
 CREATE INDEX event_messages_created_idx ON public.event_messages USING btree (created_at);
 CREATE INDEX event_messages_event_idx ON public.event_messages USING btree (event_id, created_at);
@@ -1352,13 +1368,35 @@ $function$
 ;
 -- acl: postgres=X/postgres anon=X/postgres authenticated=X/postgres service_role=X/postgres
 
+CREATE OR REPLACE FUNCTION public.event_member_post_limit()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n int;
+begin
+  if new.car_id is null then return new; end if;
+  if tg_table_name = 'event_member_photos' then
+    select count(*) into n from public.event_member_photos where event_id = new.event_id and car_id = new.car_id;
+    if n >= 50 then raise exception '写真は1台50枚までです' using errcode = 'P0001'; end if;
+  else
+    select count(*) into n from public.event_member_videos where event_id = new.event_id and car_id = new.car_id;
+    if n >= 10 then raise exception '動画は1台10本までです' using errcode = 'P0001'; end if;
+  end if;
+  return new;
+end $function$
+;
+-- acl: =X/postgres postgres=X/postgres anon=X/postgres authenticated=X/postgres service_role=X/postgres
+
 CREATE OR REPLACE FUNCTION public.event_member_video_count(p_event text)
  RETURNS integer
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select count(*)::int from public.event_member_videos where event_id = p_event;
+  select (select count(*) from public.event_member_videos where event_id = p_event)::int
+       + (select count(*) from public.event_member_photos where event_id = p_event)::int;
 $function$
 ;
 -- acl: postgres=X/postgres anon=X/postgres authenticated=X/postgres service_role=X/postgres
@@ -1590,6 +1628,17 @@ END;
 $function$
 ;
 -- acl: =X/postgres postgres=X/postgres anon=X/postgres authenticated=X/postgres service_role=X/postgres
+
+CREATE OR REPLACE FUNCTION public.in_event_roster(p_event text, p_car text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select exists (select 1 from public.event_video_access where event_id = p_event and car_id = p_car);
+$function$
+;
+-- acl: postgres=X/postgres anon=X/postgres authenticated=X/postgres service_role=X/postgres
 
 CREATE OR REPLACE FUNCTION public.is_admin()
  RETURNS boolean
@@ -1893,6 +1942,20 @@ END;
 $function$
 ;
 -- acl: postgres=X/postgres service_role=X/postgres
+
+CREATE OR REPLACE FUNCTION public.my_event_roster_cars(p_event text)
+ RETURNS TABLE(car_id text, handle_name text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select a.car_id, c.handle_name from public.event_video_access a
+    join public.cars c on c.document_id = a.car_id
+   where a.event_id = p_event and public.owns_car(a.car_id)
+   order by a.car_id;
+$function$
+;
+-- acl: postgres=X/postgres anon=X/postgres authenticated=X/postgres service_role=X/postgres
 
 CREATE OR REPLACE FUNCTION public.owner_articles_guard()
  RETURNS trigger
@@ -2281,6 +2344,8 @@ CREATE TRIGGER car_history_after_update AFTER UPDATE ON public.cars FOR EACH ROW
 CREATE TRIGGER tr_calculate_display_names BEFORE INSERT OR UPDATE ON public.cars FOR EACH ROW EXECUTE FUNCTION handle_car_display_names();
 CREATE TRIGGER tr_lower_email BEFORE INSERT OR UPDATE ON public.cars FOR EACH ROW EXECUTE FUNCTION handle_lower_email();
 CREATE TRIGGER tr_set_doc_id BEFORE INSERT ON public.cars FOR EACH ROW EXECUTE FUNCTION trigger_set_doc_id();
+CREATE TRIGGER event_member_photos_limit BEFORE INSERT ON public.event_member_photos FOR EACH ROW EXECUTE FUNCTION event_member_post_limit();
+CREATE TRIGGER event_member_videos_limit BEFORE INSERT ON public.event_member_videos FOR EACH ROW EXECUTE FUNCTION event_member_post_limit();
 CREATE TRIGGER after_favorite_spot_change AFTER INSERT OR DELETE ON public.favorite_spots FOR EACH ROW EXECUTE FUNCTION update_spot_registration_count();
 CREATE TRIGGER before_insert_favorite_spots BEFORE INSERT ON public.favorite_spots FOR EACH ROW WHEN ((new.favorite_id IS NULL)) EXECUTE FUNCTION generate_favorite_id();
 CREATE TRIGGER fuel_records_guard BEFORE INSERT OR UPDATE ON public.fuel_records FOR EACH ROW EXECUTE FUNCTION fuel_records_guard();
@@ -2400,9 +2465,22 @@ create policy event_community_photos_insert_policy on public.event_community_pho
   with check ((auth.uid() IS NOT NULL));
 create policy event_community_photos_select_policy on public.event_community_photos as permissive for SELECT to public
   using (true);
+create policy event_member_photos_admin_write on public.event_member_photos as permissive for ALL to public
+  using (is_admin())
+  with check (is_admin());
+create policy event_member_photos_delete on public.event_member_photos as permissive for DELETE to authenticated
+  using ((is_admin() OR ((car_id IS NOT NULL) AND owns_car(car_id))));
+create policy event_member_photos_member_insert on public.event_member_photos as permissive for INSERT to authenticated
+  with check (((car_id IS NOT NULL) AND owns_car(car_id) AND in_event_roster(event_id, car_id) AND (path ~~ (((event_id || '/'::text) || car_id) || '/%'::text))));
+create policy event_member_photos_select on public.event_member_photos as permissive for SELECT to public
+  using (can_view_event_video(event_id));
 create policy event_member_videos_admin_write on public.event_member_videos as permissive for ALL to public
   using (is_admin())
   with check (is_admin());
+create policy event_member_videos_member_delete on public.event_member_videos as permissive for DELETE to authenticated
+  using (((car_id IS NOT NULL) AND owns_car(car_id)));
+create policy event_member_videos_member_insert on public.event_member_videos as permissive for INSERT to authenticated
+  with check (((car_id IS NOT NULL) AND owns_car(car_id) AND in_event_roster(event_id, car_id)));
 create policy event_member_videos_select on public.event_member_videos as permissive for SELECT to public
   using (can_view_event_video(event_id));
 create policy event_messages_delete_policy on public.event_messages as permissive for DELETE to authenticated

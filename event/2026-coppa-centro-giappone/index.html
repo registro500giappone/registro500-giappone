@@ -124,6 +124,23 @@
   .member-video .mv-item { margin:0 0 14px; }
   .member-video .mv-title { font-size:.9rem; margin:0 0 6px; }
   .member-video iframe { display:block; width:100%; max-width:360px; aspect-ratio:9/16; border:0; border-radius:10px; margin:0 auto; }
+  .member-video iframe.wide { max-width:100%; aspect-ratio:16/9; }
+  .member-video h3 { font-size:.95rem; margin:18px 0 8px; }
+  .member-video .mv-by { font-size:.8rem; color:var(--sub); margin:4px 0 0; text-align:center; }
+  .member-video .mv-by button { background:none; border:0; color:var(--sub); text-decoration:underline; cursor:pointer; font-size:.8rem; }
+  .member-video .mv-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:6px; }
+  .member-video .mv-grid a { display:block; aspect-ratio:1; overflow:hidden; border-radius:8px; background:var(--line); }
+  .member-video .mv-grid img { width:100%; height:100%; object-fit:cover; display:block; }
+  .member-video .mv-post { margin-top:16px; padding:12px; border:1px solid var(--line); border-radius:10px; }
+  .member-video .mv-post input[type=url] { width:100%; box-sizing:border-box; padding:8px; border:1px solid var(--line); border-radius:8px; font-size:16px; }
+  .member-video .mv-post .row { display:flex; gap:8px; margin:6px 0 12px; }
+  .member-video .mv-post .row button, .member-video .mv-post label.btn-file { flex:0 0 auto; padding:8px 14px; border:0; border-radius:8px; background:var(--accent); color:#fff; cursor:pointer; font-size:.9rem; }
+  .member-video .mv-post input[type=file] { display:none; }
+  .member-video .mv-msg { font-size:.85rem; color:var(--sub); margin:4px 0 0; }
+  #mvViewer { position:fixed; inset:0; background:rgba(0,0,0,.9); display:none; z-index:1000; align-items:center; justify-content:center; flex-direction:column; }
+  #mvViewer img { max-width:100%; max-height:85vh; }
+  #mvViewer p { color:#ddd; font-size:.85rem; margin:8px; }
+  #mvViewer button { background:none; border:1px solid #888; color:#eee; border-radius:8px; padding:6px 12px; margin:0 4px; cursor:pointer; }
 
   /* ログインモーダルの枠（中のログイン欄は共通の rg-login.js。配色だけこのページの変数に合わせる） */
   #loginModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:10000;
@@ -177,6 +194,7 @@
         <div id="participants" class="muted">読み込み中…</div>
       </div>
       <div class="join member-video" id="memberVideo" style="display:none;"></div>
+      <script src="/event-member.js?v=1"></script>
       <button type="button" class="btn btn-share" id="shareBtn" onclick="shareThisEvent()">このイベントを共有する</button>
       <p class="foot">掲載: 管理者／内容が変わることがあります。お出かけ前に最新の告知をご確認ください。</p>
     </div>
@@ -436,49 +454,7 @@ async function toggleJoin(){
   }
 }
 
-// ── 参加者限定の動画。見られるのは名簿 event_video_access に自分の車がある人と管理人だけ（RLS）。
-// 未ログインには本数だけを聞いて「ログインして見る」を出す。ログイン済みで名簿にない人には何も出さない。
-async function refreshMemberVideos(){
-  const box = document.getElementById('memberVideo');
-  const hide = () => { box.style.display = 'none'; box.innerHTML = ''; };
-  try {
-    if (!currentUser) {
-      const { data: n, error } = await supabaseClient.rpc('event_member_video_count', { p_event: EVENT_ID });
-      if (error || !n) return hide();
-      box.innerHTML = '<h2>参加者向けの動画</h2>'
-        + '<p class="join-hint">当日参加した方は、登録したメールアドレスでログインすると見られます。</p>'
-        + '<button type="button" class="btn-join" id="mvLoginBtn">ログインして見る</button>';
-      document.getElementById('mvLoginBtn').onclick = openLoginModal;
-      box.style.display = 'block';
-      return;
-    }
-    const { data: vids, error } = await supabaseClient.from('event_member_videos')
-      .select('title, youtube_id').eq('event_id', EVENT_ID)
-      .order('sort', { ascending: true }).order('id', { ascending: true });
-    if (error || !vids || vids.length === 0) return hide();
-    box.innerHTML = '<h2>参加者向けの動画</h2><p class="join-hint">当日参加した方だけに表示しています。</p>';
-    for (const v of vids) {
-      if (!/^[A-Za-z0-9_-]{11}$/.test(v.youtube_id || '')) continue;
-      const item = document.createElement('div');
-      item.className = 'mv-item';
-      if (v.title) {
-        const t = document.createElement('p');
-        t.className = 'mv-title';
-        t.textContent = v.title;
-        item.appendChild(t);
-      }
-      const f = document.createElement('iframe');
-      f.src = 'https://www.youtube-nocookie.com/embed/' + v.youtube_id + '?rel=0';
-      f.title = v.title || '参加者向けの動画';
-      f.loading = 'lazy';
-      f.allow = 'accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen';
-      f.allowFullscreen = true;
-      item.appendChild(f);
-      box.appendChild(item);
-    }
-    box.style.display = 'block';
-  } catch (e) { hide(); }
-}
+// 参加者限定の共有（動画・写真）は /event-member.js（refreshMemberVideos）
 
 supabaseClient.auth.onAuthStateChange((event, session) => {
   const user = session ? session.user : null;
@@ -486,7 +462,7 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
   (async () => {
     if (user) await checkMyCar(user); else { myCarId = null; myCarHandle = null; }
     await refreshParticipants();
-    await refreshMemberVideos();
+    if (window.refreshMemberVideos) await refreshMemberVideos();
   })();
 });
 refreshParticipants();
