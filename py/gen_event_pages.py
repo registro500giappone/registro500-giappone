@@ -639,6 +639,9 @@ function closeLoginModal(){{
 
 // ── 参加表明。event_participants は匿名読み取り可（一覧ページと同じ扱い）──
 async function checkMyCar(user){{
+  // 2026-02 以前に登録してまだ結び付いていない車（owner_user_id が空）を、登録アドレスで自分のアカウントへ結び付ける。
+  // 他のページ（index・edit など）と同じ。これが無いと、イベントページから初めてログインした人に参加ボタンが出なかった（2026-11-24）。
+  try {{ await supabaseClient.rpc('link_owner_car'); }} catch (e) {{ console.error(e); }}
   try {{
     const {{ data: cars }} = await supabaseClient.from('cars')
       .select('document_id, handle_name').eq('owner_user_id', user.id);
