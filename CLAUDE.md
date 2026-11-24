@@ -35,6 +35,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+## ⛔ `/ship`・Claude Ship は使わない（2026-11-24 ユーザー承認）
+
+Claude Code 2.1.32x の `/ship` は、まだコミットしていない変更を自動でコミット・push し、PR が無ければ作る（公開 repo では自動コミット・push はしないが、**312 は private なので自動でコミット・push される**）。500・312・Scorpione はどれも **`main` への push がそのまま本番デプロイ**で、導線・`[skip ci]`・公開日の決まりがあるため合わない。Claude から `/ship` を実行したり勧めたりしない。コミットと push はこれまでどおり、指示を受けて行う。
+
+---
+
 ## MCPサーバー構成
 
 このプロジェクトでは以下のMCPサーバーを利用可能（`C:\Users\akayu\.claude.json` で管理）：
