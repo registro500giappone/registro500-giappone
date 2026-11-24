@@ -120,6 +120,9 @@
   .btn-join:disabled { opacity:.6; cursor:default; }
   .join-hint { margin:0 0 12px; font-size:.9rem; color:var(--sub); }
   .join-hint a { color:var(--accent); }
+  .member-video .mv-item { margin:0 0 14px; }
+  .member-video .mv-title { font-size:.9rem; margin:0 0 6px; }
+  .member-video iframe { display:block; width:100%; max-width:360px; aspect-ratio:9/16; border:0; border-radius:10px; margin:0 auto; }
 
   /* ログインモーダルの枠（中のログイン欄は共通の rg-login.js。配色だけこのページの変数に合わせる） */
   #loginModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:10000;
@@ -172,6 +175,7 @@
         <p class="join-hint" id="joinHint" style="display:none;"></p>
         <div id="participants" class="muted">読み込み中…</div>
       </div>
+      <div class="join member-video" id="memberVideo" style="display:none;"></div>
       <button type="button" class="btn btn-share" id="shareBtn" onclick="shareThisEvent()">このイベントを共有する</button>
       <p class="foot">掲載: しゅう／内容が変わることがあります。お出かけ前に最新の告知をご確認ください。</p>
     </div>
@@ -431,12 +435,57 @@ async function toggleJoin(){
   }
 }
 
+// ── 参加者限定の動画。見られるのは名簿 event_video_access に自分の車がある人と管理人だけ（RLS）。
+// 未ログインには本数だけを聞いて「ログインして見る」を出す。ログイン済みで名簿にない人には何も出さない。
+async function refreshMemberVideos(){
+  const box = document.getElementById('memberVideo');
+  const hide = () => { box.style.display = 'none'; box.innerHTML = ''; };
+  try {
+    if (!currentUser) {
+      const { data: n, error } = await supabaseClient.rpc('event_member_video_count', { p_event: EVENT_ID });
+      if (error || !n) return hide();
+      box.innerHTML = '<h2>参加者向けの動画</h2>'
+        + '<p class="join-hint">当日参加した方は、登録したメールアドレスでログインすると見られます。</p>'
+        + '<button type="button" class="btn-join" id="mvLoginBtn">ログインして見る</button>';
+      document.getElementById('mvLoginBtn').onclick = openLoginModal;
+      box.style.display = 'block';
+      return;
+    }
+    const { data: vids, error } = await supabaseClient.from('event_member_videos')
+      .select('title, youtube_id').eq('event_id', EVENT_ID)
+      .order('sort', { ascending: true }).order('id', { ascending: true });
+    if (error || !vids || vids.length === 0) return hide();
+    box.innerHTML = '<h2>参加者向けの動画</h2><p class="join-hint">当日参加した方だけに表示しています。</p>';
+    for (const v of vids) {
+      if (!/^[A-Za-z0-9_-]{11}$/.test(v.youtube_id || '')) continue;
+      const item = document.createElement('div');
+      item.className = 'mv-item';
+      if (v.title) {
+        const t = document.createElement('p');
+        t.className = 'mv-title';
+        t.textContent = v.title;
+        item.appendChild(t);
+      }
+      const f = document.createElement('iframe');
+      f.src = 'https://www.youtube-nocookie.com/embed/' + v.youtube_id + '?rel=0';
+      f.title = v.title || '参加者向けの動画';
+      f.loading = 'lazy';
+      f.allow = 'accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+      f.allowFullscreen = true;
+      item.appendChild(f);
+      box.appendChild(item);
+    }
+    box.style.display = 'block';
+  } catch (e) { hide(); }
+}
+
 supabaseClient.auth.onAuthStateChange((event, session) => {
   const user = session ? session.user : null;
   currentUser = user;
   (async () => {
     if (user) await checkMyCar(user); else { myCarId = null; myCarHandle = null; }
     await refreshParticipants();
+    await refreshMemberVideos();
   })();
 });
 refreshParticipants();
