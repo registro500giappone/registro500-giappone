@@ -331,6 +331,7 @@ claude/analysis-explanation-ebztid  (34文字)
 11/23「レジちん1周年記念」の動画を参加者だけに見せたい、から始まった。
 - **名簿** `event_video_access`（イベント×車）＝管理人が入れる。参加表明とは別＝表明せずに来た人も入れられ、
   終わったあとに参加表明を押しても増えない。11/23 は参加表明25＋当日6＝31台（未登録の1名は URL を直接渡す）。
+  【2026-11-24 更新】その1名も11/24に車両を登録したので名簿に追加＝32台。
   名簿の中身（誰が来たか）は公開 repo に置かない。
 - **動画** `event_member_videos`（YouTube の ID だけ・`vertical`＝ショート）／**写真** `event_member_photos`＋非公開バケット
   `event-member-photos`（パス＝`<event_id>/<car_id>/<uuid>.jpg`＋一覧用 `_t.jpg`・ブラウザで 1600px/400px に縮めて EXIF も落ちる）。
