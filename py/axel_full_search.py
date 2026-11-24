@@ -10,6 +10,7 @@ import time
 import requests
 import re
 import random
+from collections import Counter
 from bs4 import BeautifulSoup
 
 from crawler_common import BOT_USER_AGENT, get_supabase
@@ -116,21 +117,37 @@ def detect_vehicle(name, url):
     return ", ".join(cars) if cars else "Fiat 500"
 
 
+# スキップ理由の集計（全件スキップで落ちたとき、弾かれ方をログで分かるようにする）
+SKIP_REASONS = Counter()
+SKIP_SAMPLES = []  # 最初の数件だけ詳細を残す
+
+
+def _skip(reason, url, detail=""):
+    SKIP_REASONS[reason] += 1
+    if len(SKIP_SAMPLES) < 5:
+        SKIP_SAMPLES.append(f"{reason} | {url} | {detail[:200]}")
+    return None
+
+
 def scrape_product(session, url):
     """1商品ページをrequestsで取得してパース"""
     try:
         r = session.get(url, timeout=15)
         if r.status_code != 200:
-            return None
+            reason = f"HTTP {r.status_code}"
+            if r.headers.get("cf-mitigated") == "challenge":
+                reason += " (cf-challenge)"
+            return _skip(reason, url, r.text[:200].replace("\n", " "))
         soup = BeautifulSoup(r.text, 'html.parser')
 
         # 品番
         sku_el = soup.find(itemprop='sku')
         if not sku_el:
-            return None
+            title = soup.title.get_text(strip=True) if soup.title else ""
+            return _skip("品番なし", url, f"title={title} len={len(r.text)}")
         item_no = sku_el.get('content') or sku_el.get_text(strip=True)
         if not item_no:
-            return None
+            return _skip("品番が空", url)
 
         # 価格（<span itemprop="price">39.90</span>）
         price_el = soup.find(itemprop='price')
@@ -172,8 +189,8 @@ def scrape_product(session, url):
             # name_jp / category は含めない → AI翻訳済みデータを保護
         }
 
-    except Exception:
-        return None
+    except Exception as e:
+        return _skip(f"例外 {type(e).__name__}", url, str(e))
 
 
 def batch_upsert(batch):
@@ -245,6 +262,10 @@ def main():
     print(f"終了時刻: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"所要時間: {elapsed_total:.1f}分")
     print(f"成功: {success}件 / スキップ: {skip}件 / 合計URL: {total}件")
+    if SKIP_REASONS:
+        print("スキップ理由: " + " / ".join(f"{k}: {v}件" for k, v in SKIP_REASONS.most_common()))
+        for s in SKIP_SAMPLES:
+            print(f"  例) {s}")
     print("=" * 60)
 
     # URLはあるのに1件も取れない＝商品ページ側が遮断されている等の異常
