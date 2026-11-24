@@ -1,7 +1,7 @@
 // イベント参加者限定の共有（動画・写真）。イベント個別ページ（py/gen_event_pages.py の雛形）から読む。
 // 見られるのは名簿 event_video_access に自分の車がある人と管理人だけ（RLS とバケットのポリシーで守る）。
 // ページ側の supabaseClient・EVENT_ID・currentUser・openLoginModal を使う。
-// ⚠️ このファイルを直したら雛形の ?v= を上げる（Service Worker が古い版を持ち続けるため）。
+// ⚠️ このファイルを直したら雛形（py/gen_event_pages.py）の ?v= を上げる（Service Worker が古い版を持ち続けるため）。
 (function () {
   'use strict';
   const BUCKET = 'event-member-photos';
@@ -156,10 +156,32 @@
 
   function renderPostForm(box) {
     if (!myCars.length) return;   // 名簿に自分の車がない（管理人だけ等）なら投稿欄は出さない
-    const car = myCars[0];
+    // 1つのアカウントに名簿の車が2台以上（ご夫婦で1つのアドレス・2台持ち）なら、どの車として投稿するか選ぶ。
+    // 選んだ車は端末に覚えておく（夫婦がそれぞれのスマホで使うため）。
+    const KEY = 'rgMemberCar:' + EVENT_ID;
+    let saved = null;
+    try { saved = localStorage.getItem(KEY); } catch (e) {}
+    let car = myCars.find((c) => c.car_id === saved) || myCars[0];
     const wrap = el('div', { class: 'mv-post' });
-    wrap.appendChild(el('p', { class: 'join-hint' },
-      '写真や動画を共有できます（参加した方だけに見えます）。' + (car.handle_name ? car.handle_name + ' さんとして投稿します。' : '')));
+    wrap.appendChild(el('p', { class: 'join-hint' }, '写真や動画を共有できます（参加した方だけに見えます）。'));
+    const who = el('p', { class: 'join-hint' });
+    if (myCars.length > 1) {
+      who.appendChild(document.createTextNode('投稿する名前：'));
+      const sel = el('select', { 'aria-label': '投稿する名前' });
+      for (const c of myCars) {
+        const o = el('option', { value: c.car_id }, (c.handle_name || c.car_id) + ' さん');
+        if (c.car_id === car.car_id) o.selected = true;
+        sel.appendChild(o);
+      }
+      sel.onchange = () => {
+        car = myCars.find((c) => c.car_id === sel.value) || myCars[0];
+        try { localStorage.setItem(KEY, car.car_id); } catch (e) {}
+      };
+      who.appendChild(sel);
+    } else if (car.handle_name) {
+      who.textContent = car.handle_name + ' さんとして投稿します。';
+    }
+    wrap.appendChild(who);
 
     const fileLabel = el('label', { class: 'btn-file' }, '📷 写真を選ぶ');
     const file = el('input', { type: 'file', accept: 'image/*', multiple: '' });
