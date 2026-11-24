@@ -20,7 +20,9 @@
   <meta property="og:title" content="サイトを応援する">
   <meta property="og:description" content="Registro500 Giappone を応援してください。月300円の定期サポートと、1回だけの応援があります。">
   <meta property="og:url" content="https://www.registro500.com/support">
-  <meta property="og:image" content="https://www.registro500.com/logo_horizontal_1200.png">
+  <meta property="og:image" content="https://www.registro500.com/og/site-ja.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <meta property="og:site_name" content="Registro500 Giappone">
   <meta name="twitter:card" content="summary_large_image">
 
@@ -35,12 +37,15 @@
       --card-bg: #fffefb;
       --border-soft: #d6c9b0;
       --shadow-soft: 0 2px 8px rgba(70, 58, 40, 0.10);
+      --shadow-lift: 0 14px 32px rgba(70, 58, 40, 0.18);
       --text-main: #2e2a24;
       --text-sub: #7a705f;
       --accent: #1f5c3d;
       --accent-soft: #e7efe7;
-      --accent-border: #c3d6c6;
-      --radius-lg: 8px;
+      --rosso: #c8322a;
+      --sun: #ffd27a;
+      --sun-deep: #f4a340;
+      --radius-lg: 14px;
       --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
@@ -50,16 +55,19 @@
         --card-bg: #2b2721;
         --border-soft: #403a30;
         --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.35);
+        --shadow-lift: 0 14px 32px rgba(0, 0, 0, 0.5);
         --text-main: #ece6d9;
         --text-sub: #a89e8c;
         --accent: #7fb894;
         --accent-soft: #24382c;
-        --accent-border: #3d6b4d;
+        --rosso: #e0766c;
+        --sun: #6b4a1c;
+        --sun-deep: #8a5a1e;
       }
     }
 
     * { box-sizing: border-box; }
-    html { font-size: 16px; max-width: 100%; overflow-x: hidden; }
+    html { font-size: 16px; max-width: 100%; overflow-x: hidden; scroll-behavior: smooth; }
     @media (min-width: 1025px) { html { font-size: 18px; } }
 
     body {
@@ -79,7 +87,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 40px;
+      margin-bottom: 24px;
       padding-bottom: 16px;
       border-bottom: 1px solid var(--border-soft);
     }
@@ -88,40 +96,99 @@
     .header-nav a { color: var(--text-sub); text-decoration: none; }
     .header-nav a:hover { color: var(--accent); }
 
-    /* ヒーロー */
+    /* ===== ヒーロー：主役はここ1つ（陽だまりの帯＋大きな見出し＋いまの数字） ===== */
     .hero {
-      background: var(--card-bg);
-      border-radius: var(--radius-lg);
-      padding: 36px 32px;
-      margin-bottom: 40px;
-      box-shadow: var(--shadow-soft);
-      border-left: 4px solid var(--accent);
+      position: relative;
+      overflow: hidden;
+      border-radius: 20px;
+      padding: 44px 36px 36px;
+      margin-bottom: 36px;
+      text-align: center;
+      background:
+        linear-gradient(180deg, #fff8e6 0%, #ffe7ad 60%, #ffd78a 100%);
+      box-shadow: var(--shadow-lift);
+      color: #2a1c0a;
     }
-    @media (max-width: 600px) { .hero { padding: 24px 20px; } }
+    /* 上端のイタリアの3色（細く・主張しすぎない） */
+    .hero::before {
+      content: "";
+      position: absolute; left: 0; right: 0; top: 0; height: 6px;
+      background: linear-gradient(90deg, #1f8a4c 0 33.3%, #fffefb 33.3% 66.6%, #c8322a 66.6% 100%);
+    }
+    @media (max-width: 600px) { .hero { padding: 36px 20px 28px; border-radius: 16px; } }
 
-    .hero-title {
-      font-size: 1.3rem;
+    .hero-kicker {
+      display: inline-block;
+      font-size: 0.78rem;
       font-weight: 700;
-      color: var(--text-main);
-      margin: 0 0 24px;
+      letter-spacing: 0.08em;
+      color: #7a4a10;
+      background: rgba(255, 255, 255, 0.6);
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 14px;
     }
-    .hero-body {
-      font-size: 0.95rem;
-      color: var(--text-main);
-      line-height: 2;
+    .hero-title {
+      font-size: 1.9rem;
+      line-height: 1.35;
+      font-weight: 800;
+      margin: 0 0 14px;
+      letter-spacing: 0.01em;
     }
-    .hero-body p { margin: 0 0 16px; }
-    .hero-body p:last-child { margin-bottom: 0; }
-    .hero-body em {
-      font-style: normal;
-      color: var(--accent);
-      font-weight: 600;
+    @media (max-width: 600px) { .hero-title { font-size: 1.5rem; } }
+    .hero-lead {
+      font-size: 0.98rem;
+      line-height: 1.9;
+      margin: 0 auto 26px;
+      max-width: 30em;
+      font-weight: 500;
     }
+
+
+    .hero-cta {
+      display: inline-block;
+      background: var(--rosso);
+      color: #fff;
+      font-weight: 800;
+      font-size: 1.02rem;
+      padding: 15px 34px;
+      border-radius: 999px;
+      text-decoration: none;
+      box-shadow: 0 6px 16px rgba(160, 30, 20, 0.35);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .hero-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(160, 30, 20, 0.4); }
+    .hero-cta:active { transform: translateY(0); }
+
+    /* 改行は語のまとまりで（文の途中で折らない） */
+    .nw { display: inline-block; }
+    .hero-lead, .thanks-note, .note, .monthly-desc, .onetime-desc, .use p { word-break: auto-phrase; }
+
+    /* ===== 応援がどう生きるか ===== */
+    .uses {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 0 0 40px;
+    }
+    @media (max-width: 600px) { .uses { grid-template-columns: 1fr; } }
+    .use {
+      background: var(--card-bg);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .use-ico { font-size: 1.6rem; line-height: 1; }
+    .use b { display: block; font-size: 0.9rem; margin-bottom: 2px; }
+    .use p { margin: 0; font-size: 0.78rem; color: var(--text-sub); line-height: 1.6; }
 
     /* セクションタイトル */
     .section-title {
-      font-size: 1rem;
-      font-weight: 700;
+      font-size: 1.1rem;
+      font-weight: 800;
       color: var(--text-main);
       margin: 0 0 14px;
       display: flex;
@@ -133,51 +200,67 @@
       font-weight: 700;
       background: var(--accent);
       color: white;
-      padding: 2px 9px;
+      padding: 2px 10px;
       border-radius: 999px;
       letter-spacing: 0.03em;
     }
-    .section-label.onetime { background: #059669; }
+    .section-label.onetime { background: var(--rosso); }
 
-    /* 定期カード */
+    /* ===== 定期カード（いちばんうれしい応援） ===== */
     .monthly-card {
-      background: var(--accent-soft);
-      border: 2px solid var(--accent-border);
+      position: relative;
+      background: linear-gradient(135deg, #e9f4ea 0%, #fffefb 70%);
+      border: 2px solid #8fc29f;
       border-radius: var(--radius-lg);
-      padding: 28px;
+      padding: 30px 28px 26px;
       margin-bottom: 40px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 24px;
       flex-wrap: wrap;
+      box-shadow: var(--shadow-soft);
+    }
+    .ribbon {
+      position: absolute;
+      top: -12px; left: 22px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 999px;
+      box-shadow: 0 3px 8px rgba(31, 92, 61, 0.3);
     }
     .monthly-info { flex: 1; min-width: 200px; }
-    .monthly-name { font-size: 1.1rem; font-weight: 700; margin: 0 0 6px; }
+    .monthly-name { font-size: 1.15rem; font-weight: 800; margin: 0 0 4px; }
     .monthly-price {
-      font-size: 1.6rem;
+      font-size: 2rem;
       font-weight: 800;
       color: var(--accent);
-      margin: 0 0 10px;
+      margin: 0 0 8px;
+      line-height: 1.2;
     }
     .monthly-price span { font-size: 0.85rem; font-weight: 500; color: var(--text-sub); }
-    .monthly-desc { font-size: 0.85rem; color: var(--text-sub); margin: 0; line-height: 1.7; }
+    .monthly-desc { font-size: 0.86rem; color: var(--text-sub); margin: 0; line-height: 1.7; }
     .btn-monthly {
       display: inline-block;
       background: var(--accent);
       color: white;
-      padding: 14px 28px;
+      padding: 15px 30px;
       border-radius: 999px;
-      font-size: 0.95rem;
-      font-weight: 700;
+      font-size: 1rem;
+      font-weight: 800;
       text-decoration: none;
-      transition: opacity 0.2s;
+      transition: transform 0.15s, box-shadow 0.15s;
       white-space: nowrap;
       flex-shrink: 0;
+      box-shadow: 0 6px 14px rgba(31, 92, 61, 0.3);
     }
-    .btn-monthly:hover { opacity: 0.85; }
+    .btn-monthly:hover { transform: translateY(-2px); }
+    @media (max-width: 600px) { .btn-monthly { width: 100%; text-align: center; } }
 
-    /* ワンタイムグリッド */
+    /* ===== 1回の応援（4枚・それぞれの色） ===== */
     .onetime-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -185,44 +268,48 @@
       margin-bottom: 32px;
     }
     .onetime-card {
+      --tint: #f3e6d6;
+      --ink: #6b4320;
       background: var(--card-bg);
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-lg);
-      padding: 22px 16px;
+      overflow: hidden;
       text-align: center;
       box-shadow: var(--shadow-soft);
       display: flex;
       flex-direction: column;
-      gap: 6px;
       transition: transform 0.15s, box-shadow 0.15s;
     }
-    .onetime-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+    .onetime-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+    .onetime-top {
+      background: var(--tint);
+      padding: 18px 12px 14px;
     }
-    .onetime-card.legend {
-      border-color: #f59e0b;
-      background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
-    }
-    .onetime-emoji { font-size: 1.8rem; line-height: 1; }
-    .onetime-name { font-size: 0.88rem; font-weight: 700; color: var(--text-main); }
-    .onetime-price { font-size: 1.4rem; font-weight: 800; color: var(--text-main); }
-    .onetime-desc { font-size: 0.76rem; color: var(--text-sub); line-height: 1.6; flex: 1; text-align: left; }
+    .onetime-emoji { font-size: 2.4rem; line-height: 1; display: block; margin-bottom: 6px; }
+    .onetime-name { font-size: 0.9rem; font-weight: 800; color: var(--ink); }
+    .onetime-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .onetime-price { font-size: 1.5rem; font-weight: 800; color: var(--text-main); }
+    .onetime-desc { font-size: 0.78rem; color: var(--text-sub); line-height: 1.6; flex: 1; text-align: left; }
     .btn-onetime {
       display: inline-block;
-      background: #f3f4f6;
-      color: var(--text-main);
-      padding: 9px 14px;
+      background: var(--ink);
+      color: #fff;
+      padding: 10px 14px;
       border-radius: 999px;
-      font-size: 0.83rem;
-      font-weight: 600;
+      font-size: 0.86rem;
+      font-weight: 700;
       text-decoration: none;
-      transition: background 0.2s;
+      transition: filter 0.15s;
       margin-top: 6px;
     }
-    .btn-onetime:hover { background: var(--accent-soft); color: var(--accent); }
-    .onetime-card.legend .btn-onetime { background: #fef3c7; color: #92400e; }
-    .onetime-card.legend .btn-onetime:hover { background: #f59e0b; color: white; }
+    .btn-onetime:hover { filter: brightness(1.12); }
+
+    .onetime-card.coffee  { --tint: #f1e3d3; --ink: #7a4a26; }
+    .onetime-card.gelato  { --tint: #fde3ea; --ink: #b4446a; }
+    .onetime-card.wrench  { --tint: #e2efe4; --ink: #2f6e48; }
+    .onetime-card.legend  { --tint: linear-gradient(135deg, #ffe7a3 0%, #ffd06a 100%); --ink: #8a5a00; border: 2px solid #f0b43c; }
+    .onetime-card.legend .onetime-top { background: linear-gradient(135deg, #ffe7a3 0%, #ffcf63 100%); }
+    .onetime-card.legend .btn-onetime { background: linear-gradient(135deg, #e9a21a, #c97c00); }
 
     /* 注意書き */
     .note {
@@ -234,7 +321,7 @@
     }
 
     .thanks-note {
-      font-size: 0.85rem;
+      font-size: 0.88rem;
       color: var(--text-main);
       text-align: center;
       line-height: 1.8;
@@ -269,16 +356,32 @@
     .footer a { color: var(--text-sub); text-decoration: none; }
     .footer a:hover { color: var(--accent); }
 
-    /* ダークモード：CSS変数だけでは追随できない直書き色（案A・暖色系パレット）
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .hero-cta, .onetime-card, .btn-monthly { transition: none; }
+    }
+
+    /* ダークモード：CSS変数だけでは追随できない直書き色
        ※ 同名セレクタの基本スタイルより後ろに置くこと（先に置くと後続の基本スタイルに上書きされる） */
     @media (prefers-color-scheme: dark) {
       .header-logo { mix-blend-mode: normal; filter: brightness(1.12); }
-      .onetime-card.legend {
-        background: linear-gradient(135deg, #3a2f1a 0%, #2b2721 100%);
+      .hero {
+        background: radial-gradient(120% 90% at 50% -10%, #5a4220 0%, #3f2e17 60%, #2b2016 100%);
+        color: #f6e8cf;
       }
-      .btn-onetime { background: #3a352c; }
-      .onetime-card.legend .btn-onetime { background: #4a3418; color: #f0c987; }
-      .onetime-card.legend .btn-onetime:hover { background: #6b5326; color: #f0c987; }
+      .hero::before { background: linear-gradient(90deg, #3f9a62 0 33.3%, #e9e2d3 33.3% 66.6%, #d0574c 66.6% 100%); }
+      .hero-kicker { background: rgba(0, 0, 0, 0.25); color: #f0c987; }
+      .hero-cta { background: #c8322a; }
+      .monthly-card { background: linear-gradient(135deg, #24382c 0%, #2b2721 70%); border-color: #3d6b4d; }
+      .ribbon { background: #3d6b4d; }
+      .btn-monthly { background: #3d7a55; }
+      .onetime-card.coffee  { --tint: #3a2c20; --ink: #d9a77a; }
+      .onetime-card.gelato  { --tint: #3d2530; --ink: #f09ab5; }
+      .onetime-card.wrench  { --tint: #24382c; --ink: #8fcca4; }
+      .onetime-card.legend  { --ink: #f0c987; border-color: #8a6420; }
+      .onetime-card.legend .onetime-top { background: linear-gradient(135deg, #4a3418 0%, #5e4119 100%); }
+      .btn-onetime { color: #1a1714; }
+      .onetime-card.legend .btn-onetime { background: linear-gradient(135deg, #f0c987, #d9a54a); color: #1a1714; }
     }
   </style>
   <!-- 左下「一つ前に戻る」（ホーム画面起動時のみ）／右下「先頭へ」の浮かぶボタン -->
@@ -299,24 +402,41 @@
       </nav>
     </header>
 
-    <!-- ヒーローセクション -->
+    <!-- ヒーロー -->
     <section class="hero">
-      <h1 class="hero-title">🚗 このガレージを走らせ続けるために</h1>
-      <div class="hero-body">
-        <p>おかげさまで、たくさんのオーナーに愛車を登録していただきました。本当に嬉しいです。</p>
-        <p>登録も記録も、無料でお使いいただけます。<br>運営は管理人が個人で続けていて、サイトの維持に少しずつ費用がかかるようになってきました。</p>
-        <p>「いいサイトだな」と思ってもらえたら、気が向いたときに応援していただけると、<br>走り続ける力になります。</p>
-        <p>よろしければ、このガレージをいっしょに守ってください。</p>
-      </div>
+      <span class="hero-kicker">☕ サイトを応援</span>
+      <h1 class="hero-title">チンクのガレージを、<br>いっしょに走らせよう。</h1>
+      <p class="hero-lead">
+        <span class="nw">登録も記録も、ずっと無料。</span><span class="nw">運営は管理人が</span><span class="nw">ひとりで続けています。</span><br>
+        <span class="nw">「いいサイトだな」と</span><span class="nw">思ってもらえたら、</span><span class="nw">コーヒー1杯ぶんの応援が、</span><span class="nw">次のひと走りの</span><span class="nw">燃料になります。</span>
+      </p>
+      <a href="#choose" class="hero-cta">応援のしかたを選ぶ ↓</a>
     </section>
 
+    <!-- 応援がどう生きるか -->
+    <div class="uses">
+      <div class="use">
+        <span class="use-ico">🛠️</span>
+        <div><b>サイトの維持</b><p>サーバーやドメインなど、毎月・毎年の費用に。</p></div>
+      </div>
+      <div class="use">
+        <span class="use-ico">✨</span>
+        <div><b>新しい機能づくり</b><p>整備手帳や給油の記録のような、オーナーの役に立つ道具を。</p></div>
+      </div>
+      <div class="use">
+        <span class="use-ico">💚</span>
+        <div><b>続ける力に</b><p>応援が届くたびに、管理人の心のエンジンがかかります。</p></div>
+      </div>
+    </div>
+
     <!-- 定期サポート -->
-    <div class="section-title">
+    <div class="section-title" id="choose">
       <span class="section-label">毎月</span>
       定期サポート
     </div>
 
     <div class="monthly-card">
+      <span class="ribbon">いちばん心強い応援</span>
       <div class="monthly-info">
         <p class="monthly-name">&#127968; ガレージサポーター</p>
         <p class="monthly-price">¥300 <span>/ 月</span></p>
@@ -325,49 +445,53 @@
       <a href="https://buy.stripe.com/9B6aEZdxj3jA5A59kje3e00" target="_blank" rel="noopener" class="btn-monthly">月300円で応援する</a>
     </div>
 
-    <!-- ワンタイム応援 -->
+    <!-- 1回の応援 -->
     <div class="section-title">
       <span class="section-label onetime">1回</span>
-      ワンタイム応援
+      気が向いたときに、1回だけ
     </div>
 
     <div class="onetime-grid">
-      <div class="onetime-card">
-        <div class="onetime-emoji">&#9749;</div>
-        <div class="onetime-name">コーヒーを1杯おごる</div>
-        <div class="onetime-price">¥300</div>
-        <div class="onetime-desc">気が向いたとき、ふと。それだけで十分嬉しいです。</div>
-        <a href="https://buy.stripe.com/6oU00lgJv07o3rXeEDe3e01" target="_blank" rel="noopener" class="btn-onetime">¥300 を贈る</a>
+      <div class="onetime-card coffee">
+        <div class="onetime-top"><span class="onetime-emoji">&#9749;</span><div class="onetime-name">コーヒーを1杯おごる</div></div>
+        <div class="onetime-body">
+          <div class="onetime-price">¥300</div>
+          <div class="onetime-desc">気が向いたとき、ふと。それだけで十分嬉しいです。</div>
+          <a href="https://buy.stripe.com/6oU00lgJv07o3rXeEDe3e01" target="_blank" rel="noopener" class="btn-onetime">¥300 を贈る</a>
+        </div>
       </div>
 
-      <div class="onetime-card">
-        <div class="onetime-emoji">&#127846;</div>
-        <div class="onetime-name">ジェラート1スクープ</div>
-        <div class="onetime-price">¥500</div>
-        <div class="onetime-desc">ちょっと奮発の500円。次の機能改善のエンジンになります。</div>
-        <a href="https://buy.stripe.com/00w6oJ1OB07ofaFgMLe3e02" target="_blank" rel="noopener" class="btn-onetime">¥500 を贈る</a>
+      <div class="onetime-card gelato">
+        <div class="onetime-top"><span class="onetime-emoji">&#127846;</span><div class="onetime-name">ジェラート1スクープ</div></div>
+        <div class="onetime-body">
+          <div class="onetime-price">¥500</div>
+          <div class="onetime-desc">ちょっと奮発の500円。次の機能改善のエンジンになります。</div>
+          <a href="https://buy.stripe.com/00w6oJ1OB07ofaFgMLe3e02" target="_blank" rel="noopener" class="btn-onetime">¥500 を贈る</a>
+        </div>
       </div>
 
-      <div class="onetime-card">
-        <div class="onetime-emoji">&#128295;</div>
-        <div class="onetime-name">本気の応援をする</div>
-        <div class="onetime-price">¥1,000</div>
-        <div class="onetime-desc">チンク文化を守る本気のご支援。あなたのような方がいるから続けられます。</div>
-        <a href="https://buy.stripe.com/5kQ9AV78V6vMgeJbsre3e03" target="_blank" rel="noopener" class="btn-onetime">¥1,000 を贈る</a>
+      <div class="onetime-card wrench">
+        <div class="onetime-top"><span class="onetime-emoji">&#128295;</span><div class="onetime-name">本気の応援をする</div></div>
+        <div class="onetime-body">
+          <div class="onetime-price">¥1,000</div>
+          <div class="onetime-desc">チンク文化を守る本気の応援。あなたのような方がいるから続けられます。</div>
+          <a href="https://buy.stripe.com/5kQ9AV78V6vMgeJbsre3e03" target="_blank" rel="noopener" class="btn-onetime">¥1,000 を贈る</a>
+        </div>
       </div>
 
       <div class="onetime-card legend">
-        <div class="onetime-emoji">&#127894;</div>
-        <div class="onetime-name">伝説のパトロンになる</div>
-        <div class="onetime-price">¥10,000</div>
-        <div class="onetime-desc">最大級の応援。本当にいいんですか？心からありがとうございます。</div>
-        <a href="https://buy.stripe.com/3cI3cx0Kx7zQfaFeEDe3e04" target="_blank" rel="noopener" class="btn-onetime">¥10,000 を贈る</a>
+        <div class="onetime-top"><span class="onetime-emoji">&#127894;</span><div class="onetime-name">伝説のパトロンになる</div></div>
+        <div class="onetime-body">
+          <div class="onetime-price">¥10,000</div>
+          <div class="onetime-desc">最大級の応援。本当にいいんですか？心からありがとうございます。</div>
+          <a href="https://buy.stripe.com/3cI3cx0Kx7zQfaFeEDe3e04" target="_blank" rel="noopener" class="btn-onetime">¥10,000 を贈る</a>
+        </div>
       </div>
     </div>
 
     <p class="thanks-note">
-      応援してくださった方には、管理人からお礼のご連絡をします。<br>
-      ご希望の方は、このページにお名前（ハンドルネーム）を載せます。金額は載せません。
+      <span class="nw">応援してくださった方には、</span><span class="nw">管理人からお礼のご連絡をします。</span><br>
+      <span class="nw">ご希望の方は、</span><span class="nw">このページにお名前</span><span class="nw">（ハンドルネーム）を載せます。</span><span class="nw">金額は載せません。</span>
     </p>
 
     <section class="thanks" id="thanks" hidden>
@@ -377,8 +501,8 @@
     </section>
 
     <p class="note">
-      決済はStripeを利用しています。カード情報はStripeが管理し、当サイトには保存されません。<br>
-      定期サポートはStripeのマイページからいつでも解約できます。
+      <span class="nw">決済はStripeを利用しています。</span><span class="nw">カード情報はStripeが管理し、</span><span class="nw">当サイトには保存されません。</span><br>
+      <span class="nw">定期サポートはStripeのマイページから</span><span class="nw">いつでも解約できます。</span>
     </p>
 
     <footer class="footer">
@@ -395,6 +519,7 @@
     SUPPORTERS.forEach(n => { const li = document.createElement('li'); li.textContent = n; ul.appendChild(li); });
     document.getElementById('thanks').hidden = false;
   }
+
 </script>
 <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "60f959409b1e4eb29308eeb53615812a"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
