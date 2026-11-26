@@ -187,8 +187,9 @@
       .search-input {
         width: 100% !important;
         padding: 10px 16px; /* 標準サイズに戻す */
-        font-size: 0.9rem;
+        font-size: 16px; /* 16px 未満だと iPhone が🔍で開いたとき画面を拡大する（2026-11-26 ユーザー指摘・312 とそろえる） */
       }
+      .sort-select { font-size: 16px; } /* 同上＝並び順を押したときの拡大を防ぐ */
       
       /* 2行目: 左から [ソート+表示切替] [メニュー] */
 
@@ -373,6 +374,15 @@
     .car-list.view-mosaic .car-main { display: none; }
     .car-list.view-mosaic .car-card { border-radius: 4px; box-shadow: none; }
     .car-list.view-mosaic .car-card:hover { transform: scale(1.15); z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    /* タイルは写真だけ＝更新の赤丸・過去所有の札も出さない（312 とそろえる・2026-11-26） */
+    .car-list.view-mosaic .badge-update-dot { display: none; }
+    .car-list.view-mosaic .car-card.is-sold-card::before { display: none; }
+    /* スマホのタイル＝列数は表示切替で 3列→4列（JS が --tile-cols を入れる）。指で触る端末では拡大しない */
+    @media (max-width: 767px) {
+      .car-list.view-mosaic { grid-template-columns: repeat(var(--tile-cols, 3), minmax(0, 1fr)); gap: 3px; }
+      .car-list.view-mosaic .car-card { border-radius: 2px; }
+    }
+    @media (hover: none) { .car-list.view-mosaic .car-card:hover { transform: none; box-shadow: none; } }
 
     /* ===== リスト表示モード ===== */
     .car-list.view-list { display: flex; flex-direction: column; gap: 8px; }
@@ -1540,79 +1550,55 @@ async function fetchCars() {
     })();
     document.getElementById('sortSelect').addEventListener('change', e => renderCars(e.target.value));
 
-    let viewMode = 'card'; // 'card', 'list', 'mosaic'
-    function toggleViewMode() {
+    // 表示＝'card'／'list'／'mosaic'（タイル・スマホ3列）／'mosaic4'（タイルのスマホ4列）
+    //   順番＝カード→リスト→タイル→（スマホだけ）4列→カード（2026-11-26 ユーザー指示・312 とそろえる）
+    //   ボタンは今の表示の名前を出す（312 と同じ）。カード・タイル・4列はこの端末で覚える
+    //   リストは面識ステータス（ログイン後）と組なので覚えない＝開き直すとカード
+    const VIEW_KEY = 'garage-view';
+    const VIEW_NAMES = { card: 'カード', list: 'リスト', mosaic: 'タイル', mosaic4: '4列' };
+    const VIEW_SAY = { ...VIEW_NAMES, mosaic: 'タイル3列', mosaic4: 'タイル4列' };
+    let viewMode = 'card';
+    const isPhoneView = () => matchMedia('(max-width: 767px)').matches;
+    function nextView(m) {
+      if (m === 'card') return 'list';
+      if (m === 'list') return 'mosaic';
+      if (m === 'mosaic' && isPhoneView()) return 'mosaic4';
+      return 'card';
+    }
+    function setView(m) {
       const listEl = document.getElementById('carList');
       const btnEl = document.getElementById('viewToggleBtn');
       const sortStatusOpt = document.getElementById('sortStatusOption');
       const summaryBar = document.getElementById('statusSummary');
-      const isMobile = window.innerWidth < 1025; // スマホ・タブレット判定
-      
-      if (viewMode === 'card') {
-        viewMode = 'list';
-        listEl.classList.remove('view-mosaic');
-        listEl.classList.add('view-list');
-        // スマホの場合は次はカードに戻る（タイルなし）
-        btnEl.textContent = isMobile ? '🔄 表示切替' : '🔄 表示切替';
+      viewMode = m;
+      listEl.classList.toggle('view-list', m === 'list');
+      listEl.classList.toggle('view-mosaic', m === 'mosaic' || m === 'mosaic4');
+      listEl.style.setProperty('--tile-cols', m === 'mosaic4' ? 4 : 3);
+      btnEl.textContent = '🔄 ' + VIEW_NAMES[m];
+      const say = `表示：${VIEW_SAY[m]}（押すと${VIEW_SAY[nextView(m)]}）`;
+      btnEl.setAttribute('aria-label', say);
+      btnEl.title = say;
+      try { localStorage.setItem(VIEW_KEY, m === 'list' ? 'card' : m); } catch (e) {}
+      if (m === 'list') {
         sortStatusOpt.style.display = (currentUser && currentUser.uid) ? 'block' : 'none';
         summaryBar.style.display = 'flex'; // 集計バー表示
-      } else if (viewMode === 'list') {
-        // スマホならタイルをスキップしてカードに戻る
-        if (isMobile) {
-          viewMode = 'card';
-          listEl.classList.remove('view-list');
-          btnEl.textContent = '🔄 表示切替';
-          sortStatusOpt.style.display = 'none';
-          summaryBar.style.display = 'none';
-          if(document.getElementById('sortSelect').value === 'status_priority') {
-             document.getElementById('sortSelect').value = 'newest';
-             renderCars('newest');
-          }
-          return;
-        }
-
-        viewMode = 'mosaic';
-        listEl.classList.remove('view-list');
-        listEl.classList.add('view-mosaic');
-        btnEl.textContent = '🔄 表示切替';
-        sortStatusOpt.style.display = 'none';
-        summaryBar.style.display = 'none'; // 集計バー非表示
-        if(document.getElementById('sortSelect').value === 'status_priority') {
-           document.getElementById('sortSelect').value = 'newest';
-           renderCars('newest');
-        }
-      } else {
-        viewMode = 'card';
-        listEl.classList.remove('view-mosaic');
-        listEl.classList.remove('view-list');
-        btnEl.textContent = '🔄 表示切替';
-        sortStatusOpt.style.display = 'none';
-        summaryBar.style.display = 'none'; // 集計バー非表示
-        if(document.getElementById('sortSelect').value === 'status_priority') {
-           document.getElementById('sortSelect').value = 'newest';
-           renderCars('newest');
-        }
+        return;
       }
-    }
-
-    function resetToCardView() {
-      const listEl = document.getElementById('carList');
-      const btnEl = document.getElementById('viewToggleBtn');
-      const sortStatusOpt = document.getElementById('sortStatusOption');
-      const summaryBar = document.getElementById('statusSummary');
-
-      viewMode = 'card';
-      listEl.classList.remove('view-mosaic');
-      listEl.classList.remove('view-list');
-      btnEl.textContent = '🔄 表示切替';
       sortStatusOpt.style.display = 'none';
-      summaryBar.style.display = 'none';
-
-      if(document.getElementById('sortSelect').value === 'status_priority') {
-         document.getElementById('sortSelect').value = 'newest';
-         renderCars('newest');
+      summaryBar.style.display = 'none'; // 集計バー非表示
+      if (document.getElementById('sortSelect').value === 'status_priority') {
+        document.getElementById('sortSelect').value = 'newest';
+        renderCars('newest');
       }
     }
+    function toggleViewMode() { setView(nextView(viewMode)); }
+    function resetToCardView() { setView('card'); }
+    (() => {
+      let v = 'card';
+      try { v = localStorage.getItem(VIEW_KEY) || 'card'; } catch (e) {}
+      if (v === 'mosaic4' && !isPhoneView()) v = 'mosaic';   // PC には4列が無い
+      setView(VIEW_NAMES[v] && v !== 'list' ? v : 'card');
+    })();
 
     async function toggleStatus(btn, type, docId) {
       if (!isAuthInitialized) {
