@@ -204,36 +204,44 @@ def main():
         body += more(len(articles))
 
     # 未来のオーナーへの道筋（2026-11-04 ユーザー決裁＝興味の維持→購入→オーナー登録）。毎号の末尾に同じ一言
-    body += ("\n■ 🔑 500 / 126 を手に入れたら\n"
-             "オーナーとして登録すると、愛車のページができ、新着がある日の朝のお知らせに切り替わります。\n"
-             f"{SITE}/howto\n")
+    # （朝のメールから週1に切り替えたオーナー＝2026-11-27〜 には付けない）
+    key_line = ("\n■ 🔑 500 / 126 を手に入れたら\n"
+                "オーナーとして登録すると、愛車のページができ、新着がある日の朝のお知らせに切り替わります。\n"
+                f"{SITE}/howto\n")
 
     # 送信者の表示（特定電子メール法）。配信停止リンクは send_personal が1人ずつ足す
-    body += ("\n---------------------------------------------------------\n"
-             "週刊 Registro 便り\n"
-             "送信者：Registro500 / Registro126 Giappone\n" + SITE + "/\n"
-             "お問い合わせ：registro500giappone@gmail.com")
+    tail = ("\n---------------------------------------------------------\n"
+            "週刊 Registro 便り\n"
+            "送信者：Registro500 / Registro126 Giappone\n" + SITE + "/\n"
+            "お問い合わせ：registro500giappone@gmail.com")
+    owner_body = body + tail
+    body = body + key_line + tail
 
-    # 宛先＝止めていない Amici から、いまの車の持ち主（朝のダイジェストが届く人）を除く
+    # 宛先＝止めていない weekly の購読者から、朝のダイジェストが届く持ち主を除く。
+    # 朝のメール（owner_digest）を止めた持ち主は週刊便りを受け取れる（停止ページの「週に1回のまとめにする」・2026-11-27）
     owners = {str(c.get("owner_email") or "").strip().lower()
               for c in sb_select("cars", "owner_email", {"is_sold": "is.false"})}
+    digest_off = {r["email"] for r in sb_select("mail_subscriptions", "email",
+                                                {"list": "eq.owner_digest", "unsubscribed_at": "not.is.null"})}
     subs = sb_select("mail_subscriptions", "email,unsub_token",
                      {"list": "eq.weekly", "unsubscribed_at": "is.null"})
     recipients = [(s["email"], s["unsub_token"]) for s in subs if s["email"] not in owners]
+    owner_recipients = [(s["email"], s["unsub_token"]) for s in subs
+                        if s["email"] in owners and s["email"] in digest_off]
 
     if DRY_RUN:
         log("---- DRY RUN: 実際の宛先には送りません ----")
-        log(f"件名: {subject}\n本来の宛先数: {len(recipients)}人（載せたもの {n_items}件）")
+        log(f"件名: {subject}\n本来の宛先数: {len(recipients)}人＋週1に切り替えたオーナー {len(owner_recipients)}人（載せたもの {n_items}件）")
         log("---- 本文 ----\n" + body + "\n--------------")
         send_broadcast([ADMIN_EMAIL], "[DRY RUN] " + subject,
                        body + unsub_footer("（試運転のため、ここに1人ずつの札が入ります）"))
         log(f"✅ DRY RUN: {ADMIN_EMAIL} にのみ送信しました。控えは残していません。")
         return
 
-    if not recipients:
+    if not recipients and not owner_recipients:
         log("宛先がいません → 送りません")
         return
-    if len(recipients) > WARN_RECIPIENTS:
+    if len(recipients) + len(owner_recipients) > WARN_RECIPIENTS:
         send_admin_alert("【要確認】週刊 Registro 便りの宛先が増えました",
                          f"今回の宛先は {len(recipients)}人です。土曜は朝のダイジェストと合わせて "
                          "Brevo 無料枠（1日300通）に近づきます。有料プランの検討をお願いします。")
@@ -247,13 +255,21 @@ def main():
         except Exception as e:
             failed += 1
             log(f"メール送信エラー (chunk {i}): {e}")
+    for i in range(0, len(owner_recipients), CHUNK_SIZE):
+        try:
+            send_personal(owner_recipients[i:i + CHUNK_SIZE], subject, owner_body)
+            sent += 1
+            time.sleep(1)
+        except Exception as e:
+            failed += 1
+            log(f"メール送信エラー (オーナー chunk {i}): {e}")
     if sent == 0:
         send_admin_alert("【要確認】週刊 Registro 便りの送信失敗", f"全{failed}chunkの送信に失敗しました。件名: {subject}")
         raise SystemExit(1)
 
-    sb_upsert("mail_weekly_sends", {"sent_on": today.isoformat(), "recipients": len(recipients), "items": n_items},
-              on_conflict="sent_on", ignore_dup=True)
-    log(f"✅ 週刊 Registro 便り 配信完了: 宛先{len(recipients)}人・載せたもの{n_items}件"
+    sb_upsert("mail_weekly_sends", {"sent_on": today.isoformat(), "recipients": len(recipients) + len(owner_recipients),
+                                    "items": n_items}, on_conflict="sent_on", ignore_dup=True)
+    log(f"✅ 週刊 Registro 便り 配信完了: 宛先{len(recipients)}人＋週1のオーナー{len(owner_recipients)}人・載せたもの{n_items}件"
         f"（chunk {sent}成功/{failed}失敗）")
 
 

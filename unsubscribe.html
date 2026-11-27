@@ -30,6 +30,9 @@
            padding: 12px 24px; font-size: 1rem; font-weight: 700; cursor: pointer; margin: 8px 0 4px; }
   button:disabled { opacity: .5; cursor: default; }
   a { color: var(--accent); }
+  .follow { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 16px; }
+  .follow label { display: block; margin: 2px 0; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); font-weight: 600; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -47,6 +50,22 @@
     <div id="done" hidden>
       <p id="doneText"></p>
       <p class="sub">登録した車や記録はそのまま残ります。ログインや確認コードのメールは、これまでどおり届きます。</p>
+
+      <!-- 止めたあとの任意の2つ（2026-11-27）＝週1への切り替えは朝のメールを止めた人だけ・理由は誰の答えか残さない -->
+      <div class="follow" id="sw" hidden>
+        <p><strong>毎朝ではなく、週に1回のまとめなら受け取りますか？</strong><br>
+          <span class="sub">土曜の朝に、その週の新着を1通にまとめてお送りします（週刊 Registro 便り）。</span></p>
+        <button id="swGo" type="button" class="ghost">週に1回のまとめにする</button>
+      </div>
+      <div class="follow" id="rs">
+        <p>よろしければ、止めた理由を1つだけ教えてください（任意・どなたの答えかは残りません）。</p>
+        <label><input type="radio" name="reason" value="too_many"> 届く回数が多い</label>
+        <label><input type="radio" name="reason" value="not_interested"> 興味のない内容が多い</label>
+        <label><input type="radio" name="reason" value="timing"> 届く時間が合わない</label>
+        <label><input type="radio" name="reason" value="other"> そのほか</label>
+        <button id="rsGo" type="button" class="ghost" disabled>送る</button>
+      </div>
+      <p class="sub" id="fmsg" role="status"></p>
     </div>
 
     <div id="bad" hidden>
@@ -88,12 +107,47 @@
     }).then(function (list) {
       if (!list) { show('bad'); return; }
       document.getElementById('doneText').textContent = (LABEL[list] || 'お知らせメール') + 'の配信を止めました。';
+      document.getElementById('sw').hidden = (list !== 'owner_digest');
       show('done');
       try { gtag('event', 'mail_unsubscribe', { list: list }); } catch (e) {}
     }).catch(function () {
       btn.disabled = false; btn.textContent = '配信を止める';
       alert('通信に失敗しました。少し時間をおいてもう一度お試しください。');
     });
+  });
+
+  // 止めたあとの任意の2つ（public.mail_unsub_followup＝止めた札でだけ動く）
+  var fmsg = document.getElementById('fmsg');
+  var follow = function (args) {
+    return fetch(SUPABASE_URL + '/rest/v1/rpc/mail_unsub_followup', {
+      method: 'POST',
+      headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({ p_token: token }, args))
+    }).then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); });
+  };
+  var rsGo = document.getElementById('rsGo');
+  document.querySelectorAll('input[name=reason]').forEach(function (r) {
+    r.addEventListener('change', function () { rsGo.disabled = false; });
+  });
+  rsGo.addEventListener('click', function () {
+    var c = document.querySelector('input[name=reason]:checked');
+    if (!c) return;
+    rsGo.disabled = true;
+    follow({ p_reason: c.value }).then(function (v) {
+      if (!v) throw new Error('bad');
+      document.getElementById('rs').hidden = true;
+      fmsg.textContent = 'お答えいただき、ありがとうございました。';
+    }).catch(function () { rsGo.disabled = false; fmsg.textContent = '送れませんでした。時間をおいてもう一度お試しください。'; });
+  });
+  document.getElementById('swGo').addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true;
+    follow({ p_weekly: true }).then(function (v) {
+      if (v !== 'weekly') throw new Error('bad');
+      document.getElementById('sw').hidden = true;
+      fmsg.textContent = '週刊 Registro 便りに切り替えました。次の土曜の朝から届きます。';
+      try { gtag('event', 'mail_switch_weekly'); } catch (e) {}
+    }).catch(function () { btn.disabled = false; fmsg.textContent = '切り替えられませんでした。時間をおいてもう一度お試しください。'; });
   });
 })();
 </script>
