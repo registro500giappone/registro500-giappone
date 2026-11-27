@@ -106,6 +106,34 @@ usel = len(sb("user_selections", "id"))
 equip_recs = sb("equipment_records", "vehicle_id,created_at,updated_at")
 own_tools = sb("owner_tools", "car_id,created_at,updated_at")
 own_tool_users = sb("owner_tool_users", "car_id,created_at")
+# 「参考になった」の car_id は押した人の車（記録・工具の持ち主の車ではない）
+tool_help = sb_select("owner_tool_helpful", "car_id,created_at", paged=True)
+# 11/13 公開の記録系（2026-11-27 組み込み・項目の正本＝registro500-notes\fuel-log\HANDOFF.md【2026-11-04】）
+fuel_recs = sb_select("fuel_records", "car_id,created_at,updated_at", paged=True)
+fuel_reads = sb_select("fuel_read_log", "created_at", paged=True)  # 写真の読み取り＝Gemini の費用の見張り
+maint_recs = sb_select("maint_records", "car_id,created_at,updated_at", paged=True)
+maint_help = sb_select("maint_helpful", "car_id,created_at", paged=True)
+maint_notices = sb_select("maint_helpful_notices", "notified_at", paged=True)  # 「参考になった」の知らせメール
+
+
+def _since(rows, d, key="created_at"):
+    return [r for r in rows if (r.get(key) or "")[:10] >= d]
+
+
+def _cars(rows):
+    return len({r["car_id"] for r in rows if r.get("car_id")})
+
+
+rec_stats = {
+    "fuel_n": len(fuel_recs), "fuel_cars": _cars(fuel_recs),
+    "fuel_n7": len(_since(fuel_recs, d7)), "fuel_cars7": _cars(_since(fuel_recs, d7)),
+    "fuel_reads7": len(_since(fuel_reads, d7)), "fuel_reads": len(fuel_reads),
+    "maint_n": len(maint_recs), "maint_cars": _cars(maint_recs),
+    "maint_n7": len(_since(maint_recs, d7)), "maint_cars7": _cars(_since(maint_recs, d7)),
+    "mhelp_n": len(maint_help), "mhelp_n7": len(_since(maint_help, d7)),
+    "mnotice_n": len(maint_notices), "mnotice_n7": len(_since(maint_notices, d7, "notified_at")),
+    "thelp_n": len(tool_help), "thelp_n7": len(_since(tool_help, d7)),
+}
 
 # 真のアクティブ率 & コホート（auth.users 由来、集計RPC経由）
 act = sb_rpc("report_owner_activity")
@@ -118,7 +146,7 @@ cohort = act["cohort"]
 # ── 90日参加台数（participation_90d・成長戦略の北極星）──────────────────
 # ⛔ active_90d とは別物。active_90d は auth.users 由来の「90日以内にログインした人数」で、
 #    ログインしただけの人も入る＝参加ではない。参加は「この90日に何かした車」を数える。
-# 数える経路は7つ（車ID の和集合・重複なし）。所属は車＝人ではなく車で数えるのが台帳の単位。
+# 数える経路は11（2026-11-27 に⑧〜⑪を追加＝下の participation90 の直前。それまでは7つ）（車ID の和集合・重複なし）。所属は車＝人ではなく車で数えるのが台帳の単位。
 #   ① 新規登録   car_history.kind = registered
 #   ② 車両更新   car_history.kind = updated（occurred_at は cars.last_update_date 由来）
 #   ③ 車載手帳   equipment_records（車に紐づくものだけ。非公開の手帳も参加として数える）
@@ -142,6 +170,13 @@ _part |= {e["car_id"] for e in own_tools
           if e.get("car_id") and (e.get("updated_at") or e.get("created_at") or "")[:10] >= d90}
 _part |= {e["car_id"] for e in own_tool_users
           if e.get("car_id") and (e.get("created_at") or "")[:10] >= d90}
+# ⑧〜⑪（2026-11-27 追加・ユーザー決裁）：給油の記録・整備の記録・整備と工具の「参考になった」（押した人の車）
+for _rows in (fuel_recs, maint_recs):
+    _part |= {e["car_id"] for e in _rows
+              if e.get("car_id") and (e.get("updated_at") or e.get("created_at") or "")[:10] >= d90}
+for _rows in (maint_help, tool_help):
+    _part |= {e["car_id"] for e in _rows
+              if e.get("car_id") and (e.get("created_at") or "")[:10] >= d90}
 participation90 = len(_part)
 # ベースライン＝43台（2026-08-29 実測・成長戦略 §1 の定義）。
 # ⚠️ 同じ定義でいま数え直すと 42 になる（差の1台は上の②バックフィル制約）。
@@ -363,6 +398,24 @@ if GA4_PROPERTY_ID and os.path.exists(GA4_SA_JSON):
         }
     except Exception as e:
         print("GA4取得失敗（pending表示にフォールバック）:", e)
+
+# 11/13 公開の記録系の GA4 分（2026-11-27）：未ログインで「参考になった」を押そうとした数・帯からの流入
+ga4_rec = None
+if GA4_PROPERTY_ID and os.path.exists(GA4_SA_JSON):
+    def _ev(name):
+        return {"filter": {"fieldName": "eventName", "stringFilter": {"value": name, "matchType": "EXACT"}}}
+    try:
+        _g = ga4_report(["eventCount"], dimension_filter=_ev("maint_helpful_guest")).get("rows") or []
+        ga4_rec = {"helpful_guest": sum(int(r["metricValues"][0]["value"]) for r in _g), "act_by_from": None}
+        try:  # from は GA4 にカスタムディメンション登録されていないと 400 になる＝合計だけ出す
+            _a = ga4_report(["eventCount"], ["customEvent:from"],
+                            dimension_filter=_ev("activity_click")).get("rows") or []
+            ga4_rec["act_by_from"] = {r["dimensionValues"][0]["value"]: int(r["metricValues"][0]["value"]) for r in _a}
+        except Exception:
+            _a = ga4_report(["eventCount"], dimension_filter=_ev("activity_click")).get("rows") or []
+            ga4_rec["act_total"] = sum(int(r["metricValues"][0]["value"]) for r in _a)
+    except Exception as e:
+        print("GA4（記録系）取得失敗:", e)
 
 # ───────── 流入データの主従（2026-08-09〜）: GA4 が主・Cloudflare は保険 ─────────
 # どちらか片方が落ちてもレポートは必ず出る。両方落ちたときだけ流入セクションが空になる。
@@ -631,6 +684,29 @@ else:
                      '現状クリックは未計測。ON後は「どのページ・商品・ショップが送客しているか」'
                      '「閲覧→クリック率」が見え、goods改善/新規の判断材料になります。報酬額は提携先レポートと突合。</div>')
 
+# ───────────────────────── 記録の機能（11/13 公開・2026-11-27 組み込み）─────────────────────────
+_r = rec_stats
+if ga4_rec is None:
+    _ga_rows = '<tr><td colspan="3">GA4 が取れなかった週（未ログインで押そうとした数・帯からの流入は空）</td></tr>'
+else:
+    if ga4_rec.get("act_by_from") is not None:
+        _f = ga4_rec["act_by_from"]
+        _act = f'帯 {_f.get("band", 0):,} ／ 一覧 {_f.get("list", 0):,}'
+    else:
+        _act = f'合計 {ga4_rec.get("act_total", 0):,}（帯と一覧の内訳は GA4 に from が未登録で出せない）'
+    _ga_rows = (f'<tr><td>未ログインで「参考になった」を押そうとした（GA4）</td><td class="num">{ga4_rec["helpful_guest"]:,}</td><td>—</td></tr>'
+                f'<tr><td>新着の帯・一覧からのクリック（GA4 activity_click）</td><td colspan="2">{_act}</td></tr>')
+records_html = (
+    '<table><tr><th>指標</th><th class="num">直近7日</th><th>累計</th></tr>'
+    f'<tr><td>給油の記録（件・台）</td><td class="num">{_r["fuel_n7"]}件・{_r["fuel_cars7"]}台</td><td>{_r["fuel_n"]}件・{_r["fuel_cars"]}台</td></tr>'
+    f'<tr><td>写真の読み取り（回・Gemini の費用の見張り）</td><td class="num">{_r["fuel_reads7"]}</td><td>{_r["fuel_reads"]}</td></tr>'
+    f'<tr><td>整備の記録（件・台）</td><td class="num">{_r["maint_n7"]}件・{_r["maint_cars7"]}台</td><td>{_r["maint_n"]}件・{_r["maint_cars"]}台</td></tr>'
+    f'<tr><td>整備の「参考になった」（件）</td><td class="num">{_r["mhelp_n7"]}</td><td>{_r["mhelp_n"]}</td></tr>'
+    f'<tr><td>その知らせメール（通）</td><td class="num">{_r["mnotice_n7"]}</td><td>{_r["mnotice_n"]}</td></tr>'
+    f'<tr><td>工具の「参考になった」（件）</td><td class="num">{_r["thelp_n7"]}</td><td>{_r["thelp_n"]}</td></tr>'
+    + _ga_rows + '</table>'
+)
+
 HTML = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -709,6 +785,10 @@ HTML = f"""<!DOCTYPE html>
     <h3>日次ログイン人数（実人数）</h3><div class="cap">直近30日・同じ人が1日に何度ログインしても1人（延べ人数ではない）</div>
     <div class="cbox"><canvas id="cLogin"></canvas></div>
     <div class="note">⚠️ 集計は毎日GitHub Actionsで前日分を確定させる（daily_logins・非公開テーブル）。⛔誰がログインしたかは公開しない。</div>
+  </div>
+  <div class="cardbox">
+    <h3>記録の機能（整備・給油・参考になった）</h3><div class="cap">11/13 公開分。どれも「90日参加台数」に数える（2026-11-27〜）</div>
+    {records_html}
   </div>
 </div>
 
