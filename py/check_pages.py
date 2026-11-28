@@ -66,6 +66,9 @@ MAIL_MAX = 15
 # ⑤ 公開キーの食い違い＝config.js 以外に直書きされた sb_publishable_ が config.js の値と違えば NG
 #    （キーを替えたとき、直書きの残り（イベント雛形の生成物・wiring-journey-gate.js など）の直し忘れを止める）
 PUB_KEY = re.compile(r"sb_publishable_[A-Za-z0-9_-]+")
+#    別の Supabase プロジェクトの公開キー（わざと config.js と違う値を使う）はここに足して通す。
+#    Registro312（gorlwdckzskbzacwsuyo）＝detail.html の「ほかの車」で 312 側の公開データを読む。
+OTHER_PROJECT_KEYS = {"sb_publishable_iAEy1Q8RAs6-ZnD-wIOznw_jqHP1R7O"}
 # ⑥ supabase-js を CDN から読む <script> に integrity（SRI）が無ければ NG
 SB_SCRIPT = re.compile(r"<script[^>]*supabase-js@[^>]*>", re.I)
 
@@ -76,7 +79,7 @@ def config_key():
 
 
 def bad_keys(text, key):
-    return sorted({k for k in PUB_KEY.findall(text) if k != key})
+    return sorted({k for k in PUB_KEY.findall(text) if k != key and k not in OTHER_PROJECT_KEYS})
 
 
 def sri_missing(text):
@@ -198,6 +201,7 @@ def selftest():
         ("robots 以外の noindex は拾わない", has_noindex('<meta name="description" content="noindex の話">'), False),
         ("違う公開キーを拾う", bad_keys("k='sb_publishable_OLD1'; j='sb_publishable_NEW2'", "sb_publishable_NEW2"), ["sb_publishable_OLD1"]),
         ("同じ公開キーは通る", bad_keys("k='sb_publishable_NEW2'", "sb_publishable_NEW2"), []),
+        ("別プロジェクトの公開キーは通る", bad_keys("k='" + next(iter(OTHER_PROJECT_KEYS)) + "'", "sb_publishable_NEW2"), []),
         ("SRI なしを拾う", len(sri_missing('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0"></script>')), 1),
         ("SRI ありは通る", len(sri_missing('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.94.0" integrity="sha384-x" crossorigin="anonymous"></script>')), 0),
     ]
