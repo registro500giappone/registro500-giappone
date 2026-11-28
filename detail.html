@@ -530,13 +530,18 @@
             <div id="paintGrid" class="paint-grid"></div>
             <a class="rg-episodes-more" href="/paint-notebook/gallery">みんなのお絵描き帳を見る →</a>
           </section>
-          <!-- つないだ兄弟サイト（Registro312・Registro Scorpione）の車。本人が見ているときだけ＝ほかの人には出さない（2026-11-17 ユーザー決裁・DB-AUTH §8-2 段取り6）。SISTER_ON_CAR_PAGE（または ?sister-preview）のときだけ -->
+          <!-- つないだ兄弟サイト（Registro312・Registro Scorpione）の車。本人が見ているときだけ＝ほかの人には出さない（2026-11-17 ユーザー決裁）。SISTER_ON_CAR_PAGE（または ?sister-preview）のときだけ -->
           <section class="rg-card" id="sisterSection" style="display:none;">
             <h2 class="rg-section-title">つないでいる Registro312／Scorpione の車</h2>
             <p style="margin:0 0 0.6rem;color:var(--rg-muted);font-size:0.82rem;">あなたにだけ見えています（ほかの人には出ません）。</p>
             <div id="sisterCars"></div>
             <div style="text-align:right;margin-top:0.6rem;"><button type="button" id="sisterUnlinkBtn" style="background:none;border:0;color:var(--rg-muted);font-size:0.8rem;text-decoration:underline;cursor:pointer;">つながりを外す</button></div>
             <p id="sisterErr" style="display:none;margin:0.4rem 0 0;color:#c62828;font-size:0.82rem;text-align:right;"></p>
+          </section>
+          <!-- 同じオーナーの Registro312／Scorpione の車（誰にでも見える）＝312 のマイガレージで本人が「車両ページでつなげて表示する」を選んだときだけ（2026-11-28 ユーザー決裁）。本人には上の欄が出るのでこちらは出さない・手放した車のページには出さない -->
+          <section class="rg-card" id="sisterPublicSection" style="display:none;">
+            <h2 class="rg-section-title" id="sisterPublicTitle">ほかの車</h2>
+            <div id="sisterPublicCars"></div>
           </section>
           <section class="rg-card" id="shareSection"><h2 class="rg-section-title">共有・連絡</h2>
             <p class="share-preview-label">LINE で送るとこう届きます</p>
@@ -1896,7 +1901,7 @@
       sec.style.display = 'block';
     }
 
-    // ─── つないだ兄弟サイトの車（Registro312・Registro Scorpione・2026-11-17 DB-AUTH §8-2 段取り6） ───
+    // ─── つないだ兄弟サイトの車（Registro312・Registro Scorpione・2026-11-17） ───
     // 本人が自分の車両ページを見ているときだけ、312 の classic-cars に「つないだ車は？」と尋ねる（公開している車だけが返る）。
     // 証明＝/api/sister-assert（用途 ask・5分・1回きり）。答えが無い・遅い・0台のときは欄を出さない。
     // 312 の公開の日にオン（それまでは ?sister-preview のときだけ）。
@@ -1933,7 +1938,9 @@
     async function updateSister() {
       const sec = document.getElementById('sisterSection');
       const isOwner = currentUser && currentCar && currentCar.owner_user_id && currentCar.owner_user_id === currentUser.id;
+      if (!isOwner) updateSisterPublic();
       if (!sisterOn || !isOwner) { sec.style.display = 'none'; return; }
+      document.getElementById('sisterPublicSection').style.display = 'none';
       const key = currentUser.id + '/' + currentCar.document_id;
       if (sisterAsked === key) return;   // ログインの知らせは何度も来る＝1回だけ尋ねる
       sisterAsked = key;
@@ -1954,6 +1961,30 @@
         return `<a href="${esc(url)}" target="_blank" rel="noopener" style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;padding:0.6rem 0;border-top:1px solid var(--rg-border);text-decoration:none;color:var(--rg-text);">
           <span><strong>${name}</strong>${year}<br><small style="color:var(--rg-muted);">${esc(site[c.brand] || 'Registro312')}</small></span>
           <span style="color:var(--rg-accent);white-space:nowrap;">開く ↗</span></a>`;
+      }).join('');
+      sec.style.display = 'block';
+    }
+    // 誰にでも見える「ほかの車」＝312 の classic_public_cars（公開を選んだ人のぶんだけ返る・312 の公開キー）
+    const R312_REST = { url: 'https://gorlwdckzskbzacwsuyo.supabase.co', key: 'sb_publishable_iAEy1Q8RAs6-ZnD-wIOznw_jqHP1R7O' };
+    let sisterPublicAsked = '';
+    async function updateSisterPublic() {
+      const sec = document.getElementById('sisterPublicSection');
+      if (!currentCar || !currentCar.owner_user_id || currentCar.is_sold) { sec.style.display = 'none'; return; }
+      if (sisterPublicAsked === currentCar.document_id) return;
+      sisterPublicAsked = currentCar.document_id;
+      let cars = [];
+      try {
+        const r = await fetch(R312_REST.url + '/rest/v1/rpc/classic_public_cars', { method: 'POST',
+          headers: { apikey: R312_REST.key, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ p_classic_uid: currentCar.owner_user_id }) });
+        cars = r.ok ? await r.json() : [];
+      } catch (e) { return; }
+      if (!Array.isArray(cars) || !cars.length) { sec.style.display = 'none'; return; }
+      const site = { FIAT: ['Registro312', 'https://registro312.com'], ABARTH: ['Registro Scorpione', 'https://registroscorpione.com'] };
+      document.getElementById('sisterPublicTitle').textContent = (currentCar.handle_name || 'オーナー') + 'さんのほかの車';
+      document.getElementById('sisterPublicCars').innerHTML = cars.map(c => {
+        const st = site[c.brand]; if (!st || !/^\d+$/.test(String(c.no))) return '';
+        return `<p style="margin:0.4rem 0;"><a href="${st[1]}/car/${c.no}" style="color:var(--rg-accent);">${esc(c.display_name || c.brand)}</a> <small style="color:var(--rg-muted);">（姉妹サイト <span style="white-space:nowrap;">${esc(st[0])}</span> の車）</small></p>`;
       }).join('');
       sec.style.display = 'block';
     }
